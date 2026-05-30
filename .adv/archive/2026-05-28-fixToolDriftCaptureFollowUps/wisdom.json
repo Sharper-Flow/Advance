@@ -1,0 +1,35 @@
+{
+  "entries": [
+    {
+      "id": "ws-N8RANu",
+      "type": "pattern",
+      "content": "State-mutation rejection over throw in Temporal signal handlers. Per https://docs.temporal.io/handling-messages#exceptions, throwing in a signal handler fails the ENTIRE workflow (ApplicationFailure → workflow failure; other exceptions → Workflow Task Failure → stuck workflow). The canonical ADV pattern is state-mutation rejection: record the rejection in workflow state (e.g. `state.artifacts[kind].rejection = { reason, attempted_size, cap, rejected_at }`), leave the target state field unchanged, return state. Workflow continues; tool layer observes rejection via next query. Reference: applyGateStuckToState at workflows.ts:722-732, 1098. Use this pattern for any structural validation defense (size caps, schema gates, permission checks) inside signal handlers.</content>\n<parameter name=\"promote\">true",
+      "recorded_at": "2026-05-28T20:14:18.012Z"
+    },
+    {
+      "id": "ws-sUIrsT",
+      "type": "pattern",
+      "content": "Compile-time invariant locks via const-true type assertion catch type-set drift between related declarations. Pattern: `type _Check = keyof A extends B ? B extends keyof A ? true : never : never; const _check: _Check = true;`. If either side drifts (a new B value added without an A field, or vice versa), the const assignment fails to compile. Used in types/artifacts.ts to enforce keyof ArtifactPayload === ArtifactKind, in types/gates.ts to enforce GateArtifactKind aligns with its Zod schema. Better than runtime tests because TS catches drift before commit.</content>\n<parameter name=\"promote\">true",
+      "recorded_at": "2026-05-28T20:14:22.620Z"
+    },
+    {
+      "id": "ws-Xq5md5",
+      "type": "convention",
+      "content": "Use explicit ordered arrays over Object.entries() for determinism-critical iteration. Object.entries() order is implementation-defined for non-integer keys (modern engines preserve insertion order in practice, but it's emergent not contractual). When ordering matters for replay safety, history-diff cleanliness, or audit reproducibility (e.g. workflow signal fan-out, deterministic test fixtures), declare an explicit ReadonlyArray of [key, signal-or-value] tuples. TS type annotation catches drift between the array and the source key set at compile time. Example: ARTIFACT_SIGNAL_ORDER in storage/store-temporal/changes.ts.</content>\n<parameter name=\"promote\">true",
+      "recorded_at": "2026-05-28T20:14:27.097Z"
+    },
+    {
+      "id": "ws-L3D2Jb",
+      "type": "gotcha",
+      "content": "TypeScript interface method overloads require implementation satisfaction at compile time — additive-overload approach forces consolidating implementation work into the interface change. When adding a second overload to an interface method (Store[\"changes\"].create with both positional and options-object shapes during a migration window), both store implementations (disk + temporal) must satisfy BOTH overloads in the same change. Splitting interface-add from impl-add into separate tasks breaks the build between them. Either: (a) consolidate the impl work into the interface-changing task, (b) use intersection types with explicit `as Store[\"changes\"][\"create\"]` casts to defer impl, or (c) skip the additive overload entirely and migrate atomically.</content>\n<parameter name=\"promote\">true",
+      "recorded_at": "2026-05-28T20:14:31.669Z"
+    },
+    {
+      "id": "ws-4BexSl",
+      "type": "gotcha",
+      "content": "Test fixtures using mockResolvedValueOnce break silently when a migration adds a new caller of the mocked function earlier in the call chain. Symptom: test that previously expected a single call to fn() now fails with \"received: default mock return\" because the mockOnce was consumed by an earlier caller introduced by the migration. Fix: replace mockResolvedValueOnce with mockResolvedValue (stable default for shared call patterns). When precise per-call assertions are needed, count expected calls explicitly. Example: T10 archive-phase9 test fix — readArtifact in validation context now calls findArchiveBundle before the archive flow's own findArchiveBundle, consuming the mockOnce.</content>\n<parameter name=\"promote\">true",
+      "recorded_at": "2026-05-28T20:14:35.532Z"
+    }
+  ],
+  "count": 5
+}

@@ -1,7 +1,7 @@
 # Worktree Lifecycle
 
-> **Version:** 1.3.0
-> **Updated:** 2026-05-22
+> **Version:** 1.4.0
+> **Updated:** 2026-05-23
 
 ## Purpose
 
@@ -423,14 +423,29 @@ ADV mutating tools that advance gates or change task execution state must struct
 
 #### Scenarios
 
-**Gate completion blocks from main checkout** (`rq-worktreeMutationGuard01.1`)
+**Metadata gate completion is allowed from main checkout** (`rq-worktreeMutationGuard01.1`)
 
 **Given:**
 
 - feature_flags.worktree_guard_enforce is true
 - The current session is in the main checkout
 
-**When:** adv_gate_complete is called for discovery, design, planning, execution, acceptance, or release
+**When:** adv_gate_complete is called for discovery or design
+
+**Then:**
+
+- The tool allows the metadata-only gate completion
+- No worktree materialization is required
+- Code and git mutation paths remain unaffected
+
+**Worktree-mutation gate completion blocks from main checkout** (`rq-worktreeMutationGuard01.1b`)
+
+**Given:**
+
+- feature_flags.worktree_guard_enforce is true
+- The current session is in the main checkout
+
+**When:** adv_gate_complete is called for planning, execution, acceptance, or release
 
 **Then:**
 

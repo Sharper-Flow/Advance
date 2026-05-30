@@ -1,0 +1,548 @@
+{
+  "id": "fixWorktreeCleanup",
+  "title": "Fix worktree cleanup",
+  "status": "archived",
+  "created_at": "2026-05-21T06:02:44.506Z",
+  "tasks": [
+    {
+      "id": "tk-1b4505479d2e",
+      "title": "Add bounded cleanup spec law and drift-report contract tests",
+      "type": "code",
+      "section": "Spec and cleanup report contract",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-21T06:49:28.552Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-21T06:53:25.575Z",
+      "verification": "Delegated implementation verified by main agent: npx vitest run src/trunk-write-firewall-spec-assets.test.ts src/adv-cleanup-contract-assets.test.ts src/deploy-local.test.ts src/adv-skill-backed-commands-assets.test.ts src/manifest.test.ts src/adv-stability-docs-assets.test.ts passed (167 tests).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added bounded cleanup spec law and drift-report contract tests for worktree cleanup and /adv-cleanup report-only behavior.",
+      "filesTouched": [
+        ".adv/specs/worktree-lifecycle/spec.json",
+        ".opencode/command/adv-cleanup.md",
+        "docs/specs/worktree-lifecycle.md",
+        "plugin/src/adv-cleanup-contract-assets.test.ts",
+        "plugin/src/trunk-write-firewall-spec-assets.test.ts",
+        "skills/adv-cleanup/SKILL.md"
+      ],
+      "touched_files": [
+        ".adv/specs/worktree-lifecycle/spec.json",
+        ".opencode/command/adv-cleanup.md",
+        "docs/specs/worktree-lifecycle.md",
+        "plugin/src/adv-cleanup-contract-assets.test.ts",
+        "plugin/src/trunk-write-firewall-spec-assets.test.ts",
+        "skills/adv-cleanup/SKILL.md"
+      ],
+      "checkpointSha": "02fc1891d5725fce1d8ced26a6becb3baecacbe7",
+      "completedAt": "2026-05-21T07:03:39.790Z",
+      "completed_at": "2026-05-21T07:03:39.790Z",
+      "notes": "Acceptance contract backfill after contract minting for legacy-prep task. Task implemented bounded cleanup spec law and drift-report contract tests.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "contract_refs": {
+        "implements": [
+          "AC6",
+          "AC7"
+        ],
+        "verifies": [
+          "AC6",
+          "AC7"
+        ],
+        "respects": [],
+        "not_applicable_reason": ""
+      },
+      "updatedAt": "2026-05-27T22:22:07.315Z"
+    },
+    {
+      "id": "tk-6799f7175c8b",
+      "title": "Implement bounded post-delete worktree notification",
+      "type": "code",
+      "section": "Bounded deletion implementation",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-21T06:49:49.644Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-1b4505479d2e"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-21T07:04:20.600Z",
+      "verification": "Bounded post-delete notification implementation verified: npx vitest run src/tools/worktree/index-delete.test.ts src/tools/worktree/index-create.test.ts passed (50 tests); npx eslint src/tools/worktree/index.ts src/tools/worktree/index-delete.test.ts passed; npx prettier --check src/tools/worktree/index.ts src/tools/worktree/index-delete.test.ts passed. Also fixed same-file pending-delete projectId leakage so index-delete tests are isolated.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Implemented bounded post-delete workflow/cache notification so git removal remains authoritative and timeout/failure returns success with warning.",
+      "filesTouched": [
+        "plugin/src/tools/worktree/index-delete.test.ts",
+        "plugin/src/tools/worktree/index.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/worktree/index-delete.test.ts",
+        "plugin/src/tools/worktree/index.ts"
+      ],
+      "checkpointSha": "c7859171fd5a5dee21e95fea7d9a30ef6a51b218",
+      "completedAt": "2026-05-21T07:23:32.699Z",
+      "completed_at": "2026-05-21T07:23:32.699Z",
+      "notes": "Acceptance contract backfill after contract minting for legacy-prep task. Task implemented bounded post-delete worktree notification.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1"
+        ],
+        "verifies": [
+          "AC1"
+        ],
+        "respects": [],
+        "not_applicable_reason": ""
+      },
+      "updatedAt": "2026-05-27T22:22:07.321Z"
+    },
+    {
+      "id": "tk-1d1567a1286a",
+      "title": "Implement bounded pending-delete cleanup loop",
+      "type": "code",
+      "section": "Bounded cleanup implementation",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-05-21T06:50:08.304Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-6799f7175c8b"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-21T07:24:19.755Z",
+      "verification": "Bounded cleanup loop verified: npx vitest run src/tools/worktree/index-delete.test.ts passed (30 tests); npx eslint src/tools/worktree/index.ts src/tools/worktree/index-delete.test.ts passed; npx prettier --check src/tools/worktree/index.ts src/tools/worktree/index-delete.test.ts passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Implemented per-item bounded pending-delete cleanup with retained timeouts, attempt accounting, missing-path cleanup, in-use skip preservation, and retry cap behavior.",
+      "filesTouched": [
+        "plugin/src/tools/worktree/index-delete.test.ts",
+        "plugin/src/tools/worktree/index.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/worktree/index-delete.test.ts",
+        "plugin/src/tools/worktree/index.ts"
+      ],
+      "checkpointSha": "ba6a374a61b9af7f4bccb3ea1d41c7719ce2170f",
+      "completedAt": "2026-05-21T07:40:12.902Z",
+      "completed_at": "2026-05-21T07:40:12.902Z",
+      "notes": "Acceptance contract backfill after contract minting for legacy-prep task. Task implemented bounded pending-delete cleanup loop.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "contract_refs": {
+        "implements": [
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5"
+        ],
+        "verifies": [
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5"
+        ],
+        "respects": [],
+        "not_applicable_reason": ""
+      },
+      "updatedAt": "2026-05-27T22:22:07.334Z"
+    },
+    {
+      "id": "tk-5999a80259cd",
+      "title": "Update /adv-cleanup worktree drift reporting",
+      "type": "code",
+      "section": "Cleanup reporting",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-05-21T06:50:28.064Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-1b4505479d2e"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-21T07:40:44.653Z",
+      "verification": "Cleanup drift reporting verified: npx vitest run src/adv-cleanup-contract-assets.test.ts src/adv-skill-backed-commands-assets.test.ts src/manifest.test.ts passed (93 tests). Scope was implemented by earlier contract task; no additional file changes were needed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Updated /adv-cleanup worktree drift reporting contract; no additional file changes were needed because contract task already implemented the scope.",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "ba6a374a61b9af7f4bccb3ea1d41c7719ce2170f",
+      "completedAt": "2026-05-21T07:41:07.106Z",
+      "completed_at": "2026-05-21T07:41:07.106Z",
+      "notes": "Acceptance contract backfill after contract minting for legacy-prep task. Task updated /adv-cleanup worktree drift reporting.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "contract_refs": {
+        "implements": [
+          "AC6",
+          "AC7"
+        ],
+        "verifies": [
+          "AC6",
+          "AC7"
+        ],
+        "respects": [],
+        "not_applicable_reason": ""
+      },
+      "updatedAt": "2026-05-27T22:22:23.579Z"
+    },
+    {
+      "id": "tk-cbd0d7c40d18",
+      "title": "Run integration verification and source-vs-runtime handoff",
+      "type": "code",
+      "section": "Verification",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-05-21T06:50:46.567Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-1d1567a1286a"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-5999a80259cd"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_allowed"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-21T07:41:43.666Z",
+      "verification": "Final review nit fix committed: aligned worktree-lifecycle spec updated_at with markdown spec date. Targeted vitest (39 tests) and prettier check passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Ran integration verification and source-vs-runtime handoff; review/harden also verified targeted tests, full check, build, eslint, prettier, and strict validation.",
+      "filesTouched": [
+        ".adv/specs/worktree-lifecycle/spec.json"
+      ],
+      "touched_files": [
+        ".adv/specs/worktree-lifecycle/spec.json"
+      ],
+      "checkpointSha": "5d9e4136696f8ae4fa39fc4ff05894be9727441a",
+      "completedAt": "2026-05-21T08:27:23.109Z",
+      "completed_at": "2026-05-21T08:27:23.109Z",
+      "notes": "Acceptance contract backfill after contract minting for legacy-prep task. Task ran integration verification and source-vs-runtime handoff.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "contract_refs": {
+        "implements": [
+          "AC7"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7"
+        ],
+        "respects": [],
+        "not_applicable_reason": ""
+      },
+      "updatedAt": "2026-05-27T22:22:23.663Z"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-21T06:03:22.069Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved proposal via reply: approve",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixWorktreeCleanup/proposal.md",
+        "content_hash": "3f9d04b705d9fbdc282ac6114b78c6fecffdd0f32fca2325bc427679f808b809",
+        "non_whitespace_chars": 5212,
+        "checked_at": "2026-05-21T06:03:22.119Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-21T06:40:05.333Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery findings and agreement were already persisted before resume; agreement includes prior user approval evidence. Resume refresh verified project context, worktree-lifecycle spec, adv-worktree/adv-cleanup skills, related active overlap addTerminalCleanupReaper, and validation passed with only expected pre-prep warnings. Worktree guard explicitly disabled in project.json for trunk and fixWorktreeCleanup worktree per user instruction.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixWorktreeCleanup/agreement.md",
+        "content_hash": "f698410ec059ddfdc8da64f3833ff8b1100e67e7afe75aee54abe422c4ca5c4a",
+        "non_whitespace_chars": 3372,
+        "checked_at": "2026-05-21T06:40:05.406Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-21T06:48:26.965Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design persisted with architecture, affected components, risks/mitigations, skipped leverage scout rationale, and independent adv-researcher validator result VALIDATED. No user-value tradeoffs, unresolved CONFLICT, or contract-compromise risk identified.",
+      "artifact_evidence": {
+        "kind": "design",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixWorktreeCleanup/design.md",
+        "content_hash": "c60ddcb1e1d647f5660b467adca4974f436b14c0ca5c085b259b72c979f4f676",
+        "non_whitespace_chars": 4740,
+        "checked_at": "2026-05-21T06:48:27.088Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-21T06:51:54.859Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved prep plan via reply: approve. Task graph has 5 tasks with TDD intent and dependencies; ready task tk-1b4505479d2e."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-21T07:44:50.810Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 5 tasks completed. Final verification passed: pnpm run check, pnpm test, and pnpm run build. Strict validation passed with one non-blocking warning: NO_DELTAS. Runtime live behavior still requires deploy-local plus OpenCode restart because host-loaded plugin tool code is cached in-session."
+    },
+    "acceptance": {
+      "status": "done",
+      "started_at": "2026-05-27T22:08:04.013Z",
+      "completed_at": "2026-05-27T22:09:00.026Z",
+      "completed_by": "agent",
+      "approval_evidence": "User accepted delivered work via reply: \"accept\". Acceptance review verdict APPROVED after remediation in change worktree; executive summary persisted and verified. Contract minted and 7/7 acceptance criteria review-matrix rows passed. Worktree verification passed: targeted worktree test command (script ran 237 passed, 1 skipped), pnpm run check, pnpm run build, eslint, prettier, and strict validation with only NO_DELTAS warning.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixWorktreeCleanup/acceptance.md",
+        "content_hash": "211e2cbbee1ae4a9b17d49f81f82e837288f96d51b64f664c0e9d8d9b2cd718e",
+        "non_whitespace_chars": 2098,
+        "checked_at": "2026-05-27T22:09:00.169Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "1c7ddb532007c6d3a4342f3ec2429a224ef6796488f26f43ea8afbaaf9f0569c",
+      "approvedAt": "2026-05-21T06:40:05.333Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "Post-delete notification/cache refresh is bounded; git worktree removal remains authoritative; timeout returns success with warning.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1c7ddb532007c6d3a4342f3ec2429a224ef6796488f26f43ea8afbaaf9f0569c",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Pending-delete cleanup is bounded per item; timed-out item is retained, actual failed/timeout attempts increment, and later queued items continue.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1c7ddb532007c6d3a4342f3ec2429a224ef6796488f26f43ea8afbaaf9f0569c",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "In-use skips do not consume retry attempts; actual failed deletes and timeouts do.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1c7ddb532007c6d3a4342f3ec2429a224ef6796488f26f43ea8afbaaf9f0569c",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Already-missing pending-delete paths are cleared without retrying forever.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1c7ddb532007c6d3a4342f3ec2429a224ef6796488f26f43ea8afbaaf9f0569c",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Pending-delete retry cap is enforced at max 5 attempts unless an explicit operator cleanup uses force-attempt semantics.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1c7ddb532007c6d3a4342f3ec2429a224ef6796488f26f43ea8afbaaf9f0569c",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "`/adv-cleanup` reports worktree drift groups and does not delete worktrees, even with `--execute`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1c7ddb532007c6d3a4342f3ec2429a224ef6796488f26f43ea8afbaaf9f0569c",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "Spec/docs/tests reflect the bounded cleanup law and full verification passes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1c7ddb532007c6d3a4342f3ec2429a224ef6796488f26f43ea8afbaaf9f0569c",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-05-27T22:08:36.812Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Post-delete notification/cache refresh bounded in plugin/src/tools/worktree/index.ts; verified by index-delete.test.ts signal timeout test and full targeted suite.",
+          "notes": "Git worktree removal remains authoritative; notification timeout returns success with warning."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Pending-delete cleanup bounded per item in drainPendingDeletes; verified by index-delete.test.ts timed-out first item continues to later item test.",
+          "notes": "Timed-out item retained, attempts incremented, later queued item processed."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "In-use skip path in drainPendingDeletes verified by index-delete.test.ts does-not-consume-retry-attempts test.",
+          "notes": "Actual failures and timeouts increment attempts; in-use skip retains without increment."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Already-missing pending-delete paths clear in drainPendingDeletes; verified by index-delete.test.ts clears pending deletes whose worktree path is already gone.",
+          "notes": "No infinite retry for missing paths."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "MAX_PENDING_DELETE_ATTEMPTS=5 and forceAttempts retry-cap bypass verified by index-delete.test.ts retry-cap tests; review remediation added proof that forceAttempts does not force dirty deletion.",
+          "notes": "Manual cleanup can retry after cap while preserving dirty/unmerged safety."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "/adv-cleanup and adv-cleanup skill document report-only worktree drift behavior; adv-cleanup-contract-assets tests verify drift groups and non-destructive --execute behavior.",
+          "notes": "Cleanup report-only behavior remains documented and tested."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Spec/docs/tests updated for rq-worktreeBoundedCleanup01. Verification passed: pnpm test -- src/tools/worktree/index-delete.test.ts (script ran full suite: 237 passed, 1 skipped), pnpm run check, pnpm run build, eslint, prettier, and strict validation with only NO_DELTAS warning.",
+          "notes": "Worktree-lifecycle docs mirror metadata aligned with spec JSON during review remediation."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "Post-delete notification/cache refresh is bounded; git worktree removal remains authoritative; timeout returns success with warning.",
+    "Pending-delete cleanup is bounded per item; timed-out item is retained, actual failed/timeout attempts increment, and later queued items continue.",
+    "In-use skips do not consume retry attempts; actual failed deletes and timeouts do.",
+    "Already-missing pending-delete paths are cleared without retrying forever.",
+    "Pending-delete retry cap is enforced at max 5 attempts unless an explicit operator cleanup uses force-attempt semantics.",
+    "`/adv-cleanup` reports worktree drift groups and does not delete worktrees, even with `--execute`.",
+    "Spec/docs/tests reflect the bounded cleanup law and full verification passes."
+  ],
+  "documents": {},
+  "artifacts": {
+    "proposal": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixWorktreeCleanup/proposal.md",
+      "updatedAt": "2026-05-21T08:30:14.586Z"
+    },
+    "problemStatement": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixWorktreeCleanup/problem-statement.md",
+      "updatedAt": "2026-05-21T08:30:14.598Z"
+    },
+    "agreement": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixWorktreeCleanup/agreement.md",
+      "updatedAt": "2026-05-21T08:30:14.614Z"
+    },
+    "design": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixWorktreeCleanup/design.md",
+      "updatedAt": "2026-05-21T08:30:14.629Z"
+    },
+    "executiveSummary": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixWorktreeCleanup/executive-summary.md",
+      "updatedAt": "2026-05-27T21:56:50.613Z",
+      "contentHash": "45ec9eedfa5c1fac136c6ec5bb8b487d0e3b11b66151bc5b3da867db869ba0a5"
+    }
+  },
+  "lastSignalAt": "2026-05-27T22:22:23.663Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d"
+}

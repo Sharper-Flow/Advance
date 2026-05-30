@@ -878,4 +878,105 @@ describe("Trunk Write Firewall: tool.execute.before interception", () => {
     );
     expect(getStatus().activeChangeId).toBe("guardTest");
   }, 30_000);
+
+  // Regression test for change `fixTrunkFirewallRelPath`.
+  // When session directory = trunk (not warped) and the active change has
+  // a registered ADV worktree, relative file paths in write/edit/morph_edit
+  // must resolve against the worktree path so the firewall correctly ALLOWs.
+  test("REL path allowed when active change has worktree and session is on trunk", async () => {
+    const { execSync } = await import("child_process");
+    const { mkdirSync } = await import("fs");
+    const { join } = await import("path");
+    const { getWorktreeBase, getProjectId } =
+      await import("./utils/project-id");
+
+    await initGitRepo();
+    await enableWorktreeGuard();
+    // Commit the project.json so the worktree inherits it
+    execSync("git add project.json && git commit -m 'enable guard'", {
+      cwd: tempDir,
+    });
+
+    // Create a worktree at the ADV convention path:
+    // getWorktreeBase(projectId)/change/{changeId}
+    const changeId = "myActiveChange";
+    const projectId = await getProjectId(tempDir);
+    const worktreeBase = getWorktreeBase(projectId!);
+    const worktreePath = join(worktreeBase, "change", changeId);
+    mkdirSync(worktreePath, { recursive: true });
+    execSync(
+      `git worktree add --force ${JSON.stringify(worktreePath)} -b change/${changeId}`,
+      { cwd: tempDir },
+    );
+    mkdirSync(join(worktreePath, "src"), { recursive: true });
+
+    try {
+      hooks = await AdvancePlugin({
+        project: {
+          id: "test",
+          worktree: tempDir,
+          time: { created: Date.now() },
+        },
+        directory: tempDir, // session on trunk
+        worktree: tempDir,
+        serverUrl: new URL("http://localhost"),
+      } as any);
+
+      // Set active change ID so the hook can derive the worktree path
+      await hooks["tool.execute.before"]!(
+        { tool: "adv_task_list", sessionID: "test" } as any,
+        { args: { changeId } } as any,
+      );
+
+      // REL path must be ALLOWED because it resolves against the worktree
+      await expect(
+        hooks["tool.execute.before"]!(
+          { tool: "write", sessionID: "test" } as any,
+          { args: { filePath: "src/file.ts", content: "x" } } as any,
+        ),
+      ).resolves.toBeUndefined();
+
+      // ABS path to trunk still BLOCKED
+      await expect(
+        hooks["tool.execute.before"]!(
+          { tool: "write", sessionID: "test" } as any,
+          { args: { filePath: join(tempDir, "src/file.ts") } } as any,
+        ),
+      ).rejects.toThrow(/Trunk write firewall/);
+    } finally {
+      try {
+        execSync(
+          `git worktree remove --force ${JSON.stringify(worktreePath)}`,
+          { cwd: tempDir, stdio: "ignore" },
+        );
+      } catch {
+        // best-effort cleanup
+      }
+    }
+  }, 30_000);
+
+  test("REL path blocked when no worktree exists for active change", async () => {
+    await initGitRepo();
+    await enableWorktreeGuard();
+    hooks = await AdvancePlugin({
+      project: { id: "test", worktree: tempDir, time: { created: Date.now() } },
+      directory: tempDir,
+      worktree: tempDir,
+      serverUrl: new URL("http://localhost"),
+    } as any);
+
+    // Set an active change that has NO worktree
+    await hooks["tool.execute.before"]!(
+      { tool: "adv_task_list", sessionID: "test" } as any,
+      { args: { changeId: "noWorktreeChange" } } as any,
+    );
+
+    // REL path must be BLOCKED because no worktree exists
+    await expect(
+      hooks["tool.execute.before"]!(
+        { tool: "write", sessionID: "test" } as any,
+        { args: { filePath: "src/file.ts", content: "x" } } as any,
+      ),
+    ).rejects.toThrow(/Trunk write firewall/);
+  }, 30_000);
 });

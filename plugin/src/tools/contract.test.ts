@@ -217,6 +217,65 @@ describe("contractTools", () => {
     expect(payload.contract.source.approvedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
   });
 
+  /**
+   * AC8 (completeStateBackedGate) — readAgreement MUST be Temporal-first
+   * (state.documents.agreement) → disk → archive, matching the canonical
+   * readArtifact ordering. RED today: readAgreement reads disk-first and
+   * only falls back to change.documents.agreement when disk is empty/missing.
+   *
+   * Setup: disk agreement.md is STALE (one AC), Temporal
+   * change.documents.agreement is FRESH (two ACs). A Temporal-first reader
+   * mints a 2-item contract; the disk-first reader mints a stale 1-item
+   * contract. Asserting itemCount === 2 fails before the fix.
+   */
+  test("adv_contract_mint uses Temporal-fresh agreement over stale disk (AC8)", async () => {
+    tempDir = await createTempDir("adv-contract-tool-");
+    const changeId = "agreementTemporalFirst";
+    const changeDir = join(tempDir, changeId);
+    await mkdir(changeDir, { recursive: true });
+    // STALE on disk — only one acceptance criterion.
+    await writeFile(
+      join(changeDir, "agreement.md"),
+      `# Agreement
+
+## Acceptance Criteria
+- AC1: Stale disk acceptance criterion.
+
+## Constraints
+- C1: Stale disk constraint.
+`,
+    );
+
+    // FRESH in Temporal state.documents — two acceptance criteria.
+    const change = baseChange({
+      id: changeId,
+      documents: {
+        agreement: `# Agreement
+
+## Acceptance Criteria
+- AC1: Fresh Temporal acceptance criterion.
+- AC2: Second fresh Temporal acceptance criterion.
+
+## Constraints
+- C1: Fresh Temporal constraint.
+`,
+      },
+    } as Partial<Change>);
+    const store = createStore(change, tempDir);
+
+    const output = parse(
+      await contractTools.adv_contract_mint.execute({ changeId }, store),
+    );
+
+    expect(output.success).toBe(true);
+    // Temporal-first → 2 ACs + 1 constraint = 3 items. Disk-first → 2 items.
+    expect(output.itemCount).toBe(3);
+    const payload = fireSignalAndRefresh.mock.calls[0][4];
+    expect(payload.contract.items).toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: "AC2" })]),
+    );
+  });
+
   test("adv_contract_mint uses explicit approvedAt when provided", async () => {
     const changesDir = await writeAgreement("contractRecovery");
     const store = createStore(
@@ -703,6 +762,8 @@ describe("contractTools", () => {
           recoveryMode: "poisoned_history",
           recoveryEvidence:
             "TMPRL1100: Nondeterminism error in workflow history",
+          recoveryReason: "review matrix recovery after poisoned history",
+          priorApprovalEvidence: "User approved acceptance: approve",
           rows: [
             {
               contractId: "AC1",
@@ -752,6 +813,53 @@ describe("contractTools", () => {
 
     expect(output.error).toContain("recoveryEvidence");
     expect(store.changes.save).not.toHaveBeenCalled();
+  });
+
+  test("review matrix recovery requires rationale and prior approval evidence", async () => {
+    const change = baseChange({
+      contract: {
+        version: 1,
+        rigor: "standard",
+        source: { artifact: "agreement", approvedAt },
+        items: [
+          {
+            id: "AC1",
+            kind: "acceptance_criterion",
+            text: "Contract minting fires a production signal.",
+            sourceArtifact: "agreement",
+            verificationRequired: true,
+            evidencePolicy: "test",
+            status: "approved",
+          },
+        ],
+        amendments: [],
+      },
+    } as Partial<Change>);
+    const store = createStore(change, "/tmp/unused");
+
+    const output = parse(
+      await contractTools.adv_contract_review_matrix_set.execute(
+        {
+          changeId: "contractRecovery",
+          recoveryMode: "poisoned_history",
+          recoveryEvidence:
+            "TMPRL1100: Nondeterminism error in workflow history",
+          rows: [
+            {
+              contractId: "AC1",
+              kind: "acceptance_criterion",
+              status: "pass",
+              evidencePolicy: "test",
+              evidence: "passing test",
+            },
+          ],
+        },
+        store,
+      ),
+    );
+
+    expect(output.error).toContain("recoveryReason and priorApprovalEvidence");
+    expect(fireSignalAndRefresh).not.toHaveBeenCalled();
   });
 
   test("missing-workflow errors do not authorize poisoned-history recovery", async () => {
@@ -936,6 +1044,8 @@ describe("contractTools", () => {
           recoveryMode: "poisoned_history",
           recoveryEvidence:
             "Temporal reports WorkflowTaskFailedCauseNonDeterministicError",
+          recoveryReason: "review matrix recovery after poisoned history",
+          priorApprovalEvidence: "User approved acceptance: approve",
           rows: [
             {
               contractId: "AC1",

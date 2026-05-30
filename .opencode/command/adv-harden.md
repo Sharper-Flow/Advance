@@ -109,6 +109,19 @@ If all resolved → emit REVIEW FINDINGS AUDIT: PASSED banner → proceed.
 
 > **Scope note:** `blocker:` and `issue:` findings are checked here (pre-flight). `suggestion:` and `question:` findings are validated and implemented in "Review Findings Ingestion" below. `nit:` findings are excluded from both.
 
+### Report-Created Agenda Audit
+
+Inspect report-created agenda items before scanners run:
+
+1. Call `adv_agenda_list` and filter items with category `subagent-followup` or description/source metadata containing `Source: {change-id}/`.
+2. For each report-created agenda item, decide:
+   - **Safe + adjacent + campsite/touched-scope applicable** → fix during harden and record verification.
+   - **Not applicable** → record rationale (`not adjacent`, `not campsite`, `outside touched scope`, `already covered`, or `requires separate change`).
+   - **Would change agreement scope** → stop under the drift detection rule below.
+3. The harden summary must include `Report-created agenda audit: {fixed count} fixed, {rationale count} rationale recorded`.
+
+Do not silently ignore report-created agenda items. Do not require harden to fix non-adjacent or unrelated agenda items.
+
 ### Contract Proof Audit
 
 If `change.contract` exists, verify `contract.reviewMatrix` before scanners run:
@@ -228,6 +241,40 @@ EXPECTED OUTPUT: {dimension-specific JSON schema}
 ```
 
 Build scanner packet from `adv_task_list` and `adv_change_show` outputs at spawn time. Inject verbatim — do NOT give explore agents ADV tool access and do NOT ask scanners to call `adv_subagent_report_submit`.
+
+After scanner synthesis, the orchestrator submits one compact scanner bundle. Individual scanners do not submit reports.
+
+```
+SCANNER_BUNDLE_REPORT:
+WORKING DIRECTORY: {workdir}
+CHANGE: {change-id} | {title} | gate: release
+SCOPE KEY: scanner-bundle:harden
+PHASE: harden
+ATTEMPT: {attempt-number, starting at 1 for this orchestrator-submitted bundle}
+REPORT PAYLOAD:
+{
+  "schema_version": "1.0",
+  "change_id": "{change-id}",
+  "attempt": 1,
+  "workdir_used": "{workdir}",
+  "scope": { "kind": "change", "scope_key": "scanner-bundle:harden" },
+  "agent": "adv-scanner-bundle",
+  "phase": "harden",
+  "scanner_count": 6,
+  "dimensions": [
+    "test-coverage",
+    "ai-slop-detection",
+    "documentation-hygiene",
+    "cleanup",
+    "production-readiness",
+    "deployment-readiness"
+  ],
+  "summary": "bounded synthesis",
+  "findings": [],
+  "follow_ups": []
+}
+EXPECTED ACTION: orchestrator calls adv_subagent_report_submit with SCANNER_BUNDLE_REPORT after synthesis
+```
 
 Spawn **6 sub-agents in two batches** (`subagent_type: "explore"`). Batch 1: sub-agents 1–3. Wait for completions. Batch 2: sub-agents 4–6. Each receives the Harden Scanner Context Packet above plus dimension-specific instructions.
 
@@ -372,14 +419,39 @@ Use when spawning `adv-reviewer` for scoped hardening fixes:
 WORKING DIRECTORY: {workdir}
 CHANGE: {change-id} | {title} | gate: release
 TASK: {task-id} | {task-title} | source finding: {finding-id}
+# Advisory remediation instruction, not a strict packet-identity anchor.
+REPORT_SCOPE: { "kind": "task", "task_id": "{task-id}" }
 PHASE: harden
 ATTEMPT: {attempt-number, starting at 1 for this remediation worker}
+TASK_SCOPE: scoped hardening remediation for listed finding(s)
+IN_SCOPE:
+  - {finding-id}: {file}:{line} and directly affected local subsystem
+OUT_OF_SCOPE:
+  - unrelated findings, new features, agreement changes without orchestrator re-entry
+DONE_WHEN:
+  - listed hardening finding(s) fixed or reported as blocked with evidence
+STOP_WHEN:
+  - contract/security/release blocker, scope conflict, unsafe edit, or impossible verification
+VERIFICATION:
+  required_when_possible:
+    - {targeted test/lint/static check for fixed finding(s)}
+  optional_additional_checks: true
 SCOPE: fix only the listed in-scope hardening finding(s); honor drift rule before edits
 FINDINGS TO FIX:
   - {finding-id}: {severity} | {file}:{line} | {what} | fix: {fix}
 ACCEPTANCE CRITERIA:
   - AC1: {text}
   - ...
+FRONTEND DESIGN REVIEW SKILL: when the change includes frontend/design implementation scope (any task with metadata.frontend == "true" or an agreement-declared design scope), populate this anchor. Otherwise the anchor MAY be omitted.
+  Primary: load `skill("adv-frontend-review")` for the canonical 6-dimension methodology.
+  Fallback (inline checklist for offline reviewers or older deployments without the skill):
+    - semantic HTML & accessibility — semantic elements, landmark structure, ARIA only when native semantics are insufficient, focus management
+    - responsive behavior — layout works across supported viewports, touch targets, overflow
+    - visual polish — spacing, alignment, typography, color, motion match design tokens already in use
+    - matching site design — new UI looks like it belongs with the rest of the page/site, not styled in isolation
+    - finer details — hover/focus/active/disabled states, empty/loading/error states, keyboard navigation, copy correctness
+    - component correctness — props, state, events, behavior match the intended contract; no regressions in adjacent component behavior
+Review/harden ownership remains with `adv-reviewer`; `adv-designer` is apply-phase only and MUST NOT be spawned here.
 EXPECTED OUTPUT: fix scoped hardening finding(s), run verification, call adv_subagent_report_submit with REVIEWER_REPORT per .opencode/agents/adv-reviewer.md
 ```
 
@@ -391,7 +463,21 @@ Use when spawning `adv-engineer` for primary implementation or multi-file harden
 WORKING DIRECTORY: {workdir}
 CHANGE: {change-id} | {title} | gate: release
 TASK: {task-id} | {task-title} | source finding: {finding-id}
+REPORT_SCOPE: { "kind": "task", "task_id": "{task-id}" }
 ATTEMPT: {attempt-number, starting at 1 for this remediation worker}
+TASK_SCOPE: primary implementation or multi-file hardening fix
+IN_SCOPE:
+  - {finding-id}: {file}:{line} and directly affected implementation files
+OUT_OF_SCOPE:
+  - unrelated findings, new features, agreement changes without orchestrator re-entry
+DONE_WHEN:
+  - listed hardening fix is complete and verified
+STOP_WHEN:
+  - contract/security/release blocker, unsafe edit, or impossible verification
+VERIFICATION:
+  required_when_possible:
+    - {targeted test/lint/static check for implementation fix}
+  optional_additional_checks: true
 SCOPE: implement only the listed in-scope hardening fix; honor drift rule before edits
 FINDINGS TO FIX:
   - {finding-id}: {severity} | {file}:{line} | {what} | fix: {fix}

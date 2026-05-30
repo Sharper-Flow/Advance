@@ -80,6 +80,8 @@ tools:
   adv_contract_mint: true
   adv_contract_review_matrix_set: true
   adv_run_test: true
+  # Sub-agent reports
+  adv_subagent_report_submit: true
   # Temporal / workflow ops
   adv_temporal_diagnose: true
   adv_temporal_reconnect: true
@@ -279,8 +281,8 @@ Sub-agent nesting depth and parallelism are agent-self-enforced (no runtime guar
 
 | Constraint | Value |
 |---|---|
-| Max nesting depth | 1 (runtime-enforced via `enforceTaskPolicy`) |
-| Max parallel spawn | 3 (runtime-enforced via `enforceTaskPolicy`). Batch: spawn 3, wait, spawn next 3. |
+| Max nesting depth | 1 (agent-self-enforced; no runtime guard) |
+| Max parallel spawn | 3 (agent-self-enforced; no runtime guard). Batch: spawn 3, wait, spawn next 3. |
 | Default for ADV code-writing | `adv-engineer` (preferred); `general` for verify-only |
 | Primary agents (not spawnable) | `adv`, `build`, `plan`, `adv-atc` (user-selectable top-level agents) |
 
@@ -294,7 +296,7 @@ Sub-agent nesting depth and parallelism are agent-self-enforced (no runtime guar
 | Multiple parallel needs | Batch spawn in one message; cap 3; wait for completions before next batch |
 | Sub-agent prompts | Always include WORKING DIRECTORY, specific task, expected output |
 | Typed worker packet contract | For `adv-engineer` and `adv-reviewer`, always include WORKING DIRECTORY, CHANGE, TASK, ATTEMPT. `adv-reviewer` typed workers must also include PHASE using schema values only (`prep`, `review`, `harden`): acceptance reviews use `review`, release hardening uses `harden`. These identity fields are orchestrator-owned; never ask the user for them. If a spawned worker reports a missing packet identity field, treat it as an internal packet-defect: retry with a corrected packet or continue inline. |
-| Nesting | Forbidden — `enforceTaskPolicy` blocks |
+| Nesting | Forbidden — do not spawn nested agents |
 
 ### Failure Handling
 

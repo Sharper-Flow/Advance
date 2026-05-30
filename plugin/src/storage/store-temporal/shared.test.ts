@@ -3,9 +3,11 @@ import type { Store } from "../store-types";
 import {
   AdvProjectContextMismatchError,
   getGuardedChangeHandle,
+  mapTemporalChangeStateToChange,
   type TemporalStoreBackendInput,
   type WorkflowHandleLike,
 } from "./shared";
+import { createChangeWorkflowState } from "../../temporal/change-state";
 
 function createInput(args: {
   projectId?: string;
@@ -122,5 +124,45 @@ describe("getGuardedChangeHandle owner guard cache", () => {
 
     expect(changesGet).toHaveBeenCalledTimes(2);
     expect(getHandle).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("mapTemporalChangeStateToChange", () => {
+  test("preserves and normalizes sidecar sub-agent reports", () => {
+    const state = createChangeWorkflowState({
+      changeId: "legacy-sidecar",
+      title: "Legacy sidecar",
+      createdAt: "2026-05-26T00:00:00.000Z",
+    });
+    state.subagent_reports = [
+      {
+        schema_version: "1.0",
+        change_id: "legacy-sidecar",
+        task_id: "tk-legacy",
+        scope: { kind: "task", task_id: "tk-legacy" },
+        attempt: 1,
+        agent: "adv-engineer",
+        status: "complete",
+        files_touched: [],
+        verification: [{ command: "test", exit_code: 0, summary: "pass" }],
+        decisions: [],
+        blockers: [],
+        follow_ups: [],
+        related_scan: "none",
+        workdir_used: "/tmp/worktree",
+        context_update_for_adv: {
+          what_ads_needs_to_know: "legacy",
+          suggested_next_action: "continue",
+        },
+      } as never,
+    ];
+
+    const change = mapTemporalChangeStateToChange(state);
+
+    expect(change.subagent_reports).toHaveLength(1);
+    expect(change.subagent_reports?.[0]).toMatchObject({
+      scope_drift: null,
+      required_main_agent_actions: [],
+    });
   });
 });

@@ -11,12 +11,14 @@
  *
  * The disk-direct writers structurally require an authorization reason and
  * evidence. Callers remain responsible for proving that evidence before
- * invoking the writer; the writers ensure the disk write is atomic and the
- * in-memory cache is invalidated.
+ * invoking the writer; the writers ensure the disk write is atomic. They do
+ * not refresh the Temporal-backed cache because a completed-but-queryable
+ * workflow can project stale workflow state back over the recovery write.
  */
 import type { Store } from "../storage/store-types";
 import type { Change, Gates } from "../types";
 import { saveChange } from "../storage/json";
+import type { ArtifactMetadata } from "../temporal/contracts";
 
 interface RecoveryWriteAuthorization {
   reason: string;
@@ -111,10 +113,40 @@ export async function saveRecoveredGateCompletion(input: {
 }): Promise<Change> {
   assertRecoveryAuthorization(input.authorization);
   const gates = (input.change.gates ?? {}) as Gates;
-  const updatedGates = { ...gates, [input.gateId]: input.completion } as Gates;
+  const auditedCompletion = {
+    ...input.completion,
+    recovery_audit: {
+      reason: input.authorization.reason,
+      evidence: input.authorization.evidence,
+      recovered_at: new Date().toISOString(),
+    },
+  } as Gates[keyof Gates];
+  const updatedGates = { ...gates, [input.gateId]: auditedCompletion } as Gates;
   const updated = { ...input.change, gates: updatedGates } as Change;
   await saveChange(input.store.paths.changes, updated);
-  await bestEffortRefresh(input.store, input.change.id);
+  return updated;
+}
+
+/**
+ * Repair workflow artifact metadata on the disk projection when a completed or
+ * poisoned workflow cannot accept `updateArtifactMetadataSignal`.
+ */
+export async function saveRecoveredArtifactMetadata(input: {
+  store: Store;
+  change: Change;
+  authorization: RecoveryWriteAuthorization;
+  kind: string;
+  metadata: ArtifactMetadata;
+}): Promise<Change> {
+  assertRecoveryAuthorization(input.authorization);
+  const updated = {
+    ...input.change,
+    artifacts: {
+      ...(input.change.artifacts ?? {}),
+      [input.kind]: input.metadata,
+    },
+  } as Change;
+  await saveChange(input.store.paths.changes, updated);
   return updated;
 }
 
@@ -126,8 +158,7 @@ export async function saveRecoveredGateCompletion(input: {
  * for `status: "archived"` the temporal store routes through
  * `archiveChangeSignal` on the workflow — which is exactly what we are
  * recovering from. Write the disk projection directly via `saveChange`
- * and best-effort invalidate the in-memory cache so subsequent reads
- * pull the fresh disk state.
+ * without refreshing stale workflow state back over the disk repair.
  */
 export async function saveRecoveredChangeStatus(input: {
   store: Store;
@@ -138,6 +169,5 @@ export async function saveRecoveredChangeStatus(input: {
   assertRecoveryAuthorization(input.authorization);
   const updated = { ...input.change, status: input.status } as Change;
   await saveChange(input.store.paths.changes, updated);
-  await bestEffortRefresh(input.store, input.change.id);
   return updated;
 }

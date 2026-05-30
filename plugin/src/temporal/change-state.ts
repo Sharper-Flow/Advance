@@ -5,6 +5,7 @@ import type {
   Cancellation,
   Change,
   ChangeCancelledSignalPayload,
+  AcceptanceUpdatedSignalPayload,
   ChangeClosure,
   ContractAmendedSignalPayload,
   ContractReviewMatrixSetSignalPayload,
@@ -14,6 +15,7 @@ import type {
   ConformanceVerdictSignalPayload,
   DesignUpdatedSignalPayload,
   ErrorRecovery,
+  ExecutiveSummaryUpdatedSignalPayload,
   GateId,
   GateAwaitingApprovalSignalPayload,
   GateCompletedSignalPayload,
@@ -41,12 +43,15 @@ import type {
   WorktreeDeletedSignalPayload,
 } from "../types";
 import { createDefaultGates, GATE_ORDER } from "../types";
+import { normalizePersistedSubagentReportState } from "../types";
 import { subagentReportKey } from "./contracts";
+import { describePayloadDigest } from "./digest";
 import type {
   ArtifactKind,
   ArtifactMetadata,
   ChangeWorkflowInput,
   ChangeWorkflowState,
+  SignalRejection,
 } from "./contracts";
 
 export interface UpdateTaskInput {
@@ -93,6 +98,7 @@ export function createChangeWorkflowState(input: {
     initializedAt: input.createdAt,
     createdAt: input.createdAt,
     tasks: [],
+    subagent_reports: [],
     deltas: {},
     wisdom: [],
     gates: createDefaultGates(),
@@ -108,27 +114,37 @@ export function createChangeWorkflowState(input: {
 export function changeSeedStateFromChange(
   change: Change,
 ): NonNullable<ChangeWorkflowInput["seedState"]> {
+  const [normalizedChange] = normalizePersistedSubagentReportState(change);
+  const safeChange = normalizedChange as Change;
+
   return {
-    status: change.status,
-    tasks: change.tasks ?? [],
-    deltas: change.deltas ?? {},
-    wisdom: change.wisdom ?? [],
-    gates: change.gates ?? createDefaultGates(),
-    reentry_history: change.reentry_history ?? [],
-    artifacts: (change.artifacts as ChangeWorkflowState["artifacts"]) ?? {},
-    fast_follow_of: change.fast_follow_of,
-    affectedProjects: change.affectedProjects,
-    affectedPaths: change.affectedPaths,
-    lastSignalAt: change.lastSignalAt,
-    acceptanceCriteria: change.acceptanceCriteria,
-    contract: change.contract,
-    documents: change.documents,
-    origin: change.origin,
-    worktree_auto_managed: change.worktree_auto_managed,
-    target_worktree_path: change.target_worktree_path,
-    scope_worktrees: change.scope_worktrees,
-    seenReportIds: (change as unknown as { seenReportIds?: string[] })
+    status: safeChange.status,
+    tasks: safeChange.tasks ?? [],
+    subagent_reports: safeChange.subagent_reports ?? [],
+    deltas: safeChange.deltas ?? {},
+    wisdom: safeChange.wisdom ?? [],
+    gates: safeChange.gates ?? createDefaultGates(),
+    reentry_history: safeChange.reentry_history ?? [],
+    artifacts: (safeChange.artifacts as ChangeWorkflowState["artifacts"]) ?? {},
+    fast_follow_of: safeChange.fast_follow_of,
+    affectedProjects: safeChange.affectedProjects,
+    affectedPaths: safeChange.affectedPaths,
+    lastSignalAt: safeChange.lastSignalAt,
+    acceptanceCriteria: safeChange.acceptanceCriteria,
+    contract: safeChange.contract,
+    documents: safeChange.documents,
+    origin: safeChange.origin,
+    worktree_auto_managed: safeChange.worktree_auto_managed,
+    target_worktree_path: safeChange.target_worktree_path,
+    scope_worktrees: safeChange.scope_worktrees,
+    seenReportIds: (safeChange as unknown as { seenReportIds?: string[] })
       .seenReportIds,
+    signal_rejections: (
+      safeChange as unknown as { signal_rejections?: SignalRejection[] }
+    ).signal_rejections,
+    signal_rejections_total: (
+      safeChange as unknown as { signal_rejections_total?: number }
+    ).signal_rejections_total,
   };
 }
 
@@ -159,47 +175,287 @@ function setLastSignalAt(state: ChangeWorkflowState, at: string): void {
   state.lastSignalAt = at;
 }
 
+export const SIGNAL_REJECTION_RING_BUFFER_LIMIT = 20;
+
+export function applySignalRejectionToState(
+  state: ChangeWorkflowState,
+  input: {
+    signalName: string;
+    error: unknown;
+    payload: unknown;
+    rejectedAt: string;
+  },
+): ChangeWorkflowState {
+  const error = input.error;
+  const rejection: SignalRejection = {
+    signalName: input.signalName,
+    errorMessage: error instanceof Error ? error.message : String(error),
+    errorClass:
+      error instanceof Error && error.constructor?.name
+        ? error.constructor.name
+        : typeof error,
+    payloadDigest: describePayloadDigest(input.payload),
+    rejectedAt: input.rejectedAt,
+  };
+
+  const existing = state.signal_rejections ?? [];
+  state.signal_rejections = [...existing, rejection].slice(
+    -SIGNAL_REJECTION_RING_BUFFER_LIMIT,
+  );
+  state.signal_rejections_total = (state.signal_rejections_total ?? 0) + 1;
+  setLastSignalAt(state, input.rejectedAt);
+  return state;
+}
+
 function getMutableTask(state: ChangeWorkflowState, taskId: string): Task {
   return getTaskOrThrow(state, taskId);
+}
+
+// =============================================================================
+// Layer 2 size-guard (KD-8) — state-mutation rejection
+//
+// Temporal docs (https://docs.temporal.io/handling-messages#exceptions)
+// confirm throwing in a signal handler fails the ENTIRE workflow. ADV's
+// canonical pattern (applyGateStuckToState at workflows.ts:722-732, 1098) is
+// state-mutation rejection: record the rejection in state, leave the target
+// state field unchanged, return state. Workflow continues; tool layer can
+// observe the rejection via the next query.
+//
+// Layer 1 (tool/store layer) pre-checks size before any signal fires; Layer 2
+// is the structural defense in case Layer 1 is bypassed (test fixtures,
+// recovery flows, future code paths).
+//
+// Cap constants live in `types/artifacts.ts` (validated against Temporal
+// 2 MB per-payload limit by the design-validation researcher).
+// =============================================================================
+
+import {
+  AGGREGATE_HARD_CAP,
+  ARTIFACT_HARD_CAP,
+  ARTIFACT_SOFT_CAP,
+} from "../types";
+
+const utf8 = new TextEncoder();
+function byteLength(content: string): number {
+  return utf8.encode(content).length;
+}
+
+/**
+ * Size-guard check for a single content signal. Returns:
+ *   - `{ ok: true, warning? }` — content within hard cap; apply allowed.
+ *     `warning` is set when soft cap exceeded (informational).
+ *   - `{ ok: false, rejection }` — content exceeds hard cap; signal must
+ *     NOT mutate `state.documents`. Caller records `rejection` on
+ *     `state.artifacts[kind]`.
+ */
+function checkPerArtifactSize(
+  kind: ArtifactKind,
+  text: string,
+  at: string,
+): {
+  ok: boolean;
+  size: number;
+  warning?: { size: number; soft_cap: number; at: string };
+  rejection?: {
+    reason: "ARTIFACT_OVERSIZED";
+    attempted_size: number;
+    cap: number;
+    rejected_at: string;
+  };
+} {
+  const size = byteLength(text);
+  if (size > ARTIFACT_HARD_CAP) {
+    return {
+      ok: false,
+      size,
+      rejection: {
+        reason: "ARTIFACT_OVERSIZED",
+        attempted_size: size,
+        cap: ARTIFACT_HARD_CAP,
+        rejected_at: at,
+      },
+    };
+  }
+  if (size > ARTIFACT_SOFT_CAP) {
+    return {
+      ok: true,
+      size,
+      warning: { size, soft_cap: ARTIFACT_SOFT_CAP, at },
+    };
+  }
+  return { ok: true, size };
+}
+
+/**
+ * Aggregate-cap check projecting the proposed content onto the existing
+ * `state.documents`. Returns whether applying this content would push the
+ * total over `AGGREGATE_HARD_CAP`.
+ */
+function checkAggregateSize(
+  state: ChangeWorkflowState,
+  kind: ArtifactKind,
+  text: string,
+  at: string,
+): {
+  ok: boolean;
+  totalBytes: number;
+  rejection?: {
+    reason: "AGGREGATE_OVERSIZED";
+    attempted_size: number;
+    cap: number;
+    rejected_at: string;
+  };
+} {
+  const projected: Record<string, string> = {
+    ...(state.documents ?? {}),
+    [kind]: text,
+  } as Record<string, string>;
+  const totalBytes = byteLength(JSON.stringify(projected));
+  if (totalBytes > AGGREGATE_HARD_CAP) {
+    return {
+      ok: false,
+      totalBytes,
+      rejection: {
+        reason: "AGGREGATE_OVERSIZED",
+        attempted_size: totalBytes,
+        cap: AGGREGATE_HARD_CAP,
+        rejected_at: at,
+      },
+    };
+  }
+  return { ok: true, totalBytes };
+}
+
+/**
+ * Apply size-guard checks and either:
+ *   - Reject (Layer 2 state-mutation rejection): record rejection in
+ *     `state.artifacts[kind]`, leave `state.documents[kind]` unchanged.
+ *   - Apply: mutate `state.documents[kind]`, record soft-cap warning on
+ *     `state.artifacts[kind]` if applicable.
+ *
+ * Shared helper used by all 6 content-signal reducers.
+ */
+function applyContentWithSizeGuard(
+  state: ChangeWorkflowState,
+  kind: ArtifactKind,
+  text: string,
+  at: string,
+): ChangeWorkflowState {
+  // Per-artifact hard cap check
+  const perCheck = checkPerArtifactSize(kind, text, at);
+  if (!perCheck.ok && perCheck.rejection) {
+    state.artifacts = {
+      ...state.artifacts,
+      [kind]: {
+        ...(state.artifacts[kind] ?? { path: "", updatedAt: at }),
+        rejection: perCheck.rejection,
+      },
+    };
+    setLastSignalAt(state, at);
+    return state;
+  }
+
+  // Aggregate cap check (projects this content onto existing documents)
+  const aggCheck = checkAggregateSize(state, kind, text, at);
+  if (!aggCheck.ok && aggCheck.rejection) {
+    state.artifacts = {
+      ...state.artifacts,
+      [kind]: {
+        ...(state.artifacts[kind] ?? { path: "", updatedAt: at }),
+        rejection: aggCheck.rejection,
+      },
+    };
+    setLastSignalAt(state, at);
+    return state;
+  }
+
+  // Caps passed — apply content. Clear any prior rejection; record warning
+  // if soft cap exceeded.
+  const existingArtifact = state.artifacts[kind] ?? {
+    path: "",
+    updatedAt: at,
+  };
+  const nextArtifact = {
+    ...existingArtifact,
+    rejection: undefined,
+    sizeWarning: perCheck.warning,
+  };
+  state.documents = { ...(state.documents ?? {}), [kind]: text };
+  state.artifacts = { ...state.artifacts, [kind]: nextArtifact };
+  setLastSignalAt(state, at);
+  return state;
 }
 
 export function applyProposalUpdatedToState(
   state: ChangeWorkflowState,
   payload: ProposalUpdatedSignalPayload,
 ): ChangeWorkflowState {
-  state.documents = { ...(state.documents ?? {}), proposal: payload.text };
-  setLastSignalAt(state, payload.updatedAt);
-  return state;
+  return applyContentWithSizeGuard(
+    state,
+    "proposal",
+    payload.text,
+    payload.updatedAt,
+  );
 }
 
 export function applyProblemStatementUpdatedToState(
   state: ChangeWorkflowState,
   payload: ProblemStatementUpdatedSignalPayload,
 ): ChangeWorkflowState {
-  state.documents = {
-    ...(state.documents ?? {}),
-    problemStatement: payload.text,
-  };
-  setLastSignalAt(state, payload.updatedAt);
-  return state;
+  return applyContentWithSizeGuard(
+    state,
+    "problemStatement",
+    payload.text,
+    payload.updatedAt,
+  );
 }
 
 export function applyAgreementUpdatedToState(
   state: ChangeWorkflowState,
   payload: AgreementUpdatedSignalPayload,
 ): ChangeWorkflowState {
-  state.documents = { ...(state.documents ?? {}), agreement: payload.text };
-  setLastSignalAt(state, payload.updatedAt);
-  return state;
+  return applyContentWithSizeGuard(
+    state,
+    "agreement",
+    payload.text,
+    payload.updatedAt,
+  );
 }
 
 export function applyDesignUpdatedToState(
   state: ChangeWorkflowState,
   payload: DesignUpdatedSignalPayload,
 ): ChangeWorkflowState {
-  state.documents = { ...(state.documents ?? {}), design: payload.text };
-  setLastSignalAt(state, payload.updatedAt);
-  return state;
+  return applyContentWithSizeGuard(
+    state,
+    "design",
+    payload.text,
+    payload.updatedAt,
+  );
+}
+
+export function applyExecutiveSummaryUpdatedToState(
+  state: ChangeWorkflowState,
+  payload: ExecutiveSummaryUpdatedSignalPayload,
+): ChangeWorkflowState {
+  return applyContentWithSizeGuard(
+    state,
+    "executiveSummary",
+    payload.text,
+    payload.updatedAt,
+  );
+}
+
+export function applyAcceptanceUpdatedToState(
+  state: ChangeWorkflowState,
+  payload: AcceptanceUpdatedSignalPayload,
+): ChangeWorkflowState {
+  return applyContentWithSizeGuard(
+    state,
+    "acceptance",
+    payload.text,
+    payload.updatedAt,
+  );
 }
 
 export function applyAcceptanceCriteriaSetToState(
@@ -352,6 +608,7 @@ function blockerSummary(
 ): { summary: string; diagnosis: string } | null {
   switch (report.agent) {
     case "adv-engineer":
+    case "adv-designer":
       if (report.blockers.length === 0) return null;
       return {
         summary: report.blockers
@@ -381,6 +638,11 @@ function blockerSummary(
           .join("; "),
       };
 
+    case "adv-researcher":
+    case "adv-tron":
+    case "adv-scanner-bundle":
+      return null;
+
     default: {
       const exhaustive: never = report;
       return assertNeverSubagentReport(exhaustive);
@@ -388,41 +650,70 @@ function blockerSummary(
   }
 }
 
+function taskIdFromReport(
+  report: SubagentReportSubmittedSignalPayload["report"],
+): string | undefined {
+  if (typeof report.scope !== "string" && report.scope.kind === "task") {
+    return report.scope.task_id;
+  }
+  return "task_id" in report ? report.task_id : undefined;
+}
+
+function reportKey(
+  report: SubagentReportSubmittedSignalPayload["report"],
+): string {
+  return subagentReportKey({
+    changeId: report.change_id,
+    taskId: taskIdFromReport(report),
+    scope: typeof report.scope === "string" ? undefined : report.scope,
+    agent: report.agent,
+    attempt: report.attempt,
+  });
+}
+
 export function applySubagentReportSubmittedToState(
   state: ChangeWorkflowState,
   payload: SubagentReportSubmittedSignalPayload,
 ): ChangeWorkflowState {
-  const task = getMutableTask(state, payload.taskId);
-  const reportId = subagentReportKey({
-    changeId: payload.report.change_id,
-    taskId: payload.report.task_id,
-    agent: payload.report.agent,
-    attempt: payload.report.attempt,
-  });
+  const taskId = payload.taskId ?? taskIdFromReport(payload.report);
+  const task = taskId ? getMutableTask(state, taskId) : undefined;
+  const taskScoped =
+    typeof payload.report.scope === "string" ||
+    payload.report.scope.kind === "task";
+  const reportId = reportKey(payload.report);
   const seenReportIds = state.seenReportIds ?? [];
-  const alreadyStored = (task.subagent_reports ?? []).some(
-    (report) =>
-      subagentReportKey({
-        changeId: report.change_id,
-        taskId: report.task_id,
-        agent: report.agent,
-        attempt: report.attempt,
-      }) === reportId,
+  const alreadyStoredInSidecar = (state.subagent_reports ?? []).some(
+    (report) => reportKey(report) === reportId,
+  );
+  const alreadyStoredOnTask = (task?.subagent_reports ?? []).some(
+    (report) => reportKey(report) === reportId,
   );
 
-  if (seenReportIds.includes(reportId) || alreadyStored) {
+  if (seenReportIds.includes(reportId) || alreadyStoredInSidecar) {
     state.seenReportIds = seenReportIds.includes(reportId)
       ? seenReportIds
       : [...seenReportIds, reportId];
+    if (task && taskScoped && !alreadyStoredOnTask) {
+      task.subagent_reports = [
+        ...(task.subagent_reports ?? []),
+        payload.report as NonNullable<Task["subagent_reports"]>[number],
+      ];
+    }
     setLastSignalAt(state, payload.submittedAt);
     return state;
   }
 
-  task.subagent_reports = [...(task.subagent_reports ?? []), payload.report];
+  state.subagent_reports = [...(state.subagent_reports ?? []), payload.report];
+  if (task && taskScoped && !alreadyStoredOnTask) {
+    task.subagent_reports = [
+      ...(task.subagent_reports ?? []),
+      payload.report as NonNullable<Task["subagent_reports"]>[number],
+    ];
+  }
   state.seenReportIds = [...seenReportIds, reportId];
 
   const blockers = blockerSummary(payload.report);
-  if (blockers) {
+  if (task && blockers) {
     task.error_recovery = {
       last_error: blockers.summary,
       retry_count: payload.report.attempt,

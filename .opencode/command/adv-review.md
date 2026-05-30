@@ -161,6 +161,39 @@ EXPECTED OUTPUT: {dimension-specific JSON schema}
 
 This scanner-only packet gives `explore` agents grounded context without ADV tool access. Build the packet from `adv_task_list` and `adv_change_show` outputs at spawn time. Inject verbatim — do NOT give explore agents ADV tool access and do NOT ask scanners to call `adv_subagent_report_submit`.
 
+After scanner synthesis, the orchestrator submits one compact scanner bundle. Individual scanners do not submit reports.
+
+```
+SCANNER_BUNDLE_REPORT:
+WORKING DIRECTORY: {workdir}
+CHANGE: {change-id} | {title} | gate: review
+SCOPE KEY: scanner-bundle:review
+PHASE: review
+ATTEMPT: {attempt-number, starting at 1 for this orchestrator-submitted bundle}
+REPORT PAYLOAD:
+{
+  "schema_version": "1.0",
+  "change_id": "{change-id}",
+  "attempt": 1,
+  "workdir_used": "{workdir}",
+  "scope": { "kind": "change", "scope_key": "scanner-bundle:review" },
+  "agent": "adv-scanner-bundle",
+  "phase": "review",
+  "scanner_count": 5,
+  "dimensions": [
+    "requirement-traceability",
+    "logic-edge-cases",
+    "security",
+    "architecture-quality",
+    "cross-repo"
+  ],
+  "summary": "bounded synthesis",
+  "findings": [],
+  "follow_ups": []
+}
+EXPECTED ACTION: orchestrator calls adv_subagent_report_submit with SCANNER_BUNDLE_REPORT after synthesis
+```
+
 Spawn **5 sub-agents in two batches** (`subagent_type: "explore"`). Batch 1: sub-agents 1–3. Wait for completions. Batch 2: sub-agents 4–5. Each receives the Review Scanner Context Packet above plus dimension-specific instructions.
 ### Sub-Agent 1: Requirement Traceability
 For each scenario → search files for implementation evidence → calculate coverage → flag untraced. Return: `dimension`, `coverage_percent`, `traced`, `untraced`, `issues`.
@@ -248,14 +281,39 @@ Use when spawning `adv-reviewer` for scoped review-style fixes:
 WORKING DIRECTORY: {workdir}
 CHANGE: {change-id} | {title} | gate: review
 TASK: {task-id} | {task-title} | source finding: {finding-id}
+# Advisory remediation instruction, not a strict packet-identity anchor.
+REPORT_SCOPE: { "kind": "task", "task_id": "{task-id}" }
 PHASE: review
 ATTEMPT: {attempt-number, starting at 1 for this remediation worker}
+TASK_SCOPE: scoped review remediation for listed finding(s)
+IN_SCOPE:
+  - {finding-id}: {file}:{line} and directly affected local subsystem
+OUT_OF_SCOPE:
+  - unrelated findings, new features, agreement changes without orchestrator re-entry
+DONE_WHEN:
+  - listed finding(s) fixed or reported as blocked with evidence
+STOP_WHEN:
+  - contract/security/release blocker, scope conflict, unsafe edit, or impossible verification
+VERIFICATION:
+  required_when_possible:
+    - {targeted test/lint/static check for fixed finding(s)}
+  optional_additional_checks: true
 SCOPE: fix only the listed in-scope review finding(s); honor drift rule before edits
 FINDINGS TO FIX:
   - {finding-id}: {label} | {file}:{line} | {what} | fix: {fix}
 ACCEPTANCE CRITERIA:
   - AC1: {text}
   - ...
+FRONTEND DESIGN REVIEW SKILL: when the change includes frontend/design implementation scope (any task with metadata.frontend == "true" or an agreement-declared design scope), populate this anchor. Otherwise the anchor MAY be omitted.
+  Primary: load `skill("adv-frontend-review")` for the canonical 6-dimension methodology.
+  Fallback (inline checklist for offline reviewers or older deployments without the skill):
+    - semantic HTML & accessibility — semantic elements, landmark structure, ARIA only when native semantics are insufficient, focus management
+    - responsive behavior — layout works across supported viewports, touch targets, overflow
+    - visual polish — spacing, alignment, typography, color, motion match design tokens already in use
+    - matching site design — new UI looks like it belongs with the rest of the page/site, not styled in isolation
+    - finer details — hover/focus/active/disabled states, empty/loading/error states, keyboard navigation, copy correctness
+    - component correctness — props, state, events, behavior match the intended contract; no regressions in adjacent component behavior
+Review/harden ownership remains with `adv-reviewer`; `adv-designer` is apply-phase only and MUST NOT be spawned here.
 EXPECTED OUTPUT: fix scoped review finding(s), run verification, call adv_subagent_report_submit with REVIEWER_REPORT per .opencode/agents/adv-reviewer.md
 ```
 
@@ -267,7 +325,21 @@ Use when spawning `adv-engineer` for primary implementation fixes:
 WORKING DIRECTORY: {workdir}
 CHANGE: {change-id} | {title} | gate: review
 TASK: {task-id} | {task-title} | source finding: {finding-id}
+REPORT_SCOPE: { "kind": "task", "task_id": "{task-id}" }
 ATTEMPT: {attempt-number, starting at 1 for this remediation worker}
+TASK_SCOPE: primary implementation remediation for listed review fix
+IN_SCOPE:
+  - {finding-id}: {file}:{line} and directly affected implementation files
+OUT_OF_SCOPE:
+  - unrelated findings, new features, agreement changes without orchestrator re-entry
+DONE_WHEN:
+  - listed implementation fix is complete and verified
+STOP_WHEN:
+  - contract/security/release blocker, unsafe edit, or impossible verification
+VERIFICATION:
+  required_when_possible:
+    - {targeted test/lint/static check for implementation fix}
+  optional_additional_checks: true
 SCOPE: implement only the listed in-scope review fix; honor drift rule before edits
 FINDINGS TO FIX:
   - {finding-id}: {label} | {file}:{line} | {what} | fix: {fix}
@@ -336,7 +408,9 @@ Group findings by severity tier. Within each tier, order by file path for scanab
 
 ### Contract Review Matrix
 
-If `change.contract` exists, build and persist `contract.reviewMatrix` before acceptance sign-off by calling `adv_contract_review_matrix_set`. The tool validates rows against existing contract item IDs and persists through the `contractReviewMatrixSetSignal`-backed mutation path.
+<!-- rq-acceptanceEvidenceTiming01 rq-acceptanceRecovery01 -->
+
+If `change.contract` exists, build and persist `contract.reviewMatrix` before acceptance sign-off by calling `adv_contract_review_matrix_set`. The tool validates rows against existing contract item IDs and persists through the `contractReviewMatrixSetSignal`-backed mutation path. This is the first required proof write in the no-late-homework sequence: proof required for acceptance must exist before the approval prompt, not after.
 
 Rules:
 
@@ -347,11 +421,11 @@ Rules:
 - `C*`, `DONT*`, and `OOS*` rows must be `respected`, `pass`, or `not_applicable` with rationale.
 - Any required contract item with `fail`, `violated`, `unknown`, or missing evidence blocks acceptance until remediated or formally amended/re-entered.
 - Keep evidence bounded and structured; do not paste raw logs into the matrix.
-- For poisoned-history recovery only, use `adv_contract_review_matrix_set recoveryMode: "poisoned_history"` with explicit `recoveryEvidence`, then complete the gate with `compatibilityReason: "..."` after the inline acceptance checkpoint when the legacy/replay rationale is valid. This repairs the disk projection only and does not heal the poisoned workflow.
+- For poisoned-history recovery only, use `adv_contract_review_matrix_set recoveryMode: "poisoned_history"` with explicit `recoveryEvidence`, `recoveryReason`, and `priorApprovalEvidence`, then complete the gate with `compatibilityReason: "..."`, `recoveryEvidence`, `recoveryReason`, and `priorApprovalEvidence` after the inline acceptance checkpoint when the legacy/replay rationale is valid. This repairs the disk projection only and does not heal the poisoned workflow.
 
 The acceptance summary must include a contract proof line: required rows passed/respected, failed/violated/unknown counts, and remaining caveats.
 
-`contract.reviewMatrix` is the authoritative acceptance proof. On gate completion, the workflow writes a generated acceptance.md projection from `ChangeContract` items and the review matrix before marking acceptance done. Do not manually edit acceptance.md as proof; fix the typed matrix or formally amend/re-enter the contract instead.
+`contract.reviewMatrix`, generated `acceptance.md`, and workflow-visible `executive-summary.md` metadata are the authoritative acceptance proof. On gate completion, the workflow writes a generated acceptance.md projection from `ChangeContract` items and the review matrix, verifies executive-summary evidence, and only then marks acceptance done. Do not manually edit acceptance.md as proof; fix the typed matrix or formally amend/re-enter the contract instead.
 
 ### Emit REVIEW_FINDINGS Block
 Always emit regardless of verdict:
@@ -444,9 +518,9 @@ Before acceptance prompt, persist durable executive summary:
    {open items or "None".}
    ```
 3. `adv_change_update changeId: {id} executiveSummary: "{composed markdown}"`
-4. Verify: `adv_change_show changeId: {id} include: { executiveSummary: true }` → `_executiveSummary` present.
+4. Verify: `adv_change_show changeId: {id} include: { executiveSummary: true }` → `_executiveSummary` present and workflow-visible executive-summary artifact metadata exists with content-hash evidence.
 
-After user accepts, artifact already exists. No extra acceptance-step write.
+After user accepts, artifact already exists and is workflow-visible. No extra acceptance-step write. If the executive-summary write or metadata signal fails, stop before the acceptance prompt; chat approval alone is not durable acceptance proof.
 
 ### Pre-Acceptance Contract Preflight
 
@@ -454,11 +528,14 @@ Before acceptance summary or **Inline Approval prompt**, load `adv_change_show`;
 
 - `change.contract` exists.
 - `contract.reviewMatrix` exists when contract items require it.
+- `executive-summary.md` exists, is non-blank/substantive, and has workflow-visible artifact metadata with content-hash evidence.
 - Preview proof has matching `contract.reviewMatrix` evidence when `visual_surface` is true or false. `visual_surface: unknown` or visual-surface drift blocks before acceptance and must be clarified or re-entered before a matrix pass row is expected.
 - Required rows have no `fail`, `violated`, `unknown`, or missing evidence.
 - Required new MCP tool is callable in current session. If source registered it but live registry lacks it, stop: tell user to build/reload plugin and open fresh OpenCode session. Do not ask for acceptance until proof path exists.
 
 Preflight fail → surface blocker + remediation. Do not continue to acceptance checkpoint.
+
+No-late-homework rule: required acceptance proof (`contract.reviewMatrix`, generated/generatable `acceptance.md`, and workflow-visible `executive-summary.md`) must be persisted and verified before this checkpoint. If proof persistence fails after the user replies, acceptance remains pending/stuck until proof is persisted or an audited completed/poisoned workflow recovery validates the same evidence.
 
 ### Ask for Acceptance (Inline)
 Emit the acceptance summary inline, followed by the **Inline Approval prompt (Tier A)** per `docs/command-voice-standard.md` § Inline Approval Voice:
@@ -492,6 +569,8 @@ If user identifies new objectives or AC requiring scope expansion: `reopen {gate
 ### Complete Gate
 On acceptance:
 `adv_gate_complete changeId: {change-id} gateId: acceptance`
+
+For completed/poisoned workflow acceptance recovery, `adv_gate_complete` MUST include `compatibilityReason`, precise `recoveryEvidence`, `recoveryReason`, and `priorApprovalEvidence`; without all audit fields, no disk-projection repair may occur.
 
 `workflowGateStatus: "stuck"` → inspect `readinessBlockers` + `stuckReason`, fix missing/failing contract rows or artifact-generation failures, retry. Do not present acceptance complete until tool succeeds.
 

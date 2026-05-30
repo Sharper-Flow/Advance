@@ -214,6 +214,35 @@ describe("ADV_INSTRUCTIONS.md medium cleanup (repairDriftContradictions T3)", ()
   });
 });
 
+describe("ADV_INSTRUCTIONS.md adv-designer roster", () => {
+  const content = readFileSync(ADV_INSTRUCTIONS_PATH, "utf8");
+
+  test("adv-designer is listed in the bundled-global spawnable roster", () => {
+    expect(content).toContain("adv-designer");
+    // Bundled-global enumeration row must include adv-designer alongside
+    // adv-engineer / adv-reviewer / adv-researcher.
+    expect(content).toMatch(
+      /bundled global[^\n]*adv-researcher[^\n]*adv-engineer[^\n]*adv-reviewer[^\n]*adv-designer|bundled global[^\n]*adv-designer/i,
+    );
+  });
+
+  test("adv-designer is described as apply-phase write-only frontend specialist", () => {
+    const idx = content.indexOf("adv-designer");
+    expect(idx).toBeGreaterThan(-1);
+    // Roster entry must cover apply-phase + frontend ownership + report shape.
+    const lowered = content.toLowerCase();
+    expect(lowered).toMatch(/apply-phase frontend|frontend\/component/);
+    expect(lowered).toContain("designer_report");
+  });
+
+  test("review/harden ownership note preserves adv-reviewer", () => {
+    // Ensure the roster + selection prose still pins adv-reviewer as the
+    // review/harden owner and does not reassign that to adv-designer.
+    expect(content).toMatch(/adv-reviewer[^.\n]*(review|harden|acceptance)/i);
+    expect(content).not.toMatch(/adv-designer[^.\n]*owns.*(review|harden)/i);
+  });
+});
+
 describe("ADV_INSTRUCTIONS.md compression guards", () => {
   const content = readFileSync(ADV_INSTRUCTIONS_PATH, "utf8");
 

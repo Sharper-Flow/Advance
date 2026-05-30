@@ -1,0 +1,1457 @@
+{
+  "id": "addAdvDesigner",
+  "title": "Add adv designer",
+  "status": "archived",
+  "created_at": "2026-05-26T14:46:33.205Z",
+  "tasks": [
+    {
+      "id": "tk-171f5cd2a3b5",
+      "title": "Add adv-designer typed report schema and tool description",
+      "type": "code",
+      "section": "Schema foundation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-26T15:36:41.930Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC7",
+          "SC4"
+        ],
+        "verifies": [
+          "AC7"
+        ],
+        "respects": [
+          "C1",
+          "C3",
+          "DONT4",
+          "DONT5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-26T15:39:43.114Z",
+      "verification": "vitest run src/types/subagent-reports.test.ts src/tools/subagent-report.test.ts src/temporal/change-state.test.ts → 52 passed, 0 failed. tsc --noEmit clean.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/temporal/change-state.ts",
+        "plugin/src/tools/subagent-report.ts",
+        "plugin/src/types/subagent-reports.test.ts",
+        "plugin/src/types/subagent-reports.ts"
+      ],
+      "touched_files": [
+        "plugin/src/temporal/change-state.ts",
+        "plugin/src/tools/subagent-report.ts",
+        "plugin/src/types/subagent-reports.test.ts",
+        "plugin/src/types/subagent-reports.ts"
+      ],
+      "checkpointSha": "1d21f6534425edfdc9b2963f32088712011b085e",
+      "completedAt": "2026-05-26T15:43:09.304Z",
+      "completed_at": "2026-05-26T15:43:09.304Z"
+    },
+    {
+      "id": "tk-0bee65d963d4",
+      "title": "Update delegation-defaults and subagent-reports specs with adv-designer law",
+      "type": "code",
+      "section": "Schema foundation",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-26T15:36:55.989Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-171f5cd2a3b5"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC6"
+        ],
+        "verifies": [
+          "AC6",
+          "AC10"
+        ],
+        "respects": [
+          "C1",
+          "C2"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-26T15:43:23.095Z",
+      "verification": "vitest run src/subagent-reports-spec-assets.test.ts → 10 passed. Specs delegation-defaults + subagent-reports updated with adv-designer (apply step Frontend Implementation substep, rq-delDefaults03.3/05.1 narratives, rq-subagentReports01/05/06 narratives, new rq-subagentReports01.3 scenario).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".adv/specs/delegation-defaults/spec.json",
+        ".adv/specs/subagent-reports/spec.json",
+        "plugin/src/subagent-reports-spec-assets.test.ts"
+      ],
+      "touched_files": [
+        ".adv/specs/delegation-defaults/spec.json",
+        ".adv/specs/subagent-reports/spec.json",
+        "plugin/src/subagent-reports-spec-assets.test.ts"
+      ],
+      "checkpointSha": "9261ed50bedcc98b645a03660f376da6d5e9721d",
+      "completedAt": "2026-05-26T15:46:15.857Z",
+      "completed_at": "2026-05-26T15:46:15.857Z"
+    },
+    {
+      "id": "tk-7720ecd9d579",
+      "title": "Create .opencode/agents/adv-designer.md agent asset + asset test",
+      "type": "code",
+      "section": "Agent asset",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-05-26T15:37:20.255Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-171f5cd2a3b5"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC5",
+          "SC1",
+          "SC2"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC5",
+          "AC9"
+        ],
+        "respects": [
+          "C1",
+          "C4",
+          "DONT1",
+          "DONT2",
+          "DONT5",
+          "DONT6",
+          "OOS1",
+          "OOS2"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-26T15:46:34.981Z",
+      "verification": "vitest run designer + engineer assets + types subagent-reports + spec-assets → 87 passed. tsc --noEmit clean. Agent file 380 lines, asset test 280 lines.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".opencode/agents/adv-designer.md",
+        "plugin/src/adv-designer-assets.test.ts",
+        "plugin/src/types/index.ts"
+      ],
+      "touched_files": [
+        ".opencode/agents/adv-designer.md",
+        "plugin/src/adv-designer-assets.test.ts",
+        "plugin/src/types/index.ts"
+      ],
+      "checkpointSha": "3b63bd5a1818f19abeb1fb0f140f4d6deed50f23",
+      "completedAt": "2026-05-26T15:50:41.762Z",
+      "completed_at": "2026-05-26T15:50:41.762Z"
+    },
+    {
+      "id": "tk-9ed2a76f3bf8",
+      "title": "Update /adv-prep with metadata.frontend classification",
+      "type": "code",
+      "section": "Routing surfaces",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-05-26T15:37:27.629Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-0bee65d963d4"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC8"
+        ],
+        "verifies": [
+          "AC8"
+        ],
+        "respects": [
+          "C2",
+          "C5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-26T15:50:45.200Z",
+      "verification": "grep -n \"metadata.frontend\\|adv-designer\" .opencode/command/adv-prep.md → 11 lines, classification rule + cross-reference to adv-apply Priority 1.5 + heuristic warning + review-ownership note.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".opencode/command/adv-prep.md"
+      ],
+      "touched_files": [
+        ".opencode/command/adv-prep.md"
+      ],
+      "checkpointSha": "3fc61c82a8bbc9d1388e3dabd00ced7cfab808cd",
+      "completedAt": "2026-05-26T15:51:18.162Z",
+      "completed_at": "2026-05-26T15:51:18.162Z"
+    },
+    {
+      "id": "tk-699cf3aed2a5",
+      "title": "Update /adv-apply Delegation Routing + Designer Apply Context Packet",
+      "type": "code",
+      "section": "Routing surfaces",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-05-26T15:37:44.090Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-7720ecd9d579"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-9ed2a76f3bf8"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC8",
+          "SC2"
+        ],
+        "verifies": [
+          "AC8",
+          "AC4"
+        ],
+        "respects": [
+          "C2",
+          "C5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-26T15:51:21.438Z",
+      "verification": "vitest run designer-assets + engineer-assets → 55 passed. Adv-apply.md updated: Priority 1.5 routing row for metadata.frontend; Designer Apply Context Packet block; DESIGN QUALITY BAR + NEIGHBORING RECOMMENDATIONS + BACKEND BOUNDARY anchors; EXPECTED OUTPUT references DESIGNER_REPORT.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".opencode/command/adv-apply.md",
+        "plugin/src/adv-designer-assets.test.ts"
+      ],
+      "touched_files": [
+        ".opencode/command/adv-apply.md",
+        "plugin/src/adv-designer-assets.test.ts"
+      ],
+      "checkpointSha": "16710f29e3b39ceafcbf95203377c4f97dbd9e18",
+      "completedAt": "2026-05-26T15:52:55.112Z",
+      "completed_at": "2026-05-26T15:52:55.112Z"
+    },
+    {
+      "id": "tk-ac45ea1f42d5",
+      "title": "Update /adv-review + /adv-harden with FRONTEND DESIGN REVIEW SKILL anchor",
+      "type": "code",
+      "section": "Routing surfaces",
+      "status": "done",
+      "priority": 5,
+      "created_at": "2026-05-26T15:37:54.596Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-7720ecd9d579"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC11",
+          "SC2"
+        ],
+        "verifies": [
+          "AC11"
+        ],
+        "respects": [
+          "C4",
+          "DONT2",
+          "DONT5",
+          "OOS2"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-26T15:52:58.665Z",
+      "verification": "vitest run reviewer-asset + designer-assets + engineer-assets → 141 passed. Adv-review.md and adv-harden.md Reviewer Remediation Packets now include FRONTEND DESIGN REVIEW SKILL anchor with inline 6-dimension checklist. Safety rails: review/harden ownership stays with adv-reviewer; adv-designer is not a spawn target.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".opencode/command/adv-harden.md",
+        ".opencode/command/adv-review.md",
+        "plugin/src/adv-reviewer-asset.test.ts"
+      ],
+      "touched_files": [
+        ".opencode/command/adv-harden.md",
+        ".opencode/command/adv-review.md",
+        "plugin/src/adv-reviewer-asset.test.ts"
+      ],
+      "checkpointSha": "75fee53cc83cb13ac294db4a9c19e05354d7c790",
+      "completedAt": "2026-05-26T15:54:52.593Z",
+      "completed_at": "2026-05-26T15:54:52.593Z"
+    },
+    {
+      "id": "tk-f0938eac1608",
+      "title": "Update delegation-matrix, phantom-roster, deploy-exclusion tests for adv-designer",
+      "type": "code",
+      "section": "Tests",
+      "status": "done",
+      "priority": 6,
+      "created_at": "2026-05-26T15:38:06.751Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-0bee65d963d4"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-7720ecd9d579"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC9"
+        ],
+        "verifies": [
+          "AC6",
+          "AC9",
+          "AC10"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-26T15:54:55.833Z",
+      "verification": "vitest run delegation-matrix + phantom-subagent-roster + deploy-local-exclusion → 117 passed. KNOWN_SPAWNABLE_SUBAGENTS includes adv-designer; apply allowed_subagents Set updated; new Frontend Implementation packet contract asserted; phantom-roster plus-routing regex includes adv-designer; deploy-exclusion test pins adv-designer is NOT in REPO_LOCAL_ONLY or SHARED_OVERLAY_ONLY.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/delegation-matrix.test.ts",
+        "plugin/src/deploy-local-exclusion.test.ts",
+        "plugin/src/phantom-subagent-roster.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/delegation-matrix.test.ts",
+        "plugin/src/deploy-local-exclusion.test.ts",
+        "plugin/src/phantom-subagent-roster.test.ts"
+      ],
+      "checkpointSha": "dee4021fa35eb4d3778ba85d03393cca96d50fdb",
+      "completedAt": "2026-05-26T15:56:07.127Z",
+      "completed_at": "2026-05-26T15:56:07.127Z"
+    },
+    {
+      "id": "tk-0f97de62740b",
+      "title": "Update documentation surfaces with adv-designer roster + apply-phase intent",
+      "type": "code",
+      "section": "Documentation",
+      "status": "done",
+      "priority": 7,
+      "created_at": "2026-05-26T15:38:15.187Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-7720ecd9d579"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC2"
+        ],
+        "verifies": [
+          "SC2"
+        ],
+        "respects": [
+          "C2",
+          "DONT5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-26T15:56:10.070Z",
+      "verification": "vitest run docs + agent assets → 165 passed. ADV_INSTRUCTIONS.md, SETUP.md, README.md, project.md, AGENTS.md all reference adv-designer with apply-phase intent and review-ownership preservation. Added 3-test asset block to adv-instructions-assets.test.ts.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "ADV_INSTRUCTIONS.md",
+        "AGENTS.md",
+        "README.md",
+        "SETUP.md",
+        "plugin/src/adv-instructions-assets.test.ts",
+        "project.md"
+      ],
+      "touched_files": [
+        "ADV_INSTRUCTIONS.md",
+        "AGENTS.md",
+        "README.md",
+        "SETUP.md",
+        "plugin/src/adv-instructions-assets.test.ts",
+        "project.md"
+      ],
+      "checkpointSha": "4c5c8b8029585cafcfd48a8dbf52cb639cdfafb9",
+      "completedAt": "2026-05-26T15:58:11.561Z",
+      "completed_at": "2026-05-26T15:58:11.561Z"
+    },
+    {
+      "id": "tk-3512d33a1715",
+      "title": "Final focused verification and selected broader check",
+      "type": "code",
+      "section": "Verification",
+      "status": "done",
+      "priority": 8,
+      "created_at": "2026-05-26T15:38:28.253Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-171f5cd2a3b5"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-0bee65d963d4"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-7720ecd9d579"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-9ed2a76f3bf8"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-699cf3aed2a5"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-ac45ea1f42d5"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-f0938eac1608"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-0f97de62740b"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [],
+        "verifies": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "SC4",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7",
+          "AC8",
+          "AC9",
+          "AC10",
+          "AC11",
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6"
+        ],
+        "respects": [
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "DONT6",
+          "DONT7",
+          "OOS1",
+          "OOS2",
+          "OOS3",
+          "OOS4",
+          "OOS5",
+          "OOS6",
+          "OOS7"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-26T15:58:14.121Z",
+      "verification": "Focused designer suites: vitest run 8 test files → 294 passed. Selected broader check: `pnpm run check` (typecheck + test-isolation + lockfile-policy + lint + format:check) passes clean. Campsite fix: ran `prettier --write src/tools/gate.ts` to clear pre-existing formatting drift in adjacent touched-scope file.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/adv-designer-assets.test.ts",
+        "plugin/src/adv-instructions-assets.test.ts",
+        "plugin/src/adv-reviewer-asset.test.ts",
+        "plugin/src/subagent-reports-spec-assets.test.ts",
+        "plugin/src/tools/gate.ts",
+        "plugin/src/types/subagent-reports.ts"
+      ],
+      "touched_files": [
+        "plugin/src/adv-designer-assets.test.ts",
+        "plugin/src/adv-instructions-assets.test.ts",
+        "plugin/src/adv-reviewer-asset.test.ts",
+        "plugin/src/subagent-reports-spec-assets.test.ts",
+        "plugin/src/tools/gate.ts",
+        "plugin/src/types/subagent-reports.ts"
+      ],
+      "checkpointSha": "01ad7deba5a4c4f566f09acfbd84e798fe7336ad",
+      "completedAt": "2026-05-26T16:00:10.137Z",
+      "completed_at": "2026-05-26T16:00:10.137Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "addAdvDesigner",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addAdvDesigner",
+          "task_id": "tk-3512d33a1715",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-3512d33a1715"
+          },
+          "agent": "adv-reviewer",
+          "phase": "review",
+          "verdict": "READY",
+          "blocking_findings": [],
+          "nonblocking_findings": [
+            {
+              "id": "contract-traceability-1",
+              "label": "praise",
+              "file": ".adv/specs/delegation-defaults/spec.json",
+              "line": 45,
+              "what": "Apply matrix structurally names adv-designer as a real apply-phase frontend worker.",
+              "why": "Supports SC1 and SC2 with machine-readable routing law instead of prompt-only authority.",
+              "fix": "n/a"
+            },
+            {
+              "id": "schema-correctness-1",
+              "label": "praise",
+              "file": "plugin/src/types/subagent-reports.ts",
+              "line": 166,
+              "what": "DesignerSubagentReportSchema is strict, task-scoped, and includes design_dimensions plus neighboring_recommendations.",
+              "why": "Satisfies SC4/DONT5 by making DESIGNER_REPORT ingest typed and structurally validated.",
+              "fix": "n/a"
+            },
+            {
+              "id": "packet-contract-1",
+              "label": "praise",
+              "file": ".opencode/command/adv-apply.md",
+              "line": 508,
+              "what": "Designer Apply Context Packet starts from WORKING DIRECTORY and includes strict identity plus warn-first scope anchors.",
+              "why": "Maps required schema-derived values into worker payload and preserves rollout-safe scope/done/stop/verification anchors.",
+              "fix": "n/a"
+            },
+            {
+              "id": "routing-boundary-1",
+              "label": "praise",
+              "file": ".opencode/command/adv-apply.md",
+              "line": 411,
+              "what": "Delegation routing gives metadata.delegation_hint priority over metadata.frontend and keeps risk signals inline-required.",
+              "why": "Preserves explicit user override and avoids phantom or heuristic-only routing.",
+              "fix": "n/a"
+            },
+            {
+              "id": "prep-classification-1",
+              "label": "praise",
+              "file": ".opencode/command/adv-prep.md",
+              "line": 141,
+              "what": "Prep requires metadata.frontend for frontend/view/component UI tasks and excludes backend/storage/API/Temporal/business logic.",
+              "why": "Provides structural apply routing distinction while maintaining backend ownership boundaries.",
+              "fix": "n/a"
+            },
+            {
+              "id": "review-harden-ownership-1",
+              "label": "praise",
+              "file": ".opencode/command/adv-review.md",
+              "line": 305,
+              "what": "Reviewer remediation packet includes frontend design review skill anchor while explicitly keeping adv-reviewer as owner.",
+              "why": "Satisfies SC3 and DONT2: frontend review/harden stays in adv-reviewer, not adv-designer.",
+              "fix": "n/a"
+            },
+            {
+              "id": "review-harden-ownership-2",
+              "label": "praise",
+              "file": ".opencode/command/adv-harden.md",
+              "line": 443,
+              "what": "Harden reviewer packet mirrors frontend design checklist and warns adv-designer is apply-phase only.",
+              "why": "Release readiness review keeps same ownership boundary and does not introduce a review/harden reassignment.",
+              "fix": "n/a"
+            },
+            {
+              "id": "agent-safety-1",
+              "label": "praise",
+              "file": ".opencode/agents/adv-designer.md",
+              "line": 82,
+              "what": "Designer agent forbids /adv-* commands, nested sub-agents, gate/task orchestration, backend ownership, and review/harden ownership.",
+              "why": "Aligns with DONT1-DONT7 and OOS boundaries for leaf apply-phase UI execution.",
+              "fix": "n/a"
+            },
+            {
+              "id": "consumer-path-1",
+              "label": "praise",
+              "file": "plugin/src/tools/subagent-report.ts",
+              "line": 290,
+              "what": "Verification warning consumer treats adv-designer like adv-engineer for task-scoped verification evidence cross-checks.",
+              "why": "Preserves downstream validation behavior for new task worker reports.",
+              "fix": "n/a"
+            },
+            {
+              "id": "workflow-persistence-1",
+              "label": "praise",
+              "file": "plugin/src/temporal/change-state.ts",
+              "line": 356,
+              "what": "Designer blockers feed blockerSummary and task error_recovery through existing signal-driven persistence path.",
+              "why": "Keeps correctness in workflow state handling without defineUpdate or tool-layer heuristic persistence.",
+              "fix": "n/a"
+            },
+            {
+              "id": "test-coverage-1",
+              "label": "praise",
+              "file": "plugin/src/adv-designer-assets.test.ts",
+              "line": 259,
+              "what": "Designer asset tests parse the example JSON through DesignerSubagentReportSchema and assert tool-call transport.",
+              "why": "Ties agent prose, schema, packet anchors, and transport together per adv-agent-tool-contracts checklist.",
+              "fix": "n/a"
+            },
+            {
+              "id": "worktree-cleanliness-1",
+              "label": "praise",
+              "file": "plugin/src/adv-designer-assets.test.ts",
+              "line": 1,
+              "what": "Focused designer suites and pnpm run check pass; git status remained clean before and after verification.",
+              "why": "Acceptance-stage verification has executable evidence and no uncommitted review dirt.",
+              "fix": "n/a"
+            }
+          ],
+          "changes_made": [],
+          "wisdom_candidates": [],
+          "verification": {
+            "tests_run": [
+              "git status --porcelain",
+              "pnpm exec vitest run src/adv-designer-assets.test.ts src/types/subagent-reports.test.ts src/subagent-reports-spec-assets.test.ts src/delegation-matrix.test.ts src/phantom-subagent-roster.test.ts src/deploy-local-exclusion.test.ts src/adv-instructions-assets.test.ts src/adv-engineer-assets.test.ts src/adv-reviewer-asset.test.ts src/tools/subagent-report.test.ts src/temporal/change-state.test.ts",
+              "pnpm run check",
+              "git status --porcelain"
+            ],
+            "results": "pass",
+            "evidence": "Preflight git status clean (no output). Focused vitest: 11 test files passed, 344 tests passed, exit code 0. pnpm run check passed typecheck, test isolation, lockfile policy, lint, and prettier format:check, exit code 0. Post-verification git status clean (no output)."
+          },
+          "scope_drift": null,
+          "risks": [
+            "Coordination advisory only: parent/parallel addDelegationMatrix touches overlapping specs/tests; no direct conflict detected in this review, but orchestrator owns merge-order/release coordination.",
+            "Live OpenCode sessions may need plugin build/deploy/restart before newly added adv-designer report schema appears in runtime tool schemas; source-level tests and check pass in this worktree."
+          ],
+          "required_main_agent_actions": [],
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: git status --porcelain"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/adv-designer-assets.test.ts src/types/subagent-reports.test.ts src/subagent-reports-spec-assets.test.ts src/delegation-matrix.test.ts src/phantom-subagent-roster.test.ts src/deploy-local-exclusion.test.ts src/adv-instructions-assets.test.ts src/adv-engineer-assets.test.ts src/adv-reviewer-asset.test.ts src/tools/subagent-report.test.ts src/temporal/change-state.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: git status --porcelain"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-26T14:50:57.834Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved proposal with Tier A reply `continue`; proposal persisted with addDelegationMatrix fast-follow context, scope, success criteria, constraints, failure handling, B/F/S scan, and discovery agenda.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addAdvDesigner/proposal.md",
+        "content_hash": "c024c5abce7729ed87f80c19779347b5c552f58dd44f7eaa1650c1d9455a02ef",
+        "non_whitespace_chars": 8423,
+        "checked_at": "2026-05-26T14:50:57.912Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-26T15:28:55.894Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery completed after user approved AC with Tier A `approve` and clarified designer is apply-phase only with reviews handled by adv-reviewer (skill passed for design-inclusive reviews). Agreement persisted (visual_surface:false). ChangeContract minted with 35 items (SC1-4, AC1-11, C1-6, DONT1-7, OOS1-7). Discovery scout completed via adv-researcher; recommendation validates apply-phase typed persisted worker modeled on adv-engineer with structural frontend routing.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addAdvDesigner/agreement.md",
+        "content_hash": "12e9bcaecbfd03369dd9c4badab0def74629a987303d65733557899a32e08baf",
+        "non_whitespace_chars": 6384,
+        "checked_at": "2026-05-26T15:28:55.954Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-26T15:35:42.210Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design persisted with two-plane: apply-phase typed worker mirroring adv-engineer + design-aware reviewer packet anchor (no review-ownership move). Independent validator verdict VALIDATED with one CAUTION resolved inline (Priority 1.5 frontend routing branch keeps metadata.delegation_hint at Priority 1). No user-value tradeoff, no unresolved CONFLICT, no contract-compromise risk.",
+      "artifact_evidence": {
+        "kind": "design",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addAdvDesigner/design.md",
+        "content_hash": "aeec316d60c440dfe817258aefb4a0cc7e7cb94af0e213b3b3d1303f8c921dd6",
+        "non_whitespace_chars": 17569,
+        "checked_at": "2026-05-26T15:35:42.260Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-26T15:39:12.058Z",
+      "completed_by": "agent",
+      "approval_evidence": "Planning approved by user with Tier A `approve` after vision banner. 9 tasks created covering schema foundation, agent asset, routing surfaces, tests, documentation, and verification. Contract coverage validated (every AC1-11/SC1-4 has implementing or verifying task). adv_change_validate passed; only warning is NO_DELTAS (deltas captured in design.md draft section, not as change.deltas — same pattern as addDelegationMatrix parent)."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-26T16:00:20.216Z",
+      "completed_by": "agent",
+      "approval_evidence": "Execution complete. All 9 tasks done. Final verification: focused designer suites 294 passed, pnpm run check (typecheck + test-isolation + lockfile-policy + lint + format:check) green. Touched: agent asset, Zod schema + tool description, specs (delegation-defaults + subagent-reports), command files (adv-prep, adv-apply, adv-review, adv-harden), roster/matrix/exclusion tests, documentation surfaces (ADV_INSTRUCTIONS, SETUP, README, project, AGENTS). Working tree clean after final prettier --write campsite fix on src/tools/gate.ts (pre-existing drift)."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-26T16:07:47.397Z",
+      "completed_by": "agent",
+      "approval_evidence": "Acceptance complete. Independent adv-reviewer worker (phase review, attempt 1) returned READY verdict with no blockers, no issues, only praise across 12 dimensions; 344 focused tests pass; pnpm run check clean. Executive summary persisted. Contract review matrix persisted (35 rows: SC1-4 pass, AC1-11 pass, C1-6 respected, DONT1-7 respected, OOS1-7 respected). Awaiting Tier B sign-off before archive.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addAdvDesigner/acceptance.md",
+        "content_hash": "03be3a692ba800a9c295e17a64a3abeb717be9a6b67ba9ca5b2f5586956373d1",
+        "non_whitespace_chars": 10145,
+        "checked_at": "2026-05-26T16:07:47.478Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "fast_follow_of": {
+    "parent_change_id": "addDelegationMatrix",
+    "linked_at": "2026-05-26T14:46:33.199Z"
+  },
+  "origin": {
+    "kind": "adhoc"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "12e9bcaecbfd03369dd9c4badab0def74629a987303d65733557899a32e08baf",
+      "approvedAt": "2026-05-26T15:06:40.410Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "`adv-designer` is a real spawnable agent asset with explicit frontend/component ownership, backend exclusions, no nested delegation, and no `/adv-*` slash invocation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "12e9bcaecbfd03369dd9c4badab0def74629a987303d65733557899a32e08baf",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "ADV apply routing can structurally choose `adv-designer` vs `adv-engineer` for frontend, backend, and mixed UI/backend tasks.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "12e9bcaecbfd03369dd9c4badab0def74629a987303d65733557899a32e08baf",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "Review/harden guidance keeps `adv-reviewer` as owner and supplies frontend/design skill/checklist context for design-inclusive review work.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "12e9bcaecbfd03369dd9c4badab0def74629a987303d65733557899a32e08baf",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC4",
+        "kind": "success_criterion",
+        "text": "Delegation and report correctness are enforced by specs, schemas, packet contracts, and tests rather than prompt-only prose.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "12e9bcaecbfd03369dd9c4badab0def74629a987303d65733557899a32e08baf",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "`adv-designer` exists as real spawnable sub-agent asset with `mode: subagent`, no nested delegation, no `/adv-*` slash invocation, and ADV orchestration mutation tools blocked.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "12e9bcaecbfd03369dd9c4badab0def74629a987303d65733557899a32e08baf",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "`adv-designer` is apply-phase only and write-only for scoped frontend/component implementation; it does not own review or harden gates.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "12e9bcaecbfd03369dd9c4badab0def74629a987303d65733557899a32e08baf",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Designer scope covers HTML/CSS/JS/TSX/component work, semantic HTML, accessibility, responsive behavior, visual polish, site-design consistency, finer details, and component correctness.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "12e9bcaecbfd03369dd9c4badab0def74629a987303d65733557899a32e08baf",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Mixed UI/backend work is split by concern: designer gets UI/component work; engineer gets backend/state/API/business logic.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "12e9bcaecbfd03369dd9c4badab0def74629a987303d65733557899a32e08baf",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Neighboring UI/design recommendations are surfaced to ADV/user for HITL instead of silently expanding scope.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "12e9bcaecbfd03369dd9c4badab0def74629a987303d65733557899a32e08baf",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "`delegation-defaults` and `subagent-reports` specs are updated where affected; no prompt-only routing source of truth.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "12e9bcaecbfd03369dd9c4badab0def74629a987303d65733557899a32e08baf",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "`adv-designer` has a strict task-scoped typed report contract if it writes code; missing packet identity anchors remain validation errors, not inferred values.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "12e9bcaecbfd03369dd9c4badab0def74629a987303d65733557899a32e08baf",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC8",
+        "kind": "acceptance_criterion",
+        "text": "Prep/apply routing has structural frontend metadata or equivalent; title/path heuristics may assist but do not own correctness.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "12e9bcaecbfd03369dd9c4badab0def74629a987303d65733557899a32e08baf",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC9",
+        "kind": "acceptance_criterion",
+        "text": "Tests fail if `adv-designer` is referenced without a real agent asset, valid spawn mode, allowed routing, packet contract, report schema, and deploy/sync coverage.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "12e9bcaecbfd03369dd9c4badab0def74629a987303d65733557899a32e08baf",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC10",
+        "kind": "acceptance_criterion",
+        "text": "`addDelegationMatrix` contract is preserved: matrix is source/evaluation law; downstream field agents do not inspect repo-local spec during normal execution.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "12e9bcaecbfd03369dd9c4badab0def74629a987303d65733557899a32e08baf",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC11",
+        "kind": "acceptance_criterion",
+        "text": "Reviews for work including frontend/design scope remain routed to `adv-reviewer` and include a frontend/design skill or checklist in the review packet/context.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "12e9bcaecbfd03369dd9c4badab0def74629a987303d65733557899a32e08baf",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Specs are laws: `delegation-defaults` and `subagent-reports` must be updated where affected before implementation claims conformance.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "12e9bcaecbfd03369dd9c4badab0def74629a987303d65733557899a32e08baf",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Follow `addDelegationMatrix` contract: matrix/spec is source-plane law and evaluation artifact; deployed command/agent guidance carries runtime instructions without requiring downstream field-agent spec lookup.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "12e9bcaecbfd03369dd9c4badab0def74629a987303d65733557899a32e08baf",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Follow `adv-agent-tool-contracts`: schema, context packet, prompt, transport lane, tests, specs all aligned.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "12e9bcaecbfd03369dd9c4badab0def74629a987303d65733557899a32e08baf",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "`adv-designer` must use apply-phase worker boundaries like `adv-engineer`: no nested delegation, no ADV orchestration mutations, scoped workdir, typed report submission if persisted.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "12e9bcaecbfd03369dd9c4badab0def74629a987303d65733557899a32e08baf",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Package commands run from `plugin/`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "12e9bcaecbfd03369dd9c4badab0def74629a987303d65733557899a32e08baf",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C6",
+        "kind": "constraint",
+        "text": "Coordinate basis with `addDelegationMatrix` before implementation if parent remains unarchived or changes the same specs/tests.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "12e9bcaecbfd03369dd9c4badab0def74629a987303d65733557899a32e08baf",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not make `adv-designer` own backend logic, storage, APIs, Temporal, business rules, or non-UI implementation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "12e9bcaecbfd03369dd9c4badab0def74629a987303d65733557899a32e08baf",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not make `adv-designer` a review/harden gate owner.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "12e9bcaecbfd03369dd9c4badab0def74629a987303d65733557899a32e08baf",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not route work to phantom/nonexistent agents or primary agents as sub-agents.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "12e9bcaecbfd03369dd9c4badab0def74629a987303d65733557899a32e08baf",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not duplicate delegation defaults as independent prompt prose across command files or agents.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "12e9bcaecbfd03369dd9c4badab0def74629a987303d65733557899a32e08baf",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "Do not weaken typed report validation, packet identity anchors, gate ownership, human checkpoints, TDD evidence, worktree isolation, or ADV state mutation boundaries.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "12e9bcaecbfd03369dd9c4badab0def74629a987303d65733557899a32e08baf",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT6",
+        "kind": "avoidance",
+        "text": "Do not rely on title/path heuristics as the sole authority for frontend routing correctness.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "12e9bcaecbfd03369dd9c4badab0def74629a987303d65733557899a32e08baf",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT7",
+        "kind": "avoidance",
+        "text": "Do not silently expand a designer task into neighboring UI changes; surface recommendations to ADV/user for HITL.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "12e9bcaecbfd03369dd9c4badab0def74629a987303d65733557899a32e08baf",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "Backend logic ownership by `adv-designer`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "12e9bcaecbfd03369dd9c4badab0def74629a987303d65733557899a32e08baf",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "Review/harden gate ownership by `adv-designer`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "12e9bcaecbfd03369dd9c4badab0def74629a987303d65733557899a32e08baf",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "Broad design-system rebuilds or visual redesigns unrelated to worker routing.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "12e9bcaecbfd03369dd9c4badab0def74629a987303d65733557899a32e08baf",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS4",
+        "kind": "out_of_scope",
+        "text": "Product strategy or subjective UX direction beyond scoped task execution and recommendation surfacing.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "12e9bcaecbfd03369dd9c4badab0def74629a987303d65733557899a32e08baf",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS5",
+        "kind": "out_of_scope",
+        "text": "Utility-command delegation matrix expansion unless design proves it is required for designer routing.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "12e9bcaecbfd03369dd9c4badab0def74629a987303d65733557899a32e08baf",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS6",
+        "kind": "out_of_scope",
+        "text": "Changing global sub-agent nesting depth, max parallelism, or Task tool runtime guards.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "12e9bcaecbfd03369dd9c4badab0def74629a987303d65733557899a32e08baf",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS7",
+        "kind": "out_of_scope",
+        "text": "Replacing `adv-engineer`, `adv-reviewer`, `adv-researcher`, `adv-tron`, `explore`, or `general`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "12e9bcaecbfd03369dd9c4badab0def74629a987303d65733557899a32e08baf",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-05-26T16:07:42.705Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "adv-designer-assets.test.ts: existence + frontmatter + tool allowlist + required sections (31 tests pass)"
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "adv-apply.md Priority 1.5 routing + Designer Apply Context Packet pinned by adv-designer-assets.test.ts; adv-prep.md metadata.frontend classification documented; delegation-matrix.test.ts apply allowed_subagents Set includes adv-designer"
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "adv-reviewer-asset.test.ts asserts FRONTEND DESIGN REVIEW SKILL anchor + 6-dimension checklist in review + harden Reviewer Remediation Packets; review/harden ownership preserved via spawn-directive negative test"
+        },
+        {
+          "contractId": "SC4",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "DesignerSubagentReportSchema (Zod strict) + discriminated union + SUBAGENT_REPORT_FIELD_SOURCES validated by subagent-reports.test.ts (26 tests) and subagent-reports-spec-assets.test.ts (10 tests)"
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "adv-designer.md asset shipped with mode:subagent, hidden:true, task:false, all ADV orchestration tools blocked; pinned by adv-designer-assets.test.ts frontmatter + body tests"
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Agent body explicitly forbids /adv-* invocation, nested delegation, ADV orchestration mutations, backend ownership, and review/harden ownership; reviewer-asset.test.ts spawn-directive negative test prevents review/harden spawn directives"
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "adv-designer-assets.test.ts DESIGN QUALITY BAR dimension enumeration test asserts component correctness, semantic HTML, accessibility, responsive, visual polish, matching site design, finer details"
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "adv-prep.md classification rule: split mixed UI/backend by concern; designer Backend Boundary + scope_drift.stop_and_report + required_main_agent_actions handoff pattern verified by adv-designer-assets.test.ts"
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Neighboring Recommendation Protocol in agent body + DESIGNER_REPORT.neighboring_recommendations[] schema field + Designer Apply Context Packet NEIGHBORING RECOMMENDATIONS anchor; pinned by adv-designer-assets.test.ts"
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "delegation-defaults spec apply step Frontend Implementation substep + subagent-reports rq01/05/06 narratives all updated; verified by subagent-reports-spec-assets.test.ts and delegation-matrix.test.ts"
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "DesignerSubagentReportSchema is strict task-scoped Zod schema; subagent-reports.test.ts validates structural agent/scope pairing rejection and packet anchor alignment"
+        },
+        {
+          "contractId": "AC8",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "adv-prep.md metadata.frontend classification rule + adv-apply.md Priority 1.5 routing branch pinned by adv-designer-assets.test.ts and delegation-matrix.test.ts apply.allowedAgents Set"
+        },
+        {
+          "contractId": "AC9",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "phantom-subagent-roster.test.ts adv-designer added to plus-routing regex; delegation-matrix.test.ts KNOWN_SPAWNABLE_SUBAGENTS includes adv-designer; deploy-local-exclusion.test.ts pins adv-designer is NOT in REPO_LOCAL_ONLY or SHARED_OVERLAY_ONLY"
+        },
+        {
+          "contractId": "AC10",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "All updates extend delegation-defaults source-plane spec; deployed command/agent files derive runtime instructions without requiring field-agent spec lookup; subagent-reports-spec-assets.test.ts verifies matrix-as-source-plane-law"
+        },
+        {
+          "contractId": "AC11",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "adv-reviewer-asset.test.ts asserts FRONTEND DESIGN REVIEW SKILL anchor + inline checklist in both review and harden Reviewer Remediation Packets; ownership stays with adv-reviewer"
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "delegation-defaults and subagent-reports specs updated before implementation claims conformance; spec-assets tests pin law"
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "addDelegationMatrix matrix-as-source-plane-law contract preserved; deployed routing instructions in command files carry runtime guidance without field-agent spec lookup"
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "adv-agent-tool-contracts checklist applied: Zod schema + packet anchors + agent prompt + transport lane (adv_subagent_report_submit) + tests + specs all aligned"
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "adv-designer mirrors adv-engineer apply-phase worker pattern: no nested delegation, no ADV orchestration mutations, scoped workdir lock, typed report submission"
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "All vitest commands run from plugin/; pnpm run check passes from plugin/"
+        },
+        {
+          "contractId": "C6",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Coordination requirement is respected by explicit surfacing: design.md Risks R1, executive summary remaining concerns, independent reviewer risk flag, agreement.md deferred questions section. Parent addDelegationMatrix overlap is acknowledged as an orchestrator merge-order concern at release/archive (not blocking acceptance) — the constraint asks to coordinate basis, and surfacing the coordination requirement before archive satisfies it."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "adv-designer agent body and design quality bar exclude backend logic/storage/APIs/Temporal/business rules; Backend Boundary section enforces stop_and_report on backend-need detection"
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "adv-reviewer-asset.test.ts spawn-directive negative test prevents review/harden spawn directives targeting adv-designer; safety-rail prose explicit"
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "phantom-subagent-roster.test.ts plus-routing regex enforces only valid sub-agents; KNOWN_SPAWNABLE_SUBAGENTS list pins valid roster"
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Single source-of-truth: delegation-defaults spec drives matrix + packet contracts; deployed command files reference but do not duplicate the law"
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Zod schema strict mode rejects unknown fields; identity anchor missing remains INVALID_REPORT; gate ownership unchanged; TDD evidence preserved via adv_run_test path; worktree isolation preserved via per-change worktree at /home/jon/.local/share/opencode/worktree/...; ADV state mutation tools blocked in designer allowlist"
+        },
+        {
+          "contractId": "DONT6",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "adv-designer agent body and Backend Boundary section explicitly refuse backend ownership"
+        },
+        {
+          "contractId": "DONT7",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Neighboring Recommendation Protocol in agent body requires finish-owned-scope + surface via neighboring_recommendations[] + required_main_agent_actions for HITL; tests verify both"
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No backend logic ownership added to adv-designer"
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "adv-designer is not a review/harden gate owner; spec.json apply step is the only matrix row with adv-designer added"
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No design-system rebuild; only worker routing addition"
+        },
+        {
+          "contractId": "OOS4",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No product strategy/UX direction beyond scoped tasks; designer prompt limits scope to per-task implementation"
+        },
+        {
+          "contractId": "OOS5",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Utility-command delegation matrix unchanged"
+        },
+        {
+          "contractId": "OOS6",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Sub-agent nesting depth and parallelism limits unchanged"
+        },
+        {
+          "contractId": "OOS7",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "adv-engineer, adv-reviewer, adv-researcher, adv-tron, explore, general all unchanged"
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "`adv-designer` exists as real spawnable sub-agent asset with `mode: subagent`, no nested delegation, no `/adv-*` slash invocation, and ADV orchestration mutation tools blocked.",
+    "`adv-designer` is apply-phase only and write-only for scoped frontend/component implementation; it does not own review or harden gates.",
+    "Designer scope covers HTML/CSS/JS/TSX/component work, semantic HTML, accessibility, responsive behavior, visual polish, site-design consistency, finer details, and component correctness.",
+    "Mixed UI/backend work is split by concern: designer gets UI/component work; engineer gets backend/state/API/business logic.",
+    "Neighboring UI/design recommendations are surfaced to ADV/user for HITL instead of silently expanding scope.",
+    "`delegation-defaults` and `subagent-reports` specs are updated where affected; no prompt-only routing source of truth.",
+    "`adv-designer` has a strict task-scoped typed report contract if it writes code; missing packet identity anchors remain validation errors, not inferred values.",
+    "Prep/apply routing has structural frontend metadata or equivalent; title/path heuristics may assist but do not own correctness.",
+    "Tests fail if `adv-designer` is referenced without a real agent asset, valid spawn mode, allowed routing, packet contract, report schema, and deploy/sync coverage.",
+    "`addDelegationMatrix` contract is preserved: matrix is source/evaluation law; downstream field agents do not inspect repo-local spec during normal execution.",
+    "Reviews for work including frontend/design scope remain routed to `adv-reviewer` and include a frontend/design skill or checklist in the review packet/context."
+  ],
+  "documents": {},
+  "artifacts": {
+    "proposal": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addAdvDesigner/proposal.md",
+      "updatedAt": "2026-05-26T15:06:28.254Z"
+    },
+    "agreement": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addAdvDesigner/agreement.md",
+      "updatedAt": "2026-05-26T15:06:28.279Z"
+    },
+    "design": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addAdvDesigner/design.md",
+      "updatedAt": "2026-05-26T15:35:34.966Z"
+    },
+    "executiveSummary": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addAdvDesigner/executive-summary.md",
+      "updatedAt": "2026-05-26T16:06:07.594Z"
+    }
+  },
+  "lastSignalAt": "2026-05-26T16:07:47.397Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_ASSUMPTION_HEAVY",
+      "severity": "warning",
+      "message": "Proposal references authentication/authorization without specifying the model. What auth mechanism will be used?",
+      "recorded_at": "2026-05-26T15:32:09.421Z"
+    }
+  ],
+  "worktree_auto_managed": true
+}

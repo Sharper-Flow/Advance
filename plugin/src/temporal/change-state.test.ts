@@ -3,17 +3,71 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 import {
+  applySubagentReportSubmittedToState,
   applyContractAmendedToState,
   applyGateReenteredToState,
   applyTaskAddedToState,
   applyTaskCompletedToState,
+  changeSeedStateFromChange,
   completeGateInChangeState,
   createChangeWorkflowState,
 } from "./change-state";
-import type { ChangeOrigin } from "../types";
+import type { Change, ChangeOrigin } from "../types";
 import type { ChangeWorkflowInput } from "./contracts";
 
 const sourcePath = fileURLToPath(new URL("./change-state.ts", import.meta.url));
+
+function makeEngineerReport(changeId: string, taskId: string) {
+  return {
+    schema_version: "1.0" as const,
+    change_id: changeId,
+    task_id: taskId,
+    scope: { kind: "task" as const, task_id: taskId },
+    attempt: 1,
+    agent: "adv-engineer" as const,
+    status: "complete" as const,
+    files_touched: ["plugin/src/temporal/change-state.ts"],
+    verification: [
+      {
+        command: "pnpm exec vitest run src/temporal/change-state.test.ts",
+        exit_code: 0,
+        summary: "passed",
+      },
+    ],
+    decisions: [],
+    blockers: [],
+    follow_ups: [],
+    related_scan: "none",
+    workdir_used: "/tmp/worktree",
+    context_update_for_adv: {
+      what_ads_needs_to_know: "Report persisted",
+      suggested_next_action: "Continue",
+    },
+  };
+}
+
+function makeResearcherReport(changeId: string) {
+  return {
+    schema_version: "1.0" as const,
+    change_id: changeId,
+    scope: { kind: "change" as const, scope_key: "researcher:temporal-docs" },
+    attempt: 1,
+    agent: "adv-researcher" as const,
+    topic: "Temporal docs",
+    sources: [
+      {
+        label: "Temporal docs",
+        locator: "https://docs.temporal.io/",
+        summary: "Replay-safe signals require deterministic state mutation.",
+      },
+    ],
+    architecture_assessment: "Sidecar persistence avoids task payload bloat.",
+    validation: { status: "pass" as const, blockers: [], notes: "ok" },
+    recommendation: "Persist as change-scoped sidecar report.",
+    follow_ups: [],
+    workdir_used: "/tmp/worktree",
+  };
+}
 
 describe("change-state pure mutation helpers", () => {
   it("keeps workflow and I/O imports out of the mutation module", () => {
@@ -30,7 +84,131 @@ describe("change-state pure mutation helpers", () => {
 
     expect(source).toContain("function assertNeverSubagentReport");
     expect(source).toContain("switch (report.agent)");
-    expect(source).toContain("const exhaustive: never = report");
+    expect(source).toContain("default:");
+  });
+
+  it("persists task-scoped sub-agent reports to sidecar and legacy task storage", () => {
+    const state = createChangeWorkflowState({
+      changeId: "sidecar-task-report-test",
+      title: "Sidecar task report test",
+      createdAt: "2026-05-06T00:00:00.000Z",
+    });
+    applyTaskAddedToState(state, {
+      task: {
+        id: "tk-report",
+        title: "Report task",
+        type: "code",
+        status: "pending",
+        priority: 0,
+        created_at: "2026-05-06T00:00:01.000Z",
+      },
+      addedAt: "2026-05-06T00:00:01.000Z",
+    });
+
+    applySubagentReportSubmittedToState(state, {
+      taskId: "tk-report",
+      report: makeEngineerReport("sidecar-task-report-test", "tk-report"),
+      submittedAt: "2026-05-06T00:00:02.000Z",
+    });
+
+    expect(state.subagent_reports).toHaveLength(1);
+    expect(state.subagent_reports?.[0].agent).toBe("adv-engineer");
+    expect(state.tasks[0].subagent_reports).toHaveLength(1);
+    expect(state.seenReportIds).toEqual([
+      "sidecar-task-report-test|tk-report|adv-engineer|1",
+    ]);
+  });
+
+  it("deduplicates sidecar report persistence with legacy task report keys", () => {
+    const state = createChangeWorkflowState({
+      changeId: "sidecar-dedupe-test",
+      title: "Sidecar dedupe test",
+      createdAt: "2026-05-06T00:00:00.000Z",
+    });
+    applyTaskAddedToState(state, {
+      task: {
+        id: "tk-report",
+        title: "Report task",
+        type: "code",
+        status: "pending",
+        priority: 0,
+        created_at: "2026-05-06T00:00:01.000Z",
+      },
+      addedAt: "2026-05-06T00:00:01.000Z",
+    });
+    const payload = {
+      taskId: "tk-report",
+      report: makeEngineerReport("sidecar-dedupe-test", "tk-report"),
+      submittedAt: "2026-05-06T00:00:02.000Z",
+    };
+
+    applySubagentReportSubmittedToState(state, payload);
+    applySubagentReportSubmittedToState(state, {
+      ...payload,
+      submittedAt: "2026-05-06T00:00:03.000Z",
+    });
+
+    expect(state.subagent_reports).toHaveLength(1);
+    expect(state.tasks[0].subagent_reports).toHaveLength(1);
+    expect(state.lastSignalAt).toBe("2026-05-06T00:00:03.000Z");
+  });
+
+  it("persists change-scoped optimized handoff reports without task storage", () => {
+    const state = createChangeWorkflowState({
+      changeId: "sidecar-change-report-test",
+      title: "Sidecar change report test",
+      createdAt: "2026-05-06T00:00:00.000Z",
+    });
+
+    applySubagentReportSubmittedToState(state, {
+      report: makeResearcherReport("sidecar-change-report-test"),
+      submittedAt: "2026-05-06T00:00:02.000Z",
+    });
+
+    expect(state.subagent_reports).toHaveLength(1);
+    expect(state.subagent_reports?.[0].agent).toBe("adv-researcher");
+    expect(state.tasks).toHaveLength(0);
+    expect(state.seenReportIds).toEqual([
+      "sidecar-change-report-test|change:researcher:temporal-docs|adv-researcher|1",
+    ]);
+  });
+
+  it("normalizes legacy sub-agent reports when seeding workflow state", () => {
+    const seed = changeSeedStateFromChange({
+      id: "legacy-seed",
+      title: "Legacy seed",
+      status: "draft",
+      created_at: "2026-05-26T00:00:00.000Z",
+      tasks: [
+        {
+          id: "tk-legacy",
+          title: "Legacy task",
+          type: "code",
+          status: "pending",
+          priority: 0,
+          created_at: "2026-05-26T00:00:00.000Z",
+          subagent_reports: [makeEngineerReport("legacy-seed", "tk-legacy")],
+        },
+      ],
+      subagent_reports: [makeEngineerReport("legacy-seed", "tk-legacy")],
+      deltas: {},
+      wisdom: [],
+      gates: createChangeWorkflowState({
+        changeId: "legacy-seed",
+        title: "Legacy seed",
+        createdAt: "2026-05-26T00:00:00.000Z",
+      }).gates,
+      reentry_history: [],
+    } as unknown as Change);
+
+    expect(seed.tasks[0].subagent_reports?.[0]).toMatchObject({
+      scope_drift: null,
+      required_main_agent_actions: [],
+    });
+    expect(seed.subagent_reports?.[0]).toMatchObject({
+      scope_drift: null,
+      required_main_agent_actions: [],
+    });
   });
 
   it("records task lifecycle mutations without task-run ledger state", () => {

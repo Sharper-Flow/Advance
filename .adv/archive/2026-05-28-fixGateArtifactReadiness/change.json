@@ -1,0 +1,1022 @@
+{
+  "id": "fixGateArtifactReadiness",
+  "title": "Fix gate artifact readiness",
+  "status": "archived",
+  "created_at": "2026-05-28T21:55:02.723Z",
+  "tasks": [
+    {
+      "id": "tk-9e7e10e51fd5",
+      "title": "Prepare isolated worktree and baseline",
+      "type": "code",
+      "section": "Setup",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-28T22:08:21.947Z",
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "contract_refs": {
+        "respects": [
+          "C5"
+        ],
+        "not_applicable_reason": "Environment setup; no logic-bearing code."
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-28T22:12:54.705Z",
+      "verification": "Worktree materialized at /home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixGateArtifactReadiness on branch change/fixGateArtifactReadiness from trunk 439910251bb55cfd8a4142eb49f085130cf628a3; git status clean.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Materialized branch change/fixGateArtifactReadiness at /home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixGateArtifactReadiness from trunk 439910251bb55cfd8a4142eb49f085130cf628a3. Verified clean git status.",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "439910251bb55cfd8a4142eb49f085130cf628a3",
+      "completedAt": "2026-05-28T22:13:02.244Z",
+      "completed_at": "2026-05-28T22:13:02.244Z",
+      "notes": "Isolated worktree ready and clean.",
+      "updatedAt": "2026-05-28T22:13:07.725Z"
+    },
+    {
+      "id": "tk-a626aad4a434",
+      "title": "RED tests for state-backed gate artifact evidence",
+      "type": "code",
+      "section": "TDD",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-28T22:08:37.758Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-9e7e10e51fd5"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6"
+        ],
+        "respects": [
+          "C3"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-28T22:13:17.634Z",
+      "verification": "RED evidence captured: `pnpm exec vitest run src/temporal/gate-readiness.test.ts src/temporal/workflows.signal-handlers.test.ts --maxWorkers=4` exited 1. Failures are expected: stateBackedArtifactEvidence helper missing, projection store still required for design, and no-disk agreement discovery gate remains stuck instead of done.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added unit tests for state-backed artifact evidence helper and projection-store relaxation. Added workflow regression proving agreement content/metadata in Temporal state with no disk agreement.md should allow discovery completion. RED run failed for expected reasons: helper missing, old artifact-store blocker still active for design, and discovery stays stuck from disk inspect path.",
+      "filesTouched": [
+        "plugin/src/temporal/gate-readiness.test.ts",
+        "plugin/src/temporal/workflows.signal-handlers.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/temporal/gate-readiness.test.ts",
+        "plugin/src/temporal/workflows.signal-handlers.test.ts"
+      ],
+      "checkpointSha": "beb04d045fa2cbb1b7dd5ef65c342fbcab169124",
+      "completedAt": "2026-05-28T22:15:26.772Z",
+      "completed_at": "2026-05-28T22:15:26.772Z",
+      "notes": "RED tests added; expected failures captured.",
+      "updatedAt": "2026-05-28T22:15:35.142Z"
+    },
+    {
+      "id": "tk-29f14c3cf352",
+      "title": "Implement state-backed artifact evidence helper in gate-readiness.ts",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-05-28T22:08:46.553Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-a626aad4a434"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4"
+        ],
+        "verifies": [
+          "AC2",
+          "AC3",
+          "AC4"
+        ],
+        "respects": [
+          "C2",
+          "C5",
+          "DONT2",
+          "DONT3",
+          "DONT4"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-28T22:15:43.313Z",
+      "verification": "`pnpm exec vitest run src/temporal/gate-readiness.test.ts --maxWorkers=4` passed: 1 file, 19 tests.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added `stateBackedArtifactEvidence` in gate-readiness.ts. It validates `state.documents[kind]`, blocks missing/blank and undersized content, builds evidence from state metadata/path/hash when present, and omits content_hash when absent. Added shared `MIN_GATE_ARTIFACT_NON_WHITESPACE_CHARS = 20`. Relaxed artifact-store-unavailable blocker to apply only to acceptance. Gate-readiness tests pass.",
+      "filesTouched": [
+        "plugin/src/temporal/gate-readiness.ts"
+      ],
+      "touched_files": [
+        "plugin/src/temporal/gate-readiness.ts"
+      ],
+      "checkpointSha": "056c2c8a86e251cfdab212d8fa68dece5147aa92",
+      "completedAt": "2026-05-28T22:16:17.056Z",
+      "completed_at": "2026-05-28T22:16:17.056Z",
+      "notes": "State-backed artifact evidence helper implemented and unit tests green.",
+      "updatedAt": "2026-05-28T22:16:22.969Z"
+    },
+    {
+      "id": "tk-bf79cd6aab57",
+      "title": "Patch workflow gate completion to use state-backed evidence for non-acceptance artifact gates",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-05-28T22:09:03.963Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-29f14c3cf352"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC5",
+          "AC8"
+        ],
+        "verifies": [
+          "AC1",
+          "AC5",
+          "AC8"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "DONT1",
+          "DONT4",
+          "DONT5"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-28T22:16:32.924Z",
+      "verification": "`pnpm exec vitest run src/temporal/gate-readiness.test.ts src/temporal/workflows.signal-handlers.test.ts --maxWorkers=4` passed: 2 files, 39 tests.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added `STATE_BACKED_GATE_ARTIFACT_PROOF_PATCH`. Proposal/discovery/design gate completion now uses `stateBackedArtifactEvidence` on patched path and avoids `inspectArtifactActivity`. Legacy branch remains for old histories; acceptance branch remains disk-projection based. Updated proposal artifact evidence test to use workflow-state proposal content and metadata. Targeted gate-readiness + workflow signal tests pass.",
+      "filesTouched": [
+        "plugin/src/temporal/workflows.signal-handlers.test.ts",
+        "plugin/src/temporal/workflows.ts"
+      ],
+      "touched_files": [
+        "plugin/src/temporal/workflows.signal-handlers.test.ts",
+        "plugin/src/temporal/workflows.ts"
+      ],
+      "checkpointSha": "c6dce8b20a6e1ce9f410b01f5ad80b6cfc1eb256",
+      "completedAt": "2026-05-28T22:18:08.673Z",
+      "completed_at": "2026-05-28T22:18:08.673Z",
+      "notes": "Workflow patched with state-backed non-acceptance gate evidence; targeted tests green.",
+      "updatedAt": "2026-05-28T22:18:15.353Z"
+    },
+    {
+      "id": "tk-a2de4f9dcc61",
+      "title": "Document recovery steps for existing stuck discovery gates",
+      "type": "code",
+      "section": "Docs/Recovery",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-05-28T22:09:14.264Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-bf79cd6aab57"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC9"
+        ],
+        "verifies": [
+          "AC9"
+        ],
+        "respects": [
+          "C4",
+          "C5",
+          "DONT1"
+        ],
+        "not_applicable_reason": "Documentation-only recovery guidance; verified by review."
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-28T22:18:22.634Z",
+      "verification": "Recovery doc section added and grep-verified: `Stuck proposal/discovery/design gates after artifact disk writes were removed`.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added a temporal-recovery runbook section for stuck proposal/discovery/design gates after artifact disk writes were removed. It documents symptoms, deploy/restart/re-enter recovery procedure, explicit no-manual-disk-write guidance, and relationship to the toolbox per-project OpenCode wrapper work.",
+      "filesTouched": [
+        "docs/temporal-recovery.md"
+      ],
+      "touched_files": [
+        "docs/temporal-recovery.md"
+      ],
+      "checkpointSha": "df3f8f0ec79eb38b53d73915be650ebfaa2fa780",
+      "completedAt": "2026-05-28T22:18:52.044Z",
+      "completed_at": "2026-05-28T22:18:52.044Z",
+      "notes": "Recovery docs added.",
+      "updatedAt": "2026-05-28T22:19:00.322Z"
+    },
+    {
+      "id": "tk-1d818d174eb5",
+      "title": "Run targeted tests, replay determinism, bundle boundary, full test/check/build",
+      "type": "code",
+      "section": "Verification",
+      "status": "done",
+      "priority": 5,
+      "created_at": "2026-05-28T22:09:24.940Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-bf79cd6aab57"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-a2de4f9dcc61"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "contract_refs": {
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7",
+          "AC8",
+          "AC10"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C5",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-28T22:19:09.333Z",
+      "verification": "Verification passed: targeted tests (`gate-readiness`, `workflows.signal-handlers`, `workflow-bundle-boundary`, `replay-determinism`, artifact signal invariant, store-temporal changes) passed: 6 files, 64 tests. Full `pnpm test` passed. `pnpm run check` passed after formatting. `pnpm run build` passed. Full `pnpm test` re-run after formatting passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Ran targeted tests covering gate readiness, workflow signal handlers, workflow bundle boundary, replay determinism, artifact signal invariant, and store-temporal changes (6 files, 64 tests). Ran full `pnpm test` (pass), `pnpm run check` (pass after formatting), `pnpm run build` (pass), and re-ran full `pnpm test` after formatting (pass).",
+      "filesTouched": [
+        "plugin/src/temporal/workflows.signal-handlers.test.ts",
+        "plugin/src/temporal/workflows.ts"
+      ],
+      "touched_files": [
+        "plugin/src/temporal/workflows.signal-handlers.test.ts",
+        "plugin/src/temporal/workflows.ts"
+      ],
+      "checkpointSha": "a7ed21c38158b237b3a0d9dfec03de3eeca373cf",
+      "completedAt": "2026-05-28T22:23:31.181Z",
+      "completed_at": "2026-05-28T22:23:31.181Z",
+      "notes": "Full verification passed.",
+      "updatedAt": "2026-05-28T22:23:37.950Z"
+    },
+    {
+      "id": "tk-c6b290fe835a",
+      "title": "Complete critical agenda item and record recovery handoff",
+      "type": "code",
+      "section": "Follow-up cleanup",
+      "status": "done",
+      "priority": 6,
+      "created_at": "2026-05-28T22:09:33.973Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-1d818d174eb5"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC9"
+        ],
+        "respects": [
+          "C4",
+          "C5"
+        ],
+        "not_applicable_reason": "ADV agenda bookkeeping; implementation verification covered elsewhere."
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-28T22:23:47.563Z",
+      "verification": "Completed critical agenda item ag-mgupBeWk with implementation evidence. No filesystem changes.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Marked ag-mgupBeWk complete with implementation evidence and recovery handoff notes. No filesystem changes for this bookkeeping task.",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "a7ed21c38158b237b3a0d9dfec03de3eeca373cf",
+      "completedAt": "2026-05-28T22:23:53.216Z",
+      "completed_at": "2026-05-28T22:23:53.216Z",
+      "notes": "Critical agenda item completed.",
+      "updatedAt": "2026-05-28T22:24:01.374Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "fixGateArtifactReadiness",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "State-backed gate artifact readiness design validation",
+      "sources": [
+        {
+          "label": "Temporal TypeScript SDK — Workflow Versioning with Patching",
+          "locator": "https://github.com/temporalio/documentation/blob/main/docs/develop/typescript/workflows/versioning.mdx",
+          "summary": "Canonical 3-phase pattern: (1) wrap new behavior in `if (patched('id')) { new } else { old }`; old histories without the marker take the false branch and replay safely. (2) After all pre-patch executions drain, switch to `deprecatePatch('id')` plus new-only code (still emits marker for any lingering history with the patch event). (3) Remove patch entirely once retention has expired."
+        },
+        {
+          "label": "Temporal .NET versioning narrative (same model applies to TS)",
+          "locator": "https://github.com/temporalio/documentation/blob/main/docs/develop/dotnet/workflows/versioning.mdx",
+          "summary": "Cannot deploy command-sequence changes directly when running workflows exist; must use Patched to fork the path. Confirms the precise failure class: reintroducing inspectArtifactActivity removal without a marker would non-determine any in-flight history that already scheduled the activity."
+        },
+        {
+          "label": "ADV repo — existing patch precedent",
+          "locator": "plugin/src/temporal/workflows.ts:710-724 (DISCOVERY_CONTRACT_READINESS_PATCH, ACCEPTANCE_EXECUTIVE_SUMMARY_PROOF_PATCH) and plugin/src/temporal/__tests__/replay-determinism.test.ts",
+          "summary": "Codebase already uses `wf.patched` exactly this way for two prior command-sequence changes on the same gate-completion path, with a committed replay-history fixture (fixGateAutoWorktree.discovery-gate-tmprl1100) that locks in the legacy branch. Establishes both pattern and regression-test convention."
+        },
+        {
+          "label": "ADV repo — current artifact source-of-truth wiring",
+          "locator": "plugin/src/storage/store-temporal/changes.ts:30-110, 642-695; plugin/src/temporal/change-state.ts:370-435",
+          "summary": "Tool process computes SHA-256 via `createHash('sha256')` (computeContentHash) over content, fires `*UpdatedSignal` to populate `state.documents[kind]`, then fires `updateArtifactMetadataSignal` so `state.artifacts[kind].contentHash` mirrors that SHA-256 in deterministic order. Disk writes for artifact content are gone from production path (T15/AC8)."
+        },
+        {
+          "label": "ADV repo — workflow-start hydration already covers cold start",
+          "locator": "plugin/src/temporal/workflow-start.ts:33-98; plugin/src/storage/store-temporal/hydrate-documents.ts",
+          "summary": "On cold start with `projectionChangesDir`, `ensureChangeWorkflowStarted` reads existing disk artifact files (incl. scaffold proposal.md) and seeds `state.documents`. This means brand-new changes do have `state.documents.proposal` populated from the scaffold template (well over the 20-char minimum). No additional workflow-start hydration is needed for proposal-gate readiness."
+        },
+        {
+          "label": "ADV repo — workflow bundle boundary guard",
+          "locator": "plugin/src/temporal/workflow-bundle-boundary.test.ts:113-137; plugin/src/temporal/digest.ts",
+          "summary": "Workflow-reachable code cannot import `node:*` (so no `node:crypto`); pure-JS deterministic helpers belong in `temporal/*.ts` (digest.ts uses FNV for non-cryptographic stable hashing). A new shared readiness helper in `temporal/gate-readiness.ts` is already in the workflow-reachable set."
+        },
+        {
+          "label": "ADV repo — gate evidence schema",
+          "locator": "plugin/src/types/gates.ts:109-118",
+          "summary": "GateArtifactEvidence: only `kind` and `checked_at` are required; `content_hash`, `path`, `non_whitespace_chars` are optional. Workflow can emit evidence without recomputing a hash by trusting `state.artifacts[kind].contentHash` already present (or omitting `content_hash` when metadata absent)."
+        }
+      ],
+      "architecture_assessment": "Proposed direction is sound and aligns with the existing architecture and the canonical Temporal patching idiom already established in this repo.\n\nKey corroborations:\n1. `wf.patched(marker)` is exactly the canonical mechanism for swapping an activity-scheduling branch for a state-only branch in running workflows. The repo has two precedents on this same code path plus a committed replay fixture, so the engineering and test pattern is already established.\n2. The source of truth (`state.documents[kind]` for content + `state.artifacts[kind].contentHash` for the SHA-256) is already populated by `fireContentSignalsSequentially` and is the correct anchor for proposal/discovery/design readiness.\n3. Cold-start hydration in `workflow-start.ts`+`hydrate-documents.ts` already populates `state.documents.proposal` from the scaffold template (>20 non-ws chars) for brand-new changes, so the proposal gate does not need extra create-path wiring. The default `defaultProposalContent` template in `json.ts:651-695` is well above the 20-non-ws-char floor.\n4. The `content_hash` field on GateArtifactEvidence is optional; the workflow does not need to compute SHA-256 inside the sandbox. Trust `state.artifacts[kind].contentHash` (already SHA-256 from tool-process `computeContentHash`) and propagate it verbatim; if metadata is somehow missing, omit `content_hash` from the evidence (still valid by schema).\n5. The tool-side recovery path in `tools/gate.ts` runs outside the workflow sandbox; it can keep calling `inspectArtifactActivity`/`writeArtifactActivity` for acceptance recovery. No changes needed there for proposal/discovery/design.\n\nOne material gap to address in the design:\n- For NEW changes whose proposal content never goes through `change.update()` (e.g., agent calls `change.create` then `gate.complete proposal` against the scaffold-only state), the new state-backed proposal check would currently rely on cold-start hydration to seed `state.documents.proposal` from the disk scaffold. That works on cold start, but if the workflow is already running when the fix deploys (PokeEdge/PokeEdge-web case), `state.documents.proposal` may already be empty for in-flight changes that never sent the content signal. Recovery path: re-enter discovery (or proposal) gate; since the active changes in question are on discovery and `state.documents.agreement` is populated (per packet), they will clear. For brand-new changes after the fix, hydration covers it. No additional fix required beyond documenting the recovery path.\n\nDigest/hash strategy:\n- Trust `state.artifacts[kind].contentHash` from metadata signal. Do not introduce pure-JS SHA-256 inside the workflow sandbox. FNV from `digest.ts` is inappropriate here because it is not SHA-256 compatible and would never match metadata. Schema lets us omit `content_hash` when absent — that is the right fallback.\n\n`projectionChangesDir` gating:\n- For acceptance (which still uses disk projection via `writeArtifactActivity` + `inspectArtifactActivity`), keep the existing `ARTIFACT_STORE_UNAVAILABLE` blocker as-is. For proposal/discovery/design under the new state-backed path, that blocker should NOT trigger because no disk access is required; either drop the projectionChangesDir requirement for those gates in `evaluateGateReadiness` or move that check inside the new workflow-side state-backed branch (preferred: keep `evaluateGateReadiness` pure and gate-agnostic on the projectionChangesDir requirement by relaxing it to `acceptance` only, since acceptance is the only artifact-backed gate that genuinely needs disk).\n\nReplay safety:\n- Use one new marker, e.g. `STATE_BACKED_GATE_ARTIFACT_PROOF_V1`. Old histories that already scheduled `inspectArtifactActivity` for proposal/discovery/design replay through the legacy branch (no marker present, `patched()` returns false). New gate-completions record the marker, take the state-backed branch, schedule no activity for those gates, and never desynchronize. Add at least one committed replay history fixture that exercises the legacy proposal- or discovery-gate completion to lock the legacy branch in CI (mirrors the existing `discovery-gate-tmprl1100` fixture pattern).\n\nLocation of the helper:\n- Put the state-backed evidence builder in `plugin/src/temporal/gate-readiness.ts` next to `evaluateGateReadiness`. It is already workflow-reachable and pure. Keep it side-effect-free (no signals, no activities, no Date.now() outside Temporal sandbox-patched APIs). Inline-in-workflows.ts would tangle the readiness/evidence logic with the signal handler and is harder to unit-test.\n\n`addPerProjectOcWrapper` sequencing:\n- That change concerns per-project OpenCode wrapper isolation in `~/toolbox`. It does not touch plugin workflow code, signal shape, or `state.documents`. Deploy ordering is independent. Standard `pnpm run build` + `./scripts/deploy-local.sh --fix` + OpenCode restart applies. No cross-change conflicts identified.\n\nTest strategy (regression):\n- New unit test in `plugin/src/temporal/gate-readiness.test.ts` (or co-located): evaluateGateReadiness + state-backed evidence builder cases — missing document => deterministic blocker, undersized document => UNDERSIZED, metadata-hash absent => evidence without content_hash but still ready, metadata-hash mismatch with document content if you choose to validate (optional and probably out of scope; trusting metadata is simpler).\n- New signal-handler integration test in `plugin/src/temporal/workflows.signal-handlers.test.ts`: complete proposal/discovery/design gate with state.documents populated and no projectionChangesDir-side disk artifact; verify gate transitions to done and no `inspectArtifactActivity` was scheduled (existing mock harness can assert activity invocations).\n- New replay fixture: capture a workflow history that completed discovery via the legacy disk path (similar to `fixGateAutoWorktree.discovery-gate-tmprl1100`), commit under `plugin/src/temporal/__tests__/replay/histories/`, wire into `replay-determinism.test.ts`. This locks the legacy branch behind the patch marker.\n- Acceptance unchanged behavior assertion: existing `ACCEPTANCE_EXECUTIVE_SUMMARY_PROOF_PATCH` path remains intact and uses `inspectArtifactActivity` + `writeArtifactActivity` for the disk projection.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "Design is consistent with Temporal canonical versioning guidance, matches in-repo precedent (two prior patches on the same handler with committed replay fixture), reuses existing SHA-256-on-tool-side / metadata-trust-on-workflow-side wiring, and is covered by existing workflow-start hydration for the proposal-scaffold case. No new pure-JS SHA-256 in workflow code is warranted. Acceptance/release/recovery paths in tools/gate.ts and workflows.ts (ACCEPTANCE_EXECUTIVE_SUMMARY_PROOF_PATCH branch) are explicitly out of scope and should be preserved."
+      },
+      "recommendation": "Implement as proposed, with these specifics:\n\n1. Add a new workflow patch marker, e.g. `STATE_BACKED_GATE_ARTIFACT_PROOF_V1`, declared next to the two existing markers in workflows.ts.\n\n2. In `completeGateWithReadiness` (workflows.ts:757+), for `artifactKind` in {proposal, agreement (discovery), design}: if `wf.patched(STATE_BACKED_GATE_ARTIFACT_PROOF_V1)` is true, build artifactEvidence from `state.documents[kind]` + `state.artifacts[kind]`:\n   - Missing/empty document → ARTIFACT_MISSING blocker.\n   - nonWhitespaceChars < MIN_GATE_ARTIFACT_NON_WHITESPACE_CHARS → ARTIFACT_UNDERSIZED blocker.\n   - Evidence: `{ kind, path: state.artifacts[kind]?.path, content_hash: state.artifacts[kind]?.contentHash, non_whitespace_chars: <computed>, checked_at: wf.workflowInfo().historyLength?-derived deterministic time / Date.now() (Temporal-patched) }`.\n   Otherwise (legacy branch), keep the existing `inspectArtifactActivity` code path verbatim.\n\n3. Keep acceptance gate behavior fully untouched: `ACCEPTANCE_EXECUTIVE_SUMMARY_PROOF_PATCH` branch and disk projection remain. Acceptance is the only artifact-backed gate that legitimately needs disk via `writeArtifactActivity`+`inspectArtifactActivity` (executive-summary freshness and acceptance.md projection).\n\n4. Do NOT compute SHA-256 inside workflow code. Trust `state.artifacts[kind].contentHash` (tool-side SHA-256 via `computeContentHash`). If absent, omit `content_hash` — the GateArtifactEvidence schema allows it. Do NOT use the FNV helper in digest.ts; it is not SHA-256 compatible and would break any hash-comparison consumers.\n\n5. Relax the `projectionChangesDir`-absence blocker in `evaluateGateReadiness` (gate-readiness.ts:252-261) so it only triggers for `artifactKind === 'acceptance'`. Proposal/discovery/design no longer need disk access; the blocker becomes a false-positive there.\n\n6. Locate the state-backed evidence builder as a small pure function in `plugin/src/temporal/gate-readiness.ts` (same module as `evaluateGateReadiness`, already workflow-reachable). Avoid inlining in workflows.ts for testability.\n\n7. Recovery for stuck PokeEdge/PokeEdge-web discovery gates after deploy: rebuild plugin (`pnpm run build`), `./scripts/deploy-local.sh --fix`, restart OpenCode, then re-enter discovery gate (`adv_change_reenter fromGate: 'discovery'`) followed by `adv_gate_complete gateId: 'discovery'`. No manual disk-artifact creation. Document this recovery in the change archive notes.\n\n8. Tests:\n   - Unit tests for the new evidence builder (missing/undersized/metadata-only).\n   - Signal-handler integration test asserting no `inspectArtifactActivity` is scheduled for proposal/discovery/design when patch is active.\n   - Replay fixture for legacy disk-path discovery completion (mirror `fixGateAutoWorktree.discovery-gate-tmprl1100`) added to `replay-determinism.test.ts` to lock the legacy branch.\n\n9. `addPerProjectOcWrapper` (in ~/toolbox) does not interact with this fix. Standard deploy+restart applies; no extra sequencing.\n\n10. Do not reintroduce artifact-content disk writes in store-temporal/changes.ts (preserve T15/AC8 invariant).",
+      "follow_ups": [
+        "Consider deprecating the two prior patch markers (DISCOVERY_CONTRACT_READINESS_PATCH, ACCEPTANCE_EXECUTIVE_SUMMARY_PROOF_PATCH) via wf.deprecatePatch once pre-patch executions have aged out, per Temporal 3-phase versioning guidance. Out of scope for this change but worth tracking.",
+        "Audit other workflow-side activity calls that read disk (e.g., archive bundle materialization) to confirm no other 'state lives in workflow but proof reads disk' splits exist. KD-13 materializeBundleArtifactsActivity already writes from state.documents, so likely fine, but a one-time scan is cheap.",
+        "If you choose stricter validation (metadata hash must match a freshly recomputed hash of state.documents[kind] inside the workflow), add a pure-JS SHA-256 in temporal/digest.ts. This is not required by the schema and adds workflow-bundle weight; recommend deferring unless a specific consistency bug is observed."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixGateArtifactReadiness",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixGateArtifactReadiness",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [
+        {
+          "type": "pattern",
+          "content": "For Temporal workflow mutations that remove or reorder activity commands, keep old and new paths behind wf.patched with code comments documenting old branch, new branch, and deprecation plan; pair with replay-determinism and workflow-bundle-boundary tests."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "pnpm test -- src/temporal/gate-readiness.test.ts src/temporal/workflows.signal-handlers.test.ts src/temporal/workflow-bundle-boundary.test.ts src/temporal/replay-determinism.test.ts src/storage/artifact-payload-signal-invariant.test.ts src/storage/store-temporal/no-disk-writes-invariant.test.ts"
+        ],
+        "results": "pass",
+        "evidence": "Command exited 0. Vitest reported 249 test files passed, 3343 tests passed. Reviewed scoped diff from trunk and source evidence: patched proposal/discovery/design path uses stateBackedArtifactEvidence under wf.patched('state-backed-gate-artifact-proof-v1'); acceptance and legacy paths retain inspectArtifactActivity; store-temporal/changes.ts updateArtifacts emits content/metadata signals and does not call legacy disk write path; recovery docs advise build/deploy/restart/re-enter/retry and explicitly warn against manual proposal/agreement/design disk artifacts."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Test invocation through the package script expanded to full suite despite targeted file arguments; result still provides stronger pass evidence but not narrow timing evidence for only the requested files."
+      ],
+      "required_main_agent_actions": [],
+      "consumer_warnings": []
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-5894TP",
+      "type": "pattern",
+      "content": "When a migration moves canonical artifact content into Temporal workflow state, all workflow-owned readiness checks must validate the same in-workflow source (`state.documents` + metadata) rather than legacy disk projections. Keep disk reads only on explicitly disk-backed recovery/projection paths, and guard command-sequence changes with `wf.patched` for replay safety.",
+      "source_task": "tk-bf79cd6aab57",
+      "recorded_at": "2026-05-28T22:24:14.317Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-28T21:56:08.684Z",
+      "completed_by": "user",
+      "approval_evidence": "User explicitly approved proposal via chat reply: \"approve\". Proposal targets gate readiness source mismatch: artifact content now lives in Temporal state.documents/state.artifacts, but workflow gate completion still validates via disk inspectArtifactActivity, causing false ARTIFACT_MISSING on discovery/design/proposal gates.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixGateArtifactReadiness/proposal.md",
+        "content_hash": "1f78b83b821183fb6c1d4a404d66a0591039fdc7ee781b24e68d2b4de23a007b",
+        "non_whitespace_chars": 4741,
+        "checked_at": "2026-05-28T21:56:08.737Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-28T21:58:47.710Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved agreement via chat reply: \"approve\". Contract minted at standard rigor with 24 items (10 ACs, 5 constraints, 5 avoidances, 4 out-of-scope). Agreement targets state-backed artifact readiness for proposal/discovery/design gates, no disk write rollback, acceptance compatibility, and PokeEdge stuck gate recovery guidance.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixGateArtifactReadiness/agreement.md",
+        "content_hash": "dbb100649c7882b3897910f695b011ab2e5d297859c357e842afbdf25d7faef8",
+        "non_whitespace_chars": 5020,
+        "checked_at": "2026-05-28T21:58:47.761Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-28T22:08:08.880Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved design + AC4 amendment via chat reply: \"approve\". Contract re-minted. Design validated by adv-researcher: use gate-readiness.ts state-backed helper, patch marker for replay safety, no workflow-side SHA-256 recomputation, projection store required only for acceptance, acceptance path untouched, PokeEdge recovery via deploy/restart/re-enter.",
+      "artifact_evidence": {
+        "kind": "design",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixGateArtifactReadiness/design.md",
+        "content_hash": "6b1151303a2b8df8cfcb6e49b67e78a625dce498f0ffa840585ac69993dc9389",
+        "non_whitespace_chars": 6286,
+        "checked_at": "2026-05-28T22:08:08.915Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-28T22:12:49.184Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved prep/task graph via chat reply: \"approve\". 7 tasks created with TDD intent and contract refs. Graph: setup -> RED tests -> helper -> workflow patch -> docs -> verification -> agenda."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-28T22:24:32.581Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 7 planned tasks complete. RED evidence captured then green implementation. Verification passed: targeted gate/readiness/workflow/replay/bundle/store tests (6 files, 64 tests), full pnpm test, pnpm run check, pnpm run build, and full pnpm test re-run after formatting. Critical agenda item ag-mgupBeWk completed. Worktree clean."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-28T22:29:21.566Z",
+      "completed_by": "user",
+      "approval_evidence": "User explicitly accepted delivered work via chat reply: \"approve\". Acceptance evidence: contract review matrix has 24 rows with 0 failures; independent adv-reviewer verdict READY with no findings; executive-summary.md persisted; verification passed (`pnpm test`, `pnpm run check`, `pnpm run build`, replay/bundle/targeted tests).",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixGateArtifactReadiness/acceptance.md",
+        "content_hash": "3fd758f4f085dd0ebae7eebc0446d963df4b6be8cd8e99cbda804b14c58c6697",
+        "non_whitespace_chars": 6714,
+        "checked_at": "2026-05-28T22:29:21.728Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "triage",
+    "source_artifact": "ag-mgupBeWk"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "be4261f37e79e2d4f1fb0ee44d2a2e8e257a0e8f36b20aa2b956aa42cb000bfc",
+      "approvedAt": "2026-05-28T21:58:47.710Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "**AC1.** Proposal/discovery/design artifact-backed gate completion uses workflow state as source of truth: `state.documents[kind]` supplies content; `state.artifacts[kind]` supplies path/metadata when present. The patched path no longer calls `inspectArtifactActivity` for these gates.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "be4261f37e79e2d4f1fb0ee44d2a2e8e257a0e8f36b20aa2b956aa42cb000bfc",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "**AC2.** Missing `state.documents[kind]` still blocks deterministically with `ARTIFACT_MISSING` or equivalent typed blocker and actionable remediation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "be4261f37e79e2d4f1fb0ee44d2a2e8e257a0e8f36b20aa2b956aa42cb000bfc",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "**AC3.** Undersized `state.documents[kind]` blocks deterministically with `ARTIFACT_UNDERSIZED` or equivalent typed blocker.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "be4261f37e79e2d4f1fb0ee44d2a2e8e257a0e8f36b20aa2b956aa42cb000bfc",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "**AC4.** Gate artifact evidence is built from workflow-state content and metadata: `{ kind, path, content_hash, non_whitespace_chars, checked_at }`. `path` and `content_hash` are populated from `state.artifacts[kind]` when present. If metadata `contentHash` is absent, `content_hash` is omitted (schema-valid). The workflow does NOT recompute SHA-256 or block on workflow-side hash mismatch; tool-side ordered content+metadata signals own SHA-256 computation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "be4261f37e79e2d4f1fb0ee44d2a2e8e257a0e8f36b20aa2b956aa42cb000bfc",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "**AC5.** Regression test proves an agreement signaled only into workflow state (no disk `agreement.md`) allows discovery gate completion and stores artifact evidence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "be4261f37e79e2d4f1fb0ee44d2a2e8e257a0e8f36b20aa2b956aa42cb000bfc",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "**AC6.** Regression tests prove missing and undersized state documents still block gate completion.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "be4261f37e79e2d4f1fb0ee44d2a2e8e257a0e8f36b20aa2b956aa42cb000bfc",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "**AC7.** No artifact-content disk writes are reintroduced into `plugin/src/storage/store-temporal/changes.ts`; existing no-disk-write tests/invariants continue passing.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "be4261f37e79e2d4f1fb0ee44d2a2e8e257a0e8f36b20aa2b956aa42cb000bfc",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC8",
+        "kind": "acceptance_criterion",
+        "text": "**AC8.** Existing acceptance behavior remains compatible: generated `acceptance.md` projection and executive-summary freshness checks continue to work, and acceptance/release recovery semantics are not weakened.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "be4261f37e79e2d4f1fb0ee44d2a2e8e257a0e8f36b20aa2b956aa42cb000bfc",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC9",
+        "kind": "acceptance_criterion",
+        "text": "**AC9.** Recovery guidance exists for already-stuck discovery gates (e.g. PokeEdge-web `fixSubDollarLabels`): after local deploy + OpenCode restart, re-enter/retry discovery without manually writing disk artifacts.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "be4261f37e79e2d4f1fb0ee44d2a2e8e257a0e8f36b20aa2b956aa42cb000bfc",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC10",
+        "kind": "acceptance_criterion",
+        "text": "**AC10.** `pnpm test`, `pnpm run check`, and `pnpm run build` pass.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "be4261f37e79e2d4f1fb0ee44d2a2e8e257a0e8f36b20aa2b956aa42cb000bfc",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "**C1. No disk write rollback.** Do not call or reintroduce legacy artifact-content disk writes from `store-temporal/changes.ts`. Lines 642-646 are intentional and must remain true.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "be4261f37e79e2d4f1fb0ee44d2a2e8e257a0e8f36b20aa2b956aa42cb000bfc",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "**C2. Workflow bundle safety.** New readiness helper must live in workflow-safe code only (`plugin/src/temporal/**` or inline in `workflows.ts`) and must not import `node:*`, storage, tools, filesystem, or activity-only modules.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "be4261f37e79e2d4f1fb0ee44d2a2e8e257a0e8f36b20aa2b956aa42cb000bfc",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "**C3. Replay safety.** Changes must be deterministic over existing workflow state. Use a Temporal patch marker for command-sequence changes so old histories replay the legacy disk-read branch while new attempts use the state-backed branch. Replay-determinism tests must pass.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "be4261f37e79e2d4f1fb0ee44d2a2e8e257a0e8f36b20aa2b956aa42cb000bfc",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "**C4. Narrow recovery.** Recovery guidance should unblock existing stuck discovery gates by retrying/re-entering gate state after deployment; it must not introduce broad manual disk surgery or poisoned-history bypasses for proposal/discovery/design gates.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "be4261f37e79e2d4f1fb0ee44d2a2e8e257a0e8f36b20aa2b956aa42cb000bfc",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "**C5. Scope discipline.** Do not fix unrelated PokeEdge application code, stale active changes, worktree cleanup, or other agenda items in this change.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "be4261f37e79e2d4f1fb0ee44d2a2e8e257a0e8f36b20aa2b956aa42cb000bfc",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "**A1.** Do not treat disk artifact files as canonical for proposal/discovery/design gate readiness on the patched path.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "be4261f37e79e2d4f1fb0ee44d2a2e8e257a0e8f36b20aa2b956aa42cb000bfc",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "**A2.** Do not weaken artifact readiness by accepting blank/missing/undersized state documents.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "be4261f37e79e2d4f1fb0ee44d2a2e8e257a0e8f36b20aa2b956aa42cb000bfc",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "**A3.** Do not store raw duplicate artifact content in new metadata fields; use existing `state.documents` content and `state.artifacts` metadata.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "be4261f37e79e2d4f1fb0ee44d2a2e8e257a0e8f36b20aa2b956aa42cb000bfc",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "**A4.** Do not move readiness logic into tool-layer code; gate completion must remain workflow-owned and queryable.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "be4261f37e79e2d4f1fb0ee44d2a2e8e257a0e8f36b20aa2b956aa42cb000bfc",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "**A5.** Do not make `inspectArtifactActivity` unused globally if acceptance/recovery paths still require it.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "be4261f37e79e2d4f1fb0ee44d2a2e8e257a0e8f36b20aa2b956aa42cb000bfc",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "Rewriting artifact update APIs or archive bundle materialization.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "be4261f37e79e2d4f1fb0ee44d2a2e8e257a0e8f36b20aa2b956aa42cb000bfc",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "Migrating project-level state (agenda, wisdom, conformance, roadmap) to Temporal.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "be4261f37e79e2d4f1fb0ee44d2a2e8e257a0e8f36b20aa2b956aa42cb000bfc",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "PokeEdge/PokeEdge-web app repository changes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "be4261f37e79e2d4f1fb0ee44d2a2e8e257a0e8f36b20aa2b956aa42cb000bfc",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS4",
+        "kind": "out_of_scope",
+        "text": "Manually editing stuck change state outside ADV tools.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "be4261f37e79e2d4f1fb0ee44d2a2e8e257a0e8f36b20aa2b956aa42cb000bfc",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-05-28T22:28:34.187Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "workflows.signal-handlers.test.ts no-disk agreement discovery regression passed; workflows.ts patched path uses stateBackedArtifactEvidence for proposal/discovery/design; reviewer READY.",
+          "notes": "Patch marker preserves legacy branch."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "gate-readiness.test.ts missing state document test passed; stateBackedArtifactEvidence returns ARTIFACT_MISSING blocker.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "gate-readiness.test.ts undersized state document test passed; stateBackedArtifactEvidence returns ARTIFACT_UNDERSIZED blocker.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "gate-readiness.test.ts evidence-with-metadata and no-metadata-hash tests passed; content_hash populated only from state.artifacts metadata and omitted when absent.",
+          "notes": "No workflow-side SHA recomputation."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "workflows.signal-handlers.test.ts completes discovery from workflow-state agreement without disk agreement file; targeted/full tests pass.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "gate-readiness.test.ts missing/undersized state document tests pass; full pnpm test pass.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "store-temporal changes and no-disk/invariant tests passed; no changes to store-temporal/changes.ts reintroduced disk writes; reviewer READY.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC8",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Acceptance branch left intact; existing acceptance projection/executive-summary tests and full pnpm test pass; reviewer READY.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC9",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "docs/temporal-recovery.md adds stuck proposal/discovery/design gates recovery section with deploy/restart/re-enter/no manual disk steps.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC10",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Final verification passed: targeted tests, full pnpm test, pnpm run check, pnpm run build, full pnpm test re-run after formatting.",
+          "notes": ""
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "store-temporal/changes.ts untouched; no legacy artifact-content disk writes reintroduced.",
+          "notes": ""
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Helper lives in temporal/gate-readiness.ts; workflow-bundle-boundary.test.ts passed; no node/storage/tool/fs imports added to workflow path.",
+          "notes": ""
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "STATE_BACKED_GATE_ARTIFACT_PROOF_PATCH guards command-sequence change; replay-determinism tests passed.",
+          "notes": ""
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Recovery docs specify deploy/restart/re-enter retry and explicitly forbid manual artifact markdown writes.",
+          "notes": ""
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Touched scope limited to gate-readiness/workflows/tests/recovery docs and agenda bookkeeping; no PokeEdge app code or unrelated worktree cleanup.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Patched proposal/discovery/design path no longer uses disk as canonical; no-disk agreement regression passes.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Missing/undersized state documents still block via stateBackedArtifactEvidence tests.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No new metadata content storage introduced; helper uses existing state.documents and state.artifacts only.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Readiness logic remains workflow-owned in temporal/gate-readiness.ts and workflows.ts, not tool-layer.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "inspectArtifactActivity remains in workflows.ts for acceptance/legacy branch and in tools/gate.ts recovery paths.",
+          "notes": ""
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Artifact update APIs and archive bundle materialization not rewritten.",
+          "notes": ""
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Project-level state migration not touched.",
+          "notes": ""
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No PokeEdge/PokeEdge-web app repository changes.",
+          "notes": ""
+        },
+        {
+          "contractId": "OOS4",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No manual stuck-change state editing outside ADV tools.",
+          "notes": ""
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "**AC1.** Proposal/discovery/design artifact-backed gate completion uses workflow state as source of truth: `state.documents[kind]` supplies content; `state.artifacts[kind]` supplies path/metadata when present. The patched path no longer calls `inspectArtifactActivity` for these gates.",
+    "**AC2.** Missing `state.documents[kind]` still blocks deterministically with `ARTIFACT_MISSING` or equivalent typed blocker and actionable remediation.",
+    "**AC3.** Undersized `state.documents[kind]` blocks deterministically with `ARTIFACT_UNDERSIZED` or equivalent typed blocker.",
+    "**AC4.** Gate artifact evidence is built from workflow-state content and metadata: `{ kind, path, content_hash, non_whitespace_chars, checked_at }`. `path` and `content_hash` are populated from `state.artifacts[kind]` when present. If metadata `contentHash` is absent, `content_hash` is omitted (schema-valid). The workflow does NOT recompute SHA-256 or block on workflow-side hash mismatch; tool-side ordered content+metadata signals own SHA-256 computation.",
+    "**AC5.** Regression test proves an agreement signaled only into workflow state (no disk `agreement.md`) allows discovery gate completion and stores artifact evidence.",
+    "**AC6.** Regression tests prove missing and undersized state documents still block gate completion.",
+    "**AC7.** No artifact-content disk writes are reintroduced into `plugin/src/storage/store-temporal/changes.ts`; existing no-disk-write tests/invariants continue passing.",
+    "**AC8.** Existing acceptance behavior remains compatible: generated `acceptance.md` projection and executive-summary freshness checks continue to work, and acceptance/release recovery semantics are not weakened.",
+    "**AC9.** Recovery guidance exists for already-stuck discovery gates (e.g. PokeEdge-web `fixSubDollarLabels`): after local deploy + OpenCode restart, re-enter/retry discovery without manually writing disk artifacts.",
+    "**AC10.** `pnpm test`, `pnpm run check`, and `pnpm run build` pass."
+  ],
+  "documents": {},
+  "artifacts": {
+    "proposal": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixGateArtifactReadiness/proposal.md",
+      "updatedAt": "2026-05-28T21:55:20.793Z",
+      "contentHash": "1f78b83b821183fb6c1d4a404d66a0591039fdc7ee781b24e68d2b4de23a007b"
+    },
+    "agreement": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixGateArtifactReadiness/agreement.md",
+      "updatedAt": "2026-05-28T22:07:48.162Z",
+      "contentHash": "be4261f37e79e2d4f1fb0ee44d2a2e8e257a0e8f36b20aa2b956aa42cb000bfc"
+    },
+    "design": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixGateArtifactReadiness/design.md",
+      "updatedAt": "2026-05-28T22:06:50.598Z",
+      "contentHash": "6b1151303a2b8df8cfcb6e49b67e78a625dce498f0ffa840585ac69993dc9389"
+    },
+    "executiveSummary": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixGateArtifactReadiness/executive-summary.md",
+      "updatedAt": "2026-05-28T22:28:45.140Z",
+      "contentHash": "a9814452a98c4741c549388c2a1fdf01d5c2014c43a639f5a9c627723935cc29"
+    }
+  },
+  "lastSignalAt": "2026-05-28T22:29:21.566Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true
+}

@@ -1,0 +1,11 @@
+{
+  "entries": [
+    {
+      "id": "ws-PoagyT",
+      "type": "gotcha",
+      "content": "readAgreement (tools/contract.ts:91-106) is disk-first, Temporal-fallback: reads agreement.md from disk, only falls back to change.documents?.agreement when disk is empty/missing. In the Temporal-canonical architecture this is backwards — Temporal state.documents should be the canonical source, disk the legacy fallback. It did NOT cause the stale-contract symptom here (disk absent → fallback fired), but it's the same architectural class this change addresses. Separate finding: stale 12-item contract was a read-after-write gap on change.documents between adv_change_update and an immediately-following non-dry adv_contract_mint force:true; dryRun re-read returned correct 13 items, proving state was fresh and only the persisted contract was stale. Mitigation: when re-minting after adv_change_update, run a dryRun first to confirm freshness, or re-mint twice. Candidate follow-up: invert readAgreement (and sibling artifact readers in contract.ts / change.ts) to Temporal-first.",
+      "recorded_at": "2026-05-29T02:44:21.522Z"
+    }
+  ],
+  "count": 1
+}

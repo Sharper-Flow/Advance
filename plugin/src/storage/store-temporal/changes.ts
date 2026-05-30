@@ -1,20 +1,113 @@
 import type { Store } from "../store-types";
-import type { ChangeClosure, BulkCloseResult, Change } from "../../types";
+import type {
+  ArtifactKind,
+  ArtifactPayload,
+  ChangeClosure,
+  BulkCloseResult,
+  Change,
+} from "../../types";
+import { createHash } from "crypto";
 import {
+  acceptanceUpdatedSignal,
+  agreementUpdatedSignal,
   archiveChangeSignal,
   closeChangeSignal,
+  designUpdatedSignal,
+  executiveSummaryUpdatedSignal,
+  problemStatementUpdatedSignal,
+  proposalUpdatedSignal,
   updateArtifactMetadataSignal,
   changeStateQuery,
 } from "../../temporal/messages";
 import { ensureChangeWorkflowStarted } from "../../temporal/workflow-start";
-import { removeChangeDir } from "../json";
+import { listChangeDirs, removeChangeDir } from "../json";
 import { filterChanges } from "../content-search";
 import { computeLastActivity } from "../store-types";
 import { runTemporal, getGuardedChangeHandle, type StoreDeps } from "./shared";
+import {
+  validateAggregateSize,
+  validatePerArtifactSize,
+} from "../_artifact-size-validation";
 import { createLogger } from "../../utils/debug-log";
 import { isWorkflowCompletedError } from "../../temporal/recovery-classification";
+import { listChangeWorkflowIds } from "../../temporal/list-change-workflows";
+import type { ChangeSummary } from "../store-temporal-memo";
 
 const logger = createLogger("store-temporal-changes");
+
+function computeContentHash(content: string): string {
+  return createHash("sha256").update(content).digest("hex");
+}
+
+/**
+ * Deterministic order for content signal fan-out within a single
+ * `create()` or `updateArtifacts()` call. Workflow histories diff cleanly
+ * across runs only if the order is fixed. Locked by C5; verified by the
+ * signal invariant test (T19).
+ *
+ * Tool layer MUST `await` each signal acknowledgement before firing the
+ * next; concurrent firing (`Promise.all`) is forbidden because TS SDK
+ * preserves only server-acceptance order within an activation.
+ */
+const ARTIFACT_SIGNAL_ORDER: ReadonlyArray<{
+  kind: ArtifactKind;
+  signal:
+    | typeof proposalUpdatedSignal
+    | typeof problemStatementUpdatedSignal
+    | typeof agreementUpdatedSignal
+    | typeof designUpdatedSignal
+    | typeof executiveSummaryUpdatedSignal
+    | typeof acceptanceUpdatedSignal;
+}> = [
+  { kind: "proposal", signal: proposalUpdatedSignal },
+  { kind: "problemStatement", signal: problemStatementUpdatedSignal },
+  { kind: "agreement", signal: agreementUpdatedSignal },
+  { kind: "design", signal: designUpdatedSignal },
+  { kind: "executiveSummary", signal: executiveSummaryUpdatedSignal },
+  { kind: "acceptance", signal: acceptanceUpdatedSignal },
+];
+
+/**
+ * Fire one content signal per defined field in `artifacts`, in deterministic
+ * order (proposal → problemStatement → agreement → design → executiveSummary
+ * → acceptance). Each call awaits server acknowledgement before the next.
+ * Undefined fields fire no signal (no-op).
+ *
+ * The corresponding `updateArtifactMetadataSignal` fires AFTER each content
+ * signal so `state.artifacts.{kind}.contentHash` stays consistent with
+ * `state.documents.{kind}`.
+ */
+async function fireContentSignalsSequentially(
+  handle: Awaited<ReturnType<typeof getGuardedChangeHandle>>,
+  changeId: string,
+  artifacts: ArtifactPayload,
+  metadataPaths: Partial<Record<ArtifactKind, string>>,
+): Promise<void> {
+  const updatedAt = new Date().toISOString();
+  for (const { kind, signal } of ARTIFACT_SIGNAL_ORDER) {
+    const content = artifacts[kind];
+    if (content === undefined) continue;
+    // Content signal — populates state.documents[kind]
+    await handle.signal(signal, { text: content, updatedAt });
+
+    // Metadata signal — populates state.artifacts[kind] with contentHash.
+    // Fires AFTER the content signal so the hash reflects the just-written
+    // content. metadataPaths[kind] is supplied by the disk store when the
+    // artifact file was also written (transition window before T15 removes
+    // disk writes from this path).
+    const path = metadataPaths[kind];
+    if (path) {
+      await handle.signal(updateArtifactMetadataSignal, {
+        kind,
+        metadata: {
+          path,
+          updatedAt,
+          contentHash: computeContentHash(content),
+        },
+      });
+    }
+  }
+}
 
 export function createChangeOps(deps: StoreDeps): Store["changes"] {
   const {
@@ -29,29 +122,48 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
     listResolvedChanges,
     getTemporalWorkflowClient,
     dualWriteAfterMutation,
+    memo,
+    changeCache,
   } = deps;
 
   return {
-    create: async (
-      summary,
-      capability,
-      proposalContent,
-      problemStatementContent,
-      agreementContent,
-      designContent,
-      executiveSummaryContent,
-      options,
-    ) => {
-      const result = await legacy.changes.create(
-        summary,
-        capability,
-        proposalContent,
-        problemStatementContent,
-        agreementContent,
-        designContent,
-        executiveSummaryContent,
-        options,
-      );
+    create: async (summary, options) => {
+      const capability = options?.capability;
+      const artifacts = options?.artifacts ?? {};
+      const initialMetadata = options?.initialMetadata;
+
+      // Layer 1 size validation (KD-8 layer 1). Fails fast before any
+      // disk write or signal fires. Layer 2 (signal-handler state-mutation
+      // rejection) in T8 enforces structurally inside the workflow.
+      for (const kind of [
+        "proposal",
+        "problemStatement",
+        "agreement",
+        "design",
+        "executiveSummary",
+        "acceptance",
+      ] as const) {
+        const content = artifacts[kind];
+        if (content !== undefined) validatePerArtifactSize(kind, content);
+      }
+      validateAggregateSize(artifacts);
+
+      // T15 / AC8: no artifact-content disk writes from the temporal store
+      // production path. Forward only the non-artifact scaffolding
+      // (change.json + dir + default proposal.md placeholder) to legacy
+      // disk store; user-supplied artifact content flows exclusively
+      // through content signals → state.documents.
+      //
+      // Note: createChangeScaffold still writes a default proposal.md
+      // SCAFFOLD on disk to maintain backward compat for legacy callers
+      // that read disk. The scaffold is placeholder content, not user
+      // content; once T20 deletes the positional API entirely, the
+      // scaffold path itself can be removed.
+      const result = await legacy.changes.create(summary, {
+        ...(capability !== undefined ? { capability } : {}),
+        ...(initialMetadata ? { initialMetadata } : {}),
+        // No artifacts passed — content flows via signals only.
+      });
       const created = await legacy.changes.get(result.changeId);
       if (!created.success || !created.data) {
         throw new Error(
@@ -146,6 +258,40 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
         // workflow query round-trip.
         worktree_auto_managed: true,
       });
+
+      // KD-3 + KD-4: sequential await fan-out of content signals so the
+      // workflow's state.documents becomes the source of truth for artifact
+      // content. Order is deterministic; each await blocks until server
+      // acknowledgement of the prior signal. Undefined fields fire no
+      // signal (no-op). The metadata-update signal fires AFTER each content
+      // signal to keep state.artifacts[kind].contentHash consistent.
+      //
+      // Only fires for actually-defined fields; transitional behavior keeps
+      // disk writes via legacy.changes.create above until T15 removes them.
+      const metadataPaths: Partial<Record<ArtifactKind, string>> = {};
+      if (result.path) metadataPaths.proposal = result.path;
+      if (result.problemStatementPath)
+        metadataPaths.problemStatement = result.problemStatementPath;
+      if (result.agreementPath) metadataPaths.agreement = result.agreementPath;
+      if (result.designPath) metadataPaths.design = result.designPath;
+      if (result.executiveSummaryPath)
+        metadataPaths.executiveSummary = result.executiveSummaryPath;
+      // Acceptance is not currently scaffolded by createChangeScaffold;
+      // when added via updateArtifacts/gate.ts, the metadata signal fires
+      // there.
+
+      if (Object.values(artifacts).some((v) => v !== undefined)) {
+        await runTemporal(async () => {
+          const handle = await getGuardedChangeHandle(input, created.data!.id);
+          await fireContentSignalsSequentially(
+            handle,
+            created.data!.id,
+            artifacts,
+            metadataPaths,
+          );
+        });
+      }
+
       return result;
     },
     save: async (change) => {
@@ -461,60 +607,322 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
           : `Closed ${closed} of ${changeIds.length} change(s). See results for details.`,
       };
     },
-    updateArtifacts: async (
-      // NOSONAR: typescript:S3516 — Sonar flags this because both return paths
-      // hand back the `result` variable. The values are distinct (early-return
-      // failure vs. post-signal success); identical variable name is incidental.
-      changeId,
-      proposalContent,
-      problemStatementContent,
-      agreementContent,
-      designContent,
-      executiveSummaryContent,
-    ) => {
-      const result = await legacy.changes.updateArtifacts(
-        changeId,
-        proposalContent,
-        problemStatementContent,
-        agreementContent,
-        designContent,
-        executiveSummaryContent,
-      );
-      if (!result.success) {
-        return result;
+    updateArtifacts: async (changeId, artifacts) => {
+      // Layer 1 size validation (KD-8 layer 1). Fail fast before any disk
+      // write or signal fires. Aggregate cap considers existing state.documents
+      // when present so a sequence of updates can't push the total past the
+      // 1.8 MB continueAsNew ceiling.
+      for (const kind of [
+        "proposal",
+        "problemStatement",
+        "agreement",
+        "design",
+        "executiveSummary",
+        "acceptance",
+      ] as const) {
+        const content = artifacts[kind];
+        if (content !== undefined) validatePerArtifactSize(kind, content);
+      }
+      // Best-effort existing state lookup for aggregate cap projection;
+      // skip if state not yet available (workflow not running, etc.).
+      let existingDocuments: Partial<Record<ArtifactKind, string | undefined>> =
+        {};
+      try {
+        const snapshot = await getTemporalChange(changeId);
+        existingDocuments =
+          (snapshot as unknown as { documents?: typeof existingDocuments })
+            .documents ?? {};
+      } catch {
+        // Snapshot may be unavailable for in-flight workflows or test
+        // fixtures; aggregate cap then computes against the proposed payload
+        // alone, which is a conservative undercount but safe.
+      }
+      validateAggregateSize(artifacts, existingDocuments);
+
+      // T15 / AC8: no artifact-content disk writes from the temporal store
+      // production path. Compute the canonical kebab-case paths inline so
+      // updateArtifactMetadataSignal can still carry path + contentHash;
+      // do NOT call legacy.changes.updateArtifacts (which would write
+      // artifact .md files to disk).
+      const changeDir = `${legacy.paths.changes}/${changeId}`;
+      const ARTIFACT_FILENAME: Record<keyof ArtifactPayload, string> = {
+        proposal: "proposal.md",
+        problemStatement: "problem-statement.md",
+        agreement: "agreement.md",
+        design: "design.md",
+        executiveSummary: "executive-summary.md",
+        acceptance: "acceptance.md",
+      };
+      const metadataPaths: Partial<Record<ArtifactKind, string>> = {};
+      for (const kind of Object.keys(ARTIFACT_FILENAME) as ArtifactKind[]) {
+        if (artifacts[kind] === undefined) continue;
+        metadataPaths[kind] = `${changeDir}/${ARTIFACT_FILENAME[kind]}`;
       }
 
-      const updates: Array<
-        [
-          (
-            | "proposal"
-            | "problemStatement"
-            | "agreement"
-            | "design"
-            | "executiveSummary"
-          ),
-          string | undefined,
-        ]
-      > = [
-        ["proposal", result.proposalPath],
-        ["problemStatement", result.problemStatementPath],
-        ["agreement", result.agreementPath],
-        ["design", result.designPath],
-        ["executiveSummary", result.executiveSummaryPath],
-      ];
-      for (const [kind, path] of updates) {
-        if (!path) continue;
-        await runTemporal(async () =>
-          (await getGuardedChangeHandle(input, changeId)).signal(
-            updateArtifactMetadataSignal,
-            {
-              kind,
-              metadata: { path, updatedAt: new Date().toISOString() },
-            },
-          ),
+      // KD-3 + KD-4: sequential await fan-out of content signals. Each
+      // defined field on `artifacts` fires its content signal (populating
+      // state.documents[kind]) followed by updateArtifactMetadataSignal
+      // (populating state.artifacts[kind].contentHash). Order matches
+      // ARTIFACT_SIGNAL_ORDER for deterministic history diffs (C5).
+      await runTemporal(async () => {
+        const handle = await getGuardedChangeHandle(input, changeId);
+        await fireContentSignalsSequentially(
+          handle,
+          changeId,
+          artifacts,
+          metadataPaths,
+        );
+      });
+
+      // Compose result shape matching the legacy contract — paths for
+      // the kinds that were actually written via the signal path.
+      const result: {
+        success: true;
+        proposalPath?: string;
+        problemStatementPath?: string;
+        agreementPath?: string;
+        designPath?: string;
+        executiveSummaryPath?: string;
+      } = { success: true };
+      if (metadataPaths.proposal) result.proposalPath = metadataPaths.proposal;
+      if (metadataPaths.problemStatement)
+        result.problemStatementPath = metadataPaths.problemStatement;
+      if (metadataPaths.agreement)
+        result.agreementPath = metadataPaths.agreement;
+      if (metadataPaths.design) result.designPath = metadataPaths.design;
+      if (metadataPaths.executiveSummary)
+        result.executiveSummaryPath = metadataPaths.executiveSummary;
+
+      // AC9 (completeStateBackedGate): invalidate the change cache after the
+      // content-signal fan-out, matching save/close/refresh/bulk-close. Without
+      // this, a store.changes.get(changeId) immediately following
+      // adv_change_update returns stale cached state.documents/state.artifacts
+      // content — the confirmed root cause of the stale-contract symptom (a
+      // re-mint was required after adv_change_update because changeCache held
+      // pre-update content).
+      invalidateChange(changeId);
+      return result;
+    },
+
+    // rq-changeSummaryReadModel01: lightweight summary list for default
+    // tool paths. Uses `ChangeSummaryMemo` and `changeCache` to avoid
+    // per-change full hydration when summary data already satisfies the
+    // response contract; falls back to authoritative hydration for IDs
+    // that have no summary proof. Archive/closed callers still walk the
+    // full hydration path because terminal records require disk/archive
+    // reconciliation outside the memo.
+    listSummary: async (filter) => {
+      const wantsArchived =
+        filter?.includeArchived || filter?.status === "archived";
+      const wantsClosed = filter?.includeClosed || filter?.status === "closed";
+      const wantsTerminal = Boolean(wantsArchived || wantsClosed);
+      const hasContentFilters = Boolean(
+        filter?.prefix ||
+        filter?.titleContains ||
+        filter?.createdBefore ||
+        filter?.lastActivityBefore,
+      );
+
+      // Compatibility envelope: when callers exercise paths whose
+      // correctness depends on full state (terminal-status sweeps, content
+      // filters that need created_at/lastActivityAt), defer to the full
+      // `list` projection. The hydrationStats field is still returned so
+      // telemetry callers can identify the fallback path.
+      if (wantsTerminal || hasContentFilters) {
+        const fallback = await listResolvedChanges({
+          includeArchived: wantsArchived,
+          includeClosed: wantsClosed,
+        });
+        let filtered = fallback;
+        if (filter?.status) {
+          filtered = filtered.filter((c) => c.status === filter.status);
+        }
+        if (!wantsArchived) {
+          filtered = filtered.filter((c) => c.status !== "archived");
+        }
+        if (!wantsClosed) {
+          filtered = filtered.filter((c) => c.status !== "closed");
+        }
+        if (hasContentFilters) {
+          const enriched = filtered.map((c) => ({
+            ...c,
+            lastActivityAt: computeLastActivity(c),
+          }));
+          filtered = filterChanges(enriched, {
+            prefix: filter?.prefix,
+            titleContains: filter?.titleContains,
+            createdBefore: filter?.createdBefore,
+            lastActivityBefore: filter?.lastActivityBefore,
+          });
+        }
+        filtered.sort((a, b) => {
+          const cmp = b.created_at.localeCompare(a.created_at);
+          return cmp !== 0 ? cmp : a.id.localeCompare(b.id);
+        });
+        return {
+          changes: filtered.map((change) => ({
+            id: change.id,
+            title: change.title,
+            status: change.status,
+            created_at: change.created_at,
+            lastActivityAt: computeLastActivity(change),
+            taskCount: change.tasks.length,
+            completedTasks: change.tasks.filter((t) => t.status === "done")
+              .length,
+            fast_follow_of: change.fast_follow_of,
+          })),
+          hydrationStats: {
+            totalIds: filtered.length,
+            fromMemo: 0,
+            fromCache: 0,
+            fromHydration: filtered.length,
+          },
+        };
+      }
+
+      // Build candidate ID set from memo + Visibility + disk to avoid
+      // dropping orphan-on-disk changes the memo never observed. Memo
+      // is the warm-path source; Visibility/disk catch cold-start and
+      // orphan cases.
+      const memoSummaries = memo.getAll();
+      const memoIds = memoSummaries.map((s) => s.id);
+
+      const bundle = input.temporal as {
+        client?: { workflow?: { list?: unknown } };
+      };
+      let visibilityIds: string[] = [];
+      if (typeof bundle.client?.workflow?.list === "function") {
+        try {
+          visibilityIds = await listChangeWorkflowIds(
+            bundle.client as Parameters<typeof listChangeWorkflowIds>[0],
+            { projectId: input.projectId },
+          );
+        } catch (err) {
+          logger.warn(
+            `[listSummary] Visibility list failed; falling back to disk only: ${err instanceof Error ? err.message : String(err)}`,
+          );
+        }
+      }
+
+      let diskIds: string[] = [];
+      try {
+        diskIds = await listChangeDirs(legacy.paths.changes);
+      } catch (err) {
+        logger.warn(
+          `[listSummary] Disk listChangeDirs failed: ${err instanceof Error ? err.message : String(err)}`,
         );
       }
-      return result;
+
+      const changeIds = Array.from(
+        new Set([...memoIds, ...visibilityIds, ...diskIds]),
+      );
+
+      const memoIndex = new Map<string, ChangeSummary>();
+      for (const summary of memoSummaries) {
+        memoIndex.set(summary.id, summary);
+      }
+
+      let fromMemo = 0;
+      let fromCache = 0;
+      let fromHydration = 0;
+
+      type SummaryRow = {
+        id: string;
+        title: string;
+        status: Change["status"];
+        created_at: string;
+        lastActivityAt: string;
+        taskCount: number;
+        completedTasks: number;
+        fast_follow_of?: Change["fast_follow_of"];
+      };
+
+      const rows: SummaryRow[] = [];
+
+      for (const id of changeIds) {
+        const cached = changeCache.get(id);
+        if (cached) {
+          fromCache += 1;
+          rows.push({
+            id: cached.id,
+            title: cached.title,
+            status: cached.status,
+            created_at: cached.created_at,
+            lastActivityAt: computeLastActivity(cached),
+            taskCount: cached.tasks.length,
+            completedTasks: cached.tasks.filter((t) => t.status === "done")
+              .length,
+            fast_follow_of: cached.fast_follow_of,
+          });
+          continue;
+        }
+
+        const summary = memoIndex.get(id);
+        if (summary) {
+          fromMemo += 1;
+          rows.push({
+            id: summary.id,
+            title: summary.title,
+            status: summary.status,
+            created_at: summary.lastActivityAt,
+            lastActivityAt: summary.lastActivityAt,
+            taskCount: summary.taskCounts.total,
+            completedTasks: summary.taskCounts.done,
+            fast_follow_of: summary.fast_follow_of,
+          });
+          continue;
+        }
+
+        // Miss: hydrate one change via the authoritative orphan-tolerant
+        // path. Skip on hard failure rather than aborting the batch.
+        try {
+          const loaded = await getTemporalChange(id);
+          if (loaded.success && loaded.data) {
+            fromHydration += 1;
+            const change = loaded.data;
+            rows.push({
+              id: change.id,
+              title: change.title,
+              status: change.status,
+              created_at: change.created_at,
+              lastActivityAt: computeLastActivity(change),
+              taskCount: change.tasks.length,
+              completedTasks: change.tasks.filter((t) => t.status === "done")
+                .length,
+              fast_follow_of: change.fast_follow_of,
+            });
+          }
+        } catch (err) {
+          logger.debug(
+            `[listSummary] hydration miss for change ${id}: ${err instanceof Error ? err.message : String(err)}`,
+          );
+        }
+      }
+
+      // Filter terminal statuses out of the warm path; they are not
+      // accessible through listSummary except via the wantsTerminal
+      // compatibility envelope above.
+      let filtered = rows.filter(
+        (r) => r.status !== "archived" && r.status !== "closed",
+      );
+      if (filter?.status) {
+        filtered = filtered.filter((r) => r.status === filter.status);
+      }
+
+      filtered.sort((a, b) => {
+        const cmp = b.created_at.localeCompare(a.created_at);
+        return cmp !== 0 ? cmp : a.id.localeCompare(b.id);
+      });
+
+      return {
+        changes: filtered,
+        hydrationStats: {
+          totalIds: changeIds.length,
+          fromMemo,
+          fromCache,
+          fromHydration,
+        },
+      };
     },
   };
 }

@@ -10,9 +10,11 @@
  * methods handle terminated workflows gracefully.
  */
 
+import { createHash } from "crypto";
 import { describe, test, expect, vi } from "vitest";
 import { createChangeOps } from "./changes";
 import { isWorkflowCompletedError } from "../../temporal/recovery-classification";
+import { ChangeSummaryMemo } from "../store-temporal-memo";
 
 const ensureChangeWorkflowStarted = vi.hoisted(() => vi.fn());
 
@@ -93,12 +95,14 @@ describe("createChangeOps", () => {
       paths: { changes: "/tmp/changes", root: "/tmp/project" },
       changes: {
         create: vi.fn().mockImplementation(async (...args: unknown[]) => {
-          const metadata = args[7] as
+          // After T20 atomic removal, legacy.changes.create receives
+          // (summary, options) — initialMetadata is on args[1].
+          const options = args[1] as
             | { initialMetadata?: { origin?: typeof origin } }
             | undefined;
           createdChange = {
             ...createdChange,
-            ...metadata?.initialMetadata,
+            ...options?.initialMetadata,
           };
           return { changeId: createdChange.id };
         }),
@@ -128,27 +132,17 @@ describe("createChangeOps", () => {
       dualWriteAfterMutation: vi.fn(),
     } as never);
 
-    await ops.create(
-      "Backlog feature 51",
-      "backlog-coordination",
-      "",
-      "",
-      "",
-      "",
-      undefined,
-      { initialMetadata: { origin } },
-    );
+    await ops.create("Backlog feature 51", {
+      capability: "backlog-coordination",
+      initialMetadata: { origin },
+    });
 
-    expect(legacy.changes.create).toHaveBeenCalledWith(
-      "Backlog feature 51",
-      "backlog-coordination",
-      "",
-      "",
-      "",
-      "",
-      undefined,
-      { initialMetadata: { origin } },
-    );
+    // Temporal store now calls legacy.changes.create with options-object
+    // shape — no artifact content forwarded; content flows via signals.
+    expect(legacy.changes.create).toHaveBeenCalledWith("Backlog feature 51", {
+      capability: "backlog-coordination",
+      initialMetadata: { origin },
+    });
 
     expect(ensureChangeWorkflowStarted).toHaveBeenCalledWith(
       workflowClient,
@@ -236,6 +230,232 @@ describe("createChangeOps", () => {
     );
   });
 
+  describe("listSummary (rq-changeSummaryReadModel01)", () => {
+    test("serves memo-only candidates without per-change full hydration", async () => {
+      const memo = new ChangeSummaryMemo();
+      memo.set("changeA", {
+        id: "changeA",
+        title: "Change A",
+        status: "active",
+        gateProgress: {
+          proposal: "done",
+          discovery: "done",
+          design: "done",
+          planning: "done",
+          execution: "pending",
+          acceptance: "pending",
+          release: "pending",
+        },
+        taskCounts: { total: 4, done: 2, pending: 2 },
+        lastActivityAt: "2026-05-26T00:00:00.000Z",
+      });
+      memo.set("changeB", {
+        id: "changeB",
+        title: "Change B",
+        status: "draft",
+        gateProgress: {
+          proposal: "pending",
+          discovery: "pending",
+          design: "pending",
+          planning: "pending",
+          execution: "pending",
+          acceptance: "pending",
+          release: "pending",
+        },
+        taskCounts: { total: 0, done: 0, pending: 0 },
+        lastActivityAt: "2026-05-25T12:00:00.000Z",
+      });
+
+      const getTemporalChange = vi.fn();
+      const legacy = {
+        paths: { changes: "/tmp/changes", root: "/tmp/project" },
+        changes: {
+          get: vi.fn().mockResolvedValue({ success: false }),
+        },
+      };
+      const workflowClient = {
+        workflow: {
+          // No `list` method → forces disk fallback path, no Visibility call.
+          getHandle: vi.fn(),
+        },
+      };
+
+      const ops = createChangeOps({
+        input: {
+          legacy,
+          temporal: { client: workflowClient },
+          projectId: "pid-summary",
+        },
+        legacy,
+        invalidateChange: vi.fn(),
+        updateOverlay: vi.fn(),
+        emitChangeSummarySignal: vi.fn(),
+        indexTasksFromState: vi.fn(),
+        setCachedChange: vi.fn(),
+        getTemporalChange,
+        listResolvedChanges: vi.fn(),
+        getTemporalWorkflowClient: () => workflowClient,
+        dualWriteAfterMutation: vi.fn(),
+        memo,
+        changeCache: new Map(),
+      } as never);
+
+      const result = await ops.listSummary!();
+
+      expect(getTemporalChange).not.toHaveBeenCalled();
+      expect(result.hydrationStats).toMatchObject({
+        totalIds: 2,
+        fromMemo: 2,
+        fromCache: 0,
+        fromHydration: 0,
+      });
+      expect(result.changes.map((c) => c.id).sort()).toEqual([
+        "changeA",
+        "changeB",
+      ]);
+      const a = result.changes.find((c) => c.id === "changeA")!;
+      expect(a.taskCount).toBe(4);
+      expect(a.completedTasks).toBe(2);
+      expect(a.status).toBe("active");
+    });
+
+    test("falls back to full hydration for IDs missing from memo and cache", async () => {
+      const memo = new ChangeSummaryMemo();
+      const getTemporalChange = vi.fn().mockResolvedValue({
+        success: true,
+        data: {
+          id: "diskOnlyChange",
+          title: "Disk Only",
+          status: "active",
+          created_at: "2026-05-20T00:00:00.000Z",
+          tasks: [{ id: "t1", status: "done" }],
+          deltas: {},
+          wisdom: [],
+          gates: {},
+          reentry_history: [],
+        },
+      });
+      const legacy = {
+        paths: { changes: "/tmp/changes", root: "/tmp/project" },
+        changes: {
+          get: vi.fn(),
+        },
+      };
+      const workflowClient = { workflow: { getHandle: vi.fn() } };
+
+      // Seed memo so the candidate ID enters the listSummary set; the
+      // cache short-circuit serves it before any hydration call fires.
+      memo.set("diskOnlyChange", {
+        id: "diskOnlyChange",
+        title: "Disk Only",
+        status: "active",
+        gateProgress: {
+          proposal: "done",
+          discovery: "pending",
+          design: "pending",
+          planning: "pending",
+          execution: "pending",
+          acceptance: "pending",
+          release: "pending",
+        },
+        taskCounts: { total: 1, done: 1, pending: 0 },
+        lastActivityAt: "2026-05-20T00:00:00.000Z",
+      });
+      const seededCache = new Map();
+      seededCache.set("diskOnlyChange", {
+        id: "diskOnlyChange",
+        title: "Disk Only",
+        status: "active",
+        created_at: "2026-05-20T00:00:00.000Z",
+        tasks: [{ id: "t1", status: "done" }],
+        deltas: {},
+        wisdom: [],
+        gates: {},
+        reentry_history: [],
+      });
+
+      const ops2 = createChangeOps({
+        input: {
+          legacy,
+          temporal: { client: workflowClient },
+          projectId: "pid-fallback",
+        },
+        legacy,
+        invalidateChange: vi.fn(),
+        updateOverlay: vi.fn(),
+        emitChangeSummarySignal: vi.fn(),
+        indexTasksFromState: vi.fn(),
+        setCachedChange: vi.fn(),
+        getTemporalChange,
+        listResolvedChanges: vi.fn(),
+        getTemporalWorkflowClient: () => workflowClient,
+        dualWriteAfterMutation: vi.fn(),
+        memo,
+        changeCache: seededCache,
+      } as never);
+
+      const result = await ops2.listSummary!();
+
+      expect(result.hydrationStats?.fromCache).toBe(1);
+      expect(result.hydrationStats?.fromHydration).toBe(0);
+      expect(getTemporalChange).not.toHaveBeenCalled();
+      expect(result.changes.map((c) => c.id)).toEqual(["diskOnlyChange"]);
+      expect(result.changes[0].taskCount).toBe(1);
+      expect(result.changes[0].completedTasks).toBe(1);
+    });
+
+    test("defers to authoritative listResolvedChanges for archived/closed filters", async () => {
+      const memo = new ChangeSummaryMemo();
+      const listResolvedChanges = vi.fn().mockResolvedValue([
+        {
+          id: "archivedC",
+          title: "Archived",
+          status: "archived",
+          created_at: "2026-05-10T00:00:00.000Z",
+          tasks: [],
+          deltas: {},
+          wisdom: [],
+          gates: {},
+          reentry_history: [],
+        },
+      ]);
+      const legacy = {
+        paths: { changes: "/tmp/changes", root: "/tmp/project" },
+        changes: { get: vi.fn() },
+      };
+      const workflowClient = { workflow: { getHandle: vi.fn() } };
+
+      const ops = createChangeOps({
+        input: {
+          legacy,
+          temporal: { client: workflowClient },
+          projectId: "pid-terminal",
+        },
+        legacy,
+        invalidateChange: vi.fn(),
+        updateOverlay: vi.fn(),
+        emitChangeSummarySignal: vi.fn(),
+        indexTasksFromState: vi.fn(),
+        setCachedChange: vi.fn(),
+        getTemporalChange: vi.fn(),
+        listResolvedChanges,
+        getTemporalWorkflowClient: () => workflowClient,
+        dualWriteAfterMutation: vi.fn(),
+        memo,
+        changeCache: new Map(),
+      } as never);
+
+      const result = await ops.listSummary!({ includeArchived: true });
+
+      expect(listResolvedChanges).toHaveBeenCalledWith(
+        expect.objectContaining({ includeArchived: true }),
+      );
+      expect(result.changes.map((c) => c.id)).toEqual(["archivedC"]);
+      expect(result.hydrationStats?.fromMemo).toBe(0);
+      expect(result.hydrationStats?.fromHydration).toBeGreaterThan(0);
+    });
+  });
+
   test("signals executiveSummary artifact metadata after artifact updates", async () => {
     const signalMock = vi.fn().mockResolvedValue(undefined);
     const legacy = {
@@ -273,14 +493,9 @@ describe("createChangeOps", () => {
       dualWriteAfterMutation: vi.fn(),
     } as never);
 
-    await ops.updateArtifacts(
-      "summaryChange",
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      "# Executive Summary",
-    );
+    await ops.updateArtifacts("summaryChange", {
+      executiveSummary: "# Executive Summary",
+    });
 
     expect(signalMock).toHaveBeenCalledWith(
       expect.anything(),
@@ -288,8 +503,67 @@ describe("createChangeOps", () => {
         kind: "executiveSummary",
         metadata: expect.objectContaining({
           path: "/tmp/changes/summaryChange/executive-summary.md",
+          contentHash: createHash("sha256")
+            .update("# Executive Summary")
+            .digest("hex"),
         }),
       }),
     );
+  });
+
+  /**
+   * AC9 (completeStateBackedGate) — updateArtifacts MUST invalidate the
+   * change cache after firing content signals, matching save/close/
+   * refresh/bulk-close. Without this, a store.changes.get() immediately
+   * following adv_change_update returns stale cached state.documents /
+   * state.artifacts content — the confirmed root cause of the
+   * stale-contract symptom (re-mint required after adv_change_update).
+   *
+   * RED before the fix: updateArtifacts (changes.ts) fires the content
+   * signal fan-out but never calls invalidateChange(changeId) before
+   * returning, so this assertion fails.
+   */
+  test("invalidates change cache after updateArtifacts (AC9)", async () => {
+    const signalMock = vi.fn().mockResolvedValue(undefined);
+    const invalidateChangeMock = vi.fn();
+    const legacy = {
+      paths: { changes: "/tmp/changes", root: "/tmp/project" },
+      changes: {
+        get: vi.fn().mockResolvedValue({
+          success: true,
+          data: { id: "cacheChange", adv_project_id: "pid-cache" },
+        }),
+        updateArtifacts: vi.fn().mockResolvedValue({
+          success: true,
+          executiveSummaryPath: "/tmp/changes/cacheChange/executive-summary.md",
+        }),
+      },
+    };
+    const workflowClient = {
+      workflow: { getHandle: vi.fn(() => ({ signal: signalMock })) },
+    };
+    const ops = createChangeOps({
+      input: {
+        legacy,
+        temporal: { client: workflowClient },
+        projectId: "pid-cache",
+      },
+      legacy,
+      invalidateChange: invalidateChangeMock,
+      updateOverlay: vi.fn(),
+      emitChangeSummarySignal: vi.fn(),
+      indexTasksFromState: vi.fn(),
+      setCachedChange: vi.fn(),
+      getTemporalChange: vi.fn(),
+      listResolvedChanges: vi.fn(),
+      getTemporalWorkflowClient: () => workflowClient,
+      dualWriteAfterMutation: vi.fn(),
+    } as never);
+
+    await ops.updateArtifacts("cacheChange", {
+      executiveSummary: "# Executive Summary",
+    });
+
+    expect(invalidateChangeMock).toHaveBeenCalledWith("cacheChange");
   });
 });

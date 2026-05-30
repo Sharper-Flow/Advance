@@ -4,6 +4,7 @@ import { join, resolve } from "path";
 import {
   EngineerSubagentReportSchema,
   getSubagentReportPacketAnchors,
+  SUBAGENT_WARN_FIRST_PACKET_ANCHORS,
 } from "./types";
 
 const REPO_ROOT = resolve(__dirname, "../..");
@@ -124,7 +125,9 @@ describe("adv-engineer assets", () => {
       "verification",
       "decisions",
       "blockers",
+      "scope_drift",
       "follow_ups",
+      "required_main_agent_actions",
       "related_scan",
       "context_update_for_adv",
       "what_ads_needs_to_know",
@@ -188,6 +191,21 @@ describe("adv-engineer assets", () => {
     expect(scopeSection).toContain("WORKING DIRECTORY");
   });
 
+  test("Scope Lock section documents warn-first scope/done/stop/verification anchors", () => {
+    const content = readFileSync(AGENT_PATH, "utf8");
+    const scopeSection =
+      content
+        .split("## Scope Lock")[1]
+        ?.split("## Working Directory Lock")[0] ?? "";
+
+    for (const anchor of SUBAGENT_WARN_FIRST_PACKET_ANCHORS) {
+      expect(scopeSection, `Scope Lock missing ${anchor}`).toContain(anchor);
+    }
+    expect(scopeSection).toContain("warn-first");
+    expect(scopeSection).toContain("finish owned scope if safe");
+    expect(scopeSection).toContain("contract/security/release blockers");
+  });
+
   test("ENGINEER_REPORT schema contains workdir_used field", () => {
     const content = readFileSync(AGENT_PATH, "utf8");
     const reportSection = content.split("## ENGINEER_REPORT Payload")[1] ?? "";
@@ -218,6 +236,20 @@ describe("adv-engineer assets", () => {
     expect(() =>
       EngineerSubagentReportSchema.parse(JSON.parse(exampleBlock)),
     ).not.toThrow();
+    expect(JSON.parse(exampleBlock).scope).toEqual({
+      kind: "task",
+      task_id: "tk-abc123",
+    });
+  });
+
+  test("ENGINEER_REPORT prompt examples use structural scope, not legacy string scope", () => {
+    const content = readFileSync(AGENT_PATH, "utf8");
+    const reportSection = content.split("## ENGINEER_REPORT Payload")[1] ?? "";
+    expect(reportSection).toContain('"scope": {');
+    expect(reportSection).toContain('"kind": "task"');
+    expect(reportSection).toContain('"task_id"');
+    expect(reportSection).not.toMatch(/"scope"\s*:\s*"/);
+    expect(reportSection).toContain("compatibility-only");
   });
 
   test("ENGINEER_REPORT transport is tool-call based, not final fenced JSON", () => {
@@ -271,6 +303,12 @@ describe("adv-engineer assets", () => {
     );
 
     for (const anchor of getSubagentReportPacketAnchors("adv-engineer")) {
+      expect(packet, `Apply Context Packet missing ${anchor}`).toContain(
+        `${anchor}:`,
+      );
+    }
+
+    for (const anchor of SUBAGENT_WARN_FIRST_PACKET_ANCHORS) {
       expect(packet, `Apply Context Packet missing ${anchor}`).toContain(
         `${anchor}:`,
       );

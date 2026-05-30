@@ -1,0 +1,68 @@
+{
+  "entries": [
+    {
+      "id": "ws-OHp_Xg",
+      "type": "gotcha",
+      "content": "When the OpenCode session is launched from the canonical checkout, ADV state mutations such as adv_task_update can hit the trunk-write isolation guard even after adv_worktree_resume. Route the mutation with target_path set to the resumed ADV worktree and explicit target confirmation.",
+      "source_task": "tk-30dfe03f4a67",
+      "recorded_at": "2026-05-25T20:55:17.344Z"
+    },
+    {
+      "id": "ws-qa7-YL",
+      "type": "pattern",
+      "content": "When introducing new sub-agent report variants, keep the current task-consumer schema (`SupportedSubagentReportSchema` / `SubagentReportSchema`) task-scoped until persistence/readback consumers migrate; expose a separate all-variant schema (`ScopedSubagentReportSchema`) for new optimized handoff validation. This preserves typecheck and legacy task.subagent_reports[] compatibility.",
+      "source_task": "tk-55c41642dc32",
+      "recorded_at": "2026-05-25T21:03:44.013Z"
+    },
+    {
+      "id": "ws-FHOlF0",
+      "type": "pattern",
+      "content": "For report sidecar migration, preserve legacy task report idempotency keys whenever taskId is present (`changeId|taskId|agent|attempt`) and use scope-aware keys only for taskless/change-scoped reports. This keeps old Temporal histories replay-safe while enabling new sidecar scopes.",
+      "source_task": "tk-20ddc8088280",
+      "recorded_at": "2026-05-25T21:11:14.318Z"
+    },
+    {
+      "id": "ws-9ZX_GS",
+      "type": "pattern",
+      "content": "For taskless report submit, compute source identity from structural scope and omit `taskId` from the signal payload; task-scoped reports keep taskId for legacy consumers. Follow-up agenda descriptions should include change/scope/agent/attempt plus task id when present.",
+      "source_task": "tk-05b836f81a4d",
+      "recorded_at": "2026-05-25T21:15:56.180Z"
+    },
+    {
+      "id": "ws-TAyO4P",
+      "type": "pattern",
+      "content": "During sidecar migrations, opt-in readback should merge canonical sidecar entries with legacy embedded entries and dedupe by the same report key. Compatibility checks such as checkpoint legacy-output suppression must also consult sidecar task-scoped reports, not only task.subagent_reports[].",
+      "source_task": "tk-4f3e0b969175",
+      "recorded_at": "2026-05-25T21:20:08.440Z"
+    },
+    {
+      "id": "ws-M9ie1u",
+      "type": "pattern",
+      "content": "For stale enforcement-doc cleanup, add asset tests against live orchestration docs rather than only searching manually. Keep historical CHANGELOG references allowed, but block active ADV_INSTRUCTIONS/.opencode agent claims and repository maps for retired directories.",
+      "source_task": "tk-a80e6d5351cc",
+      "recorded_at": "2026-05-25T23:25:25.406Z"
+    },
+    {
+      "id": "ws-7iVeF_",
+      "type": "pattern",
+      "content": "When adding optimized handoff reports, pin both agent prompt transport and command packet anchors in one asset test. Validate report-specific anchors via getSubagentReportPacketAnchors so schema field-source changes break prompt/packet tests deterministically.",
+      "source_task": "tk-dd329f936148",
+      "recorded_at": "2026-05-26T00:38:37.702Z"
+    },
+    {
+      "id": "ws-L_aPl-",
+      "type": "gotcha",
+      "content": "Final `pnpm run check` can fail only at Prettier after targeted tests pass. For new asset tests, run `pnpm run format` before final check/build to avoid a formatting-only verification retry.",
+      "source_task": "tk-17fcf367e943",
+      "recorded_at": "2026-05-26T00:41:34.625Z"
+    },
+    {
+      "id": "ws-kf1swf",
+      "type": "gotcha",
+      "content": "Command packet examples for strict report transports should show a complete schema-valid payload skeleton, not only agent/phase/summary fields; otherwise prompt text can drift even when anchors exist.",
+      "source_task": "tk-17fcf367e943",
+      "recorded_at": "2026-05-26T00:52:20.705Z"
+    }
+  ],
+  "count": 9
+}

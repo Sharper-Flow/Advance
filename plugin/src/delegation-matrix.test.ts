@@ -15,6 +15,7 @@
 import { describe, expect, test } from "vitest";
 import { existsSync, readdirSync, readFileSync } from "fs";
 import { join, resolve } from "path";
+import { SUBAGENT_WARN_FIRST_PACKET_ANCHORS } from "./types";
 
 const REPO_ROOT = resolve(__dirname, "../..");
 const SPEC_PATH = join(REPO_ROOT, ".adv/specs/delegation-defaults/spec.json");
@@ -62,6 +63,7 @@ const GLOBAL_AGENTS = new Set(["explore", "general"]);
 const KNOWN_SPAWNABLE_SUBAGENTS = [
   "adv-engineer",
   "adv-reviewer",
+  "adv-designer",
   "adv-researcher",
   "adv-tron",
   "explore",
@@ -93,6 +95,7 @@ interface PacketContract {
   agent: string;
   reportTransport: string;
   requiredPacketAnchors: string[];
+  warnPacketAnchors?: string[];
 }
 
 interface DelegationMatrixEntry {
@@ -109,6 +112,7 @@ interface DelegationMatrixEntry {
       agent: string;
       report_transport: string;
       required_packet_anchors: string[];
+      warn_packet_anchors?: string[];
     }[];
   }[];
 }
@@ -151,6 +155,7 @@ function loadDelegationMatrix(): MatrixRow[] {
         agent: contract.agent,
         reportTransport: contract.report_transport,
         requiredPacketAnchors: contract.required_packet_anchors,
+        warnPacketAnchors: contract.warn_packet_anchors,
       })),
     })),
   }));
@@ -253,6 +258,7 @@ function expectPacketContract(
   agent: string,
   reportTransport: string,
   requiredPacketAnchors: string[],
+  warnPacketAnchors: string[] = [],
 ): void {
   const substep = row.delegatedSubsteps?.find(
     (candidate) => candidate.name === substepName,
@@ -267,6 +273,7 @@ function expectPacketContract(
   ).toBeDefined();
   expect(contract?.reportTransport).toBe(reportTransport);
   expect(contract?.requiredPacketAnchors).toEqual(requiredPacketAnchors);
+  expect(contract?.warnPacketAnchors ?? []).toEqual(warnPacketAnchors);
 }
 
 describe("delegation matrix coverage", () => {
@@ -478,6 +485,15 @@ describe("delegation matrix coverage", () => {
       "adv-engineer",
       "typed_persisted_worker",
       ["WORKING DIRECTORY", "CHANGE", "TASK", "ATTEMPT"],
+      [...SUBAGENT_WARN_FIRST_PACKET_ANCHORS],
+    );
+    expectPacketContract(
+      rows.apply,
+      "Frontend Implementation",
+      "adv-designer",
+      "typed_persisted_worker",
+      ["WORKING DIRECTORY", "CHANGE", "TASK", "ATTEMPT"],
+      [...SUBAGENT_WARN_FIRST_PACKET_ANCHORS],
     );
     expectPacketContract(
       rows.review,
@@ -492,6 +508,7 @@ describe("delegation matrix coverage", () => {
       "adv-reviewer",
       "typed_persisted_worker",
       ["WORKING DIRECTORY", "CHANGE", "TASK", "PHASE", "ATTEMPT"],
+      [...SUBAGENT_WARN_FIRST_PACKET_ANCHORS],
     );
     expectPacketContract(
       rows.review,
@@ -499,6 +516,7 @@ describe("delegation matrix coverage", () => {
       "adv-engineer",
       "typed_persisted_worker",
       ["WORKING DIRECTORY", "CHANGE", "TASK", "ATTEMPT"],
+      [...SUBAGENT_WARN_FIRST_PACKET_ANCHORS],
     );
     expectPacketContract(
       rows.harden,
@@ -513,6 +531,7 @@ describe("delegation matrix coverage", () => {
       "adv-reviewer",
       "typed_persisted_worker",
       ["WORKING DIRECTORY", "CHANGE", "TASK", "PHASE", "ATTEMPT"],
+      [...SUBAGENT_WARN_FIRST_PACKET_ANCHORS],
     );
     expectPacketContract(
       rows.harden,
@@ -520,6 +539,7 @@ describe("delegation matrix coverage", () => {
       "adv-engineer",
       "typed_persisted_worker",
       ["WORKING DIRECTORY", "CHANGE", "TASK", "ATTEMPT"],
+      [...SUBAGENT_WARN_FIRST_PACKET_ANCHORS],
     );
   });
 
@@ -580,7 +600,9 @@ describe("delegation matrix coverage", () => {
     );
     expect(agentMap.discovery).toEqual(new Set(["adv-researcher", "explore"]));
     expect(agentMap.design).toEqual(new Set(["adv-researcher"]));
-    expect(agentMap.apply).toEqual(new Set(["adv-engineer", "general"]));
+    expect(agentMap.apply).toEqual(
+      new Set(["adv-engineer", "adv-designer", "general"]),
+    );
     expect(agentMap.review).toEqual(
       new Set(["adv-reviewer", "adv-engineer", "adv-researcher", "explore"]),
     );
@@ -607,6 +629,7 @@ describe("delegation matrix coverage", () => {
     for (const agent of [
       "adv-engineer",
       "adv-reviewer",
+      "adv-designer",
       "adv-researcher",
       "adv-tron",
     ]) {

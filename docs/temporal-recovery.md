@@ -2,6 +2,101 @@
 
 > **Status:** worker-model and recovery baseline. This runbook now outlives the retired cutover harness and remains the operator reference for post-crash diagnosis, worker-model decisions, failed-migration recovery, worker auto-respawn troubleshooting, `NonDeterministicWorkflowError` recovery, orphan cleanup, and disk-full / OOM surfaces.
 
+## Mid-batch content-signal failure recovery
+
+> **Constraint C8** from the `removePositionalArtifactApi` change (May 2026).
+
+`Store.changes.updateArtifacts(changeId, artifacts: ArtifactPayload)` and `Store.changes.create(summary, { artifacts })` fan out one Temporal signal per defined field on `ArtifactPayload`, in deterministic order (`proposal → problemStatement → agreement → design → executiveSummary → acceptance`). Each signal is awaited before the next; tool layer never uses `Promise.all`.
+
+### What can fail mid-batch
+
+A signal handler can fail to reach the workflow if:
+
+- The Temporal frontend rejects the signal (e.g., workflow doesn't exist, deserialization error).
+- The worker pool is unavailable (worker crashed, queue not serviceable).
+- The tool process crashes/exits between two signals in the same batch.
+
+When this happens, the workflow's `state.documents` is **partially populated** — signals 1..N-1 have already been applied; signals N..6 have not. Disk artifact files for signals 1..N-1 may also be present (transition window before T15 removes disk-writes entirely).
+
+### Crash-recovery semantics
+
+Content signals are **idempotent state-replacement**, not delta. Re-issuing `updateArtifacts(id, samePayload)` after a mid-batch crash is safe:
+
+- Signals already applied (1..N-1) re-fire and overwrite their own state with identical content — no-op effect.
+- Signals not yet applied (N..6) fire fresh.
+- Final state is identical to a single successful batch.
+
+This invariant is locked by `plugin/src/temporal/change-state.crash-recovery.test.ts` and follows directly from `applyContentWithSizeGuard` semantics (the size-guard wrapper still uses last-write-wins state replacement).
+
+### Recovery procedure
+
+1. **Diagnose:** Query `state.documents` via `adv_change_show changeId: X include: { proposal: true, problemStatement: true, agreement: true, design: true, executiveSummary: true, acceptance: true }`. Compare with the intended payload. Identify missing fields.
+2. **Re-issue:** Call `adv_change_update changeId: X` with the **full intended payload** (not just the missing fields — re-issuing already-applied content is a safe no-op). The tool layer's sequential-await fan-out picks up where it left off.
+3. **Verify:** Re-query `state.documents`. All six fields should match the intended content.
+
+### Distinction from poisoned-history recovery
+
+The acceptance-gate recovery path (`gate.ts:344-414`, `_recovery-writers.ts`) is **separate from this content-signal recovery flow**. Poisoned-workflow recovery uses `inspectArtifactActivity` to read disk files when Temporal cannot accept signals at all (workflow stuck on a non-deterministic replay error, history truncation, etc.). That path retains disk dependency by design (C12) and is not part of the mid-batch-signal-failure recovery procedure above.
+
+> **State-backed acceptance (completeStateBackedGate, May 2026).** The acceptance gate's **non-recovery** completion path is now fully state-backed, matching proposal/discovery/design. Under the `STATE_BACKED_ACCEPTANCE_PROOF_PATCH` workflow patch marker, acceptance proof is read from `state.documents.executiveSummary` + `state.artifacts.executiveSummary.{path,contentHash}` — no disk `inspectArtifactActivity`. At acceptance time the workflow materializes `executive-summary.md` and `acceptance.md` to the active change dir via `writeArtifactActivity` so the readdir-based archive bundle (`createInRepoArchive`) includes them (AC7). The legacy `ACCEPTANCE_EXECUTIVE_SUMMARY_PROOF_PATCH` disk-inspect branch is retained only for replay of pre-migration histories; new histories never take it. The poisoned-history **recovery** path described above is unchanged and still inspects disk per C12 — the two paths coexist exactly as the production-vs-recovery split for the other gates.
+
+## Stuck proposal/discovery/design/acceptance gates after artifact disk writes were removed
+
+> Applies to the `fixGateArtifactReadiness` change (May 2026); the acceptance
+> gate joined the state-backed model in `completeStateBackedGate` (May 2026).
+
+`Store.changes.updateArtifacts(...)` no longer writes active `proposal.md`,
+`agreement.md`, or `design.md` files from the Temporal store path. The canonical
+artifact content for proposal/discovery/design gates is workflow state:
+
+- `state.documents[kind]` — artifact content
+- `state.artifacts[kind]` — optional path/hash metadata
+
+### Symptom
+
+A proposal, discovery, design, or acceptance gate is stuck with
+`ARTIFACT_MISSING` (acceptance reports `ACCEPTANCE_EXECUTIVE_SUMMARY_MISSING`)
+even though `adv_change_show` displays the artifact content (for example, an
+agreement exists in workflow state but `agreement.md` is absent on disk, or the
+executive summary exists in `state.documents.executiveSummary` but
+`executive-summary.md` is absent on disk). This was observed in
+PokeEdge/PokeEdge-web style sessions such as a stuck discovery gate for
+`fixSubDollarLabels`.
+
+### Recovery procedure
+
+1. Build and deploy the fixed Advance plugin:
+
+   ```bash
+   cd /home/jon/dev/advance/plugin && pnpm run build
+   cd /home/jon/dev/advance && ./scripts/deploy-local.sh --fix
+   ```
+
+2. Restart OpenCode in the affected project(s). A running session may report
+   `Plugin freshness: dist_ahead_of_process`; restart is required so the plugin
+   host loads the new `dist/` code.
+
+3. Re-enter the stuck gate from the affected project using ADV tools. For a
+   stuck discovery gate:
+
+   ```text
+   adv_change_reenter changeId: "<change-id>" fromGate: "discovery" reason: "Retry after state-backed artifact readiness fix"
+   ```
+
+4. Retry the normal gate completion. Do **not** create or edit `agreement.md`,
+   `proposal.md`, `design.md`, or `executive-summary.md` manually just to
+   satisfy gate readiness. Disk artifact files are not the source of truth for
+   proposal/discovery/design/acceptance on the fixed path — the workflow
+   materializes `executive-summary.md`/`acceptance.md` to disk itself at
+   acceptance time for the archive bundle.
+
+### Interaction with per-project OpenCode wrappers
+
+The `addPerProjectOcWrapper` work in `~/toolbox` can improve project-specific
+XDG/process isolation and make restarts less ambiguous, but it does not repair
+the plugin bug by itself. The plugin fix and a fresh OpenCode process are still
+required.
+
 ## Worker model
 
 ### Decision (current — hybrid)

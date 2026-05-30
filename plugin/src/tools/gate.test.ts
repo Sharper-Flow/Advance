@@ -233,6 +233,7 @@ describe("gate tools — signal-driven lifecycle", () => {
           changeId: "test-change",
           gateId: "acceptance",
           completedBy: "agent",
+          notes: "Recovered gate after poisoned workflow",
           compatibilityReason: "legacy replay lacks contract proof",
         },
         store,
@@ -293,7 +294,12 @@ describe("gate tools — signal-driven lifecycle", () => {
           changeId: "test-change",
           gateId: "acceptance",
           completedBy: "agent",
+          notes: "Recovered gate after poisoned workflow",
           compatibilityReason: "legacy replay lacks contract proof",
+          recoveryReason: "acceptance gate recovery after poisoned workflow",
+          recoveryEvidence:
+            "TemporalReportedProblems: WorkflowTaskFailedCauseNonDeterministicError",
+          priorApprovalEvidence: "Prior user acceptance approval: approve",
         },
         store,
       );
@@ -305,11 +311,55 @@ describe("gate tools — signal-driven lifecycle", () => {
       expect(store.changes.save).toHaveBeenCalledWith(
         expect.objectContaining({
           gates: expect.objectContaining({
-            acceptance: expect.objectContaining({ status: "done" }),
+            acceptance: expect.objectContaining({
+              status: "done",
+              approval_evidence:
+                "Recovered gate after poisoned workflow; Prior user acceptance approval: approve",
+            }),
           }),
         }),
       );
       expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+    });
+
+    test("poisoned-history acceptance recovery rejects missing audit fields", async () => {
+      const gates = {
+        proposal: { status: "done" },
+        discovery: { status: "done" },
+        design: { status: "done" },
+        planning: { status: "done" },
+        execution: { status: "done" },
+        acceptance: { status: "pending" },
+        release: { status: "pending" },
+      } as import("../types").Gates;
+      const store = createMockStore({
+        gates,
+        change: { gates } as Partial<import("../types").Change>,
+      });
+      mocks.querySignal.mockRejectedValueOnce(
+        new Error("TMPRL1100: Nondeterminism error"),
+      );
+
+      const result = await gateTools.adv_gate_complete.execute(
+        {
+          changeId: "test-change",
+          gateId: "acceptance",
+          completedBy: "agent",
+          compatibilityReason: "legacy replay lacks contract proof",
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.error).toContain(
+        "recoveryEvidence, recoveryReason, priorApprovalEvidence",
+      );
+      expect(parsed.missingAuditFields).toEqual([
+        "recoveryEvidence",
+        "recoveryReason",
+        "priorApprovalEvidence",
+      ]);
+      expect(store.changes.save).not.toHaveBeenCalled();
     });
 
     test("queries workflow gate state before firing completion signal", async () => {
@@ -797,7 +847,12 @@ describe("gate tools — signal-driven lifecycle", () => {
           changeId: "test-change",
           gateId: "acceptance",
           completedBy: "agent",
+          notes: "Prior user acceptance approval: approve",
           compatibilityReason: "legacy replay lacks contract proof",
+          recoveryReason: "acceptance gate recovery after poisoned workflow",
+          recoveryEvidence:
+            "TemporalReportedProblems: WorkflowTaskFailedCauseNonDeterministicError",
+          priorApprovalEvidence: "Prior user acceptance approval: approve",
         },
         store,
       );

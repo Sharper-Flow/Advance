@@ -11,10 +11,10 @@ import {
   SUBAGENT_REPORT_SCHEMA_VERSION,
   SubagentAgentSchema,
   SubagentConsumerWarningSchema,
-  SupportedSubagentReportSchema,
+  ScopedSubagentReportSchema,
   type Change,
   type ErrorRecovery,
-  type SupportedSubagentReport,
+  type ScopedSubagentReport,
   type Task,
 } from "../types";
 import { getProjectId } from "../utils/project-id";
@@ -28,6 +28,7 @@ import {
 
 type ConsumerWarning = z.infer<typeof SubagentConsumerWarningSchema>;
 const ConsumerWarningsSchema = z.array(SubagentConsumerWarningSchema);
+const MAX_REPORT_FOLLOW_UPS = 10;
 
 function validateConsumerWarnings(
   warnings: ConsumerWarning[],
@@ -97,19 +98,44 @@ async function loadChange(store: Store, changeId: string): Promise<Change> {
   return result.data;
 }
 
-function getTaskOrError(change: Change, taskId: string): Task {
+function findTask(change: Change, taskId: string): Task | undefined {
   const task = (change.tasks ?? []).find(
     (candidate) => candidate.id === taskId,
   );
-  if (!task)
-    throw new Error(`Task not found in change ${change.id}: ${taskId}`);
   return task;
+}
+
+function invalidTaskAnchorOutput(input: {
+  change: Change;
+  taskId: string;
+  report: ScopedSubagentReport;
+  projectContext?: TargetProjectOutputContext;
+}): string {
+  return appendProjectContext(
+    formatToolOutput({
+      success: false,
+      error:
+        "Task-scoped sub-agent report references a task that does not exist in this change",
+      code: "INVALID_TASK_ANCHOR",
+      changeId: input.change.id,
+      taskId: input.taskId,
+      agent: input.report.agent,
+      attempt: input.report.attempt,
+      validTaskAnchors: (input.change.tasks ?? []).map((task) => ({
+        id: task.id,
+        title: task.title,
+      })),
+      guidance:
+        "Task-scoped reports must use an existing ADV task ID. Independent review/harden reports must use the change-scoped reviewer variant. Scanner lanes must not call adv_subagent_report_submit directly.",
+    }),
+    input.projectContext,
+  );
 }
 
 function parseReport(
   rawReport: unknown,
 ):
-  | { ok: true; report: SupportedSubagentReport }
+  | { ok: true; report: ScopedSubagentReport }
   | { ok: false; code: string; message: string; details?: unknown } {
   const probe = reportAgentProbeSchema.safeParse(rawReport);
   if (!probe.success) {
@@ -121,18 +147,7 @@ function parseReport(
     };
   }
 
-  if (
-    probe.data.agent === "adv-researcher" ||
-    probe.data.agent === "adv-tron"
-  ) {
-    return {
-      ok: false,
-      code: "UNSUPPORTED_AGENT",
-      message: `Unsupported sub-agent report type for v1 submit: ${probe.data.agent}`,
-    };
-  }
-
-  const parsed = SupportedSubagentReportSchema.safeParse(rawReport);
+  const parsed = ScopedSubagentReportSchema.safeParse(rawReport);
   if (!parsed.success) {
     return {
       ok: false,
@@ -147,13 +162,13 @@ function parseReport(
 
 function reportIdentity(rawReport: unknown): {
   changeId: string;
-  taskId: string;
+  taskId?: string;
   agent?: string;
   attempt: number;
 } | null {
   const parsed = reportIdentitySchema.safeParse(rawReport);
   if (!parsed.success) return null;
-  if (!parsed.data.change_id || !parsed.data.task_id) return null;
+  if (!parsed.data.change_id) return null;
   return {
     changeId: parsed.data.change_id,
     taskId: parsed.data.task_id,
@@ -197,7 +212,7 @@ async function recordSubmitFailure(input: {
   message: string;
 }): Promise<{ recorded: boolean; reason?: string }> {
   const identity = reportIdentity(input.rawReport);
-  if (!identity) {
+  if (!identity || !identity.taskId) {
     return { recorded: false, reason: "report identity unavailable" };
   }
 
@@ -234,10 +249,23 @@ async function recordSubmitFailure(input: {
   }
 }
 
-function reportId(report: SupportedSubagentReport): string {
+/**
+ * Return the durable task anchor only for task-scoped reports. Legacy string
+ * scopes can still pair with a `task_id`; change-scoped sidecars intentionally
+ * return undefined so they are stored outside task records.
+ */
+function reportTaskId(report: ScopedSubagentReport): string | undefined {
+  if (typeof report.scope !== "string" && report.scope.kind === "task") {
+    return report.scope.task_id;
+  }
+  return "task_id" in report ? report.task_id : undefined;
+}
+
+function reportId(report: ScopedSubagentReport): string {
   return subagentReportKey({
     changeId: report.change_id,
-    taskId: report.task_id,
+    taskId: reportTaskId(report),
+    scope: typeof report.scope === "string" ? undefined : report.scope,
     agent: report.agent,
     attempt: report.attempt,
   });
@@ -249,9 +277,26 @@ function hasExistingReport(task: Task, id: string): boolean {
   );
 }
 
-function reportFollowUps(report: SupportedSubagentReport): string[] {
-  if (report.agent === "adv-engineer") return report.follow_ups;
-  return [];
+function hasExistingSidecarReport(change: Change, id: string): boolean {
+  return (change.subagent_reports ?? []).some(
+    (existing) => reportId(existing) === id,
+  );
+}
+
+function reportFollowUps(report: ScopedSubagentReport): string[] {
+  return "follow_ups" in report ? report.follow_ups : [];
+}
+
+/** Build the human-readable source token used on report-created agenda items. */
+function reportSourceDescription(report: ScopedSubagentReport): string {
+  const taskId = reportTaskId(report);
+  const scopeId =
+    typeof report.scope === "string"
+      ? report.scope
+      : report.scope.kind === "task"
+        ? `task:${report.scope.task_id}`
+        : `change:${report.scope.scope_key}`;
+  return `Source: ${report.change_id}/${scopeId}/${report.agent}/attempt-${report.attempt}${taskId ? `/task-${taskId}` : ""}`;
 }
 
 function extractRecordedExitCode(text: string): number | undefined {
@@ -261,9 +306,10 @@ function extractRecordedExitCode(text: string): number | undefined {
 }
 
 function verificationWarnings(
-  report: SupportedSubagentReport,
-  task: Task,
+  report: ScopedSubagentReport,
+  task?: Task,
 ): ConsumerWarning[] {
+  if (!task) return [];
   const recorded = [
     task.verification,
     task.summary,
@@ -272,7 +318,7 @@ function verificationWarnings(
     .filter((value): value is string => Boolean(value?.trim()))
     .join("\n");
 
-  if (report.agent === "adv-engineer") {
+  if (report.agent === "adv-engineer" || report.agent === "adv-designer") {
     return report.verification.flatMap((entry): ConsumerWarning[] => {
       if (!recorded.includes(entry.command)) {
         return [
@@ -300,47 +346,65 @@ function verificationWarnings(
     });
   }
 
-  return report.verification.tests_run
-    .filter((command) => !recorded.includes(command))
-    .map((command) => ({
-      kind: "verification_missing" as const,
-      message: `No adv_run_test evidence found for reported command: ${command}`,
-    }));
+  if (report.agent === "adv-reviewer") {
+    return report.verification.tests_run
+      .filter((command) => !recorded.includes(command))
+      .map((command) => ({
+        kind: "verification_missing" as const,
+        message: `No adv_run_test evidence found for reported command: ${command}`,
+      }));
+  }
+
+  return [];
 }
 
 function withConsumerWarnings(
-  report: SupportedSubagentReport,
+  report: ScopedSubagentReport,
   warnings: ConsumerWarning[],
-): SupportedSubagentReport {
+): ScopedSubagentReport {
   const merged = validateConsumerWarnings([
     ...(report.consumer_warnings ?? []),
     ...warnings,
   ]);
   if (merged.length === 0) return report;
-  return { ...report, consumer_warnings: merged } as SupportedSubagentReport;
+  return { ...report, consumer_warnings: merged } as ScopedSubagentReport;
 }
 
 async function consumeFollowUps(input: {
   store: Store;
-  report: SupportedSubagentReport;
+  report: ScopedSubagentReport;
   dryRun?: boolean;
 }): Promise<{
   previewCount: number;
   created: unknown[];
   warnings: ConsumerWarning[];
 }> {
-  const followUps = reportFollowUps(input.report);
+  const allFollowUps = reportFollowUps(input.report);
+  const followUps = allFollowUps.slice(0, MAX_REPORT_FOLLOW_UPS);
+  const truncationWarnings: ConsumerWarning[] =
+    allFollowUps.length > MAX_REPORT_FOLLOW_UPS
+      ? [
+          {
+            kind: "consumer_failure",
+            message: `Report follow_ups truncated from ${allFollowUps.length} to ${MAX_REPORT_FOLLOW_UPS}`,
+          },
+        ]
+      : [];
   if (input.dryRun) {
-    return { previewCount: followUps.length, created: [], warnings: [] };
+    return {
+      previewCount: followUps.length,
+      created: [],
+      warnings: validateConsumerWarnings(truncationWarnings),
+    };
   }
 
   const created: unknown[] = [];
-  const warnings: ConsumerWarning[] = [];
+  const warnings: ConsumerWarning[] = [...truncationWarnings];
   for (const followUp of followUps) {
     try {
       created.push(
         await addAgendaItem(input.store.paths.root, followUp, {
-          description: `Source: ${input.report.change_id}/${input.report.task_id}/${input.report.agent}`,
+          description: reportSourceDescription(input.report),
           priority: "medium",
           category: "subagent-followup",
           agendaPath: input.store.paths.agenda,
@@ -402,10 +466,22 @@ async function executeSubmit(
   }
 
   const change = await loadChange(store, parsedReport.report.change_id);
-  const task = getTaskOrError(change, parsedReport.report.task_id);
+  const taskId = reportTaskId(parsedReport.report);
+  const task = taskId ? findTask(change, taskId) : undefined;
+  if (taskId && !task) {
+    return invalidTaskAnchorOutput({
+      change,
+      taskId,
+      report: parsedReport.report,
+      projectContext,
+    });
+  }
   const id = reportId(parsedReport.report);
 
-  if (hasExistingReport(task, id)) {
+  if (
+    hasExistingSidecarReport(change, id) ||
+    (task && hasExistingReport(task, id))
+  ) {
     return appendProjectContext(
       formatToolOutput({
         success: true,
@@ -433,7 +509,7 @@ async function executeSubmit(
         report.change_id,
         subagentReportSubmittedSignal,
         {
-          taskId: report.task_id,
+          ...(reportTaskId(report) ? { taskId: reportTaskId(report) } : {}),
           report,
           submittedAt: new Date().toISOString(),
         },
@@ -490,13 +566,11 @@ async function executeSubmit(
 export const subagentReportTools = {
   adv_subagent_report_submit: {
     description:
-      "Submit a typed, Zod-validated sub-agent report and persist it on the owning ADV task.",
+      "Submit a typed, Zod-validated sub-agent report and persist it on the owning ADV change/task scope.",
     args: {
-      report: z
-        .unknown()
-        .describe(
-          "Typed sub-agent report payload. v1 supports adv-engineer and adv-reviewer; adv-researcher and adv-tron are reserved but rejected until populated.",
-        ),
+      report: ScopedSubagentReportSchema.describe(
+        "Typed sub-agent report payload. v1 supports adv-engineer, adv-reviewer, adv-designer, adv-researcher, adv-tron, and orchestrator-submitted adv-scanner-bundle reports.",
+      ),
       dryRun: z
         .boolean()
         .optional()

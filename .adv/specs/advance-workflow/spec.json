@@ -2482,7 +2482,7 @@
     {
       "id": "rq-gateArtifactEnforcement01",
       "title": "Workflow-Level Gate Artifact Enforcement",
-      "body": "The Temporal change workflow MUST enforce required artifact preconditions before marking artifact-backed gates done. Proposal, discovery, design, and acceptance gate completion MUST be blocked when the required evidence is missing, unreadable, blank, or below deterministic minimum-content rules, unless an explicit compatibility rationale is recorded for replay or migration safety. Artifact checks MUST use activities or tool/storage boundaries, never direct filesystem I/O in workflow code.",
+      "body": "The Temporal change workflow MUST enforce required artifact preconditions before marking artifact-backed gates done. Proposal, discovery, design, and acceptance gate completion MUST be blocked when the required evidence is missing, unreadable, blank, stale, not workflow-visible, or below deterministic minimum-content rules, unless an explicit compatibility rationale is recorded for replay or migration safety. Required gate evidence MUST be durable before gate completion and MUST NOT be satisfied by caller-provided metadata or post-approval late writes. Artifact checks MUST use activities or tool/storage boundaries, never direct filesystem I/O in workflow code.",
       "priority": "must",
       "tags": ["workflow", "gates", "artifacts", "temporal"],
       "scenarios": [
@@ -2532,6 +2532,20 @@
           "then": [
             "The completion records an explicit compatibility rationale",
             "Silent legacy bypasses are not accepted for new gate completions"
+          ]
+        },
+        {
+          "id": "rq-gateArtifactEnforcement01.5",
+          "title": "Post-approval late artifact write does not satisfy gate proof",
+          "given": [
+            "A user has approved an artifact-backed gate checkpoint",
+            "A required proof artifact was not durably persisted and workflow-visible before the approval prompt"
+          ],
+          "when": "Gate completion is evaluated",
+          "then": [
+            "The workflow refuses completion or records a deterministic stuck blocker",
+            "The approval text alone is not treated as artifact proof",
+            "The blocker names the missing or stale artifact evidence"
           ]
         }
       ]
@@ -2584,7 +2598,7 @@
     {
       "id": "rq-gateArtifactAudit01",
       "title": "Gate Completion Artifact Audit Evidence",
-      "body": "When a gate requires artifact evidence, successful gate completion SHOULD record artifact audit metadata such as artifact kind, path or projection identity, content hash when available, checked timestamp, and compatibility rationale when used. Audit metadata must not be caller-forgeable proof; workflow validation remains authoritative.",
+      "body": "When a gate requires artifact evidence, successful gate completion SHOULD record artifact audit metadata such as artifact kind, path or projection identity, content hash when available, checked timestamp, and compatibility rationale when used. For acceptance proof, executive-summary metadata MUST include workflow-visible content hash evidence for new contract-era changes. Audit metadata must not be caller-forgeable proof; workflow validation remains authoritative.",
       "priority": "should",
       "tags": ["workflow", "gates", "audit", "artifacts"],
       "scenarios": [
@@ -2611,13 +2625,27 @@
             "The workflow validates the artifact independently or rejects completion",
             "Caller-provided metadata alone cannot mark the gate done"
           ]
+        },
+        {
+          "id": "rq-gateArtifactAudit01.3",
+          "title": "Executive summary proof uses workflow-visible hash metadata",
+          "given": [
+            "A new contract-era change reaches acceptance",
+            "executive-summary.md is required acceptance proof"
+          ],
+          "when": "The workflow validates acceptance readiness",
+          "then": [
+            "The workflow requires executive-summary artifact metadata with a content hash",
+            "The current artifact hash must match workflow-visible metadata",
+            "Missing or stale metadata blocks acceptance"
+          ]
         }
       ]
     },
     {
       "id": "rq-acceptanceProjection01",
       "title": "Acceptance Projection from Typed Contract Review State",
-      "body": "Acceptance gate completion MUST use typed contract and review matrix state as the source of truth for acceptance proof. For new contract-era changes, the workflow MUST generate a durable acceptance.md projection from ChangeContract items and the contract review matrix before marking acceptance done. Manually edited markdown must not be treated as the authoritative acceptance proof.",
+      "body": "Acceptance gate completion MUST use typed contract, review matrix state, generated acceptance.md, and workflow-visible executive-summary.md evidence as the source of truth for acceptance proof. For new contract-era changes, the workflow MUST generate a durable acceptance.md projection from ChangeContract items and the contract review matrix before marking acceptance done. Manually edited markdown must not be treated as the authoritative acceptance proof.",
       "priority": "must",
       "tags": ["workflow", "acceptance", "contract", "artifacts"],
       "scenarios": [
@@ -2654,6 +2682,88 @@
             "The workflow writes acceptance.md through an activity or storage boundary",
             "The workflow records acceptance artifact evidence",
             "The acceptance gate may be marked done"
+          ]
+        },
+        {
+          "id": "rq-acceptanceProjection01.4",
+          "title": "Executive summary evidence blocks acceptance when absent or stale",
+          "given": [
+            "A new contract-era change reaches acceptance gate completion",
+            "The contract and review matrix pass"
+          ],
+          "when": "executive-summary.md is missing, unreadable, undersized, lacks workflow-visible metadata, or its content hash is stale",
+          "then": [
+            "The workflow refuses acceptance completion",
+            "The blocker identifies executive-summary evidence as missing or stale",
+            "Chat approval alone does not mark acceptance done"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-acceptanceEvidenceTiming01",
+      "title": "Acceptance Proof Exists Before Approval Prompt",
+      "body": "/adv-review MUST persist and verify all required acceptance proof before presenting the acceptance approval prompt. Required proof includes contract.reviewMatrix, generated or generatable acceptance.md from typed contract state, and workflow-visible executive-summary.md evidence. If any required proof cannot be persisted, verified, or made workflow-visible, /adv-review MUST stop before asking for acceptance and the acceptance gate MUST remain pending or stuck with deterministic blockers. This is the no-late-homework rule: evidence required to justify acceptance cannot be submitted only after user approval.",
+      "priority": "must",
+      "tags": ["workflow", "acceptance", "evidence", "review"],
+      "scenarios": [
+        {
+          "id": "rq-acceptanceEvidenceTiming01.1",
+          "title": "Review stops before prompt when required proof is missing",
+          "given": ["/adv-review is preparing the acceptance checkpoint"],
+          "when": "contract.reviewMatrix, acceptance projection proof, or workflow-visible executive-summary evidence is missing or invalid",
+          "then": [
+            "The acceptance approval prompt is not presented",
+            "The missing proof is surfaced with remediation",
+            "The acceptance gate remains pending or stuck"
+          ]
+        },
+        {
+          "id": "rq-acceptanceEvidenceTiming01.2",
+          "title": "Approval alone is not durable acceptance proof",
+          "given": [
+            "A user replies with an acceptance approval",
+            "A required acceptance proof write failed before or after that reply"
+          ],
+          "when": "The acceptance gate is evaluated",
+          "then": [
+            "The approval text alone does not complete acceptance",
+            "The workflow requires persisted proof or audited recovery proof",
+            "The gate remains pending or stuck until proof is durable"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-acceptanceRecovery01",
+      "title": "Audited Acceptance Evidence Recovery",
+      "body": "Completed-workflow or poisoned-history acceptance recovery MUST be explicit and audited. Recovery MAY repair disk projection for contract.reviewMatrix, executive-summary metadata, and acceptance gate completion only when precise completed/poisoned evidence, recovery rationale, and prior user approval evidence are supplied. Recovery MUST rerun deterministic readiness validation against typed contract state and required artifacts before marking acceptance done. Silent recovery, chat-history reconstruction, caller-forged metadata, and manual ADV state-file edits are not supported recovery mechanisms.",
+      "priority": "must",
+      "tags": ["workflow", "acceptance", "recovery", "audit"],
+      "scenarios": [
+        {
+          "id": "rq-acceptanceRecovery01.1",
+          "title": "Audited recovery repairs terminal acceptance evidence",
+          "given": [
+            "A change workflow is completed or poisoned",
+            "Acceptance proof was produced but could not be fully persisted through Temporal"
+          ],
+          "when": "Recovery is invoked with precise evidence, recovery rationale, and prior user approval evidence",
+          "then": [
+            "The recovery path validates contract rows and required artifacts deterministically",
+            "The disk projection may be repaired with audit metadata",
+            "The response marks the mutation as recovery and warns that workflow history is not healed"
+          ]
+        },
+        {
+          "id": "rq-acceptanceRecovery01.2",
+          "title": "Recovery without evidence is rejected",
+          "given": ["An acceptance recovery mutation is requested"],
+          "when": "Precise recovery evidence, rationale, or prior user approval evidence is missing",
+          "then": [
+            "No disk projection repair occurs",
+            "The response identifies the missing audit field",
+            "The acceptance gate remains pending or stuck"
           ]
         }
       ]

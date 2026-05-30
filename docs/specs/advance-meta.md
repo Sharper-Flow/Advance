@@ -92,7 +92,7 @@ adv_status must surface project.json diagnostics and include parsed feature flag
 - Output includes feature_flags values
 - Defaults are applied when flags are omitted
 - worker_singleton_enforce defaults false when omitted; singleton enforcement is opt-in
-- worktree_guard_enforce defaults false when omitted
+- worktree_guard_enforce defaults true when omitted
 
 ---
 
@@ -141,39 +141,41 @@ ADV health and recovery diagnostics that probe Temporal, task queues, worker dia
 
 **ID:** `rq-opencodeDebt01` | **Priority:** **[MUST]**
 
-ADV diagnostics must safely detect stale blank assistant messages in the shared OpenCode session database, distinguish live in-flight rows, idle active-session rows, and orphan-ghost repair candidates, and require dry-run plus backup before any repair deletes rows.
+ADV diagnostics must safely detect stale blank assistant messages and stale `running`/`pending` tool parts in the shared OpenCode session database, distinguish live in-flight rows, idle active-session rows, and orphan-ghost repair candidates, and require dry-run plus backup before any repair deletes rows or marks tool parts interrupted.
 
 **Tags:** `diagnostics`, `opencode`, `session-debt`, `doctor`
 
 #### Scenarios
 
-**Status reports stale blank assistant debt read-only** (`rq-opencodeDebt01.1`)
+**Status reports stale OpenCode session debt read-only** (`rq-opencodeDebt01.1`)
 
 **Given:**
 
 - The OpenCode database contains assistant messages with finish null and zero parts older than the stale threshold
+- The database also contains tool parts with `state.status` of `running` or `pending` older than the stale threshold
 
 **When:** adv_status or an ADV doctor diagnostic is executed
 
 **Then:**
 
 - The diagnostic opens the OpenCode database read-only
-- The output reports the count and bounded samples of stale blank assistant messages
+- The output reports the count and bounded samples of stale blank assistant messages and stale tool parts with session/tool/context details
 - A doctor recommendation is surfaced without modifying the database
 
-**Live in-flight blank rows are excluded from repairable debt** (`rq-opencodeDebt01.2`)
+**Live in-flight rows are excluded from repairable debt** (`rq-opencodeDebt01.2`)
 
 **Given:**
 
 - The OpenCode database contains assistant messages with finish null and zero parts younger than the stale threshold
+- The database contains `running`/`pending` tool parts whose row or session activity is younger than the stale threshold
 
 **When:** OpenCode session-debt classification runs
 
 **Then:**
 
-- Younger rows are classified as live or in-flight
+- Younger blank assistant and tool-part rows are classified as live or in-flight
 - Older rows attached to sessions without orphan proof are classified as idle active-session debt
-- Only orphan-ghost rows are counted as repairable stale debt
+- Only orphan-ghost blank assistants and stale orphan tool parts are counted as repairable debt
 - No repair recommendation is emitted solely because of younger rows
 
 **Repair requires dry-run and backup** (`rq-opencodeDebt01.3`)
@@ -182,13 +184,15 @@ ADV diagnostics must safely detect stale blank assistant messages in the shared 
 
 - A repair utility is invoked against the OpenCode database
 
-**When:** Deletion is requested
+**When:** Deletion or tool-part repair is requested
 
 **Then:**
 
 - The utility refuses deletion unless apply mode is explicit
-- The utility refuses deletion unless a backup destination is provided and populated before deletion
+- The utility refuses mutation unless a backup destination is provided and populated before deletion or repair
 - Only assistant messages with finish null, zero parts, age at or above the stale threshold, and orphan-ghost liveness are deleted
+- Only tool parts with `state.status` running/pending, age at or above the stale threshold, and orphan-ghost liveness are updated to terminal `error` with `metadata.interrupted=true` and an end time
+- Parent assistant messages are marked complete only when all child parts are terminal; mixed live/stale parents are left open
 
 **Unavailable database degrades safely** (`rq-opencodeDebt01.4`)
 

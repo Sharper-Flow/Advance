@@ -20,7 +20,8 @@ import { existsSync, readFileSync } from "fs";
 import { join, resolve } from "path";
 import {
   getSubagentReportPacketAnchors,
-  ReviewerSubagentReportSchema,
+  ScopedSubagentReportSchema,
+  SUBAGENT_WARN_FIRST_PACKET_ANCHORS,
 } from "./types";
 
 const REPO_ROOT = resolve(__dirname, "../..");
@@ -186,6 +187,10 @@ const REQUIRED_BODY_ANCHORS = [
   "WORKING DIRECTORY",
   "workdir_used",
   "stop_and_report",
+  "TASK_SCOPE",
+  "DONE_WHEN",
+  "STOP_WHEN",
+  "VERIFICATION",
 ];
 
 describe("adv-reviewer agent asset", () => {
@@ -315,8 +320,21 @@ describe("adv-reviewer agent asset", () => {
 
     expect(reportBlocks.length).toBeGreaterThanOrEqual(2);
     for (const report of reportBlocks) {
-      expect(() => ReviewerSubagentReportSchema.parse(report)).not.toThrow();
+      expect(() => ScopedSubagentReportSchema.parse(report)).not.toThrow();
     }
+  });
+
+  test("REVIEWER_REPORT prompt examples use structural scope, not legacy string scope", () => {
+    const { body } = splitFrontmatter(readFileSync(AGENT_PATH, "utf8"));
+    const reportSection = body.split("## REVIEWER_REPORT Payload")[1] ?? "";
+    expect(reportSection).toContain('"scope": {');
+    expect(reportSection).toContain('"kind": "task"');
+    expect(reportSection).toContain('"task_id"');
+    expect(reportSection).toContain('"kind": "change"');
+    expect(reportSection).toContain('"scope_key": "review:acceptance"');
+    expect(reportSection).toContain('"scope_key": "harden:release"');
+    expect(reportSection).not.toMatch(/"scope"\s*:\s*"/);
+    expect(reportSection).toContain("compatibility-only");
   });
 
   test("REVIEWER_REPORT transport is tool-call based, not sentinel based", () => {
@@ -386,11 +404,37 @@ describe("adv-reviewer agent asset", () => {
     );
     expectPacketAnchors(
       firstFencedBlock(
+        sectionAfterHeading(review, "Review Reviewer Remediation Packet"),
+      ),
+      [...SUBAGENT_WARN_FIRST_PACKET_ANCHORS],
+      "Review Reviewer Remediation Packet warn-first anchors",
+    );
+    expectPacketAnchors(
+      firstFencedBlock(
         sectionAfterHeading(harden, "Harden Reviewer Remediation Packet"),
       ),
       reviewerAnchors,
       "Harden Reviewer Remediation Packet",
     );
+    expectPacketAnchors(
+      firstFencedBlock(
+        sectionAfterHeading(harden, "Harden Reviewer Remediation Packet"),
+      ),
+      [...SUBAGENT_WARN_FIRST_PACKET_ANCHORS],
+      "Harden Reviewer Remediation Packet warn-first anchors",
+    );
+
+    for (const packet of [
+      firstFencedBlock(
+        sectionAfterHeading(review, "Review Reviewer Remediation Packet"),
+      ),
+      firstFencedBlock(
+        sectionAfterHeading(harden, "Harden Reviewer Remediation Packet"),
+      ),
+    ]) {
+      expect(packet).toContain("REPORT_SCOPE:");
+      expect(packet).toContain('{ "kind": "task", "task_id": "{task-id}" }');
+    }
   });
 
   test("review and harden engineer remediation packets include ENGINEER_REPORT packet anchors", () => {
@@ -407,10 +451,75 @@ describe("adv-reviewer agent asset", () => {
     );
     expectPacketAnchors(
       firstFencedBlock(
+        sectionAfterHeading(review, "Review Engineer Remediation Packet"),
+      ),
+      [...SUBAGENT_WARN_FIRST_PACKET_ANCHORS],
+      "Review Engineer Remediation Packet warn-first anchors",
+    );
+    expectPacketAnchors(
+      firstFencedBlock(
         sectionAfterHeading(harden, "Harden Engineer Remediation Packet"),
       ),
       engineerAnchors,
       "Harden Engineer Remediation Packet",
     );
+    expectPacketAnchors(
+      firstFencedBlock(
+        sectionAfterHeading(harden, "Harden Engineer Remediation Packet"),
+      ),
+      [...SUBAGENT_WARN_FIRST_PACKET_ANCHORS],
+      "Harden Engineer Remediation Packet warn-first anchors",
+    );
+  });
+
+  test('review and harden reviewer remediation packets reference skill("adv-frontend-review") AND retain inline 6-dimension checklist as fallback', () => {
+    const review = readFileSync(REVIEW_COMMAND_PATH, "utf8");
+    const harden = readFileSync(HARDEN_COMMAND_PATH, "utf8");
+
+    const reviewPacket = firstFencedBlock(
+      sectionAfterHeading(review, "Review Reviewer Remediation Packet"),
+    );
+    const hardenPacket = firstFencedBlock(
+      sectionAfterHeading(harden, "Harden Reviewer Remediation Packet"),
+    );
+
+    for (const packet of [reviewPacket, hardenPacket]) {
+      expect(packet).toContain("FRONTEND DESIGN REVIEW SKILL:");
+      // Primary: canonical methodology reference to the iteration-2 skill.
+      expect(packet).toContain('skill("adv-frontend-review")');
+      // Fallback: inline 6-dimension checklist for offline reviewers and older
+      // deployments that haven't pulled the skill yet. Both stay pinned so the
+      // packet works whether or not the skill is loadable.
+      const lowered = packet.toLowerCase();
+      for (const dimension of [
+        "semantic html",
+        "accessibility",
+        "responsive",
+        "visual polish",
+        "site",
+        "component correctness",
+      ]) {
+        expect(lowered).toContain(dimension);
+      }
+    }
+  });
+
+  test("review and harden keep adv-reviewer as review/harden owner and do NOT route to adv-designer", () => {
+    const review = readFileSync(REVIEW_COMMAND_PATH, "utf8");
+    const harden = readFileSync(HARDEN_COMMAND_PATH, "utf8");
+
+    for (const content of [review, harden]) {
+      // adv-designer must not appear as a review/harden spawn directive.
+      // Safety-rail prose mentioning adv-designer (e.g., "MUST NOT be spawned
+      // here") is allowed; spawn directives like `subagent_type: "adv-designer"`
+      // or `EXPECTED OUTPUT: ... spawn adv-designer` are not.
+      const spawnDirective =
+        /(subagent_type\s*[:=]\s*["']?adv-designer|spawn\s+`?adv-designer)/i;
+      expect(content).not.toMatch(spawnDirective);
+      // Sanity-check that we did add the safety-rail prose explicitly.
+      expect(content).toMatch(
+        /adv-designer.*apply-phase only.*MUST NOT be spawned/i,
+      );
+    }
   });
 });

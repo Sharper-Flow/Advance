@@ -15,7 +15,7 @@ import {
 import { WisdomEntrySchema } from "./wisdom";
 import { AttemptSchema, TaskSchema } from "./tasks";
 import { TaskStructuredOutputSchema } from "./task-output";
-import { SupportedSubagentReportSchema } from "./subagent-reports";
+import { ScopedSubagentReportSchema } from "./subagent-reports";
 import {
   ChangeContractSchema,
   ContractAmendmentSchema,
@@ -49,6 +49,17 @@ export type AgreementUpdatedSignalPayload = z.infer<
 export const DesignUpdatedSignalPayloadSchema = DocumentUpdateBaseSchema;
 export type DesignUpdatedSignalPayload = z.infer<
   typeof DesignUpdatedSignalPayloadSchema
+>;
+
+export const ExecutiveSummaryUpdatedSignalPayloadSchema =
+  DocumentUpdateBaseSchema;
+export type ExecutiveSummaryUpdatedSignalPayload = z.infer<
+  typeof ExecutiveSummaryUpdatedSignalPayloadSchema
+>;
+
+export const AcceptanceUpdatedSignalPayloadSchema = DocumentUpdateBaseSchema;
+export type AcceptanceUpdatedSignalPayload = z.infer<
+  typeof AcceptanceUpdatedSignalPayloadSchema
 >;
 
 export const AcceptanceCriteriaSetSignalPayloadSchema = z.object({
@@ -133,8 +144,8 @@ export type TaskCompletedSignalPayload = z.infer<
 >;
 
 export const SubagentReportSubmittedSignalPayloadSchema = z.object({
-  taskId: z.string(),
-  report: SupportedSubagentReportSchema,
+  taskId: z.string().optional(),
+  report: ScopedSubagentReportSchema,
   submittedAt: IsoTimestampSchema,
 });
 export type SubagentReportSubmittedSignalPayload = z.infer<

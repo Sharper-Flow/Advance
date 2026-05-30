@@ -317,6 +317,30 @@ print_diff() {
 	fi
 }
 
+# Prune old global-config backups, keeping the N most recent by mtime.
+# Honors DRY_RUN. Silent when fewer than N backups exist.
+# Called at the end of every fix_config run regardless of whether the current
+# run created a backup, so accumulated backups from prior runs are trimmed.
+prune_config_backups() {
+	local keep="${CONFIG_BACKUP_KEEP:-3}"
+	local dir base
+	dir="$(dirname "$GLOBAL_JSON")"
+	base="$(basename "$GLOBAL_JSON")"
+	# shellcheck disable=SC2012  # ls -t for mtime sort is intentional here
+	local stale
+	stale="$(ls -1t "$dir/${base}.bak."* 2>/dev/null | tail -n +$((keep + 1)))"
+	[ -z "$stale" ] && return 0
+	local count
+	count="$(echo "$stale" | wc -l | tr -d ' ')"
+	if [ "$DRY_RUN" = true ]; then
+		echo "    dry-run: would prune $count stale backup(s) (keeping $keep most recent)"
+		echo "$stale" | sed 's/^/      - /'
+	else
+		echo "$stale" | xargs --no-run-if-empty rm
+		echo "    pruned $count stale backup(s) (kept $keep most recent)"
+	fi
+}
+
 apply_overlay_block() {
 	local overlay_name="$1"
 	local target_file="$2"
@@ -730,9 +754,17 @@ check_config() {
 	if [ "$config_issues" -eq 0 ]; then
 		echo "    Config: all ADV entries present ✓"
 	else
-		echo "    Config: $config_issues issue(s) found"
-		if [ "$MODE" != "fix" ]; then
-			echo "    Run with --fix to auto-patch, or edit $GLOBAL_JSON manually"
+		if [ "$GLOBAL_JSON_IS_JSONC" = true ]; then
+			echo "    Config: ❌ JSONC drift detected — $config_issues issue(s) found"
+			if [ "$MODE" != "fix" ]; then
+				echo "    Run with --fix to get the exact patch diff + restore hint;"
+				echo "    JSONC drift is fail-loud (no auto-rewrite) because jq strips comments."
+			fi
+		else
+			echo "    Config: $config_issues issue(s) found"
+			if [ "$MODE" != "fix" ]; then
+				echo "    Run with --fix to auto-patch, or edit $GLOBAL_JSON manually"
+			fi
 		fi
 	fi
 }
@@ -759,6 +791,7 @@ fix_config() {
 	if [ ! -f "$GLOBAL_JSON" ]; then
 		if [ "$DRY_RUN" = true ]; then
 			echo "    dry-run: would create $GLOBAL_CONFIG/opencode.json with ADV entries"
+			prune_config_backups
 			return 0
 		fi
 		GLOBAL_JSON="$GLOBAL_CONFIG/opencode.json"
@@ -770,6 +803,7 @@ fix_config() {
 		echo "    ✓  Created $GLOBAL_JSON with ADV entries"
 		echo "       You will need to add other settings (mcp, provider, etc.) manually"
 		echo "       See SETUP.md for the full config reference"
+		prune_config_backups
 		return 0
 	fi
 
@@ -779,46 +813,21 @@ fix_config() {
 		return 1
 	fi
 
-	# Back up before patching
-	local backup="$GLOBAL_JSON.bak.$(date +%Y%m%d%H%M%S)"
-	if [ "$DRY_RUN" = true ]; then
-		echo "    dry-run: would back up $GLOBAL_JSON to $backup"
-	else
-		cp "$GLOBAL_JSON" "$backup"
-		echo "    Backup: $backup"
-	fi
-
-	# Refuse to patch JSONC files — jq cannot preserve comments, so --fix
-	# would silently rewrite JSONC as plain JSON. Warn but continue so other
-	# deploy stages (binaries, etc.) still run. Config drift surfaces in the
-	# `check_config` summary at the end.
-	if [ "$GLOBAL_JSON_IS_JSONC" = true ]; then
-		if [ "$DRY_RUN" = true ]; then
-			echo "    dry-run: would skip JSONC patch (comments would be stripped)"
-		else
-			echo "    ⚠  Config is JSONC — skipping auto-patch (comments would be stripped)"
-			echo "       Backup preserved at: $backup"
-			echo "       If config drift is reported, apply changes manually to $GLOBAL_JSON"
-		fi
-		# Run check_config so the user sees whether actual entries are missing
-		# (the JSONC reader is comment-tolerant).
-		check_config || true
-		return 0
-	fi
-
-	local patched=0
-	local tmp_json
+	# Compute drift first — accumulate candidate patches into tmp_json and a
+	# human-readable summary string. NO backup is created yet; we only back up
+	# when the drift will actually cause a write (JSON path) or when JSONC drift
+	# requires a fail-loud restore-from-backup hint.
+	local tmp_json patches_summary patched=0
 	tmp_json="$(mktemp)"
-
-	# Convert to plain JSON for jq manipulation
 	jsonc_to_json "$GLOBAL_JSON" >"$tmp_json"
+	patches_summary=""
 
 	# Patch plugin array if needed
 	if ! json_array_contains "$tmp_json" ".plugin // []" "$ADV_PLUGIN_PATH"; then
 		jq --arg plugin "$ADV_PLUGIN_PATH" \
 			'.plugin = (((.plugin // []) | if type == "array" then . else [.] end) + [$plugin] | unique)' \
 			"$tmp_json" >"$tmp_json.new" && mv "$tmp_json.new" "$tmp_json"
-		echo "    ✓  Added plugin: $ADV_PLUGIN_PATH"
+		patches_summary+="      + add plugin: $ADV_PLUGIN_PATH"$'\n'
 		((patched++)) || true
 	fi
 
@@ -829,7 +838,7 @@ fix_config() {
 		jq --arg instr "$ADV_INSTRUCTION_PATH" \
 			'.instructions = (((.instructions // []) | if type == "array" then . else [.] end) | map(select(. != $instr)))' \
 			"$tmp_json" >"$tmp_json.new" && mv "$tmp_json.new" "$tmp_json"
-		echo "    ✓  Removed global instruction: ADV_INSTRUCTIONS.md"
+		patches_summary+="      - remove globally-registered ADV_INSTRUCTIONS.md: $ADV_INSTRUCTION_PATH"$'\n'
 		((patched++)) || true
 	fi
 
@@ -843,7 +852,7 @@ fix_config() {
 		jq --arg r1 "$retired_instr" --arg r2 "$retired_tilde" --arg r3 "$retired_repo" \
 			'.instructions = (((.instructions // []) | if type == "array" then . else [.] end) | map(select(. != $r1 and . != $r2 and . != $r3)))' \
 			"$tmp_json" >"$tmp_json.new" && mv "$tmp_json.new" "$tmp_json"
-		echo "    ✓  Removed retired instruction: cost-governance.md"
+		patches_summary+="      - remove retired instruction: cost-governance.md"$'\n'
 		((patched++)) || true
 	fi
 
@@ -857,7 +866,7 @@ fix_config() {
 		jq --arg stale "$stale_instr" --arg stale_t "$stale_tilde" \
 			'.instructions = (((.instructions // []) | if type == "array" then . else [.] end) | map(select(. != $stale and . != $stale_t)))' \
 			"$tmp_json" >"$tmp_json.new" && mv "$tmp_json.new" "$tmp_json"
-		echo "    ✓  Removed stale instruction: $stale_tilde"
+		patches_summary+="      - remove stale instruction: $stale_tilde"$'\n'
 		((patched++)) || true
 	fi
 
@@ -873,30 +882,60 @@ fix_config() {
           .
         end
       ' "$tmp_json" >"$tmp_json.new" && mv "$tmp_json.new" "$tmp_json"
-			echo "    ✓  Removed stale legacy agent config: agent.$legacy_key"
+			patches_summary+="      - remove stale legacy agent config: agent.$legacy_key"$'\n'
 			((patched++)) || true
 		fi
 	done
 
-	if [ "$patched" -gt 0 ]; then
-		if [ "$DRY_RUN" = true ]; then
-			echo "    dry-run: would patch $patched entry/entries in $GLOBAL_JSON"
-			print_diff "$GLOBAL_JSON" "$tmp_json"
-			rm -f "$tmp_json"
-		else
-			# Atomic write — note: if source was JSONC, output is now plain JSON
-			mv "$tmp_json" "$GLOBAL_JSON"
-			echo "    Patched $patched entry/entries in $GLOBAL_JSON"
-			if [ "$GLOBAL_JSON_IS_JSONC" = true ]; then
-				echo "    ⚠  Comments were stripped during patching. Restore from backup if needed."
-			fi
-		fi
-	else
+	# No drift → exit clean without creating a backup.
+	if [ "$patched" -eq 0 ]; then
 		rm -f "$tmp_json"
-		echo "    No patches needed — config already correct"
-		# Clean up unnecessary backup
-		[ "$DRY_RUN" = true ] || rm -f "$backup"
+		echo "    ✓  No patches needed — config already correct"
+		prune_config_backups
+		return 0
 	fi
+
+	# Drift detected on JSONC config → fail-loud with exact diff + restore hint.
+	# We do not auto-rewrite JSONC because jq strips comments. Instead, surface
+	# the precise required edits and a non-zero exit so the user is unmissably
+	# notified, then prune backups so they don't accumulate.
+	if [ "$GLOBAL_JSON_IS_JSONC" = true ]; then
+		rm -f "$tmp_json"
+		local backup="$GLOBAL_JSON.bak.$(date +%Y%m%d%H%M%S)"
+		if [ "$DRY_RUN" = true ]; then
+			echo "    dry-run: would create backup at $backup, would fail-loud with diff:"
+			printf '%s' "$patches_summary"
+			echo "       (would exit non-zero)"
+			prune_config_backups
+			return 1
+		fi
+		cp "$GLOBAL_JSON" "$backup"
+		echo ""
+		echo "    ❌  JSONC drift detected — manual patch required ($patched entr(y/ies)):"
+		printf '%s' "$patches_summary"
+		echo "       Edit $GLOBAL_JSON manually."
+		echo "       Restore from backup: cp $backup $GLOBAL_JSON"
+		prune_config_backups
+		return 1
+	fi
+
+	# Drift detected on plain JSON → write patched file atomically.
+	local backup="$GLOBAL_JSON.bak.$(date +%Y%m%d%H%M%S)"
+	if [ "$DRY_RUN" = true ]; then
+		echo "    dry-run: would back up $GLOBAL_JSON to $backup"
+		echo "    dry-run: would patch $patched entry/entries:"
+		printf '%s' "$patches_summary"
+		print_diff "$GLOBAL_JSON" "$tmp_json"
+		rm -f "$tmp_json"
+	else
+		cp "$GLOBAL_JSON" "$backup"
+		echo "    Backup: $backup"
+		mv "$tmp_json" "$GLOBAL_JSON"
+		echo "    Patched $patched entry/entries in $GLOBAL_JSON"
+	fi
+
+	prune_config_backups
+	return 0
 }
 
 # ===========================================================================
@@ -1219,8 +1258,9 @@ done
 # ===========================================================================
 # Config validation / patching
 # ===========================================================================
+fix_config_exit=0
 if [ "$MODE" = "fix" ]; then
-	fix_config
+	fix_config || fix_config_exit=$?
 else
 	check_config
 fi
@@ -1246,7 +1286,11 @@ echo "    Skills in global:  $(ls -d "$GLOBAL_SKILLS"/adv-*/ 2>/dev/null | wc -l
 echo "    Local bins:        acp-mux archived/skipped"
 
 if [ "$MODE" = "fix" ]; then
-	echo "    Config: patched (if needed)"
+	if [ "$fix_config_exit" -ne 0 ]; then
+		echo "    Config: ❌ JSONC drift not auto-patched — see message above (exit $fix_config_exit)"
+	else
+		echo "    Config: patched (if needed)"
+	fi
 else
 	if [ "$config_issues" -gt 0 ]; then
 		echo "    Config: $config_issues issue(s) — run with --fix to auto-patch"
@@ -1256,3 +1300,8 @@ else
 fi
 
 echo "    Restart OpenCode sessions to pick up changes."
+
+# Propagate fix_config exit code so JSONC drift fails the script run.
+if [ "$MODE" = "fix" ] && [ "$fix_config_exit" -ne 0 ]; then
+	exit "$fix_config_exit"
+fi

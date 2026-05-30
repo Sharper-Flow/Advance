@@ -1,0 +1,19 @@
+{
+  "entries": [
+    {
+      "id": "ws-Vpz379",
+      "type": "gotcha",
+      "content": "Temporal workflow code cannot use `node:crypto` for diagnostic hashes even when the algorithm is deterministic; the worker bundle cannot include Node built-ins. Use pure-JS deterministic helpers under `plugin/src/temporal/` (e.g. sorted JSON + FNV-1a) and let workflow-bundle-boundary tests guard imports.",
+      "source_task": "tk-191f40961390",
+      "recorded_at": "2026-05-28T21:13:30.131Z"
+    },
+    {
+      "id": "ws-Z_SCC_",
+      "type": "pattern",
+      "content": "For Temporal signal wrappers, make the generic wrapper own state-mutation rejection for unexpected ordinary errors: catch sync + async handler failures, propagate Temporal system failures (`CancelledFailure`/`TemporalFailure`), record bounded rejection state, log structured warning, and return normally. Then enforce all `wf.setHandler(*Signal, ...)` call sites through `signalMutation`/`signalAsync` with a source-level structural test.",
+      "source_task": "tk-a8d7918f7615",
+      "recorded_at": "2026-05-28T21:16:48.862Z"
+    }
+  ],
+  "count": 2
+}

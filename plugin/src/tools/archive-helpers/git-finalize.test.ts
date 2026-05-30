@@ -14,6 +14,7 @@ import { createTempDir } from "../../__tests__/setup";
 import {
   detectArchiveMode,
   detectDefaultBranch,
+  deleteChangeBranch,
   finalizeRelease,
   mergeChangeBranch,
   mergeToTrunk,
@@ -835,6 +836,113 @@ describe("git-finalize helpers", () => {
       status: "blocked",
       pushStatus: "skipped",
       mainCheckpointCommitSha: expect.any(String),
+    });
+  });
+
+  describe("deleteChangeBranch", () => {
+    it("deletes local and remote branches when both succeed", () => {
+      const calls: string[][] = [];
+      const mockRunGit = (_cwd: string, args: string[]) => {
+        calls.push(args);
+        return { status: 0, stdout: "", stderr: "" };
+      };
+      const result = deleteChangeBranch("/repo", "testChange", {
+        runGit: mockRunGit,
+      });
+      expect(result.localDeleted).toBe(true);
+      expect(result.remoteDeleted).toBe(true);
+      expect(result.error).toBeUndefined();
+      expect(calls).toEqual([
+        ["branch", "-d", "change/testChange"],
+        ["push", "origin", "--delete", "change/testChange"],
+      ]);
+    });
+
+    it("returns localDeleted=false when local branch deletion fails", () => {
+      const mockRunGit = (_cwd: string, args: string[]) => {
+        if (args[0] === "branch") {
+          return {
+            status: 1,
+            stdout: "",
+            stderr: "error: branch 'change/testChange' not found.",
+          };
+        }
+        return { status: 0, stdout: "", stderr: "" };
+      };
+      const result = deleteChangeBranch("/repo", "testChange", {
+        runGit: mockRunGit,
+      });
+      expect(result.localDeleted).toBe(false);
+      expect(result.remoteDeleted).toBe(false);
+      expect(result.error).toContain("Local branch deletion failed");
+    });
+
+    it("returns remoteDeleted=false when remote deletion fails (warning-only)", () => {
+      const mockRunGit = (_cwd: string, args: string[]) => {
+        if (args[0] === "push") {
+          return {
+            status: 1,
+            stdout: "",
+            stderr: "remote: error: ref does not exist",
+          };
+        }
+        return { status: 0, stdout: "", stderr: "" };
+      };
+      const result = deleteChangeBranch("/repo", "testChange", {
+        runGit: mockRunGit,
+      });
+      expect(result.localDeleted).toBe(true);
+      expect(result.remoteDeleted).toBe(false);
+      expect(result.error).toContain("Remote branch deletion failed");
+    });
+
+    it("does not attempt remote deletion when local deletion fails", () => {
+      const calls: string[][] = [];
+      const mockRunGit = (_cwd: string, args: string[]) => {
+        calls.push(args);
+        if (args[0] === "branch") {
+          return {
+            status: 1,
+            stdout: "",
+            stderr: "not merged",
+          };
+        }
+        return { status: 0, stdout: "", stderr: "" };
+      };
+      const result = deleteChangeBranch("/repo", "testChange", {
+        runGit: mockRunGit,
+      });
+      expect(result.localDeleted).toBe(false);
+      // Only the local branch -d call was made, not the remote push
+      expect(calls).toEqual([["branch", "-d", "change/testChange"]]);
+    });
+
+    it("redacts credentials in error output", () => {
+      const mockRunGit = (_cwd: string, args: string[]) => {
+        if (args[0] === "branch") {
+          return {
+            status: 1,
+            stdout: "",
+            stderr:
+              "error: https://user:secret-token@github.com repo not found",
+          };
+        }
+        return { status: 0, stdout: "", stderr: "" };
+      };
+      const result = deleteChangeBranch("/repo", "testChange", {
+        runGit: mockRunGit,
+      });
+      expect(result.error).not.toContain("secret-token");
+      expect(result.error).toContain("***REDACTED***");
+    });
+
+    it("uses defaultRunGit when deps.runGit is not provided", () => {
+      // This test just verifies the function accepts optional deps
+      // Real git behavior is tested via the mock-based tests above
+      const result = deleteChangeBranch("/nonexistent-repo", "testChange");
+      // Will fail because the directory doesn't exist — that's expected
+      expect(result.localDeleted).toBe(false);
+      expect(result.error).toBeDefined();
     });
   });
 });

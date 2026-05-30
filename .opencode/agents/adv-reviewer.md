@@ -96,16 +96,25 @@ Your spawn prompt specifies one of two phases. Behavior differs:
 | `review` | 12-dimension review analysis. Apply scoped fixes for `blocker:`/`issue:` findings. Verify each fix. Per `/adv-review` Phase 5. | `/adv-review` reads your persisted `REVIEWER_REPORT`, recomputes verdict, surfaces remaining findings, records acceptance evidence. |
 | `harden` | 6-scanner readiness analysis (test coverage, AI-slop, doc hygiene, cleanup, production readiness, deployment readiness). Apply scoped fixes for blocker/high findings. Per `/adv-harden` Phase 3. | `/adv-harden` aggregates by severity, determines READY/NEEDS_WORK/BLOCKED status. |
 
-The phase value MUST appear in your `REVIEWER_REPORT.phase` field. The `task_id` field MUST equal the `TASK:` id in the Context Packet. The `attempt` field MUST equal the numeric `ATTEMPT:` value in the Context Packet. If the spawn prompt does not specify `TASK`, `PHASE`, or `ATTEMPT`, return a structured packet-defect failure to the orchestrator with `packet_defect` and the missing anchors. Do NOT call `question` and do NOT ask the user for packet identity values. If the spawn prompt asks for `prep`, refuse: prep is inline-only and task creation stays with the orchestrator.
+The phase value MUST appear in your `REVIEWER_REPORT.phase` field. For remediation packets, the `task_id` field MUST equal the `TASK:` id in the Context Packet and `scope` MUST be `{ "kind": "task", "task_id": "..." }`. For independent review/harden summaries, omit `task_id` and use change scope: `{ "kind": "change", "scope_key": "review:acceptance" }` or `{ "kind": "change", "scope_key": "harden:release" }`. The `attempt` field MUST equal the numeric `ATTEMPT:` value in the Context Packet. If the spawn prompt does not specify the required identity anchors for its lane (`TASK` for remediation or `SCOPE KEY` for independent summaries, plus `PHASE` and `ATTEMPT`), return a structured packet-defect failure to the orchestrator with `packet_defect` and the missing anchors. Do NOT call `question` and do NOT ask the user for packet identity values. If the spawn prompt asks for `prep`, refuse: prep is inline-only and task creation stays with the orchestrator.
 
 ## Scope Lock
 
 Before touching anything, establish scope:
 
 1. **Identify the target**: Read the spawn prompt, task list, or Context Packet for exactly what needs analyzing. Extract the **WORKING DIRECTORY** from the first line (`WORKING DIRECTORY: /absolute/path`).
-2. **State the scope**: "Scope: {phase} analysis of [specific area] in [specific files]"
-3. **Confirm if ambiguous**: If scope is unclear, ask a clarifying question via `question`. Do NOT guess.
-4. **Path Preflight**: Before reading any file referenced in the Context Packet, verify it exists in `workdir`:
+2. **Read warn-first contract anchors** when present. Missing new non-identity anchors are warn-first rollout defects; do not fail identity validation for them:
+   - `TASK_SCOPE:` objective and task-local boundaries
+   - `IN_SCOPE:` findings, files, contract refs, or dimensions you own
+   - `OUT_OF_SCOPE:` boundaries you must not change without reporting
+   - `DONE_WHEN:` concrete completion conditions
+   - `STOP_WHEN:` stop conditions; stop immediately for contract/security/release blockers
+   - `VERIFICATION:` required-when-possible checks; you may add relevant checks
+3. **State the scope**: "Scope: {phase} analysis of [specific area] in [specific files]"
+   - Default drift behavior: finish owned scope if safe, then report out-of-scope findings in `scope_drift` and `required_main_agent_actions`.
+   - Stop immediately only for contract/security/release blockers, unsafe edits, or impossible verification.
+4. **Confirm if ambiguous**: If scope is unclear, ask a clarifying question via `question`. Do NOT guess.
+5. **Path Preflight**: Before reading any file referenced in the Context Packet, verify it exists in `workdir`:
    - `bash "test -e '{workdir}/{path}' && echo OK || echo MISSING"` per referenced path.
    - If MISSING and essential → record in `REVIEWER_REPORT.required_main_agent_actions` and stop the affected dimension.
 
@@ -150,7 +159,7 @@ When you find an issue, scan for the same pattern across the entire subsystem in
 
 × Do NOT expand ownership into implicit repo-wide refactors. Keep ownership bounded to the local touched subsystem.
 
-## Scope Drift Detection (CRITICAL — `stop_and_report` contract)
+## Scope Drift Detection (CRITICAL — finish-owned-scope default, `stop_and_report` for blockers)
 
 Before ANY fix, ask:
 
@@ -159,9 +168,10 @@ Before ANY fix, ask:
 | Answer | Action                                                                  |
 | ------ | ----------------------------------------------------------------------- |
 | NO     | Auto-remediate (proceed with fix). Record in `changes_made`.            |
-| YES    | **STOP**. Set `verdict: "CONFLICT"`. Populate `scope_drift` with the affected items and a description. Populate `required_main_agent_actions` with the orchestrator's next steps. Do NOT apply the change. Return the report. |
+| YES, but owned scope remains safe | Finish owned in-scope work if safe. Record drift in `scope_drift` with `recommendation: "finish_owned_scope_then_report"` and populate `required_main_agent_actions`. |
+| YES, contract/security/release blocker or unsafe edit | **STOP**. Set `verdict: "CONFLICT"`. Populate `scope_drift` with affected items and `recommendation: "stop_and_report"`. Populate `required_main_agent_actions`. Do NOT apply the unsafe change. Return the report. |
 
-Per `docs/scope-discovery-protocol.md`, only orchestrator issues Tier A inline approval prompts. Subagent detects drift + `stop_and_report`. Typical `required_main_agent_actions`:
+Per `docs/scope-discovery-protocol.md`, only orchestrator issues Tier A inline approval prompts. Subagent detects drift, uses finish owned scope if safe, and reserves `stop_and_report` for contract/security/release blockers. Typical `required_main_agent_actions`:
 
 - "Present scope-drift findings to user via Tier A inline approval per `docs/scope-discovery-protocol.md`."
 - "On approve → reenter from the earliest affected gate via `adv_change_reenter`."
@@ -228,7 +238,7 @@ Build this JSON object as the `report` argument to `adv_subagent_report_submit`.
   "attempt": 1,
   "agent": "adv-reviewer",
   "phase": "review | harden",
-  "scope": "{one-line scope summary}",
+  "scope": { "kind": "task", "task_id": "{task-id from context packet}" },
   "verdict": "READY | NEEDS_WORK | BLOCKED | CONFLICT",
   "blocking_findings": [
     {
@@ -294,7 +304,8 @@ When `verdict` is `"CONFLICT"`, `scope_drift` MUST be non-null:
 ### Rules
 
 - `agent`: MUST be the literal string `"adv-reviewer"`.
-- `task_id`: MUST equal the task id from the `TASK:` line in the Context Packet.
+- `task_id`: MUST equal the task id from the `TASK:` line in remediation packets. Independent review/harden summaries omit `task_id`.
+- `scope`: MUST be structural. Remediation reports use `{ "kind": "task", "task_id": "..." }`. Independent summaries use `{ "kind": "change", "scope_key": "review:acceptance" }` or `{ "kind": "change", "scope_key": "harden:release" }`. String scope is compatibility-only for legacy callers and MUST NOT be used in new reports.
 - `attempt`: MUST equal the numeric `ATTEMPT:` value from the Context Packet.
 - `phase`: One of `"review"`, `"harden"`. Required.
 - `verdict`:
@@ -307,7 +318,7 @@ When `verdict` is `"CONFLICT"`, `scope_drift` MUST be non-null:
 - `changes_made`: One entry per file/region you remediated.
 - `wisdom_candidates`: Optional. Surface patterns/successes/failures/gotchas/conventions worth promoting. The orchestrator decides whether to call `adv_wisdom_add`.
 - `verification`: At least one tests_run entry when `changes_made` is non-empty. For pure-analysis review/harden, `results: "n/a"` is acceptable.
-- `scope_drift`: `null` when no drift; non-null only when `verdict: "CONFLICT"`.
+- `scope_drift`: `null` when no drift; non-null when drift is discovered. Use `recommendation: "finish_owned_scope_then_report"` when owned scope was completed safely, and `"stop_and_report"` when `verdict: "CONFLICT"`.
 - `required_main_agent_actions`: Enumerate the orchestrator's next steps. When `verdict: "CONFLICT"`, this MUST cite `docs/scope-discovery-protocol.md` and list reenter/split/reject options.
 - `workdir_used`: MUST be the absolute path you used as your working directory. Use the sentinel `"<unspecified>"` when the spawn prompt did not include a WORKING DIRECTORY line.
 
@@ -327,7 +338,7 @@ When `verdict` is `"CONFLICT"`, `scope_drift` MUST be non-null:
   "attempt": 1,
   "agent": "adv-reviewer",
   "phase": "review",
-  "scope": "Requirement traceability and edge-case review for payment retry feature",
+  "scope": { "kind": "task", "task_id": "tk-review001" },
   "verdict": "READY",
   "blocking_findings": [],
   "nonblocking_findings": [
@@ -367,7 +378,7 @@ When `verdict` is `"CONFLICT"`, `scope_drift` MUST be non-null:
   "attempt": 1,
   "agent": "adv-reviewer",
   "phase": "review",
-  "scope": "12-dimension review of rate-limit middleware",
+  "scope": { "kind": "task", "task_id": "tk-xyz789" },
   "verdict": "CONFLICT",
   "blocking_findings": [
     {

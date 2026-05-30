@@ -85,10 +85,24 @@ const SKILL_REF_INVENTORY: SkillRefInventoryEntry[] = [
   },
   {
     commandFile: "adv-harden.md",
+    skill: "adv-frontend-review",
+    loadSite: "worker-only",
+    fallbackRequired: true,
+    workerAgents: ["adv-reviewer"],
+  },
+  {
+    commandFile: "adv-harden.md",
     skill: "adv-slop-detection",
     loadSite: "split",
     fallbackRequired: true,
     workerAgents: ["adv-reviewer", "adv-engineer", "explore"],
+  },
+  {
+    commandFile: "adv-review.md",
+    skill: "adv-frontend-review",
+    loadSite: "worker-only",
+    fallbackRequired: true,
+    workerAgents: ["adv-reviewer"],
   },
   {
     commandFile: "adv-improve.md",

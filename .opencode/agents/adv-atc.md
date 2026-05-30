@@ -80,6 +80,8 @@ tools:
   adv_contract_mint: true
   adv_contract_review_matrix_set: true
   adv_run_test: true
+  # Sub-agent reports
+  adv_subagent_report_submit: true
   # Temporal / workflow ops
   adv_temporal_diagnose: true
   adv_temporal_reconnect: true

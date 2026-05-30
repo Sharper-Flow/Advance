@@ -1,0 +1,12 @@
+{
+  "entries": [
+    {
+      "id": "ws-5894TP",
+      "type": "pattern",
+      "content": "When a migration moves canonical artifact content into Temporal workflow state, all workflow-owned readiness checks must validate the same in-workflow source (`state.documents` + metadata) rather than legacy disk projections. Keep disk reads only on explicitly disk-backed recovery/projection paths, and guard command-sequence changes with `wf.patched` for replay safety.",
+      "source_task": "tk-bf79cd6aab57",
+      "recorded_at": "2026-05-28T22:24:14.317Z"
+    }
+  ],
+  "count": 1
+}

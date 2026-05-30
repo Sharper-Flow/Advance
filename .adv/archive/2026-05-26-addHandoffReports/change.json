@@ -1,0 +1,1365 @@
+{
+  "id": "addHandoffReports",
+  "title": "Add handoff reports",
+  "status": "archived",
+  "created_at": "2026-05-25T19:09:08.322Z",
+  "tasks": [
+    {
+      "id": "tk-30dfe03f4a67",
+      "title": "Update sub-agent report specs and contract asset tests",
+      "type": "code",
+      "section": "Spec Law",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-25T19:50:11.944Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC8"
+        ],
+        "verifies": [
+          "AC1",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC8"
+        ],
+        "respects": [
+          "C1",
+          "C3",
+          "C5",
+          "C6",
+          "C7",
+          "DONT1",
+          "DONT2",
+          "DONT4",
+          "DONT5",
+          "DONT6"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-25T20:30:20.121Z",
+      "verification": "RED: pnpm test -- src/subagent-reports-spec-assets.test.ts failed because subagent report spec lacked sidecar/optimized handoff anchors and delegation-defaults lacked scanner bundle sidecar language. GREEN: pnpm exec vitest run src/subagent-reports-spec-assets.test.ts passed (6 tests). GREEN: pnpm exec vitest run src/subagent-reports-spec-assets.test.ts src/agent-tool-contracts-assets.test.ts passed (10 tests). adv_change_validate --strict passed with non-blocking NO_DELTAS warning.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Expanded .adv/specs/subagent-reports/spec.json from the legacy task-only adv-engineer/adv-reviewer law to a nine-requirement sidecar report law covering adv-researcher, adv-tron, and adv-scanner-bundle optimized handoffs; updated .adv/specs/delegation-defaults/spec.json rq-delDefaults05 to require sidecar persistence, scanner bundle isolation, no individual scanner ADV tool access, and scope-aware packet anchors; retained/verified plugin/src/subagent-reports-spec-assets.test.ts contract coverage for those anchors. Verification: RED pnpm test -- src/subagent-reports-spec-assets.test.ts failed on missing sidecar anchors; GREEN pnpm exec vitest run src/subagent-reports-spec-assets.test.ts passed 6 tests; GREEN pnpm exec vitest run src/subagent-reports-spec-assets.test.ts src/agent-tool-contracts-assets.test.ts passed 10 tests; adv_change_validate --strict passed with non-blocking NO_DELTAS warning.",
+      "filesTouched": [
+        ".adv/specs/delegation-defaults/spec.json",
+        ".adv/specs/subagent-reports/spec.json",
+        "plugin/src/subagent-reports-spec-assets.test.ts"
+      ],
+      "touched_files": [
+        ".adv/specs/delegation-defaults/spec.json",
+        ".adv/specs/subagent-reports/spec.json",
+        "plugin/src/subagent-reports-spec-assets.test.ts"
+      ],
+      "checkpointSha": "431e2ba841256af2b8397d2538e857a1ae67e132",
+      "completedAt": "2026-05-25T20:54:15.472Z",
+      "completed_at": "2026-05-25T20:54:15.472Z",
+      "notes": "Updated subagent report specs and asset tests to lock sidecar report persistence, change-scoped researcher/tron/scanner-bundle variants, strict agent/scope pairing, bounded follow-up agenda handling, scanner isolation, and Temporal replay/legacy compatibility. Checkpoint commit: 431e2ba841256af2b8397d2538e857a1ae67e132.",
+      "error_recovery": {
+        "last_error": "Initial targeted asset test failed because subagent report law still described task-only persistence and reserved adv-researcher/adv-tron instead of sidecar optimized handoff variants.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "Proceed to implementation schema work now that spec law is updated.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "pnpm test -- src/subagent-reports-spec-assets.test.ts exited 1; assertions expected sidecar, optimized handoff, scanner bundle, and Temporal replay anchors absent from specs.",
+            "diagnosis": "Spec-law artifact lagged approved design and already-updated contract asset test expectations.",
+            "fix_tried": "Updated subagent-reports and delegation-defaults specs to include sidecar persistence, strict scope model, researcher/tron/scanner-bundle variants, bounded follow-ups, scanner isolation, and replay compatibility.",
+            "strategy_label": "align-spec-law-with-approved-design",
+            "outcome": "succeeded",
+            "attempted_at": "2026-05-25T20:53:24.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-05-25T20:55:11.456Z"
+    },
+    {
+      "id": "tk-55c41642dc32",
+      "title": "Add scoped sub-agent report schemas",
+      "type": "code",
+      "section": "Schemas",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-25T19:50:34.175Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-30dfe03f4a67"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C5",
+          "C6",
+          "DONT1",
+          "DONT2",
+          "DONT4",
+          "DONT5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-25T20:55:40.325Z",
+      "verification": "GREEN: pnpm exec vitest run src/types/subagent-reports.test.ts passed (21 tests). RED: pnpm run typecheck initially failed after all report variants were added to SupportedSubagentReportSchema, exposing task-only consumers. Fix: kept Supported/SubagentReport task-scoped for current consumers and added ScopedSubagentReportSchema for all variants. RED: pnpm exec vitest run src/types/subagent-reports.test.ts src/adv-engineer-assets.test.ts src/adv-reviewer-asset.test.ts initially failed because task-scoped schemas rejected legacy scope strings. Fix: accepted structural task scope object plus legacy non-empty string for task-scoped reports. GREEN: same three test files passed (124 tests). GREEN: pnpm run typecheck passed. RED then GREEN: pnpm run format:check failed on src/types/subagent-reports.ts, then passed after Prettier.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added structural report scope schemas, structural change scope key validation, change-scoped schemas for adv-researcher, adv-tron, and adv-scanner-bundle, and exported all new schemas/types. Kept current SupportedSubagentReportSchema and task.subagent_reports task-scoped for existing consumers, while adding ScopedSubagentReportSchema for all variants. Task-scoped engineer/reviewer schemas now accept structural task scope objects and legacy non-empty scope strings to preserve backward compatibility. Expanded schema tests to cover optimized handoff variants, agent/scope pairing rejection, scope-key formats, and packet anchors. Verification: pnpm exec vitest run src/types/subagent-reports.test.ts passed 21 tests; pnpm exec vitest run src/types/subagent-reports.test.ts src/adv-engineer-assets.test.ts src/adv-reviewer-asset.test.ts passed 124 tests; pnpm run typecheck passed; pnpm run format:check passed.",
+      "filesTouched": [
+        "plugin/src/types/index.ts",
+        "plugin/src/types/subagent-reports.test.ts",
+        "plugin/src/types/subagent-reports.ts"
+      ],
+      "touched_files": [
+        "plugin/src/types/index.ts",
+        "plugin/src/types/subagent-reports.test.ts",
+        "plugin/src/types/subagent-reports.ts"
+      ],
+      "checkpointSha": "0a19f4c0bbf70b2401528f8c16b152fdd0984573",
+      "completedAt": "2026-05-25T21:03:13.818Z",
+      "completed_at": "2026-05-25T21:03:13.818Z",
+      "notes": "Added scoped sub-agent report schemas for task-scoped and change-scoped report variants. Checkpoint commit: 0a19f4c0bbf70b2401528f8c16b152fdd0984573.",
+      "error_recovery": {
+        "last_error": "Intermediate schema expansion broke typecheck when all report variants were added to SupportedSubagentReportSchema, and broke existing agent asset tests when task-scoped schemas rejected legacy scope strings.",
+        "retry_count": 2,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "Proceed to sidecar persistence task using ScopedSubagentReportSchema as the all-variant boundary and preserve task-scoped compatibility until consumers are migrated.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "pnpm run typecheck failed: task-only Temporal/tool consumers attempted to access task_id and verification on change-scoped union members.",
+            "diagnosis": "SupportedSubagentReportSchema is currently the task consumer contract; widening it before persistence/readback migration breaks existing task-scoped code.",
+            "fix_tried": "Split schemas: SupportedSubagentReportSchema/SubagentReportSchema remain task-scoped for current consumers; ScopedSubagentReportSchema represents all variants for new optimized handoff work.",
+            "strategy_label": "split-current-supported-vs-all-scoped-schema",
+            "outcome": "succeeded",
+            "attempted_at": "2026-05-25T21:01:08.000Z"
+          },
+          {
+            "attempt_number": 2,
+            "error": "pnpm exec vitest run src/types/subagent-reports.test.ts src/adv-engineer-assets.test.ts src/adv-reviewer-asset.test.ts failed because existing ENGINEER_REPORT/REVIEWER_REPORT examples use legacy string scope.",
+            "diagnosis": "Backward compatibility requires accepting existing task-scoped scope strings until prompts and callers migrate to structural scope metadata.",
+            "fix_tried": "Allowed task-scoped schemas to accept either structural {kind:'task', task_id} scope or legacy non-empty string scope; change-scoped optimized handoffs remain structural-only.",
+            "strategy_label": "preserve-task-scope-legacy-compatibility",
+            "outcome": "succeeded",
+            "attempted_at": "2026-05-25T21:01:52.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-05-25T21:03:35.946Z"
+    },
+    {
+      "id": "tk-20ddc8088280",
+      "title": "Implement sidecar report persistence with Temporal replay safety",
+      "type": "code",
+      "section": "Persistence",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-05-25T19:50:52.032Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-55c41642dc32"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "DONT1",
+          "DONT2",
+          "DONT3"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-25T21:04:05.614Z",
+      "verification": "RED: pnpm exec vitest run src/temporal/change-state.test.ts failed with missing sidecar persistence and taskless report support. GREEN: pnpm exec vitest run src/temporal/change-state.test.ts passed (13 tests). RED: pnpm run typecheck failed on legacy string scope handling. Fix: narrowed structural scope before key/task-scope checks. GREEN: pnpm run typecheck passed. GREEN: pnpm exec vitest run src/temporal/change-state.test.ts src/temporal/workflows.signal-handlers.test.ts passed (29 tests). GREEN: pnpm run format:check passed. GREEN: pnpm exec vitest run src/types/subagent-reports.test.ts src/temporal/change-state.test.ts src/temporal/workflows.signal-handlers.test.ts passed (50 tests).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added Change.subagent_reports and ChangeWorkflowState.subagent_reports as sidecar storage, seeded/projected through workflow state and continue-as-new. Broadened subagentReportSubmittedSignal payload to carry ScopedSubagentReportSchema and optional taskId, while applySubagentReportSubmittedToState now persists every report to sidecar, mirrors task-scoped reports to legacy task.subagent_reports[], accepts taskless change-scoped optimized handoffs, and dedupes using legacy task keys for task reports plus scope-aware keys for change reports. subagentReportKey now preserves the legacy (changeId|taskId|agent|attempt) shape when taskId is present and uses structural scope only for taskless/change reports. Verification covered pure mutation, signal-handler compatibility, typecheck, and format.",
+      "filesTouched": [
+        "plugin/src/temporal/change-state.test.ts",
+        "plugin/src/temporal/change-state.ts",
+        "plugin/src/temporal/contracts.ts",
+        "plugin/src/temporal/workflows.ts",
+        "plugin/src/types/changes.ts",
+        "plugin/src/types/signals.ts"
+      ],
+      "touched_files": [
+        "plugin/src/temporal/change-state.test.ts",
+        "plugin/src/temporal/change-state.ts",
+        "plugin/src/temporal/contracts.ts",
+        "plugin/src/temporal/workflows.ts",
+        "plugin/src/types/changes.ts",
+        "plugin/src/types/signals.ts"
+      ],
+      "checkpointSha": "c0020b0c37dfcd83d5bd83afee122bf7854bba5b",
+      "completedAt": "2026-05-25T21:10:47.795Z",
+      "completed_at": "2026-05-25T21:10:47.795Z",
+      "notes": "Implemented change-level sidecar persistence for sub-agent reports with legacy task report compatibility and replay-safe legacy task keys. Checkpoint commit: c0020b0c37dfcd83d5bd83afee122bf7854bba5b.",
+      "error_recovery": {
+        "last_error": "Initial sidecar persistence test failed because workflow state only stored reports on tasks; typecheck then failed on legacy string task scope handling.",
+        "retry_count": 2,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "Proceed to report submit tooling and agenda follow-up consumers now that workflow state can store sidecar reports.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "pnpm exec vitest run src/temporal/change-state.test.ts failed: state.subagent_reports was absent and taskless change-scoped report submission threw Task not found: undefined.",
+            "diagnosis": "Workflow mutation still assumed every sub-agent report belonged to a task and only appended to task.subagent_reports[].",
+            "fix_tried": "Added state/change sidecar report storage, optional signal taskId, taskless change-scoped persistence, and sidecar dedupe tests.",
+            "strategy_label": "add-sidecar-workflow-state",
+            "outcome": "succeeded",
+            "attempted_at": "2026-05-25T21:08:37.000Z"
+          },
+          {
+            "attempt_number": 2,
+            "error": "pnpm run typecheck failed because report.scope can be legacy string for task-scoped reports.",
+            "diagnosis": "Backward-compatible task schema widened scope to string | structural scope; persistence helpers needed structural narrowing before accessing scope.kind.",
+            "fix_tried": "Added typeof scope !== 'string' narrowing and legacy taskId fallback for report keys and task-scope detection.",
+            "strategy_label": "narrow-legacy-scope-union",
+            "outcome": "succeeded",
+            "attempted_at": "2026-05-25T21:09:10.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-05-25T21:11:06.370Z"
+    },
+    {
+      "id": "tk-05b836f81a4d",
+      "title": "Extend report submit tool and agenda follow-up consumers",
+      "type": "code",
+      "section": "Tooling",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-05-25T19:51:09.987Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-20ddc8088280"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC5"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC5"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C6",
+          "DONT1",
+          "DONT2",
+          "DONT5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-25T21:11:34.472Z",
+      "verification": "GREEN: pnpm exec vitest run src/tools/subagent-report.test.ts passed (11 tests). GREEN: pnpm exec vitest run src/tools/subagent-report.test.ts src/types/subagent-reports.test.ts src/temporal/change-state.test.ts passed (45 tests). GREEN: pnpm run typecheck passed. RED then GREEN: pnpm run format:check failed on src/tools/subagent-report.ts and src/tools/subagent-report.test.ts, then passed after Prettier.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Updated adv_subagent_report_submit to validate ScopedSubagentReportSchema, accept adv-researcher/adv-tron/adv-scanner-bundle payloads, support taskless change-scoped submission without task lookup, dedupe against both sidecar and legacy task reports, and fire subagentReportSubmittedSignal with taskId only for task-scoped reports. Follow-up consumers now read follow_ups from all report variants that define it, cap agenda creation at 10 items, emit a truncation warning, and include source metadata with change/scope/agent/attempt/task. Existing task-scoped engineer/reviewer behavior stays compatible. Verification: subagent-report tool tests passed; schema + workflow mutation tests passed; typecheck and format passed.",
+      "filesTouched": [
+        "plugin/src/tools/subagent-report.test.ts",
+        "plugin/src/tools/subagent-report.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/subagent-report.test.ts",
+        "plugin/src/tools/subagent-report.ts"
+      ],
+      "checkpointSha": "26bb78e259c2fb7c89880be19594f4a015ab006f",
+      "completedAt": "2026-05-25T21:15:34.380Z",
+      "completed_at": "2026-05-25T21:15:34.380Z",
+      "notes": "Extended report submit tool for change-scoped report variants and bounded source-tagged agenda follow-ups. Checkpoint commit: 26bb78e259c2fb7c89880be19594f4a015ab006f.",
+      "error_recovery": {
+        "last_error": "Formatting failed after tool/test edits; no semantic test failure after implementation.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "Proceed to readback and checkpoint compatibility task.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "pnpm run format:check failed on src/tools/subagent-report.ts and src/tools/subagent-report.test.ts.",
+            "diagnosis": "Prettier formatting required after multi-section tool and test edits.",
+            "fix_tried": "Ran pnpm exec prettier --write src/tools/subagent-report.ts src/tools/subagent-report.test.ts and reran format check.",
+            "strategy_label": "format-tool-edits",
+            "outcome": "succeeded",
+            "attempted_at": "2026-05-25T21:15:05.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-05-25T21:15:49.550Z"
+    },
+    {
+      "id": "tk-4f3e0b969175",
+      "title": "Add opt-in report readback and task/checkpoint compatibility",
+      "type": "code",
+      "section": "Readback",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-05-25T19:51:24.431Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-20ddc8088280"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC2",
+          "AC3"
+        ],
+        "verifies": [
+          "AC2",
+          "AC3"
+        ],
+        "respects": [
+          "C2",
+          "C5",
+          "DONT4"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-25T21:16:08.445Z",
+      "verification": "GREEN: pnpm exec vitest run src/tools/change.test.ts src/tools/checkpoint.test.ts passed (60 tests). GREEN: pnpm exec vitest run src/tools/change.test.ts src/tools/checkpoint.test.ts src/tools/subagent-report.test.ts passed (71 tests). GREEN: pnpm run typecheck passed. RED then GREEN: pnpm run format:check failed on src/tools/change.ts and src/tools/checkpoint.test.ts, then passed after Prettier.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "adv_change_show include.subagentReports now merges canonical change.subagent_reports sidecar entries with legacy task.subagent_reports[], dedupes by the same legacy/scope-aware report key strategy, and reports meta counts for total, sidecar, and legacy task sources. adv_task_checkpoint now treats task-scoped sidecar reports as persisted sub-agent reports, so legacy <adv-output> structured_output extraction is skipped even when the task mirror is absent. Verification covered change readback, checkpoint compatibility, submit-tool adjacency, typecheck, and format.",
+      "filesTouched": [
+        "plugin/src/tools/change.test.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/checkpoint.test.ts",
+        "plugin/src/tools/checkpoint.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/change.test.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/checkpoint.test.ts",
+        "plugin/src/tools/checkpoint.ts"
+      ],
+      "checkpointSha": "8ccf7d7259a8fe402ae3dbc1158d5e9a772618b4",
+      "completedAt": "2026-05-25T21:19:47.003Z",
+      "completed_at": "2026-05-25T21:19:47.003Z",
+      "notes": "Added sidecar-aware opt-in sub-agent report readback and checkpoint compatibility. Checkpoint commit: 8ccf7d7259a8fe402ae3dbc1158d5e9a772618b4.",
+      "error_recovery": {
+        "last_error": "Formatting failed after readback/checkpoint edits; semantic tests passed.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "Proceed to agent prompt/command packet updates.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "pnpm run format:check failed on src/tools/change.ts and src/tools/checkpoint.test.ts.",
+            "diagnosis": "Prettier formatting required after readback/checkpoint test edits.",
+            "fix_tried": "Ran pnpm exec prettier --write src/tools/change.ts src/tools/checkpoint.test.ts and reran format check.",
+            "strategy_label": "format-readback-edits",
+            "outcome": "succeeded",
+            "attempted_at": "2026-05-25T21:19:23.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-05-25T21:19:59.310Z"
+    },
+    {
+      "id": "tk-dd329f936148",
+      "title": "Update agent prompts and command packets for optimized handoff reports",
+      "type": "code",
+      "section": "Agent Contracts",
+      "status": "done",
+      "priority": 5,
+      "created_at": "2026-05-25T19:51:40.305Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-55c41642dc32"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC4",
+          "AC6",
+          "AC8"
+        ],
+        "verifies": [
+          "AC1",
+          "AC4",
+          "AC6",
+          "AC8"
+        ],
+        "respects": [
+          "C3",
+          "C5",
+          "C7",
+          "DONT1",
+          "DONT2",
+          "DONT4",
+          "DONT6"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-25T23:25:37.842Z",
+      "verification": "RED: pnpm test -- src/optimized-handoff-assets.test.ts failed before prompt/packet updates because scanner bundle and report anchors were absent. GREEN: pnpm test -- src/optimized-handoff-assets.test.ts passed. Related verification: pnpm test -- src/optimized-handoff-assets.test.ts src/types/subagent-reports.test.ts src/subagent-reports-spec-assets.test.ts src/adv-tron-assets.test.ts src/adv-reviewer-asset.test.ts passed. Related scan: RESEARCHER_REPORT/TRON_REPORT/SCANNER_BUNDLE_REPORT anchors now present in agent/command packets with strict schema packet anchors.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Granted adv-researcher and adv-tron narrowly scoped adv_subagent_report_submit access for their own optimized handoff reports, added RESEARCHER_REPORT and TRON_REPORT prompt contracts with WORKING DIRECTORY/CHANGE/SCOPE KEY/ATTEMPT anchors, added discovery/design/tron command packets carrying those anchors, and added orchestrator-submitted SCANNER_BUNDLE_REPORT packet guidance for review/harden while preserving scanner no-tool-access isolation. Added plugin/src/optimized-handoff-assets.test.ts to pin tool grants, packet anchors, and scanner bundle behavior.",
+      "filesTouched": [
+        ".opencode/agents/adv-researcher.md",
+        ".opencode/agents/adv-tron.md",
+        ".opencode/command/adv-design.md",
+        ".opencode/command/adv-discover.md",
+        ".opencode/command/adv-harden.md",
+        ".opencode/command/adv-review.md",
+        ".opencode/command/adv-tron.md",
+        "plugin/src/optimized-handoff-assets.test.ts"
+      ],
+      "touched_files": [
+        ".opencode/agents/adv-researcher.md",
+        ".opencode/agents/adv-tron.md",
+        ".opencode/command/adv-design.md",
+        ".opencode/command/adv-discover.md",
+        ".opencode/command/adv-harden.md",
+        ".opencode/command/adv-review.md",
+        ".opencode/command/adv-tron.md",
+        "plugin/src/optimized-handoff-assets.test.ts"
+      ],
+      "checkpointSha": "102faf6ae655615062d02c1a4b2884e798fda70b",
+      "completedAt": "2026-05-26T00:38:18.631Z",
+      "completed_at": "2026-05-26T00:38:18.631Z",
+      "notes": "Updated optimized handoff prompts and command packets; added regression coverage.",
+      "error_recovery": {
+        "last_error": "Initial optimized handoff asset test failed because review/harden command packets did not yet define SCANNER_BUNDLE_REPORT and related report anchors.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "Task complete; continue with final integration verification task.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "pnpm test -- src/optimized-handoff-assets.test.ts exited 1; expected SCANNER_BUNDLE_REPORT missing from adv-review/adv-harden and report contracts missing from agents/commands.",
+            "diagnosis": "Expected TDD red: optimized handoff prompts and scanner-bundle command packet guidance were not yet wired.",
+            "fix_tried": "Added adv-researcher/adv-tron report transport prompt sections and tool grants; added discovery/design/tron report packet anchors; added orchestrator scanner bundle packet blocks to review/harden; reran targeted and related asset/schema tests.",
+            "strategy_label": "red-green-optimized-handoff-contracts",
+            "outcome": "succeeded",
+            "attempted_at": "2026-05-26T00:37:24.428Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-05-26T00:38:30.923Z"
+    },
+    {
+      "id": "tk-a80e6d5351cc",
+      "title": "Clean stale enforcement and guards references with regression test",
+      "type": "code",
+      "section": "Docs",
+      "status": "done",
+      "priority": 6,
+      "created_at": "2026-05-25T19:52:02.298Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC7",
+          "AC8"
+        ],
+        "verifies": [
+          "AC7",
+          "AC8"
+        ],
+        "respects": [
+          "C3",
+          "C4",
+          "DONT2",
+          "DONT3"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-25T23:20:03.660Z",
+      "verification": "RED: pnpm test -- src/stale-enforcement-assets.test.ts failed before cleanup. GREEN: pnpm test -- src/stale-enforcement-assets.test.ts passed. Related scan: lgrep found no live enforceTaskPolicy/runtime-enforced refs; only new regression test references enforceTaskPolicy, and guards refs remain only historical CHANGELOG/test context.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added plugin/src/stale-enforcement-assets.test.ts to forbid live enforceTaskPolicy runtime-enforcement claims and retired plugin/src/guards map references. Updated ADV_INSTRUCTIONS.md and .opencode/agents/adv.md to state sub-agent limits are agent-self-enforced with no runtime guard. Removed retired guards rows from README.md and project.md.",
+      "filesTouched": [
+        ".opencode/agents/adv.md",
+        "ADV_INSTRUCTIONS.md",
+        "README.md",
+        "plugin/src/stale-enforcement-assets.test.ts",
+        "project.md"
+      ],
+      "touched_files": [
+        ".opencode/agents/adv.md",
+        "ADV_INSTRUCTIONS.md",
+        "README.md",
+        "plugin/src/stale-enforcement-assets.test.ts",
+        "project.md"
+      ],
+      "checkpointSha": "a10c24b758b0b14ab8190c4245b2f681940b1fe9",
+      "completedAt": "2026-05-25T23:25:09.385Z",
+      "completed_at": "2026-05-25T23:25:09.385Z",
+      "notes": "Cleaned stale enforcement and retired guards references; added regression test.",
+      "error_recovery": {
+        "last_error": "Initial regression test failed as expected because stale enforceTaskPolicy and plugin/src/guards references were still present.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "Task complete; continue with remaining agent contract packet task.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "pnpm test -- src/stale-enforcement-assets.test.ts exited 1 after adding RED regression test.",
+            "diagnosis": "Expected TDD red: existing docs still contained enforceTaskPolicy and retired plugin/src/guards references.",
+            "fix_tried": "Updated ADV_INSTRUCTIONS.md, .opencode/agents/adv.md, README.md, and project.md; reran targeted test.",
+            "strategy_label": "red-green-stale-reference-cleanup",
+            "outcome": "succeeded",
+            "attempted_at": "2026-05-25T23:24:12.680Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-05-25T23:25:19.514Z"
+    },
+    {
+      "id": "tk-17fcf367e943",
+      "title": "Run final integration verification for sub-agent report handoffs",
+      "type": "code",
+      "section": "Verification",
+      "status": "done",
+      "priority": 7,
+      "created_at": "2026-05-25T19:52:29.864Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-05b836f81a4d"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-4f3e0b969175"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-dd329f936148"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-a80e6d5351cc"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7",
+          "AC8"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "C7",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "DONT6",
+          "DONT7"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-26T00:38:58.621Z",
+      "verification": "Acceptance contract audit remediation checkpoint. Added harden Report-Created Agenda Audit to satisfy AC6 and asset coverage. Verification: pnpm test -- src/optimized-handoff-assets.test.ts passed; pnpm run check initially failed on formatting, then passed after pnpm run format.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Final verification passed. Acceptance review fixed scanner-bundle payload skeletons. Contract audit added Report-Created Agenda Audit to adv-harden.md and asset coverage. Final post-remediation verification passed: pnpm run check, pnpm test, pnpm run build. Latest code checkpoint 4fed41d6bb93685a746b976c1049e2fde8324fd9; worktree clean.",
+      "filesTouched": [
+        ".opencode/command/adv-harden.md",
+        "plugin/src/optimized-handoff-assets.test.ts"
+      ],
+      "touched_files": [
+        ".opencode/command/adv-harden.md",
+        "plugin/src/optimized-handoff-assets.test.ts"
+      ],
+      "checkpointSha": "4fed41d6bb93685a746b976c1049e2fde8324fd9",
+      "completedAt": "2026-05-26T00:54:53.365Z",
+      "completed_at": "2026-05-26T00:54:53.365Z",
+      "notes": "Final post-remediation verification passed; worktree clean. adv_task_checkpoint returned clean but did not rewrite checkpoint metadata because task verification text already differed; latest task notes now include final evidence.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "No active failure; proceed with acceptance.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "pnpm run check exitCode 1; Prettier reported src/optimized-handoff-assets.test.ts style issues.",
+            "diagnosis": "Formatting issue introduced by new regression test; typecheck/lint had passed before format:check failed.",
+            "fix_tried": "Ran pnpm run format, then reran pnpm run check, pnpm test, and pnpm run build.",
+            "strategy_label": "format-then-full-verification",
+            "outcome": "succeeded",
+            "attempted_at": "2026-05-26T00:40:27.078Z"
+          },
+          {
+            "attempt_number": 2,
+            "error": "Acceptance review identified incomplete scanner-bundle command packet payload skeletons.",
+            "diagnosis": "Command packet examples contained only agent/phase/summary/findings and did not show the full strict adv-scanner-bundle schema required for reliable orchestrator submission.",
+            "fix_tried": "adv-reviewer expanded review/harden scanner bundle packet skeletons; main agent reran targeted tests and check.",
+            "strategy_label": "review-remediate-scanner-bundle-packet-skeleton",
+            "outcome": "succeeded",
+            "attempted_at": "2026-05-26T00:51:24.602Z"
+          },
+          {
+            "attempt_number": 3,
+            "error": "Contract audit found AC6 had spec law but no explicit harden command packet/procedure for report-created agenda inspection.",
+            "diagnosis": "Harden workflow needed a concrete Report-Created Agenda Audit step to inspect subagent-followup/source-tagged agenda items and fix/rationale per campsite boundaries.",
+            "fix_tried": "Added Report-Created Agenda Audit to adv-harden.md, added optimized-handoff asset assertions, ran targeted test and check after formatting; final pnpm test and pnpm run build passed.",
+            "strategy_label": "add-harden-report-agenda-audit",
+            "outcome": "succeeded",
+            "attempted_at": "2026-05-26T00:53:27.541Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-05-26T00:58:32.738Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "addHandoffReports",
+          "task_id": "tk-17fcf367e943",
+          "attempt": 1,
+          "scope": "Independent acceptance review of completed addHandoffReports handoff report contracts across changed code/specs/prompts/tests",
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addHandoffReports",
+          "agent": "adv-reviewer",
+          "phase": "review",
+          "verdict": "READY",
+          "blocking_findings": [],
+          "nonblocking_findings": [
+            {
+              "id": "review-praise-1",
+              "label": "praise",
+              "file": "plugin/src/types/subagent-reports.ts",
+              "line": 267,
+              "what": "Strict discriminated union now covers adv-researcher, adv-tron, and adv-scanner-bundle while preserving task-scoped supported report aliases for existing consumers.",
+              "why": "This satisfies optimized handoff persistence without weakening legacy adv-engineer/adv-reviewer compatibility."
+            }
+          ],
+          "changes_made": [
+            {
+              "file": ".opencode/command/adv-review.md",
+              "summary": "Replaced incomplete scanner-bundle REPORT PAYLOAD sketch with a complete strict adv-scanner-bundle payload skeleton including schema_version, change_id, attempt, workdir_used, change scope, scanner_count, dimensions, findings, and follow_ups.",
+              "verification": "pnpm test -- src/optimized-handoff-assets.test.ts passed (suite runner reported 237 files / 3156 tests passed); pnpm run check passed."
+            },
+            {
+              "file": ".opencode/command/adv-harden.md",
+              "summary": "Replaced incomplete harden scanner-bundle REPORT PAYLOAD sketch with a complete strict adv-scanner-bundle payload skeleton matching the schema and harden scanner count/dimensions.",
+              "verification": "pnpm test -- src/optimized-handoff-assets.test.ts passed (suite runner reported 237 files / 3156 tests passed); pnpm run check passed."
+            },
+            {
+              "file": "plugin/src/optimized-handoff-assets.test.ts",
+              "summary": "Added asset assertions that review/harden scanner-bundle command packets include strict required payload fields, scanner scope, phase, scanner_count, dimensions, findings, and follow_ups.",
+              "verification": "pnpm test -- src/optimized-handoff-assets.test.ts passed (suite runner reported 237 files / 3156 tests passed); pnpm run check passed."
+            }
+          ],
+          "wisdom_candidates": [
+            {
+              "type": "gotcha",
+              "content": "Command packet examples for strict report transports should show a complete schema-valid payload skeleton, not only agent/phase/summary fields; otherwise prompt text can drift even when anchors exist."
+            }
+          ],
+          "verification": {
+            "tests_run": [
+              "pnpm test -- src/optimized-handoff-assets.test.ts src/tools/subagent-report.test.ts src/types/subagent-reports.test.ts",
+              "pnpm test -- src/optimized-handoff-assets.test.ts",
+              "pnpm run check"
+            ],
+            "results": "pass",
+            "evidence": "Both pnpm test invocations completed successfully; the project test script executed the full Vitest suite and reported 237 test files / 3156 tests passed. pnpm run check completed typecheck, test-isolation check, lockfile policy check, eslint, and prettier check with no failures."
+          },
+          "scope_drift": null,
+          "risks": [
+            "Live deployed OpenCode plugin behavior was not reloaded in-session; source verification passed, and only command markdown plus asset tests were changed during review remediation."
+          ],
+          "required_main_agent_actions": [
+            "Inspect the review remediation diff in .opencode/command/adv-review.md, .opencode/command/adv-harden.md, and plugin/src/optimized-handoff-assets.test.ts.",
+            "Checkpoint or otherwise persist these review remediation changes through the normal ADV/orchestrator flow before acceptance closure.",
+            "Consider promoting the wisdom candidate about complete schema-valid command packet payload skeletons."
+          ],
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm test -- src/optimized-handoff-assets.test.ts src/tools/subagent-report.test.ts src/types/subagent-reports.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm test -- src/optimized-handoff-assets.test.ts"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-OHp_Xg",
+      "type": "gotcha",
+      "content": "When the OpenCode session is launched from the canonical checkout, ADV state mutations such as adv_task_update can hit the trunk-write isolation guard even after adv_worktree_resume. Route the mutation with target_path set to the resumed ADV worktree and explicit target confirmation.",
+      "source_task": "tk-30dfe03f4a67",
+      "recorded_at": "2026-05-25T20:55:17.344Z"
+    },
+    {
+      "id": "ws-qa7-YL",
+      "type": "pattern",
+      "content": "When introducing new sub-agent report variants, keep the current task-consumer schema (`SupportedSubagentReportSchema` / `SubagentReportSchema`) task-scoped until persistence/readback consumers migrate; expose a separate all-variant schema (`ScopedSubagentReportSchema`) for new optimized handoff validation. This preserves typecheck and legacy task.subagent_reports[] compatibility.",
+      "source_task": "tk-55c41642dc32",
+      "recorded_at": "2026-05-25T21:03:44.013Z"
+    },
+    {
+      "id": "ws-FHOlF0",
+      "type": "pattern",
+      "content": "For report sidecar migration, preserve legacy task report idempotency keys whenever taskId is present (`changeId|taskId|agent|attempt`) and use scope-aware keys only for taskless/change-scoped reports. This keeps old Temporal histories replay-safe while enabling new sidecar scopes.",
+      "source_task": "tk-20ddc8088280",
+      "recorded_at": "2026-05-25T21:11:14.318Z"
+    },
+    {
+      "id": "ws-9ZX_GS",
+      "type": "pattern",
+      "content": "For taskless report submit, compute source identity from structural scope and omit `taskId` from the signal payload; task-scoped reports keep taskId for legacy consumers. Follow-up agenda descriptions should include change/scope/agent/attempt plus task id when present.",
+      "source_task": "tk-05b836f81a4d",
+      "recorded_at": "2026-05-25T21:15:56.180Z"
+    },
+    {
+      "id": "ws-TAyO4P",
+      "type": "pattern",
+      "content": "During sidecar migrations, opt-in readback should merge canonical sidecar entries with legacy embedded entries and dedupe by the same report key. Compatibility checks such as checkpoint legacy-output suppression must also consult sidecar task-scoped reports, not only task.subagent_reports[].",
+      "source_task": "tk-4f3e0b969175",
+      "recorded_at": "2026-05-25T21:20:08.440Z"
+    },
+    {
+      "id": "ws-M9ie1u",
+      "type": "pattern",
+      "content": "For stale enforcement-doc cleanup, add asset tests against live orchestration docs rather than only searching manually. Keep historical CHANGELOG references allowed, but block active ADV_INSTRUCTIONS/.opencode agent claims and repository maps for retired directories.",
+      "source_task": "tk-a80e6d5351cc",
+      "recorded_at": "2026-05-25T23:25:25.406Z"
+    },
+    {
+      "id": "ws-7iVeF_",
+      "type": "pattern",
+      "content": "When adding optimized handoff reports, pin both agent prompt transport and command packet anchors in one asset test. Validate report-specific anchors via getSubagentReportPacketAnchors so schema field-source changes break prompt/packet tests deterministically.",
+      "source_task": "tk-dd329f936148",
+      "recorded_at": "2026-05-26T00:38:37.702Z"
+    },
+    {
+      "id": "ws-L_aPl-",
+      "type": "gotcha",
+      "content": "Final `pnpm run check` can fail only at Prettier after targeted tests pass. For new asset tests, run `pnpm run format` before final check/build to avoid a formatting-only verification retry.",
+      "source_task": "tk-17fcf367e943",
+      "recorded_at": "2026-05-26T00:41:34.625Z"
+    },
+    {
+      "id": "ws-kf1swf",
+      "type": "gotcha",
+      "content": "Command packet examples for strict report transports should show a complete schema-valid payload skeleton, not only agent/phase/summary fields; otherwise prompt text can drift even when anchors exist.",
+      "source_task": "tk-17fcf367e943",
+      "recorded_at": "2026-05-26T00:52:20.705Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-25T19:18:12.283Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved proposal via inline Tier A reply: continue",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addHandoffReports/proposal.md",
+        "content_hash": "5a2340e2bcd09696c6bc557b2fbf9e803c6a03f047de034dbd0d4be0101873ea",
+        "non_whitespace_chars": 5395,
+        "checked_at": "2026-05-25T19:18:12.349Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-25T19:37:07.447Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery complete. Agreement persisted after user approved acceptance criteria with reply: approve. Contract minted from approved agreement.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addHandoffReports/agreement.md",
+        "content_hash": "a99345f7594d0a3774d94eefc00f2bb153ed6118f21a92bab71aeaf06bf7667f",
+        "non_whitespace_chars": 3890,
+        "checked_at": "2026-05-25T19:37:07.543Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-25T19:49:36.328Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design complete. Validator returned CAUTION; cautions resolved in design by adding Temporal replay/versioning safeguards, structural scope_key formats, schema-level agent/scope pairing, and legacy compatibility guidance.",
+      "artifact_evidence": {
+        "kind": "design",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addHandoffReports/design.md",
+        "content_hash": "e273466db25b116bc4b1bb318fa78bf2e153bb39ae29d94c24d35d92a70f4de6",
+        "non_whitespace_chars": 13642,
+        "checked_at": "2026-05-25T19:49:36.555Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-25T20:29:58.924Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved prep task graph with reply: approve. Tasks: 8, ready: 2, validation passed with non-blocking NO_DELTAS warning."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-26T00:42:04.376Z",
+      "completed_by": "agent",
+      "approval_evidence": "Execution complete: all 8 planned tasks done. Final verification passed: pnpm run check, pnpm test, and pnpm run build. Worktree clean after checkpoint a15f9c1d424db405c789f96d4d6fa7e9c5fb0fbc."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-26T00:59:48.351Z",
+      "completed_by": "user:approval",
+      "approval_evidence": "User approved acceptance with inline reply: approve. Verification passed: pnpm run check, pnpm test, pnpm run build; independent reviewer READY; contract review matrix 22/22 pass/respected.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addHandoffReports/acceptance.md",
+        "content_hash": "c35c49bd15013ca6c39d22e2aecd59d0dfb7eb1487cb8d7dc810ee4a1e0b889d",
+        "non_whitespace_chars": 4432,
+        "checked_at": "2026-05-26T00:59:48.421Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "adhoc"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "a99345f7594d0a3774d94eefc00f2bb153ed6118f21a92bab71aeaf06bf7667f",
+      "approvedAt": "2026-05-25T19:37:01.049Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "`adv_subagent_report_submit` accepts strict persisted optimized handoff reports for `adv-researcher`, `adv-tron`, and scanner-bundle lanes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a99345f7594d0a3774d94eefc00f2bb153ed6118f21a92bab71aeaf06bf7667f",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Existing `adv-engineer` / `adv-reviewer` report behavior stays backward-compatible.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a99345f7594d0a3774d94eefc00f2bb153ed6118f21a92bab71aeaf06bf7667f",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Taskless reports are queryable with explicit source metadata; final readback shape is chosen by design for cleanest stack fit.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a99345f7594d0a3774d94eefc00f2bb153ed6118f21a92bab71aeaf06bf7667f",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Scanner persistence uses orchestrator-submitted aggregate bundles; individual scanners keep no ADV tool access.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a99345f7594d0a3774d94eefc00f2bb153ed6118f21a92bab71aeaf06bf7667f",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Persisted report `follow_ups[]` create bounded, source-tagged agenda items.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a99345f7594d0a3774d94eefc00f2bb153ed6118f21a92bab71aeaf06bf7667f",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Harden inspects report-created agenda items and fixes those that are safe, adjacent, and campsite/touched-scope applicable; non-applicable items get rationale.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a99345f7594d0a3774d94eefc00f2bb153ed6118f21a92bab71aeaf06bf7667f",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "All `enforceTaskPolicy` / stale `guards/` references are corrected, removed, or explicitly historical.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a99345f7594d0a3774d94eefc00f2bb153ed6118f21a92bab71aeaf06bf7667f",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC8",
+        "kind": "acceptance_criterion",
+        "text": "Specs, agent prompts, command packets, and tests lock schema variants, packet anchors, agenda behavior, readback shape, and malformed-report rejection.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a99345f7594d0a3774d94eefc00f2bb153ed6118f21a92bab71aeaf06bf7667f",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Preserve strict Zod validation at the ingest boundary.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a99345f7594d0a3774d94eefc00f2bb153ed6118f21a92bab71aeaf06bf7667f",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Preserve existing durable report semantics for `adv-engineer` and `adv-reviewer`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a99345f7594d0a3774d94eefc00f2bb153ed6118f21a92bab71aeaf06bf7667f",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Keep the main ADV agent as orchestrator; sub-agents do not complete gates or mutate orchestration state.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a99345f7594d0a3774d94eefc00f2bb153ed6118f21a92bab71aeaf06bf7667f",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Do not claim runtime enforcement for built-in `task` dispatch unless it is actually implemented.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a99345f7594d0a3774d94eefc00f2bb153ed6118f21a92bab71aeaf06bf7667f",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Prefer compact optimized handoff payloads over raw transcript persistence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a99345f7594d0a3774d94eefc00f2bb153ed6118f21a92bab71aeaf06bf7667f",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C6",
+        "kind": "constraint",
+        "text": "Keep agenda follow-up generation bounded and source-tagged.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a99345f7594d0a3774d94eefc00f2bb153ed6118f21a92bab71aeaf06bf7667f",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C7",
+        "kind": "constraint",
+        "text": "Harden inspection must remain limited to safe, adjacent, campsite/touched-scope-applicable items.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a99345f7594d0a3774d94eefc00f2bb153ed6118f21a92bab71aeaf06bf7667f",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not weaken strict report validation or rely on LLM-parsed prose as the only persistence path.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a99345f7594d0a3774d94eefc00f2bb153ed6118f21a92bab71aeaf06bf7667f",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not allow sub-agents to complete gates, create changes, or own orchestration decisions.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a99345f7594d0a3774d94eefc00f2bb153ed6118f21a92bab71aeaf06bf7667f",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not introduce fake runtime enforcement claims without real implementation and tests.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a99345f7594d0a3774d94eefc00f2bb153ed6118f21a92bab71aeaf06bf7667f",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not make scanner persistence so verbose that it defeats context-purity goals.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a99345f7594d0a3774d94eefc00f2bb153ed6118f21a92bab71aeaf06bf7667f",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "Do not create unbounded agenda noise.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a99345f7594d0a3774d94eefc00f2bb153ed6118f21a92bab71aeaf06bf7667f",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT6",
+        "kind": "avoidance",
+        "text": "Do not require harden to fix non-adjacent or unrelated agenda items.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a99345f7594d0a3774d94eefc00f2bb153ed6118f21a92bab71aeaf06bf7667f",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT7",
+        "kind": "avoidance",
+        "text": "Do not expand into broad ADV latency remediation beyond report readback needs.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a99345f7594d0a3774d94eefc00f2bb153ed6118f21a92bab71aeaf06bf7667f",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-05-26T00:56:00.000Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "subagent-report + schema tests cover strict researcher/tron/scanner-bundle variants.",
+          "notes": "Strict ingest remains Zod-backed."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "schema/report/reviewer asset tests passed; task-scoped aliases and legacy behavior retained.",
+          "notes": "Engineer/reviewer compatibility preserved."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "change/checkpoint tests passed; include.subagentReports sidecar readback merges scoped/legacy reports with metadata.",
+          "notes": "Readback opt-in."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "optimized-handoff asset test passed; review/harden define orchestrator SCANNER_BUNDLE_REPORT and scanners do not submit reports.",
+          "notes": "Scanner isolation preserved."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "subagent-report tests passed; follow_ups capped and source-tagged as subagent-followup agenda items.",
+          "notes": "Bounded at 10."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "optimized-handoff asset test passed; adv-harden has Report-Created Agenda Audit with fix/rationale handling.",
+          "notes": "Safe adjacent campsite scope only."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "stale-enforcement asset test passed; no live enforceTaskPolicy/runtime-enforced refs outside tests.",
+          "notes": "Historical guards refs only."
+        },
+        {
+          "contractId": "AC8",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "optimized-handoff, spec asset, schema, and tool tests passed; packet anchors and malformed-report rejection covered.",
+          "notes": "Prompts/packets/specs pinned."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Strict Zod schemas and INVALID_REPORT path remain in subagent-report tool.",
+          "notes": "No prose-only ingest."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "SupportedSubagentReportSchema remains task-scoped and allows legacy string scope.",
+          "notes": "Sidecar added compatibly."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Agents only submit own reports; adv-tron blocks change/task/gate mutations; orchestrator owns bundles/gates.",
+          "notes": "No sub-agent gate authority."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Live docs now say agent-self-enforced/no runtime guard; stale-enforcement test guards it.",
+          "notes": "No fake runtime claim."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Optimized report schemas persist compact sources/evidence/findings/summary; readback is opt-in.",
+          "notes": "No transcript persistence."
+        },
+        {
+          "contractId": "C6",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "consumeFollowUps caps to MAX_REPORT_FOLLOW_UPS and writes Source metadata.",
+          "notes": "Bounded/source-tagged agenda."
+        },
+        {
+          "contractId": "C7",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "adv-harden Report-Created Agenda Audit requires safe+adjacent+campsite/touched-scope to fix; otherwise rationale/drift stop.",
+          "notes": "Non-adjacent not forced."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Reviewer verdict READY; strict tool-call transport required.",
+          "notes": "No prose persistence."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Reviewer verdict READY; sub-agents do not complete gates/create changes/own decisions.",
+          "notes": "Orchestrator control retained."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "False runtime-enforcement claims removed and guarded by tests.",
+          "notes": "No fake enforcement added."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Scanner persistence is aggregate bundle with bounded payload skeleton.",
+          "notes": "No raw scanner transcripts."
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "follow_ups capped and source-tagged; tests cover agenda creation.",
+          "notes": "No unbounded agenda noise."
+        },
+        {
+          "contractId": "DONT6",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "adv-harden explicitly does not require non-adjacent/unrelated agenda fixes; rationale path required.",
+          "notes": "Boundary preserved."
+        },
+        {
+          "contractId": "DONT7",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Touched scope limited to report schemas/persistence/readback/tooling/prompts/specs/tests and harden agenda handling.",
+          "notes": "No latency remediation expansion."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "`adv_subagent_report_submit` accepts strict persisted optimized handoff reports for `adv-researcher`, `adv-tron`, and scanner-bundle lanes.",
+    "Existing `adv-engineer` / `adv-reviewer` report behavior stays backward-compatible.",
+    "Taskless reports are queryable with explicit source metadata; final readback shape is chosen by design for cleanest stack fit.",
+    "Scanner persistence uses orchestrator-submitted aggregate bundles; individual scanners keep no ADV tool access.",
+    "Persisted report `follow_ups[]` create bounded, source-tagged agenda items.",
+    "Harden inspects report-created agenda items and fixes those that are safe, adjacent, and campsite/touched-scope applicable; non-applicable items get rationale.",
+    "All `enforceTaskPolicy` / stale `guards/` references are corrected, removed, or explicitly historical.",
+    "Specs, agent prompts, command packets, and tests lock schema variants, packet anchors, agenda behavior, readback shape, and malformed-report rejection."
+  ],
+  "documents": {},
+  "artifacts": {
+    "proposal": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addHandoffReports/proposal.md",
+      "updatedAt": "2026-05-25T19:35:54.373Z"
+    },
+    "agreement": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addHandoffReports/agreement.md",
+      "updatedAt": "2026-05-25T19:36:50.513Z"
+    },
+    "design": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addHandoffReports/design.md",
+      "updatedAt": "2026-05-25T19:49:27.172Z"
+    },
+    "executiveSummary": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addHandoffReports/executive-summary.md",
+      "updatedAt": "2026-05-26T00:58:51.777Z"
+    }
+  },
+  "lastSignalAt": "2026-05-26T00:59:48.351Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d"
+}

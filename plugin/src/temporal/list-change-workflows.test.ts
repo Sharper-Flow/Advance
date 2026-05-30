@@ -3,7 +3,7 @@
  * enumeration path.
  *
  * Tests cover:
- *   - Visibility query construction (AdvProjectId + AdvChangeStatus filter)
+ *   - Visibility query construction (AdvAffectedProjects + AdvChangeStatus filter)
  *   - Pagination correctness via async-iterator drain
  *   - Default statuses (excludes archived + closed)
  *   - Custom statuses override
@@ -56,7 +56,8 @@ describe("buildVisibilityQuery", () => {
     const q = buildVisibilityQuery({
       projectId: "abc123",
     });
-    expect(q).toContain('AdvProjectId = "abc123"');
+    expect(q).toContain('AdvAffectedProjects = "abc123"');
+    expect(q).not.toContain("AdvProjectId");
     expect(q).toContain("AdvChangeStatus IN");
     expect(q).toContain('"draft"');
     expect(q).toContain('"pending"');
@@ -79,7 +80,7 @@ describe("buildVisibilityQuery", () => {
       projectId: "abc",
       statuses: null,
     });
-    expect(q).toContain('AdvProjectId = "abc"');
+    expect(q).toContain('AdvAffectedProjects = "abc"');
     expect(q).not.toContain("AdvChangeStatus");
   });
 
@@ -89,7 +90,7 @@ describe("buildVisibilityQuery", () => {
     });
     // Either reject or escape — we choose escape
     expect(q).not.toContain('"OR"1=1');
-    expect(q).toContain('AdvProjectId = "malicious\\"OR\\"1=1"');
+    expect(q).toContain('AdvAffectedProjects = "malicious\\"OR\\"1=1"');
   });
 });
 
@@ -139,7 +140,7 @@ describe("listChangeWorkflowIds", () => {
       projectId: "proj1",
       statuses: ["active"],
     });
-    expect(fakeClient.lastQuery).toContain('AdvProjectId = "proj1"');
+    expect(fakeClient.lastQuery).toContain('AdvAffectedProjects = "proj1"');
     expect(fakeClient.lastQuery).toContain('AdvChangeStatus IN ("active")');
   });
 

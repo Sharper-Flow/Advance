@@ -27,7 +27,6 @@ OpenCode plugin repo implementing ADV — a spec-driven development orchestrator
 plugin/src/
   tools/        # MCP tool implementations (spec, change, task, gate, wisdom, agenda, project, status, test)
   storage/      # JSON projections, Temporal adapters, migrations, external state paths
-  guards/       # Runtime policy: bash sanitization, sub-agent nesting depth (hard limit: 1)
   validator/    # Spec compliance, prep-readiness checks, task classification
   events/       # Terminal UI helpers, status markers
   utils/        # project-id (root commit SHA), debug-log, safe-execute, banner
@@ -35,7 +34,7 @@ plugin/src/
 .adv/specs/           # Capability specs — git-tracked, branch-local (the laws)
 .opencode/
   command/            # 21 slash-command workflow files (adv-*.md)
-  agents/             # adv-researcher (bundled global), adv-engineer (bundled global), adv-tron (repo-local); overlay-managed: adv, plan (absorbed scout), build (absorbed refine)
+  agents/             # adv-researcher (bundled global), adv-engineer (bundled global), adv-reviewer (bundled global), adv-designer (bundled global, apply-phase frontend specialist), adv-tron (repo-local); overlay-managed: adv, plan (absorbed scout), build (absorbed refine)
   overlays/           # Managed overlay blocks for global shared agents
 skills/               # Bundled methodology skills → synced to ~/.config/opencode/skills/
 docs/                 # Gate contracts, workflow diagram, checklists, generated spec docs

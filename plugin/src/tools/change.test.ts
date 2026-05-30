@@ -269,7 +269,52 @@ describe("change tools — signal-driven lifecycle", () => {
     });
 
     test("returns persisted task sub-agent reports when include.subagentReports is set", async () => {
+      const taskReport = {
+        schema_version: "1.0",
+        change_id: "test-change",
+        task_id: "tk-report",
+        attempt: 2,
+        agent: "adv-engineer",
+        status: "complete",
+        scope: "Implement",
+        workdir_used: "/worktree",
+        files_touched: ["src/a.ts"],
+        verification: [
+          {
+            command: "pnpm test",
+            exit_code: 0,
+            summary: "passed",
+          },
+        ],
+        decisions: [],
+        blockers: [],
+        follow_ups: [],
+        related_scan: "No related issues",
+        context_update_for_adv: {
+          what_ads_needs_to_know: "Report persisted",
+          suggested_next_action: "Continue",
+        },
+      } as const;
       const store = createMockStore({
+        subagent_reports: [
+          taskReport,
+          {
+            schema_version: "1.0",
+            change_id: "test-change",
+            attempt: 1,
+            agent: "adv-researcher",
+            scope: { kind: "change", scope_key: "researcher:docs" },
+            workdir_used: "/worktree",
+            topic: "Docs",
+            sources: [
+              { label: "docs", locator: "docs/x.md", summary: "source" },
+            ],
+            architecture_assessment: "ok",
+            validation: { status: "pass", blockers: [], notes: "ok" },
+            recommendation: "continue",
+            follow_ups: [],
+          },
+        ],
         tasks: [
           {
             id: "tk-report",
@@ -277,34 +322,7 @@ describe("change tools — signal-driven lifecycle", () => {
             status: "done",
             priority: 0,
             created_at: "2026-01-01T00:00:00Z",
-            subagent_reports: [
-              {
-                schema_version: "1.0",
-                change_id: "test-change",
-                task_id: "tk-report",
-                attempt: 2,
-                agent: "adv-engineer",
-                status: "complete",
-                scope: "Implement",
-                workdir_used: "/worktree",
-                files_touched: ["src/a.ts"],
-                verification: [
-                  {
-                    command: "pnpm test",
-                    exit_code: 0,
-                    summary: "passed",
-                  },
-                ],
-                decisions: [],
-                blockers: [],
-                follow_ups: [],
-                related_scan: "No related issues",
-                context_update_for_adv: {
-                  what_ads_needs_to_know: "Report persisted",
-                  suggested_next_action: "Continue",
-                },
-              },
-            ],
+            subagent_reports: [taskReport],
           } as Change["tasks"][number],
         ],
       });
@@ -322,8 +340,17 @@ describe("change tools — signal-driven lifecycle", () => {
           agent: "adv-engineer",
           attempt: 2,
         }),
+        expect.objectContaining({
+          change_id: "test-change",
+          agent: "adv-researcher",
+          attempt: 1,
+        }),
       ]);
-      expect(parsed._subagentReportsMeta).toEqual({ total: 1 });
+      expect(parsed._subagentReportsMeta).toEqual({
+        total: 2,
+        sidecar: 2,
+        legacyTask: 1,
+      });
       expect(parsed.tasks[0].subagent_reports).toHaveLength(1);
     });
 
@@ -430,6 +457,72 @@ describe("change tools — signal-driven lifecycle", () => {
 
         const parsed = JSON.parse(result);
         expect(parsed._executiveSummary).toBe(archivedContent);
+      } finally {
+        await rm(tempRoot, { recursive: true, force: true });
+      }
+    });
+
+    test("returns _acceptance content when include.acceptance is set and file exists", async () => {
+      const { mkdtemp, mkdir, writeFile, rm } = await import("fs/promises");
+      const { tmpdir } = await import("os");
+      const { join: pathJoin } = await import("path");
+      const tempRoot = await mkdtemp(pathJoin(tmpdir(), "adv-acceptance-"));
+      const changesDir = pathJoin(tempRoot, ".adv/changes");
+      const changeDir = pathJoin(changesDir, "test-change");
+      await mkdir(changeDir, { recursive: true });
+      const acceptanceContent =
+        "# Acceptance\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC-1 | success_criterion | pass | verified |\n";
+      await writeFile(
+        pathJoin(changeDir, "acceptance.md"),
+        acceptanceContent,
+        "utf-8",
+      );
+      try {
+        const store = createMockStore();
+        (store.paths as { changes: string }).changes = changesDir;
+        (store.paths as { root: string }).root = tempRoot;
+
+        const result = await changeTools.adv_change_show.execute(
+          {
+            changeId: "test-change",
+            include: { acceptance: true },
+          },
+          store,
+        );
+
+        const parsed = JSON.parse(result);
+        expect(parsed._acceptance).toBe(acceptanceContent);
+      } finally {
+        await rm(tempRoot, { recursive: true, force: true });
+      }
+    });
+
+    test("omits _acceptance when include.acceptance is set but file is missing", async () => {
+      const { mkdtemp, mkdir, rm } = await import("fs/promises");
+      const { tmpdir } = await import("os");
+      const { join: pathJoin } = await import("path");
+      const tempRoot = await mkdtemp(
+        pathJoin(tmpdir(), "adv-acceptance-missing-"),
+      );
+      const changesDir = pathJoin(tempRoot, ".adv/changes");
+      const changeDir = pathJoin(changesDir, "test-change");
+      await mkdir(changeDir, { recursive: true });
+      // Intentionally do NOT create acceptance.md
+      try {
+        const store = createMockStore();
+        (store.paths as { changes: string }).changes = changesDir;
+        (store.paths as { root: string }).root = tempRoot;
+
+        const result = await changeTools.adv_change_show.execute(
+          {
+            changeId: "test-change",
+            include: { acceptance: true },
+          },
+          store,
+        );
+
+        const parsed = JSON.parse(result);
+        expect(parsed._acceptance).toBeUndefined();
       } finally {
         await rm(tempRoot, { recursive: true, force: true });
       }
@@ -584,12 +677,84 @@ describe("change tools — signal-driven lifecycle", () => {
       expect(parsed.proposalPath).toContain("proposal.md");
       expect(store.changes.updateArtifacts).toHaveBeenCalledWith(
         "test-change",
-        "# Valid proposal update",
-        undefined,
-        undefined,
-        undefined,
-        undefined,
+        { proposal: "# Valid proposal update" },
       );
+    });
+
+    test("requires audited recovery fields for executive-summary metadata recovery", async () => {
+      const store = createMockStore();
+
+      const result = await changeTools.adv_change_update.execute(
+        {
+          changeId: "test-change",
+          executiveSummary: "# Executive Summary\n\nDurable proof.",
+          recoveryMode: "poisoned_history",
+          recoveryEvidence:
+            "WorkflowExecutionAlreadyCompleted: workflow execution already completed",
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.error).toContain(
+        "recoveryReason and priorApprovalEvidence",
+      );
+      expect(store.changes.updateArtifacts).not.toHaveBeenCalled();
+    });
+
+    test("recovers executive-summary metadata when artifact update hits completed workflow", async () => {
+      const { createHash } = await import("crypto");
+      const { mkdir, readFile, rm } = await import("fs/promises");
+      const { tmpdir } = await import("os");
+      const { join: pathJoin } = await import("path");
+      const tempRoot = pathJoin(
+        tmpdir(),
+        `adv-change-update-recovery-${Date.now()}`,
+      );
+      const changesDir = pathJoin(tempRoot, ".adv/changes");
+      const changeDir = pathJoin(changesDir, "test-change");
+      await mkdir(changeDir, { recursive: true });
+
+      try {
+        const store = createMockStore();
+        (store.paths as { changes: string }).changes = changesDir;
+        (store.paths as { root: string }).root = tempRoot;
+        vi.mocked(store.changes.updateArtifacts).mockRejectedValueOnce(
+          new Error("workflow execution already completed"),
+        );
+
+        const executiveSummary = "# Executive Summary\n\nDurable proof.";
+        const result = await changeTools.adv_change_update.execute(
+          {
+            changeId: "test-change",
+            executiveSummary,
+            recoveryMode: "poisoned_history",
+            recoveryEvidence:
+              "WorkflowExecutionAlreadyCompleted: workflow execution already completed",
+            recoveryReason:
+              "completed workflow accepted disk artifact but rejected metadata signal",
+            priorApprovalEvidence: "Prior user acceptance approval: accept",
+          },
+          store,
+        );
+
+        const parsed = JSON.parse(result);
+        expect(parsed._recoveryMutation).toBe(true);
+        expect(parsed.executiveSummaryPath).toBe(
+          pathJoin(changeDir, "executive-summary.md"),
+        );
+        const saved = JSON.parse(
+          await readFile(pathJoin(changeDir, "change.json"), "utf-8"),
+        );
+        expect(saved.artifacts.executiveSummary).toMatchObject({
+          path: pathJoin(changeDir, "executive-summary.md"),
+          contentHash: createHash("sha256")
+            .update(executiveSummary)
+            .digest("hex"),
+        });
+      } finally {
+        await rm(tempRoot, { recursive: true, force: true });
+      }
     });
   });
 
@@ -620,24 +785,17 @@ describe("change tools — signal-driven lifecycle", () => {
         issue_number: 12,
         source_artifact: "ag-12",
       });
-      expect(store.changes.create).toHaveBeenCalledWith(
-        "Create origin seed",
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        {
-          initialMetadata: {
-            origin: {
-              kind: "triage",
-              issue_number: 12,
-              source_artifact: "ag-12",
-            },
+      expect(store.changes.create).toHaveBeenCalledWith("Create origin seed", {
+        capability: undefined,
+        artifacts: {},
+        initialMetadata: {
+          origin: {
+            kind: "triage",
+            issue_number: 12,
+            source_artifact: "ag-12",
           },
         },
-      );
+      });
       expect(store.changes.save).not.toHaveBeenCalledWith(
         expect.objectContaining({
           origin: expect.anything(),

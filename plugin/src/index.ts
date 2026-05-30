@@ -12,7 +12,7 @@
  */
 
 import { type Plugin } from "@opencode-ai/plugin";
-import { isAbsolute, resolve } from "node:path";
+import { isAbsolute, join, resolve } from "node:path";
 import {
   initializeStatus,
   cleanup as cleanupTerminal,
@@ -64,6 +64,8 @@ import {
   type TrunkWriteFirewallDeps,
 } from "./tools/trunk-write-firewall";
 import { parseWorktreePaths } from "./utils/worktree-paths";
+import { getWorktreeBase } from "./utils/project-id";
+import { existsSync } from "fs";
 import { execGit, getDefaultBranch } from "./utils/git";
 import { resolveGitSessionContext } from "./utils/git-session";
 import {
@@ -317,11 +319,11 @@ const advancePluginImpl: Plugin = async (input) => {
     `Plugin init: dir=${directory}, worktree=${worktree}, isWorktree=${isWorktree}, isMainCheckout=${isMainCheckout}, mainCheckoutPath=${gitSession.mainCheckoutPath ?? "unknown"}`,
   );
 
-  const { effectiveDir, externalRoot } = await resolveProjectContext(
-    directory,
-    project,
-    worktree,
-  );
+  const {
+    effectiveDir,
+    externalRoot,
+    projectId: resolvedProjectId,
+  } = await resolveProjectContext(directory, project, worktree);
   // P2.7: legacy migration removed — disk-only store reads/writes the same
   // on-disk paths. No migration step needed.
 
@@ -358,6 +360,13 @@ const advancePluginImpl: Plugin = async (input) => {
   // store.init() fails, it returns { store: null, initError: Error } so we
   // can register a degraded tool map rather than nuking every adv_* tool.
   const { store, initError } = await tryInitStore(effectiveDir, externalRoot);
+
+  // Cache the worktree base path for rel-path resolution in the firewall
+  // hook. Uses the project ID already resolved by resolveProjectContext.
+  // Null when project ID is unavailable (falls back to session directory).
+  const cachedWorktreeBase: string | null = resolvedProjectId
+    ? getWorktreeBase(resolvedProjectId)
+    : null;
 
   // Initialize terminal status
   const projectName = getProjectName(directory);
@@ -667,8 +676,29 @@ const advancePluginImpl: Plugin = async (input) => {
               ? args.path
               : undefined;
       if (targetPath) {
+        // fixTrunkFirewallRelPath: when session is on main checkout and the
+        // agent has an active change with a registered ADV worktree, resolve
+        // relative paths against the worktree path instead of the session
+        // directory. Absolute paths always use the session directory (unchanged
+        // behavior). Falls back to session directory when no worktree exists.
+        let resolutionBase = directory;
+        const changeId = state.activeChange.id;
+        if (
+          !isAbsolute(targetPath) &&
+          isMainCheckout &&
+          changeId &&
+          cachedWorktreeBase
+        ) {
+          const worktreeDir = join(cachedWorktreeBase, "change", changeId);
+          if (existsSync(worktreeDir)) {
+            debugLog(
+              `trunk-write-firewall: resolving rel path against worktree ${worktreeDir} instead of session dir ${directory}`,
+            );
+            resolutionBase = worktreeDir;
+          }
+        }
         const result = await checkTrunkWrite(
-          normalizeToolTargetPath(targetPath, directory),
+          normalizeToolTargetPath(targetPath, resolutionBase),
           firewallDeps,
         );
         if (result.decision === "BLOCK") {

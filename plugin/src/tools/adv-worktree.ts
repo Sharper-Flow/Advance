@@ -394,7 +394,7 @@ export const advWorktreeTools = {
 
   adv_worktree_cleanup: {
     description:
-      "Retry queued worktree deletions. Safe: skips worktrees still used as a process CWD and keeps them queued.",
+      "Discover terminal cleanup candidates and retry queued worktree deletions. Safe: skips worktrees still used as a process CWD, preserves dirty/unmerged unsafe worktrees, and keeps retained items queued.",
     args: {
       reason: z
         .string()
@@ -469,7 +469,7 @@ export const advWorktreeTools = {
 
   adv_worktree_triage: {
     description:
-      "Read-only worktree inventory + advisory recommendations. Detects stale heads, missing registry entries, and archived-not-cleaned worktrees.",
+      "Read-only worktree inventory + advisory recommendations. Detects stale heads, missing registry entries, archived-not-cleaned worktrees, and drift group classifications.",
     args: {
       projectRoot: z
         .string()

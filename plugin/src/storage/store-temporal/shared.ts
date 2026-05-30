@@ -1,4 +1,7 @@
-import type { Change } from "../../types";
+import {
+  normalizePersistedSubagentReportState,
+  type Change,
+} from "../../types";
 import type { ChangeWorkflowState } from "../../temporal/contracts";
 import { buildChangeWorkflowId } from "../../temporal/client";
 import {
@@ -58,24 +61,28 @@ export interface TemporalStoreBackendInput {
 export function mapTemporalChangeStateToChange(
   state: ChangeWorkflowState,
 ): Change {
+  const [normalizedState] = normalizePersistedSubagentReportState(state);
+  const safeState = normalizedState as ChangeWorkflowState;
+
   return {
-    id: state.changeId,
-    title: state.title,
-    status: state.status,
-    created_at: state.createdAt,
-    tasks: state.tasks,
-    deltas: state.deltas,
-    wisdom: state.wisdom,
-    gates: state.gates,
-    reentry_history: state.reentry_history,
-    fast_follow_of: state.fast_follow_of,
-    origin: state.origin,
-    contract: state.contract,
-    acceptanceCriteria: state.acceptanceCriteria,
-    documents: state.documents,
-    artifacts: state.artifacts,
-    lastSignalAt: state.lastSignalAt,
-    adv_project_id: state.projectId,
+    id: safeState.changeId,
+    title: safeState.title,
+    status: safeState.status,
+    created_at: safeState.createdAt,
+    tasks: safeState.tasks,
+    subagent_reports: safeState.subagent_reports,
+    deltas: safeState.deltas,
+    wisdom: safeState.wisdom,
+    gates: safeState.gates,
+    reentry_history: safeState.reentry_history,
+    fast_follow_of: safeState.fast_follow_of,
+    origin: safeState.origin,
+    contract: safeState.contract,
+    acceptanceCriteria: safeState.acceptanceCriteria,
+    documents: safeState.documents,
+    artifacts: safeState.artifacts,
+    lastSignalAt: safeState.lastSignalAt,
+    adv_project_id: safeState.projectId,
   };
 }
 

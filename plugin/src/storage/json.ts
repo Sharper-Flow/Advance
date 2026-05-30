@@ -8,7 +8,12 @@
 
 import { join, basename } from "path";
 import { readdir, mkdir, readFile, access, rm } from "fs/promises";
-import { SpecSchema, ChangeSchema, ProjectConfigSchema } from "../types";
+import {
+  SpecSchema,
+  ChangeSchema,
+  ProjectConfigSchema,
+  normalizePersistedSubagentReportState,
+} from "../types";
 import type { Spec, Change, ProjectConfig } from "../types";
 import { ZodError } from "zod";
 import { atomicWriteFile } from "../utils/fs";
@@ -438,7 +443,10 @@ export async function loadChange(
   try {
     const content = await readFile(changePath, "utf-8");
     const parsed = JSON.parse(content);
-    const [normalized, changed] = normalizeLegacyGateData(parsed);
+    const [gateNormalized, gateChanged] = normalizeLegacyGateData(parsed);
+    const [normalized, reportChanged] =
+      normalizePersistedSubagentReportState(gateNormalized);
+    const changed = gateChanged || reportChanged;
 
     if (changed) {
       await atomicWriteFile(changePath, JSON.stringify(normalized, null, 2));
@@ -596,11 +604,7 @@ export async function createChangeScaffold(
   changesDir: string,
   changeId: string,
   title: string,
-  proposalContent?: string,
-  problemStatementContent?: string,
-  agreementContent?: string,
-  designContent?: string,
-  executiveSummaryContent?: string,
+  artifacts?: import("../types").ArtifactPayload,
 ): Promise<{
   changePath: string;
   proposalPath: string;
@@ -609,6 +613,11 @@ export async function createChangeScaffold(
   designPath?: string;
   executiveSummaryPath?: string;
 }> {
+  const proposalContent = artifacts?.proposal;
+  const problemStatementContent = artifacts?.problemStatement;
+  const agreementContent = artifacts?.agreement;
+  const designContent = artifacts?.design;
+  const executiveSummaryContent = artifacts?.executiveSummary;
   const changeDir = join(changesDir, changeId);
   const changePath = join(changeDir, "change.json");
   const proposalPath = join(changeDir, "proposal.md");
@@ -746,11 +755,7 @@ export async function createChangeScaffold(
 export async function updateChangeArtifacts(
   changesDir: string,
   changeId: string,
-  proposalContent?: string,
-  problemStatementContent?: string,
-  agreementContent?: string,
-  designContent?: string,
-  executiveSummaryContent?: string,
+  artifacts: import("../types").ArtifactPayload,
 ): Promise<{
   proposalPath?: string;
   problemStatementPath?: string;
@@ -759,6 +764,11 @@ export async function updateChangeArtifacts(
   executiveSummaryPath?: string;
   error?: string;
 }> {
+  const proposalContent = artifacts.proposal;
+  const problemStatementContent = artifacts.problemStatement;
+  const agreementContent = artifacts.agreement;
+  const designContent = artifacts.design;
+  const executiveSummaryContent = artifacts.executiveSummary;
   const changeDir = join(changesDir, changeId);
 
   // Validate the change directory exists
@@ -773,7 +783,7 @@ export async function updateChangeArtifacts(
   // Table-driven artifact writes — each entry maps a content param to its
   // filename and the result-shape key. Mirror of createChangeScaffold's
   // optionalArtifacts table (plus a proposal entry); keep in sync.
-  const artifacts = [
+  const artifactEntries = [
     {
       key: "proposalPath",
       field: "proposal",
@@ -808,7 +818,7 @@ export async function updateChangeArtifacts(
 
   // rq-toolArgBlankArtifactLinkage01: storage rejects blank artifact writes
   // before any partial write so tool-layer bypasses cannot erase content.
-  const blankFields = artifacts
+  const blankFields = artifactEntries
     .filter(
       ({ content }) =>
         content !== undefined &&
@@ -831,7 +841,7 @@ export async function updateChangeArtifacts(
     error?: string;
   } = {};
 
-  for (const { key, content, filename } of artifacts) {
+  for (const { key, content, filename } of artifactEntries) {
     if (content === undefined) continue;
     const filePath = join(changeDir, filename);
     try {

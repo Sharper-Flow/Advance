@@ -91,9 +91,18 @@ Tool names are exact schema identifiers. Never normalize MCP names: use `searchc
 Before touching anything, establish scope:
 
 1. **Identify the target**: Read the task, prompt, or Apply Context Packet for exactly what needs doing. Extract the **WORKING DIRECTORY** from the Apply Context Packet's first line (`WORKING DIRECTORY: /absolute/path`).
-2. **State the scope**: "Scope: [specific thing] in [specific file(s)]"
-3. **Confirm if ambiguous**: If task scope is unclear after packet identity is valid, ask a clarifying question. Do NOT guess. Missing `TASK` or `ATTEMPT` is not user ambiguity; it is a packet defect.
-4. **Path Preflight**: Before reading any file referenced in AFFECTED FILES or DESIGN EXCERPT, verify it exists in the workdir:
+2. **Read warn-first contract anchors** when present. Missing new non-identity anchors are warn-first rollout defects; do not fail identity validation for them:
+   - `TASK_SCOPE:` objective and task-local boundaries
+   - `IN_SCOPE:` files, findings, contract refs, or behavior you own
+   - `OUT_OF_SCOPE:` boundaries you must not change without reporting
+   - `DONE_WHEN:` concrete completion conditions
+   - `STOP_WHEN:` stop conditions; stop immediately for contract/security/release blockers
+   - `VERIFICATION:` required-when-possible checks; you may add relevant checks
+3. **State the scope**: "Scope: [specific thing] in [specific file(s)]"
+   - Default drift behavior: finish owned scope if safe, then report out-of-scope findings in `scope_drift`, `follow_ups`, and `required_main_agent_actions`.
+   - Stop immediately only for contract/security/release blockers, unsafe edits, or impossible verification.
+4. **Confirm if ambiguous**: If task scope is unclear after packet identity is valid, ask a clarifying question. Do NOT guess. Missing `TASK` or `ATTEMPT` is not user ambiguity; it is a packet defect.
+5. **Path Preflight**: Before reading any file referenced in AFFECTED FILES or DESIGN EXCERPT, verify it exists in the workdir:
    - For each read-reference path (files you need to READ, not create): `bash "test -e '{workdir}/{path}' && echo OK || echo MISSING"` (pass `workdir`).
    - If MISSING and the file should already exist (pattern file, existing code to extend):
      - Discover actual structure: `glob pattern: "**/{basename}"` with `workdir`, or `bash "ls {workdir}/"` with `workdir`.
@@ -211,7 +220,7 @@ Build the following JSON object as the `report` argument to `adv_subagent_report
   "task_id": "{task-id from context packet}",
   "attempt": 1,
   "agent": "adv-engineer",
-  "scope": "{one-line scope summary}",
+  "scope": { "kind": "task", "task_id": "{task-id from context packet}" },
   "status": "complete | error",
   "files_touched": ["{relative/path/to/file}"],
   "verification": [
@@ -228,7 +237,9 @@ Build the following JSON object as the `report` argument to `adv_subagent_report
     }
   ],
   "blockers": [],
+  "scope_drift": null,
   "follow_ups": [],
+  "required_main_agent_actions": [],
   "related_scan": "{summary of same-pattern fixes applied, or 'none'}",
   "workdir_used": "{absolute path of working directory, or '<unspecified>' if not provided}",
   "context_update_for_adv": {
@@ -242,9 +253,12 @@ Build the following JSON object as the `report` argument to `adv_subagent_report
 
 - `status`: `"complete"` when verification passes and scope is done; `"error"` when non-empty `blockers`.
 - `task_id`: MUST equal the task id from the `TASK:` line in the Apply or remediation Context Packet.
+- `scope`: MUST be structural task scope `{ "kind": "task", "task_id": "..." }`. String scope is compatibility-only for legacy callers and MUST NOT be used in new reports.
 - `attempt`: MUST equal the numeric `ATTEMPT:` value from the Apply or remediation Context Packet.
 - `blockers`: Empty array on success. On failure, list each blocker with file/line and what prevents completion.
+- `scope_drift`: `null` when no drift. Non-null when you found out-of-scope work; use `recommendation: "finish_owned_scope_then_report"` unless STOP_WHEN required immediate stop.
 - `follow_ups`: Empty array if nothing deferred. Otherwise list out-of-scope items discovered.
+- `required_main_agent_actions`: Empty array if no orchestrator action is required. Otherwise list follow-up actions the main ADV orchestrator must handle.
 - `verification`: At least one entry showing a test/build/lint command and its result.
 - `decisions`: Empty array if no non-obvious choices made. Otherwise document tradeoffs.
 - `files_touched`: Every file you created, modified, or deleted.
@@ -268,7 +282,7 @@ Build the following JSON object as the `report` argument to `adv_subagent_report
   "task_id": "tk-abc123",
   "attempt": 1,
   "agent": "adv-engineer",
-  "scope": "Add POST /api/v1/users endpoint with validation",
+  "scope": { "kind": "task", "task_id": "tk-abc123" },
   "status": "complete",
   "files_touched": ["src/routes/users.ts", "src/routes/users.test.ts"],
   "verification": [
@@ -285,7 +299,9 @@ Build the following JSON object as the `report` argument to `adv_subagent_report
     }
   ],
   "blockers": [],
+  "scope_drift": null,
   "follow_ups": [],
+  "required_main_agent_actions": [],
   "related_scan": "Fixed same validation pattern in src/routes/posts.ts",
   "workdir_used": "/path/to/worktree/change/someChangeId",
   "context_update_for_adv": {

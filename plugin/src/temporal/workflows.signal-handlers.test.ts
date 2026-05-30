@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { TestWorkflowEnvironment } from "@temporalio/testing";
 import { Worker } from "@temporalio/worker";
@@ -13,6 +14,7 @@ import { createDefaultGates } from "../types";
 import type { ChangeWorkflowInput, ChangeWorkflowState } from "./contracts";
 import {
   acceptanceCriteriaSetSignal,
+  acceptanceUpdatedSignal,
   agreementUpdatedSignal,
   archiveRequestedSignal,
   changeCancelledSignal,
@@ -23,6 +25,7 @@ import {
   contractReviewMatrixSetSignal,
   contractSetSignal,
   designUpdatedSignal,
+  executiveSummaryUpdatedSignal,
   gateAwaitingApprovalSignal,
   gateCompletedSignal,
   gateInProgressSignal,
@@ -40,6 +43,7 @@ import {
   taskCompletedSignal,
   taskRemovedSignal,
   taskUpdatedSignal,
+  updateArtifactMetadataSignal,
   wisdomAddedSignal,
   worktreeCreatedSignal,
   worktreeDeletedSignal,
@@ -185,6 +189,32 @@ async function waitForGateStatus(
   return await queryState(handle);
 }
 
+function extractSetHandlerBlocks(source: string): string[] {
+  const blocks: string[] = [];
+  let searchIndex = 0;
+  while (searchIndex < source.length) {
+    const start = source.indexOf("wf.setHandler(", searchIndex);
+    if (start === -1) break;
+
+    let depth = 0;
+    let end = start;
+    for (; end < source.length; end++) {
+      const char = source[end];
+      if (char === "(") depth++;
+      if (char === ")") {
+        depth--;
+        if (depth === 0) {
+          blocks.push(source.slice(start, end + 1));
+          break;
+        }
+      }
+    }
+    searchIndex = end + 1;
+  }
+
+  return blocks;
+}
+
 describe("changeWorkflow signal handlers", () => {
   it("applies document, task, gate, wisdom, worktree, and conformance signals to workflow state", async () => {
     await withSignalWorker("state-mutations", async (handle) => {
@@ -204,6 +234,14 @@ describe("changeWorkflow signal handlers", () => {
       await handle.signal(designUpdatedSignal, {
         text: "design text",
         updatedAt: "2026-05-05T00:00:04.000Z",
+      });
+      await handle.signal(executiveSummaryUpdatedSignal, {
+        text: "exec summary text",
+        updatedAt: "2026-05-05T00:00:04.500Z",
+      });
+      await handle.signal(acceptanceUpdatedSignal, {
+        text: "acceptance text",
+        updatedAt: "2026-05-05T00:00:04.750Z",
       });
       await handle.signal(acceptanceCriteriaSetSignal, {
         criteria: ["SC1", "SC2"],
@@ -385,6 +423,8 @@ describe("changeWorkflow signal handlers", () => {
         problemStatement: "problem text",
         agreement: "agreement text",
         design: "design text",
+        executiveSummary: "exec summary text",
+        acceptance: "acceptance text",
       });
       expect(state.acceptanceCriteria).toEqual([
         "Contract state is persisted.",
@@ -547,16 +587,12 @@ describe("changeWorkflow signal handlers", () => {
     }
   }, 30_000);
 
-  it("records artifact evidence when required artifact passes deterministic checks", async () => {
+  it("records artifact evidence when required artifact exists in workflow state", async () => {
     const dir = await createTempDir();
     try {
       const changesDir = join(dir, "changes");
-      const changeDir = join(changesDir, "valid-artifact");
-      await mkdir(changeDir, { recursive: true });
-      await writeFile(
-        join(changeDir, "proposal.md"),
-        "# Proposal\n\nThis artifact has enough durable gate evidence.",
-      );
+      const proposalContent =
+        "# Proposal\n\nThis artifact has enough durable gate evidence.";
       const input = {
         ...makeChangeInput("valid-artifact"),
         projectionChangesDir: changesDir,
@@ -566,6 +602,21 @@ describe("changeWorkflow signal handlers", () => {
         "valid-artifact",
         input,
         async (handle) => {
+          await handle.signal(proposalUpdatedSignal, {
+            text: proposalContent,
+            updatedBy: "tester",
+            updatedAt: "2026-05-05T00:00:00.500Z",
+          });
+          await handle.signal(updateArtifactMetadataSignal, {
+            kind: "proposal",
+            metadata: {
+              path: join(changesDir, "valid-artifact", "proposal.md"),
+              updatedAt: "2026-05-05T00:00:00.500Z",
+              contentHash: createHash("sha256")
+                .update(proposalContent)
+                .digest("hex"),
+            },
+          });
           await handle.signal(gateCompletedSignal, {
             gateId: "proposal",
             completedBy: "tester",
@@ -576,6 +627,93 @@ describe("changeWorkflow signal handlers", () => {
           expect(state.gates.proposal.status).toBe("done");
           expect(state.gates.proposal.artifact_evidence).toMatchObject({
             kind: "proposal",
+            path: join(changesDir, "valid-artifact", "proposal.md"),
+            content_hash: createHash("sha256")
+              .update(proposalContent)
+              .digest("hex"),
+            non_whitespace_chars: expect.any(Number),
+          });
+        },
+      );
+    } finally {
+      await cleanupTempDir(dir);
+    }
+  }, 30_000);
+
+  it("completes discovery from workflow-state agreement without disk agreement file", async () => {
+    const dir = await createTempDir();
+    try {
+      const changesDir = join(dir, "changes");
+      const agreementContent =
+        "# Agreement\n\nThis agreement exists only in Temporal workflow state.";
+      const gates = createDefaultGates();
+      gates.proposal.status = "done";
+      const input = {
+        ...makeChangeInput("state-agreement-discovery"),
+        projectionChangesDir: changesDir,
+        seedState: {
+          ...makeChangeInput("state-agreement-discovery").seedState,
+          gates,
+        },
+      };
+
+      await withArtifactSignalWorker(
+        "state-agreement-discovery",
+        input,
+        async (handle) => {
+          await handle.signal(agreementUpdatedSignal, {
+            text: agreementContent,
+            updatedAt: "2026-05-05T00:00:01.000Z",
+          });
+          await handle.signal(updateArtifactMetadataSignal, {
+            kind: "agreement",
+            metadata: {
+              path: join(
+                changesDir,
+                "state-agreement-discovery",
+                "agreement.md",
+              ),
+              updatedAt: "2026-05-05T00:00:01.000Z",
+              contentHash: createHash("sha256")
+                .update(agreementContent)
+                .digest("hex"),
+            },
+          });
+          await handle.signal(contractSetSignal, {
+            contract: {
+              version: 1,
+              rigor: "standard",
+              source: {
+                artifact: "agreement",
+                approvedAt: "2026-05-05T00:00:01.000Z",
+              },
+              items: [],
+              amendments: [],
+            },
+            updatedAt: "2026-05-05T00:00:01.000Z",
+          });
+
+          await expect(
+            readFile(
+              join(changesDir, "state-agreement-discovery", "agreement.md"),
+              "utf8",
+            ),
+          ).rejects.toMatchObject({ code: "ENOENT" });
+
+          await handle.signal(gateCompletedSignal, {
+            gateId: "discovery",
+            completedBy: "tester",
+            completedAt: "2026-05-05T00:00:02.000Z",
+          });
+
+          const state = await waitForGateStatus(handle, "discovery", "done");
+          expect(state.gates.discovery.status).toBe("done");
+          expect(state.gates.discovery.artifact_evidence).toMatchObject({
+            kind: "agreement",
+            path: join(changesDir, "state-agreement-discovery", "agreement.md"),
+            content_hash: createHash("sha256")
+              .update(agreementContent)
+              .digest("hex"),
             non_whitespace_chars: expect.any(Number),
           });
         },
@@ -619,6 +757,14 @@ describe("changeWorkflow signal handlers", () => {
     const dir = await createTempDir();
     try {
       const changesDir = join(dir, "changes");
+      const changeDir = join(changesDir, "acceptance-projection");
+      const executiveSummaryContent =
+        "# Executive Summary\n\nAcceptance proof persisted before approval.";
+      await mkdir(changeDir, { recursive: true });
+      await writeFile(
+        join(changeDir, "executive-summary.md"),
+        executiveSummaryContent,
+      );
       const gates = createDefaultGates();
       gates.proposal.status = "done";
       gates.discovery.status = "done";
@@ -631,6 +777,20 @@ describe("changeWorkflow signal handlers", () => {
         seedState: {
           ...makeChangeInput("acceptance-projection").seedState,
           gates,
+          // State-backed acceptance (completeStateBackedGate): proof comes
+          // from state.documents.executiveSummary, not the disk file.
+          documents: {
+            executiveSummary: executiveSummaryContent,
+          },
+          artifacts: {
+            executiveSummary: {
+              path: join(changeDir, "executive-summary.md"),
+              updatedAt: "2026-05-05T00:01:30.000Z",
+              contentHash: createHash("sha256")
+                .update(executiveSummaryContent)
+                .digest("hex"),
+            },
+          },
           contract: {
             version: 1 as const,
             rigor: "standard" as const,
@@ -693,6 +853,207 @@ describe("changeWorkflow signal handlers", () => {
     }
   }, 30_000);
 
+  // AC1/AC5 (completeStateBackedGate): acceptance completes from
+  // state.documents.executiveSummary + state.artifacts.executiveSummary
+  // metadata WITHOUT any pre-existing disk file. The Temporal-only store no
+  // longer writes artifact .md files (no-disk-writes-invariant), so the legacy
+  // disk inspectArtifactActivity path leaves the acceptance gate stuck with
+  // ACCEPTANCE_EXECUTIVE_SUMMARY_MISSING. The state-backed branch reads the
+  // proof from workflow state, completes acceptance, and (AC7) materializes
+  // executive-summary.md to disk for archive-bundle inclusion.
+  //
+  // RED before the fix: gate goes "stuck" because no disk file exists.
+  it("completes acceptance state-backed with no pre-existing disk file (AC1, AC5, AC7)", async () => {
+    const dir = await createTempDir();
+    try {
+      const changesDir = join(dir, "changes");
+      const changeDir = join(changesDir, "acceptance-no-disk");
+      const executiveSummaryContent =
+        "# Executive Summary\n\nState-backed acceptance proof — no disk file written before approval.";
+      // Intentionally create the change dir but DO NOT write
+      // executive-summary.md — proof comes only from workflow state.
+      await mkdir(changeDir, { recursive: true });
+      const gates = createDefaultGates();
+      gates.proposal.status = "done";
+      gates.discovery.status = "done";
+      gates.design.status = "done";
+      gates.planning.status = "done";
+      gates.execution.status = "done";
+      const input = {
+        ...makeChangeInput("acceptance-no-disk"),
+        projectionChangesDir: changesDir,
+        seedState: {
+          ...makeChangeInput("acceptance-no-disk").seedState,
+          gates,
+          documents: {
+            executiveSummary: executiveSummaryContent,
+          },
+          artifacts: {
+            executiveSummary: {
+              path: join(changeDir, "executive-summary.md"),
+              updatedAt: "2026-05-05T00:01:30.000Z",
+              contentHash: createHash("sha256")
+                .update(executiveSummaryContent)
+                .digest("hex"),
+            },
+          },
+          contract: {
+            version: 1 as const,
+            rigor: "standard" as const,
+            source: {
+              artifact: "agreement" as const,
+              approvedAt: "2026-05-05T00:00:00.000Z",
+            },
+            items: [
+              {
+                id: "AC1",
+                kind: "acceptance_criterion" as const,
+                text: "State-backed acceptance is enforced.",
+                sourceArtifact: "agreement" as const,
+                verificationRequired: true,
+                evidencePolicy: "test" as const,
+                status: "approved" as const,
+              },
+            ],
+            reviewMatrix: {
+              reviewedAt: "2026-05-05T00:01:00.000Z",
+              rows: [
+                {
+                  contractId: "AC1",
+                  kind: "acceptance_criterion" as const,
+                  status: "pass" as const,
+                  evidencePolicy: "test" as const,
+                  evidence: "workflow tests pass",
+                },
+              ],
+            },
+            amendments: [],
+          },
+        },
+      };
+
+      await withArtifactSignalWorker(
+        "acceptance-no-disk",
+        input,
+        async (handle) => {
+          await handle.signal(gateCompletedSignal, {
+            gateId: "acceptance",
+            completedBy: "tester",
+            completedAt: "2026-05-05T00:02:00.000Z",
+          });
+
+          const state = await waitForGateStatus(handle, "acceptance", "done");
+          expect(state.gates.acceptance.status).toBe("done");
+          expect(state.gates.acceptance.artifact_evidence).toMatchObject({
+            kind: "acceptance",
+          });
+          // AC7: executive-summary.md materialized to disk for the archive
+          // bundle even though no disk file existed before approval.
+          await expect(
+            readFile(join(changeDir, "executive-summary.md"), "utf-8"),
+          ).resolves.toContain("State-backed acceptance proof");
+        },
+      );
+    } finally {
+      await cleanupTempDir(dir);
+    }
+  }, 30_000);
+
+  // completeStateBackedGate: on the canonical state-backed acceptance path,
+  // proof comes from state.documents.executiveSummary (not a disk-hash
+  // comparison). The legacy disk-hash-stale blocker no longer fires for new
+  // histories — the stale-contract class is prevented structurally by cache
+  // invalidation (AC9) + sequential content/metadata signal ordering. The
+  // meaningful state-backed block is: acceptance metadata present but the
+  // executive-summary CONTENT is missing from workflow state.
+  it("blocks acceptance when executive-summary content is missing from state", async () => {
+    const dir = await createTempDir();
+    try {
+      const changesDir = join(dir, "changes");
+      const changeDir = join(changesDir, "acceptance-missing-state-content");
+      await mkdir(changeDir, { recursive: true });
+      const gates = createDefaultGates();
+      gates.proposal.status = "done";
+      gates.discovery.status = "done";
+      gates.design.status = "done";
+      gates.planning.status = "done";
+      gates.execution.status = "done";
+      const input = {
+        ...makeChangeInput("acceptance-missing-state-content"),
+        projectionChangesDir: changesDir,
+        seedState: {
+          ...makeChangeInput("acceptance-missing-state-content").seedState,
+          gates,
+          // Metadata present (passes L1 acceptanceContractBlockers) but
+          // state.documents.executiveSummary deliberately absent.
+          artifacts: {
+            executiveSummary: {
+              path: join(changeDir, "executive-summary.md"),
+              updatedAt: "2026-05-05T00:01:30.000Z",
+              contentHash: "0".repeat(64),
+            },
+          },
+          contract: {
+            version: 1 as const,
+            rigor: "standard" as const,
+            source: {
+              artifact: "agreement" as const,
+              approvedAt: "2026-05-05T00:00:00.000Z",
+            },
+            items: [
+              {
+                id: "AC1",
+                kind: "acceptance_criterion" as const,
+                text: "Artifact-backed gates are enforced.",
+                sourceArtifact: "agreement" as const,
+                verificationRequired: true,
+                evidencePolicy: "test" as const,
+                status: "approved" as const,
+              },
+            ],
+            reviewMatrix: {
+              reviewedAt: "2026-05-05T00:01:00.000Z",
+              rows: [
+                {
+                  contractId: "AC1",
+                  kind: "acceptance_criterion" as const,
+                  status: "pass" as const,
+                  evidencePolicy: "test" as const,
+                  evidence: "workflow tests pass",
+                },
+              ],
+            },
+            amendments: [],
+          },
+        },
+      };
+
+      await withArtifactSignalWorker(
+        "acceptance-missing-state-content",
+        input,
+        async (handle) => {
+          await handle.signal(gateCompletedSignal, {
+            gateId: "acceptance",
+            completedBy: "tester",
+            completedAt: "2026-05-05T00:02:00.000Z",
+          });
+
+          const state = await waitForGateStatus(handle, "acceptance", "stuck");
+          expect(state.gates.acceptance.stuck_reason).toContain(
+            "ACCEPTANCE_EXECUTIVE_SUMMARY_MISSING",
+          );
+          expect(state.gates.acceptance.readiness_blockers).toContainEqual(
+            expect.objectContaining({
+              code: "ACCEPTANCE_EXECUTIVE_SUMMARY_MISSING",
+            }),
+          );
+        },
+      );
+    } finally {
+      await cleanupTempDir(dir);
+    }
+  }, 30_000);
+
   it("treats archiveRequested and changeCancelled as terminal lifecycle signals", async () => {
     await withSignalWorker("archive-terminal", async (handle) => {
       await handle.signal(archiveRequestedSignal, {
@@ -738,6 +1099,55 @@ describe("changeWorkflow signal handlers", () => {
       expect(task!.subagent_reports![0].attempt).toBe(1);
     });
   }, 30_000);
+
+  it("records signal rejections instead of failing workflow when a signal apply path throws", async () => {
+    await withSignalWorker("signal-rejection", async (handle) => {
+      await handle.signal(taskUpdatedSignal, {
+        taskId: "tk-missing",
+        partial: { title: "should be rejected" },
+        updatedAt: "2026-05-05T00:00:01.000Z",
+      });
+
+      await handle.signal(taskAddedSignal, {
+        task: makeTask("tk-after-rejection", "after rejection"),
+        addedAt: "2026-05-05T00:00:02.000Z",
+      });
+
+      const state = await queryState(handle);
+      const signalRejections = (state as any).signal_rejections ?? [];
+
+      expect(signalRejections).toHaveLength(1);
+      expect((state as any).signal_rejections_total).toBe(1);
+      expect(signalRejections[0]).toMatchObject({
+        signalName: "taskUpdated",
+        errorClass: "Error",
+      });
+      expect(signalRejections[0].errorMessage).toContain("tk-missing");
+      expect(signalRejections[0].payloadDigest).toEqual(
+        expect.objectContaining({
+          payload_size: expect.any(Number),
+          payload_sample: expect.any(String),
+          payload_fnv1a: expect.any(String),
+        }),
+      );
+      expect(state.tasks.map((task) => task.id)).toContain(
+        "tk-after-rejection",
+      );
+    });
+  }, 30_000);
+
+  it("routes every signal handler through a signal-safe wrapper", () => {
+    const source = readFileSync(workflowsPath, "utf8");
+    const signalHandlerBlocks = extractSetHandlerBlocks(source).filter(
+      (block) => /wf\.setHandler\(\s*\w+Signal,/.test(block),
+    );
+
+    expect(signalHandlerBlocks.length).toBeGreaterThan(0);
+    expect(source).not.toContain("safeUpdateHandler");
+    for (const block of signalHandlerBlocks) {
+      expect(block).toMatch(/,\s*(signalMutation|signalAsync)\(/);
+    }
+  });
 
   it("deduplicates repeated sub-agent report submissions by task agent and attempt", async () => {
     await withSignalWorker("subagent-report-dedupe", async (handle) => {
@@ -922,5 +1332,30 @@ describe("changeWorkflow signal handlers", () => {
     for (const key of seedStateKeys) {
       expect(workflows).toContain(`${key}: state.${key}`);
     }
+  });
+
+  // AC3 (completeStateBackedGate): replay determinism. The new state-backed
+  // acceptance patch marker MUST be checked BEFORE the legacy acceptance
+  // disk-inspect patch marker. New histories record STATE_BACKED_ACCEPTANCE_
+  // PROOF_PATCH and take the state-backed branch; old histories (without the
+  // new marker) fall through to the legacy ACCEPTANCE_EXECUTIVE_SUMMARY_PROOF_
+  // PATCH disk-inspect branch, so their committed command sequence still
+  // replays deterministically. Ordering inversion would poison old-history
+  // replay, so this structural guard protects the patch-ordering invariant.
+  it("checks state-backed acceptance patch before the legacy disk-inspect patch (AC3)", () => {
+    const source = readFileSync(workflowsPath, "utf8");
+
+    const stateBackedIdx = source.indexOf(
+      "wf.patched(STATE_BACKED_ACCEPTANCE_PROOF_PATCH)",
+    );
+    const legacyIdx = source.indexOf(
+      "wf.patched(ACCEPTANCE_EXECUTIVE_SUMMARY_PROOF_PATCH)",
+    );
+
+    expect(stateBackedIdx).toBeGreaterThan(-1);
+    expect(legacyIdx).toBeGreaterThan(-1);
+    // State-backed branch must appear (and be evaluated) before the legacy
+    // disk-inspect branch in the gate-completion if/else chain.
+    expect(stateBackedIdx).toBeLessThan(legacyIdx);
   });
 });

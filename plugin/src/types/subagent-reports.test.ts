@@ -2,23 +2,30 @@ import { describe, expect, it } from "vitest";
 import type { z } from "zod";
 
 import {
+  ChangeReportScopeKeySchema,
+  DesignerSubagentReportSchema,
   EngineerSubagentReportSchema,
   getSubagentReportPacketAnchors,
+  normalizePersistedSubagentReportState,
   type PersistedSubagentReportAgent,
+  ResearcherSubagentReportSchema,
   ReviewerSubagentReportSchema,
+  ScannerBundleSubagentReportSchema,
+  ScopedSubagentReportSchema,
   SUBAGENT_REPORT_FIELD_SOURCES,
   SUBAGENT_REPORT_PACKET_ANCHORS,
+  SUBAGENT_WARN_FIRST_PACKET_ANCHORS,
   SubagentAgentSchema,
-  SupportedSubagentReportSchema,
+  TronSubagentReportSchema,
 } from "./subagent-reports";
 
 const engineerReport = {
   schema_version: "1.0",
   change_id: "persistSubagentReports",
   task_id: "tk-abc123",
+  scope: { kind: "task", task_id: "tk-abc123" },
   attempt: 1,
   agent: "adv-engineer",
-  scope: "Add typed report schema",
   status: "complete",
   files_touched: ["plugin/src/types/subagent-reports.ts"],
   verification: [
@@ -30,7 +37,9 @@ const engineerReport = {
   ],
   decisions: [{ what: "Use Zod strict schemas", why: "P33 boundary" }],
   blockers: [],
+  scope_drift: null,
   follow_ups: [],
+  required_main_agent_actions: [],
   related_scan: "none",
   workdir_used: "/tmp/worktree",
   context_update_for_adv: {
@@ -43,10 +52,10 @@ const reviewerReport = {
   schema_version: "1.0",
   change_id: "persistSubagentReports",
   task_id: "tk-review123",
+  scope: { kind: "task", task_id: "tk-review123" },
   attempt: 2,
   agent: "adv-reviewer",
   phase: "review",
-  scope: "Review typed report ingest",
   verdict: "READY",
   blocking_findings: [],
   nonblocking_findings: [
@@ -77,6 +86,132 @@ const reviewerReport = {
   workdir_used: "/tmp/worktree",
 };
 
+const designerReport = {
+  schema_version: "1.0",
+  change_id: "addAdvDesigner",
+  task_id: "tk-design123",
+  scope: { kind: "task", task_id: "tk-design123" },
+  attempt: 1,
+  agent: "adv-designer",
+  status: "complete",
+  files_touched: ["src/components/Button.tsx"],
+  verification: [
+    {
+      command: "pnpm test -- src/components/Button.test.tsx",
+      exit_code: 0,
+      summary: "component tests pass",
+    },
+  ],
+  decisions: [
+    {
+      what: "Use semantic <button> with aria-label",
+      why: "Accessibility + design quality bar",
+    },
+  ],
+  blockers: [],
+  scope_drift: null,
+  follow_ups: [],
+  required_main_agent_actions: [],
+  related_scan: "none",
+  workdir_used: "/tmp/worktree",
+  context_update_for_adv: {
+    what_ads_needs_to_know: "Button component shipped",
+    suggested_next_action: "Run /adv-review",
+  },
+  design_dimensions: {
+    component_correctness: "pass",
+    semantic_html_a11y: "pass",
+    responsive_behavior: "pass",
+    visual_polish: "pass",
+    site_design_consistency: "pass",
+    finer_details: "pass",
+    notes: "Matches existing button family.",
+  },
+  neighboring_recommendations: [
+    {
+      file: "src/components/IconButton.tsx",
+      what: "Unstyled IconButton on same page lacks focus-visible ring",
+      why: "Adjacent UI inconsistency surfaced for HITL",
+    },
+  ],
+};
+
+const researcherReport = {
+  schema_version: "1.0",
+  change_id: "persistSubagentReports",
+  scope: { kind: "change", scope_key: "researcher:temporal-docs" },
+  attempt: 1,
+  agent: "adv-researcher",
+  topic: "Temporal report persistence",
+  sources: [
+    {
+      label: "Temporal docs",
+      locator: "https://docs.temporal.io/",
+      summary: "Signal handlers must remain replay-safe.",
+    },
+  ],
+  architecture_assessment: "Sidecar reports avoid task payload bloat.",
+  validation: {
+    status: "caution",
+    blockers: [],
+    notes: "Versioning needed for legacy key replay.",
+  },
+  recommendation: "Use deterministic scope keys.",
+  follow_ups: ["Add replay regression test"],
+  workdir_used: "/tmp/worktree",
+};
+
+const tronReport = {
+  schema_version: "1.0",
+  change_id: "persistSubagentReports",
+  scope: { kind: "change", scope_key: "tron:report-flow" },
+  attempt: 1,
+  agent: "adv-tron",
+  target: "report flow",
+  evidence: [
+    {
+      file: "plugin/src/tools/subagent-report.ts",
+      line: 377,
+      summary: "Submit flow currently assumes task scope.",
+    },
+  ],
+  findings: ["Report submit is task-centric"],
+  hotspots: ["plugin/src/tools/subagent-report.ts"],
+  risks: ["Taskless reports need explicit source metadata"],
+  open_questions: [],
+  suggested_next_commands: ["/adv-apply addHandoffReports"],
+  follow_ups: [],
+  workdir_used: "/tmp/worktree",
+};
+
+const scannerBundleReport = {
+  schema_version: "1.0",
+  change_id: "persistSubagentReports",
+  scope: { kind: "change", scope_key: "scanner-bundle:review" },
+  attempt: 1,
+  agent: "adv-scanner-bundle",
+  phase: "review",
+  scanner_count: 3,
+  dimensions: ["tests", "security", "contracts"],
+  summary: "Scanner bundle synthesized by orchestrator.",
+  findings: [
+    {
+      scanner: "contracts",
+      severity: "issue",
+      summary: "Schema anchors missing",
+      evidence: [
+        {
+          label: "spec",
+          locator: ".adv/specs/subagent-reports/spec.json:1",
+          summary: "Spec must pin scanner bundle shape.",
+        },
+      ],
+    },
+  ],
+  follow_ups: ["Inspect adjacent contract docs"],
+  workdir_used: "/tmp/worktree",
+};
+
 function requiredTopLevelKeys(schema: z.ZodObject<z.ZodRawShape>): string[] {
   return Object.entries(schema.shape)
     .filter(([, fieldSchema]) => !fieldSchema.safeParse(undefined).success)
@@ -90,29 +225,53 @@ const reportSchemas: Array<{
 }> = [
   { agent: "adv-engineer", schema: EngineerSubagentReportSchema },
   { agent: "adv-reviewer", schema: ReviewerSubagentReportSchema },
+  { agent: "adv-designer", schema: DesignerSubagentReportSchema },
+  { agent: "adv-researcher", schema: ResearcherSubagentReportSchema },
+  { agent: "adv-tron", schema: TronSubagentReportSchema },
+  { agent: "adv-scanner-bundle", schema: ScannerBundleSubagentReportSchema },
 ];
 
 describe("Subagent report schemas", () => {
-  it("parses a strict engineer report", () => {
-    const parsed = EngineerSubagentReportSchema.parse(engineerReport);
+  it("parses strict task-scoped engineer and reviewer reports", () => {
+    const parsedEngineer = EngineerSubagentReportSchema.parse(engineerReport);
+    const parsedReviewer = ReviewerSubagentReportSchema.parse(reviewerReport);
 
-    expect(parsed.agent).toBe("adv-engineer");
-    expect(parsed.attempt).toBe(1);
-    expect(parsed.verification[0].exit_code).toBe(0);
+    expect(parsedEngineer.scope).toEqual({
+      kind: "task",
+      task_id: "tk-abc123",
+    });
+    expect(parsedReviewer.phase).toBe("review");
   });
 
-  it("parses a strict reviewer report", () => {
-    const parsed = ReviewerSubagentReportSchema.parse(reviewerReport);
+  it("parses change-scoped independent reviewer reports", () => {
+    const { task_id: _taskId, ...changeScopedReviewerReport } = reviewerReport;
+    const parsed = ScopedSubagentReportSchema.parse({
+      ...changeScopedReviewerReport,
+      scope: { kind: "change", scope_key: "review:acceptance" },
+    });
 
     expect(parsed.agent).toBe("adv-reviewer");
-    expect(parsed.verdict).toBe("READY");
-    expect(parsed.verification.results).toBe("pass");
+    expect(parsed.scope).toEqual({
+      kind: "change",
+      scope_key: "review:acceptance",
+    });
+    expect("task_id" in parsed).toBe(false);
+  });
+
+  it("parses strict change-scoped optimized handoff reports", () => {
+    expect(ResearcherSubagentReportSchema.parse(researcherReport).agent).toBe(
+      "adv-researcher",
+    );
+    expect(TronSubagentReportSchema.parse(tronReport).agent).toBe("adv-tron");
+    expect(
+      ScannerBundleSubagentReportSchema.parse(scannerBundleReport).agent,
+    ).toBe("adv-scanner-bundle");
   });
 
   it("rejects unknown fields at the report boundary", () => {
     expect(() =>
-      EngineerSubagentReportSchema.parse({
-        ...engineerReport,
+      ResearcherSubagentReportSchema.parse({
+        ...researcherReport,
         untyped_extra: true,
       }),
     ).toThrow();
@@ -127,22 +286,137 @@ describe("Subagent report schemas", () => {
     ).toThrow();
   });
 
-  it("rejects reserved agents from the v1 supported report union", () => {
+  it("requires engineer reports to capture scope drift and main-agent actions structurally", () => {
+    const parsed = EngineerSubagentReportSchema.parse({
+      ...engineerReport,
+      scope_drift: {
+        items: ["Found adjacent prompt contract gap"],
+        details:
+          "Owned schema work completed; prompt gap belongs to packet task.",
+        recommendation: "finish_owned_scope_then_report",
+      },
+      required_main_agent_actions: ["Carry prompt gap into packet task"],
+    });
+
+    expect(parsed.scope_drift).toEqual({
+      items: ["Found adjacent prompt contract gap"],
+      details:
+        "Owned schema work completed; prompt gap belongs to packet task.",
+      recommendation: "finish_owned_scope_then_report",
+    });
+    expect(parsed.required_main_agent_actions).toEqual([
+      "Carry prompt gap into packet task",
+    ]);
     expect(() =>
-      SupportedSubagentReportSchema.parse({
+      EngineerSubagentReportSchema.parse({
         ...engineerReport,
-        agent: "adv-researcher",
+        scope_drift: undefined,
+      }),
+    ).toThrow();
+    expect(() =>
+      EngineerSubagentReportSchema.parse({
+        ...engineerReport,
+        required_main_agent_actions: undefined,
       }),
     ).toThrow();
   });
 
-  it("keeps reserved agent literals in the forward-compatible surface", () => {
+  it("normalizes legacy persisted task-scoped reports without weakening new ingest", () => {
+    const legacy = {
+      tasks: [
+        {
+          id: "tk-legacy",
+          subagent_reports: [
+            {
+              ...engineerReport,
+              task_id: "tk-legacy",
+              scope: "legacy prose scope",
+              scope_drift: undefined,
+              required_main_agent_actions: undefined,
+            },
+          ],
+        },
+      ],
+      subagent_reports: [
+        {
+          ...reviewerReport,
+          task_id: "tk-legacy",
+          scope_drift: undefined,
+          required_main_agent_actions: undefined,
+        },
+      ],
+    };
+
+    const [normalized, changed] = normalizePersistedSubagentReportState(legacy);
+    const normalizedState = normalized as typeof legacy;
+
+    expect(changed).toBe(true);
+    expect(normalizedState.tasks[0].subagent_reports[0]).toMatchObject({
+      scope_drift: null,
+      required_main_agent_actions: [],
+    });
+    expect(normalizedState.subagent_reports[0]).toMatchObject({
+      scope_drift: null,
+      required_main_agent_actions: [],
+    });
+    expect(() =>
+      EngineerSubagentReportSchema.parse({
+        ...engineerReport,
+        scope_drift: undefined,
+        required_main_agent_actions: undefined,
+      }),
+    ).toThrow();
+  });
+
+  it("rejects invalid agent/scope pairings structurally", () => {
+    expect(() =>
+      ScopedSubagentReportSchema.parse({
+        ...researcherReport,
+        scope: { kind: "task", task_id: "tk-wrong" },
+      }),
+    ).toThrow();
+    expect(() =>
+      ScopedSubagentReportSchema.parse({
+        ...engineerReport,
+        scope: { kind: "change", scope_key: "researcher:wrong" },
+      }),
+    ).toThrow();
+    expect(() =>
+      ScopedSubagentReportSchema.parse({
+        ...designerReport,
+        scope: { kind: "change", scope_key: "researcher:wrong" },
+      }),
+    ).toThrow();
+  });
+
+  it("keeps optimized handoff agent literals in the supported surface", () => {
     expect(SubagentAgentSchema.options).toEqual([
       "adv-engineer",
       "adv-reviewer",
+      "adv-designer",
       "adv-researcher",
       "adv-tron",
+      "adv-scanner-bundle",
     ]);
+  });
+
+  it("pins structural scope key formats", () => {
+    expect(ChangeReportScopeKeySchema.parse("researcher:temporal-docs")).toBe(
+      "researcher:temporal-docs",
+    );
+    expect(ChangeReportScopeKeySchema.parse("tron:report-flow")).toBe(
+      "tron:report-flow",
+    );
+    expect(ChangeReportScopeKeySchema.parse("scanner-bundle:harden")).toBe(
+      "scanner-bundle:harden",
+    );
+    expect(ChangeReportScopeKeySchema.parse("review:acceptance")).toBe(
+      "review:acceptance",
+    );
+    expect(ChangeReportScopeKeySchema.parse("harden:release")).toBe(
+      "harden:release",
+    );
+    expect(() => ChangeReportScopeKeySchema.parse("freeform")).toThrow();
   });
 
   describe("context packet anchor contract", () => {
@@ -172,7 +446,7 @@ describe("Subagent report schemas", () => {
       });
     }
 
-    it("keeps engineer packet anchors aligned with ENGINEER_REPORT identity fields", () => {
+    it("keeps engineer packet anchors aligned with task-scoped identity fields", () => {
       expect(getSubagentReportPacketAnchors("adv-engineer")).toEqual([
         "ATTEMPT",
         "CHANGE",
@@ -181,7 +455,16 @@ describe("Subagent report schemas", () => {
       ]);
     });
 
-    it("keeps reviewer packet anchors aligned with REVIEWER_REPORT identity fields", () => {
+    it("keeps designer packet anchors aligned with task-scoped identity fields", () => {
+      expect(getSubagentReportPacketAnchors("adv-designer")).toEqual([
+        "ATTEMPT",
+        "CHANGE",
+        "TASK",
+        "WORKING DIRECTORY",
+      ]);
+    });
+
+    it("keeps reviewer packet anchors aligned with task-scoped phase fields", () => {
       expect(getSubagentReportPacketAnchors("adv-reviewer")).toEqual([
         "ATTEMPT",
         "CHANGE",
@@ -189,6 +472,44 @@ describe("Subagent report schemas", () => {
         "TASK",
         "WORKING DIRECTORY",
       ]);
+    });
+
+    it("keeps researcher/tron packet anchors aligned with change-scoped identity fields", () => {
+      for (const agent of ["adv-researcher", "adv-tron"] as const) {
+        expect(getSubagentReportPacketAnchors(agent)).toEqual([
+          "ATTEMPT",
+          "CHANGE",
+          "SCOPE KEY",
+          "WORKING DIRECTORY",
+        ]);
+      }
+    });
+
+    it("keeps scanner bundle packet anchors aligned with phase and scope", () => {
+      expect(getSubagentReportPacketAnchors("adv-scanner-bundle")).toEqual([
+        "ATTEMPT",
+        "CHANGE",
+        "PHASE",
+        "SCOPE KEY",
+        "WORKING DIRECTORY",
+      ]);
+    });
+
+    it("keeps new scope/done/stop/verification packet anchors warn-first and separate from strict identity", () => {
+      expect(SUBAGENT_WARN_FIRST_PACKET_ANCHORS).toEqual([
+        "TASK_SCOPE",
+        "IN_SCOPE",
+        "OUT_OF_SCOPE",
+        "DONE_WHEN",
+        "STOP_WHEN",
+        "VERIFICATION",
+      ]);
+
+      for (const agent of SubagentAgentSchema.options) {
+        expect(getSubagentReportPacketAnchors(agent)).not.toEqual(
+          expect.arrayContaining([...SUBAGENT_WARN_FIRST_PACKET_ANCHORS]),
+        );
+      }
     });
   });
 });

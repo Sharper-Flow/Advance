@@ -6,6 +6,7 @@
  */
 
 import { z } from "zod";
+import { createHash } from "crypto";
 import { basename, join } from "path";
 import { readFile, stat, realpath } from "fs/promises";
 import { execGit, getDefaultBranch } from "../utils/git.js";
@@ -31,10 +32,12 @@ import {
   ChangeRepoScopeSchema,
   type GateId,
   type GateCompletion,
+  type ArtifactKind,
   type Gates,
   type Change,
   type ChangeRepoScope,
   type ClarifyFindingSnapshot,
+  type ScopedSubagentReport,
 } from "../types";
 import type { ChangeCreateInitialMetadata, Store } from "../storage/store";
 import { createDiskStore as createLegacyStore } from "../storage/store-disk";
@@ -45,44 +48,201 @@ import { validateChange } from "../validator";
 import { createLogger } from "../utils/debug-log";
 import { validateCrossRepoTarget } from "../temporal/activities";
 import { queryClaimsByIssueNumber } from "../temporal/visibility-claim-queries";
+import { subagentReportKey } from "../temporal/contracts";
 import { advWorktreeCleanup } from "./worktree";
 import { initStateDb as initWorktreeStateDb } from "./worktree/state";
 
 const logger = createLogger("change");
 
+function subagentReportTaskId(
+  report: ScopedSubagentReport,
+): string | undefined {
+  if (typeof report.scope !== "string" && report.scope.kind === "task") {
+    return report.scope.task_id;
+  }
+  return "task_id" in report ? report.task_id : undefined;
+}
+
+function subagentReportReadbackKey(report: ScopedSubagentReport): string {
+  return subagentReportKey({
+    changeId: report.change_id,
+    taskId: subagentReportTaskId(report),
+    scope: typeof report.scope === "string" ? undefined : report.scope,
+    agent: report.agent,
+    attempt: report.attempt,
+  });
+}
+
 /**
- * Read an artifact file from the active change directory, falling back to
- * the latest archive bundle when the active file is missing (archived
- * changes have their active dirs cleaned up). Returns `undefined` when
- * neither source has the file.
+ * Canonical kebab-case filename per `ArtifactKind`. Matches the filesystem
+ * boundary map in `temporal/activities.ts`. Single source of truth for the
+ * disk fallback paths in `readArtifact` / `readArtifacts` — kept in lockstep
+ * with the activities module.
  */
-async function readArtifactWithArchiveFallback(
-  changeDir: string,
-  archiveDir: string | undefined,
+const ARTIFACT_KIND_FILENAME: Record<ArtifactKind, string> = {
+  proposal: "proposal.md",
+  problemStatement: "problem-statement.md",
+  agreement: "agreement.md",
+  design: "design.md",
+  executiveSummary: "executive-summary.md",
+  acceptance: "acceptance.md",
+};
+
+/**
+ * Read a single artifact content by canonical kind. Temporal-first per
+ * KD-6: queries `state.documents[kind]` via `store.changes.get()` (which
+ * uses `mapTemporalChangeStateToChange` to surface documents). Falls back
+ * to disk-active-dir, then archive bundle.
+ *
+ * Returns `null` when content is unavailable from any source (e.g. an
+ * in-flight pre-migration change whose `state.documents` is empty and
+ * disk file is also empty).
+ */
+export async function readArtifact(
+  store: Store,
   changeId: string,
-  filename: string,
-): Promise<string | undefined> {
-  // 1. Try active change directory first
+  kind: ArtifactKind,
+): Promise<string | null> {
+  // 1. Temporal-first — query workflow state.documents.
+  try {
+    const result = await store.changes.get(changeId);
+    if (result.success && result.data) {
+      const content = result.data.documents?.[kind];
+      if (typeof content === "string" && content.length > 0) return content;
+    }
+  } catch {
+    // Workflow may be unavailable; fall through to disk.
+  }
+
+  // 2. Disk active directory.
+  const changeDir = join(store.paths.changes, changeId);
+  const filename = ARTIFACT_KIND_FILENAME[kind];
   try {
     const text = await readFile(join(changeDir, filename), "utf-8");
     if (text.trim().length > 0) return text;
   } catch {
-    // File missing or unreadable — fall through
+    // File missing — fall through.
   }
 
-  // 2. Fall back to latest archive bundle
-  if (!archiveDir) return undefined;
+  // 3. Archive bundle fallback.
+  const archiveDir = join(store.paths.root, ".adv", "archive");
   const bundleDir = await findArchiveBundle(archiveDir, changeId);
-  if (!bundleDir) return undefined;
-
-  try {
-    const text = await readFile(join(bundleDir, filename), "utf-8");
-    if (text.trim().length > 0) return text;
-  } catch {
-    // Archive artifact missing — return undefined
+  if (bundleDir) {
+    try {
+      const text = await readFile(join(bundleDir, filename), "utf-8");
+      if (text.trim().length > 0) return text;
+    } catch {
+      // Bundle file missing — return null.
+    }
   }
 
-  return undefined;
+  return null;
+}
+
+/**
+ * Load proposal content with the legacy scaffold-fallback semantics layered
+ * over the new Temporal-first read path. Returns generated scaffold text
+ * when no proposal content is available from any source — matches the
+ * pre-migration `loadProposalWithFallback` contract that downstream callers
+ * (clarify-readiness checks, snapshot rendering, context fetching) rely on.
+ *
+ * T10 migration target — replaces direct `loadProposalWithFallback` calls.
+ */
+async function loadProposalForContext(
+  store: Store,
+  changeId: string,
+  changeTitle: string,
+): Promise<{ content: string; warning?: string }> {
+  const content = await readArtifact(store, changeId, "proposal");
+  if (content !== null) return { content };
+
+  // Scaffold fallback — mirrors storage/json.ts loadProposalWithFallback's
+  // scaffold so downstream consumers always receive some structural text.
+  const scaffold = `# ${changeTitle}
+
+## Intent
+
+<!-- Auto-generated scaffold: proposal.md was missing or empty. -->
+<!-- Update this file with the actual intent, scope, and success criteria. -->
+
+## Scope
+
+- (unknown — proposal.md not found)
+
+## Success Criteria
+
+- [ ] All tasks completed
+- [ ] All tests pass
+`;
+  return {
+    content: scaffold,
+    warning: `⚠️  proposal content not found in Temporal state.documents or disk for change ${changeId}. Using auto-generated scaffold. Run /adv-proposal to create a proper proposal.`,
+  };
+}
+
+/**
+ * Batched multi-artifact read. Per C9 (read latency), issues exactly ONE
+ * workflow query and extracts the requested kinds in memory. Disk and
+ * archive-bundle fallbacks are per-kind in case the workflow lacks content
+ * for some kinds (pre-migration change, partial hydration).
+ *
+ * Returns a partial record keyed by requested kind; missing kinds are
+ * absent from the returned object.
+ */
+export async function readArtifacts(
+  store: Store,
+  changeId: string,
+  kinds: ArtifactKind[],
+): Promise<Partial<Record<ArtifactKind, string>>> {
+  const result: Partial<Record<ArtifactKind, string>> = {};
+
+  // 1. Temporal-first — single store.changes.get() call covers all kinds.
+  let temporalDocuments: Partial<Record<ArtifactKind, string>> | undefined;
+  try {
+    const changeResult = await store.changes.get(changeId);
+    if (changeResult.success && changeResult.data) {
+      temporalDocuments = changeResult.data.documents as
+        | Partial<Record<ArtifactKind, string>>
+        | undefined;
+    }
+  } catch {
+    // Workflow may be unavailable; per-kind disk fallback follows.
+  }
+
+  // 2. Per-kind: prefer Temporal, fall back to disk/archive.
+  for (const kind of kinds) {
+    const temporalContent = temporalDocuments?.[kind];
+    if (typeof temporalContent === "string" && temporalContent.length > 0) {
+      result[kind] = temporalContent;
+      continue;
+    }
+
+    // Disk fallback per kind.
+    const changeDir = join(store.paths.changes, changeId);
+    const filename = ARTIFACT_KIND_FILENAME[kind];
+    try {
+      const text = await readFile(join(changeDir, filename), "utf-8");
+      if (text.trim().length > 0) {
+        result[kind] = text;
+        continue;
+      }
+    } catch {
+      // Fall through to archive bundle.
+    }
+
+    const archiveDir = join(store.paths.root, ".adv", "archive");
+    const bundleDir = await findArchiveBundle(archiveDir, changeId);
+    if (bundleDir) {
+      try {
+        const text = await readFile(join(bundleDir, filename), "utf-8");
+        if (text.trim().length > 0) result[kind] = text;
+      } catch {
+        // Skip missing artifact.
+      }
+    }
+  }
+
+  return result;
 }
 
 /**
@@ -125,12 +285,7 @@ async function defaultClaimChecker(
   return results.map((r) => ({ changeId: r.changeId, status: "active" }));
 }
 import { runClarifyReadinessChecks } from "../validator/clarify-readiness";
-import {
-  loadProposalWithFallback,
-  fileExists,
-  removeChangeDir,
-  loadChange,
-} from "../storage/json";
+import { fileExists, removeChangeDir, loadChange } from "../storage/json";
 import {
   archiveChange,
   findArchiveBundle,
@@ -171,6 +326,7 @@ import {
 import {
   detectDefaultBranch,
   detectArchiveMode,
+  deleteChangeBranch,
   finalizeRelease,
   validateChangeWorktree,
   verifyChangeBranchReachable,
@@ -528,9 +684,9 @@ async function appendClarifyNeededForCreatedChange(
   const changeResult = await store.changes.get(changeId);
   if (!changeResult.success || !changeResult.data) return;
 
-  const changeDir = join(store.paths.changes, changeId);
-  const { content: proposalText } = await loadProposalWithFallback(
-    changeDir,
+  const { content: proposalText } = await loadProposalForContext(
+    store,
+    changeId,
     changeResult.data.title,
   );
   const clarifyResult = runClarifyReadinessChecks(
@@ -639,15 +795,18 @@ async function createCrossProjectFollowUp({
   }
 
   try {
-    const result = await targetStore.changes.create(
-      summary,
+    const result = await targetStore.changes.create(summary, {
       capability,
-      enrichedProposal,
-      problemStatement,
-      agreement,
-      design,
-      executiveSummary,
-    );
+      artifacts: {
+        ...(enrichedProposal !== undefined
+          ? { proposal: enrichedProposal }
+          : {}),
+        ...(problemStatement !== undefined ? { problemStatement } : {}),
+        ...(agreement !== undefined ? { agreement } : {}),
+        ...(design !== undefined ? { design } : {}),
+        ...(executiveSummary !== undefined ? { executiveSummary } : {}),
+      },
+    });
     const changeResult = await targetStore.changes.get(result.changeId);
     if (changeResult.success && changeResult.data) {
       changeResult.data.cross_project_origin = origin;
@@ -827,7 +986,6 @@ async function loadValidationContext(
   proposalText: string;
   changedSpecFiles: string[] | null | undefined;
 }> {
-  const changeDir = join(store.paths.changes, changeId);
   const specList = await store.specs.list();
   const specs: Spec[] = [];
   for (const specInfo of specList.specs) {
@@ -849,8 +1007,9 @@ async function loadValidationContext(
     }
   }
 
-  const { content: proposalText } = await loadProposalWithFallback(
-    changeDir,
+  const { content: proposalText } = await loadProposalForContext(
+    store,
+    changeId,
     changeTitle,
   );
 
@@ -1446,9 +1605,9 @@ async function buildReentryResult(
   // Build context snapshot showing the reset gate state
   let contextSnapshot: string | undefined;
   if (updatedChange.success && updatedChange.data) {
-    const changeDir = join(store.paths.changes, changeId);
-    const { content: proposalText } = await loadProposalWithFallback(
-      changeDir,
+    const { content: proposalText } = await loadProposalForContext(
+      store,
+      changeId,
       updatedChange.data.title,
     );
     contextSnapshot = buildChangeContextSnapshot({
@@ -1683,11 +1842,24 @@ export const changeTools = {
       return withOptionalTargetPathStore(
         { store, target_path },
         async (activeStore, projectContext) => {
-          const result = await activeStore.changes.list({
-            status: status === "in-flight" ? undefined : status,
-            includeArchived,
-            includeClosed,
-          });
+          // rq-changeSummaryReadModel01: default warm path uses
+          // `changes.listSummary` when available so unchanged callers
+          // benefit from memo/cache short-circuits without forcing every
+          // candidate through full hydration. Falls back to the legacy
+          // `changes.list` when the store does not implement the optional
+          // summary surface (e.g. legacy/mock stores).
+          const summaryList = activeStore.changes.listSummary;
+          const result = summaryList
+            ? await summaryList({
+                status: status === "in-flight" ? undefined : status,
+                includeArchived,
+                includeClosed,
+              })
+            : await activeStore.changes.list({
+                status: status === "in-flight" ? undefined : status,
+                includeArchived,
+                includeClosed,
+              });
 
           // Enrich with last-activity data from the store-computed timestamp.
           const now = new Date();
@@ -1761,7 +1933,7 @@ export const changeTools = {
       "context snapshot at top-level (matches mutation-tool convention); " +
       "include.readyTasks returns the unblocked ready queue (top-N " +
       "by priority then created_at; default 10, max 50). " +
-      "include.proposal / include.problemStatement / include.agreement / include.design / include.executiveSummary " +
+      "include.proposal / include.problemStatement / include.agreement / include.design / include.executiveSummary / include.acceptance " +
       "return the raw markdown content for each artifact (GH #21). " +
       "Defaults are unchanged when include is omitted.",
     args: {
@@ -1836,6 +2008,12 @@ export const changeTools = {
             .describe(
               "When true, attaches raw executive-summary.md content as `_executiveSummary`.",
             ),
+          acceptance: z
+            .boolean()
+            .optional()
+            .describe(
+              "When true, attaches raw acceptance.md content as `_acceptance`.",
+            ),
           subagentReports: z
             .boolean()
             .optional()
@@ -1870,6 +2048,7 @@ export const changeTools = {
           agreement?: boolean;
           design?: boolean;
           executiveSummary?: boolean;
+          acceptance?: boolean;
           subagentReports?: boolean;
         };
       },
@@ -1886,9 +2065,9 @@ export const changeTools = {
             return formatToolOutput({ error: `Change not found: ${changeId}` });
           }
           const change = result.data;
-          const changeDir = join(activeStore.paths.changes, changeId);
-          const { content: proposalText } = await loadProposalWithFallback(
-            changeDir,
+          const { content: proposalText } = await loadProposalForContext(
+            activeStore,
+            changeId,
             change.title,
           );
           const paged = paginate(change.tasks, {
@@ -1905,6 +2084,7 @@ export const changeTools = {
             ...(projectContext ? { _projectContext: projectContext } : {}),
           };
 
+          const changeDir = join(activeStore.paths.changes, changeId);
           const problemStatementPath = join(changeDir, "problem-statement.md");
           const problemStatementExists = await fileExists(problemStatementPath);
           output.problemStatementExists = problemStatementExists;
@@ -1986,11 +2166,23 @@ export const changeTools = {
             }
 
             if (include.subagentReports) {
-              const reports = change.tasks.flatMap((task) =>
+              const legacyTaskReports = change.tasks.flatMap((task) =>
                 (task.subagent_reports ?? []).map((report) => report),
               );
+              const reportsByKey = new Map<string, ScopedSubagentReport>();
+              for (const report of [
+                ...(change.subagent_reports ?? []),
+                ...legacyTaskReports,
+              ]) {
+                reportsByKey.set(subagentReportReadbackKey(report), report);
+              }
+              const reports = Array.from(reportsByKey.values());
               output._subagentReports = reports;
-              output._subagentReportsMeta = { total: reports.length };
+              output._subagentReportsMeta = {
+                total: reports.length,
+                sidecar: change.subagent_reports?.length ?? 0,
+                legacyTask: legacyTaskReports.length,
+              };
             }
 
             // Ready tasks — unblocked queue, sliced to top-N. Avoids the
@@ -2026,54 +2218,36 @@ export const changeTools = {
             // from the change directory. Only reads when explicitly
             // requested to avoid unnecessary I/O. Falls back to the
             // latest archive bundle for archived changes.
-            const archiveDir = activeStore.paths.archive;
-            if (include.proposal) {
-              try {
-                const { content } = await loadProposalWithFallback(
-                  changeDir,
-                  change.title,
-                  { archiveDir, changeId },
-                );
-                if (content) output._proposal = content;
-              } catch {
-                // File may not exist for changes without a proposal
-              }
-            }
-            if (include.problemStatement) {
-              const text = await readArtifactWithArchiveFallback(
-                changeDir,
-                archiveDir,
+            // Batched multi-include read per C9 — single store.changes.get()
+            // query covers all requested kinds (KD-6 readArtifacts).
+            const requestedKinds: ArtifactKind[] = [];
+            if (include.proposal) requestedKinds.push("proposal");
+            if (include.problemStatement)
+              requestedKinds.push("problemStatement");
+            if (include.agreement) requestedKinds.push("agreement");
+            if (include.design) requestedKinds.push("design");
+            if (include.executiveSummary)
+              requestedKinds.push("executiveSummary");
+            if (include.acceptance) requestedKinds.push("acceptance");
+
+            if (requestedKinds.length > 0) {
+              const artifactContent = await readArtifacts(
+                store,
                 changeId,
-                "problem-statement.md",
+                requestedKinds,
               );
-              if (text) output._problemStatement = text;
-            }
-            if (include.agreement) {
-              const text = await readArtifactWithArchiveFallback(
-                changeDir,
-                archiveDir,
-                changeId,
-                "agreement.md",
-              );
-              if (text) output._agreement = text;
-            }
-            if (include.design) {
-              const text = await readArtifactWithArchiveFallback(
-                changeDir,
-                archiveDir,
-                changeId,
-                "design.md",
-              );
-              if (text) output._design = text;
-            }
-            if (include.executiveSummary) {
-              const text = await readArtifactWithArchiveFallback(
-                changeDir,
-                archiveDir,
-                changeId,
-                "executive-summary.md",
-              );
-              if (text) output._executiveSummary = text;
+              if (artifactContent.proposal !== undefined)
+                output._proposal = artifactContent.proposal;
+              if (artifactContent.problemStatement !== undefined)
+                output._problemStatement = artifactContent.problemStatement;
+              if (artifactContent.agreement !== undefined)
+                output._agreement = artifactContent.agreement;
+              if (artifactContent.design !== undefined)
+                output._design = artifactContent.design;
+              if (artifactContent.executiveSummary !== undefined)
+                output._executiveSummary = artifactContent.executiveSummary;
+              if (artifactContent.acceptance !== undefined)
+                output._acceptance = artifactContent.acceptance;
             }
           }
 
@@ -2357,16 +2531,19 @@ export const changeTools = {
       // rq-backlogCoord08: seed creation metadata before workflow start so
       // origin/search attributes are authoritative Temporal state, not a late
       // disk-only patch.
-      const result = await store.changes.create(
-        summary,
+      const result = await store.changes.create(summary, {
         capability,
-        proposal,
-        problemStatement,
-        agreement,
-        design,
-        executiveSummary,
-        createOptions,
-      );
+        artifacts: {
+          ...(proposal !== undefined ? { proposal } : {}),
+          ...(problemStatement !== undefined ? { problemStatement } : {}),
+          ...(agreement !== undefined ? { agreement } : {}),
+          ...(design !== undefined ? { design } : {}),
+          ...(executiveSummary !== undefined ? { executiveSummary } : {}),
+        },
+        ...(createOptions?.initialMetadata
+          ? { initialMetadata: createOptions.initialMetadata }
+          : {}),
+      });
 
       const output: Record<string, unknown> = { ...result };
 
@@ -2391,9 +2568,9 @@ export const changeTools = {
 
       const createdChangeResult = await store.changes.get(result.changeId);
       if (createdChangeResult.success && createdChangeResult.data) {
-        const changeDir = join(store.paths.changes, result.changeId);
-        const { content: proposalText } = await loadProposalWithFallback(
-          changeDir,
+        const { content: proposalText } = await loadProposalForContext(
+          store,
+          result.changeId,
           createdChangeResult.data.title,
         );
         output._contextSnapshot = buildChangeContextSnapshot({
@@ -2498,6 +2675,23 @@ export const changeTools = {
         .describe(
           "Required with target_confirmed for untrusted target_path mutation. Cite user approval evidence.",
         ),
+      recoveryMode: z.enum(["normal", "poisoned_history"]).optional(),
+      recoveryEvidence: z
+        .string()
+        .optional()
+        .describe(
+          "Required when recoveryMode='poisoned_history'. Must cite precise poisoned-history or completed-workflow evidence.",
+        ),
+      recoveryReason: z
+        .string()
+        .optional()
+        .describe("Required recovery rationale for artifact metadata repair."),
+      priorApprovalEvidence: z
+        .string()
+        .optional()
+        .describe(
+          "Required prior user approval evidence for acceptance-proof artifact recovery.",
+        ),
     },
     execute: async (
       {
@@ -2510,6 +2704,10 @@ export const changeTools = {
         target_path,
         target_confirmed,
         confirmationEvidence,
+        recoveryMode,
+        recoveryEvidence,
+        recoveryReason,
+        priorApprovalEvidence,
       }: {
         changeId: string;
         proposal?: string;
@@ -2520,6 +2718,10 @@ export const changeTools = {
         target_path?: string;
         target_confirmed?: true;
         confirmationEvidence?: string;
+        recoveryMode?: "normal" | "poisoned_history";
+        recoveryEvidence?: string;
+        recoveryReason?: string;
+        priorApprovalEvidence?: string;
       },
       store: Store,
     ) => {
@@ -2577,15 +2779,105 @@ export const changeTools = {
             hint: "Fetch valid change IDs with 'adv_change_list' or confirm the target with 'adv_change_show changeId: <id>' before retrying.",
           });
         }
+        if (recoveryMode === "poisoned_history") {
+          const { isPreciseWorkflowRecoveryEvidence } =
+            await import("../temporal/recovery-classification");
+          if (!recoveryEvidence?.trim()) {
+            return formatToolOutput({
+              error:
+                "artifact metadata recovery requires non-empty recoveryEvidence when recoveryMode='poisoned_history'",
+              changeId,
+            });
+          }
+          if (!isPreciseWorkflowRecoveryEvidence(recoveryEvidence)) {
+            return formatToolOutput({
+              error:
+                "artifact metadata recoveryEvidence must cite precise poisoned-history or completed-workflow evidence",
+              changeId,
+            });
+          }
+          if (!recoveryReason?.trim() || !priorApprovalEvidence?.trim()) {
+            return formatToolOutput({
+              error:
+                "artifact metadata recovery requires recoveryReason and priorApprovalEvidence",
+              changeId,
+            });
+          }
+        }
 
-        const result = await activeStore.changes.updateArtifacts(
-          changeId,
-          proposal,
-          problemStatement,
-          agreement,
-          design,
-          executiveSummary,
-        );
+        let result;
+        try {
+          result = await activeStore.changes.updateArtifacts(changeId, {
+            ...(proposal !== undefined ? { proposal } : {}),
+            ...(problemStatement !== undefined ? { problemStatement } : {}),
+            ...(agreement !== undefined ? { agreement } : {}),
+            ...(design !== undefined ? { design } : {}),
+            ...(executiveSummary !== undefined ? { executiveSummary } : {}),
+          });
+        } catch (error) {
+          if (
+            recoveryMode !== "poisoned_history" ||
+            executiveSummary === undefined
+          ) {
+            throw error;
+          }
+          const { RECOVERY_RECONCILIATION_WARNING, isWorkflowCompletedError } =
+            await import("../temporal/recovery-classification");
+          const completedWorkflow = isWorkflowCompletedError(error);
+          let poisonedWorkflow = false;
+          if (!completedWorkflow) {
+            const bundle = await import("../temporal/service");
+            const service = bundle.getService();
+            const projectId = await getProjectId(activeStore.paths.root);
+            if (service && projectId) {
+              const { getChangeHandle } = await import("./_adapters");
+              const { workflowHasPoisonedRecoveryEvidence } =
+                await import("./recovery-probe");
+              const handle = getChangeHandle(
+                service.client,
+                projectId,
+                changeId,
+              );
+              poisonedWorkflow = await workflowHasPoisonedRecoveryEvidence(
+                handle,
+                { signalError: error },
+              );
+            }
+          }
+          if (!completedWorkflow && !poisonedWorkflow) throw error;
+          const { saveRecoveredArtifactMetadata } =
+            await import("./_recovery-writers");
+          const executiveSummaryPath = join(
+            activeStore.paths.changes,
+            changeId,
+            "executive-summary.md",
+          );
+          await saveRecoveredArtifactMetadata({
+            store: activeStore,
+            change: existing.data,
+            authorization: {
+              reason: recoveryReason ?? "artifact_metadata_recovery",
+              evidence: recoveryEvidence ?? String(error),
+            },
+            kind: "executiveSummary",
+            metadata: {
+              path: executiveSummaryPath,
+              updatedAt: new Date().toISOString(),
+              contentHash: createHash("sha256")
+                .update(executiveSummary)
+                .digest("hex"),
+            },
+          });
+          return formatToolOutput({
+            changeId,
+            executiveSummaryPath,
+            _recoveryMutation: true,
+            recoveryReason,
+            priorApprovalEvidence,
+            reconciliationWarning: RECOVERY_RECONCILIATION_WARNING,
+            ...(projectContext ? { _projectContext: projectContext } : {}),
+          });
+        }
 
         if (!result.success) {
           return formatToolOutput({ error: result.error });
@@ -3313,8 +3605,8 @@ export const changeTools = {
       let releaseGateCompletion:
         | Extract<ArchiveReleaseGateResult, { ok: true }>
         | undefined;
+      const { archiveMode, autoPush } = detectArchiveMode(store.config ?? {});
       if (!dryRun && archiveResult.success && phase9 !== "skip") {
-        const { archiveMode, autoPush } = detectArchiveMode(store.config ?? {});
         finalization = worktreePath
           ? await finalizeRelease({
               changeId,
@@ -3554,6 +3846,35 @@ export const changeTools = {
           archiveResult.errors.push(
             `Worktree cleanup warning: failed to run archive cleanup discovery: ${err instanceof Error ? err.message : String(err)}`,
           );
+        }
+
+        // Branch cleanup — delete change/{changeId} from local + remote.
+        // Only in direct/merge mode; PR-mode branches must survive for PR creation.
+        // Runs after worktree removal (can't delete a checked-out branch).
+        if (
+          finalization?.status === "shipped" &&
+          finalization.mainCheckout &&
+          archiveMode === "direct"
+        ) {
+          try {
+            const branchResult = deleteChangeBranch(
+              finalization.mainCheckout,
+              change.id,
+            );
+            if (!branchResult.localDeleted && branchResult.error) {
+              archiveResult.errors.push(
+                `Branch cleanup warning: ${branchResult.error}`,
+              );
+            } else if (branchResult.localDeleted && !branchResult.remoteDeleted && branchResult.error) {
+              archiveResult.errors.push(
+                `Branch cleanup warning (remote): ${branchResult.error}`,
+              );
+            }
+          } catch (err) {
+            archiveResult.errors.push(
+              `Branch cleanup warning: ${err instanceof Error ? err.message : String(err)}`,
+            );
+          }
         }
       }
 

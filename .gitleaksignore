@@ -1,0 +1,19 @@
+# Gitleaks allowlist — false positives.
+#
+# Format: one fingerprint per line. Fingerprint format is:
+#   <commit-sha>:<file>:<rule-id>:<line>
+# Reproduce locally with:
+#   docker run --rm -v "$PWD:/repo" --workdir /repo \
+#     zricethezav/gitleaks:v8.30.0 detect --source=/repo --no-banner \
+#     --report-format json --report-path /tmp/gitleaks.json
+#
+# ----------------------------------------------------------------------------
+# False positive: git checkpoint SHA in archived ADV task notes
+#
+# ADV archives include a `change.json` projection that records the per-task
+# `checkpointSha` (a git commit SHA) and task `notes` that reference the same
+# SHA prose. Gitleaks' `generic-api-key` rule classifies these 40-char hex
+# strings as high-entropy secrets when they appear inside JSON string values.
+# They are not secrets — they are public git commit SHAs visible in `git log`.
+# ----------------------------------------------------------------------------
+e9da7384260e97bd3807b7462a12b241de002ef1:.adv/archive/2026-05-26-addHandoffReports/change.json:generic-api-key:245

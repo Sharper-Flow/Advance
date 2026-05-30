@@ -176,6 +176,7 @@ describe("tool-formatters", () => {
           available: true,
           orphanGhostCount: 2,
           liveInFlightCount: 1,
+          idleActiveSessionCount: 3,
         },
       });
 
@@ -183,6 +184,7 @@ describe("tool-formatters", () => {
         "2 orphan ghost blank assistant",
       );
       expect(result.sessionDebtSection).toContain("1 live/in-flight");
+      expect(result.sessionDebtSection).toContain("3 idle/not-proven-orphan");
     });
 
     it("handles empty state", () => {

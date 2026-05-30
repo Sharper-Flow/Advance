@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { isAbsolute, join, resolve } from "node:path";
 
-// rq-opencodeDebt01: read-only diagnostics for stale blank assistant messages.
+// rq-opencodeDebt01: read-only diagnostics for stale blank assistant messages and stale tool parts.
 
 export const STALE_BLANK_ASSISTANT_THRESHOLD_MS = 5 * 60 * 1000;
 const DEFAULT_SAMPLE_LIMIT = 10;
@@ -19,7 +19,30 @@ export interface OpenCodeSessionActivityRow {
   time_updated_ms: number;
 }
 
+interface SessionDebtLivenessRow {
+  session_id: string;
+  created_ms: number;
+  updated_ms?: number;
+}
+
+export interface ToolPartRow extends SessionDebtLivenessRow {
+  id: string;
+  message_id: string;
+  session_id: string;
+  created_ms: number;
+  updated_ms: number;
+  tool: string;
+  call_id: string;
+  status: "running" | "pending";
+  child_session_id?: string;
+  child_session_updated_ms?: number;
+}
+
 export interface ClassifiedBlankAssistantRow extends BlankAssistantRow {
+  age_ms: number;
+}
+
+export interface ClassifiedToolPartRow extends ToolPartRow {
   age_ms: number;
 }
 
@@ -32,12 +55,22 @@ export type BlankAssistantLiveness =
 export interface OpenCodeSessionDebtClassification {
   threshold_ms: number;
   total_blank: number;
+  total_tool_parts: number;
+  total_orphan_ghost: number;
+  total_live_in_flight: number;
+  total_idle_active_session: number;
+  total_repairable_tool_parts: number;
+  total_live_tool_parts: number;
+  total_idle_tool_parts: number;
   /** @deprecated Use orphan_ghost. Kept for existing status/report callers. */
   repairable_stale: ClassifiedBlankAssistantRow[];
   live_in_flight: ClassifiedBlankAssistantRow[];
   idle_active_session: ClassifiedBlankAssistantRow[];
   orphan_ghost: ClassifiedBlankAssistantRow[];
   ignored_with_parts: ClassifiedBlankAssistantRow[];
+  repairable_tool_parts: ClassifiedToolPartRow[];
+  live_tool_parts: ClassifiedToolPartRow[];
+  idle_tool_parts: ClassifiedToolPartRow[];
 }
 
 export interface ResolvedDbPath {
@@ -62,11 +95,21 @@ export type OpenCodeSessionDebtScan =
       diagnostics?: string;
       threshold_ms: number;
       total_blank: 0;
+      total_tool_parts: 0;
+      total_orphan_ghost: 0;
+      total_live_in_flight: 0;
+      total_idle_active_session: 0;
+      total_repairable_tool_parts: 0;
+      total_live_tool_parts: 0;
+      total_idle_tool_parts: 0;
       repairable_stale: [];
       live_in_flight: [];
       idle_active_session: [];
       orphan_ghost: [];
       ignored_with_parts: [];
+      repairable_tool_parts: [];
+      live_tool_parts: [];
+      idle_tool_parts: [];
     };
 
 interface ClassifyOptions {
@@ -74,7 +117,7 @@ interface ClassifyOptions {
   thresholdMs?: number;
   sampleLimit?: number;
   resolveSessionLiveness?: (
-    row: BlankAssistantRow,
+    row: SessionDebtLivenessRow,
   ) => BlankAssistantLiveness | undefined;
 }
 
@@ -114,6 +157,26 @@ export const SESSION_ACTIVITY_ROWS_SQL = `
     s.id AS session_id,
     s.time_updated AS time_updated_ms
   FROM session s
+`;
+
+export const STALE_TOOL_PART_ROWS_SQL = `
+  SELECT
+    p.id AS id,
+    p.message_id AS message_id,
+    p.session_id AS session_id,
+    p.time_created AS created_ms,
+    p.time_updated AS updated_ms,
+    json_extract(p.data, '$.tool') AS tool,
+    json_extract(p.data, '$.callID') AS call_id,
+    json_extract(p.data, '$.state.status') AS status,
+    json_extract(p.data, '$.state.metadata.sessionId') AS child_session_id,
+    child.time_updated AS child_session_updated_ms
+  FROM part p
+  LEFT JOIN session child
+    ON child.id = json_extract(p.data, '$.state.metadata.sessionId')
+  WHERE json_extract(p.data, '$.type') = 'tool'
+    AND json_extract(p.data, '$.state.status') IN ('running', 'pending')
+  ORDER BY p.time_updated DESC
 `;
 
 export function getDefaultOpenCodeDbPath(env?: OpenCodeDbEnv): ResolvedDbPath {
@@ -163,11 +226,21 @@ export function classifyBlankAssistantRows(
   const result: OpenCodeSessionDebtClassification = {
     threshold_ms: thresholdMs,
     total_blank: rows.length,
+    total_tool_parts: 0,
+    total_orphan_ghost: 0,
+    total_live_in_flight: 0,
+    total_idle_active_session: 0,
+    total_repairable_tool_parts: 0,
+    total_live_tool_parts: 0,
+    total_idle_tool_parts: 0,
     repairable_stale: [],
     live_in_flight: [],
     idle_active_session: [],
     orphan_ghost: [],
     ignored_with_parts: [],
+    repairable_tool_parts: [],
+    live_tool_parts: [],
+    idle_tool_parts: [],
   };
 
   for (const row of rows) {
@@ -183,27 +256,108 @@ export function classifyBlankAssistantRows(
 
     const liveness = options.resolveSessionLiveness?.(row);
     if (liveness === "orphan_ghost") {
+      result.total_orphan_ghost += 1;
       pushSample(result.orphan_ghost, classified, sampleLimit);
       pushSample(result.repairable_stale, classified, sampleLimit);
       continue;
     }
     if (liveness === "live_in_flight") {
+      result.total_live_in_flight += 1;
       pushSample(result.live_in_flight, classified, sampleLimit);
       continue;
     }
     if (liveness === "idle_active_session" || liveness === "unknown") {
+      result.total_idle_active_session += 1;
       pushSample(result.idle_active_session, classified, sampleLimit);
       continue;
     }
 
     if (classified.age_ms >= thresholdMs) {
+      result.total_idle_active_session += 1;
       pushSample(result.idle_active_session, classified, sampleLimit);
     } else {
+      result.total_live_in_flight += 1;
       pushSample(result.live_in_flight, classified, sampleLimit);
     }
   }
 
   return result;
+}
+
+export function classifyToolPartRows(
+  rows: ToolPartRow[],
+  options: ClassifyOptions = {},
+): Pick<
+  OpenCodeSessionDebtClassification,
+  | "threshold_ms"
+  | "total_tool_parts"
+  | "total_repairable_tool_parts"
+  | "total_live_tool_parts"
+  | "total_idle_tool_parts"
+  | "repairable_tool_parts"
+  | "live_tool_parts"
+  | "idle_tool_parts"
+> {
+  const nowMs = options.nowMs ?? Date.now();
+  const thresholdMs = options.thresholdMs ?? STALE_BLANK_ASSISTANT_THRESHOLD_MS;
+  const sampleLimit = options.sampleLimit ?? DEFAULT_SAMPLE_LIMIT;
+  const result = {
+    threshold_ms: thresholdMs,
+    total_tool_parts: rows.length,
+    total_repairable_tool_parts: 0,
+    total_live_tool_parts: 0,
+    total_idle_tool_parts: 0,
+    repairable_tool_parts: [] as ClassifiedToolPartRow[],
+    live_tool_parts: [] as ClassifiedToolPartRow[],
+    idle_tool_parts: [] as ClassifiedToolPartRow[],
+  };
+
+  for (const row of rows) {
+    const classified: ClassifiedToolPartRow = {
+      ...row,
+      age_ms: Math.max(0, nowMs - row.updated_ms),
+    };
+    const liveness = options.resolveSessionLiveness?.(row);
+
+    if (isLiveTaskToolWait(row, nowMs, thresholdMs)) {
+      result.total_live_tool_parts += 1;
+      pushSample(result.live_tool_parts, classified, sampleLimit);
+      continue;
+    }
+
+    // Tool parts require both stale age and orphan liveness before repair.
+    // Young orphan-looking rows can be produced while a live runner is still
+    // creating DB rows, so age is a safety gate for tool repair.
+    if (classified.age_ms < thresholdMs || liveness === "live_in_flight") {
+      result.total_live_tool_parts += 1;
+      pushSample(result.live_tool_parts, classified, sampleLimit);
+      continue;
+    }
+    if (liveness === "orphan_ghost") {
+      result.total_repairable_tool_parts += 1;
+      pushSample(result.repairable_tool_parts, classified, sampleLimit);
+      continue;
+    }
+    result.total_idle_tool_parts += 1;
+    pushSample(result.idle_tool_parts, classified, sampleLimit);
+  }
+
+  return result;
+}
+
+function isLiveTaskToolWait(
+  row: ToolPartRow,
+  nowMs: number,
+  thresholdMs: number,
+): boolean {
+  if (row.tool !== "task") return false;
+  if (!row.child_session_id) return false;
+  const childUpdatedMs = row.child_session_updated_ms;
+  return (
+    childUpdatedMs !== undefined &&
+    Number.isFinite(childUpdatedMs) &&
+    nowMs - childUpdatedMs < thresholdMs
+  );
 }
 
 export function getDeletableBlankAssistantIds(
@@ -212,10 +366,19 @@ export function getDeletableBlankAssistantIds(
   return classification.orphan_ghost.map((row) => row.id);
 }
 
+export function getRepairableToolPartIds(
+  classification: Pick<
+    OpenCodeSessionDebtClassification,
+    "repairable_tool_parts"
+  >,
+): string[] {
+  return classification.repairable_tool_parts.map((row) => row.id);
+}
+
 export function createSessionActivityLivenessResolver(
   sessions: OpenCodeSessionActivityRow[],
   options: Pick<ClassifyOptions, "nowMs" | "thresholdMs"> = {},
-): (row: BlankAssistantRow) => BlankAssistantLiveness {
+): (row: SessionDebtLivenessRow) => BlankAssistantLiveness {
   const nowMs = options.nowMs ?? Date.now();
   const thresholdMs = options.thresholdMs ?? STALE_BLANK_ASSISTANT_THRESHOLD_MS;
   const bySessionId = new Map(
@@ -228,7 +391,11 @@ export function createSessionActivityLivenessResolver(
       return "orphan_ghost";
     }
 
-    const latestKnownActivityMs = Math.max(row.created_ms, sessionUpdatedMs);
+    const latestKnownActivityMs = Math.max(
+      row.created_ms,
+      row.updated_ms ?? 0,
+      sessionUpdatedMs,
+    );
     if (nowMs - latestKnownActivityMs < thresholdMs) return "live_in_flight";
     return "orphan_ghost";
   };
@@ -276,6 +443,11 @@ export async function scanOpenCodeSessionDebt(
       .all()
       .map(normalizeBlankAssistantRow)
       .filter((row): row is BlankAssistantRow => row !== null);
+    const toolPartRows = db
+      .query(STALE_TOOL_PART_ROWS_SQL)
+      .all()
+      .map(normalizeToolPartRow)
+      .filter((row): row is ToolPartRow => row !== null);
     const sessions = db
       .query(SESSION_ACTIVITY_ROWS_SQL)
       .all()
@@ -296,6 +468,7 @@ export async function scanOpenCodeSessionDebt(
       checked_at: checkedAt,
       diagnostics: buildPathDiagnostics(resolved, true),
       ...classifyBlankAssistantRows(rows, classifyOptions),
+      ...classifyToolPartRows(toolPartRows, classifyOptions),
     };
   } catch (err) {
     return unavailable(
@@ -355,6 +528,54 @@ export function normalizeSessionActivityRow(
   return { session_id: sessionId, time_updated_ms: timeUpdatedMs };
 }
 
+export function normalizeToolPartRow(row: unknown): ToolPartRow | null {
+  if (!row || typeof row !== "object") return null;
+  const candidate = row as Record<string, unknown>;
+  const id = String(candidate.id ?? "");
+  const messageId = String(candidate.message_id ?? "");
+  const sessionId = String(candidate.session_id ?? "");
+  const createdMs = Number(candidate.created_ms);
+  const updatedMs = Number(candidate.updated_ms);
+  const tool = String(candidate.tool ?? "");
+  const callId = String(candidate.call_id ?? "");
+  const status = String(candidate.status ?? "");
+  const childSessionId = String(candidate.child_session_id ?? "") || undefined;
+  const rawChildSessionUpdatedMs = candidate.child_session_updated_ms;
+  const childSessionUpdatedMs = Number(rawChildSessionUpdatedMs);
+  if (
+    !id ||
+    !messageId ||
+    !sessionId ||
+    !Number.isFinite(createdMs) ||
+    createdMs <= 0 ||
+    !Number.isFinite(updatedMs) ||
+    updatedMs <= 0 ||
+    !tool ||
+    !callId ||
+    (status !== "running" && status !== "pending")
+  ) {
+    return null;
+  }
+  return {
+    id,
+    message_id: messageId,
+    session_id: sessionId,
+    created_ms: createdMs,
+    updated_ms: updatedMs,
+    tool,
+    call_id: callId,
+    status,
+    child_session_id: childSessionId,
+    child_session_updated_ms:
+      rawChildSessionUpdatedMs !== null &&
+      rawChildSessionUpdatedMs !== undefined &&
+      Number.isFinite(childSessionUpdatedMs) &&
+      childSessionUpdatedMs > 0
+        ? childSessionUpdatedMs
+        : undefined,
+  };
+}
+
 function unavailable(
   dbPath: string,
   checkedAt: string,
@@ -370,11 +591,21 @@ function unavailable(
     diagnostics,
     threshold_ms: thresholdMs,
     total_blank: 0,
+    total_tool_parts: 0,
+    total_orphan_ghost: 0,
+    total_live_in_flight: 0,
+    total_idle_active_session: 0,
+    total_repairable_tool_parts: 0,
+    total_live_tool_parts: 0,
+    total_idle_tool_parts: 0,
     repairable_stale: [],
     live_in_flight: [],
     idle_active_session: [],
     orphan_ghost: [],
     ignored_with_parts: [],
+    repairable_tool_parts: [],
+    live_tool_parts: [],
+    idle_tool_parts: [],
   };
 }
 

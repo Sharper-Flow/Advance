@@ -7,6 +7,7 @@
 
 import { GATE_ORDER } from "../types";
 import type {
+  ArtifactPayload,
   Spec,
   Change,
   ChangeClosure,
@@ -44,6 +45,45 @@ export interface ChangeCreateInitialMetadata {
 
 export interface ChangeCreateOptions {
   initialMetadata?: ChangeCreateInitialMetadata;
+}
+
+/**
+ * Options-object input for `Store.changes.create()`. Replaces the positional
+ * 7-arg artifact API. Artifact content is carried in `artifacts` keyed by
+ * canonical `ArtifactKind`. Only defined fields are written; undefined fields
+ * are no-ops.
+ *
+ * `capability` and `initialMetadata` are folded in from the legacy positional
+ * shape. The positional signature remains alongside this options-object
+ * variant until T20 deletes it atomically (see removePositionalArtifactApi
+ * change plan KD-10 phase 17).
+ */
+export interface ChangeCreateOptionsBag {
+  capability?: string;
+  artifacts?: ArtifactPayload;
+  initialMetadata?: ChangeCreateInitialMetadata;
+}
+
+export interface ChangeCreateResult {
+  changeId: string;
+  path: string;
+  problemStatementPath?: string;
+  agreementPath?: string;
+  designPath?: string;
+  executiveSummaryPath?: string;
+  acceptancePath?: string;
+  duplicateWarning?: string;
+}
+
+export interface UpdateArtifactsResult {
+  success: boolean;
+  proposalPath?: string;
+  problemStatementPath?: string;
+  agreementPath?: string;
+  designPath?: string;
+  executiveSummaryPath?: string;
+  acceptancePath?: string;
+  error?: string;
 }
 
 // Inlined from former ./sqlite module (deleted in P2.7).
@@ -93,41 +133,40 @@ export interface Store {
       lastActivityBefore?: string;
     }) => Promise<ChangeListResponse>;
     get: (changeId: string) => Promise<LoadResult<Change | null>>;
+    /**
+     * Create a new change. Options-object API — single typed call shape:
+     *
+     *   store.changes.create("title", {
+     *     capability: "cap",
+     *     artifacts: { proposal: "…", problemStatement: "…", ... },
+     *     initialMetadata: { origin: { ... }, ... },
+     *   })
+     *
+     * Tool-surface schemas (`adv_change_create`) accept the same user-facing
+     * fields as before — this is internal store API only (C10 / C8 in the
+     * removePositionalArtifactApi change).
+     */
     create: (
       summary: string,
-      capability?: string,
-      proposalContent?: string,
-      problemStatementContent?: string,
-      agreementContent?: string,
-      designContent?: string,
-      executiveSummaryContent?: string,
-      options?: ChangeCreateOptions,
-    ) => Promise<{
-      changeId: string;
-      path: string;
-      problemStatementPath?: string;
-      agreementPath?: string;
-      designPath?: string;
-      executiveSummaryPath?: string;
-      duplicateWarning?: string;
-    }>;
+      options?: ChangeCreateOptionsBag,
+    ) => Promise<ChangeCreateResult>;
     save: (change: Change) => Promise<void>;
+    /**
+     * Update narrative artifact files for an existing change. Options-object
+     * API — single typed call shape:
+     *
+     *   store.changes.updateArtifacts(id, {
+     *     proposal: "…",
+     *     design: "…",
+     *     ...
+     *   })
+     *
+     * Only defined fields are written; undefined fields are no-ops.
+     */
     updateArtifacts: (
       changeId: string,
-      proposalContent?: string,
-      problemStatementContent?: string,
-      agreementContent?: string,
-      designContent?: string,
-      executiveSummaryContent?: string,
-    ) => Promise<{
-      success: boolean;
-      proposalPath?: string;
-      problemStatementPath?: string;
-      agreementPath?: string;
-      designPath?: string;
-      executiveSummaryPath?: string;
-      error?: string;
-    }>;
+      artifacts: ArtifactPayload,
+    ) => Promise<UpdateArtifactsResult>;
     close: (changeId: string, closure: ChangeClosure) => Promise<Change | null>;
     closeBatch: (
       changeIds: string[],
@@ -148,6 +187,46 @@ export interface Store {
      * blocked archive even though the workflow gate was already done.
      */
     refresh: (changeId: string) => Promise<void>;
+    /**
+     * rq-changeSummaryReadModel01 (advance-meta v1.12): lightweight summary
+     * listing surface for default read paths (`adv_change_list`,
+     * `adv_status` warm path).
+     *
+     * Returns the same projection shape as `list({})` but skips per-change
+     * full hydration when an in-memory summary (`ChangeSummaryMemo`) or
+     * cached `Change` already covers the requested IDs. Misses fall back
+     * to authoritative full hydration via the same orphan-tolerant path as
+     * `get()`, so safety-critical callers (gates, archive, claims, task
+     * completion, recovery) MUST continue using `list({...})` / `get(...)`
+     * — never this method — when the response contract requires
+     * authoritative workflow state.
+     *
+     * Supports the same filter surface as `list` for compatibility with
+     * `adv_change_list` callers; archived/closed inclusion still walks the
+     * disk/archive fallback because terminal records are not memo-only.
+     *
+     * Returns `{ changes, hydrationStats? }` so telemetry callers can
+     * observe how many IDs were served from memo vs full hydration without
+     * subscribing to the global metrics ring.
+     */
+    listSummary?: (filter?: {
+      status?: string;
+      includeArchived?: boolean;
+      includeClosed?: boolean;
+      prefix?: string;
+      titleContains?: string;
+      createdBefore?: string;
+      lastActivityBefore?: string;
+    }) => Promise<
+      ChangeListResponse & {
+        hydrationStats?: {
+          totalIds: number;
+          fromMemo: number;
+          fromCache: number;
+          fromHydration: number;
+        };
+      }
+    >;
   };
 
   // Tasks

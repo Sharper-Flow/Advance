@@ -49,13 +49,11 @@ import {
   buildChangeContextSnapshot,
   buildChangeContextTicker,
 } from "../utils/context-snapshot";
-import {
-  loadProjectConfigWithDiagnostics,
-  loadProposalWithFallback,
-} from "../storage/json";
+import { loadProjectConfigWithDiagnostics } from "../storage/json";
+import { readArtifact } from "./change";
 import { readProjectMetadata } from "../storage/project-metadata";
 import { getWorktreeCensus } from "../utils/worktree-census";
-import { getMetrics } from "../utils/metrics";
+import { getMetrics, withRecordedPhase } from "../utils/metrics";
 import { scanOpenCodeSessionDebt } from "../utils/opencode-session-debt";
 import { runClarifyReadinessChecks } from "../validator/clarify-readiness";
 import { z } from "zod";
@@ -599,11 +597,10 @@ async function enrichRecentChangeStatus(
   if (!changeResult.success || !changeResult.data) return;
 
   const gates = changeResult.data.gates ?? createDefaultGates();
-  const changeDir = join(store.paths.changes, changeId);
-  const { content: proposalText } = await loadProposalWithFallback(
-    changeDir,
-    changeResult.data.title,
-  );
+  // Temporal-first proposal read per KD-6. Falls back to disk/archive via
+  // readArtifact; null result means no proposal content — use empty string
+  // for snapshot rendering (status output is read-only).
+  const proposalText = (await readArtifact(store, changeId, "proposal")) ?? "";
 
   const snapshotInput = {
     change: changeResult.data,
@@ -843,6 +840,105 @@ async function loadStatusWithBootstrapRetry(store: Store): Promise<{
  *  rq-advStatusView01. */
 export type AdvStatusView = "summary" | "health" | "changes" | "hygiene";
 
+interface StatusViewPlan {
+  temporalHealth: boolean;
+  queueServiceability: boolean;
+  searchAttributes: boolean;
+  projectConfig: boolean;
+  recentEnrichment: boolean;
+  worktreeCleanup: boolean;
+  worktreeCensus: boolean;
+  sessionDebt: boolean;
+  healthSnapshot: boolean;
+  externalStateHygiene: boolean;
+  snapshotHealth: boolean;
+  specRequirementCount: boolean;
+  peerSessions: boolean;
+  pluginRuntime: boolean;
+  projectMetadata: boolean;
+}
+
+// rq-advStatusLazyView01 (advance-meta v1.12) — execute providers from
+// the selected view plan rather than computing every diagnostic and
+// projecting after the fact. Summary must skip detailed providers and
+// must keep `_contextSnapshot` emission unchanged.
+export function buildStatusViewPlan(view: AdvStatusView): StatusViewPlan {
+  switch (view) {
+    case "summary":
+      return {
+        temporalHealth: true,
+        queueServiceability: false,
+        searchAttributes: false,
+        projectConfig: false,
+        recentEnrichment: true,
+        worktreeCleanup: false,
+        worktreeCensus: false,
+        sessionDebt: false,
+        healthSnapshot: false,
+        externalStateHygiene: false,
+        snapshotHealth: false,
+        specRequirementCount: true,
+        peerSessions: false,
+        pluginRuntime: false,
+        projectMetadata: false,
+      };
+    case "health":
+      return {
+        temporalHealth: true,
+        queueServiceability: true,
+        searchAttributes: true,
+        projectConfig: true,
+        recentEnrichment: true,
+        worktreeCleanup: true,
+        worktreeCensus: true,
+        sessionDebt: false,
+        healthSnapshot: false,
+        externalStateHygiene: false,
+        snapshotHealth: true,
+        specRequirementCount: true,
+        peerSessions: true,
+        pluginRuntime: true,
+        projectMetadata: false,
+      };
+    case "changes":
+      return {
+        temporalHealth: false,
+        queueServiceability: false,
+        searchAttributes: false,
+        projectConfig: false,
+        recentEnrichment: true,
+        worktreeCleanup: false,
+        worktreeCensus: false,
+        sessionDebt: false,
+        healthSnapshot: false,
+        externalStateHygiene: false,
+        snapshotHealth: false,
+        specRequirementCount: true,
+        peerSessions: false,
+        pluginRuntime: false,
+        projectMetadata: false,
+      };
+    case "hygiene":
+      return {
+        temporalHealth: false,
+        queueServiceability: false,
+        searchAttributes: false,
+        projectConfig: true,
+        recentEnrichment: true,
+        worktreeCleanup: false,
+        worktreeCensus: true,
+        sessionDebt: true,
+        healthSnapshot: true,
+        externalStateHygiene: true,
+        snapshotHealth: true,
+        specRequirementCount: true,
+        peerSessions: false,
+        pluginRuntime: false,
+        projectMetadata: true,
+      };
+  }
+}
+
 /**
  * Apply the view filter to the full status output.
  *
@@ -927,7 +1023,6 @@ export function applyStatusView(
       projection.feature_flag_sources = full.feature_flag_sources;
       projection.auto_managed_changes = full.auto_managed_changes;
       projection.search_attributes = full.search_attributes;
-      projection.opencode_session_debt = full.opencode_session_debt;
       projection.diagnostics = full.diagnostics;
       // migration_status is a diagnostic field — surface here in addition
       // to hygiene view so operators see migration health alongside
@@ -1023,129 +1118,139 @@ export const statusTools = {
       return withOptionalTargetPathStore(
         { store, target_path },
         async (activeStore, projectContext) => {
-          const { status, bootstrapDiagnostic } =
-            await loadStatusWithBootstrapRetry(activeStore);
-          const migrationStatus = await loadMigrationStatus(activeStore);
+          const plan = buildStatusViewPlan(view);
+          const { status, bootstrapDiagnostic } = await withRecordedPhase(
+            "adv_status",
+            "statusLoad",
+            () => loadStatusWithBootstrapRetry(activeStore),
+          );
+          const migrationStatus =
+            view === "health" || view === "hygiene"
+              ? await withRecordedPhase("adv_status", "migrationStatus", () =>
+                  loadMigrationStatus(activeStore),
+                )
+              : null;
 
           const projectId = activeStore.paths.external
             ? basename(activeStore.paths.external)
             : undefined;
 
           const probeFreshness: Record<string, ProbeCacheFreshness> = {};
-          let temporalHealth: TemporalHealthSnapshot;
-          try {
-            const temporalProbe = await fetchStatusTemporalHealth(projectId);
-            temporalHealth = temporalProbe.value;
-            probeFreshness.temporal_health = temporalProbe.freshness;
-          } catch (err) {
-            temporalHealth = {
-              server_alive: false,
-              worker_alive: false,
-              worker_process_alive: false,
-              registered_queues: [],
-              last_op_at: null,
-              last_error: err instanceof Error ? err.message : String(err),
-              fallback_counts: { ...getTemporalFallbackTelemetry() },
-              stale_queues: [],
-              reconnect_count: 0,
-              op_counters: [],
-              worker_lock: null,
-              last_worker_run_error: null,
-            };
-            probeFreshness.temporal_health = {
-              cached_at: new Date().toISOString(),
-              stale: true,
-              error: err instanceof Error ? err.message : String(err),
-            };
+          let temporalHealth: TemporalHealthSnapshot | undefined;
+          if (plan.temporalHealth) {
+            try {
+              const temporalProbe = await fetchStatusTemporalHealth(projectId);
+              temporalHealth = temporalProbe.value;
+              probeFreshness.temporal_health = temporalProbe.freshness;
+            } catch (err) {
+              temporalHealth = {
+                server_alive: false,
+                worker_alive: false,
+                worker_process_alive: false,
+                registered_queues: [],
+                last_op_at: null,
+                last_error: err instanceof Error ? err.message : String(err),
+                fallback_counts: { ...getTemporalFallbackTelemetry() },
+                stale_queues: [],
+                reconnect_count: 0,
+                op_counters: [],
+                worker_lock: null,
+                last_worker_run_error: null,
+              };
+              probeFreshness.temporal_health = {
+                cached_at: new Date().toISOString(),
+                stale: true,
+                error: err instanceof Error ? err.message : String(err),
+              };
+            }
           }
 
-          const queueServiceabilityProbe = await fetchStatusQueueServiceability(
-            {
-              projectId,
-              health: temporalHealth,
-            },
-          );
-          const queueServiceability = queueServiceabilityProbe.value;
-          probeFreshness.queue_serviceability =
-            queueServiceabilityProbe.freshness;
+          let queueServiceability:
+            | StatusQueueServiceabilitySnapshot
+            | null
+            | undefined;
+          if (plan.queueServiceability && temporalHealth) {
+            const queueServiceabilityProbe =
+              await fetchStatusQueueServiceability({
+                projectId,
+                health: temporalHealth,
+              });
+            queueServiceability = queueServiceabilityProbe.value;
+            probeFreshness.queue_serviceability =
+              queueServiceabilityProbe.freshness;
 
-          if (temporalHealth.stale_queues.length > 0) {
-            const serviceableQueue =
-              queueServiceability?.serviceability.status === "serviceable"
-                ? queueServiceability.expectedQueue
-                : null;
-            for (const sq of temporalHealth.stale_queues) {
-              if (sq.queue === serviceableQueue) continue;
+            if (temporalHealth.stale_queues.length > 0) {
+              const serviceableQueue =
+                queueServiceability?.serviceability.status === "serviceable"
+                  ? queueServiceability.expectedQueue
+                  : null;
+              for (const sq of temporalHealth.stale_queues) {
+                if (sq.queue === serviceableQueue) continue;
+                status.recommendations.push(
+                  `⚠️ Stale Temporal queue \`${sq.queue}\` has ${sq.running_count} Running workflows older than 5 min with no local poller. See docs/temporal-recovery.md § "Stale \`adv/change/*\` and \`adv/project/*\` workflows".`,
+                );
+              }
+            }
+
+            if (
+              queueServiceability?.serviceability.status !== "serviceable" &&
+              temporalHealth.worker_lock?.schema_version === 1
+            ) {
               status.recommendations.push(
-                `⚠️ Stale Temporal queue \`${sq.queue}\` has ${sq.running_count} Running workflows older than 5 min with no local poller. See docs/temporal-recovery.md § "Stale \`adv/change/*\` and \`adv/project/*\` workflows".`,
+                "⚠️ Suspect live legacy v1 worker.lock with unproven queue serviceability — explicit approval is required for reclaim, or restart the owning OpenCode session.",
               );
             }
           }
 
-          if (
-            queueServiceability?.serviceability.status !== "serviceable" &&
-            temporalHealth.worker_lock?.schema_version === 1
-          ) {
-            status.recommendations.push(
-              "⚠️ Suspect live legacy v1 worker.lock with unproven queue serviceability — explicit approval is required for reclaim, or restart the owning OpenCode session.",
-            );
+          let searchAttributes: SearchAttributesSnapshot | undefined;
+          if (plan.searchAttributes) {
+            const searchAttributesProbe =
+              await statusSearchAttributesProbeCache.fetch(
+                projectId ?? MISSING_PROJECT_ID_CACHE_KEY,
+              );
+            searchAttributes = searchAttributesProbe.value;
+            probeFreshness.search_attributes = searchAttributesProbe.freshness;
+
+            if (!searchAttributes.ok) {
+              status.recommendations.push(
+                "⚠️ Temporal search attributes not verified — " +
+                  "run `adv_temporal_register_search_attributes` to register missing search attributes.",
+              );
+            }
           }
 
-          // Search attributes health from STSL cache
-          const searchAttributesProbe =
-            await statusSearchAttributesProbeCache.fetch(
-              projectId ?? MISSING_PROJECT_ID_CACHE_KEY,
-            );
-          const searchAttributes = searchAttributesProbe.value;
-          probeFreshness.search_attributes = searchAttributesProbe.freshness;
-
-          if (!searchAttributes.ok) {
-            status.recommendations.push(
-              "⚠️ Temporal search attributes not verified — " +
-                "run `adv_temporal_register_search_attributes` to register missing search attributes.",
-            );
-          }
-
-          // Load project config with diagnostics — surface errors instead of silently ignoring
-          const configResult = await loadProjectConfigWithDiagnostics(
-            activeStore.paths.root,
-          );
           let featureFlags: Record<string, unknown> =
             withStabilityFeatureDefaults(undefined);
           let rawFeatures: Record<string, unknown> | undefined;
-
-          // Warn when external state is unavailable — worktree sharing and
-          // state isolation won't function.  This happens when the plugin
-          // directory is not inside a git repo and no project.path fallback
-          // was available (e.g. GUI clients starting from $HOME).
-          if (!activeStore.paths.external) {
-            status.recommendations.unshift(
-              "⚠️  Running without external state — ADV state is stored in-repo (.adv/). " +
-                "Worktree sharing and state isolation are unavailable. " +
-                "Ensure OpenCode is started from a git repository.",
+          if (plan.projectConfig) {
+            const configResult = await loadProjectConfigWithDiagnostics(
+              activeStore.paths.root,
             );
+
+            if (!activeStore.paths.external) {
+              status.recommendations.unshift(
+                "⚠️  Running without external state — ADV state is stored in-repo (.adv/). " +
+                  "Worktree sharing and state isolation are unavailable. " +
+                  "Ensure OpenCode is started from a git repository.",
+              );
+            }
+
+            if (!configResult.success) {
+              const prefix =
+                configResult.type === "not_found"
+                  ? "⚠️  Config warning"
+                  : "❌ Config error";
+              status.recommendations.unshift(
+                `${prefix}: ${configResult.error}`,
+              );
+            } else {
+              rawFeatures = configResult.data.features as
+                | Record<string, unknown>
+                | undefined;
+              featureFlags = withStabilityFeatureDefaults(rawFeatures);
+            }
           }
 
-          if (!configResult.success) {
-            // Prepend config error/warning to recommendations so it's visible
-            const prefix =
-              configResult.type === "not_found"
-                ? "⚠️  Config warning"
-                : "❌ Config error";
-            status.recommendations.unshift(`${prefix}: ${configResult.error}`);
-          } else {
-            // Expose feature flags in status output for visibility
-            rawFeatures = configResult.data.features as
-              | Record<string, unknown>
-              | undefined;
-            featureFlags = withStabilityFeatureDefaults(rawFeatures);
-          }
-
-          // rq-autoManageAdvWorktrees AC2 — surface the source (default vs
-          // explicit) of each resolved flag so the agent can audit whether a
-          // given value was inherited or set in project.json. Computed
-          // regardless of config-load success so the census is always
-          // present even when project.json is missing/invalid.
           const featureFlagSources: Record<string, "default" | "explicit"> = {};
           for (const key of Object.keys(featureFlags)) {
             featureFlagSources[key] =
@@ -1154,11 +1259,6 @@ export const statusTools = {
                 : "default";
           }
 
-          // rq-autoManageAdvWorktrees AC2 — auto-managed change census from
-          // the in-flight changes list. New changes (post-A3) get marker
-          // true; legacy changes get false via lazy migration (A4). The
-          // counts help operators see migration progress without scanning
-          // every change.json by hand.
           const recentForCensus = status.changes.recent ?? [];
           const autoManagedCensus = {
             auto: 0,
@@ -1173,104 +1273,195 @@ export const statusTools = {
             else autoManagedCensus.unmigrated += 1;
           }
 
-          // Single-pass over recent changes: context snapshot, gate recommendation,
-          // clarify readiness, and recency labels — all built in one traversal.
-          // First active/draft/pending change gets full-box snapshot; others get ticker.
-          const recentChanges = await filterRecentChangesForProductScope(
-            status.changes.recent ?? [],
-            activeStore,
-            scope,
-          );
-          status.changes.recent = recentChanges;
-          const features = activeStore.config?.features as
-            | FeatureFlags
-            | undefined;
-          const clarifyMode = features?.clarify_enforcement ?? "advisory";
+          if (plan.recentEnrichment) {
+            const recentChanges = await withRecordedPhase(
+              "adv_status",
+              "recentChangeScopeFilter",
+              () =>
+                filterRecentChangesForProductScope(
+                  status.changes.recent ?? [],
+                  activeStore,
+                  scope,
+                ),
+            );
+            status.changes.recent = recentChanges;
+            const features = activeStore.config?.features as
+              | FeatureFlags
+              | undefined;
+            const clarifyMode = features?.clarify_enforcement ?? "advisory";
 
-          let primaryAssigned = false;
-          for (const rc of recentChanges) {
-            const isPrimary =
-              !primaryAssigned &&
-              (rc.status === "active" ||
-                rc.status === "draft" ||
-                rc.status === "pending");
-            if (isPrimary) primaryAssigned = true;
-            await enrichRecentChangeStatus(
-              rc,
-              status,
-              activeStore,
-              clarifyMode,
-              isPrimary,
+            await withRecordedPhase(
+              "adv_status",
+              "recentChangeEnrichment",
+              async () => {
+                let primaryAssigned = false;
+                for (const rc of recentChanges) {
+                  const isPrimary =
+                    !primaryAssigned &&
+                    (rc.status === "active" ||
+                      rc.status === "draft" ||
+                      rc.status === "pending");
+                  if (isPrimary) primaryAssigned = true;
+                  await enrichRecentChangeStatus(
+                    rc,
+                    status,
+                    activeStore,
+                    clarifyMode,
+                    isPrimary,
+                  );
+                }
+              },
             );
           }
 
-          // Worktree census
           let terminalCleanupRetained: PendingDeleteSummary = {
             total: 0,
             classes: {},
           };
-          try {
-            const worktreeAccess = await initWorktreeStateDb(
-              activeStore.paths.root,
-            );
-            await advWorktreeCleanup("status", {
-              projectRoot: activeStore.paths.root,
-              database: worktreeAccess,
-              log: {
-                debug: () => undefined,
-                info: () => undefined,
-                warn: () => undefined,
-                error: () => undefined,
+          if (plan.worktreeCleanup) {
+            await withRecordedPhase(
+              "adv_status",
+              "worktreeCleanup",
+              async () => {
+                try {
+                  const worktreeAccess = await initWorktreeStateDb(
+                    activeStore.paths.root,
+                  );
+                  await advWorktreeCleanup("status", {
+                    projectRoot: activeStore.paths.root,
+                    database: worktreeAccess,
+                    log: {
+                      debug: () => undefined,
+                      info: () => undefined,
+                      warn: () => undefined,
+                      error: () => undefined,
+                    },
+                    store: activeStore,
+                    forceAttempts: false,
+                  });
+                  terminalCleanupRetained = summarizePendingDeletes(
+                    await getPendingDeletes(worktreeAccess),
+                  );
+                } catch {
+                  // Status cleanup discovery is best-effort; status itself must remain available.
+                }
               },
-              store: activeStore,
-              forceAttempts: false,
-            });
-            terminalCleanupRetained = summarizePendingDeletes(
-              await getPendingDeletes(worktreeAccess),
-            );
-          } catch {
-            // Status cleanup discovery is best-effort; status itself must remain available.
-          }
-
-          const worktreeCensusProbe =
-            await statusWorktreeCensusProbeCache.fetch(activeStore.paths.root);
-          const worktreeCensus = worktreeCensusProbe.value;
-          probeFreshness.worktree_census = worktreeCensusProbe.freshness;
-
-          const opencodeSessionDebt = await scanOpenCodeSessionDebt();
-          if (
-            opencodeSessionDebt.available &&
-            opencodeSessionDebt.orphan_ghost.length > 0
-          ) {
-            status.recommendations.push(
-              `[doctor] OpenCode blank assistant session debt detected (${opencodeSessionDebt.orphan_ghost.length} orphan ghost sample(s), ${opencodeSessionDebt.total_blank} total blank row(s)) — run \`bun scripts/opencode-session-doctor.ts --dry-run\` to classify live vs orphan rows before any cleanup.`,
             );
           }
 
-          const healthSnapshot = await computeHealthSnapshot(activeStore);
-          const externalStateHygiene =
-            await computeExternalStateHygiene(activeStore);
-          // rq-snapshotHealthSurface01 — append snapshot-health probe
-          const snapshotHealthProbe =
-            await fetchStatusSnapshotHealth(projectId);
-          const snapshotHealth = snapshotHealthProbe.value;
-          probeFreshness.snapshot_health = snapshotHealthProbe.freshness;
-          if (healthSnapshot.closed_to_active_ratio > 5) {
-            const ratio = healthSnapshot.closed_to_active_ratio;
-            status.recommendations.push(
-              `⚠️  Closed-change disk leak detected (ratio ${ratio}:1). Run \`adv_cleanup\` to inspect stale changes.`,
+          let worktreeCensus: WorktreeCensusSnapshot | undefined;
+          if (plan.worktreeCensus) {
+            const worktreeCensusProbe =
+              await statusWorktreeCensusProbeCache.fetch(
+                activeStore.paths.root,
+              );
+            worktreeCensus = worktreeCensusProbe.value;
+            probeFreshness.worktree_census = worktreeCensusProbe.freshness;
+          }
+
+          let opencodeSessionDebt: Awaited<
+            ReturnType<typeof scanOpenCodeSessionDebt>
+          > | null = null;
+          let opencodeDebtCounts: {
+            orphanGhost: number;
+            liveInFlight: number;
+            idleActiveSession: number;
+            repairableToolPart: number;
+            liveToolPart: number;
+            idleToolPart: number;
+          } | null = null;
+          if (plan.sessionDebt) {
+            opencodeSessionDebt = await withRecordedPhase(
+              "adv_status",
+              "sessionDebtScan",
+              () => scanOpenCodeSessionDebt(),
+            );
+            opencodeDebtCounts = opencodeSessionDebt.available
+              ? {
+                  orphanGhost:
+                    (opencodeSessionDebt.total_orphan_ghost as
+                      | number
+                      | undefined) ?? opencodeSessionDebt.orphan_ghost.length,
+                  liveInFlight:
+                    (opencodeSessionDebt.total_live_in_flight as
+                      | number
+                      | undefined) ?? opencodeSessionDebt.live_in_flight.length,
+                  idleActiveSession:
+                    (opencodeSessionDebt.total_idle_active_session as
+                      | number
+                      | undefined) ??
+                    opencodeSessionDebt.idle_active_session.length,
+                  repairableToolPart:
+                    (opencodeSessionDebt.total_repairable_tool_parts as
+                      | number
+                      | undefined) ??
+                    opencodeSessionDebt.repairable_tool_parts?.length ??
+                    0,
+                  liveToolPart:
+                    (opencodeSessionDebt.total_live_tool_parts as
+                      | number
+                      | undefined) ??
+                    opencodeSessionDebt.live_tool_parts?.length ??
+                    0,
+                  idleToolPart:
+                    (opencodeSessionDebt.total_idle_tool_parts as
+                      | number
+                      | undefined) ??
+                    opencodeSessionDebt.idle_tool_parts?.length ??
+                    0,
+                }
+              : null;
+            if (
+              opencodeSessionDebt.available &&
+              opencodeDebtCounts &&
+              (opencodeDebtCounts.orphanGhost > 0 ||
+                opencodeDebtCounts.repairableToolPart > 0)
+            ) {
+              status.recommendations.push(
+                `[doctor] OpenCode blank assistant session debt detected (${opencodeDebtCounts.orphanGhost} orphan ghost blank assistant row(s), ${opencodeDebtCounts.repairableToolPart} repairable stale tool part row(s)) — run \`bun scripts/opencode-session-doctor.ts --dry-run\` to classify live vs orphan rows before any cleanup.`,
+              );
+            }
+          }
+
+          let healthSnapshot: HealthSnapshot | undefined;
+          if (plan.healthSnapshot) {
+            healthSnapshot = await withRecordedPhase(
+              "adv_status",
+              "healthSnapshot",
+              () => computeHealthSnapshot(activeStore),
+            );
+            if (healthSnapshot.closed_to_active_ratio > 5) {
+              const ratio = healthSnapshot.closed_to_active_ratio;
+              status.recommendations.push(
+                `⚠️  Closed-change disk leak detected (ratio ${ratio}:1). Run \`adv_cleanup\` to inspect stale changes.`,
+              );
+            }
+          }
+
+          const externalStateHygiene = plan.externalStateHygiene
+            ? await computeExternalStateHygiene(activeStore)
+            : undefined;
+
+          let snapshotHealth: SnapshotHealthSnapshot | undefined;
+          if (plan.snapshotHealth) {
+            const snapshotHealthProbe = await withRecordedPhase(
+              "adv_status",
+              "snapshotHealth",
+              () => fetchStatusSnapshotHealth(projectId),
+            );
+            snapshotHealth = snapshotHealthProbe.value;
+            probeFreshness.snapshot_health = snapshotHealthProbe.freshness;
+          }
+
+          let requirementCount = 0;
+          if (plan.specRequirementCount) {
+            const specsList = await activeStore.specs.list();
+            requirementCount = specsList.specs.reduce(
+              (sum, s) => sum + (s.requirementCount ?? 0),
+              0,
             );
           }
 
-          const specsList = await activeStore.specs.list();
-          const requirementCount = specsList.specs.reduce(
-            (sum, s) => sum + (s.requirementCount ?? 0),
-            0,
-          );
-
-          // T22: Peer Sessions — read session_registry, project to public
-          // schema, apply PID-liveness filter. Best-effort: any error
-          // surfaces as "unavailable".
           let peerSessions:
             | Array<{
                 sessionId: string;
@@ -1278,82 +1469,116 @@ export const statusTools = {
                 worktree: string;
                 isSelf: boolean;
               }>
-            | { unavailable: true };
-          try {
-            const peerResult = await listPeerSessions({
-              projectRoot: activeStore.paths.root,
-            });
-            if (peerResult.unavailable) {
+            | { unavailable: true }
+            | undefined;
+          if (plan.peerSessions) {
+            try {
+              const peerResult = await listPeerSessions({
+                projectRoot: activeStore.paths.root,
+              });
+              if (peerResult.unavailable) {
+                peerSessions = { unavailable: true };
+              } else {
+                peerSessions = peerResult.sessions;
+              }
+            } catch {
               peerSessions = { unavailable: true };
-            } else {
-              peerSessions = peerResult.sessions;
             }
-          } catch {
-            peerSessions = { unavailable: true };
           }
 
-          // rq-runtimeProvenance01: compute plugin runtime provenance once
-          // and reuse for both the formatted health surface and the raw
-          // diagnostic field.
-          const pluginRuntimeInfo = await getPluginRuntimeInfo();
+          const pluginRuntimeInfo = plan.pluginRuntime
+            ? await getPluginRuntimeInfo()
+            : undefined;
 
-          const formatted = formatStatusOutput({
-            specCount: status.specs.count,
-            requirementCount,
-            activeChanges: status.changes.recent.map((c) => ({
-              id: c.id,
-              title: c.title,
-              minutesSinceActivity: c.minutesSinceActivity,
-              parent_change_id: c.parent_change_id,
-            })),
-            archivedCount: status.changes.byStatus.archived ?? 0,
-            recommendations: status.recommendations,
-            temporalAlive: !!temporalHealth?.server_alive,
-            temporalHealth: {
-              worker_alive: temporalHealth?.worker_alive ?? false,
-              worker_process_alive:
-                temporalHealth?.worker_process_alive ?? false,
-              worker_lock: temporalHealth?.worker_lock ?? null,
-              last_worker_run_error:
-                temporalHealth?.last_worker_run_error ?? null,
-            },
-            temporalQueueServiceability:
-              queueServiceability?.serviceability ?? null,
-            pluginRuntime: {
-              source_dist_freshness: pluginRuntimeInfo.source_dist_freshness,
-              recovery_hint: pluginRuntimeInfo.recovery_hint,
-            },
-            worktreeCensus: worktreeCensus
-              ? {
-                  total: worktreeCensus.total,
-                  stale: worktreeCensus.stale,
-                }
-              : undefined,
-            terminalCleanupRetained,
-            peerSessions,
-            opencodeSessionDebt: opencodeSessionDebt.available
-              ? {
-                  available: true,
-                  orphanGhostCount: opencodeSessionDebt.orphan_ghost.length,
-                  liveInFlightCount: opencodeSessionDebt.live_in_flight.length,
-                }
-              : {
-                  available: false,
-                  reason: opencodeSessionDebt.reason,
-                },
-            snapshotHealth: snapshotHealth
-              ? {
-                  critical: snapshotHealth.summary.critical,
-                  warnings: snapshotHealth.summary.warnings,
-                  info: snapshotHealth.summary.info,
-                }
-              : undefined,
-          });
-
-          const projectMetadata = await readProjectMetadata(
-            activeStore.paths.root,
-            activeStore.paths.projectMetadata,
+          const formatted = await withRecordedPhase(
+            "adv_status",
+            "formatOutput",
+            async () =>
+              formatStatusOutput({
+                specCount: status.specs.count,
+                requirementCount,
+                activeChanges: status.changes.recent.map((c) => ({
+                  id: c.id,
+                  title: c.title,
+                  minutesSinceActivity: c.minutesSinceActivity,
+                  parent_change_id: c.parent_change_id,
+                })),
+                archivedCount: status.changes.byStatus.archived ?? 0,
+                recommendations: status.recommendations,
+                temporalAlive: !!temporalHealth?.server_alive,
+                temporalHealth: temporalHealth
+                  ? {
+                      worker_alive: temporalHealth.worker_alive ?? false,
+                      worker_process_alive:
+                        temporalHealth.worker_process_alive ?? false,
+                      worker_lock: temporalHealth.worker_lock ?? null,
+                      last_worker_run_error:
+                        temporalHealth.last_worker_run_error ?? null,
+                    }
+                  : undefined,
+                temporalQueueServiceability:
+                  queueServiceability?.serviceability ?? null,
+                pluginRuntime: pluginRuntimeInfo
+                  ? {
+                      source_dist_freshness:
+                        pluginRuntimeInfo.source_dist_freshness,
+                      recovery_hint: pluginRuntimeInfo.recovery_hint,
+                    }
+                  : undefined,
+                worktreeCensus: worktreeCensus
+                  ? {
+                      total: worktreeCensus.total,
+                      stale: worktreeCensus.stale,
+                    }
+                  : undefined,
+                terminalCleanupRetained,
+                peerSessions,
+                opencodeSessionDebt:
+                  opencodeSessionDebt && opencodeSessionDebt.available
+                    ? {
+                        available: true,
+                        orphanGhostCount: opencodeDebtCounts?.orphanGhost ?? 0,
+                        liveInFlightCount:
+                          opencodeDebtCounts?.liveInFlight ?? 0,
+                        idleActiveSessionCount:
+                          opencodeDebtCounts?.idleActiveSession ?? 0,
+                        repairableToolPartCount:
+                          opencodeDebtCounts?.repairableToolPart ?? 0,
+                        liveToolPartCount:
+                          opencodeDebtCounts?.liveToolPart ?? 0,
+                        idleToolPartCount:
+                          opencodeDebtCounts?.idleToolPart ?? 0,
+                      }
+                    : opencodeSessionDebt
+                      ? {
+                          available: false,
+                          reason: opencodeSessionDebt.reason,
+                        }
+                      : undefined,
+                snapshotHealth: snapshotHealth
+                  ? {
+                      critical: snapshotHealth.summary.critical,
+                      warnings: snapshotHealth.summary.warnings,
+                      info: snapshotHealth.summary.info,
+                    }
+                  : undefined,
+              }),
           );
+          if (view === "summary") {
+            formatted.healthSection = "";
+            formatted.worktreeSection = "";
+            formatted.sessionDebtSection = "";
+            formatted.peerSessionsSection = "";
+          } else if (view === "health") {
+            formatted.sessionDebtSection = "";
+          }
+
+          const projectMetadata = plan.projectMetadata
+            ? await readProjectMetadata(
+                activeStore.paths.root,
+                activeStore.paths.projectMetadata,
+              )
+            : undefined;
 
           const fullOutput = {
             ...status,
@@ -1366,9 +1591,7 @@ export const statusTools = {
                 }
               : {}),
             feature_flags: featureFlags,
-            // rq-autoManageAdvWorktrees AC2 — per-flag source (default | explicit)
             feature_flag_sources: featureFlagSources,
-            // rq-autoManageAdvWorktrees AC2 — auto-managed change census
             auto_managed_changes: autoManagedCensus,
             worker_role: getTemporalWorkerRole(),
             _freshness: probeFreshness,

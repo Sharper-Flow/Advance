@@ -31,7 +31,30 @@ Empty args → broad. Non-empty → scoped. Emit: `[ADV:WORK] Tron reconnaissanc
 1. `adv_project_context` + `adv_change_list` + `adv_agenda_list`
 2. Broad: `lgrep_get_file_tree` for structure. Scoped: resolve target to concrete files/symbols → if unresolved after semantic/symbol/text search, fall back to the closest concrete target or broad reconnaissance and state that choice. Ask via `question` only if multiple plausible interpretations would lead to materially different investigations.
 ## Phase 4: Spawn Tron Sub-Agent
-Spawn `adv-tron` agent via Task tool. System prompt has behavioral instructions. Pass only:
+Spawn `adv-tron` agent via Task tool. System prompt has behavioral instructions. Pass this packet plus mode-specific context:
+
+```
+WORKING DIRECTORY: {workdir}
+CHANGE: {change-id-or-none} | {title-or-ad-hoc}
+SCOPE KEY: tron:{target-slug}
+ATTEMPT: {attempt-number, starting at 1 for this Tron worker}
+TASK_SCOPE: reconnaissance target and mode ({broad|scoped})
+IN_SCOPE:
+  - {repo areas, files, symbols, or architecture questions to inspect}
+OUT_OF_SCOPE:
+  - writes, ADV orchestration mutations, unrelated subsystems, agenda creation
+DONE_WHEN:
+  - bounded findings cite file evidence or state no evidence found
+STOP_WHEN:
+  - target cannot be resolved, evidence contradicts packet scope, or contract/security/release blocker appears
+VERIFICATION:
+  required_when_possible:
+    - cite file:line evidence for each material finding
+  optional_additional_checks: true
+EXPECTED OUTPUT: return TRON RECONNAISSANCE REPORT and call adv_subagent_report_submit with TRON_REPORT per .opencode/agents/adv-tron.md when CHANGE is a real ADV change
+```
+
+Pass only:
 
 **Broad:** repo root, project context, ADV state (changes/agenda/specs), file tree summary. Task: map architecture, identify hotspots, note patterns, flag risks, check spec drift, suggest agenda items. Cap: 10 findings.
 

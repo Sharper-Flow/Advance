@@ -1,7 +1,7 @@
-import { readFile } from "fs/promises";
-import { join } from "path";
 import { z } from "zod";
 import type { Store } from "../storage/store";
+import { readArtifact } from "./change";
+import { saveChange } from "../storage/json";
 import {
   ContractEvidencePolicySchema,
   ContractEvidenceStatusSchema,
@@ -23,7 +23,8 @@ import { buildContractFromAgreement } from "../validator/contract-mint";
 import {
   RECOVERY_RECONCILIATION_WARNING,
   isFailingContractReviewStatus,
-  isPrecisePoisonedHistoryEvidence,
+  isPreciseWorkflowRecoveryEvidence,
+  isWorkflowCompletedError,
 } from "../temporal/recovery-classification";
 import { fireSignalAndRefresh, getChangeHandle } from "./_adapters";
 import { workflowHasPoisonedRecoveryEvidence } from "./recovery-probe";
@@ -41,6 +42,8 @@ const targetArgs = {
 const recoveryArgs = {
   recoveryMode: z.enum(["normal", "poisoned_history"]).optional(),
   recoveryEvidence: z.string().optional(),
+  recoveryReason: z.string().optional(),
+  priorApprovalEvidence: z.string().optional(),
 };
 
 async function withContractStore<T>(
@@ -86,19 +89,17 @@ function assertSafeChangeId(changeId: string): void {
 
 async function readAgreement(store: Store, change: Change): Promise<string> {
   assertSafeChangeId(change.id);
-  const cached = change.documents?.agreement;
-  try {
-    const text = await readFile(
-      join(store.paths.changes, change.id, "agreement.md"),
-      "utf-8",
-    );
-    if (text.trim()) return text;
-    if (cached?.trim()) return cached;
-    throw new Error(`Agreement artifact is empty: ${change.id}`);
-  } catch (error) {
-    if (cached?.trim()) return cached;
-    throw error;
-  }
+  // AC8 (completeStateBackedGate): Temporal-first ordering, matching the
+  // canonical readArtifact (tools/change.ts): state.documents.agreement →
+  // disk active dir → archive bundle. Previously this reader was disk-first,
+  // the lone outlier among artifact readers; in the Temporal-canonical
+  // architecture state.documents is the source of truth and disk is the legacy
+  // fallback. readArtifact already encodes the full fallback chain, so we
+  // delegate to it. change.ts does not import from contract.ts, so this is a
+  // one-directional dependency with no import cycle.
+  const content = await readArtifact(store, change.id, "agreement");
+  if (content?.trim()) return content;
+  throw new Error(`Agreement artifact is empty: ${change.id}`);
 }
 
 function contractApprovedAt(input: {
@@ -123,6 +124,8 @@ async function healthySignalHandle(store: Store, changeId: string) {
 function recoveryEvidenceError(input: {
   recoveryMode?: "normal" | "poisoned_history";
   recoveryEvidence?: string;
+  recoveryReason?: string;
+  priorApprovalEvidence?: string;
 }): string | undefined {
   if (
     input.recoveryMode === "poisoned_history" &&
@@ -133,9 +136,9 @@ function recoveryEvidenceError(input: {
   if (
     input.recoveryMode === "poisoned_history" &&
     input.recoveryEvidence &&
-    !isPrecisePoisonedHistoryEvidence(input.recoveryEvidence)
+    !isPreciseWorkflowRecoveryEvidence(input.recoveryEvidence)
   ) {
-    return "poisoned_history recoveryEvidence must cite precise poisoned-history evidence";
+    return "poisoned_history recoveryEvidence must cite precise poisoned-history or completed-workflow evidence";
   }
   return undefined;
 }
@@ -156,6 +159,7 @@ async function saveRecoveredContract(input: {
   store: Store;
   change: Change;
   contract: Change["contract"];
+  diskDirect?: boolean;
 }): Promise<void> {
   if (!input.contract) {
     throw new Error("Cannot recover contract: no contract is set");
@@ -165,15 +169,29 @@ async function saveRecoveredContract(input: {
     contract: input.contract,
     acceptanceCriteria: acceptanceCriteriaFromContract(input.contract),
   } as Change;
-  await input.store.changes.save(updated);
-  await bestEffortRefresh(input.store, input.change.id);
+  if (input.diskDirect) {
+    await saveChange(input.store.paths.changes, updated);
+  } else {
+    await input.store.changes.save(updated);
+    await bestEffortRefresh(input.store, input.change.id);
+  }
 }
 
 async function saveRecoveredReviewMatrix(input: {
   store: Store;
   change: Change;
   reviewMatrix: ContractReviewMatrix;
+  authorization: { reason: string; evidence: string };
+  diskDirect?: boolean;
 }): Promise<void> {
+  if (
+    !input.authorization.reason.trim() ||
+    !input.authorization.evidence.trim()
+  ) {
+    throw new Error(
+      "contract review matrix recovery requires reason and evidence",
+    );
+  }
   if (!input.change.contract) {
     throw new Error(
       "Cannot recover contract review matrix: no contract is set",
@@ -183,8 +201,12 @@ async function saveRecoveredReviewMatrix(input: {
     ...input.change,
     contract: { ...input.change.contract, reviewMatrix: input.reviewMatrix },
   } as Change;
-  await input.store.changes.save(updated);
-  await bestEffortRefresh(input.store, input.change.id);
+  if (input.diskDirect) {
+    await saveChange(input.store.paths.changes, updated);
+  } else {
+    await input.store.changes.save(updated);
+    await bestEffortRefresh(input.store, input.change.id);
+  }
 }
 
 const reviewMatrixRowSchema = z.object({
@@ -264,6 +286,8 @@ export const contractTools = {
         approvedAt?: string;
         recoveryMode?: "normal" | "poisoned_history";
         recoveryEvidence?: string;
+        recoveryReason?: string;
+        priorApprovalEvidence?: string;
         target_path?: string;
         target_confirmed?: true;
         confirmationEvidence?: string;
@@ -315,16 +339,19 @@ export const contractTools = {
             // rq-fix-gate-tools-recovery AC3: poisoned-history mint recovers
             // when EITHER the signal error matches the legacy regex OR the
             // workflow's own describe carries poisoned evidence.
+            const completedWorkflow = isWorkflowCompletedError(signalError);
             if (
               args.recoveryMode === "poisoned_history" &&
-              (await workflowHasPoisonedRecoveryEvidence(handle, {
-                signalError,
-              }))
+              (completedWorkflow ||
+                (await workflowHasPoisonedRecoveryEvidence(handle, {
+                  signalError,
+                })))
             ) {
               await saveRecoveredContract({
                 store: activeStore,
                 change,
                 contract,
+                diskDirect: completedWorkflow,
               });
               return formatToolOutput({
                 success: true,
@@ -409,6 +436,8 @@ export const contractTools = {
         dryRun?: boolean;
         recoveryMode?: "normal" | "poisoned_history";
         recoveryEvidence?: string;
+        recoveryReason?: string;
+        priorApprovalEvidence?: string;
         target_path?: string;
         target_confirmed?: true;
         confirmationEvidence?: string;
@@ -419,6 +448,18 @@ export const contractTools = {
         try {
           const recoveryError = recoveryEvidenceError(args);
           if (recoveryError) return formatToolOutput({ error: recoveryError });
+          if (
+            args.recoveryMode === "poisoned_history" &&
+            (!args.recoveryReason?.trim() ||
+              !args.priorApprovalEvidence?.trim())
+          ) {
+            return formatToolOutput({
+              error:
+                "review matrix recovery requires recoveryReason and priorApprovalEvidence",
+              changeId: args.changeId,
+              ...(projectContext ? { _projectContext: projectContext } : {}),
+            });
+          }
           const change = await loadChange(activeStore, args.changeId);
           if (!change.contract) {
             return formatToolOutput({
@@ -482,16 +523,23 @@ export const contractTools = {
           } catch (signalError) {
             // rq-fix-gate-tools-recovery AC4: review-matrix poisoned recovery
             // also runs when describe carries poisoned evidence.
+            const completedWorkflow = isWorkflowCompletedError(signalError);
             if (
               args.recoveryMode === "poisoned_history" &&
-              (await workflowHasPoisonedRecoveryEvidence(handle, {
-                signalError,
-              }))
+              (completedWorkflow ||
+                (await workflowHasPoisonedRecoveryEvidence(handle, {
+                  signalError,
+                })))
             ) {
               await saveRecoveredReviewMatrix({
                 store: activeStore,
                 change,
                 reviewMatrix,
+                authorization: {
+                  reason: args.recoveryReason ?? "review_matrix_recovery",
+                  evidence: args.recoveryEvidence ?? String(signalError),
+                },
+                diskDirect: completedWorkflow,
               });
               return formatToolOutput({
                 success: true,
@@ -517,6 +565,12 @@ export const contractTools = {
               store: activeStore,
               change,
               reviewMatrix,
+              authorization: {
+                reason: args.recoveryReason ?? "review_matrix_recovery",
+                evidence:
+                  args.recoveryEvidence ??
+                  "poisoned workflow describe evidence",
+              },
             });
             return formatToolOutput({
               success: true,

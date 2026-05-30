@@ -3,9 +3,12 @@ import type {
   ChangeContract,
   ChangeOrigin,
   SubagentAgent,
+  SubagentReportScope,
+  ScopedSubagentReport,
   FastFollowOf,
   Gates,
 } from "../types";
+import type { SignalPayloadDigest } from "./digest";
 
 export const ADVANCE_TEMPORAL_TASK_QUEUE_PREFIX = "advance";
 export const DEFAULT_TEMPORAL_ADDRESS = "127.0.0.1:7233";
@@ -46,6 +49,8 @@ export const CHANGE_WORKFLOW_SIGNAL_NAMES = {
   problemStatementUpdated: "adv.change.problemStatementUpdated",
   agreementUpdated: "adv.change.agreementUpdated",
   designUpdated: "adv.change.designUpdated",
+  executiveSummaryUpdated: "adv.change.executiveSummaryUpdated",
+  acceptanceUpdated: "adv.change.acceptanceUpdated",
   acceptanceCriteriaSet: "adv.change.acceptanceCriteriaSet",
   contractSet: "adv.change.contractSet",
   contractAmended: "adv.change.contractAmended",
@@ -81,11 +86,20 @@ export const CHANGE_WORKFLOW_SIGNAL_NAMES = {
 
 export function subagentReportKey(input: {
   changeId: string;
-  taskId: string;
+  taskId?: string;
+  scope?: SubagentReportScope;
   agent: SubagentAgent;
   attempt: number;
 }): string {
-  return `${input.changeId}|${input.taskId}|${input.agent}|${input.attempt}`;
+  if (input.taskId) {
+    return `${input.changeId}|${input.taskId}|${input.agent}|${input.attempt}`;
+  }
+  const scopeId = input.scope
+    ? input.scope.kind === "task"
+      ? `task:${input.scope.task_id}`
+      : `change:${input.scope.scope_key}`
+    : "unknown-scope";
+  return `${input.changeId}|${scopeId}|${input.agent}|${input.attempt}`;
 }
 
 export interface ChangeSummaryPayload {
@@ -112,17 +126,37 @@ export interface ChangeSummaryPayload {
   touched_files?: string[];
 }
 
-export type ArtifactKind =
-  | "proposal"
-  | "problemStatement"
-  | "agreement"
-  | "design"
-  | "executiveSummary";
+// Re-export canonical ArtifactKind from the single source of truth in
+// `types/artifacts.ts`. The local positional-style ArtifactKind union that
+// previously lived here is deleted; existing callers continue to import
+// `ArtifactKind` from this module via the re-export, preserving call sites.
+export type { ArtifactKind } from "../types/artifacts";
 
 export interface ArtifactMetadata {
   path: string;
   updatedAt: string;
   contentHash?: string;
+  /**
+   * Recorded when a content signal was rejected by Layer 2 size-guard
+   * (signal handler) per KD-8. State-mutation rejection — the workflow
+   * continues and `state.documents[kind]` is unchanged, but the rejection
+   * is observable via this metadata field for the tool layer to surface.
+   */
+  rejection?: {
+    reason: "ARTIFACT_OVERSIZED" | "AGGREGATE_OVERSIZED";
+    attempted_size: number;
+    cap: number;
+    rejected_at: string;
+  };
+  /**
+   * Recorded when a content signal triggered the soft-cap warning but was
+   * still applied. Informational; does not block writes.
+   */
+  sizeWarning?: {
+    size: number;
+    soft_cap: number;
+    at: string;
+  };
 }
 
 export interface ChangeWorkflowInput {
@@ -150,6 +184,7 @@ export interface ChangeWorkflowInput {
       ChangeWorkflowState,
       | "status"
       | "tasks"
+      | "subagent_reports"
       | "deltas"
       | "wisdom"
       | "gates"
@@ -173,17 +208,28 @@ export interface ChangeWorkflowInput {
       | "target_worktree_path"
       | "scope_worktrees"
       | "seenReportIds"
+      | "signal_rejections"
+      | "signal_rejections_total"
     >
   >;
 }
 
 export type ChangeWorkflowBootstrapState = ChangeWorkflowInput;
 
+export interface SignalRejection {
+  signalName: string;
+  errorMessage: string;
+  errorClass: string;
+  payloadDigest: SignalPayloadDigest;
+  rejectedAt: string;
+}
+
 export interface ChangeWorkflowState extends ChangeWorkflowInput {
   id: string;
   status: import("../types").ChangeStatus;
   createdAt: string;
   tasks: import("../types").Task[];
+  subagent_reports?: ScopedSubagentReport[];
   deltas: import("../types").Change["deltas"];
   wisdom: import("../types").WisdomEntry[];
   gates: Gates;
@@ -195,6 +241,7 @@ export interface ChangeWorkflowState extends ChangeWorkflowInput {
     design?: ArtifactMetadata;
     agreement?: ArtifactMetadata;
     executiveSummary?: ArtifactMetadata;
+    acceptance?: ArtifactMetadata;
   };
   /** Same-project fast-follow lineage (optional) */
   fast_follow_of?: FastFollowOf;
@@ -205,11 +252,29 @@ export interface ChangeWorkflowState extends ChangeWorkflowInput {
   terminated?: boolean;
   acceptanceCriteria?: string[];
   contract?: ChangeContract;
+  /**
+   * Authoritative artifact content for the change, keyed by canonical
+   * `ArtifactKind`. Source of truth for proposal/problemStatement/agreement/
+   * design/executiveSummary/acceptance markdown content; disk-resident
+   * `.md` files are a derived view materialized only when building the
+   * archive bundle.
+   *
+   * Naming standard: camelCase keys mirror `ArtifactKind` and `ArtifactPayload`
+   * (`types/artifacts.ts`). Kebab-case appears only at the filesystem boundary
+   * in `ARTIFACT_FILENAME` (`temporal/activities.ts`).
+   *
+   * Additive optional fields — Temporal replay-safe per safe-deployments
+   * contract (https://docs.temporal.io/develop/safe-deployments). Histories
+   * predating this extension replay cleanly with `executiveSummary` and
+   * `acceptance` undefined.
+   */
   documents?: {
     proposal?: string;
     problemStatement?: string;
     agreement?: string;
     design?: string;
+    executiveSummary?: string;
+    acceptance?: string;
   };
   reflections?: unknown[];
   worktrees?: Record<
@@ -289,6 +354,14 @@ export interface ChangeWorkflowState extends ChangeWorkflowInput {
    * cleanup relies on for deterministic per-repo deletion.
    */
   scope_worktrees?: Record<string, string>;
+
+  /**
+   * Bounded diagnostics for signal-handler programmer/domain errors that were
+   * rejected via state mutation instead of throwing and failing the workflow.
+   * Additive optional fields — replay-safe for histories predating ADR 0003.
+   */
+  signal_rejections?: SignalRejection[];
+  signal_rejections_total?: number;
 }
 
 /**

@@ -560,9 +560,7 @@ Vague in-flight work.
       expect(followRec).toMatch(/\((archived|closed)\)/);
     });
 
-    test("includes OpenCode session debt and doctor recommendation when stale rows exist", async () => {
-      // Mock both calls (health view + summary view) since we issue
-      // two requests below.
+    test("confines OpenCode session debt to hygiene view when stale rows exist", async () => {
       mockScanOpenCodeSessionDebt.mockResolvedValue({
         available: true,
         db_path: "/home/user/.local/share/opencode/opencode.db",
@@ -592,30 +590,30 @@ Vague in-flight work.
         ignored_with_parts: [],
       });
 
-      const healthResult = await statusTools.adv_status.execute(
-        { view: "health" },
+      const hygieneResult = await statusTools.adv_status.execute(
+        { view: "hygiene" },
         store,
       );
-      const health = parseToolOutput(healthResult);
+      const hygiene = parseToolOutput(hygieneResult);
 
-      expect(health.opencode_session_debt.available).toBe(true);
-      expect(health.opencode_session_debt.orphan_ghost).toHaveLength(1);
-      expect(health.formatted.sessionDebtSection).toContain(
+      expect(hygiene.opencode_session_debt.available).toBe(true);
+      expect(hygiene.opencode_session_debt.orphan_ghost).toHaveLength(1);
+      expect(hygiene.formatted.sessionDebtSection).toContain(
         "1 orphan ghost blank assistant",
       );
 
-      // Recommendations live in summary view (and a few others); fetch
-      // separately for the recommendation assertion.
       const summaryResult = await statusTools.adv_status.execute(
         { view: "summary" },
         store,
       );
       const summary = parseToolOutput(summaryResult);
+      expect(summary.opencode_session_debt).toBeUndefined();
       expect(
         (summary.recommendations as string[] | undefined)?.find((r: string) =>
           r.includes("OpenCode blank assistant session debt detected"),
         ),
-      ).toBeDefined();
+      ).toBeUndefined();
+      expect(mockScanOpenCodeSessionDebt).toHaveBeenCalledTimes(1);
       expect(summary.recommendations as string[]).not.toEqual(
         expect.arrayContaining([
           expect.stringContaining("Stale OpenCode blank assistant messages"),
@@ -624,6 +622,25 @@ Vague in-flight work.
       expect(summary.recommendations as string[]).not.toEqual(
         expect.arrayContaining([expect.stringContaining("before deletion")]),
       );
+    });
+
+    test("summary view does not invoke detailed-only providers or formatted sections", async () => {
+      const result = await statusTools.adv_status.execute(
+        { view: "summary" },
+        store,
+      );
+      const parsed = parseToolOutput(result);
+
+      expect(parsed.view).toBe("summary");
+      expect(mockScanOpenCodeSessionDebt).not.toHaveBeenCalled();
+      expect(mockScanSnapshotHealth).not.toHaveBeenCalled();
+      expect(mockGetWorktreeCensus).not.toHaveBeenCalled();
+      expect(parsed.opencode_session_debt).toBeUndefined();
+      expect(parsed.snapshot_health).toBeUndefined();
+      expect(parsed.formatted.healthSection).toBe("");
+      expect(parsed.formatted.worktreeSection).toBe("");
+      expect(parsed.formatted.sessionDebtSection).toBe("");
+      expect(parsed.formatted.peerSessionsSection).toBe("");
     });
 
     test("health view includes worker role and stability feature flag defaults", async () => {
@@ -740,15 +757,13 @@ Vague in-flight work.
       });
 
       const result = await statusTools.adv_status.execute(
-        { view: "health" },
+        { view: "hygiene" },
         store,
       );
       const parsed = parseToolOutput(result);
 
       expect(parsed.opencode_session_debt.live_in_flight).toHaveLength(1);
       expect(parsed.formatted.sessionDebtSection).toContain("1 live/in-flight");
-      // Note: in health view, recommendations are not surfaced; verify
-      // the summary view separately for the no-debt-recommendation case.
       const summaryResult = await statusTools.adv_status.execute(
         { view: "summary" },
         store,
@@ -831,14 +846,7 @@ Vague in-flight work.
         expect(health.search_attributes).toBeDefined();
         expect(health.search_attributes.ok).toBe(false);
 
-        // Recommendation is surfaced via summary view (recommendations
-        // are not in health-view projection per AC5).
-        const summaryResult = await statusTools.adv_status.execute(
-          { view: "summary" },
-          store,
-        );
-        const summary = parseToolOutput(summaryResult);
-        const saRec = (summary.recommendations as string[] | undefined)?.find(
+        const saRec = (health.recommendations as string[] | undefined)?.find(
           (r: string) =>
             r.includes("search attributes") ||
             r.includes("adv_temporal_register_search_attributes"),
@@ -1065,7 +1073,7 @@ Vague in-flight work.
         expect(parsed.diagnostics).toBeUndefined();
       });
 
-      test("health view: returns temporal_health + search_attributes + opencode_session_debt + diagnostics", async () => {
+      test("health view: returns temporal_health + search_attributes + diagnostics", async () => {
         const result = await statusTools.adv_status.execute(
           { view: "health" },
           store,
@@ -1075,7 +1083,7 @@ Vague in-flight work.
         expect(parsed.view).toBe("health");
         expect(parsed.temporal_health).toBeDefined();
         expect(parsed.search_attributes).toBeDefined();
-        expect(parsed.opencode_session_debt).toBeDefined();
+        expect(parsed.opencode_session_debt).toBeUndefined();
         expect(parsed.diagnostics).toBeDefined();
 
         // Summary-only fields are absent from health view.
@@ -1192,6 +1200,33 @@ Vague in-flight work.
         expect(typeof parsed.metrics.subagent_spawns).toBe("number");
         expect(typeof parsed.metrics.wall_time_ms).toBe("number");
         expect(parsed.metrics.adv_tool_call_count_by_name).toBeDefined();
+        expect(parsed.metrics.adv_tool_durations).toBeDefined();
+        expect(Array.isArray(parsed.metrics.recent_phase_durations)).toBe(true);
+      });
+
+      test("health view records named adv_status phase durations", async () => {
+        const { resetMetrics } = await import("../utils/metrics");
+        resetMetrics();
+        await statusTools.adv_status.execute({ view: "health" }, store);
+        const result = await statusTools.adv_status.execute(
+          { view: "health" },
+          store,
+        );
+        const parsed = parseToolOutput(result);
+        const phases = parsed.metrics.recent_phase_durations as Array<{
+          tool: string;
+          phase: string;
+          duration_ms: number;
+        }>;
+        const statusPhases = phases.filter((p) => p.tool === "adv_status");
+        const phaseNames = new Set(statusPhases.map((p) => p.phase));
+        expect(phaseNames.has("statusLoad")).toBe(true);
+        expect(phaseNames.has("recentChangeEnrichment")).toBe(true);
+        expect(phaseNames.has("formatOutput")).toBe(true);
+        for (const p of statusPhases) {
+          expect(typeof p.duration_ms).toBe("number");
+          expect(p.duration_ms).toBeGreaterThanOrEqual(0);
+        }
       });
 
       test("summary view does NOT expose metrics counters", async () => {

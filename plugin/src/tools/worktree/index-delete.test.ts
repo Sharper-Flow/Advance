@@ -208,6 +208,20 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
     });
   });
 
+  it("reports WORKTREE_NOT_FOUND for a supplied path that no longer exists", async () => {
+    const branch = "feature/missing-path";
+    const missingPath = join(repoRoot, "worktrees", "missing-path");
+    const deps = createMockDeps(repoRoot, missingPath);
+
+    const result = await advWorktreeDelete(branch, {}, deps);
+
+    expect(result).toEqual({
+      ok: false,
+      error: "WORKTREE_NOT_FOUND",
+      branch,
+    });
+  });
+
   it("UNCOMMITTED_WORK — blocks delete without force when uncommitted files exist", async () => {
     const branch = "feature/uncommitted";
     const wtPath = addWorktree(repoRoot, branch);
@@ -930,6 +944,43 @@ describe.skipIf(!isLinux)("shared pending-delete drain", () => {
     });
 
     expect(forced).toEqual({ removed: 0, retained: 1 });
+    await expect(getPendingDeletes(deps.database)).resolves.toEqual([
+      expect.objectContaining({ branch, attempts: 6 }),
+    ]);
+  });
+
+  it("force attempts bypasses retry cap without forcing dirty deletion", async () => {
+    const branch = "change/forced-safe";
+    const pendingPath = join(repoRoot, "worktrees", "change", "forced-safe");
+    mkdirSync(pendingPath, { recursive: true });
+    const deps = createDrainDeps(pendingPath);
+    await setPendingDelete(
+      deps.database,
+      branch,
+      pendingPath,
+      "retry cap safety test",
+    );
+    for (let i = 0; i < 5; i++) {
+      await incrementPendingDeleteAttempts(deps.database, branch);
+    }
+    const deleteWorktree = vi.fn(async () => ({
+      ok: false as const,
+      error: "UNCOMMITTED_WORK" as const,
+      files: ["dirty.txt"],
+      hint: "Commit or stash",
+    }));
+
+    const forced = await drainPendingDeletes("worktree_cleanup", deps, {
+      forceAttempts: true,
+      deleteWorktree,
+    });
+
+    expect(forced).toEqual({ removed: 0, retained: 1 });
+    expect(deleteWorktree).toHaveBeenCalledWith(
+      branch,
+      { force: false },
+      expect.objectContaining({ worktreePath: pendingPath }),
+    );
     await expect(getPendingDeletes(deps.database)).resolves.toEqual([
       expect.objectContaining({ branch, attempts: 6 }),
     ]);

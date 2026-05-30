@@ -119,11 +119,9 @@ describe("experimental.session.compacting enrichment", () => {
       externalRoot: undefined,
     });
     await store.init();
-    await store.changes.create(
-      "Compaction test",
-      undefined,
-      "Change for compaction tests",
-    );
+    await store.changes.create("Compaction test", {
+      artifacts: { proposal: "Change for compaction tests" },
+    });
 
     const titles = options?.taskTitles ?? ["Task One"];
     for (const title of titles) {

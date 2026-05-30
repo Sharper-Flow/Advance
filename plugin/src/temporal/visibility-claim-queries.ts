@@ -9,10 +9,10 @@
  * claim is held; archive/close releases the claim automatically.
  *
  * Project-scope attribute: uses `AdvAffectedProjects` (the registered
- * KeywordList in `ADV_SEARCH_ATTRIBUTES`). The existing
- * `list-change-workflows.ts:buildVisibilityQuery` uses `AdvProjectId` which
- * is a pre-existing inconsistency (not in the registered set) — out of
- * scope to fix here; logged as agenda follow-up.
+ * KeywordList in `ADV_SEARCH_ATTRIBUTES`).
+ * `list-change-workflows.ts:buildVisibilityQuery` was converged onto the
+ * same registered attribute under rq-visibilityProjectScope01 so list
+ * and claim paths share one Visibility search-attribute contract.
  */
 
 import type { ChangeStatus } from "../types";

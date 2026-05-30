@@ -752,7 +752,7 @@ Every sub-agent spawn must include: ROLE:, OUTPUT_SCHEMA:, BUDGET:, STOP_WHEN:. 
 
 ### Orchestration Token-Budget Policy
 
-When to spawn: 3+ independent scan dimensions. Max parallel workers: 3 (`enforceTaskPolicy`). Batch: spawn 3 → wait → next batch. Cap total sub-agents per command at 6 across batches. Inline for sequential/context-dependent work.
+When to spawn: 3+ independent scan dimensions. Max parallel workers: 3 (agent-self-enforced; no runtime guard). Batch: spawn 3 → wait → next batch. Cap total sub-agents per command at 6 across batches. Inline for sequential/context-dependent work.
 
 ### Phase Summary Pattern
 
@@ -762,7 +762,7 @@ After each phase, `adv_change_update` records compact summaries. Do not duplicat
 
 ### Agent Tiers
 
-Primary agents: `adv`, `plan`, `build`, `adv-atc` (not spawnable). Spawnable: global `explore`, `general`; bundled global `adv-researcher`, `adv-engineer`, `adv-reviewer`; repo-local `adv-tron`. Skill/inline only: `prioritizer` via `skill("prioritizer")`; MCP/infra diagnostics inline. Only `mode: subagent` agents spawn via Task.
+Primary agents: `adv`, `plan`, `build`, `adv-atc` (not spawnable). Spawnable: global `explore`, `general`; bundled global `adv-researcher`, `adv-engineer`, `adv-reviewer`, `adv-designer`; repo-local `adv-tron`. Skill/inline only: `prioritizer` via `skill("prioritizer")`; MCP/infra diagnostics inline. Only `mode: subagent` agents spawn via Task.
 
 ### Agent Roster
 
@@ -770,12 +770,13 @@ Primary agents: `adv`, `plan`, `build`, `adv-atc` (not spawnable). Spawnable: gl
 | --- | --- |
 | `explore` | Code navigation, scoped read-only scans |
 | `adv-researcher` | Docs/API/examples research + architecture validation; independent validator |
-| `adv-engineer` | Delegated ADV code-writing; must use packet `workdir`; submits typed report |
-| `adv-reviewer` | `/adv-review` and `/adv-harden` analysis/remediation; submits typed report |
+| `adv-engineer` | Delegated ADV code-writing (backend/state/API/business logic); must use packet `workdir`; submits typed `ENGINEER_REPORT` |
+| `adv-designer` | Apply-phase frontend/component specialist (HTML/CSS/JS/TSX, a11y, responsive, polish, site-design match); write-only, never review/harden owner; submits typed `DESIGNER_REPORT` per `.opencode/agents/adv-designer.md` |
+| `adv-reviewer` | `/adv-review` and `/adv-harden` analysis/remediation; submits typed report. Reviewer packet carries `FRONTEND DESIGN REVIEW SKILL` anchor for design-inclusive changes |
 | `general` | Verify bursts + generic multi-step work |
 | `adv-tron` | Recon + hotspots (repo-local) |
 
-`adv-tron` repo-local. `adv-researcher` / `adv-engineer` / `adv-reviewer` bundled global via `scripts/deploy-local.sh`. Research pattern: `adv-researcher` covers docs/API/examples + architecture in a single spawn.
+`adv-tron` repo-local. `adv-researcher` / `adv-engineer` / `adv-reviewer` / `adv-designer` bundled global via `scripts/deploy-local.sh`. Research pattern: `adv-researcher` covers docs/API/examples + architecture in a single spawn. Apply routing: `metadata.frontend == "true"` → `adv-designer` (Priority 1.5 in `/adv-apply` delegation routing table; `metadata.delegation_hint` at Priority 1 remains explicit user override).
 
 ## Skill Discovery Protocol
 

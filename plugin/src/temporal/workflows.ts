@@ -5,7 +5,10 @@ import { applyAndUpsertSearchAttributes } from "./search-attributes";
 import {
   ARTIFACT_BACKED_GATES,
   evaluateGateReadiness,
+  MIN_GATE_ARTIFACT_NON_WHITESPACE_CHARS,
   renderAcceptanceProjection,
+  stateBackedAcceptanceProof,
+  stateBackedArtifactEvidence,
 } from "./gate-readiness";
 import {
   ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES,
@@ -29,7 +32,9 @@ import {
   applyContractAmendedToState,
   applyContractReviewMatrixSetToState,
   applyContractSetToState,
+  applyAcceptanceUpdatedToState,
   applyDesignUpdatedToState,
+  applyExecutiveSummaryUpdatedToState,
   applyGateAwaitingApprovalToState,
   applyGateCompletedToState,
   applyGateInProgressToState,
@@ -38,6 +43,7 @@ import {
   applyProblemStatementUpdatedToState,
   applyProposalUpdatedToState,
   applyReflectionRecordedToState,
+  applySignalRejectionToState,
   applySubagentReportSubmittedToState,
   applyTaskAddedToState,
   applyTaskAssignedToState,
@@ -84,11 +90,21 @@ interface ChangeProjectionActivities {
   inspectArtifactActivity(input: {
     changesDir: string;
     changeId: string;
-    kind: "proposal" | "agreement" | "design" | "acceptance";
+    kind: Extract<
+      import("../types").ArtifactKind,
+      "proposal" | "agreement" | "design" | "acceptance" | "executiveSummary"
+    >;
   }): Promise<
     | {
         ok: true;
-        kind: "proposal" | "agreement" | "design" | "acceptance";
+        kind: Extract<
+          import("../types").ArtifactKind,
+          | "proposal"
+          | "agreement"
+          | "design"
+          | "acceptance"
+          | "executiveSummary"
+        >;
         path: string;
         contentHash: string;
         nonWhitespaceChars: number;
@@ -96,7 +112,14 @@ interface ChangeProjectionActivities {
       }
     | {
         ok: false;
-        kind: "proposal" | "agreement" | "design" | "acceptance";
+        kind: Extract<
+          import("../types").ArtifactKind,
+          | "proposal"
+          | "agreement"
+          | "design"
+          | "acceptance"
+          | "executiveSummary"
+        >;
         path: string;
         code: "missing" | "unreadable";
         error: string;
@@ -106,7 +129,15 @@ interface ChangeProjectionActivities {
   writeArtifactActivity(input: {
     changesDir: string;
     changeId: string;
-    kind: "proposal" | "agreement" | "design" | "acceptance";
+    // executiveSummary added for state-backed acceptance materialization
+    // (completeStateBackedGate AC7): the executive-summary.md disk file is
+    // written at acceptance time so createArchive includes it in the bundle.
+    kind:
+      | "proposal"
+      | "agreement"
+      | "design"
+      | "acceptance"
+      | "executiveSummary";
     content: string;
   }): Promise<
     { ok: true; path: string } | { ok: false; error: string; path?: undefined }
@@ -204,6 +235,12 @@ const agreementUpdatedSignal = wf.defineSignal<
 const designUpdatedSignal = wf.defineSignal<
   [import("../types").DesignUpdatedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.designUpdated);
+const executiveSummaryUpdatedSignal = wf.defineSignal<
+  [import("../types").ExecutiveSummaryUpdatedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.executiveSummaryUpdated);
+const acceptanceUpdatedSignal = wf.defineSignal<
+  [import("../types").AcceptanceUpdatedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.acceptanceUpdated);
 const acceptanceCriteriaSetSignal = wf.defineSignal<
   [import("../types").AcceptanceCriteriaSetSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.acceptanceCriteriaSet);
@@ -303,73 +340,6 @@ const closeChangeSignal = wf.defineSignal<[import("../types").ChangeClosure]>(
   CHANGE_WORKFLOW_SIGNAL_NAMES.closeChange,
 );
 // Update definitions removed — signal-only architecture (R1.1)
-/**
- * Wrap a workflow mutation handler so domain errors propagate as
- * `wf.ApplicationFailure` (non-retryable, surfaces as a clean client-side
- * rejection for update-style callers) instead of escaping as
- * `WorkflowWorkerUnhandledFailure` (which permanently wedges the
- * workflow).
- *
- * **Why this exists:** Temporal workflow handlers that throw a plain
- * `Error` can mark the workflow task as failed. The workflow then loops
- * trying to replay the same input, fails again, and becomes
- * permanently unqueryable. A single bad input could brick an entire change.
- *
- * `wf.ApplicationFailure` is the Temporal-native shape for "this mutation
- * failed for a domain reason". Update-style callers observe that as a clean
- * rejection. Signal callers are fire-and-forget, so this wrapper normalizes
- * failure shape only; signal handlers should still avoid throwing wherever a
- * local stuck/failed marker can preserve workflow queryability.
- *
- * Reliability rationale: this is defense-in-depth for update compatibility
- * and diagnostics. It does not replace explicit stuck-state handling in
- * signal-only mutation paths.
- *
- * Usage:
- * ```
- * wf.setHandler(mySignal, safeUpdateHandler("mySignal", (...args) => {
- *   return doSomethingThatMightThrow(args);
- * }));
- * ```
- */
-function safeUpdateHandler<Args extends unknown[], R>(
-  updateName: string,
-  handler: (...args: Args) => R,
-  // Signals ignore handler return values, while updates preserve them. The
-  // `any` return keeps this wrapper usable for both Temporal overloads during
-  // the signal migration without adding a duplicate error-normalization helper.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-): (...args: Args) => any {
-  return (...args: Args) => {
-    try {
-      const result = handler(...args);
-      if (
-        result &&
-        typeof result === "object" &&
-        "then" in result &&
-        typeof result.then === "function"
-      ) {
-        return Promise.resolve(result).catch((err: unknown) => {
-          const message = err instanceof Error ? err.message : String(err);
-          throw wf.ApplicationFailure.nonRetryable(
-            message,
-            `${updateName}_DOMAIN_ERROR`,
-          );
-        });
-      }
-      return result;
-    } catch (err) {
-      // Re-throw as ApplicationFailure (non-retryable) so update callers
-      // observe a clean domain failure. Signal callers do not observe returns;
-      // signal handlers should prefer local stuck-state handling before throw.
-      const message = err instanceof Error ? err.message : String(err);
-      throw wf.ApplicationFailure.nonRetryable(
-        message,
-        `${updateName}_DOMAIN_ERROR`,
-      );
-    }
-  };
-}
 
 function deriveInvestmentReportFromState(state: ChangeWorkflowState): {
   taskCounts: {
@@ -472,6 +442,9 @@ export async function changeWorkflow(
   if (input.seedState) {
     if (input.seedState.status) state.status = input.seedState.status;
     if (input.seedState.tasks) state.tasks = input.seedState.tasks;
+    if (input.seedState.subagent_reports) {
+      state.subagent_reports = input.seedState.subagent_reports;
+    }
     if (input.seedState.deltas) state.deltas = input.seedState.deltas;
     if (input.seedState.wisdom) state.wisdom = input.seedState.wisdom;
     if (input.seedState.gates) state.gates = input.seedState.gates;
@@ -525,6 +498,12 @@ export async function changeWorkflow(
     }
     if (input.seedState.scope_worktrees) {
       state.scope_worktrees = { ...input.seedState.scope_worktrees };
+    }
+    if (input.seedState.signal_rejections) {
+      state.signal_rejections = [...input.seedState.signal_rejections];
+    }
+    if (typeof input.seedState.signal_rejections_total === "number") {
+      state.signal_rejections_total = input.seedState.signal_rejections_total;
     }
   }
 
@@ -670,18 +649,74 @@ export async function changeWorkflow(
     return true;
   };
 
+  const isTemporalSystemFailure = (err: unknown): boolean =>
+    err instanceof wf.CancelledFailure || err instanceof wf.TemporalFailure;
+
+  const signalAsync = <Args extends unknown[]>(
+    signalName: string,
+    handler: (...args: Args) => void | Promise<void>,
+    options?: { projectAfter?: boolean; afterSuccess?: boolean },
+  ): ((...args: Args) => void | Promise<void>) => {
+    const afterSuccess = (): void => {
+      if (options?.afterSuccess === false) return;
+      upsertSignalSearchAttributes(signalName);
+      if (options?.projectAfter) scheduleChangeProjection(signalName);
+    };
+
+    const rejectSignal = (args: Args, err: unknown): void => {
+      if (isTemporalSystemFailure(err)) throw err;
+      applySignalRejectionToState(state, {
+        signalName,
+        error: err,
+        payload: args.length === 1 ? args[0] : args,
+        rejectedAt: workflowNow(),
+      });
+      const rejections = state.signal_rejections ?? [];
+      const latest = rejections[rejections.length - 1];
+      wf.log.warn("signal-rejected", {
+        signalName,
+        errorMessage: latest?.errorMessage ?? String(err),
+        errorClass: latest?.errorClass,
+        payloadDigest: latest?.payloadDigest,
+      });
+      upsertSignalSearchAttributes(`${signalName}Rejected`);
+      if (options?.projectAfter)
+        scheduleChangeProjection(`${signalName}Rejected`);
+    };
+
+    return (...args: Args) => {
+      try {
+        const result = handler(...args);
+        if (
+          result &&
+          typeof result === "object" &&
+          "then" in result &&
+          typeof result.then === "function"
+        ) {
+          return Promise.resolve(result)
+            .then(afterSuccess)
+            .catch((err: unknown) => rejectSignal(args, err));
+        }
+        afterSuccess();
+      } catch (err) {
+        rejectSignal(args, err);
+      }
+    };
+  };
+
   const signalMutation = <Payload>(
     signalName: string,
     handler: (payload: Payload) => ChangeWorkflowState,
     options?: { projectAfter?: boolean },
-  ): ((payload: Payload) => void) =>
-    safeUpdateHandler(signalName, (payload: Payload) => {
-      handler(payload);
-      upsertSignalSearchAttributes(signalName);
-      if (options?.projectAfter) scheduleChangeProjection(signalName);
-    });
+  ): ((payload: Payload) => void | Promise<void>) =>
+    signalAsync(
+      signalName,
+      (payload: Payload) => {
+        handler(payload);
+      },
+      options,
+    );
 
-  const MIN_GATE_ARTIFACT_NON_WHITESPACE_CHARS = 20;
   // Patch rationale: discovery contract enforcement was added after legacy
   // discovery gate histories already scheduled artifact inspection. During
   // replay, histories without this marker must take the old no-contract-blocker
@@ -690,6 +725,33 @@ export async function changeWorkflow(
   // archived/closed and replay fixtures no longer cover that migration path;
   // then replace the marker with wf.deprecatePatch before final removal.
   const DISCOVERY_CONTRACT_READINESS_PATCH = "discovery-contract-readiness-v1";
+  // Patch rationale: acceptance projection + executive-summary hash enforcement
+  // adds activity commands to the acceptance gate-completion path. Existing
+  // histories that already scheduled acceptance completion must replay the old
+  // artifact-inspection sequence; new histories record this patch marker before
+  // scheduling the new proof activities.
+  const ACCEPTANCE_EXECUTIVE_SUMMARY_PROOF_PATCH =
+    "acceptance-executive-summary-proof-v1";
+  // Patch rationale: proposal/discovery/design artifact content moved to
+  // workflow state.documents while legacy histories may have already scheduled
+  // inspectArtifactActivity. New attempts use state-backed evidence; old
+  // histories replay the legacy disk-read command sequence.
+  const STATE_BACKED_GATE_ARTIFACT_PROOF_PATCH =
+    "state-backed-gate-artifact-proof-v1";
+  // Patch rationale (completeStateBackedGate, AC3): acceptance gate proof moved
+  // from disk inspectArtifactActivity to workflow state.documents.executiveSummary
+  // + state.artifacts.executiveSummary metadata. The Temporal-only store no
+  // longer writes artifact .md files (no-disk-writes-invariant), so the legacy
+  // ACCEPTANCE_EXECUTIVE_SUMMARY_PROOF_PATCH disk-read path leaves acceptance
+  // stuck. New histories take the state-backed branch (and materialize
+  // executive-summary.md to disk for the archive bundle via writeArtifactActivity
+  // per AC7); old histories that already scheduled the disk inspect sequence
+  // replay the legacy command sequence under the prior marker.
+  // Deprecation plan: keep until pre-migration acceptance histories are
+  // archived/closed and replay fixtures no longer cover the disk-inspect path;
+  // then replace with wf.deprecatePatch before final removal.
+  const STATE_BACKED_ACCEPTANCE_PROOF_PATCH =
+    "state-backed-acceptance-proof-v1";
 
   const blockerText = (blockers: GateReadinessBlocker[]): string =>
     blockers.map((b) => `${b.code}: ${b.message}`).join("; ");
@@ -739,68 +801,222 @@ export async function changeWorkflow(
 
     let artifactEvidence = readiness.evidence;
     const artifactKind = ARTIFACT_BACKED_GATES[payload.gateId];
-    if (artifactKind && state.projectionChangesDir && !artifactEvidence) {
-      if (artifactKind === "acceptance") {
-        const writeResult = await writeArtifactActivity({
+    if (artifactKind && !artifactEvidence) {
+      if (
+        artifactKind !== "acceptance" &&
+        wf.patched(STATE_BACKED_GATE_ARTIFACT_PROOF_PATCH)
+      ) {
+        const stateArtifactReadiness = stateBackedArtifactEvidence(
+          state,
+          payload.gateId,
+          artifactKind,
+          workflowNow(),
+        );
+        if (!stateArtifactReadiness.ready) {
+          markGateStuckForBlockers(payload, stateArtifactReadiness.blockers);
+          return;
+        }
+        artifactEvidence = stateArtifactReadiness.evidence;
+      } else if (
+        artifactKind === "acceptance" &&
+        wf.patched(STATE_BACKED_ACCEPTANCE_PROOF_PATCH)
+      ) {
+        // State-backed acceptance (completeStateBackedGate AC1/AC2/AC7).
+        // Proof comes from workflow state, NOT disk inspection. The L1
+        // readiness check (acceptanceContractBlockers) already verified that
+        // state.artifacts.executiveSummary.{path,contentHash} are present and
+        // the contract review matrix passes; here we validate the
+        // state.documents.executiveSummary CONTENT (size + hash) and derive
+        // the acceptance evidence from state. The recovery path in gate.ts
+        // (poisoned_history) is untouched and still inspects disk per C2/C4.
+        const stateProof = stateBackedAcceptanceProof(state, workflowNow());
+        if (!stateProof.ready) {
+          markGateStuckForBlockers(payload, stateProof.blockers);
+          return;
+        }
+        const acceptanceContent = renderAcceptanceProjection(state);
+        // T12: populate state.documents.acceptance to match the projection so
+        // readArtifact / archive-bundle materialization see Temporal content.
+        state.documents = {
+          ...(state.documents ?? {}),
+          acceptance: acceptanceContent,
+        };
+        // AC7: materialize executive-summary.md AND acceptance.md to disk so
+        // createArchive/createInRepoArchive (readdir-based copy) include them
+        // in the bundle. The Temporal-only store does not write artifact files
+        // on the production update path, so this is the single materialization
+        // point. Only attempted when a projection dir is configured; pure
+        // state-only environments (unit fixtures without projectionChangesDir)
+        // still complete acceptance from state proof.
+        if (state.projectionChangesDir) {
+          const esWrite = await writeArtifactActivity({
+            changesDir: state.projectionChangesDir,
+            changeId: state.changeId,
+            kind: "executiveSummary",
+            content: state.documents.executiveSummary ?? "",
+          });
+          if (!esWrite.ok) {
+            markGateStuckForBlockers(payload, [
+              gateArtifactBlocker(payload, {
+                code: "ACCEPTANCE_EXECUTIVE_SUMMARY_MATERIALIZE_FAILED",
+                artifactKind,
+                message: esWrite.error,
+                remediation:
+                  "Fix executive-summary materialization before retrying acceptance.",
+              }),
+            ]);
+            return;
+          }
+          const acceptanceWrite = await writeArtifactActivity({
+            changesDir: state.projectionChangesDir,
+            changeId: state.changeId,
+            kind: "acceptance",
+            content: acceptanceContent,
+          });
+          if (!acceptanceWrite.ok) {
+            markGateStuckForBlockers(payload, [
+              gateArtifactBlocker(payload, {
+                code: "ACCEPTANCE_PROJECTION_WRITE_FAILED",
+                artifactKind,
+                message: acceptanceWrite.error,
+                remediation:
+                  "Fix acceptance projection generation before retrying gate completion.",
+              }),
+            ]);
+            return;
+          }
+        }
+        artifactEvidence = stateProof.evidence;
+      } else if (state.projectionChangesDir) {
+        if (
+          artifactKind === "acceptance" &&
+          wf.patched(ACCEPTANCE_EXECUTIVE_SUMMARY_PROOF_PATCH)
+        ) {
+          const acceptanceContent = renderAcceptanceProjection(state);
+          const writeResult = await writeArtifactActivity({
+            changesDir: state.projectionChangesDir,
+            changeId: state.changeId,
+            kind: "acceptance",
+            content: acceptanceContent,
+          });
+          if (!writeResult.ok) {
+            markGateStuckForBlockers(payload, [
+              gateArtifactBlocker(payload, {
+                code: "ACCEPTANCE_PROJECTION_WRITE_FAILED",
+                artifactKind,
+                message: writeResult.error,
+                remediation:
+                  "Fix acceptance projection generation before retrying gate completion.",
+              }),
+            ]);
+            return;
+          }
+          // T12 (removePositionalArtifactApi): populate state.documents.acceptance
+          // to match the just-written disk projection. Makes acceptance a
+          // first-class member of state.documents so readArtifact /
+          // archive-bundle materialization (KD-13) and consumer alignment
+          // (gate-readiness, archive-summary) see Temporal-backed content
+          // instead of empty. Disk projection retained per C12 (acceptance
+          // recovery path requires inspectArtifactActivity to verify disk
+          // contentHash).
+          state.documents = {
+            ...(state.documents ?? {}),
+            acceptance: acceptanceContent,
+          };
+          const executiveSummary = await inspectArtifactActivity({
+            changesDir: state.projectionChangesDir,
+            changeId: state.changeId,
+            kind: "executiveSummary",
+          });
+          if (!executiveSummary.ok) {
+            markGateStuckForBlockers(payload, [
+              gateArtifactBlocker(payload, {
+                code:
+                  executiveSummary.code === "missing"
+                    ? "ACCEPTANCE_EXECUTIVE_SUMMARY_MISSING"
+                    : "ACCEPTANCE_EXECUTIVE_SUMMARY_UNREADABLE",
+                artifactKind,
+                message: executiveSummary.error,
+                remediation:
+                  "Persist a readable executive-summary.md and update workflow metadata before retrying acceptance.",
+              }),
+            ]);
+            return;
+          }
+          if (
+            executiveSummary.nonWhitespaceChars <
+            MIN_GATE_ARTIFACT_NON_WHITESPACE_CHARS
+          ) {
+            markGateStuckForBlockers(payload, [
+              gateArtifactBlocker(payload, {
+                code: "ACCEPTANCE_EXECUTIVE_SUMMARY_UNDERSIZED",
+                artifactKind,
+                message: `executive-summary artifact has ${executiveSummary.nonWhitespaceChars} non-whitespace characters; minimum is ${MIN_GATE_ARTIFACT_NON_WHITESPACE_CHARS}.`,
+                remediation:
+                  "Populate executive-summary.md with substantive acceptance evidence before retrying acceptance.",
+              }),
+            ]);
+            return;
+          }
+          if (
+            state.artifacts.executiveSummary?.contentHash !==
+            executiveSummary.contentHash
+          ) {
+            markGateStuckForBlockers(payload, [
+              gateArtifactBlocker(payload, {
+                code: "ACCEPTANCE_EXECUTIVE_SUMMARY_HASH_STALE",
+                artifactKind,
+                message:
+                  "executive-summary artifact contentHash does not match workflow metadata.",
+                remediation:
+                  "Re-persist executive-summary.md through the artifact update path so workflow metadata receives a fresh contentHash.",
+              }),
+            ]);
+            return;
+          }
+        }
+        const artifact = await inspectArtifactActivity({
           changesDir: state.projectionChangesDir,
           changeId: state.changeId,
-          kind: "acceptance",
-          content: renderAcceptanceProjection(state),
+          kind: artifactKind,
         });
-        if (!writeResult.ok) {
+        if (!artifact.ok) {
           markGateStuckForBlockers(payload, [
             gateArtifactBlocker(payload, {
-              code: "ACCEPTANCE_PROJECTION_WRITE_FAILED",
+              code:
+                artifact.code === "missing"
+                  ? "ARTIFACT_MISSING"
+                  : "ARTIFACT_UNREADABLE",
               artifactKind,
-              message: writeResult.error,
+              message: artifact.error,
               remediation:
-                "Fix acceptance projection generation before retrying gate completion.",
+                "Create or repair the required gate artifact before retrying gate completion.",
             }),
           ]);
           return;
         }
+        if (
+          artifact.nonWhitespaceChars < MIN_GATE_ARTIFACT_NON_WHITESPACE_CHARS
+        ) {
+          markGateStuckForBlockers(payload, [
+            gateArtifactBlocker(payload, {
+              code: "ARTIFACT_UNDERSIZED",
+              artifactKind,
+              message: `${artifact.kind} artifact has ${artifact.nonWhitespaceChars} non-whitespace characters; minimum is ${MIN_GATE_ARTIFACT_NON_WHITESPACE_CHARS}.`,
+              remediation:
+                "Populate the required artifact with substantive gate evidence before retrying gate completion.",
+            }),
+          ]);
+          return;
+        }
+        artifactEvidence = {
+          kind: artifactKind,
+          path: artifact.path,
+          content_hash: artifact.contentHash,
+          non_whitespace_chars: artifact.nonWhitespaceChars,
+          checked_at: artifact.checkedAt,
+        };
       }
-      const artifact = await inspectArtifactActivity({
-        changesDir: state.projectionChangesDir,
-        changeId: state.changeId,
-        kind: artifactKind,
-      });
-      if (!artifact.ok) {
-        markGateStuckForBlockers(payload, [
-          gateArtifactBlocker(payload, {
-            code:
-              artifact.code === "missing"
-                ? "ARTIFACT_MISSING"
-                : "ARTIFACT_UNREADABLE",
-            artifactKind,
-            message: artifact.error,
-            remediation:
-              "Create or repair the required gate artifact before retrying gate completion.",
-          }),
-        ]);
-        return;
-      }
-      if (
-        artifact.nonWhitespaceChars < MIN_GATE_ARTIFACT_NON_WHITESPACE_CHARS
-      ) {
-        markGateStuckForBlockers(payload, [
-          gateArtifactBlocker(payload, {
-            code: "ARTIFACT_UNDERSIZED",
-            artifactKind,
-            message: `${artifact.kind} artifact has ${artifact.nonWhitespaceChars} non-whitespace characters; minimum is ${MIN_GATE_ARTIFACT_NON_WHITESPACE_CHARS}.`,
-            remediation:
-              "Populate the required artifact with substantive gate evidence before retrying gate completion.",
-          }),
-        ]);
-        return;
-      }
-      artifactEvidence = {
-        kind: artifact.kind,
-        path: artifact.path,
-        content_hash: artifact.contentHash,
-        non_whitespace_chars: artifact.nonWhitespaceChars,
-        checked_at: artifact.checkedAt,
-      };
     }
 
     applyGateCompletedToState(state, {
@@ -833,6 +1049,18 @@ export async function changeWorkflow(
     designUpdatedSignal,
     signalMutation("designUpdated", (payload) =>
       applyDesignUpdatedToState(state, payload),
+    ),
+  );
+  wf.setHandler(
+    executiveSummaryUpdatedSignal,
+    signalMutation("executiveSummaryUpdated", (payload) =>
+      applyExecutiveSummaryUpdatedToState(state, payload),
+    ),
+  );
+  wf.setHandler(
+    acceptanceUpdatedSignal,
+    signalMutation("acceptanceUpdated", (payload) =>
+      applyAcceptanceUpdatedToState(state, payload),
     ),
   );
   wf.setHandler(
@@ -931,15 +1159,19 @@ export async function changeWorkflow(
   );
   wf.setHandler(
     gateCompletedSignal,
-    safeUpdateHandler("gateCompleted", async (payload) => {
-      const previous = gateCompletionChain.catch(() => undefined);
-      gateCompletionChain = previous.then(() =>
-        completeGateWithReadiness(payload),
-      );
-      await gateCompletionChain;
-      upsertSignalSearchAttributes("gateCompleted");
-      scheduleChangeProjection("gateCompleted");
-    }),
+    signalAsync(
+      "gateCompleted",
+      async (payload) => {
+        const previous = gateCompletionChain.catch(() => undefined);
+        gateCompletionChain = previous.then(() =>
+          completeGateWithReadiness(payload),
+        );
+        await gateCompletionChain;
+        upsertSignalSearchAttributes("gateCompleted");
+        scheduleChangeProjection("gateCompleted");
+      },
+      { afterSuccess: false },
+    ),
   );
   wf.setHandler(
     gateReenteredSignal,
@@ -1003,51 +1235,61 @@ export async function changeWorkflow(
   );
   wf.setHandler(
     archiveRequestedSignal,
-    safeUpdateHandler("archiveRequested", async (payload) => {
-      const previousStatus = state.status;
-      const previousTerminated = state.terminated;
-      applyArchiveRequestedToState(state, payload);
-      upsertSignalSearchAttributes("archiveRequested");
-      const archived = await runArchiveActivity(payload);
-      const projected = archived
-        ? await projectChangeState("archiveRequested")
-        : false;
-      if (!projected || !archived) {
-        state.status = previousStatus;
-        if (typeof previousTerminated === "undefined") delete state.terminated;
-        else state.terminated = previousTerminated;
-        applyGateStuckToState(state, {
-          gateId: "release",
-          reason: archived
-            ? "Projection write failed before archive completion"
-            : "Archive activity failed before workflow completion",
-          triggeredAt: payload.requestedAt,
-        });
-        upsertSignalSearchAttributes("archiveRequestedProjectionFailure");
-      }
-    }),
+    signalAsync(
+      "archiveRequested",
+      async (payload) => {
+        const previousStatus = state.status;
+        const previousTerminated = state.terminated;
+        applyArchiveRequestedToState(state, payload);
+        upsertSignalSearchAttributes("archiveRequested");
+        const archived = await runArchiveActivity(payload);
+        const projected = archived
+          ? await projectChangeState("archiveRequested")
+          : false;
+        if (!projected || !archived) {
+          state.status = previousStatus;
+          if (typeof previousTerminated === "undefined")
+            delete state.terminated;
+          else state.terminated = previousTerminated;
+          applyGateStuckToState(state, {
+            gateId: "release",
+            reason: archived
+              ? "Projection write failed before archive completion"
+              : "Archive activity failed before workflow completion",
+            triggeredAt: payload.requestedAt,
+          });
+          upsertSignalSearchAttributes("archiveRequestedProjectionFailure");
+        }
+      },
+      { afterSuccess: false },
+    ),
   );
   wf.setHandler(
     changeCancelledSignal,
-    safeUpdateHandler("changeCancelled", async (payload) => {
-      const previousStatus = state.status;
-      const previousTerminated = state.terminated;
-      const previousClosure = state.closure;
-      applyChangeCancelledToState(state, payload);
-      upsertSignalSearchAttributes("changeCancelled");
-      const archived = await runCancelArchiveActivity(payload);
-      const projected = archived
-        ? await projectChangeState("changeCancelled")
-        : false;
-      if (!projected || !archived) {
-        state.status = previousStatus;
-        if (typeof previousTerminated === "undefined") delete state.terminated;
-        else state.terminated = previousTerminated;
-        if (typeof previousClosure === "undefined") delete state.closure;
-        else state.closure = previousClosure;
-        upsertSignalSearchAttributes("changeCancelledProjectionFailure");
-      }
-    }),
+    signalAsync(
+      "changeCancelled",
+      async (payload) => {
+        const previousStatus = state.status;
+        const previousTerminated = state.terminated;
+        const previousClosure = state.closure;
+        applyChangeCancelledToState(state, payload);
+        upsertSignalSearchAttributes("changeCancelled");
+        const archived = await runCancelArchiveActivity(payload);
+        const projected = archived
+          ? await projectChangeState("changeCancelled")
+          : false;
+        if (!projected || !archived) {
+          state.status = previousStatus;
+          if (typeof previousTerminated === "undefined")
+            delete state.terminated;
+          else state.terminated = previousTerminated;
+          if (typeof previousClosure === "undefined") delete state.closure;
+          else state.closure = previousClosure;
+          upsertSignalSearchAttributes("changeCancelledProjectionFailure");
+        }
+      },
+      { afterSuccess: false },
+    ),
   );
   wf.setHandler(
     updateArtifactMetadataSignal,
@@ -1078,32 +1320,36 @@ export async function changeWorkflow(
   );
   wf.setHandler(
     archiveChangeSignal,
-    safeUpdateHandler("archiveChange", () => {
-      wf.log.info("op:start", {
-        op: "archiveChangeSignal",
-        changeId: state.changeId,
-        title: state.title?.slice(0, 80),
-      });
-      archiveChangeInChangeState(state);
-      if (input.searchAttributesEnabled !== false) {
-        try {
-          wf.upsertSearchAttributes({
-            [ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES.changeStatus]: ["archived"],
-          });
-        } catch (saErr) {
-          wf.log.warn("search-attribute-upsert-failed", {
-            op: "archiveChangeSignal",
-            changeId: state.changeId,
-            error: saErr instanceof Error ? saErr.message : String(saErr),
-          });
+    signalAsync(
+      "archiveChange",
+      () => {
+        wf.log.info("op:start", {
+          op: "archiveChangeSignal",
+          changeId: state.changeId,
+          title: state.title?.slice(0, 80),
+        });
+        archiveChangeInChangeState(state);
+        if (input.searchAttributesEnabled !== false) {
+          try {
+            wf.upsertSearchAttributes({
+              [ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES.changeStatus]: ["archived"],
+            });
+          } catch (saErr) {
+            wf.log.warn("search-attribute-upsert-failed", {
+              op: "archiveChangeSignal",
+              changeId: state.changeId,
+              error: saErr instanceof Error ? saErr.message : String(saErr),
+            });
+          }
         }
-      }
-      wf.log.info("op:end", {
-        op: "archiveChangeSignal",
-        changeId: state.changeId,
-      });
-      upsertSignalSearchAttributes("archiveChange");
-    }),
+        wf.log.info("op:end", {
+          op: "archiveChangeSignal",
+          changeId: state.changeId,
+        });
+        upsertSignalSearchAttributes("archiveChange");
+      },
+      { afterSuccess: false },
+    ),
   );
   wf.setHandler(
     closeChangeSignal,
@@ -1175,6 +1421,7 @@ export async function changeWorkflow(
     seedState: {
       status: state.status,
       tasks: state.tasks,
+      subagent_reports: state.subagent_reports,
       deltas: state.deltas,
       wisdom: state.wisdom,
       gates: state.gates,
@@ -1198,6 +1445,8 @@ export async function changeWorkflow(
       target_worktree_path: state.target_worktree_path,
       scope_worktrees: state.scope_worktrees,
       seenReportIds: state.seenReportIds,
+      signal_rejections: state.signal_rejections,
+      signal_rejections_total: state.signal_rejections_total,
     },
   };
   await wf.condition(wf.allHandlersFinished);

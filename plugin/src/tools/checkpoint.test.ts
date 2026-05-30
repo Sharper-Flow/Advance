@@ -83,7 +83,19 @@ function createMockStore(): Store {
     close: vi.fn(),
     flush: vi.fn(),
     specs: {} as Store["specs"],
-    changes: {} as Store["changes"],
+    changes: {
+      get: vi.fn(async () => ({
+        success: true,
+        data: {
+          id: "test-change",
+          title: "Test Change",
+          status: "active",
+          created_at: "2026-01-01T00:00:00Z",
+          tasks: [],
+          deltas: {},
+        },
+      })),
+    } as unknown as Store["changes"],
     tasks: {
       show: vi.fn(async (taskId: string) => ({
         task: {
@@ -342,6 +354,65 @@ describe("checkpoint tools — signal-driven", () => {
         taskId: "tk-abc",
         verification,
       });
+      expect(signalCall[4]).not.toHaveProperty("structured_output");
+    });
+
+    test("does not extract legacy structured_output when sidecar has task report", async () => {
+      const store = createMockStore();
+      vi.mocked(store.changes.get).mockResolvedValue({
+        success: true,
+        data: {
+          id: "test-change",
+          title: "Test Change",
+          status: "active",
+          created_at: "2026-01-01T00:00:00Z",
+          tasks: [],
+          deltas: {},
+          subagent_reports: [
+            {
+              schema_version: "1.0",
+              change_id: "test-change",
+              task_id: "tk-abc",
+              attempt: 1,
+              agent: "adv-engineer",
+              status: "complete",
+              scope: { kind: "task", task_id: "tk-abc" },
+              workdir_used: "/tmp/test",
+              files_touched: ["src/file.ts"],
+              verification: [
+                { command: "pnpm test", exit_code: 0, summary: "passed" },
+              ],
+              decisions: [],
+              blockers: [],
+              follow_ups: [],
+              related_scan: "No related issues",
+              context_update_for_adv: {
+                what_ads_needs_to_know: "Typed sidecar report exists",
+                suggested_next_action: "Skip legacy extraction",
+              },
+            },
+          ],
+        } as import("../types").Change,
+      });
+      mockGitResponses({});
+
+      const verification = `Tests passed.\n\n<adv-output>\n{\n  "filesChanged": [{"path": "src/baz.ts", "linesAdded": 3}],\n  "testsAdded": 1\n}\n</adv-output>`;
+      mockRecordedTask({ verification });
+
+      const result = await checkpointTools.adv_task_checkpoint.execute(
+        {
+          taskId: "tk-abc",
+          mode: "complete",
+          verification,
+        },
+        store,
+        "/tmp/test",
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.status).toBe("committed");
+      const signalCall = mocks.fireSignalAndRefresh.mock.calls[0];
+      expect(signalCall[4]).toMatchObject({ taskId: "tk-abc", verification });
       expect(signalCall[4]).not.toHaveProperty("structured_output");
     });
 

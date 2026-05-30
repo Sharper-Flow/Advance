@@ -269,14 +269,14 @@ describe("deploy-local.sh", () => {
       ).toEqual([]);
     });
 
-    test("tool drift validation exempts leaf-only report submit from primary agents", () => {
+    test("tool drift validation permits report-submit on primary agents", () => {
       const advAgent = readFileSync(ADV_AGENT_PATH, "utf8");
       const advAtcAgent = readFileSync(ADV_ATC_AGENT_PATH, "utf8");
 
       expect(advAgent).toContain("mode: primary");
       expect(advAtcAgent).toContain("mode: primary");
-      expect(advAgent).not.toContain("  adv_subagent_report_submit:");
-      expect(advAtcAgent).not.toContain("  adv_subagent_report_submit:");
+      expect(advAgent).toContain("  adv_subagent_report_submit: true");
+      expect(advAtcAgent).toContain("  adv_subagent_report_submit: true");
 
       expect(content).toContain("LEAF_ONLY_TOOLS");
       expect(content).toContain('"adv_subagent_report_submit"');
@@ -337,15 +337,16 @@ describe("deploy-local.sh", () => {
 
     test("removes canonical and stale global ADV_INSTRUCTIONS.md from instructions array", () => {
       expect(content).toContain(
-        "Removed global instruction: ADV_INSTRUCTIONS.md",
+        "remove globally-registered ADV_INSTRUCTIONS.md",
       );
-      expect(content).toContain("Removed stale instruction:");
+      expect(content).toContain("remove stale instruction:");
       expect(content).toContain("instructions/ADV_INSTRUCTIONS.md");
     });
 
-    test("cleans up backup when no patches needed", () => {
+    test("does not create config backup when no patches needed", () => {
       expect(content).toContain("No patches needed");
-      expect(content).toContain('rm -f "$backup"');
+      expect(content).toContain('if [ "$patched" -eq 0 ]; then');
+      expect(content).toContain('rm -f "$tmp_json"');
     });
 
     test("skips asset sync in --check mode", () => {
