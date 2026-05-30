@@ -3865,7 +3865,11 @@ export const changeTools = {
               archiveResult.errors.push(
                 `Branch cleanup warning: ${branchResult.error}`,
               );
-            } else if (branchResult.localDeleted && !branchResult.remoteDeleted && branchResult.error) {
+            } else if (
+              branchResult.localDeleted &&
+              !branchResult.remoteDeleted &&
+              branchResult.error
+            ) {
               archiveResult.errors.push(
                 `Branch cleanup warning (remote): ${branchResult.error}`,
               );
