@@ -346,6 +346,31 @@ describe("git-finalize helpers", () => {
     });
   });
 
+  it("push uses a generous timeout, not the fast local-op default", () => {
+    // Regression: a single 30s timeout for all git ops made `git push` fail
+    // (DEFAULT_BRANCH_PUSH_FAILED) in consumer repos whose pre-push hooks run
+    // minutes of CI. Push must get its own generous budget.
+    let originTimeout: number | undefined;
+    pushToOrigin("/repo", "trunk", {
+      autoPush: true,
+      runGit: (_cwd, _args, timeoutMs) => {
+        originTimeout = timeoutMs;
+        return { status: 0, stdout: "ok", stderr: "" };
+      },
+    });
+    expect(originTimeout).toBe(300000);
+
+    let branchTimeout: number | undefined;
+    pushChangeBranch("/repo", "example", {
+      autoPush: true,
+      runGit: (_cwd, _args, timeoutMs) => {
+        branchTimeout = timeoutMs;
+        return { status: 0, stdout: "ok", stderr: "" };
+      },
+    });
+    expect(branchTimeout).toBe(300000);
+  });
+
   it("pushChangeBranch pushes change branch to origin", () => {
     const pushed = pushChangeBranch("/repo", "example", {
       autoPush: true,
