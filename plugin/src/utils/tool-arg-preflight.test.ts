@@ -209,6 +209,18 @@ const PLACEHOLDER_POLICY_REGRESSION_MATRIX: RegressionMatrixCase[] = [
     fields: ["command"],
   },
   {
+    label: "blank run-test phase normalizes to omitted",
+    toolName: "adv_run_test",
+    schema: {
+      taskId: z.string(),
+      command: z.string(),
+      phase: z.enum(["red", "green", "verify"]).optional(),
+    },
+    rawArgs: { taskId: "tk-1", command: "pnpm test", phase: " " },
+    ok: true,
+    normalizedArgs: { taskId: "tk-1", command: "pnpm test" },
+  },
+  {
     label: "blank gate actor rejected",
     toolName: "adv_gate_complete",
     rawArgs: { completedBy: " " },

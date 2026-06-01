@@ -473,9 +473,7 @@
         {
           "id": "rq-proseReduction03.2",
           "title": "No standing audit inventory required",
-          "given": [
-            "A prose-reduction change has completed"
-          ],
+          "given": ["A prose-reduction change has completed"],
           "when": "The repository documentation is inspected",
           "then": [
             "No repository doc is required solely to preserve the change's audit trail",
@@ -1530,7 +1528,9 @@
         {
           "id": "rq-advStatusLazyView01.2",
           "title": "Detailed views retain their providers",
-          "given": ["adv_status is called with view: \"health\" or view: \"hygiene\""],
+          "given": [
+            "adv_status is called with view: \"health\" or view: \"hygiene\""
+          ],
           "when": "The tool builds output",
           "then": [
             "The corresponding detailed providers run",
@@ -1549,7 +1549,9 @@
         {
           "id": "rq-changeSummaryReadModel01.1",
           "title": "Memo-served warm list skips per-change hydration",
-          "given": ["ChangeSummaryMemo holds complete summaries for the requested IDs"],
+          "given": [
+            "ChangeSummaryMemo holds complete summaries for the requested IDs"
+          ],
           "when": "Default adv_change_list is served via listSummary",
           "then": [
             "Per-change full hydration is not invoked for memo-served IDs",
@@ -1560,7 +1562,9 @@
         {
           "id": "rq-changeSummaryReadModel01.2",
           "title": "Authoritative fallback for terminal or filtered callers",
-          "given": ["Caller requests archived/closed inclusion, prefix/title/created filters, or any path requiring full state"],
+          "given": [
+            "Caller requests archived/closed inclusion, prefix/title/created filters, or any path requiring full state"
+          ],
           "when": "listSummary executes",
           "then": [
             "The authoritative listResolvedChanges path runs",
@@ -1591,7 +1595,9 @@
         {
           "id": "rq-advLatencyTelemetry01.2",
           "title": "Named phase/substep ring surfaces in health view",
-          "given": ["adv_status and adv_run_test invoke withRecordedPhase for their named phases"],
+          "given": [
+            "adv_status and adv_run_test invoke withRecordedPhase for their named phases"
+          ],
           "when": "adv_status view: \"health\" is read",
           "then": [
             "metrics.recent_phase_durations exposes the named samples bounded by RECENT_PHASE_BUFFER_LIMIT",
@@ -1621,7 +1627,9 @@
         {
           "id": "rq-advLatencyBench01.2",
           "title": "Temporal mode refuses to silently substitute",
-          "given": ["Operator passes --mode temporal without providing a TemporalClientBundle"],
+          "given": [
+            "Operator passes --mode temporal without providing a TemporalClientBundle"
+          ],
           "when": "The bench attempts to build the store",
           "then": ["The script exits non-zero with an explicit refusal message"]
         }
@@ -1647,23 +1655,29 @@
         {
           "id": "rq-visibilityProjectScope01.2",
           "title": "Backlog claim queries share the registered attribute",
-          "given": ["visibility-claim-queries builds a claim-collision or bulk query"],
+          "given": [
+            "visibility-claim-queries builds a claim-collision or bulk query"
+          ],
           "when": "The query string is constructed",
-          "then": ["The query also filters on `AdvAffectedProjects` for the same project id"]
+          "then": [
+            "The query also filters on `AdvAffectedProjects` for the same project id"
+          ]
         }
       ]
     },
     {
       "id": "rq-advRunTestLatency01",
       "title": "adv_run_test hot-path latency preserves correctness",
-      "body": "`adv_run_test` latency improvements MUST preserve the existing tool contract: task validation, shell-command execution semantics, timeout/max-buffer classification, exit-code reporting, and output shaping. Every invocation MUST execute the supplied command fresh; the tool MUST NOT cache, skip, or fabricate command results. Telemetry MUST record duration for substeps `targetRouting`, `taskLookup`, `commandExecution`, and `outputShaping` so operators can diagnose hot-path overhead without changing the tool contract. Subprocess implementation changes are allowed only when compatibility tests cover shell metacharacters/pipelines/redirects, timeout/kill classification, max-buffer classification, stdout/stderr capture, non-zero exit reporting, and output shaping.",
+      "body": "`adv_run_test` latency improvements MUST preserve the existing tool contract: task validation, shell-command execution semantics, timeout/max-buffer classification, exit-code reporting, and output shaping. Every invocation MUST execute the supplied command fresh; the tool MUST NOT cache, skip, or fabricate command results. The public result contract MUST include typed fields `passed`, `classification`, `durationMs`, `outputBytesSeen`, `outputBytesRetained`, `outputTruncated`, `executionMode`, and compact `evidence.schema_version='adv_run_test.v1'` while legacy fields remain available. Telemetry MUST record duration for substeps `targetRouting`, `taskLookup`, `commandExecution`, and `outputShaping` so operators can diagnose hot-path overhead without changing the tool contract. Subprocess implementation changes are allowed only when compatibility tests cover shell metacharacters/pipelines/redirects, timeout/kill classification, max-buffer classification, stdout/stderr capture, non-zero exit reporting, and output shaping.",
       "priority": "must",
       "tags": ["adv_run_test", "latency", "tdd"],
       "scenarios": [
         {
           "id": "rq-advRunTestLatency01.1",
           "title": "Substep telemetry surfaces without altering contract",
-          "given": ["adv_run_test is invoked with a valid task and shell command"],
+          "given": [
+            "adv_run_test is invoked with a valid task and shell command"
+          ],
           "when": "The tool completes successfully or with non-zero exit",
           "then": [
             "Recent phase samples include taskLookup, commandExecution, and outputShaping for tool adv_run_test",
@@ -1674,11 +1688,26 @@
         {
           "id": "rq-advRunTestLatency01.2",
           "title": "Per-call fresh execution",
-          "given": ["adv_run_test is invoked twice with the same task and command"],
+          "given": [
+            "adv_run_test is invoked twice with the same task and command"
+          ],
           "when": "Both invocations complete",
           "then": [
             "Each invocation runs the supplied command in a fresh subprocess",
             "Task lookup runs on every call and is not served from a cache that bypasses validation"
+          ]
+        },
+        {
+          "id": "rq-advRunTestLatency01.3",
+          "title": "Typed result contract remains backward compatible",
+          "given": [
+            "adv_run_test completes with pass, failure, timeout, or output-limit classification"
+          ],
+          "when": "The tool response is returned",
+          "then": [
+            "Typed fields include `passed`, `classification`, `durationMs`, `outputBytesSeen`, `outputBytesRetained`, `outputTruncated`, and `executionMode`",
+            "The compact evidence block uses schema_version `adv_run_test.v1`",
+            "The legacy fields remain available: `success`, `exitCode`, `output`, `command`, `timedOut`, `maxBufferExceeded`, and `timeoutMs` when applicable"
           ]
         }
       ]

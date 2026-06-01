@@ -26,6 +26,8 @@ export const DEFAULT_TEST_TIMEOUT_MS = 30_000;
 export const DEFAULT_TEST_MAX_BUFFER = 10 * 1024 * 1024;
 const DEFAULT_OUTPUT_MAX_LENGTH = 2000;
 const TRUNCATION_SUFFIX = "... (truncated)";
+const ADV_RUN_TEST_PHASES = ["red", "green", "verify"] as const;
+type AdvRunTestPhase = (typeof ADV_RUN_TEST_PHASES)[number];
 
 interface ExecBounds {
   timeoutMs?: number;
@@ -178,6 +180,12 @@ export const testTools = {
       command: z
         .string()
         .describe("The exact shell command to run (e.g. 'npm test')"),
+      phase: z
+        .enum(ADV_RUN_TEST_PHASES)
+        .optional()
+        .describe(
+          "Optional descriptive TDD phase metadata. Does not gate task completion; use 'red', 'green', or 'verify'.",
+        ),
       workdir: z
         .string()
         .optional()
@@ -204,6 +212,7 @@ export const testTools = {
       args: {
         taskId: string;
         command: string;
+        phase?: AdvRunTestPhase;
         workdir?: string;
         timeoutMs?: number;
         target_path?: string;
@@ -296,6 +305,7 @@ export const testTools = {
         exitCode,
         output: truncatedOutput,
         command: args.command,
+        ...(args.phase && { phase: args.phase }),
         timedOut,
         maxBufferExceeded,
         ...(timedOut && { timeoutMs: effective.timeoutMs }),

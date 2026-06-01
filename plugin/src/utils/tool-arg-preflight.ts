@@ -94,6 +94,7 @@ const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
   },
   adv_run_test: {
     command: { blank: "reject" }, // required-when-present
+    phase: { blank: "omit" }, // optional descriptive metadata
     target_path: { blank: "omit" },
     confirmationEvidence: { blank: "reject" }, // audit
   },

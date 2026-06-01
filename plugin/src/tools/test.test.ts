@@ -2,7 +2,7 @@
  * Test Tool — Simplified adv_run_test Tests
  *
  * Verifies that adv_run_test runs shell commands and returns results
- * without workflow involvement or phase parameter.
+ * without workflow involvement.
  */
 
 import { describe, test, expect, vi, beforeEach } from "vitest";
@@ -53,13 +53,14 @@ describe("test tools — simplified adv_run_test", () => {
     vi.clearAllMocks();
   });
 
-  test("runs command and returns result without phase", async () => {
+  test("runs command and returns result with optional descriptive phase", async () => {
     const store = createMockStore();
 
     const result = await testTools.adv_run_test.execute(
       {
         taskId: "tk-abc",
         command: "echo test output",
+        phase: "green",
       },
       store,
       "/tmp",
@@ -69,8 +70,18 @@ describe("test tools — simplified adv_run_test", () => {
     expect(parsed.success).toBe(true);
     expect(parsed.exitCode).toBe(0);
     expect(parsed.output).toContain("test output");
-    expect(parsed.phase).toBeUndefined();
+    expect(parsed.phase).toBe("green");
     expect(parsed.command).toBe("echo test output");
+  });
+
+  test("declares optional red/green/verify phase in the tool schema", () => {
+    const phaseSchema = testTools.adv_run_test.args.phase;
+
+    expect(phaseSchema).toBeDefined();
+    expect(phaseSchema?.safeParse("red").success).toBe(true);
+    expect(phaseSchema?.safeParse("green").success).toBe(true);
+    expect(phaseSchema?.safeParse("verify").success).toBe(true);
+    expect(phaseSchema?.safeParse("blue").success).toBe(false);
   });
 
   test("records adv_run_test substep telemetry phases", async () => {

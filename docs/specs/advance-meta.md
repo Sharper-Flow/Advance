@@ -1706,3 +1706,56 @@ The clarify_enforcement configuration flag (off | advisory | strict) MUST extend
 - Ambiguity thresholds appear in the quality gate table with pass/fail status
 
 ---
+
+### adv_run_test hot-path latency preserves correctness
+
+**ID:** `rq-advRunTestLatency01` | **Priority:** **[MUST]**
+
+`adv_run_test` latency improvements MUST preserve the existing tool contract: task validation, shell-command execution semantics, timeout/max-buffer classification, exit-code reporting, and output shaping. Every invocation MUST execute the supplied command fresh; the tool MUST NOT cache, skip, or fabricate command results. The public result contract MUST include typed fields `passed`, `classification`, `durationMs`, `outputBytesSeen`, `outputBytesRetained`, `outputTruncated`, `executionMode`, and compact `evidence.schema_version='adv_run_test.v1'` while legacy fields remain available. Telemetry MUST record duration for substeps `targetRouting`, `taskLookup`, `commandExecution`, and `outputShaping` so operators can diagnose hot-path overhead without changing the tool contract. Subprocess implementation changes are allowed only when compatibility tests cover shell metacharacters/pipelines/redirects, timeout/kill classification, max-buffer classification, stdout/stderr capture, non-zero exit reporting, and output shaping.
+
+**Tags:** `adv_run_test`, `latency`, `tdd`
+
+#### Scenarios
+
+**Substep telemetry surfaces without altering contract** (`rq-advRunTestLatency01.1`)
+
+**Given:**
+
+- adv_run_test is invoked with a valid task and shell command
+
+**When:** The tool completes successfully or with non-zero exit
+
+**Then:**
+
+- Recent phase samples include taskLookup, commandExecution, and outputShaping for tool adv_run_test
+- commandExecution outcome reflects the exit code (success on 0, error on non-zero)
+- Task validation, timeout, max-buffer, and output shaping classifications are unchanged
+
+**Per-call fresh execution** (`rq-advRunTestLatency01.2`)
+
+**Given:**
+
+- adv_run_test is invoked twice with the same task and command
+
+**When:** Both invocations complete
+
+**Then:**
+
+- Each invocation runs the supplied command in a fresh subprocess
+- Task lookup runs on every call and is not served from a cache that bypasses validation
+
+**Typed result contract remains backward compatible** (`rq-advRunTestLatency01.3`)
+
+**Given:**
+
+- adv_run_test completes with pass, failure, timeout, or output-limit classification
+
+**When:** The tool response is returned
+
+**Then:**
+
+- Typed fields include `passed`, `classification`, `durationMs`, `outputBytesSeen`, `outputBytesRetained`, `outputTruncated`, and `executionMode`
+- The compact evidence block uses schema_version `adv_run_test.v1`
+- The legacy fields remain available: `success`, `exitCode`, `output`, `command`, `timedOut`, `maxBufferExceeded`, and `timeoutMs` when applicable
+
+---

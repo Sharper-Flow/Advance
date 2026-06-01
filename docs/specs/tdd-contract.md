@@ -274,7 +274,7 @@ When a TDD inversion is detected, the remediation MUST be: merge the test task i
 
 **ID:** `rq-TDD008path` | **Priority:** **[MUST]**
 
-For ordinary inline TDD work, the primary red/green execution path MUST use adv_run_test for both phases after test or implementation changes are made with editing tools. No separate fallback evidence tool is part of the live task surface; externally obtained evidence is folded into task verification text when needed.
+For ordinary inline TDD work, the primary red/green execution path MUST use adv_run_test for both phases after test or implementation changes are made with editing tools. `adv_run_test.phase` is optional descriptive metadata (`red`, `green`, or `verify`) for traceability; it is not gate enforcement and must not complete or block task progression by itself. Canonical examples are `adv_run_test phase:'red'`, `adv_run_test phase:'green'`, and `adv_run_test phase:'verify'`. No separate fallback evidence tool is part of the live task surface; externally obtained evidence is folded into task verification text when needed.
 
 **Tags:** `tdd`, `inline`, `evidence`, `workflow`
 
@@ -294,17 +294,31 @@ For ordinary inline TDD work, the primary red/green execution path MUST use adv_
 - The test command is run through adv_run_test for the red phase
 - The test command is run through adv_run_test for the green phase
 
-**Primary path does not change evidence semantics validation** (`rq-TDD008path.3`)
+**Primary path uses result fields for evidence semantics** (`rq-TDD008path.3`)
 
 **Given:**
 
 - adv_run_test records red or green phase evidence
 
-**When:** Exit-code semantics are validated
+**When:** Command result semantics are interpreted
 
 **Then:**
 
-- Red phase still rejects exitCode=0
-- Green phase still rejects non-zero exit codes
+- The command result is interpreted from `passed`, `classification`, and `exitCode` fields
+- The optional phase field alone does not authorize gate completion, task completion, or rejection
+
+**Optional phase metadata remains bounded and descriptive** (`rq-TDD008path.4`)
+
+**Given:**
+
+- adv_run_test is invoked for inline TDD evidence
+
+**When:** The caller supplies phase metadata
+
+**Then:**
+
+- Only `red`, `green`, or `verify` values are accepted
+- The accepted value is returned as descriptive metadata
+- The phase value is not gate enforcement
 
 ---
