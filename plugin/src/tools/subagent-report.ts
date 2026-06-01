@@ -30,6 +30,19 @@ type ConsumerWarning = z.infer<typeof SubagentConsumerWarningSchema>;
 const ConsumerWarningsSchema = z.array(SubagentConsumerWarningSchema);
 const MAX_REPORT_FOLLOW_UPS = 10;
 
+const AdvRunTestEvidenceSchema = z
+  .object({
+    schema_version: z.literal("adv_run_test.v1"),
+    command: z.string().min(1),
+    exitCode: z.number().int().nullable(),
+    passed: z.boolean(),
+    classification: z.string().min(1),
+    durationMs: z.number().nonnegative(),
+  })
+  .passthrough();
+
+type AdvRunTestEvidence = z.infer<typeof AdvRunTestEvidenceSchema>;
+
 function validateConsumerWarnings(
   warnings: ConsumerWarning[],
 ): ConsumerWarning[] {
@@ -305,6 +318,52 @@ function extractRecordedExitCode(text: string): number | undefined {
   return Number.parseInt(match[1] ?? "", 10);
 }
 
+function collectAdvRunTestEvidence(
+  value: unknown,
+  target: AdvRunTestEvidence[],
+): void {
+  const direct = AdvRunTestEvidenceSchema.safeParse(value);
+  if (direct.success) {
+    target.push(direct.data);
+    return;
+  }
+
+  if (Array.isArray(value)) {
+    for (const item of value) collectAdvRunTestEvidence(item, target);
+    return;
+  }
+
+  if (value && typeof value === "object") {
+    for (const item of Object.values(value)) {
+      collectAdvRunTestEvidence(item, target);
+    }
+  }
+}
+
+function extractAdvRunTestEvidence(text: string): AdvRunTestEvidence[] {
+  const evidence: AdvRunTestEvidence[] = [];
+  for (const line of text.split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (!trimmed.startsWith("{") && !trimmed.startsWith("[")) continue;
+
+    try {
+      collectAdvRunTestEvidence(JSON.parse(trimmed), evidence);
+    } catch {
+      // Non-JSON lines remain on the legacy free-text path below.
+    }
+  }
+  return evidence;
+}
+
+function evidenceByCommand(text: string): Map<string, AdvRunTestEvidence> {
+  return new Map(
+    extractAdvRunTestEvidence(text).map((evidence) => [
+      evidence.command,
+      evidence,
+    ]),
+  );
+}
+
 function verificationWarnings(
   report: ScopedSubagentReport,
   task?: Task,
@@ -317,16 +376,33 @@ function verificationWarnings(
   ]
     .filter((value): value is string => Boolean(value?.trim()))
     .join("\n");
+  const structuredEvidence = evidenceByCommand(recorded);
 
   if (report.agent === "adv-engineer" || report.agent === "adv-designer") {
     return report.verification.flatMap((entry): ConsumerWarning[] => {
-      if (!recorded.includes(entry.command)) {
+      const evidence = structuredEvidence.get(entry.command);
+      if (!evidence && !recorded.includes(entry.command)) {
         return [
           {
             kind: "verification_missing" as const,
             message: `No adv_run_test evidence found for reported command: ${entry.command}`,
           },
         ];
+      }
+
+      if (evidence) {
+        if (
+          evidence.exitCode !== null &&
+          evidence.exitCode !== entry.exit_code
+        ) {
+          return [
+            {
+              kind: "verification_mismatch" as const,
+              message: `Reported exit_code ${entry.exit_code} differs from structured adv_run_test.v1 exitCode ${evidence.exitCode} for command: ${entry.command}`,
+            },
+          ];
+        }
+        return [];
       }
 
       const recordedExitCode = extractRecordedExitCode(recorded);
@@ -348,7 +424,10 @@ function verificationWarnings(
 
   if (report.agent === "adv-reviewer") {
     return report.verification.tests_run
-      .filter((command) => !recorded.includes(command))
+      .filter(
+        (command) =>
+          !structuredEvidence.has(command) && !recorded.includes(command),
+      )
       .map((command) => ({
         kind: "verification_missing" as const,
         message: `No adv_run_test evidence found for reported command: ${command}`,
