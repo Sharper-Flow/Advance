@@ -1,5 +1,5 @@
 {
-  "$schema": "https://raw.githubusercontent.com/anomalyco/oc-plugins/main/advance/plugin/schemas/spec.schema.json",
+  "$schema": "https://raw.githubusercontent.com/Sharper-Flow/Advance/trunk/plugin/schemas/spec.schema.json",
   "name": "spec-conformance",
   "title": "Spec Conformance",
   "purpose": "Capability: External CI-isolated spec conformance verification. Verifies high-level acceptance criteria against the real system from outside the implementing agent's context. Source physically/runtime-isolated; archive-gated; single-structured verdict visibility. Pure opt-in per spec.",

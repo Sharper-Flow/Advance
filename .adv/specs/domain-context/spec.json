@@ -1,5 +1,5 @@
 {
-  "$schema": "https://raw.githubusercontent.com/anomalyco/oc-plugins/main/advance/plugin/schemas/spec.schema.json",
+  "$schema": "https://raw.githubusercontent.com/Sharper-Flow/Advance/trunk/plugin/schemas/spec.schema.json",
   "name": "domain-context",
   "title": "Domain Context & Architecture Decision Records",
   "purpose": "Capability: defines CONTEXT.md (domain glossary) and docs/adr/NNNN-slug.md (Architecture Decision Records) as advisory ADV-consumed domain artifacts. These artifacts capture durable domain knowledge and design decisions; ADV gates MAY read and write them per the scenarios below. Both requirements are `should`-priority advisory artifacts — they don't gate-block any phase. Adoption is opt-in across projects.",

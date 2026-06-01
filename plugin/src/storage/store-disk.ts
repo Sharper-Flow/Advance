@@ -35,6 +35,8 @@
 import { mkdir } from "fs/promises";
 import { basename, join } from "path";
 
+import { CHANGE_SCHEMA_URL } from "../schema-registry";
+
 import type {
   Change,
   ChangeClosure,
@@ -357,8 +359,7 @@ export async function createDiskStore(
         );
 
         const change: Change = {
-          $schema:
-            "https://raw.githubusercontent.com/anomalyco/oc-plugins/main/advance/plugin/schemas/change.schema.json",
+          $schema: CHANGE_SCHEMA_URL,
           id: changeId,
           title: summary,
           status: "draft",

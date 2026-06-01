@@ -1,5 +1,5 @@
 {
-  "$schema": "https://raw.githubusercontent.com/anomalyco/oc-plugins/main/advance/plugin/schemas/spec.schema.json",
+  "$schema": "https://raw.githubusercontent.com/Sharper-Flow/Advance/trunk/plugin/schemas/spec.schema.json",
   "name": "chat-output-display",
   "title": "Chat Output Display",
   "purpose": "Unified formatting for the chat-output surface — context snapshots (full box), context tickers (compact 1-line for transient transitions), cross-repo switch indicators, and status markers. Consolidates the previous `context-display` and `task-status-report` rules under one capability so all surfaces share a glyph vocabulary and emission policy. Closes the context-agreement gap between agent state and user visibility.",

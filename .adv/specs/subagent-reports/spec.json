@@ -1,5 +1,5 @@
 {
-  "$schema": "https://raw.githubusercontent.com/anomalyco/oc-plugins/main/advance/plugin/schemas/spec.schema.json",
+  "$schema": "https://raw.githubusercontent.com/Sharper-Flow/Advance/trunk/plugin/schemas/spec.schema.json",
   "name": "subagent-reports",
   "title": "Sub-Agent Reports",
   "purpose": "Typed, durable ADV sub-agent report ingestion and readback. Replaces ADV worker final-message fenced JSON with Zod-validated tool-call submission, sidecar report persistence, deterministic scope-aware dedupe, and machine-readable downstream consumers.",

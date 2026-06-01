@@ -11,6 +11,7 @@ import { tmpdir } from "os";
 import { createDiskStore } from "./store-disk";
 import { getLastActivityTimestamp } from "./change-selection";
 import type { Change } from "../types";
+import { CHANGE_SCHEMA_URL } from "../schema-registry";
 
 async function makeTempProject(): Promise<string> {
   const dir = await mkdtemp(join(tmpdir(), "adv-t03-"));
@@ -88,8 +89,7 @@ describe("change-selection — batch_surfaced_at removal", () => {
   test("(b) getLastActivityTimestamp ignores batch_surfaced_at", () => {
     const createdAt = "2025-01-01T00:00:00Z";
     const base: Change = {
-      $schema:
-        "https://raw.githubusercontent.com/anomalyco/oc-plugins/main/advance/plugin/schemas/change.schema.json",
+      $schema: CHANGE_SCHEMA_URL,
       id: "chg-test",
       title: "Test",
       status: "draft",
@@ -122,8 +122,7 @@ describe("passthrough contract — archived bundles remain readable", () => {
     // Manually write a minimal change.json lacking the removed fields
     const changeId = "legacy-change";
     const changeJson = {
-      $schema:
-        "https://raw.githubusercontent.com/anomalyco/oc-plugins/main/advance/plugin/schemas/change.schema.json",
+      $schema: CHANGE_SCHEMA_URL,
       id: changeId,
       title: "Legacy",
       status: "draft",

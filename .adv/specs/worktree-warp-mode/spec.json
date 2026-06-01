@@ -1,5 +1,5 @@
 {
-  "$schema": "https://raw.githubusercontent.com/anomalyco/oc-plugins/main/advance/plugin/schemas/spec.schema.json",
+  "$schema": "https://raw.githubusercontent.com/Sharper-Flow/Advance/trunk/plugin/schemas/spec.schema.json",
   "name": "worktree-warp-mode",
   "title": "Worktree Warp Mode — Session Lookup, Header Contract, and Structured Downgrade",
   "purpose": "Capability: Defines when adv_worktree_create selects mode:warp, the already-warped block contract, the structured downgrade_reason discriminated union emitted on every warp→terminal fallback, the SDK-routed session lookup requirement, and the x-opencode-directory header contract on raw-fetch workspace endpoints.",

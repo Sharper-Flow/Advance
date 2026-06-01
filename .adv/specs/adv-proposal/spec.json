@@ -1,5 +1,5 @@
 {
-  "$schema": "https://raw.githubusercontent.com/anomalyco/oc-plugins/main/advance/plugin/schemas/spec.schema.json",
+  "$schema": "https://raw.githubusercontent.com/Sharper-Flow/Advance/trunk/plugin/schemas/spec.schema.json",
   "name": "adv-proposal",
   "title": "ADV Proposal Command",
   "purpose": "Defines the responsibilities and boundaries of /adv-proposal. The proposal command establishes WHAT and WHY \u2014 problem statement, objectives, success criteria, and constraints. It produces alignment artifacts, not implementation artifacts.",

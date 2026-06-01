@@ -6,6 +6,7 @@
 
 import type { Spec, Delta } from "../types";
 import { appendDebugLog, createLogger } from "../utils/debug-log";
+import { SPEC_SCHEMA_URL } from "../schema-registry";
 
 const logger = createLogger("delta");
 import type { DeltaApplicationResult, SpecUpdateResult } from "./types";
@@ -354,8 +355,7 @@ export function createSpecFromDeltas(
 ): { spec: Spec; result: SpecUpdateResult } {
   // Create empty spec
   const spec: Spec = {
-    $schema:
-      "https://raw.githubusercontent.com/anomalyco/oc-plugins/main/advance/plugin/schemas/spec.schema.json",
+    $schema: SPEC_SCHEMA_URL,
     name: capability,
     title: formatTitle(capability),
     purpose: `Capability: ${formatTitle(capability)}`,

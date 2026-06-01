@@ -1,5 +1,5 @@
 {
-  "$schema": "https://raw.githubusercontent.com/anomalyco/oc-plugins/main/advance/plugin/schemas/spec.schema.json",
+  "$schema": "https://raw.githubusercontent.com/Sharper-Flow/Advance/trunk/plugin/schemas/spec.schema.json",
   "name": "adv-discover",
   "title": "ADV Discover Command",
   "purpose": "Defines the rigor requirements for /adv-discover. The discover command gathers current-state evidence, investigates edge cases, scans for conflicts and related patterns, and produces structured findings for /adv-agree. It must extend prior research rather than rehash it.",
