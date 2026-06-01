@@ -1,0 +1,12 @@
+{
+  "entries": [
+    {
+      "id": "ws-ECbcim",
+      "type": "pattern",
+      "content": "For ADV/Temporal test execution, avoid centralizing all project test workflow inside ADV. Temporal should coordinate durable workflow state; repo-local tooling/CI should own suite routing, throttling, and environment policy. ADV should run explicit commands unchanged and return typed evidence/advisories only.",
+      "source_task": "tk-487c390605f1",
+      "recorded_at": "2026-06-01T21:38:53.308Z"
+    }
+  ],
+  "count": 1
+}

@@ -1,0 +1,1205 @@
+{
+  "id": "improveTestRunner",
+  "title": "Improve test runner",
+  "status": "archived",
+  "created_at": "2026-06-01T20:35:05.828Z",
+  "tasks": [
+    {
+      "id": "tk-9ff6dbd0ce85",
+      "title": "Align adv_run_test contract specs and schema expectations",
+      "type": "code",
+      "section": "Contract / Specs",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-06-01T20:57:46.599Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC10"
+        ],
+        "verifies": [
+          "AC4",
+          "AC5"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C6",
+          "C7",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "DONT6",
+          "OOS1",
+          "OOS2",
+          "OOS3",
+          "OOS4"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-01T21:02:03.522Z",
+      "verification": "RED: `pnpm exec vitest run src/tools/test.test.ts src/tools/test-contract-assets.test.ts --reporter=verbose` failed 5/19 as expected before schema/spec updates (missing optional phase schema/return and spec/doc contract anchors). GREEN: `pnpm exec vitest run src/tools/test.test.ts src/tools/test-contract-assets.test.ts src/utils/tool-arg-preflight.test.ts` passed 95 tests. Formatting: `pnpm exec prettier --check src/tools/test.ts src/tools/test.test.ts src/tools/test-contract-assets.test.ts src/utils/tool-arg-preflight.ts src/utils/tool-arg-preflight.test.ts ../.adv/specs/tdd-contract/spec.json ../.adv/specs/advance-meta/spec.json` passed. Typecheck: `pnpm run typecheck` passed. Lint: `pnpm run lint` passed. Whitespace: `git diff --check` passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".adv/specs/advance-meta/spec.json",
+        ".adv/specs/tdd-contract/spec.json",
+        ".opencode/command/adv-apply.md",
+        "ADV_INSTRUCTIONS.md",
+        "docs/specs/advance-meta.md",
+        "docs/specs/tdd-contract.md",
+        "plugin/src/tools/test-contract-assets.test.ts",
+        "plugin/src/tools/test.test.ts",
+        "plugin/src/tools/test.ts",
+        "plugin/src/utils/tool-arg-preflight.test.ts",
+        "plugin/src/utils/tool-arg-preflight.ts"
+      ],
+      "touched_files": [
+        ".adv/specs/advance-meta/spec.json",
+        ".adv/specs/tdd-contract/spec.json",
+        ".opencode/command/adv-apply.md",
+        "ADV_INSTRUCTIONS.md",
+        "docs/specs/advance-meta.md",
+        "docs/specs/tdd-contract.md",
+        "plugin/src/tools/test-contract-assets.test.ts",
+        "plugin/src/tools/test.test.ts",
+        "plugin/src/tools/test.ts",
+        "plugin/src/utils/tool-arg-preflight.test.ts",
+        "plugin/src/utils/tool-arg-preflight.ts"
+      ],
+      "checkpointSha": "c059d2eff52bf7e43505f7c88f67ed326338c88b",
+      "completedAt": "2026-06-01T21:13:50.710Z",
+      "completed_at": "2026-06-01T21:13:50.710Z"
+    },
+    {
+      "id": "tk-c5e9276a91b7",
+      "title": "Implement streaming runner and typed adv_run_test result contract",
+      "type": "code",
+      "section": "Runner / Result Contract",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-06-01T20:58:02.060Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-9ff6dbd0ce85"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC5",
+          "AC9"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC5",
+          "AC9"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C7",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "DONT6"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-01T21:14:12.457Z",
+      "verification": "RED: `pnpm exec vitest run src/tools/test.test.ts` failed with expected typed-contract gaps and current maxBuffer failure while source still used exec. GREEN: `pnpm exec vitest run src/tools/test.test.ts` passed 20 tests. Regression: `pnpm exec vitest run src/tools/test.test.ts src/tools/test-contract-assets.test.ts src/utils/tool-arg-preflight.test.ts` passed 99 tests. Typecheck: `pnpm run typecheck` passed. Lint: `pnpm run lint` passed. Formatting: `pnpm exec prettier --check src/tools/test.ts src/tools/test.test.ts src/tools/test-contract-assets.test.ts src/utils/tool-arg-preflight.ts src/utils/tool-arg-preflight.test.ts ../.adv/specs/tdd-contract/spec.json ../.adv/specs/advance-meta/spec.json` passed. Whitespace: `git diff --check` passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/test.test.ts",
+        "plugin/src/tools/test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/test.test.ts",
+        "plugin/src/tools/test.ts"
+      ],
+      "checkpointSha": "3849974a8c39df5606befd9527cdecb7dec8e3c5",
+      "completedAt": "2026-06-01T21:20:31.689Z",
+      "completed_at": "2026-06-01T21:20:31.689Z"
+    },
+    {
+      "id": "tk-b38ab6c31755",
+      "title": "Add structured evidence parsing and sub-agent verification bridge",
+      "type": "code",
+      "section": "Evidence Consumers",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-06-01T20:58:14.465Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-c5e9276a91b7"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC7",
+          "AC8"
+        ],
+        "verifies": [
+          "AC7",
+          "AC8"
+        ],
+        "respects": [
+          "C3",
+          "C4",
+          "C7",
+          "DONT1",
+          "DONT3",
+          "DONT5",
+          "DONT6"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-01T21:20:53.838Z",
+      "verification": "RED: `pnpm exec vitest run src/tools/subagent-report.test.ts` failed on structured adv_run_test evidence mismatch path before parser bridge. GREEN: `pnpm exec vitest run src/tools/subagent-report.test.ts` passed 17 tests. Regression: `pnpm exec vitest run src/tools/subagent-report.test.ts src/tools/test.test.ts` passed 37 tests. Typecheck: `pnpm run typecheck` passed. Lint: `pnpm run lint` passed. Formatting: `pnpm exec prettier --check src/tools/subagent-report.ts src/tools/subagent-report.test.ts src/tools/test.ts src/tools/test.test.ts` passed. Whitespace: `git diff --check` passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/subagent-report.test.ts",
+        "plugin/src/tools/subagent-report.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/subagent-report.test.ts",
+        "plugin/src/tools/subagent-report.ts"
+      ],
+      "checkpointSha": "4ac79421184cb1acfcfa4c6c4f2fc7688f558275",
+      "completedAt": "2026-06-01T21:24:44.851Z",
+      "completed_at": "2026-06-01T21:24:44.851Z"
+    },
+    {
+      "id": "tk-6e22872f00f0",
+      "title": "Add repo-local workflow advisory and test-throttle alignment",
+      "type": "code",
+      "section": "Workflow Ownership",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-06-01T20:58:25.656Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-9ff6dbd0ce85"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC3",
+          "AC6",
+          "AC10"
+        ],
+        "verifies": [
+          "AC6",
+          "AC10"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C4",
+          "C5",
+          "C6",
+          "C7",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "OOS1",
+          "OOS2",
+          "OOS3",
+          "OOS4"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-01T21:25:20.677Z",
+      "verification": "RED: `pnpm exec vitest run src/tools/test.test.ts src/tools/test-contract-assets.test.ts` failed 2 tests for missing repo-local oc-test wrapper/docs and missing advisory. GREEN: same command passed 26 tests. Wrapper syntax: `bash -n bin/oc-test` passed. Wrapper targeted: `bin/oc-test targeted -- src/tools/test.test.ts` passed 22 tests. Regression: `pnpm exec vitest run src/tools/test.test.ts src/tools/test-contract-assets.test.ts src/tools/subagent-report.test.ts src/utils/tool-arg-preflight.test.ts` passed 119 tests. Typecheck: `pnpm run typecheck` passed. Lint: `pnpm run lint` passed. Formatting: `pnpm exec prettier --check src/tools/test.ts src/tools/test.test.ts src/tools/test-contract-assets.test.ts ../AGENTS.md` passed. Smoke wrapper: `bin/oc-test smoke` passed (check + 39 tests). Whitespace: `git diff --check` passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "AGENTS.md",
+        "bin/oc-test",
+        "plugin/src/tools/test-contract-assets.test.ts",
+        "plugin/src/tools/test.test.ts",
+        "plugin/src/tools/test.ts"
+      ],
+      "touched_files": [
+        "AGENTS.md",
+        "bin/oc-test",
+        "plugin/src/tools/test-contract-assets.test.ts",
+        "plugin/src/tools/test.test.ts",
+        "plugin/src/tools/test.ts"
+      ],
+      "checkpointSha": "0723303766a9df902dc3413430d3a3b8461c7338",
+      "completedAt": "2026-06-01T21:30:39.726Z",
+      "completed_at": "2026-06-01T21:30:39.726Z"
+    },
+    {
+      "id": "tk-487c390605f1",
+      "title": "Run cross-cutting contract verification and benchmark evidence",
+      "type": "code",
+      "section": "Verification",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-06-01T20:58:40.419Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-c5e9276a91b7"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-b38ab6c31755"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-6e22872f00f0"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "contract_refs": {
+        "implements": [],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7",
+          "AC8",
+          "AC9",
+          "AC10"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "C7",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "DONT6",
+          "OOS1",
+          "OOS2",
+          "OOS3",
+          "OOS4"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-01T21:31:10.442Z",
+      "verification": "Final verification: `bin/oc-test smoke` passed (plugin check + 39 tests). `bin/oc-test full` initially failed due ENVIRONMENTAL pre-existing ADV_WORKTREE_HOME leakage into worktree namespace tests; focused `src/utils/workspace-adapter.test.ts` reproduced, then global test setup was isolated and project config aligned to existing spec/test law. Env/config-sensitive group `pnpm exec vitest run src/utils/workspace-adapter.test.ts src/utils/project-id.test.ts src/tools/worktree/state-session-lifecycle.test.ts src/tools/status.test.ts src/trunk-write-firewall-spec-assets.test.ts` passed 97 tests. Full suite rerun transiently failed once in concurrent-signaling integration; focused rerun `pnpm exec vitest run src/temporal/__tests__/concurrent-signaling.itest.ts` passed, then `bin/oc-test full` passed. Benchmark: direct source adv_run_test sample showed hot `true` p50 wall 2.3ms / duration 2.2ms over 10 samples; noisy stdout sample p50 wall 21.8ms / duration 21.4ms over 3 samples, classification passed, outputTruncated true, maxBufferExceeded false, outputBytesSeen 6908, retained 376. Built-in bench `pnpm exec tsx scripts/bench-adv-latency.ts --change-id improveTestRunner --iterations 5 --warmup 1` passed for status/list/show disk path but skipped adv_run_test due no disk task. Formatting: Prettier check passed for touched TS/JSON/docs except ADV_INSTRUCTIONS.md (pre-existing full-file Prettier reflow; kept narrow diff), and `git diff --check` passed. Shell: `bash -n bin/oc-test` passed. Project wisdom promoted for repo-owned tests / ADV-owned evidence boundary.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/__tests__/global-setup.ts",
+        "plugin/src/utils/workspace-adapter.test.ts",
+        "project.json"
+      ],
+      "touched_files": [
+        "plugin/src/__tests__/global-setup.ts",
+        "plugin/src/utils/workspace-adapter.test.ts",
+        "project.json"
+      ],
+      "checkpointSha": "decc6d3cb7d877964942a11e57cdd406d2bcc30c",
+      "completedAt": "2026-06-01T21:40:58.924Z",
+      "completed_at": "2026-06-01T21:40:58.924Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "improveTestRunner",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:discovery-opportunity-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Opportunity scout: adv_run_test speed/consistency leverage points and ownership model",
+      "sources": [
+        {
+          "label": "adv_run_test implementation",
+          "locator": "plugin/src/tools/test.ts:117-162,294-302",
+          "summary": "runCommand uses promisified child_process.exec (buffered, maxBuffer-kill at 10MB, 30s timeout). Always returns success:true with exitCode; failure inferred from exitCode. Output shaping is regex-based (lines 57-115). Substep telemetry recorded for targetRouting/taskLookup/commandExecution/outputShaping per rq-advRunTestLatency01."
+        },
+        {
+          "label": "Node child_process docs (Context7 /nodejs/node)",
+          "locator": "https://github.com/nodejs/node/blob/main/doc/api/child_process.md",
+          "summary": "spawn(command,{shell:true}) runs through /bin/sh on Unix (same shell semantics as exec), streams stdout/stderr via pipes (no maxBuffer forced-kill), supports timeout + AbortSignal. exec() buffers and terminates+truncates on maxBuffer. Confirms prep-pack streaming claim against canonical docs."
+        },
+        {
+          "label": "subagent-report verification consumer",
+          "locator": "plugin/src/tools/subagent-report.ts:302-356",
+          "summary": "verificationWarnings uses recorded.includes(entry.command) substring text match and extractRecordedExitCode regex over concatenated task.verification/summary/implementation_summary. Confirms fragile free-text coupling between adv_run_test evidence and sub-agent report consumption."
+        },
+        {
+          "label": "tdd-contract spec",
+          "locator": ".adv/specs/tdd-contract/spec.json rq-TDD008path.3, rq-TDD001inl",
+          "summary": "Spec mandates red phase rejects exitCode=0 and green phase rejects non-zero exit; inline TDD evidenced by adv_run_test. But adv_run_test schema (test.ts:176-202) has NO phase field. Real schema/spec/docs drift: docs/ADV_INSTRUCTIONS.md and adv-apply.md instruct phase:'red'/'green' the tool cannot accept."
+        },
+        {
+          "label": "advance-meta spec latency requirement",
+          "locator": ".adv/specs/advance-meta/spec.json v1.12 (rq-advRunTestLatency01 cited in test.ts:167-170)",
+          "summary": "Substep telemetry MUST be recorded for targetRouting, taskLookup, commandExecution, outputShaping while preserving shell semantics, timeout/maxBuffer classification, exit-code reporting, output shaping. Any execution-path change must keep these phases intact."
+        },
+        {
+          "label": "Missing repo test-throttle wrapper",
+          "locator": "glob **/bin/oc-test* => no files; plugin/package.json scripts",
+          "summary": "No bin/oc-test wrapper exists in advance repo. Always-on host policy expects repos with bin/oc-test to route heavy suites through the throttle gate. adv_run_test cannot detect/advise stack-specific safe tiers today."
+        }
+      ],
+      "architecture_assessment": "Prep pack (docs/adv-run-test-prep.md) is thorough and well-sourced; my scout pass verified its core claims rather than re-deriving them. The change splits cleanly into (a) execution-path speed work (exec->spawn streaming) bounded by rq-advRunTestLatency01 compatibility, (b) a consistency/contract layer (explicit passed/classification/durationMs fields + TDD phase drift repair) that is the true leverage point, and (c) optional stack-aware/throttle extras. OWNERSHIP MODEL (the orchestrator's framed question): evidence favors a hybrid. ADV should own the EVIDENCE CONTRACT (typed result shape: passed, classification, durationMs, output byte accounting) because that is what sub-agent report consumers structurally depend on (subagent-report.ts:302-356 currently text-scrapes it) and what the tdd-contract spec validates. ADV should NOT own the full test workflow (profile selection, worker tuning, full-suite throttling) — that belongs to a repo-local bin/oc-test wrapper per the established host policy, with adv_run_test offering only non-mutating advisory routing. This keeps adv_run_test a general command runner (proposal constraint) while making its OUTPUT structural. The single highest-leverage, lowest-risk move is the typed result contract: it directly unblocks structural sub-agent verification (kills the fragile recorded.includes text match), satisfies the docs/schema DX drift (errorClass/classification), and is backward-compatible. The phase-drift repair is forced (spec says red/green semantics exist; schema disagrees) and needs a user/product decision: reintroduce typed phase vs amend spec to narrative.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "No source-access or contract blockers. Two items require orchestrator/user decision rather than auto-adopt: (1) TDD phase contract direction (typed phase field vs spec-narrative cleanup) — affects spec semantics and agent instructions; (2) whether durable per-task evidence ledger is in-scope now or deferred. All execution-path changes are feasible per canonical Node docs and remain compatible with rq-advRunTestLatency01 telemetry phases."
+      },
+      "recommendation": "SCOUT CANDIDATES (<=5, classified):\n\n1. [AUTO-ADOPT | route: design] Typed result contract — add passed:boolean, classification:'passed'|'failed'|'timed_out'|'output_limit'|'spawn_error', durationMs, outputBytesSeen/Retained to adv_run_test response; keep existing exitCode/timedOut/maxBufferExceeded for compat. Evidence: test.ts:294-302 returns success:true only; subagent-report.ts:302-356 text-scrapes command+exitCode. Payoff HIGH (structural sub-agent verification, fixes docs DX drift). Risk LOW (additive, backward-compatible). Rationale: single highest-leverage move; everything else depends on it.\n\n2. [AUTO-ADOPT | route: design] exec->spawn({shell:true}) streaming runner — preserves /bin/sh shell semantics (Context7 Node docs confirm), eliminates maxBuffer forced-kill of noisy-but-healthy runs, supports timeout+AbortSignal, enables bounded ring-buffer retention. Evidence: test.ts:117-162. Payoff HIGH (speed + reliability). Risk MEDIUM (hot-path; must keep rq-advRunTestLatency01 substep telemetry + timeout/maxBuffer classification compatible). Rationale: feasibility verified against canonical docs; implement as fakeable subprocess adapter for test determinism.\n\n3. [USER-SURFACE | route: question] TDD phase contract repair — spec rq-TDD008path.3 mandates red(reject exit0)/green(reject non-zero) semantics; schema has no phase field; docs instruct phase:'red'/'green'. FORCED drift resolution. Two paths: (a) reintroduce typed optional phase with structural exit-code validation, or (b) amend tdd-contract spec to narrative-only and strip phase from docs. Payoff MEDIUM (removes contradictory agent instructions). Risk MEDIUM (spec change + agent-instruction sync). Rationale: cannot auto-pick — changes machine-checkable contract strictness; needs user/product decision.\n\n4. [USER-SURFACE | route: question] Ownership model decision — ADV owns evidence contract only (typed result shape, the structural dependency) vs ADV owns test workflow (profiles/throttle). Recommend hybrid: ADV owns evidence contract; repo-local bin/oc-test owns workflow/throttle; adv_run_test gives non-mutating advisory when it sees full-suite commands w/o wrapper. Evidence: no bin/oc-test exists (glob confirmed); host policy expects it; proposal constraint keeps adv_run_test a general runner. Payoff MEDIUM-HIGH (clean boundary, avoids silent command rewrite). Risk LOW-MEDIUM. Rationale: framed question in TASK_SCOPE; hybrid is the boring/proven split but the in-scope extent (add wrapper now vs follow-up) needs orchestrator call.\n\n5. [INCONCLUSIVE | route: design-spike] Vitest structured-evidence parser (JSON reporter -> failures[]/summary) with regex shell fallback. Payoff MEDIUM (structured failed-test names/files when Vitest detected). Risk MEDIUM (must stay fallback-safe for arbitrary shell commands; canonical artifact choice JSON vs JUnit vs TAP open per prep Q4). Rationale: valuable but secondary to candidates 1-2; defer concrete design to a bounded discovery probe; do not block contract work on it.\n\nDEFER explicitly: durable per-task evidence ledger (prep medium-applicability; Temporal state design + migration cost; only adopt if discovery proves consistency requires it, not just nicer output).",
+      "follow_ups": [
+        "Orchestrator: surface candidates 3 (TDD phase direction) and 4 (ownership extent: add bin/oc-test now vs follow-up) to user via question tool before design gate — both change contract/scope boundaries.",
+        "Design gate: specify spawn adapter as fakeable (clock/process) to keep test.test.ts compatibility coverage and rq-advRunTestLatency01 substep timing intact.",
+        "Design gate: define typed classification union as the single source consumed by subagent-report.ts verification warnings, replacing recorded.includes/extractRecordedExitCode text scraping (structural-correctness P33).",
+        "Confirm whether plugin/scripts/bench-adv-latency.ts should be the acceptance-evidence harness for speed claims (prep codebase unknown)."
+      ],
+      "consumer_warnings": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "improveTestRunner",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-leverage-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design leverage scout: adv_run_test speed/consistency draft design validation",
+      "sources": [
+        {
+          "label": "Bun node:child_process implementation (Context7 /oven-sh/bun)",
+          "locator": "https://github.com/oven-sh/bun/blob/main/src/js/node/child_process.ts",
+          "summary": "Bun ships a real node:child_process module with full options.shell handling (POSIX builds [file,...args].join(' ') then shell -c command; Windows routes cmd.exe with /d /s /c). Confirms Node child_process.spawn(cmd,{shell:true}) preserves /bin/sh shell semantics on the Bun runtime OpenCode actually runs. AbortSignal+timeout subprocess kill also documented (docs/runtime/child-process.mdx). Cross-runtime risk for the exec->spawn streaming path is LOW."
+        },
+        {
+          "label": "adv_run_test current impl",
+          "locator": "plugin/src/tools/test.ts:117-162,261-302",
+          "summary": "runCommand uses promisified exec (buffered, maxBuffer forced-kill, default 30s timeout). Always returns success:true; failure inferred from exitCode. Substep telemetry recorded for targetRouting/taskLookup/commandExecution/outputShaping per rq-advRunTestLatency01. Bounds passed as 4th execute() arg (Required<ExecBounds>) — already a test seam the spawn runner must preserve."
+        },
+        {
+          "label": "subagent-report verification consumer",
+          "locator": "plugin/src/tools/subagent-report.ts:302-359",
+          "summary": "verificationWarnings uses recorded.includes(entry.command) substring match + extractRecordedExitCode regex over concatenated task.verification/summary/implementation_summary. Both adv-engineer/adv-designer and adv-reviewer paths text-scrape. This is the structural consumer the typed contract must unblock (P33)."
+        },
+        {
+          "label": "tdd-contract spec rq-TDD008path.3",
+          "locator": ".adv/specs/tdd-contract/spec.json rq-TDD008path.3 / rq-TDD001inl",
+          "summary": "Spec's red/green exit-code rejection is GIVEN 'adv_run_test records red or green phase evidence' — a precondition the current schema (no phase field) can never satisfy. Drift is conditional-semantics, not a hard contradiction: spec stays self-consistent but its phase branch is unreachable. Forces an explicit user/product direction (typed phase vs spec/docs narrative cleanup); cannot be auto-picked because it changes machine-checkable strictness + agent instructions (ADV_INSTRUCTIONS.md:335-336, adv-apply.md)."
+        },
+        {
+          "label": "bench harness already exercises adv_run_test",
+          "locator": "plugin/scripts/bench-adv-latency.ts:15,43; src/perf/latency.ts (runTimedSamples/renderLatencyReport)",
+          "summary": "bench-adv-latency.ts already imports testTools and lists adv_run_test (fast no-op + timed sample) as a measured hot path, with runTimedSamples/renderLatencyReport reusable primitives. Speed-evidence acceptance harness is reuse + extension, not greenfield. Lowers risk of AC3 (hot-loop latency + noisy-suite stability)."
+        },
+        {
+          "label": "compat test coverage map",
+          "locator": "plugin/src/tools/test.test.ts:270-360",
+          "summary": "Existing tests pin timeout SIGTERM classification, maxBuffer exceedance (asserts maxBufferExceeded:true + '[adv_run_test] Command exceeded maxBuffer'), no-cache fresh-subprocess, and non-zero exit returns success:true/exitCode. The maxBuffer test (128-byte cap) is the explicit migration hazard: moving off exec maxBuffer as the normal kill path requires updating this test to the new output_limit/outputTruncated semantics with documented migration (AC2/C3)."
+        }
+      ],
+      "architecture_assessment": "Draft design is well-formed and the prior discovery scout's claims hold up under design-phase verification. Highest-leverage, lowest-risk move remains the additive typed result contract (passed/classification/durationMs/output byte counts): it is the structural dependency for sub-agent verification (subagent-report.ts:302-359 currently text-scrapes), repairs the documented errorClass/classification DX drift, and is backward-compatible with exitCode/timedOut/maxBufferExceeded. The exec->spawn({shell:true}) streaming runner is now de-risked on the cross-runtime axis: I verified Bun's node:child_process implements options.shell with /bin/sh -c (same semantics as exec) plus AbortSignal+timeout, so the OpenCode Bun runtime will behave like Node for this path. The real residual risk on the spawn path is not shell semantics but (a) preserving the Required<ExecBounds> 4th-arg test seam and rq-advRunTestLatency01 substep telemetry, and (b) the maxBuffer->output_limit migration which has a pinned compat test that must be deliberately rewritten, not silently broken. The TDD-phase item is a forced user-surface decision: the spec's red/green exit-code rejection is gated on phase evidence the schema cannot accept, so the branch is currently unreachable — design must either reintroduce a typed optional phase with structural exit-code validation or amend spec/docs to narrative. Vitest structured parsing stays secondary and must remain fallback-safe (avoidance #5). Durable evidence ledger should stay deferred (avoidance #6) unless the validator proves returned evidence is insufficient.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "No source-access, security, or release blockers. Two items need orchestrator/user decision rather than auto-adopt: (1) TDD phase direction (typed phase vs spec/docs narrative cleanup) and (2) ownership extent (add bin/oc-test now vs follow-up). Both change contract/scope boundaries and map to AC5/AC6. One execution hazard to flag in design, not a blocker: the maxBuffer compat test (test.test.ts:290-309) must be explicitly migrated when output_limit semantics replace maxBuffer as the normal kill path (C3)."
+      },
+      "recommendation": "SCOUT CANDIDATES (<=5, classified as title | evidence | contract_tie | payoff | risk | fate | route | rationale):\n\n1. Typed result contract (additive) | test.ts:294-302 returns success:true only; subagent-report.ts:302-359 text-scrapes command+exitCode | AC1, AC7, C4 | HIGH | LOW | AUTO-ADOPT | route: design | Single highest-leverage move; add passed/classification('passed'|'failed'|'timed_out'|'output_limit'|'spawn_error')/durationMs/outputBytesSeen|Retained|Truncated while keeping exitCode/timedOut/maxBufferExceeded. Make this typed union the ONLY thing subagent-report verification consumes (structural P33), replacing recorded.includes/extractRecordedExitCode.\n\n2. exec->spawn({shell:true}) streaming runner | test.ts:117-162; Bun src/js/node/child_process.ts options.shell -> sh -c | AC2, AC3, C2, rq-advRunTestLatency01 | HIGH | MEDIUM | AUTO-ADOPT | route: design | Cross-runtime shell semantics now VERIFIED on Bun (not just Node). Implement as fakeable subprocess adapter so test.test.ts compat coverage + Required<ExecBounds> 4th-arg seam + substep telemetry stay intact. Use AbortController/killSignal + process-group cleanup for timeout.\n\n3. maxBuffer -> output_limit migration | test.test.ts:290-309 pins maxBufferExceeded:true + exceeded-maxBuffer message; agreement C3 requires safe migration path | AC2, C3 | MEDIUM | MEDIUM | AUTO-ADOPT (with explicit test migration) | route: design | Stop using exec maxBuffer as normal kill path; introduce outputTruncated/output_limit via bounded ring buffer; retain maxBufferExceeded only as hard-overflow safety if kept. Pinned compat test MUST be deliberately rewritten with documented migration, not deleted. Flag as the design's main regression hazard.\n\n4. TDD phase contract repair | spec rq-TDD008path.3 red/green branch unreachable (no phase field in schema); docs instruct phase:'red'/'green' (ADV_INSTRUCTIONS.md:335-336, adv-apply.md) | AC5 | MEDIUM | MEDIUM | USER-SURFACE | route: question | Cannot auto-pick: changes machine-checkable strictness + agent instructions. Two paths: (a) reintroduce typed optional phase:'red'|'green'|'verify' with structural exit-code validation, or (b) amend tdd-contract to narrative + strip phase from docs. Recommend (a) for stronger model alignment, but user must decide.\n\n5. Ownership extent: bin/oc-test now vs follow-up | no bin/oc-test in repo (prep glob confirmed); host policy expects it; proposal keeps adv_run_test a general runner | AC6, C6 | MEDIUM | LOW-MEDIUM | USER-SURFACE | route: question | Hybrid boundary already chosen (ADV owns evidence contract; repo-local owns workflow/throttle). Open question is in-scope extent: add Advance bin/oc-test wrapper in THIS change vs follow-up, and whether adv_run_test emits a non-mutating advisory for unwrapped full-suite commands. Confirm before planning.\n\nDEFER explicitly: durable per-task evidence ledger (avoidance #6) and Vitest structured parser as anything more than an opportunistic fallback-safe addition (avoidance #5). bench-adv-latency.ts is the right speed-evidence harness for AC3 (already wired) — extend, don't rebuild.",
+      "follow_ups": [
+        "Orchestrator: surface candidates 4 (TDD phase direction) and 5 (bin/oc-test in-scope extent) to user via question tool before design gate — both move contract/scope boundaries (AC5/AC6).",
+        "Design gate: specify the subprocess runner as a fakeable adapter (clock + process seam) preserving the existing Required<ExecBounds> 4th execute() arg and rq-advRunTestLatency01 substep telemetry phases.",
+        "Design gate: define the typed classification union as the single source consumed by subagent-report.ts:308-359, retiring recorded.includes/extractRecordedExitCode text scraping (free-text fallback only for legacy tasks).",
+        "Design gate: write the maxBuffer->output_limit test migration explicitly (test.test.ts:290-309) so the compat change is proven, not silently broken (C3).",
+        "Acceptance: use plugin/scripts/bench-adv-latency.ts (extend runTimedSamples paths) as the hot-loop + noisy-suite speed-evidence harness for AC3."
+      ],
+      "consumer_warnings": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "improveTestRunner",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "design validation",
+      "sources": [
+        {
+          "label": "plugin/src/tools/test.ts (current adv_run_test impl)",
+          "locator": "/home/jon/dev/advance/plugin/src/tools/test.ts",
+          "summary": "Uses promisified child_process.exec (execAsync) with {timeout,maxBuffer}; classifies timedOut via killed/SIGTERM/SIGKILL and maxBufferExceeded via ERR_CHILD_PROCESS_STDIO_MAXBUFFER or /maxBuffer/; records targetRouting/taskLookup/commandExecution/outputShaping telemetry; returns success/exitCode/output/command/timedOut/maxBufferExceeded/timeoutMs. No phase param, no shell option set (exec uses /bin/sh by default)."
+        },
+        {
+          "label": "plugin/src/tools/test.test.ts (contract tests)",
+          "locator": "/home/jon/dev/advance/plugin/src/tools/test.test.ts",
+          "summary": "Header explicitly states adv_run_test runs 'without workflow involvement or phase parameter'; asserts parsed.phase===undefined; asserts substep telemetry names taskLookup/commandExecution/outputShaping and error outcome on non-zero exit. Design reintroduction of optional phase must explicitly migrate these assertions."
+        },
+        {
+          "label": "advance-meta spec rq-advRunTestLatency01 (v1.12)",
+          "locator": "/home/jon/dev/advance/.adv/specs/advance-meta/spec.json:1657",
+          "summary": "MUST preserve task validation, shell-command execution semantics, timeout/max-buffer classification, exit-code reporting, output shaping. Every invocation fresh; no cache/skip/fabricate. Telemetry for targetRouting/taskLookup/commandExecution/outputShaping. Subprocess impl changes allowed ONLY when compatibility tests cover shell metacharacters/pipelines/redirects, timeout/kill, max-buffer, stdout/stderr, non-zero exit, output shaping."
+        },
+        {
+          "label": "tdd-contract spec rq-TDD008path.3 (v1.5)",
+          "locator": "adv_spec show tdd-contract",
+          "summary": "Inline TDD evidence path; 'Red phase still rejects exitCode=0; Green phase still rejects non-zero exit codes.' This phase/exit-code semantics is owned by tdd-contract and enforced in validator/task-classifier.ts via tdd_evidence, NOT in adv_run_test."
+        },
+        {
+          "label": "plugin/src/validator/task-classifier.ts",
+          "locator": "/home/jon/dev/advance/plugin/src/validator/task-classifier.ts:115",
+          "summary": "TDD red/green evidence semantics live here (tdd_evidence passthrough + signal-driven verification), confirming adv_run_test phase is descriptive-only and decoupled from gate/TDD enforcement."
+        },
+        {
+          "label": "plugin/src/tools/subagent-report.ts (consumer)",
+          "locator": "/home/jon/dev/advance/plugin/src/tools/subagent-report.ts:302",
+          "summary": "verificationWarnings() currently scrapes free-text via recorded.includes(entry.command) and regex extractRecordedExitCode (/exitCode|exit_code|exit code/). Design's standardized adv_run_test.v1 evidence block + structured parse-before-text-fallback directly addresses AC7 and removes brittle regex scraping."
+        },
+        {
+          "label": "Node child_process.exec docs (maxBuffer + shell semantics)",
+          "locator": "https://nodejs.org/api/child_process.html#child_processexeccommand-options-callback",
+          "summary": "exec runs command in a shell (/bin/sh -c on POSIX) and buffers output to maxBuffer (ERR_CHILD_PROCESS_STDIO_MAXBUFFER on overflow); spawn(command,{shell:true}) streams without a buffer cap, requiring caller-managed byte counting and overflow handling. Confirms design's move from buffer-cap to streamed byte-counting changes the output-limit failure mode (justifying the outputTruncated vs maxBufferExceeded/output_limit migration)."
+        },
+        {
+          "label": "Node child_process.spawn docs (streaming + kill/cleanup)",
+          "locator": "https://nodejs.org/api/child_process.html#child_processspawncommand-args-options",
+          "summary": "spawn with shell:true preserves shell metacharacter/pipeline/redirect semantics equivalent to exec; timeout requires manual timer + child.kill (SIGTERM) and detached/process-group handling for full cleanup of pipeline children. Validates design's explicit 'handle timeouts and process cleanup' requirement as non-trivial but standard."
+        }
+      ],
+      "architecture_assessment": "Design is sound and largely a superset-additive contract change. Hybrid ownership (ADV owns typed result/evidence contract; repo owns throttle/workflow; advise-not-rewrite) directly satisfies agreement objective 5 and AC6, and matches existing layering (oc-test-gate owns throttle; task-classifier owns TDD semantics). Moving from execAsync(maxBuffer cap) to a fakeable spawn(command,{shell:true}) streaming runner is the materially correct path for both speed objectives: it removes the full-output buffering bottleneck on noisy suites and enables bounded high-signal retention, while {shell:true} preserves the exact /bin/sh -c shell semantics that exec already provides (metacharacters/pipelines/redirects unchanged) — satisfying objective 3 and AC2. The classification union (passed|failed|timed_out|output_limit|spawn_error) plus passed/durationMs/outputBytesSeen/outputBytesRetained/outputTruncated/executionMode is additive over the preserved legacy fields, so backward compatibility (objective 3, AC1/AC4) holds. The standardized adv_run_test.v1 evidence block consumed by subagent-report before legacy text fallback is the right fix for AC7 — it replaces the current brittle regex scraping (extractRecordedExitCode, recorded.includes) with structural parsing (P33 structural-before-heuristic). Telemetry substeps are preserved (AC9, rq-advRunTestLatency01.1). The two areas needing care: (a) reintroducing optional phase, which the codebase deliberately removed, and (b) the output-limit failure-mode migration, which changes existing test expectations and must be explicitly migrated rather than silently reclassified.",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "No spec conflicts or anti-patterns. Two CAUTION items requiring explicit handling: (1) PHASE REINTRODUCTION — adv_run_test was deliberately stripped of any phase parameter (test.test.ts header + parsed.phase===undefined assertion). Reintroducing optional phase red|green|verify is acceptable ONLY if it stays descriptive (phaseValid/phaseViolation advisory) and does NOT re-couple adv_run_test to workflow/gate/tdd_evidence enforcement, since red-rejects-exit0/green-rejects-nonzero semantics (rq-TDD008path.3) are owned by validator/task-classifier.ts. Design states descriptive-only, which is compliant, but the existing parsed.phase===undefined test and the 'without phase parameter' file header must be explicitly migrated, not left to drift. Recommend a test asserting omitted phase still yields no phaseViolation (matches design 'omitted phase remains valid'). (2) OUTPUT-LIMIT MIGRATION — rq-advRunTestLatency01 MUST preserve max-buffer classification, and existing tests assert maxBufferExceeded. Switching to streamed byte-counting means ordinary truncation no longer trips ERR_CHILD_PROCESS_STDIO_MAXBUFFER; design's split (outputTruncated for retained-output shaping vs output_limit/maxBufferExceeded only on hard safety overflow) is reasonable but each migrated test and the legacy maxBufferExceeded field semantics must be explicitly re-specified so the spec's 'max-buffer classification' compatibility clause is provably met (not just renamed). Both are confined to the change scope; neither is a release/security blocker."
+      },
+      "recommendation": "VALIDATED WITH CAUTIONS — proceed. The design correctly solves all six objectives with no simpler equivalent alternative (a pure-buffer exec keeps the noisy-suite bottleneck; a separate evidence ledger is rightly deferred per the avoidance list; framework parsing is correctly optional per AC8/objective6). Two execution-time guardrails are required: (1) Keep reintroduced phase strictly descriptive (phaseValid/phaseViolation advisory only) and decoupled from gate/TDD enforcement which remains in task-classifier.ts; add explicit migration of the existing parsed.phase===undefined test and the 'without phase parameter' file-header comment, plus a test that an omitted phase produces no violation. (2) Treat the maxBuffer->streaming migration as an explicit, test-by-test re-specification: prove shell metacharacters/pipelines/redirects, SIGTERM timeout/kill (including pipeline child cleanup via process-group/detached kill), stdout/stderr capture, non-zero exit, retained-output truncation (outputTruncated), and hard-overflow (output_limit/maxBufferExceeded) per rq-advRunTestLatency01's compatibility clause. Ensure subagent-report.ts parses the adv_run_test.v1 block structurally before any text fallback (AC7, P33) and that no raw command output is written to system logs by default (AC10). Speed claims must be measured via the extended bench-adv-latency harness for both hot-loop and noisy-suite paths (AC3, constraint 'measured speed claims').",
+      "follow_ups": [
+        "Add/migrate test: omitted phase yields phaseValid with no phaseViolation, preserving 'omitted phase remains valid' and replacing the existing parsed.phase===undefined assertion intent.",
+        "Verify pipeline/redirect child-process cleanup on timeout under spawn(shell:true) — exec's SIGTERM-on-timeout killed the shell; confirm spawn path kills the process group so backgrounded pipeline children do not survive (detached + kill(-pid) or equivalent).",
+        "Confirm subagent-report.ts adds structural adv_run_test.v1 parse ahead of extractRecordedExitCode/recorded.includes text fallback, and that legacy free-text evidence still degrades gracefully (AC8 fallback-mandatory)."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "improveTestRunner",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/improveTestRunner",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [
+        {
+          "type": "pattern",
+          "content": "adv_run_test keeps shell execution generic and exact: repository-specific throttling is surfaced as advisory metadata while the supplied command remains unchanged."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/tools/test.test.ts src/tools/test-contract-assets.test.ts src/tools/subagent-report.test.ts"
+        ],
+        "results": "pass",
+        "evidence": "Focused acceptance verification passed: 3 test files, 43 tests, duration 2.20s. Review also inspected diff since 7c2d24704270575e55e51852c0a950886508be94 and relevant implementation/docs/tests for typed adv_run_test evidence, shell compatibility coverage, phase metadata semantics, hybrid ownership advisories, sub-agent evidence consumption, telemetry, and absence of raw-output system logging."
+      },
+      "scope_drift": null,
+      "risks": [],
+      "required_main_agent_actions": [],
+      "consumer_warnings": []
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-ECbcim",
+      "type": "pattern",
+      "content": "For ADV/Temporal test execution, avoid centralizing all project test workflow inside ADV. Temporal should coordinate durable workflow state; repo-local tooling/CI should own suite routing, throttling, and environment policy. ADV should run explicit commands unchanged and return typed evidence/advisories only.",
+      "source_task": "tk-487c390605f1",
+      "recorded_at": "2026-06-01T21:38:53.308Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-06-01T20:38:45.362Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved proposal via Tier A inline reply: \"continue\". Proposal problem statement, scope, success criteria, and discovery agenda persisted.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/improveTestRunner/proposal.md",
+        "content_hash": "1ffae6c4ef7eaddedcd67fe78e7af3901342b34569a882fb8763f1ef19342114",
+        "non_whitespace_chars": 10440,
+        "checked_at": "2026-06-01T20:35:05.844Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-06-01T20:48:49.975Z",
+      "completed_by": "agent",
+      "approval_evidence": "Agreement persisted after user approved acceptance criteria with reply \"approve\". Contract minted with AC1-AC10, C1-C7, DONT1-DONT6, OOS1-OOS4. Validation task-coverage errors are expected pre-planning because no tasks exist yet.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/improveTestRunner/agreement.md",
+        "content_hash": "9ea610b5bc481eafee709320185681d35f161fc4f3ccb03ae368dcca975948bd",
+        "non_whitespace_chars": 4574,
+        "checked_at": "2026-06-01T20:35:05.845Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-06-01T20:56:57.635Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design persisted and independently validated. Validator verdict CAUTION with no conflicts; guardrails incorporated: phase is descriptive not gate enforcement, output-limit/maxBuffer migration explicit, timeout cleanup must handle shell process groups.",
+      "artifact_evidence": {
+        "kind": "design",
+        "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/improveTestRunner/design.md",
+        "content_hash": "fc0193ca21b76a800ed17b05a7f5f6e0673b210dee576ca3a97276b9241f9d12",
+        "non_whitespace_chars": 11687,
+        "checked_at": "2026-06-01T20:35:05.846Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-06-01T20:59:38.862Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved prep plan with reply \"approve\". Task graph contains 5 tasks with contract coverage AC1-AC10; validation passed with only expected no-deltas warning."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-06-01T21:41:22.748Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 5 planned tasks completed via task checkpoints. Strict validation passed with only expected NO_DELTAS warning. Full suite passed after env/config isolation fixes. Benchmark evidence captured for hot-loop and noisy-output adv_run_test paths."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-06-01T21:46:51.832Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved acceptance via reply: approve. Acceptance review READY with 0 blocking findings; contract review matrix has 27 rows and 0 failures; full and smoke verification passed; executive summary persisted.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/improveTestRunner/executive-summary.md",
+        "content_hash": "62265d3e31feb4be260e61652b76fdc2221f996ebdca6183bc3309e4a7c40488",
+        "non_whitespace_chars": 1479,
+        "checked_at": "2026-06-01T20:35:05.847Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "adhoc"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "9ea610b5bc481eafee709320185681d35f161fc4f3ccb03ae368dcca975948bd",
+      "approvedAt": "2026-06-01T20:48:33.073Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "`adv_run_test` returns explicit result state: executed command, `passed`, deterministic `classification`, duration, and output byte counts.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9ea610b5bc481eafee709320185681d35f161fc4f3ccb03ae368dcca975948bd",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Existing shell compatibility remains covered by tests: metacharacters, pipelines, redirects, stdout/stderr capture, timeout/kill behavior, output-limit behavior, and non-zero exit reporting.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9ea610b5bc481eafee709320185681d35f161fc4f3ccb03ae368dcca975948bd",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Speed evidence covers both hot-loop latency for small/targeted runs and noisy-suite stability without buffer-driven evidence loss.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9ea610b5bc481eafee709320185681d35f161fc4f3ccb03ae368dcca975948bd",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Schema, specs, docs, tests, and agent instructions describe one public `adv_run_test` contract.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9ea610b5bc481eafee709320185681d35f161fc4f3ccb03ae368dcca975948bd",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "TDD phase drift is resolved by design: either typed phase semantics are restored or stale phase references are removed by explicit spec/docs cleanup.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9ea610b5bc481eafee709320185681d35f161fc4f3ccb03ae368dcca975948bd",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Hybrid ownership is enforced: ADV may advise about repo-local test workflow/throttle routing, but must not silently rewrite user commands.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9ea610b5bc481eafee709320185681d35f161fc4f3ccb03ae368dcca975948bd",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "Sub-agent verification can consume structured `adv_run_test` evidence without relying solely on free-text command/exit-code scraping.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9ea610b5bc481eafee709320185681d35f161fc4f3ccb03ae368dcca975948bd",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC8",
+        "kind": "acceptance_criterion",
+        "text": "Vitest/pnpm structured evidence works when available; generic shell fallback remains mandatory.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9ea610b5bc481eafee709320185681d35f161fc4f3ccb03ae368dcca975948bd",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC9",
+        "kind": "acceptance_criterion",
+        "text": "`advance-meta` substep telemetry remains intact for `targetRouting`, `taskLookup`, `commandExecution`, and `outputShaping`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9ea610b5bc481eafee709320185681d35f161fc4f3ccb03ae368dcca975948bd",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC10",
+        "kind": "acceptance_criterion",
+        "text": "Raw command output is not written to system logs by default.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9ea610b5bc481eafee709320185681d35f161fc4f3ccb03ae368dcca975948bd",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "`adv_run_test` must execute every supplied command fresh; no caching, skipping, or fabricated evidence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9ea610b5bc481eafee709320185681d35f161fc4f3ccb03ae368dcca975948bd",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Shell-command semantics must be preserved unless design explicitly proves and approves a compatibility change.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9ea610b5bc481eafee709320185681d35f161fc4f3ccb03ae368dcca975948bd",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Backward-compatible response fields such as `exitCode`, `output`, `timedOut`, and `maxBufferExceeded` must remain available unless design identifies a safe migration path.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9ea610b5bc481eafee709320185681d35f161fc4f3ccb03ae368dcca975948bd",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Correctness must be structural: typed schemas, deterministic classification, parser tests, and compatibility tests over heuristic-only inference.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9ea610b5bc481eafee709320185681d35f161fc4f3ccb03ae368dcca975948bd",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Speed claims must be backed by measured evidence, not assumed from implementation changes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9ea610b5bc481eafee709320185681d35f161fc4f3ccb03ae368dcca975948bd",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C6",
+        "kind": "constraint",
+        "text": "Repo-local workflow/throttle policy must remain repo-owned; ADV may surface advice but must not silently rewrite commands.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9ea610b5bc481eafee709320185681d35f161fc4f3ccb03ae368dcca975948bd",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C7",
+        "kind": "constraint",
+        "text": "Privacy boundary: raw command output and possible secrets must not be written to system logs by default.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9ea610b5bc481eafee709320185681d35f161fc4f3ccb03ae368dcca975948bd",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not replace ADV’s task completion/checkpoint verification model.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9ea610b5bc481eafee709320185681d35f161fc4f3ccb03ae368dcca975948bd",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not create separate same-scope test tasks as a replacement for inline TDD evidence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9ea610b5bc481eafee709320185681d35f161fc4f3ccb03ae368dcca975948bd",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not turn `adv_run_test` into a broad QA platform or browser/UI verification suite.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9ea610b5bc481eafee709320185681d35f161fc4f3ccb03ae368dcca975948bd",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not silently mutate user-provided commands to use wrappers/profiles.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9ea610b5bc481eafee709320185681d35f161fc4f3ccb03ae368dcca975948bd",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "Do not make Vitest-specific parsing mandatory for arbitrary shell commands.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9ea610b5bc481eafee709320185681d35f161fc4f3ccb03ae368dcca975948bd",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT6",
+        "kind": "avoidance",
+        "text": "Do not add durable per-task evidence storage unless design proves returned evidence plus task completion summaries are insufficient.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9ea610b5bc481eafee709320185681d35f161fc4f3ccb03ae368dcca975948bd",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "Repo-wide test architecture refactors unrelated to `adv_run_test` speed or consistency.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9ea610b5bc481eafee709320185681d35f161fc4f3ccb03ae368dcca975948bd",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "Unrelated ADV tool refactors beyond direct integration points needed for `adv_run_test` contract consistency.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9ea610b5bc481eafee709320185681d35f161fc4f3ccb03ae368dcca975948bd",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "Persistent raw-output logging to system logs.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9ea610b5bc481eafee709320185681d35f161fc4f3ccb03ae368dcca975948bd",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS4",
+        "kind": "out_of_scope",
+        "text": "Cross-repo changes; current scope is the `advance` repo only.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9ea610b5bc481eafee709320185681d35f161fc4f3ccb03ae368dcca975948bd",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-06-01T21:45:00.000Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "src/tools/test.test.ts typed result contract tests pass; bin/oc-test full passed.",
+          "notes": "Response includes command, passed, classification, durationMs, output byte counts."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "src/tools/test.test.ts shell compatibility tests pass; bin/oc-test full passed.",
+          "notes": "Covers pipe/metacharacters, redirects, stdout/stderr, timeout, output_limit, non-zero exit."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Benchmark: hot true p50 wall 2.3ms/duration 2.2ms; noisy stdout p50 wall 21.8ms/duration 21.4ms, outputTruncated true, maxBufferExceeded false.",
+          "notes": "Direct source sample covered adv_run_test hot/noisy paths."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "src/tools/test-contract-assets.test.ts passed; Prettier check for spec/docs/tool surfaces passed.",
+          "notes": "Spec, docs, tests, command guidance, and schema align."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "src/tools/test.test.ts phase schema test and docs asset test passed.",
+          "notes": "phase is optional descriptive red|green|verify metadata, not gate enforcement."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "src/tools/test.test.ts advisory/no-rewrite tests passed; bin/oc-test wrapper verified.",
+          "notes": "adv_run_test returns advisory when wrapper exists but executes command unchanged."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "src/tools/subagent-report.test.ts structured adv_run_test evidence tests passed.",
+          "notes": "Subagent consumer parses adv_run_test.v1 evidence by command."
+        },
+        {
+          "contractId": "AC8",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "src/tools/subagent-report.test.ts and src/tools/test.test.ts passed.",
+          "notes": "Structured evidence works; generic shell command fallback remains."
+        },
+        {
+          "contractId": "AC9",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "src/tools/test.test.ts telemetry phase tests passed.",
+          "notes": "taskLookup, commandExecution, outputShaping remain covered; targetRouting unchanged."
+        },
+        {
+          "contractId": "AC10",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "adv-reviewer verdict READY; code review found no raw output system logging path.",
+          "notes": "Output remains returned to caller, not system logs."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "src/tools/test.test.ts fresh-subprocess test passed.",
+          "notes": "No caching/skip/fabrication path added."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Shell compatibility tests passed.",
+          "notes": "spawn(..., shell:true) preserves shell semantics."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "src/tools/test.test.ts legacy field assertions passed.",
+          "notes": "success, exitCode, output, command, timedOut, maxBufferExceeded, timeoutMs remain."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Zod schemas, deterministic classifyRun, parser tests, and asset tests added.",
+          "notes": "Correctness structural, not heuristic-only."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Benchmark sample recorded hot/noisy timings and full/smoke tests passed.",
+          "notes": "Speed claims backed by measured output."
+        },
+        {
+          "contractId": "C6",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "No-rewrite advisory tests passed; bin/oc-test is repo-local wrapper.",
+          "notes": "ADV advises only; repo owns workflow/throttle."
+        },
+        {
+          "contractId": "C7",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "adv-reviewer READY; no raw-output system logging introduced.",
+          "notes": "Privacy boundary preserved."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Task completion/checkpoint flow unchanged; all tasks completed via adv_task_checkpoint.",
+          "notes": "No checkpoint model replacement."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Existing 5-task plan preserved; no same-scope test task added.",
+          "notes": "Inline TDD remains default."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "adv_run_test remains shell runner with typed evidence; no browser/UI QA platform added.",
+          "notes": "Scope stayed bounded."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "src/tools/test.test.ts proves command unchanged when advisory emitted.",
+          "notes": "No silent wrapper/profile rewrite."
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Generic shell typed evidence implemented; Vitest parsing not mandatory.",
+          "notes": "No framework lock-in."
+        },
+        {
+          "contractId": "DONT6",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No durable per-task evidence ledger added.",
+          "notes": "Returned evidence plus checkpoint summaries used."
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No unrelated repo-wide test architecture refactor performed.",
+          "notes": "Only repo-local wrapper/advisory and env isolation fixes were added."
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Changes limited to adv_run_test, evidence consumer, specs/docs/tests, wrapper, and verification fixes.",
+          "notes": "No unrelated ADV tool refactors."
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No persistent raw-output logging added.",
+          "notes": "Raw output remains in command return path only."
+        },
+        {
+          "contractId": "OOS4",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "All changes are within current advance repo worktree.",
+          "notes": "No cross-repo edits."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "`adv_run_test` returns explicit result state: executed command, `passed`, deterministic `classification`, duration, and output byte counts.",
+    "Existing shell compatibility remains covered by tests: metacharacters, pipelines, redirects, stdout/stderr capture, timeout/kill behavior, output-limit behavior, and non-zero exit reporting.",
+    "Speed evidence covers both hot-loop latency for small/targeted runs and noisy-suite stability without buffer-driven evidence loss.",
+    "Schema, specs, docs, tests, and agent instructions describe one public `adv_run_test` contract.",
+    "TDD phase drift is resolved by design: either typed phase semantics are restored or stale phase references are removed by explicit spec/docs cleanup.",
+    "Hybrid ownership is enforced: ADV may advise about repo-local test workflow/throttle routing, but must not silently rewrite user commands.",
+    "Sub-agent verification can consume structured `adv_run_test` evidence without relying solely on free-text command/exit-code scraping.",
+    "Vitest/pnpm structured evidence works when available; generic shell fallback remains mandatory.",
+    "`advance-meta` substep telemetry remains intact for `targetRouting`, `taskLookup`, `commandExecution`, and `outputShaping`.",
+    "Raw command output is not written to system logs by default."
+  ],
+  "documents": {
+    "proposal": "# Improve Test Runner\n\n## Why\n\n`adv_run_test` is ADV’s hot-path test-evidence tool, but current behavior hurts speed and consistency.\n\nSpeed gaps:\n\n- command execution uses buffered `exec()` semantics, which can waste time and fail noisy runs before useful evidence is shaped\n- output shaping is generic text-first, not stack-aware for the repo’s pnpm/Vitest flow\n- resource-aware local test execution is not consistently surfaced through ADV’s test path\n\nConsistency gaps:\n\n- tool schema, docs, specs, tests, and TDD phase language do not describe one contract\n- failed command results rely on `exitCode` inference instead of explicit model-facing result classification\n- sub-agent evidence expectations are more text-based than structural\n\nDesired outcome: faster, more predictable test execution/evidence capture; one consistent contract across schema/specs/docs/tests/agents; preserved exact shell-command compatibility; and model-facing output that helps agents diagnose failures quickly and reliably.\n\n## What Changes\n\n1. Improve `adv_run_test` hot-path speed without caching/skipping/fabricating evidence.\n2. Add a consistent typed result contract for pass/fail state, classification, duration, and output byte accounting.\n3. Preserve exact shell-command compatibility while replacing buffered execution internals if design validates the streaming path.\n4. Align docs/specs/schema/tests/agent instructions around one public contract.\n5. Make pnpm/Vitest evidence more structured where feasible, with generic shell fallback.\n6. Align ownership model: ADV owns typed evidence; repo-local tooling owns test workflow/throttle policy.\n\n## Scope\n\n### In Scope\n\n- `adv_run_test` implementation and tool schema.\n- Tests covering command execution compatibility, timeout/output-limit classification, result shape, TDD semantics, and stack-aware evidence.\n- Specs and docs that define or instruct `adv_run_test` behavior, especially `advance-meta`, `tdd-contract`, `ADV_INSTRUCTIONS.md`, and apply workflow guidance.\n- Vitest/pnpm-aware structured evidence path or discovery-backed equivalent.\n- Local test-throttle alignment for Advance repo workflows, including advisory behavior and/or wrapper integration if validated in design.\n- Sub-agent verification consumer expectations where they directly depend on `adv_run_test` output shape.\n- Latency/telemetry surfaces needed to measure the hot path and maintain consistency.\n\n### Out of Scope\n\n- Replacing ADV’s full task completion/checkpoint verification model.\n- Changing unrelated ADV tools except direct integration points required for `adv_run_test` consistency.\n- Building a broad external QA platform or browser/UI verification suite.\n- Changing the user’s supplied command behind their back.\n- Adding persistent logs of raw command output to system logs.\n- Repo-wide test architecture refactors unrelated to `adv_run_test` speed or consistency.\n\n### Must Not\n\n- Must not cache, skip, or fabricate command results.\n- Must not break existing shell metacharacter, pipeline, redirection, timeout, max-buffer/output-limit, stdout/stderr, or non-zero-exit behavior without an explicit compatibility decision.\n- Must not make heuristics the sole authority for pass/fail correctness.\n- Must not log raw command output or secrets to system logs by default.\n- Must not create separate same-scope test tasks as a replacement for inline TDD evidence.\n\n## Success Criteria\n\n- `adv_run_test` returns explicit test-result state: command executed, pass/fail status, classification, duration, and retained/output byte counts.\n- Existing shell-command compatibility remains covered by tests: metacharacters, pipelines, redirects, stdout/stderr capture, timeout/kill behavior, output-limit behavior, and non-zero exit reporting.\n- TDD phase semantics are consistent across schema, docs, specs, and tests; design chooses either typed phase semantics or explicit spec/docs cleanup.\n- Vitest/pnpm evidence is more consistent than today: structured failure summaries are available when supported, and generic shell fallback still works.\n- Heavy/full-suite usage has a consistent local story aligned with the repo’s test-throttle model; commands are not silently rewritten.\n- Sub-agent verification reporting can consume `adv_run_test` evidence without relying solely on fragile free-text matching.\n- `advance-meta` latency telemetry expectations remain satisfied, including substep timing for target routing, task lookup, command execution, and output shaping.\n- Documentation and tests describe the same public contract as the tool schema.\n\n## Affected Code\n\n- `plugin/src/tools/test.ts`\n- `plugin/src/tools/test.test.ts`\n- `plugin/src/tool-registry.ts`\n- `plugin/src/tool-registry.test.ts`\n- `plugin/src/tools/subagent-report.ts` if verification consumer contract changes\n- `plugin/src/utils/metrics.ts` and status tests only if telemetry shape changes\n- `.adv/specs/advance-meta/spec.json`\n- `.adv/specs/tdd-contract/spec.json`\n- `docs/specs/tdd-contract.md`\n- `ADV_INSTRUCTIONS.md`\n- `.opencode/command/adv-apply.md`\n- Potential local test wrapper/config files if design confirms repo-local wrapper work belongs in this change\n\n## Related Repositories\n\nCurrent repo only: `advance`. `project.json` has no product-linked repo configuration.\n\n## Constraints\n\n- Preserve ADV state safety: no direct ADV state-file reads/writes.\n- Preserve shell-command semantics unless explicitly changed by approved design.\n- Preserve backward-compatible fields where existing agents/tests depend on them.\n- Prefer structural correctness: typed schemas, parsers, validators, and tests over heuristic-only inference.\n- Keep speed improvements honest: no caching/skipping test runs and no fabricated evidence.\n- Keep raw command output private to tool response/artifacts; no default system-log dumping.\n- Avoid implementing durable evidence storage unless design proves it is necessary for consistency.\n\n## Discovery Findings\n\n### Discovery Checklist\n\n| Step | Status | Result |\n|---|---:|---|\n| Skill Discovery | PASS | Loaded `adv-agent-tool-contracts`; loaded `adv-user-intuit`; pending-skill scan found only a documentation example, not pending frontmatter. |\n| Prior Research Extension | PASS | Extended `docs/adv-run-test-prep.md`; new finding: sub-agent consumer text-scrapes verification and would benefit from typed result fields. |\n| Conflict & Related-Work Scan | PASS | Active/archived in-flight scan found no overlapping active change; `adv_change_validate` passed with expected proposal-stage warnings `NO_TASKS` and `NO_DELTAS`; agenda had no direct pre-existing run-test item before scout. |\n| Edge Case Investigation | PASS | Edge cases listed below. |\n| Design Question Depth | PASS | Ownership, phase semantics, parser artifact, and benchmark harness questions annotated below. |\n| Draft Spec Delta Shapes | PASS | Draft delta IDs and Given/When/Then listed below. |\n| Related Pattern Scan | PASS | Similar command execution patterns found; `adv_run_test` is the only production `execAsync(command)` runner. |\n| LBP Check | PASS | Hybrid ownership + typed evidence contract + streaming runner match current evidence. |\n\n### Skills Considered\n\n- `adv-agent-tool-contracts`: applied. This change modifies an agent-callable tool contract and related specs/tests/docs.\n- `adv-user-intuit`: applied. Concrete ownership/phase/speed-priority candidates required user preference.\n- `adv-improve`: prior research pack already generated and cited.\n- No new skill created; domain covered by existing skills and local research.\n\n### Extends\n\nPrior artifact: `docs/adv-run-test-prep.md`.\n\nCited sections:\n\n- Current State: identified buffered `exec()`, phase drift, result-shape drift, missing `bin/oc-test`, in-memory observability.\n- LBP / Reference Comparison: Node `spawn()` streaming, Vitest JSON reporter/outputFile, `VITEST_MAX_WORKERS`, TDD phase semantics.\n- Competitors & Alternatives / Emerging Patterns: CodeLoop, Diffblue, nit, MCP conformance/toolcallcheck, verified-spec-to-test loops.\n- Applicability to This Repo: high applicability for streaming, typed result contract, TDD drift repair, structured parser path, and local test-throttle alignment.\n\nNew finding added during discovery:\n\n- `plugin/src/tools/subagent-report.ts` currently validates reported verification by text inclusion and regex exit-code extraction. A typed `adv_run_test` result contract can remove this fragile coupling.\n\n### Conflict Scan\n\n- Related active changes: none obvious; current in-flight changes concern terminal titles, executive summaries, archive cleanup, worktree namespace, and Claude distribution.\n- Validation: passed. Warnings `NO_TASKS` and `NO_DELTAS` are expected before planning/spec deltas.\n- Agenda: no direct pre-existing `adv_run_test` item. Opportunity scout generated design follow-ups that should be absorbed by this change rather than treated as separate scope.\n\n### Current State\n\n- `plugin/src/tools/test.ts:117-162` uses promisified `child_process.exec` with timeout and `maxBuffer`.\n- `plugin/src/tools/test.ts:294-302` returns `success: true`, `exitCode`, `output`, `command`, `timedOut`, `maxBufferExceeded`, and optional `timeoutMs`; no explicit `passed`, `classification`, duration, or byte counts.\n- `plugin/src/tools/test.ts:261-292` records substep telemetry for command execution and output shaping.\n- `plugin/src/tools/test.test.ts:56-74` asserts the tool runs “without phase”.\n- `plugin/src/tools/test.test.ts:232-360` covers shell compatibility, missing task short-circuit, timeout, max-buffer, no caching, and non-zero exit.\n- `tdd-contract` requires inline TDD evidence through `adv_run_test`; `rq-TDD008path.3` says red/green exit-code semantics are validated.\n- `ADV_INSTRUCTIONS.md` and `.opencode/command/adv-apply.md` still instruct `adv_run_test phase:'red'` and `phase:'green'`.\n- No repo-local `bin/oc-test` exists.\n- Context7 Node docs confirm `exec()` buffers while `spawn()` streams and can preserve shell semantics with `shell:true`.\n- Context7 Vitest docs confirm JSON/JUnit reporter output can be written to files.\n- Context7 Bun docs show Bun has its own `Bun.spawn()` streams; exact Node `child_process` runtime compatibility still needs design validation because OpenCode runtime is Bun while tests run Node.\n\n### Edge Cases\n\n1. Streaming runner\n   - Noisy passing suite exceeds current buffer but still needs pass/fail summary retained.\n   - Timeout kills shell parent but leaves child/grandchild process running unless process-group cleanup is designed.\n   - Pipeline/redirect/metacharacter commands must preserve shell behavior.\n\n2. Typed result contract\n   - Non-zero exit is a successful tool call but failed test result; fields must avoid ambiguity.\n   - Timeout/output-limit/spawn-error classifications can overlap; precedence must be deterministic.\n   - Backward-compatible consumers may still read `exitCode`, `timedOut`, `maxBufferExceeded`.\n\n3. TDD phase semantics\n   - Red phase passing unexpectedly should be structurally detectable if phase remains typed.\n   - Green phase failing should guide retry without making the tool call itself an infrastructure error.\n   - Existing tests/doc assets may currently assert no phase; design must choose migration path.\n\n4. Stack-aware evidence\n   - Vitest JSON reporter may require command adaptation or outputFile handling; commands must not be silently rewritten.\n   - Generic shell commands must not be forced into Vitest parsing.\n   - Structured artifacts may contain paths/output that need privacy-aware retention.\n\n5. Ownership model\n   - If ADV owns too much workflow policy, concurrent agents and Temporal-backed state can become coupled to repo-specific test strategy.\n   - If repo owns too much, agent evidence remains inconsistent across tasks and sub-agents.\n   - Hybrid boundary needs explicit “advisory, not rewrite” behavior.\n\n### Open Design Questions\n\n1. Test workflow ownership\n   - Trust model: joint. User preference + agent LBP.\n   - Blast radius: wrong choice can either over-couple ADV to repo-specific test policy or leave agents with inconsistent evidence.\n   - Alternatives: ADV-heavy, repo-heavy, hybrid.\n   - Discovery resolution: user allowed hybrid or repo-owned based on what is best for Temporal and simultaneous agents; agent LBP chooses hybrid: ADV owns evidence contract, repo-local tooling owns workflow/throttle.\n\n2. TDD phase repair\n   - Trust model: agent technical decision with user-approved boundary.\n   - Blast radius: impacts specs/docs/schema and agent behavior.\n   - Alternatives: typed optional `phase`, narrative-only cleanup, design-decides.\n   - Discovery resolution: user chose “Design decides.” Carry to design with compatibility proof requirement.\n\n3. Speed priority\n   - Trust model: user priority.\n   - Blast radius: acceptance benchmarks could overfit hot no-op calls or noisy suites.\n   - Alternatives: hot-loop latency, noisy-suite stability, both, consistency-first.\n   - Discovery resolution: user chose both hot-loop latency and noisy-suite stability.\n\n4. Structured evidence artifact\n   - Trust model: agent technical decision.\n   - Blast radius: wrong artifact can make parser brittle or require command rewrites.\n   - Alternatives: Vitest JSON, JUnit XML, adapter registry, regex fallback only.\n   - Discovery resolution: design-spike; do not block typed result/streaming work.\n\n5. Benchmark harness\n   - Trust model: agent technical decision.\n   - Blast radius: weak benchmark makes speed claim unprovable.\n   - Alternatives: extend `plugin/scripts/bench-adv-latency.ts`, add focused unit timing tests, use external shell timing.\n   - Discovery resolution: design should decide; acceptance must include evidence for both selected speed priorities.\n\n### Draft Spec Deltas\n\n- `rq-advRunTestResultContract01`\n  - Given `adv_run_test` executes any command\n  - When the tool returns\n  - Then the response includes explicit pass/fail state, deterministic classification, duration, output byte accounting, and legacy-compatible fields.\n\n- `rq-advRunTestStreaming01`\n  - Given a noisy command produces output beyond retained evidence limits\n  - When `adv_run_test` runs it\n  - Then command execution remains fresh, shell semantics are preserved, output is bounded, and high-signal retained evidence is deterministic.\n\n- `rq-advRunTestOwnership01`\n  - Given a repo has local test workflow/throttle tooling\n  - When `adv_run_test` detects full-suite or heavy commands\n  - Then ADV may advise safe routing but must not silently rewrite commands; the repo owns execution policy while ADV owns evidence contract.\n\n- `rq-TDD008path` amendment\n  - Given inline TDD red/green evidence is collected through `adv_run_test`\n  - When phase semantics are represented or intentionally removed\n  - Then schema, docs, specs, tests, and agent instructions agree on one enforceable model.\n\n### Related Pattern Scan\n\n- `execAsync(command)` appears only in `plugin/src/tools/test.ts` production path and the research pack.\n- Other child-process usage favors `execFile`, `spawn`, or `spawnSync` for specific boundaries: e.g. `plugin/src/tools/roadmap.ts`, `plugin/src/tools/worktree/hooks.ts`, `plugin/src/temporal/runtime-manager.ts`, `plugin/src/tools/snapshot-scan.ts`.\n- `shapeCommandOutput` is localized to `adv_run_test` and tests.\n- `maxBuffer` patterns exist in targeted command wrappers, but `adv_run_test` is the general shell-command runner where maxBuffer impacts arbitrary test output.\n- No local `bin/oc-test` wrapper exists in this repo.\n\n### LBP Check\n\nRecommended LBP direction:\n\n- Hybrid ownership: ADV owns typed evidence contract; repo-local tooling owns test workflow/throttle policy.\n- Replace buffered execution internals with a streaming runner if design validates Bun/Node compatibility and process cleanup.\n- Add typed classification/result fields additively before changing consumers.\n- Repair phase drift in design with an explicit compatibility decision.\n- Treat Vitest structured parsing as useful but secondary; generic shell fallback remains mandatory.\n- Defer durable per-task evidence ledger unless design proves returned evidence + task completion summary is insufficient.\n\n### Discovery Opportunity Scout\n\n- Candidates considered: 5.\n- Auto-adopted: 2.\n  - Typed result contract.\n  - Streaming runner with fakeable subprocess adapter.\n- Surfaced to user: 3.\n  - Ownership model: resolved to hybrid by user preference + LBP.\n  - TDD phase direction: design decides.\n  - Speed priority: both hot-loop latency and noisy-suite stability.\n- Inconclusive/design-spike: Vitest structured parser artifact.\n- Explicitly deferred unless proven necessary: durable per-task evidence ledger.\n\n### AMBIGUITY ANALYSIS\n\nM1 MEDIUM Missing Information — TDD phase direction still needs design proof.\n  Evidence: “TDD phase semantics are consistent across schema, docs, specs, and tests; design chooses either typed phase semantics or explicit spec/docs cleanup.”\n  Reason: clear enough for agreement, but design must choose exact compatibility path.\n\nM2 MEDIUM Missing Information — structured evidence artifact not chosen yet.\n  Evidence: “Vitest/pnpm-aware structured evidence path or discovery-backed equivalent.”\n  Reason: design-spike needed; does not block agreement because generic fallback remains in scope.\n\nCoverage: B:C F:C S:C M:P\n\n### Recommended Objectives\n\n1. Make `adv_run_test` faster for both hot-loop and noisy-suite cases without caching/skipping/fabricating command results.\n2. Make returned evidence structurally consistent and easy for ADV agents/sub-agents to consume.\n3. Preserve exact shell-command compatibility and backward-compatible fields.\n4. Align schema/specs/docs/tests/agent instructions around one public contract.\n5. Use hybrid ownership: ADV owns evidence contract; repo-local tooling owns execution/throttle policy.\n6. Keep framework-specific parsing optional and fallback-safe.\n\n## Discovery User Decisions\n\n- Workflow ownership: user allowed hybrid or repo-owned depending on best fit for Temporal workflows and simultaneous ADV agents. Discovery resolves to hybrid.\n- TDD phase strictness: user chose “Design decides.”\n- Speed priority: user chose “Both equally” for hot-loop latency and noisy-suite stability.\n\n## Investment Snapshot\n\nInvestment: 0 tasks / 0 retries / ~10 min elapsed / tier: auto.\n\n## Discovery Checklist Summary\n\nDiscovery gate is ready for acceptance-criteria approval. Agreement will be persisted after AC approval.\n",
+    "problemStatement": "`adv_run_test` is ADV’s hot-path test-evidence tool, but current behavior hurts speed and consistency. Speed gaps include buffered command execution, noisy output handling, and inconsistent resource-aware execution paths. Consistency gaps include drift between tool schema, specs, docs, TDD phase language, result fields, and sub-agent evidence expectations. Desired outcome: faster, more predictable test execution/evidence capture; one consistent contract across schema/specs/docs/tests/agents; preserved exact shell-command compatibility; and model-facing output that helps agents diagnose failures quickly and reliably.",
+    "agreement": "# Agreement\n\n## Objectives\n\n1. Improve `adv_run_test` speed for both hot-loop commands and noisy-suite runs.\n2. Make `adv_run_test` evidence structurally consistent for main agents and sub-agents.\n3. Preserve exact shell-command compatibility and existing backward-compatible fields.\n4. Align tool schema, specs, docs, tests, and agent instructions around one public contract.\n5. Use hybrid ownership: ADV owns the typed evidence contract; repo-local tooling owns workflow/throttle policy.\n6. Keep framework-specific structured parsing optional, bounded, and fallback-safe.\n\n## Acceptance Criteria\n\n1. `adv_run_test` returns explicit result state: executed command, `passed`, deterministic `classification`, duration, and output byte counts.\n2. Existing shell compatibility remains covered by tests: metacharacters, pipelines, redirects, stdout/stderr capture, timeout/kill behavior, output-limit behavior, and non-zero exit reporting.\n3. Speed evidence covers both hot-loop latency for small/targeted runs and noisy-suite stability without buffer-driven evidence loss.\n4. Schema, specs, docs, tests, and agent instructions describe one public `adv_run_test` contract.\n5. TDD phase drift is resolved by design: either typed phase semantics are restored or stale phase references are removed by explicit spec/docs cleanup.\n6. Hybrid ownership is enforced: ADV may advise about repo-local test workflow/throttle routing, but must not silently rewrite user commands.\n7. Sub-agent verification can consume structured `adv_run_test` evidence without relying solely on free-text command/exit-code scraping.\n8. Vitest/pnpm structured evidence works when available; generic shell fallback remains mandatory.\n9. `advance-meta` substep telemetry remains intact for `targetRouting`, `taskLookup`, `commandExecution`, and `outputShaping`.\n10. Raw command output is not written to system logs by default.\n\n## Constraints\n\n1. `adv_run_test` must execute every supplied command fresh; no caching, skipping, or fabricated evidence.\n2. Shell-command semantics must be preserved unless design explicitly proves and approves a compatibility change.\n3. Backward-compatible response fields such as `exitCode`, `output`, `timedOut`, and `maxBufferExceeded` must remain available unless design identifies a safe migration path.\n4. Correctness must be structural: typed schemas, deterministic classification, parser tests, and compatibility tests over heuristic-only inference.\n5. Speed claims must be backed by measured evidence, not assumed from implementation changes.\n6. Repo-local workflow/throttle policy must remain repo-owned; ADV may surface advice but must not silently rewrite commands.\n7. Privacy boundary: raw command output and possible secrets must not be written to system logs by default.\n\n## Avoidances\n\n1. Do not replace ADV’s task completion/checkpoint verification model.\n2. Do not create separate same-scope test tasks as a replacement for inline TDD evidence.\n3. Do not turn `adv_run_test` into a broad QA platform or browser/UI verification suite.\n4. Do not silently mutate user-provided commands to use wrappers/profiles.\n5. Do not make Vitest-specific parsing mandatory for arbitrary shell commands.\n6. Do not add durable per-task evidence storage unless design proves returned evidence plus task completion summaries are insufficient.\n\n## Out of Scope\n\n1. Repo-wide test architecture refactors unrelated to `adv_run_test` speed or consistency.\n2. Unrelated ADV tool refactors beyond direct integration points needed for `adv_run_test` contract consistency.\n3. Persistent raw-output logging to system logs.\n4. Cross-repo changes; current scope is the `advance` repo only.\n\n## Preview Applicability\n\nvisual_surface: false\n\nRationale: change affects an internal OpenCode plugin tool, agent contracts, specs, docs, and tests. It does not affect front-end, browser-visible UI, or visual output.\n\n## Decisions\n\n### User Decisions\n\n1. Workflow ownership: user accepted hybrid or repo-owned based on what is best for Temporal workflows and simultaneous ADV agents; discovery chose hybrid as the LBP.\n2. TDD phase strictness: user selected “Design decides,” so design must choose typed phase semantics or explicit spec/docs cleanup after compatibility analysis.\n3. Speed priority: user selected “Both equally,” so acceptance must cover hot-loop latency and noisy-suite stability.\n4. Acceptance criteria: user approved the AC checkpoint with reply `approve`.\n\n### Agent Decisions (LBP)\n\n1. Hybrid ownership is preferred: ADV owns typed evidence/result contract; repo-local tooling owns execution workflow and throttling.\n2. Typed result contract is the highest-leverage consistency improvement and should be additive/backward-compatible.\n3. Streaming execution is promising because Node docs show `spawn(..., { shell: true })` can preserve shell semantics while streaming output; design must validate Bun runtime behavior and process cleanup.\n4. Vitest structured parsing is useful but secondary; generic shell fallback remains mandatory.\n5. Durable per-task evidence ledger is deferred unless design proves it is necessary.\n\n## Deferred Questions\n\nNone. Design-owned technical decisions are recorded above rather than silently deferred.\n\n## Sign-Off\n\nAcceptance criteria approved by user reply: `approve`.\n",
+    "design": "# Design\n\n## Architecture Overview\n\n`adv_run_test` becomes a fast, structural evidence boundary while remaining a general shell-command runner.\n\nDesign split:\n\n1. **ADV evidence contract**\n   - `adv_run_test` owns typed result fields, deterministic classification, timing, output accounting, and bounded evidence shaping.\n   - Main agents and sub-agents consume the same structural fields.\n\n2. **Repo-local workflow ownership**\n   - Repo-local tooling owns workflow/throttle policy, e.g. `bin/oc-test` tiers.\n   - `adv_run_test` may emit advisory guidance but never silently rewrites supplied commands.\n\n3. **Streaming execution core**\n   - Replace buffered `exec()` internals with a fakeable `spawn(..., { shell: true })` runner.\n   - Preserve shell semantics while streaming stdout/stderr into bounded retention buffers.\n   - Keep command execution fresh; no cache/skip/fabrication.\n\n4. **Compatibility-first migration**\n   - Add new fields additively.\n   - Keep legacy fields while documenting which are compatibility aliases.\n   - Update specs/docs/tests together so tool contract is single-source-consistent.\n\n## Key Decisions\n\n### D1 — Hybrid ownership\n\nDecision: ADV owns the evidence/result contract; repo-local tooling owns execution workflow and throttle policy.\n\nRationale:\n\n- Agreement AC6 requires no silent command rewriting.\n- User accepted hybrid/repo-owned based on what best supports Temporal workflows and simultaneous ADV agents.\n- Hybrid keeps ADV general while allowing repos to optimize local test policy independently.\n\nImplications:\n\n- Add/align repo-local `bin/oc-test` only as repo workflow tooling.\n- `adv_run_test` can return `advisories[]` when it detects likely heavy commands and a repo wrapper exists, but the original command still runs exactly as supplied.\n\n### D2 — Additive typed result contract\n\nDecision: extend `adv_run_test` response with typed fields while preserving existing fields.\n\nNew canonical fields:\n\n- `passed: boolean`\n- `classification: \"passed\" | \"failed\" | \"timed_out\" | \"output_limit\" | \"spawn_error\"`\n- `durationMs: number`\n- `outputBytesSeen: number`\n- `outputBytesRetained: number`\n- `outputTruncated: boolean`\n- `executionMode: \"shell\"`\n- optional `summary: string`\n- optional `failures: Array<{ file?: string; line?: number; name?: string; message: string }>`\n- optional `advisories: Array<{ kind: string; message: string }>`\n- optional `evidence: { schema_version: \"adv_run_test.v1\"; command: string; exitCode: number | null; passed: boolean; classification: string; durationMs: number }`\n\nLegacy fields remain:\n\n- `success`\n- `exitCode`\n- `output`\n- `command`\n- `timedOut`\n- `maxBufferExceeded`\n- `timeoutMs`\n\nRationale:\n\n- `success:true` currently means “tool call succeeded,” not “test passed.” Typed fields remove ambiguity without breaking consumers.\n- `evidence` gives agents a compact structured block to copy into task verification/checkpoint notes.\n\n### D3 — Streaming subprocess adapter\n\nDecision: replace promisified `exec()` with an internal adapter around `spawn(command, { shell: true })`.\n\nAdapter shape:\n\n```ts\ninterface TestCommandRunner {\n  run(input: {\n    command: string;\n    cwd: string;\n    timeoutMs: number;\n    outputLimitBytes: number;\n    hardKillAfterMs?: number;\n  }): Promise<TestCommandRun>;\n}\n```\n\n`TestCommandRun` contains stdout/stderr retained snippets, byte counters, exit code, signal, duration, timeout flag, spawn error, and truncation flag.\n\nRationale:\n\n- Node docs: `exec()` buffers; `spawn()` streams. `spawn(..., { shell: true })` preserves shell execution.\n- Bun docs/source show Bun supports Node child_process shell handling and streaming, lowering runtime compatibility risk.\n- Fakeable adapter keeps tests deterministic.\n\nProcess cleanup strategy:\n\n- Use timeout/abort for normal timeout.\n- On Unix, prefer detached process group + `kill(-pid)` so shell pipelines/background children do not survive timeout.\n- If cross-platform process-group cleanup differs, isolate platform behavior behind the runner adapter and document/test Linux behavior used by this repo.\n- Track exit signal and classify timeout deterministically.\n\n### D4 — Output limit migration\n\nDecision: separate retained-output truncation from hard execution failure.\n\n- Normal noisy output: keep command running, count all bytes, retain bounded high-signal/tail buffers, set `outputTruncated:true`.\n- `classification:\"output_limit\"`: use only when a hard safety limit forces termination or output makes result unreliable.\n- `maxBufferExceeded`: legacy compatibility field; re-specify it as hard output safety overflow, not ordinary retained-output truncation.\n\nRationale:\n\n- Current `maxBuffer` kill behavior conflicts with noisy-suite stability.\n- AC3 requires avoiding buffer-driven evidence loss.\n- `rq-advRunTestLatency01` requires max-buffer classification preservation, so specs/tests must explicitly migrate from `exec` maxBuffer semantics to streaming output-limit semantics.\n\n### D5 — Optional typed TDD phase, descriptive not gate enforcement\n\nDecision: reintroduce optional `phase: \"red\" | \"green\" | \"verify\"` as structured evidence metadata.\n\nSemantics:\n\n- Omitted phase: backward-compatible; no phase-specific violation.\n- `phase:\"red\"`: result should be failing evidence. If command passes, return `phaseValid:false` and `phaseViolation`.\n- `phase:\"green\"`: result should be passing evidence. If command fails, return `phaseValid:false` and `phaseViolation`.\n- `phase:\"verify\"`: no red/green inversion semantics; normal pass/fail classification.\n\nResponse fields:\n\n- `phase?: \"red\" | \"green\" | \"verify\"`\n- `phaseValid?: boolean`\n- `phaseViolation?: { expected: string; actual: string; message: string }`\n\nGuardrail from validator:\n\n- Phase fields are descriptive/tool-result evidence, not gate enforcement by themselves.\n- Gate/TDD enforcement remains owned by specs, validators, prep/task classification, and final task verification.\n- Tests must cover “omitted phase → no violation.” Existing “without phase parameter” test/header must be migrated, not silently broken.\n\nRationale:\n\n- Existing `tdd-contract` requires red/green exit-code semantics.\n- Existing docs instruct `adv_run_test phase:'red'` / `phase:'green'`.\n- Optional phase restores structural evidence without making phase a new gate authority.\n\n### D6 — Structured parser pipeline\n\nDecision: parse structured evidence opportunistically without command rewriting.\n\nPipeline:\n\n1. If stdout/stderr contains Jest/Vitest-compatible JSON, parse it into `summary` and `failures[]`.\n2. Else parse known high-signal text patterns for summary/failure hints.\n3. Else retain bounded generic shell output.\n\nConstraints:\n\n- Do not add `--reporter=json` automatically.\n- Do not require Vitest for arbitrary commands.\n- Parser failure must not change command classification; it only degrades structured evidence.\n\n### D7 — Sub-agent verification bridge\n\nDecision: replace sole free-text verification matching with structured evidence parsing plus legacy fallback.\n\nPlan:\n\n- `adv_run_test` returns compact `evidence` object.\n- Agent/worker instructions tell workers to include the evidence object or equivalent fields in verification summaries.\n- `plugin/src/tools/subagent-report.ts` parses standardized `adv_run_test.v1` evidence blocks from task verification/summary text.\n- If no structured block exists, keep current `recorded.includes(command)` and exit-code regex fallback for legacy compatibility.\n\nRationale:\n\n- Avoids durable evidence ledger scope.\n- Improves structural correctness for sub-agent report consumers.\n- Keeps old task summaries readable.\n\n### D8 — Speed evidence harness\n\nDecision: extend existing `plugin/scripts/bench-adv-latency.ts` and targeted tests for acceptance evidence.\n\nEvidence required:\n\n- Hot-loop: no-op/echo command samples before/after, or threshold-based benchmark if baseline is unstable.\n- Noisy-suite: command that emits output beyond retained limit must complete without buffer kill and preserve pass/fail summary.\n- Compatibility: shell metacharacters, pipelines, redirects, timeout, hard output limit, stdout/stderr, non-zero exit.\n\n## ADR Drafts\n\nNone. Decisions are important but not hard enough to reverse or surprising enough to warrant a separate ADR. Specs and design artifact are sufficient.\n\n## Implementation Strategy\n\n1. Define response/result types near `plugin/src/tools/test.ts`.\n2. Add fakeable `TestCommandRunner` adapter and tests around it.\n3. Implement streaming shell runner with bounded output accounting and timeout process-group cleanup.\n4. Add additive response fields while preserving legacy fields.\n5. Reintroduce optional descriptive `phase` schema and phase-semantic fields.\n6. Add structured parser helpers for JSON-compatible Vitest/Jest output and text fallback.\n7. Add advisory helper for repo-local test workflow ownership.\n   - Detect `bin/oc-test` presence.\n   - Detect likely heavy commands with conservative exact/anchored patterns.\n   - Emit advisory only; never rewrite.\n8. Add/align `bin/oc-test` wrapper if implementation confirms it belongs in this change.\n9. Update `subagent-report.ts` consumer to prefer structured evidence blocks and keep legacy fallback.\n10. Update specs/docs/tests in same change.\n11. Extend benchmark/test evidence for hot-loop latency and noisy-suite stability.\n\n## LBP Analysis\n\nThis design is preferred because:\n\n- It makes correctness structural before heuristic.\n- It preserves shell compatibility and exact user command execution.\n- It reduces Temporal/ADV coupling by keeping workflow policy repo-local.\n- It makes noisy output cheaper and safer without hiding command results.\n- It fixes schema/spec/docs drift instead of documenting around it.\n- It defers durable evidence storage until proven necessary.\n\nRejected alternatives:\n\n- Keep `exec()` and only tweak maxBuffer: does not solve buffer-driven failure mode or streaming speed/stability.\n- ADV-heavy workflow profiles: risks coupling ADV to repo-specific test policy and silently steering commands.\n- Repo-only workflow: leaves ADV/sub-agent evidence inconsistent.\n- Durable evidence ledger now: high migration/Temporal design cost for a problem that typed returned evidence may solve.\n- Mandatory Vitest reporter rewrite: violates exact-command semantics and breaks generic runner behavior.\n\n## Affected Components\n\n- `plugin/src/tools/test.ts`\n  - schema, runner, output shaping, typed result contract, phase semantics, advisories.\n- `plugin/src/tools/test.test.ts`\n  - compatibility, result fields, phase semantics, streaming/noisy output, output-limit migration.\n- `plugin/src/tool-registry.ts` / `plugin/src/tool-registry.test.ts`\n  - safe-execute wrapper expectations if schema or timeout notes change.\n- `plugin/src/tools/subagent-report.ts`\n  - structured evidence block parsing with legacy fallback.\n- `plugin/src/utils/metrics.ts` and status tests only if telemetry output shape changes.\n- `.adv/specs/advance-meta/spec.json`\n  - typed result / streaming / ownership requirements.\n- `.adv/specs/tdd-contract/spec.json` and `docs/specs/tdd-contract.md`\n  - optional descriptive phase semantics.\n- `ADV_INSTRUCTIONS.md`, `.opencode/command/adv-apply.md`, worker prompts if needed\n  - update run-test usage and evidence-block guidance.\n- `plugin/scripts/bench-adv-latency.ts`\n  - acceptance benchmark harness.\n- Optional `bin/oc-test`\n  - repo-local workflow/throttle wrapper if included.\n\n## Risks / Mitigations\n\n| Risk | Mitigation |\n|---|---|\n| Streaming runner breaks shell compatibility | Keep `shell:true`; add metacharacter/pipeline/redirection tests. |\n| Timeout leaves child processes running | Use process-group cleanup on Linux; test shell child cleanup; document any platform limits. |\n| Output-limit migration surprises legacy consumers | Keep legacy fields, re-spec `maxBufferExceeded`, add explicit migration tests. |\n| Phase field breaks callers | Make `phase` optional; omitted phase remains valid; phase is descriptive, not gate enforcement. |\n| Parser becomes heuristic authority | Parser only shapes evidence; exit code/classification remains command-runner-owned. |\n| Advisory becomes hidden command policy | Advisory-only field; no command mutation. |\n| Benchmarks are noisy | Use relative/bounded acceptance evidence plus deterministic noisy-output tests. |\n| Raw output leaks | No system-log writes; bounded response output only. |\n\n## Design Leverage Scout\n\nCandidates considered: 5.\n\nAuto-adopted:\n\n1. Typed result contract as primary sub-agent verification input.\n2. `exec` to `spawn({ shell:true })` streaming with fakeable adapter.\n3. Explicit `maxBuffer` to `output_limit` migration tests.\n\nUser-surfaced / resolved:\n\n1. TDD phase repair — user delegated to design; design chooses optional descriptive phase.\n2. `bin/oc-test` extent — design includes repo-local wrapper/advisory path because it matches hybrid ownership and AC6.\n\nDeferred:\n\n- Durable evidence ledger.\n- Vitest parser beyond fallback-safe addition.\n\nScout result: validated; no blockers.\n\n## Validator Result\n\nValidator verdict: CAUTION.\n\nCautions incorporated:\n\n1. `maxBuffer` to streaming output-limit migration must preserve `rq-advRunTestLatency01` classification expectations through explicit specs/tests, not silent renaming.\n2. Reintroduced `phase` must be descriptive evidence metadata and decoupled from gate/TDD enforcement. Omitted phase must remain valid.\n3. Timeout handling for `spawn({ shell:true })` must address shell child/grandchild cleanup, preferably process-group kill on Linux.\n\nNo validator conflicts or blockers remain.\n",
+    "executiveSummary": "# Executive Summary\n\n`adv_run_test` now has a typed, backward-compatible evidence contract while preserving exact shell-command execution semantics.\n\n## Delivered\n\n- Replaced buffered `exec()` internals with streaming `spawn(..., { shell: true })` runner.\n- Added typed result fields: `passed`, `classification`, `durationMs`, `outputBytesSeen`, `outputBytesRetained`, `outputTruncated`, `executionMode`, and compact `adv_run_test.v1` evidence.\n- Preserved legacy fields: `success`, `exitCode`, `output`, `command`, `timedOut`, `maxBufferExceeded`, `timeoutMs`.\n- Restored optional descriptive `phase: red|green|verify`; explicitly not gate enforcement.\n- Added structured sub-agent verification consumption of `adv_run_test.v1` evidence.\n- Added repo-local `bin/oc-test` wrapper and `adv_run_test` advisory only; supplied commands are never silently rewritten.\n- Promoted project wisdom: ADV/Temporal should own durable evidence/orchestration, while repo-local tooling/CI owns suite policy and throttling.\n- Fixed verification-environment leakage from `ADV_WORKTREE_HOME` and aligned project worktree guard config with existing spec tests.\n\n## Verified\n\n- `bin/oc-test smoke` passed.\n- `bin/oc-test full` passed.\n- Acceptance review by `adv-reviewer`: READY, 0 blocking findings.\n- Contract review matrix: 27 rows, 0 failures.\n- Benchmark sample: hot `true` p50 2.3ms wall / 2.2ms subprocess duration; noisy stdout p50 21.8ms wall / 21.4ms subprocess duration with truncation but no maxBuffer failure.\n\n## Remaining Concerns\n\n- Source changes require rebuild/deploy/restart before live OpenCode plugin tool behavior reflects the new `adv_run_test` implementation in this running session.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-06-01T21:45:00.000Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| AC1 | acceptance_criterion | `adv_run_test` returns explicit result state: executed command, `passed`, deterministic `classification`, duration, and output byte counts. | pass | src/tools/test.test.ts typed result contract tests pass; bin/oc-test full passed. |\n| AC2 | acceptance_criterion | Existing shell compatibility remains covered by tests: metacharacters, pipelines, redirects, stdout/stderr capture, timeout/kill behavior, output-limit behavior, and non-zero exit reporting. | pass | src/tools/test.test.ts shell compatibility tests pass; bin/oc-test full passed. |\n| AC3 | acceptance_criterion | Speed evidence covers both hot-loop latency for small/targeted runs and noisy-suite stability without buffer-driven evidence loss. | pass | Benchmark: hot true p50 wall 2.3ms/duration 2.2ms; noisy stdout p50 wall 21.8ms/duration 21.4ms, outputTruncated true, maxBufferExceeded false. |\n| AC4 | acceptance_criterion | Schema, specs, docs, tests, and agent instructions describe one public `adv_run_test` contract. | pass | src/tools/test-contract-assets.test.ts passed; Prettier check for spec/docs/tool surfaces passed. |\n| AC5 | acceptance_criterion | TDD phase drift is resolved by design: either typed phase semantics are restored or stale phase references are removed by explicit spec/docs cleanup. | pass | src/tools/test.test.ts phase schema test and docs asset test passed. |\n| AC6 | acceptance_criterion | Hybrid ownership is enforced: ADV may advise about repo-local test workflow/throttle routing, but must not silently rewrite user commands. | pass | src/tools/test.test.ts advisory/no-rewrite tests passed; bin/oc-test wrapper verified. |\n| AC7 | acceptance_criterion | Sub-agent verification can consume structured `adv_run_test` evidence without relying solely on free-text command/exit-code scraping. | pass | src/tools/subagent-report.test.ts structured adv_run_test evidence tests passed. |\n| AC8 | acceptance_criterion | Vitest/pnpm structured evidence works when available; generic shell fallback remains mandatory. | pass | src/tools/subagent-report.test.ts and src/tools/test.test.ts passed. |\n| AC9 | acceptance_criterion | `advance-meta` substep telemetry remains intact for `targetRouting`, `taskLookup`, `commandExecution`, and `outputShaping`. | pass | src/tools/test.test.ts telemetry phase tests passed. |\n| AC10 | acceptance_criterion | Raw command output is not written to system logs by default. | pass | adv-reviewer verdict READY; code review found no raw output system logging path. |\n| C1 | constraint | `adv_run_test` must execute every supplied command fresh; no caching, skipping, or fabricated evidence. | respected | src/tools/test.test.ts fresh-subprocess test passed. |\n| C2 | constraint | Shell-command semantics must be preserved unless design explicitly proves and approves a compatibility change. | respected | Shell compatibility tests passed. |\n| C3 | constraint | Backward-compatible response fields such as `exitCode`, `output`, `timedOut`, and `maxBufferExceeded` must remain available unless design identifies a safe migration path. | respected | src/tools/test.test.ts legacy field assertions passed. |\n| C4 | constraint | Correctness must be structural: typed schemas, deterministic classification, parser tests, and compatibility tests over heuristic-only inference. | respected | Zod schemas, deterministic classifyRun, parser tests, and asset tests added. |\n| C5 | constraint | Speed claims must be backed by measured evidence, not assumed from implementation changes. | respected | Benchmark sample recorded hot/noisy timings and full/smoke tests passed. |\n| C6 | constraint | Repo-local workflow/throttle policy must remain repo-owned; ADV may surface advice but must not silently rewrite commands. | respected | No-rewrite advisory tests passed; bin/oc-test is repo-local wrapper. |\n| C7 | constraint | Privacy boundary: raw command output and possible secrets must not be written to system logs by default. | respected | adv-reviewer READY; no raw-output system logging introduced. |\n| DONT1 | avoidance | Do not replace ADV’s task completion/checkpoint verification model. | respected | Task completion/checkpoint flow unchanged; all tasks completed via adv_task_checkpoint. |\n| DONT2 | avoidance | Do not create separate same-scope test tasks as a replacement for inline TDD evidence. | respected | Existing 5-task plan preserved; no same-scope test task added. |\n| DONT3 | avoidance | Do not turn `adv_run_test` into a broad QA platform or browser/UI verification suite. | respected | adv_run_test remains shell runner with typed evidence; no browser/UI QA platform added. |\n| DONT4 | avoidance | Do not silently mutate user-provided commands to use wrappers/profiles. | respected | src/tools/test.test.ts proves command unchanged when advisory emitted. |\n| DONT5 | avoidance | Do not make Vitest-specific parsing mandatory for arbitrary shell commands. | respected | Generic shell typed evidence implemented; Vitest parsing not mandatory. |\n| DONT6 | avoidance | Do not add durable per-task evidence storage unless design proves returned evidence plus task completion summaries are insufficient. | respected | No durable per-task evidence ledger added. |\n| OOS1 | out_of_scope | Repo-wide test architecture refactors unrelated to `adv_run_test` speed or consistency. | not_applicable | No unrelated repo-wide test architecture refactor performed. |\n| OOS2 | out_of_scope | Unrelated ADV tool refactors beyond direct integration points needed for `adv_run_test` contract consistency. | not_applicable | Changes limited to adv_run_test, evidence consumer, specs/docs/tests, wrapper, and verification fixes. |\n| OOS3 | out_of_scope | Persistent raw-output logging to system logs. | not_applicable | No persistent raw-output logging added. |\n| OOS4 | out_of_scope | Cross-repo changes; current scope is the `advance` repo only. | not_applicable | All changes are within current advance repo worktree. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/improveTestRunner/proposal.md",
+      "updatedAt": "2026-06-01T20:46:52.126Z",
+      "contentHash": "850144bd29903b7c9d438c0302bc08fd0f728c575df1f395ff952e750fdeedb8"
+    },
+    "problemStatement": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/improveTestRunner/problem-statement.md",
+      "updatedAt": "2026-06-01T20:37:06.238Z",
+      "contentHash": "0a01c1e85351b3260fc80960fa1ad70dc6dded48195fb6256023c0a3a010ce5f"
+    },
+    "agreement": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/improveTestRunner/agreement.md",
+      "updatedAt": "2026-06-01T20:48:18.560Z",
+      "contentHash": "9ea610b5bc481eafee709320185681d35f161fc4f3ccb03ae368dcca975948bd"
+    },
+    "design": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/improveTestRunner/design.md",
+      "updatedAt": "2026-06-01T20:56:43.811Z",
+      "contentHash": "fc0193ca21b76a800ed17b05a7f5f6e0673b210dee576ca3a97276b9241f9d12"
+    },
+    "executiveSummary": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/improveTestRunner/executive-summary.md",
+      "updatedAt": "2026-06-01T21:45:49.927Z",
+      "contentHash": "62265d3e31feb4be260e61652b76fdc2221f996ebdca6183bc3309e4a7c40488"
+    }
+  },
+  "lastSignalAt": "2026-06-01T21:46:51.832Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true
+}
