@@ -1,10 +1,37 @@
 {
+  "$id": "https://raw.githubusercontent.com/Sharper-Flow/Advance/trunk/plugin/schemas/scenario.schema.json",
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://github.com/anomalyco/oc-plugins/advance/schemas/scenario.schema.json",
-  "title": "ADV Scenario",
-  "description": "ADV Scenario (Given/When/Then)",
-  "$ref": "#/definitions/scenario",
-  "definitions": {
-    "scenario": {}
-  }
+  "additionalProperties": {},
+  "properties": {
+    "given": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "id": {
+      "type": "string"
+    },
+    "then": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "title": {
+      "type": "string"
+    },
+    "when": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "id",
+    "title",
+    "given",
+    "when",
+    "then"
+  ],
+  "title": "ADV Requirement Scenario",
+  "type": "object"
 }

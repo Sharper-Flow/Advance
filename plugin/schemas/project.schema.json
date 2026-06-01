@@ -1,10 +1,258 @@
 {
+  "$id": "https://raw.githubusercontent.com/Sharper-Flow/Advance/trunk/plugin/schemas/project.schema.json",
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://github.com/anomalyco/oc-plugins/advance/schemas/project.schema.json",
-  "title": "ADV Project",
-  "description": "ADV Project Configuration",
-  "$ref": "#/definitions/project",
-  "definitions": {
-    "project": {}
-  }
+  "additionalProperties": {},
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "archive_dir": {
+      "default": ".adv/archive",
+      "type": "string"
+    },
+    "archive_mode": {
+      "default": "direct",
+      "enum": [
+        "direct",
+        "pr"
+      ],
+      "type": "string"
+    },
+    "auto_push": {
+      "default": true,
+      "type": "boolean"
+    },
+    "changes_dir": {
+      "default": ".adv/changes",
+      "type": "string"
+    },
+    "db_dir": {
+      "default": ".adv/db",
+      "type": "string"
+    },
+    "docs_dir": {
+      "default": "docs/specs",
+      "type": "string"
+    },
+    "features": {
+      "additionalProperties": {},
+      "default": {
+        "clarify_enforcement": "advisory",
+        "gate_enforcement": "strict",
+        "slop_scan": {
+          "ast_timeout_ms": 10000,
+          "complexity_threshold": 10,
+          "defensive_guard_threshold": 3,
+          "nesting_depth_threshold": 4
+        },
+        "tdd_enforcement": "strict",
+        "wisdom_accumulation": true,
+        "worktree_auto_create": true,
+        "worktree_guard_enforce": true
+      },
+      "properties": {
+        "clarify_enforcement": {
+          "default": "advisory",
+          "enum": [
+            "off",
+            "advisory",
+            "strict"
+          ],
+          "type": "string"
+        },
+        "gate_enforcement": {
+          "default": "strict",
+          "enum": [
+            "strict",
+            "advisory"
+          ],
+          "type": "string"
+        },
+        "slop_scan": {
+          "additionalProperties": {},
+          "default": {
+            "ast_timeout_ms": 10000,
+            "complexity_threshold": 10,
+            "defensive_guard_threshold": 3,
+            "nesting_depth_threshold": 4
+          },
+          "properties": {
+            "ast_timeout_ms": {
+              "default": 10000,
+              "maximum": 9007199254740991,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "complexity_threshold": {
+              "default": 10,
+              "maximum": 9007199254740991,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "defensive_guard_threshold": {
+              "default": 3,
+              "maximum": 9007199254740991,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "nesting_depth_threshold": {
+              "default": 4,
+              "maximum": 9007199254740991,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          "required": [
+            "nesting_depth_threshold",
+            "defensive_guard_threshold",
+            "complexity_threshold",
+            "ast_timeout_ms"
+          ],
+          "type": "object"
+        },
+        "tdd_enforcement": {
+          "default": "strict",
+          "enum": [
+            "strict",
+            "advisory",
+            "off"
+          ],
+          "type": "string"
+        },
+        "wisdom_accumulation": {
+          "default": true,
+          "type": "boolean"
+        },
+        "worktree_auto_create": {
+          "default": true,
+          "type": "boolean"
+        },
+        "worktree_guard_enforce": {
+          "default": true,
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "tdd_enforcement",
+        "worktree_auto_create",
+        "gate_enforcement",
+        "wisdom_accumulation",
+        "worktree_guard_enforce",
+        "clarify_enforcement",
+        "slop_scan"
+      ],
+      "type": "object"
+    },
+    "name": {
+      "type": "string"
+    },
+    "product": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "missing_primary_policy": {
+          "default": "block",
+          "enum": [
+            "block",
+            "read_only",
+            "isolated"
+          ],
+          "type": "string"
+        },
+        "primary_repo_id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "repo_id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "role": {
+          "enum": [
+            "primary",
+            "secondary"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "role",
+        "repo_id",
+        "primary_repo_id",
+        "missing_primary_policy"
+      ],
+      "type": "object"
+    },
+    "project_file": {
+      "default": "project.md",
+      "type": "string"
+    },
+    "related_repos": {
+      "items": {
+        "additionalProperties": {},
+        "properties": {
+          "gh_repo": {
+            "pattern": "^[A-Za-z0-9_.-]+\\/[A-Za-z0-9_.-]+$",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "product_role": {
+            "enum": [
+              "primary",
+              "secondary"
+            ],
+            "type": "string"
+          },
+          "repo_project_id": {
+            "pattern": "^[0-9a-f]{40}$",
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "trusted": {
+            "default": false,
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "path",
+          "trusted"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "specs_dir": {
+      "default": ".adv/specs",
+      "type": "string"
+    },
+    "version": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "name",
+    "specs_dir",
+    "changes_dir",
+    "archive_dir",
+    "docs_dir",
+    "db_dir",
+    "project_file",
+    "archive_mode",
+    "auto_push",
+    "features"
+  ],
+  "title": "ADV Project Configuration",
+  "type": "object"
 }

@@ -18,7 +18,7 @@
     "build": "tsup src/index.ts --format esm --dts && pnpm run build:worker",
     "build:worker": "tsup src/temporal/worker.ts src/temporal/workflows.ts --format esm --out-dir dist/temporal",
     "dev": "tsup src/index.ts --format esm --watch",
-    "check": "pnpm run typecheck && tsx scripts/check-test-isolation.ts && tsx scripts/check-lockfile-policy.ts && pnpm run lint && pnpm run format:check",
+    "check": "pnpm run schemas:check && pnpm run typecheck && tsx scripts/check-test-isolation.ts && tsx scripts/check-lockfile-policy.ts && pnpm run lint && pnpm run format:check",
     "prepublishOnly": "pnpm run build",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src/",
@@ -28,6 +28,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
+    "schemas:generate": "tsx scripts/generate-json-schemas.ts",
+    "schemas:check": "tsx scripts/generate-json-schemas.ts --check",
     "bench:latency": "bun --smol scripts/bench-adv-latency.ts"
   },
   "dependencies": {
