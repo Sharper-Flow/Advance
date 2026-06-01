@@ -2315,7 +2315,7 @@
     {
       "id": "rq-toolPlaceholderPolicy01",
       "title": "Placeholder-Safe ADV Tool Arguments",
-      "body": "ADV tool invocation preflight MUST centrally classify placeholder-sensitive arguments before tool execution. Blank or whitespace-only strings, omission sentinels such as 'none'/'n/a'/'null'/'transcript', and empty arrays/objects MUST be rejected or normalized only by an explicit field policy. Required content, durable audit, path, lineage, origin, approval-evidence, command, and worktree branch/base fields MUST reject blank placeholders when provided. Omission-equivalent normalization is allowed only for fields whose schema and semantics make omission equivalent, such as scope_repos: [] on adv_change_create. Preflight MUST return deterministic field-level diagnostics and execute tools with normalized arguments so tool execution, workflow state, persistence, and spec compliance are not governed by heuristic caller interpretation.",
+      "body": "ADV tool invocation preflight MUST centrally classify placeholder-sensitive arguments before tool execution through explicit `FIELD_POLICIES` metadata. Blank or whitespace-only strings, omission sentinels such as 'none'/'n/a'/'null'/'transcript', and empty arrays/objects MUST be rejected or normalized only by an explicit field policy. Required content, durable audit, path, lineage, origin, approval-evidence, command, and worktree branch/base fields MUST reject blank placeholders when provided. Omission-equivalent normalization is allowed only for fields whose schema and semantics make omission equivalent, such as scope_repos: [] on adv_change_create. Preflight MUST return deterministic `INVALID_TOOL_ARGS` field-level diagnostics and execute tools with normalized arguments so tool execution, workflow state, persistence, and spec compliance are not governed by heuristic caller interpretation. Drift guards MUST fail when audited placeholder-sensitive fields lack policy coverage or when registry-known policies reference dead tool fields.",
       "priority": "must",
       "tags": [
         "tools",
@@ -2387,6 +2387,19 @@
             "Blank optional fields are normalized to omitted",
             "The invocation succeeds with normalizedArgs",
             "Required-when-present fields still reject blank values"
+          ]
+        },
+        {
+          "id": "rq-toolPlaceholderPolicy01.6",
+          "title": "Field policy drift guards cover audited tool args",
+          "given": [
+            "A high-risk agent-callable ADV tool adds or renames a placeholder-sensitive argument"
+          ],
+          "when": "The preflight policy and registry tests run",
+          "then": [
+            "Audited required content, audit, evidence, recovery, target path, command, and worktree fields have explicit `FIELD_POLICIES` coverage",
+            "Dead policy entries for removed or renamed tool fields fail tests",
+            "Representative malformed invocations return `INVALID_TOOL_ARGS` before handler execution or mutation"
           ]
         }
       ]

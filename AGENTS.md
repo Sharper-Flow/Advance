@@ -20,7 +20,7 @@ plugin/              # TypeScript plugin (the only buildable package)
     utils/           # Helpers (debug-log, project-id, safe-execute, tool-arg-preflight)
     __mocks__/       # Vitest aliases, including @opencode-ai/plugin → mock
     __tests__/setup.ts  # Shared fixtures and assertion helpers
-  schemas/           # JSON schema stubs ($ref pointers; Zod types in src/types.ts are authoritative)
+  schemas/           # Generated public JSON schemas from the curated Zod registry
 .adv/specs/          # Capability specs (the laws) — git-tracked, branch-local
 .opencode/
   command/           # Slash-command workflow files (adv-*.md)
@@ -38,19 +38,19 @@ acp-mux/             # Archived ACP experiment; reference only, not supported/re
 
 ```bash
 pnpm test                    # vitest run — 2900+ tests, ~55s
-pnpm run check               # typecheck → lint → format:check (no tests)
+pnpm run check               # schemas:check → typecheck → lint → format:check (no tests)
 pnpm run build               # tsup (ESM) — emits dist/index.js + dist/index.d.ts
 pnpm run typecheck            # tsc --noEmit
 pnpm run lint                 # eslint src/
 pnpm run lint:fix             # eslint --fix
 pnpm run format               # prettier --write
 pnpm run format:check         # prettier --check
+pnpm run schemas:generate     # regenerate public JSON schemas from Zod registry
+pnpm run schemas:check        # deterministic schema drift check
 # Note: `pnpm run validate:temporal` and its harness were retired after the
 # Temporal cutover shipped. Current Temporal guidance lives in docs/temporal-recovery.md.
-# Note: no `generate:schemas` or `generate:docs` scripts exist.
-# plugin/schemas/ contains $ref stub files only — Zod types in src/types.ts
-# are the authoritative source. When extending Zod schemas, no separate
-# JSON-schema regeneration step is needed.
+# Note: no `generate:docs` script exists. Public JSON schemas are generated
+# from plugin/src/schema-registry.ts using Zod v4 z.toJSONSchema().
 ```
 
 **Single test file:** `pnpm test -- src/tools/change.test.ts`
@@ -132,6 +132,8 @@ Rationale: prevent the `Webpack finished with errors` worker-bundle regression c
 
 Dependencies use Zod v4 (`^4.3.6`). Tool arg schemas use Zod and are cast via `as any` in tool-registry.ts for SDK compatibility. The cast is intentional — don't "fix" it.
 
+Public JSON schema artifacts are generated from Zod with `z.toJSONSchema()` through `plugin/src/schema-registry.ts`; keep `pnpm run schemas:check` green after schema edits.
+
 ### External mutable state
 
 ADV state (changes, archive, wisdom, agenda, reflections, handoff) lives **outside the repo** at `$XDG_DATA_HOME/opencode/plugins/advance/{project-id}/` (default `~/.local/share/...`), keyed by root commit SHA. All worktrees of the same repo share this state. Specs (`.adv/specs/`) remain in-repo and branch-local. Runtime storage is Temporal-only; physical `db/` directories and `db_dir` config are legacy compatibility artifacts only.
@@ -152,6 +154,8 @@ Invoke ADV tools with explicit required args — never with empty parameter sets
 - Read each tool's field `describe()` text before constructing calls — it documents relational constraints (source-of-truth tool, at-least-one-of patterns, valid enum values).
 
 **Strict-mode tolerance.** OpenAI Responses API (GPT-5 / reasoning models) auto-applies `strict: true`, causing placeholder fills (`""`, `0`, `[]`) in every optional parameter. Preflight normalizes these automatically: optional content, path, and lineage blanks are omitted, and `origin_issue_number: 0` is treated as omitted. Required-when-present audit, evidence, reason, command, branch, and identity fields still reject blanks. This is a safety-net workaround for Vercel AI SDK issue #12200. Agents should still aim to omit fields they do not intend to set.
+
+Tool-arg placeholder behavior is centralized in `FIELD_POLICIES` (`plugin/src/utils/tool-arg-preflight.ts`). Policy drift tests require audited fields to reject or normalize before handlers run and representative malformed calls to fail with `INVALID_TOOL_ARGS`; do not add ad hoc handler-only placeholder logic for correctness-critical fields.
 
 See `ADV_INSTRUCTIONS.md § ADV MCP Tool Invocation` for the full protocol.
 
@@ -181,7 +185,7 @@ Each `src/tools/*.ts` file exports a `*Tools` object: description, args schema, 
 
 ### Schema source of truth
 
-Zod schemas in `plugin/src/types.ts` are authoritative. `plugin/schemas/*.json` are `$ref` stubs pointing at Zod types; not auto-generated. Extending Zod needs no schema regeneration.
+Zod schemas are authoritative. `plugin/src/schema-registry.ts` curates public schemas and `plugin/scripts/generate-json-schemas.ts` writes deterministic `plugin/schemas/*.schema.json` artifacts with canonical Advance `$id`/`$schema` URLs. Extending a public Zod schema requires `pnpm run schemas:generate`; CI/`pnpm run check` enforces `pnpm run schemas:check`.
 
 ## Testing Conventions
 

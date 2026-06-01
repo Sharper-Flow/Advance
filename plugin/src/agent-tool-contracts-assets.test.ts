@@ -19,6 +19,10 @@ describe("agent-callable tool contract guidance assets", () => {
 
     for (const anchor of [
       "Schema",
+      "Tool preflight",
+      "FIELD_POLICIES",
+      "INVALID_TOOL_ARGS",
+      "normalizedArgs",
       "Context packet",
       "Prompt instructions",
       "Transport",
@@ -45,6 +49,7 @@ describe("agent-callable tool contract guidance assets", () => {
     expect(skill).toContain("docs/agent-tool-contracts.md");
     for (const anchor of [
       "schema",
+      "preflight",
       "context packet",
       "prompt",
       "tests",
@@ -53,6 +58,8 @@ describe("agent-callable tool contract guidance assets", () => {
     ]) {
       expect(skill.toLowerCase()).toContain(anchor);
     }
+    expect(skill).toContain("FIELD_POLICIES");
+    expect(skill).toContain("INVALID_TOOL_ARGS");
   });
 
   test("new guidance skill is covered by adv-* global sync", () => {

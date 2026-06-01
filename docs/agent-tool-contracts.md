@@ -1,12 +1,13 @@
 # Agent-Callable Tool Contracts
 
-Use this checklist when ADV changes create or modify a sub-agent, command packet, or tool-call report path. Goal: schema, context packet, prompt instructions, specs, and tests change together.
+Use this checklist when ADV changes create or modify a sub-agent, command packet, report path, or agent-callable tool argument contract. Goal: schema, context packet, prompt instructions, preflight policy, specs, and tests change together.
 
 ## Contract Surfaces
 
 | Surface             | Owns                                             | Required checks                                                                                                                     |
 | ------------------- | ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- |
 | Schema              | Zod/type parser for tool input or report payload | Required fields are explicit; malformed input returns structural errors such as `INVALID_REPORT`                                    |
+| Tool preflight      | `FIELD_POLICIES` + registry preflight            | Placeholder-sensitive args reject or normalize before handlers run; malformed tool calls return `INVALID_TOOL_ARGS`                 |
 | Context packet      | Command text passed to worker                    | Packet exposes every schema-derived identity field the worker must submit, plus scope/done/stop/verification anchors for owned work |
 | Prompt instructions | Agent file or sub-agent prompt                   | Worker is told how to map packet anchors into the tool payload and how to report scope drift / orchestrator actions structurally    |
 | Transport           | Tool call vs scanner output                      | Typed workers call the tool; scanners return analysis JSON for orchestrator consumption                                             |
@@ -18,22 +19,23 @@ Use this checklist when ADV changes create or modify a sub-agent, command packet
 Before shipping an agent-callable tool or sub-agent report contract:
 
 1. **Schema:** identify required payload fields. For reports, preserve strict ingest; do not infer missing `change_id`, `task_id`, `phase`, `attempt`, `scope`, or `workdir_used` heuristically.
-2. **Packet anchors:** add first-class packet fields for each required identity value.
+2. **Tool preflight:** for agent-callable tools, classify placeholder-sensitive arguments in `FIELD_POLICIES` (`plugin/src/utils/tool-arg-preflight.ts`). Required content, audit/evidence, path, lineage, command, and worktree fields must reject blank/sentinel placeholders unless an explicit omission-equivalent policy exists. Registry preflight must pass `normalizedArgs` to handlers and return `INVALID_TOOL_ARGS` before workflow signals, filesystem writes, shell commands, or Temporal mutations.
+3. **Packet anchors:** add first-class packet fields for each required identity value.
    - `TASK` → `task_id`
    - `PHASE` → reviewer `phase`
    - `ATTEMPT` → report dedupe key and retry audit
    - `CHANGE` / `WORKING DIRECTORY` → scope and worktree grounding
    - `SCOPE KEY` → change-scoped optimized handoff reports (`adv-researcher`, `adv-tron`, orchestrator-submitted scanner bundles)
-3. **Scope anchors:** add warn-first rollout anchors for bounded work:
+4. **Scope anchors:** add warn-first rollout anchors for bounded work:
    - `TASK_SCOPE`, `IN_SCOPE`, `OUT_OF_SCOPE`
    - `DONE_WHEN`, `STOP_WHEN`, `VERIFICATION`
-4. **Prompt mapping:** update worker guidance so the agent copies packet values into the tool payload before exit and reports `scope_drift` plus `required_main_agent_actions` instead of hiding drift in prose.
-5. **Transport lane:** classify the lane.
+5. **Prompt mapping:** update worker guidance so the agent copies packet values into the tool payload before exit and reports `scope_drift` plus `required_main_agent_actions` instead of hiding drift in prose.
+6. **Transport lane:** classify the lane.
    - `worker`: typed persisted worker; must call `adv_subagent_report_submit`.
    - `optimized handoff`: typed persisted change-scoped worker (`adv-researcher`, `adv-tron`) with `scope.kind: "change"` and a structural `scope_key`.
    - `scanner`: non-persisted analysis worker; must not call `adv_subagent_report_submit` or write `task.subagent_reports[]`. Only the orchestrator may submit an `adv-scanner-bundle` synthesis.
-6. **Tests:** add RED/GREEN asset or schema tests proving the packet and prompt contain required identity anchors and warn-first scope anchors.
-7. **Specs/docs:** update the owning spec when the behavior is capability law, not incidental prose.
+7. **Tests:** add RED/GREEN asset, preflight, or schema tests proving required anchors and policies are enforced. Tool-arg changes need representative malformed-call tests and drift guards for audited `FIELD_POLICIES` entries.
+8. **Specs/docs:** update the owning spec when the behavior is capability law, not incidental prose.
 
 ## ADV Report Contract Example
 
@@ -90,4 +92,4 @@ Review/harden `explore` scanners stay scanner lanes: they may receive `WORKING D
 
 ## Recurrence Guard
 
-If schema-required fields are missing from context packets or prompts, fix the contract instead of weakening the schema. Strict ingest returning `INVALID_REPORT` is correct; missing context is the bug. Missing scope/done/stop/verification anchors are warn-first rollout defects until the owning specs and asset tests promote them to stricter enforcement.
+If schema-required fields are missing from context packets or prompts, fix the contract instead of weakening the schema. Strict ingest returning `INVALID_REPORT` is correct; missing context is the bug. If tool callers send placeholder-filled payloads, fix preflight policy/tests instead of accepting placeholders in handlers. Missing scope/done/stop/verification anchors are warn-first rollout defects until the owning specs and asset tests promote them to stricter enforcement.

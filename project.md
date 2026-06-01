@@ -47,18 +47,20 @@ scripts/              # deploy-local.sh, migrate-openspec.ts, retired recover-db
 
 ```bash
 pnpm test                    # vitest — large test suite (~55s)
-pnpm run check               # typecheck → lint → format:check (no tests)
+pnpm run check               # schemas:check → typecheck → lint → format:check (no tests)
 pnpm run build               # tsup ESM build — emits dist/index.js + dist/index.d.ts
 pnpm run typecheck            # tsc --noEmit
 pnpm run lint                 # eslint src/
 pnpm run lint:fix             # eslint --fix
 pnpm run format               # prettier --write
 pnpm run format:check         # prettier --check
+pnpm run schemas:generate     # regenerate public JSON schemas from Zod registry
+pnpm run schemas:check        # deterministic schema drift check
 ```
 
-> Note: no `generate:schemas` or `generate:docs` scripts exist.
-> `plugin/schemas/` contains `$ref` stub files only; Zod types in
-> `plugin/src/types.ts` are the authoritative source.
+> Note: no `generate:docs` script exists. `plugin/schemas/*.schema.json`
+> are generated public JSON schemas from the curated Zod registry in
+> `plugin/src/schema-registry.ts` using Zod v4 `z.toJSONSchema()`.
 
 Single test file: `pnpm test -- src/tools/change.test.ts`
 
@@ -94,7 +96,7 @@ Each `src/tools/*.ts` exports a `*Tools` object. `tool-registry.ts` collects all
 
 ### Schema source of truth
 
-Zod schemas in `plugin/src/types.ts` are the authoritative source. `plugin/schemas/*.json` contains `$ref`-only stub files that point at the Zod types — they are NOT auto-generated. When you extend a Zod schema (add a field, change a type), no separate schema-regeneration step is required.
+Zod schemas remain the authoritative source. Public JSON schema artifacts in `plugin/schemas/*.schema.json` are generated deterministically by `plugin/src/schema-registry.ts` and `plugin/scripts/generate-json-schemas.ts` via Zod v4 `z.toJSONSchema()`. When extending a public Zod schema, add it to the curated registry if it should be published, run `pnpm run schemas:generate`, and keep `pnpm run schemas:check` green so committed artifacts do not drift.
 
 ### Overlay sync model
 

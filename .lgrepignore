@@ -1,7 +1,7 @@
 # lgrep ignore — exclude non-source content from code intelligence indexing
 #
 # Design goal: index only files that help understand, navigate, and change the
-# source code.  Historical records, generated stubs, and scratch docs pollute
+# source code.  Historical records, generated artifacts, and scratch docs pollute
 # semantic search results without aiding comprehension.
 
 # ── ADV state ──────────────────────────────────────────────────────────────────
@@ -16,10 +16,10 @@
 # Legacy SQLite DB (gitignored; defensive).
 .adv/db/
 
-# ── Generated / stub files ────────────────────────────────────────────────────
+# ── Generated files ───────────────────────────────────────────────────────────
 
-# JSON schema stubs — $ref-only placeholders; Zod types in src/types.ts are
-# authoritative.  Indexing them adds noise and no actionable symbols.
+# Generated public JSON schemas; plugin/src/schema-registry.ts is authoritative.
+# Indexing them adds noise and no actionable symbols.
 plugin/schemas/
 
 # Build output (gitignored).

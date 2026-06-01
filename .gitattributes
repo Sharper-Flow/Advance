@@ -4,7 +4,7 @@
 # linguist-generated hides them from GitHub language stats and diff noise.
 .adv/archive/ linguist-generated
 
-# JSON schema stubs — $ref placeholders; Zod types are authoritative.
+# Generated JSON schema artifacts; Zod registry is authoritative.
 plugin/schemas/ linguist-generated
 
 # Test fixtures with deliberately bad codepatterns (slop-detection test data).
