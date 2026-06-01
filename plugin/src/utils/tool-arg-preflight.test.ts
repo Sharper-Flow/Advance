@@ -89,6 +89,24 @@ const AUDITED_PREFLIGHT_POLICY_REQUIREMENTS: ExpectedFieldPolicy[] = [
     action: "reject",
   },
   {
+    toolName: "adv_task_update",
+    field: "recoveryEvidence",
+    policy: "blank",
+    action: "reject",
+  },
+  {
+    toolName: "adv_task_add",
+    field: "recoveryEvidence",
+    policy: "blank",
+    action: "reject",
+  },
+  {
+    toolName: "adv_task_cancel",
+    field: "recoveryEvidence",
+    policy: "blank",
+    action: "reject",
+  },
+  {
     toolName: "adv_task_cancel",
     field: "approvalEvidence",
     policy: "blank",
@@ -103,6 +121,24 @@ const AUDITED_PREFLIGHT_POLICY_REQUIREMENTS: ExpectedFieldPolicy[] = [
   {
     toolName: "adv_gate_complete",
     field: "confirmationEvidence",
+    policy: "blank",
+    action: "reject",
+  },
+  {
+    toolName: "adv_gate_complete",
+    field: "recoveryEvidence",
+    policy: "blank",
+    action: "reject",
+  },
+  {
+    toolName: "adv_gate_complete",
+    field: "recoveryReason",
+    policy: "blank",
+    action: "reject",
+  },
+  {
+    toolName: "adv_gate_complete",
+    field: "priorApprovalEvidence",
     policy: "blank",
     action: "reject",
   },

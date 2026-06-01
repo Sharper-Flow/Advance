@@ -253,6 +253,78 @@ describe("createDegradedToolMap parity with createToolMap", () => {
       message: "content must be a non-blank string.",
     });
   });
+
+  test.each([
+    {
+      toolName: "adv_task_update",
+      schema: {
+        taskId: z.string(),
+        status: z.enum(["pending", "in_progress", "blocked", "done"]),
+        recoveryMode: z.enum(["normal", "poisoned_history"]).optional(),
+        recoveryEvidence: z.string().optional(),
+      },
+      rawArgs: {
+        taskId: "tk-1",
+        status: "done",
+        recoveryMode: "poisoned_history",
+        recoveryEvidence: " ",
+      },
+      field: "recoveryEvidence",
+    },
+    {
+      toolName: "adv_task_add",
+      schema: {
+        changeId: z.string(),
+        content: z.string(),
+        recoveryMode: z.enum(["normal", "poisoned_history"]).optional(),
+        recoveryEvidence: z.string().optional(),
+      },
+      rawArgs: {
+        changeId: "c",
+        content: "Add task",
+        recoveryMode: "poisoned_history",
+        recoveryEvidence: " ",
+      },
+      field: "recoveryEvidence",
+    },
+    {
+      toolName: "adv_snapshot_health",
+      schema: {
+        action: z.enum(["scan", "repair"]),
+        repair_actions: z.array(z.string()).optional(),
+        approvedByUser: z.boolean().optional(),
+        approvalEvidence: z.string().optional(),
+      },
+      rawArgs: {
+        action: "repair",
+        repair_actions: [],
+        approvedByUser: true,
+        approvalEvidence: "ok",
+      },
+      field: "repair_actions",
+    },
+  ])(
+    "registry blocks malformed high-risk args before execute for $toolName.$field",
+    async ({ toolName, schema, rawArgs, field }) => {
+      let called = false;
+      const execute = async () => {
+        called = true;
+        return JSON.stringify({ ok: true });
+      };
+      (execute as { __advToolName?: string }).__advToolName = toolName;
+      const registered = registerTool("test", schema, execute);
+
+      const result = await registered.execute(rawArgs, {} as any);
+      const output = JSON.parse((result as { output: string }).output);
+
+      expect(called).toBe(false);
+      expect(output.code).toBe("INVALID_TOOL_ARGS");
+      expect(output.tool).toBe(toolName);
+      expect([
+        ...output.invalid.map((issue: { field: string }) => issue.field),
+      ]).toContain(field);
+    },
+  );
 });
 
 describe("KD-8 worktree + session tool registrations", () => {

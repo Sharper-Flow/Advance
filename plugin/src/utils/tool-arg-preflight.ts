@@ -117,11 +117,13 @@ const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
   adv_task_update: {
     target_path: { blank: "omit" },
     confirmationEvidence: { blank: "reject" }, // audit
+    recoveryEvidence: { blank: "reject" }, // poisoned-history audit
   },
   adv_task_add: {
     content: { blank: "reject" }, // required-when-present
     target_path: { blank: "omit" },
     confirmationEvidence: { blank: "reject" }, // audit
+    recoveryEvidence: { blank: "reject" }, // poisoned-history audit
   },
   adv_wisdom_add: {
     content: { blank: "reject" }, // required-when-present
@@ -138,6 +140,7 @@ const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
     approvalEvidence: { blank: "reject" }, // audit
     target_path: { blank: "omit" },
     confirmationEvidence: { blank: "reject" }, // audit
+    recoveryEvidence: { blank: "reject" }, // poisoned-history audit
     reasons: { recordValuesBlank: "reject" }, // per-task audit
     supersededBy: { recordValuesBlank: "reject" }, // required-when-present
   },
@@ -154,6 +157,9 @@ const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
     completedBy: { blank: "reject" }, // audit identity
     notes: { blank: "omit" }, // optional descriptive
     compatibilityReason: { blank: "omit" }, // optional descriptive
+    recoveryEvidence: { blank: "reject" }, // recovery audit
+    recoveryReason: { blank: "reject" }, // recovery audit
+    priorApprovalEvidence: { blank: "reject" }, // user acceptance audit
     target_path: { blank: "omit" },
     confirmationEvidence: { blank: "reject" }, // audit
   },
