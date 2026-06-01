@@ -112,6 +112,9 @@ export function renderJsonSchemaFile(entry: PublicJsonSchemaEntry): string {
 
 export function renderAllJsonSchemas(): Record<string, string> {
   return Object.fromEntries(
-    PUBLIC_JSON_SCHEMAS.map((entry) => [entry.filename, renderJsonSchemaFile(entry)]),
+    PUBLIC_JSON_SCHEMAS.map((entry) => [
+      entry.filename,
+      renderJsonSchemaFile(entry),
+    ]),
   );
 }

@@ -6,7 +6,10 @@ const PLUGIN_ROOT = resolve(__dirname, "..");
 const REPO_ROOT = resolve(PLUGIN_ROOT, "..");
 const DEAD_SCHEMA_HOST = "anomalyco/oc-plugins";
 
-function collectFiles(root: string, predicate: (path: string) => boolean): string[] {
+function collectFiles(
+  root: string,
+  predicate: (path: string) => boolean,
+): string[] {
   const entries = readdirSync(root, { withFileTypes: true });
   return entries.flatMap((entry) => {
     const path = join(root, entry.name);

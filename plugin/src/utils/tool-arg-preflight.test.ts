@@ -2,9 +2,13 @@ import { describe, expect, test } from "vitest";
 import { z } from "zod";
 import {
   formatToolArgPreflightError,
+  listToolArgFieldPolicies,
   preflightToolArgs,
   validateToolArgsBeforeExecute,
 } from "./tool-arg-preflight";
+import { createToolMap } from "../tool-registry";
+import { createLegacyStore } from "../storage/store";
+import { cleanupTempDir, createTempDir } from "../__tests__/setup";
 
 type RegressionMatrixCase = {
   label: string;
@@ -15,6 +19,106 @@ type RegressionMatrixCase = {
   fields?: string[];
   normalizedArgs?: Record<string, unknown>;
 };
+
+type ExpectedFieldPolicy = {
+  toolName: string;
+  field: string;
+  policy: "blank" | "emptyArray" | "zero" | "recordValuesBlank";
+  action: "reject" | "omit" | "allow";
+};
+
+const AUDITED_PREFLIGHT_POLICY_REQUIREMENTS: ExpectedFieldPolicy[] = [
+  {
+    toolName: "adv_change_create",
+    field: "target_path",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_change_create",
+    field: "origin_issue_number",
+    policy: "zero",
+    action: "omit",
+  },
+  {
+    toolName: "adv_change_update",
+    field: "confirmationEvidence",
+    policy: "blank",
+    action: "reject",
+  },
+  {
+    toolName: "adv_change_update",
+    field: "recoveryEvidence",
+    policy: "blank",
+    action: "reject",
+  },
+  {
+    toolName: "adv_change_update",
+    field: "recoveryReason",
+    policy: "blank",
+    action: "reject",
+  },
+  {
+    toolName: "adv_change_update",
+    field: "priorApprovalEvidence",
+    policy: "blank",
+    action: "reject",
+  },
+  {
+    toolName: "adv_change_archive",
+    field: "worktreePath",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_change_archive",
+    field: "recoveryEvidence",
+    policy: "blank",
+    action: "reject",
+  },
+  {
+    toolName: "adv_snapshot_health",
+    field: "repair_actions",
+    policy: "emptyArray",
+    action: "reject",
+  },
+  {
+    toolName: "adv_snapshot_health",
+    field: "approvalEvidence",
+    policy: "blank",
+    action: "reject",
+  },
+  {
+    toolName: "adv_task_cancel",
+    field: "approvalEvidence",
+    policy: "blank",
+    action: "reject",
+  },
+  {
+    toolName: "adv_task_cancel",
+    field: "reasons",
+    policy: "recordValuesBlank",
+    action: "reject",
+  },
+  {
+    toolName: "adv_gate_complete",
+    field: "confirmationEvidence",
+    policy: "blank",
+    action: "reject",
+  },
+  {
+    toolName: "adv_contract_mint",
+    field: "recoveryEvidence",
+    policy: "blank",
+    action: "reject",
+  },
+  {
+    toolName: "adv_contract_review_matrix_set",
+    field: "recoveryEvidence",
+    policy: "blank",
+    action: "reject",
+  },
+];
 
 const CREATE_SCHEMA = {
   summary: z.string(),
@@ -317,6 +421,55 @@ const PLACEHOLDER_POLICY_REGRESSION_MATRIX: RegressionMatrixCase[] = [
 ];
 
 describe("tool arg preflight", () => {
+  describe("FIELD_POLICIES drift guards", () => {
+    test("every audited placeholder/audit field has an explicit policy", () => {
+      const policies = listToolArgFieldPolicies();
+
+      for (const requirement of AUDITED_PREFLIGHT_POLICY_REQUIREMENTS) {
+        expect(
+          policies[requirement.toolName]?.[requirement.field]?.[
+            requirement.policy
+          ],
+          `${requirement.toolName}.${requirement.field}.${requirement.policy}`,
+        ).toBe(requirement.action);
+      }
+    });
+
+    test("FIELD_POLICIES entries reference live registered tool args", async () => {
+      const storeTempDir = await createTempDir();
+      const mapTempDir = await createTempDir();
+      const store = await createLegacyStore(storeTempDir);
+      await store.init();
+
+      try {
+        const map = createToolMap(store, mapTempDir, store.paths.agenda);
+        const policies = listToolArgFieldPolicies();
+
+        for (const [toolName, fields] of Object.entries(policies)) {
+          const tool = (
+            map as Record<string, { args?: Record<string, unknown> }>
+          )[toolName];
+          expect(
+            tool,
+            `${toolName} policy tool should be registered`,
+          ).toBeDefined();
+          const argNames = new Set(Object.keys(tool.args ?? {}));
+
+          for (const field of Object.keys(fields)) {
+            expect(
+              argNames.has(field),
+              `${toolName}.${field} policy should match a registered arg`,
+            ).toBe(true);
+          }
+        }
+      } finally {
+        store.close();
+        await cleanupTempDir(mapTempDir);
+        await cleanupTempDir(storeTempDir);
+      }
+    });
+  });
+
   test("executes data-driven placeholder regression matrix", () => {
     expect(PLACEHOLDER_POLICY_REGRESSION_MATRIX.length).toBeGreaterThan(20);
 

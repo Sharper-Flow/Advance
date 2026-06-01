@@ -16,9 +16,9 @@ export interface ToolArgPreflightResult {
   normalizedArgs: Record<string, unknown>;
 }
 
-type PlaceholderPolicyAction = "reject" | "omit" | "allow";
+export type PlaceholderPolicyAction = "reject" | "omit" | "allow";
 
-interface PlaceholderFieldPolicy {
+export interface PlaceholderFieldPolicy {
   blank?: PlaceholderPolicyAction;
   sentinels?: PlaceholderPolicyAction;
   emptyArray?: PlaceholderPolicyAction;
@@ -30,7 +30,7 @@ interface PlaceholderFieldPolicy {
   zero?: PlaceholderPolicyAction;
 }
 
-type FieldPolicyMap = Record<string, PlaceholderFieldPolicy>;
+export type FieldPolicyMap = Record<string, PlaceholderFieldPolicy>;
 
 type CrossFieldValidator = (
   args: Record<string, unknown>,
@@ -91,6 +91,13 @@ const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
     target_path: { blank: "omit" },
     // Audit field — blank assertion is a semantic violation, stay strict.
     confirmationEvidence: { blank: "reject" },
+    recoveryEvidence: { blank: "reject" },
+    recoveryReason: { blank: "reject" },
+    priorApprovalEvidence: { blank: "reject" },
+  },
+  adv_change_archive: {
+    worktreePath: { blank: "omit" },
+    recoveryEvidence: { blank: "reject" },
   },
   adv_run_test: {
     command: { blank: "reject" }, // required-when-present
@@ -204,10 +211,20 @@ const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
   adv_temporal_worker_restart: {
     approvalEvidence: { blank: "reject" }, // audit
   },
+  adv_snapshot_health: {
+    repair_actions: { emptyArray: "reject" },
+    approvalEvidence: { blank: "reject" }, // audit
+  },
   adv_status: {
     target_path: { blank: "omit" },
   },
 };
+
+export function listToolArgFieldPolicies(): Readonly<
+  Record<string, Readonly<FieldPolicyMap>>
+> {
+  return FIELD_POLICIES;
+}
 
 const KNOWN_OMISSION_SENTINELS = new Set([
   "none",
