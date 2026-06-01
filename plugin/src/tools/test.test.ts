@@ -6,6 +6,9 @@
  */
 
 import { describe, test, expect, vi, beforeEach } from "vitest";
+import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { shapeCommandOutput, testTools } from "./test";
 import type { Store } from "../storage/store";
 
@@ -162,6 +165,71 @@ describe("test tools — simplified adv_run_test", () => {
     expect(parsed.maxBufferExceeded).toBe(false);
     expect(parsed.outputBytesSeen).toBeGreaterThan(parsed.outputBytesRetained);
     expect(parsed.output).toContain("... (truncated)");
+  });
+
+  test("advises repo-local oc-test wrapper without rewriting command", async () => {
+    const root = mkdtempSync(join(tmpdir(), "adv-run-test-"));
+    const workdir = join(root, "plugin");
+    mkdirSync(join(root, "bin"), { recursive: true });
+    mkdirSync(workdir, { recursive: true });
+    writeFileSync(join(root, "bin", "oc-test"), "#!/usr/bin/env bash\n");
+
+    try {
+      const store = createMockStore();
+      const result = await testTools.adv_run_test.execute(
+        {
+          taskId: "tk-abc",
+          command: "printf direct-command; : pnpm test",
+        },
+        store,
+        workdir,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.command).toBe("printf direct-command; : pnpm test");
+      expect(parsed.output).toContain("direct-command");
+      expect(parsed.advisories).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            kind: "repo_test_wrapper_available",
+            message: expect.stringContaining(
+              "executed supplied command unchanged",
+            ),
+          }),
+        ]),
+      );
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  test("does not advise when caller already uses repo-local oc-test wrapper", async () => {
+    const root = mkdtempSync(join(tmpdir(), "adv-run-test-"));
+    const workdir = join(root, "plugin");
+    mkdirSync(join(root, "bin"), { recursive: true });
+    mkdirSync(workdir, { recursive: true });
+    writeFileSync(
+      join(root, "bin", "oc-test"),
+      "#!/usr/bin/env bash\nprintf wrapper-used\n",
+      { mode: 0o755 },
+    );
+
+    try {
+      const store = createMockStore();
+      const result = await testTools.adv_run_test.execute(
+        {
+          taskId: "tk-abc",
+          command: "../bin/oc-test targeted -- --help",
+        },
+        store,
+        workdir,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.advisories).toBeUndefined();
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 
   test("records adv_run_test substep telemetry phases", async () => {

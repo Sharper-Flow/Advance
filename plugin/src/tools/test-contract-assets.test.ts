@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { describe, expect, test } from "vitest";
 
@@ -78,5 +78,14 @@ describe("adv_run_test contract assets", () => {
       expect(doc).toContain("descriptive");
       expect(doc).toContain("not gate enforcement");
     }
+  });
+
+  test("repo-local oc-test wrapper is documented for throttled suites", () => {
+    expect(existsSync(join(REPO_ROOT, "bin/oc-test"))).toBe(true);
+
+    const agents = readRepoFile("AGENTS.md");
+    expect(agents).toContain("bin/oc-test targeted --");
+    expect(agents).toContain("bin/oc-test smoke");
+    expect(agents).toContain("bin/oc-test full");
   });
 });

@@ -1,5 +1,7 @@
 import { z } from "zod";
 import { spawn, type ChildProcess } from "child_process";
+import { existsSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
 import type { Store } from "../storage/store";
 import { formatToolOutput } from "../utils/tool-output";
 import { recordPhaseDuration, withRecordedPhase } from "../utils/metrics";
@@ -37,6 +39,11 @@ type TestClassification =
   | "output_limit"
   | "spawn_error";
 
+interface TestAdvisory {
+  kind: string;
+  message: string;
+}
+
 interface ExecResult {
   stdout: string;
   stderr: string;
@@ -53,6 +60,9 @@ const FAILURE_LINE =
   /\b(?:fail(?:ed|ure|ures)?|error|exception|assert(?:ion)?|expected|received)\b|\b[\w./-]+:\d+:\d+\b|\bat\s+.*:\d+:\d+\b/i;
 const SUMMARY_LINE =
   /\b(?:tests?|test files?|passed|failed|skipped|duration|time|pass|ok)\b/i;
+const DIRECT_TEST_WORKFLOW =
+  /\b(?:pnpm|npm|bun|yarn)\s+(?:test|run\s+(?:test|check|lint|build|validate)|exec\s+(?:vitest|playwright))\b|\b(?:vitest|playwright)\s+(?:run|test)\b/;
+const OC_TEST_WRAPPER_COMMAND = /(^|\s)(?:\.\.?\/)?(?:bin\/)?oc-test\b/;
 
 const appendUnique = (target: string[], seen: Set<string>, lines: string[]) => {
   for (const line of lines) {
@@ -134,6 +144,36 @@ const classifyRun = (run: ExecResult): TestClassification => {
   if (run.timedOut) return "timed_out";
   if (run.maxBufferExceeded) return "output_limit";
   return run.exitCode === 0 ? "passed" : "failed";
+};
+
+const findRepoLocalTestWrapper = (cwd: string): string | undefined => {
+  let current = resolve(cwd);
+  for (let depth = 0; depth < 8; depth += 1) {
+    const candidate = join(current, "bin", "oc-test");
+    if (existsSync(candidate)) return candidate;
+
+    const parent = dirname(current);
+    if (parent === current) break;
+    current = parent;
+  }
+  return undefined;
+};
+
+const buildTestWorkflowAdvisories = (
+  command: string,
+  cwd: string,
+): TestAdvisory[] => {
+  if (OC_TEST_WRAPPER_COMMAND.test(command)) return [];
+  if (!DIRECT_TEST_WORKFLOW.test(command)) return [];
+  if (!findRepoLocalTestWrapper(cwd)) return [];
+
+  return [
+    {
+      kind: "repo_test_wrapper_available",
+      message:
+        "Repo-local bin/oc-test is available for targeted/smoke/full suite routing; adv_run_test executed supplied command unchanged.",
+    },
+  ];
 };
 
 const runCommand = async (
@@ -353,6 +393,7 @@ export const testTools = {
       }
 
       const cwd = args.workdir || defaultWorkdir;
+      const advisories = buildTestWorkflowAdvisories(args.command, cwd);
       // Precedence: tool arg (caller-controlled) > internal bounds > default.
       // Tool arg is schema-validated to [1000, 300_000] ms; internal bounds is
       // an unrestricted seam for tests; default protects against runaway when
@@ -423,6 +464,7 @@ export const testTools = {
         output: truncatedOutput,
         command: args.command,
         ...(args.phase && { phase: args.phase }),
+        ...(advisories.length > 0 && { advisories }),
         timedOut,
         maxBufferExceeded,
         evidence: {

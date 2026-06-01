@@ -55,6 +55,16 @@ pnpm run format:check         # prettier --check
 
 **Single test file:** `pnpm test -- src/tools/change.test.ts`
 
+**OpenCode/ADV test routing:** prefer repo-local throttle wrapper when running suites from the repo root:
+
+```bash
+bin/oc-test targeted -- src/tools/change.test.ts
+bin/oc-test smoke
+bin/oc-test full
+```
+
+`bin/oc-test` delegates to `oc-test-gate` when available and falls back to direct plugin commands without changing `adv_run_test` command semantics.
+
 **CI order** (`.github/workflows/ci.yml`): typecheck → lint → format:check → test → build. Node 20.x + 22.x.
 
 ### Source-vs-Dist Reload Gotcha

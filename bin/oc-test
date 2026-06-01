@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+plugin_dir="$repo_root/plugin"
+
+usage() {
+  cat >&2 <<'USAGE'
+Usage: bin/oc-test <targeted|smoke|full> [-- <test args...>]
+
+Tiers:
+  targeted  Run Vitest with optional file/test filters.
+  smoke     Run repo checks plus the ADV test-tool/subagent smoke slice.
+  full      Run the plugin's full Vitest suite.
+USAGE
+  exit 64
+}
+
+run_with_optional_gate() {
+  local tier="$1"
+  shift
+
+  if command -v oc-test-gate >/dev/null 2>&1; then
+    exec oc-test-gate "$tier" -- "$@"
+  fi
+
+  printf 'bin/oc-test: oc-test-gate not found; running %s tier directly.\n' "$tier" >&2
+  exec "$@"
+}
+
+tier="${1:-}"
+[[ -n "$tier" ]] || usage
+shift || true
+
+case "$tier" in
+  targeted)
+    [[ "${1:-}" != "--" ]] || shift
+    run_with_optional_gate targeted pnpm --dir "$plugin_dir" exec vitest run "$@"
+    ;;
+  smoke)
+    [[ $# -eq 0 ]] || usage
+    run_with_optional_gate smoke bash -lc 'pnpm --dir "$1" run check && pnpm --dir "$1" exec vitest run src/tools/test.test.ts src/tools/subagent-report.test.ts' bash "$plugin_dir"
+    ;;
+  full)
+    [[ $# -eq 0 ]] || usage
+    run_with_optional_gate full pnpm --dir "$plugin_dir" test
+    ;;
+  *)
+    usage
+    ;;
+esac
