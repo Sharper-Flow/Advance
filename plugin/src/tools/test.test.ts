@@ -84,6 +84,86 @@ describe("test tools — simplified adv_run_test", () => {
     expect(phaseSchema?.safeParse("blue").success).toBe(false);
   });
 
+  test("returns typed result contract for passing command", async () => {
+    const store = createMockStore();
+
+    const result = await testTools.adv_run_test.execute(
+      {
+        taskId: "tk-abc",
+        command: "printf typed-pass",
+        phase: "verify",
+      },
+      store,
+      "/tmp",
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(true);
+    expect(parsed.passed).toBe(true);
+    expect(parsed.classification).toBe("passed");
+    expect(parsed.durationMs).toBeGreaterThanOrEqual(0);
+    expect(parsed.outputBytesSeen).toBeGreaterThan(0);
+    expect(parsed.outputBytesRetained).toBeGreaterThan(0);
+    expect(parsed.outputTruncated).toBe(false);
+    expect(parsed.executionMode).toBe("shell");
+    expect(parsed.evidence).toMatchObject({
+      schema_version: "adv_run_test.v1",
+      command: "printf typed-pass",
+      exitCode: 0,
+      passed: true,
+      classification: "passed",
+    });
+    expect(parsed.evidence.durationMs).toBe(parsed.durationMs);
+  });
+
+  test("returns typed result contract for non-zero command", async () => {
+    const store = createMockStore();
+
+    const result = await testTools.adv_run_test.execute(
+      {
+        taskId: "tk-abc",
+        command: "printf typed-fail && exit 7",
+        phase: "red",
+      },
+      store,
+      "/tmp",
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(true);
+    expect(parsed.passed).toBe(false);
+    expect(parsed.classification).toBe("failed");
+    expect(parsed.exitCode).toBe(7);
+    expect(parsed.evidence).toMatchObject({
+      schema_version: "adv_run_test.v1",
+      command: "printf typed-fail && exit 7",
+      exitCode: 7,
+      passed: false,
+      classification: "failed",
+    });
+  });
+
+  test("reports retained-output truncation without hard output-limit failure", async () => {
+    const store = createMockStore();
+
+    const result = await testTools.adv_run_test.execute(
+      {
+        taskId: "tk-abc",
+        command: "node -e \"console.log('x'.repeat(3000))\"",
+      },
+      store,
+      "/tmp",
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.passed).toBe(true);
+    expect(parsed.classification).toBe("passed");
+    expect(parsed.outputTruncated).toBe(true);
+    expect(parsed.maxBufferExceeded).toBe(false);
+    expect(parsed.outputBytesSeen).toBeGreaterThan(parsed.outputBytesRetained);
+    expect(parsed.output).toContain("... (truncated)");
+  });
+
   test("records adv_run_test substep telemetry phases", async () => {
     const { resetMetrics, getMetrics } = await import("../utils/metrics");
     resetMetrics();
@@ -259,6 +339,26 @@ describe("test tools — simplified adv_run_test", () => {
       expect(parsed.output).toMatch(/\b3\b/);
     });
 
+    test("captures stdout, stderr, and redirect semantics through shell", async () => {
+      const store = createMockStore();
+
+      const result = await testTools.adv_run_test.execute(
+        {
+          taskId: "tk-abc",
+          command:
+            'tmp=$(mktemp) && printf redirected > "$tmp" && cat "$tmp" && rm "$tmp" && printf stderr-line >&2',
+        },
+        store,
+        "/tmp",
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.exitCode).toBe(0);
+      expect(parsed.output).toContain("redirected");
+      expect(parsed.output).toContain("stderr-line");
+      expect(parsed.classification).toBe("passed");
+    });
+
     test("does not execute command when task is missing", async () => {
       const store = createMockStore();
       vi.mocked(store.tasks.get).mockResolvedValue(null);
@@ -293,6 +393,8 @@ describe("test tools — simplified adv_run_test", () => {
 
       const parsed = JSON.parse(result);
       expect(parsed.timedOut).toBe(true);
+      expect(parsed.passed).toBe(false);
+      expect(parsed.classification).toBe("timed_out");
       expect(parsed.maxBufferExceeded).toBe(false);
       expect(parsed.output).toContain("[adv_run_test] Command timed out");
       expect(parsed.timeoutMs).toBe(500);
@@ -313,6 +415,9 @@ describe("test tools — simplified adv_run_test", () => {
 
       const parsed = JSON.parse(result);
       expect(parsed.maxBufferExceeded).toBe(true);
+      expect(parsed.passed).toBe(false);
+      expect(parsed.classification).toBe("output_limit");
+      expect(parsed.outputBytesSeen).toBeGreaterThan(2000);
       expect(parsed.timedOut).toBe(false);
       expect(parsed.output).toContain(
         "[adv_run_test] Command exceeded maxBuffer",
@@ -366,6 +471,8 @@ describe("test tools — simplified adv_run_test", () => {
       const parsed = JSON.parse(result);
       expect(parsed.success).toBe(true);
       expect(parsed.exitCode).toBe(7);
+      expect(parsed.passed).toBe(false);
+      expect(parsed.classification).toBe("failed");
       expect(parsed.timedOut).toBe(false);
       expect(parsed.maxBufferExceeded).toBe(false);
     });
