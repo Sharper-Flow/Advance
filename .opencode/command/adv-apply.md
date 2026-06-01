@@ -67,7 +67,10 @@ Reusable implementation methodology for ADV apply workflows. Provides the TDD wo
 | ------- | --------------------------------------------------------------------------------- | ------------------------------ |
 | Red     | Write failing test using editing tool → `adv_run_test phase:'red'` → show failure | Test output with exit code ≠ 0 |
 | Green   | Implement using editing tool → `adv_run_test phase:'green'` → show pass           | Test output with exit code 0   |
+| Verify  | Optional final check → `adv_run_test phase:'verify'`                              | Test output + result fields    |
 | Trivial | Set `tdd_intent: "not_applicable"`                                                | Rationale in task notes        |
+
+`adv_run_test phase` is descriptive metadata, not gate enforcement. Use `passed`, `classification`, and `exitCode` as command-result evidence.
 
 #### Retry Protocol
 
@@ -552,6 +555,8 @@ The Designer Apply Context Packet uses the same identity anchors as the Apply Co
 **3b. Red Phase:** Write failing test using `edit` / `write` / `morph_edit` → run with `adv_run_test phase:'red'` → show red evidence.
 
 **3c. Green Phase:** Implement using `edit` / `write` / `morph_edit` → run with `adv_run_test phase:'green'` → if fails: retry protocol → show green evidence.
+
+**3c.3. Verify Phase (optional):** Run final task-scope check with `adv_run_test phase:'verify'` when distinct from green evidence. Phase is descriptive metadata, not gate enforcement.
 
 **3c.4. Incremental Verification:** Run build/tests/lint for task scope → if fails: retry protocol → only proceed to checkpoint after pass.
 

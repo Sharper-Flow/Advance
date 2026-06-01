@@ -271,6 +271,96 @@ describe("subagentReportTools", () => {
     );
   });
 
+  test("structured adv_run_test evidence satisfies engineer verification", async () => {
+    const task = {
+      id: "tk-1",
+      title: "Task one",
+      status: "in_progress",
+      priority: 1,
+      created_at: "2026-05-23T00:00:00.000Z",
+      verification: [
+        "legacy exitCode 1 for another command",
+        JSON.stringify({
+          evidence: {
+            schema_version: "adv_run_test.v1",
+            command: "pnpm test",
+            exitCode: 0,
+            passed: true,
+            classification: "passed",
+            durationMs: 12,
+          },
+        }),
+      ].join("\n"),
+    } as Change["tasks"][number];
+    const store = storeFor(change({ tasks: [task] }));
+
+    const output = parse(
+      await subagentReportTools.adv_subagent_report_submit.execute(
+        { report: engineerReport({ follow_ups: [] }) },
+        store,
+      ),
+    );
+
+    const signalPayload = mocks.fireSignalAndRefresh.mock.calls[0][4] as {
+      report: EngineerSubagentReport;
+    };
+    const warnings = signalPayload.report.consumer_warnings ?? [];
+
+    expect(output.success).toBe(true);
+    expect(warnings).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ kind: "verification_missing" }),
+      ]),
+    );
+    expect(warnings).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ kind: "verification_mismatch" }),
+      ]),
+    );
+  });
+
+  test("structured adv_run_test evidence mismatch is command-specific", async () => {
+    const task = {
+      id: "tk-1",
+      title: "Task one",
+      status: "in_progress",
+      priority: 1,
+      created_at: "2026-05-23T00:00:00.000Z",
+      verification: [
+        JSON.stringify({
+          evidence: {
+            schema_version: "adv_run_test.v1",
+            command: "pnpm test",
+            exitCode: 1,
+            passed: false,
+            classification: "failed",
+            durationMs: 12,
+          },
+        }),
+        "legacy exitCode 0 for another command",
+      ].join("\n"),
+    } as Change["tasks"][number];
+    const store = storeFor(change({ tasks: [task] }));
+
+    await subagentReportTools.adv_subagent_report_submit.execute(
+      { report: engineerReport({ follow_ups: [] }) },
+      store,
+    );
+
+    const signalPayload = mocks.fireSignalAndRefresh.mock.calls[0][4] as {
+      report: EngineerSubagentReport;
+    };
+
+    expect(signalPayload.report.consumer_warnings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          kind: "verification_mismatch",
+          message: expect.stringContaining("adv_run_test.v1"),
+        }),
+      ]),
+    );
+  });
+
   test("dryRun validates and previews without signal or agenda writes", async () => {
     const store = storeFor(change());
 

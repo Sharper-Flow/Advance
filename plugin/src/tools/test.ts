@@ -1,6 +1,7 @@
 import { z } from "zod";
-import { exec } from "child_process";
-import { promisify } from "util";
+import { spawn, type ChildProcess } from "child_process";
+import { existsSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
 import type { Store } from "../storage/store";
 import { formatToolOutput } from "../utils/tool-output";
 import { recordPhaseDuration, withRecordedPhase } from "../utils/metrics";
@@ -9,8 +10,6 @@ import {
   withTargetPathStore,
 } from "./target-project";
 
-const execAsync = promisify(exec);
-
 /**
  * Default bounded-execution limits for `adv_run_test`.
  *
@@ -18,46 +17,52 @@ const execAsync = promisify(exec);
  *  - `DEFAULT_TEST_TIMEOUT_MS` caps wall-clock runtime via SIGTERM.
  *  - `DEFAULT_TEST_MAX_BUFFER` caps combined stdout/stderr bytes.
  *
- * Both are Node-compatible `child_process.exec` options. They are set
- * internally (not via tool schema) to keep the public tool contract
- * unchanged while still bounding execution.
+ * Both are internal streaming-runner limits (not public tool schema fields)
+ * that preserve shell execution while bounding runaway subprocesses.
  */
 export const DEFAULT_TEST_TIMEOUT_MS = 30_000;
 export const DEFAULT_TEST_MAX_BUFFER = 10 * 1024 * 1024;
 const DEFAULT_OUTPUT_MAX_LENGTH = 2000;
 const TRUNCATION_SUFFIX = "... (truncated)";
+const ADV_RUN_TEST_PHASES = ["red", "green", "verify"] as const;
+type AdvRunTestPhase = (typeof ADV_RUN_TEST_PHASES)[number];
 
 interface ExecBounds {
   timeoutMs?: number;
   maxBuffer?: number;
 }
 
-interface ExecError {
-  stdout?: string;
-  stderr?: string;
-  /**
-   * `code` may be a numeric exit code (e.g. `1`) or a Node error code
-   * string (e.g. `ERR_CHILD_PROCESS_STDIO_MAXBUFFER`), depending on how
-   * the exec failed.
-   */
-  code?: number | string;
-  signal?: NodeJS.Signals | null;
-  killed?: boolean;
-  message?: string;
+type TestClassification =
+  | "passed"
+  | "failed"
+  | "timed_out"
+  | "output_limit"
+  | "spawn_error";
+
+interface TestAdvisory {
+  kind: string;
+  message: string;
 }
 
 interface ExecResult {
   stdout: string;
   stderr: string;
   exitCode: number;
+  signal: NodeJS.Signals | null;
   timedOut: boolean;
   maxBufferExceeded: boolean;
+  outputBytesSeen: number;
+  durationMs: number;
+  spawnError?: string;
 }
 
 const FAILURE_LINE =
   /\b(?:fail(?:ed|ure|ures)?|error|exception|assert(?:ion)?|expected|received)\b|\b[\w./-]+:\d+:\d+\b|\bat\s+.*:\d+:\d+\b/i;
 const SUMMARY_LINE =
   /\b(?:tests?|test files?|passed|failed|skipped|duration|time|pass|ok)\b/i;
+const DIRECT_TEST_WORKFLOW =
+  /\b(?:pnpm|npm|bun|yarn)\s+(?:test|run\s+(?:test|check|lint|build|validate)|exec\s+(?:vitest|playwright))\b|\b(?:vitest|playwright)\s+(?:run|test)\b/;
+const OC_TEST_WRAPPER_COMMAND = /(^|\s)(?:\.\.?\/)?(?:bin\/)?oc-test\b/;
 
 const appendUnique = (target: string[], seen: Set<string>, lines: string[]) => {
   for (const line of lines) {
@@ -114,51 +119,184 @@ export const shapeCommandOutput = (
   return withTruncationSuffix(shapedLines.join("\n"), maxOutputLen);
 };
 
+const killSubprocess = (child: ChildProcess, signal: NodeJS.Signals): void => {
+  if (child.pid === undefined) return;
+
+  try {
+    if (process.platform !== "win32") {
+      process.kill(-child.pid, signal);
+      return;
+    }
+  } catch {
+    // Fall back to killing the shell process below. ESRCH is benign when the
+    // process exited between timeout/output-limit detection and kill delivery.
+  }
+
+  try {
+    child.kill(signal);
+  } catch {
+    // Best-effort cleanup; close/error handlers still classify the run.
+  }
+};
+
+const classifyRun = (run: ExecResult): TestClassification => {
+  if (run.spawnError) return "spawn_error";
+  if (run.timedOut) return "timed_out";
+  if (run.maxBufferExceeded) return "output_limit";
+  return run.exitCode === 0 ? "passed" : "failed";
+};
+
+const findRepoLocalTestWrapper = (cwd: string): string | undefined => {
+  let current = resolve(cwd);
+  for (let depth = 0; depth < 8; depth += 1) {
+    const candidate = join(current, "bin", "oc-test");
+    if (existsSync(candidate)) return candidate;
+
+    const parent = dirname(current);
+    if (parent === current) break;
+    current = parent;
+  }
+  return undefined;
+};
+
+const buildTestWorkflowAdvisories = (
+  command: string,
+  cwd: string,
+): TestAdvisory[] => {
+  if (OC_TEST_WRAPPER_COMMAND.test(command)) return [];
+  if (!DIRECT_TEST_WORKFLOW.test(command)) return [];
+  if (!findRepoLocalTestWrapper(cwd)) return [];
+
+  return [
+    {
+      kind: "repo_test_wrapper_available",
+      message:
+        "Repo-local bin/oc-test is available for targeted/smoke/full suite routing; adv_run_test executed supplied command unchanged.",
+    },
+  ];
+};
+
 const runCommand = async (
   command: string,
   cwd: string,
   bounds: Required<ExecBounds>,
 ): Promise<ExecResult> => {
-  try {
-    const { stdout, stderr } = await execAsync(command, {
-      cwd,
-      timeout: bounds.timeoutMs,
-      maxBuffer: bounds.maxBuffer,
+  const startedAt = performance.now();
+  const stdoutChunks: Buffer[] = [];
+  const stderrChunks: Buffer[] = [];
+  let retainedBytes = 0;
+  let outputBytesSeen = 0;
+  let timedOut = false;
+  let maxBufferExceeded = false;
+  let settled = false;
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  let hardKillTimeout: ReturnType<typeof setTimeout> | undefined;
+
+  const appendChunk = (target: Buffer[], chunk: Buffer): void => {
+    outputBytesSeen += chunk.length;
+    if (maxBufferExceeded) return;
+
+    const remaining = bounds.maxBuffer - retainedBytes;
+    if (remaining <= 0) {
+      maxBufferExceeded = true;
+      return;
+    }
+
+    if (chunk.length <= remaining) {
+      target.push(chunk);
+      retainedBytes += chunk.length;
+      return;
+    }
+
+    target.push(chunk.subarray(0, remaining));
+    retainedBytes += remaining;
+    maxBufferExceeded = true;
+  };
+
+  return await new Promise<ExecResult>((resolve) => {
+    let child: ChildProcess;
+    try {
+      child = spawn(command, {
+        cwd,
+        shell: true,
+        detached: process.platform !== "win32",
+        windowsHide: true,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      resolve({
+        stdout: "",
+        stderr: message,
+        exitCode: 1,
+        signal: null,
+        timedOut: false,
+        maxBufferExceeded: false,
+        outputBytesSeen: 0,
+        durationMs: performance.now() - startedAt,
+        spawnError: message,
+      });
+      return;
+    }
+
+    const finish = (result: Omit<ExecResult, "durationMs">): void => {
+      if (settled) return;
+      settled = true;
+      if (timeout) clearTimeout(timeout);
+      if (hardKillTimeout) clearTimeout(hardKillTimeout);
+      resolve({ ...result, durationMs: performance.now() - startedAt });
+    };
+
+    const requestKill = (signal: NodeJS.Signals): void => {
+      killSubprocess(child, signal);
+      hardKillTimeout ??= setTimeout(() => {
+        killSubprocess(child, "SIGKILL");
+      }, 1000);
+    };
+
+    const onData =
+      (target: Buffer[]) =>
+      (chunk: Buffer | string): void => {
+        const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+        appendChunk(target, buffer);
+        if (maxBufferExceeded) requestKill("SIGTERM");
+      };
+
+    child.stdout?.on("data", onData(stdoutChunks));
+    child.stderr?.on("data", onData(stderrChunks));
+
+    timeout = setTimeout(() => {
+      timedOut = true;
+      requestKill("SIGTERM");
+    }, bounds.timeoutMs);
+
+    child.on("error", (error) => {
+      const message = error instanceof Error ? error.message : String(error);
+      finish({
+        stdout: Buffer.concat(stdoutChunks).toString("utf8"),
+        stderr: [Buffer.concat(stderrChunks).toString("utf8"), message]
+          .filter(Boolean)
+          .join("\n"),
+        exitCode: 1,
+        signal: null,
+        timedOut,
+        maxBufferExceeded,
+        outputBytesSeen,
+        spawnError: message,
+      });
     });
-    return {
-      stdout,
-      stderr,
-      exitCode: 0,
-      timedOut: false,
-      maxBufferExceeded: false,
-    };
-  } catch (e: unknown) {
-    const err = e as ExecError;
-    const msg = typeof err.message === "string" ? err.message : String(err);
-    const codeNum = typeof err.code === "number" ? err.code : 1;
 
-    // Timeout classification: exec sends SIGTERM (default killSignal) on
-    // timeout; `killed: true` or `signal: "SIGTERM"` both indicate it.
-    const timedOut =
-      err.killed === true ||
-      err.signal === "SIGTERM" ||
-      err.signal === "SIGKILL";
-
-    // maxBuffer classification: surfaced either via the dedicated error
-    // code `ERR_CHILD_PROCESS_STDIO_MAXBUFFER` or an explicit "maxBuffer"
-    // phrase in the message.
-    const maxBufferExceeded =
-      err.code === "ERR_CHILD_PROCESS_STDIO_MAXBUFFER" ||
-      /maxBuffer/i.test(msg);
-
-    return {
-      stdout: err.stdout ?? "",
-      stderr: err.stderr ?? "",
-      exitCode: codeNum,
-      timedOut,
-      maxBufferExceeded,
-    };
-  }
+    child.on("close", (code, signal) => {
+      finish({
+        stdout: Buffer.concat(stdoutChunks).toString("utf8"),
+        stderr: Buffer.concat(stderrChunks).toString("utf8"),
+        exitCode: code ?? 1,
+        signal,
+        timedOut,
+        maxBufferExceeded,
+        outputBytesSeen,
+      });
+    });
+  });
 };
 
 // rq-ADVEXEC01: Canonical Apply Tool Path for Inline TDD
@@ -172,12 +310,18 @@ const runCommand = async (
 export const testTools = {
   adv_run_test: {
     description:
-      "Run a test command, capture the exit code, and return the result.",
+      "Run a test command, capture the exit code, and return typed pass/fail evidence with bounded output.",
     args: {
       taskId: z.string().describe("Task ID to record evidence for"),
       command: z
         .string()
         .describe("The exact shell command to run (e.g. 'npm test')"),
+      phase: z
+        .enum(ADV_RUN_TEST_PHASES)
+        .optional()
+        .describe(
+          "Optional descriptive TDD phase metadata. Does not gate task completion; use 'red', 'green', or 'verify'.",
+        ),
       workdir: z
         .string()
         .optional()
@@ -204,6 +348,7 @@ export const testTools = {
       args: {
         taskId: string;
         command: string;
+        phase?: AdvRunTestPhase;
         workdir?: string;
         timeoutMs?: number;
         target_path?: string;
@@ -248,6 +393,7 @@ export const testTools = {
       }
 
       const cwd = args.workdir || defaultWorkdir;
+      const advisories = buildTestWorkflowAdvisories(args.command, cwd);
       // Precedence: tool arg (caller-controlled) > internal bounds > default.
       // Tool arg is schema-validated to [1000, 300_000] ms; internal bounds is
       // an unrestricted seam for tests; default protects against runaway when
@@ -258,14 +404,22 @@ export const testTools = {
         maxBuffer: bounds?.maxBuffer ?? DEFAULT_TEST_MAX_BUFFER,
       };
 
-      const commandStartedAt = performance.now();
-      const { stdout, stderr, exitCode, timedOut, maxBufferExceeded } =
-        await runCommand(args.command, cwd, effective);
+      const run = await runCommand(args.command, cwd, effective);
+      const {
+        stdout,
+        stderr,
+        exitCode,
+        timedOut,
+        maxBufferExceeded,
+        durationMs,
+      } = run;
+      const classification = classifyRun(run);
+      const passed = classification === "passed";
       recordPhaseDuration({
         tool: "adv_run_test",
         phase: "commandExecution",
-        durationMs: performance.now() - commandStartedAt,
-        outcome: exitCode === 0 ? "success" : "error",
+        durationMs,
+        outcome: passed ? "success" : "error",
       });
 
       let rawOutput = `${stdout}\n${stderr}`.trim();
@@ -290,14 +444,37 @@ export const testTools = {
         "outputShaping",
         async () => shapeCommandOutput(rawOutput, exitCode),
       );
+      const outputBytesSeen = Math.max(
+        run.outputBytesSeen,
+        Buffer.byteLength(rawOutput, "utf8"),
+      );
+      const outputBytesRetained = Buffer.byteLength(truncatedOutput, "utf8");
+      const outputTruncated = rawOutput !== truncatedOutput;
 
       return formatToolOutput({
         success: true,
+        passed,
+        classification,
+        durationMs,
+        outputBytesSeen,
+        outputBytesRetained,
+        outputTruncated,
+        executionMode: "shell",
         exitCode,
         output: truncatedOutput,
         command: args.command,
+        ...(args.phase && { phase: args.phase }),
+        ...(advisories.length > 0 && { advisories }),
         timedOut,
         maxBufferExceeded,
+        evidence: {
+          schema_version: "adv_run_test.v1",
+          command: args.command,
+          exitCode,
+          passed,
+          classification,
+          durationMs,
+        },
         ...(timedOut && { timeoutMs: effective.timeoutMs }),
       });
     },

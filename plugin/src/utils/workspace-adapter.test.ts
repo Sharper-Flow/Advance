@@ -23,6 +23,7 @@ describe("buildAdvWorktreeAdapter", () => {
 
   const stubWorktreeRoot = () => {
     vi.stubEnv("XDG_DATA_HOME", "/tmp/adv-workspace-adapter");
+    vi.stubEnv("ADV_WORKTREE_HOME", "");
   };
 
   it("identifies the custom ADV worktree adapter", () => {

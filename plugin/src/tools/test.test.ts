@@ -2,10 +2,13 @@
  * Test Tool — Simplified adv_run_test Tests
  *
  * Verifies that adv_run_test runs shell commands and returns results
- * without workflow involvement or phase parameter.
+ * without workflow involvement.
  */
 
 import { describe, test, expect, vi, beforeEach } from "vitest";
+import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { shapeCommandOutput, testTools } from "./test";
 import type { Store } from "../storage/store";
 
@@ -53,13 +56,14 @@ describe("test tools — simplified adv_run_test", () => {
     vi.clearAllMocks();
   });
 
-  test("runs command and returns result without phase", async () => {
+  test("runs command and returns result with optional descriptive phase", async () => {
     const store = createMockStore();
 
     const result = await testTools.adv_run_test.execute(
       {
         taskId: "tk-abc",
         command: "echo test output",
+        phase: "green",
       },
       store,
       "/tmp",
@@ -69,8 +73,163 @@ describe("test tools — simplified adv_run_test", () => {
     expect(parsed.success).toBe(true);
     expect(parsed.exitCode).toBe(0);
     expect(parsed.output).toContain("test output");
-    expect(parsed.phase).toBeUndefined();
+    expect(parsed.phase).toBe("green");
     expect(parsed.command).toBe("echo test output");
+  });
+
+  test("declares optional red/green/verify phase in the tool schema", () => {
+    const phaseSchema = testTools.adv_run_test.args.phase;
+
+    expect(phaseSchema).toBeDefined();
+    expect(phaseSchema?.safeParse("red").success).toBe(true);
+    expect(phaseSchema?.safeParse("green").success).toBe(true);
+    expect(phaseSchema?.safeParse("verify").success).toBe(true);
+    expect(phaseSchema?.safeParse("blue").success).toBe(false);
+  });
+
+  test("returns typed result contract for passing command", async () => {
+    const store = createMockStore();
+
+    const result = await testTools.adv_run_test.execute(
+      {
+        taskId: "tk-abc",
+        command: "printf typed-pass",
+        phase: "verify",
+      },
+      store,
+      "/tmp",
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(true);
+    expect(parsed.passed).toBe(true);
+    expect(parsed.classification).toBe("passed");
+    expect(parsed.durationMs).toBeGreaterThanOrEqual(0);
+    expect(parsed.outputBytesSeen).toBeGreaterThan(0);
+    expect(parsed.outputBytesRetained).toBeGreaterThan(0);
+    expect(parsed.outputTruncated).toBe(false);
+    expect(parsed.executionMode).toBe("shell");
+    expect(parsed.evidence).toMatchObject({
+      schema_version: "adv_run_test.v1",
+      command: "printf typed-pass",
+      exitCode: 0,
+      passed: true,
+      classification: "passed",
+    });
+    expect(parsed.evidence.durationMs).toBe(parsed.durationMs);
+  });
+
+  test("returns typed result contract for non-zero command", async () => {
+    const store = createMockStore();
+
+    const result = await testTools.adv_run_test.execute(
+      {
+        taskId: "tk-abc",
+        command: "printf typed-fail && exit 7",
+        phase: "red",
+      },
+      store,
+      "/tmp",
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(true);
+    expect(parsed.passed).toBe(false);
+    expect(parsed.classification).toBe("failed");
+    expect(parsed.exitCode).toBe(7);
+    expect(parsed.evidence).toMatchObject({
+      schema_version: "adv_run_test.v1",
+      command: "printf typed-fail && exit 7",
+      exitCode: 7,
+      passed: false,
+      classification: "failed",
+    });
+  });
+
+  test("reports retained-output truncation without hard output-limit failure", async () => {
+    const store = createMockStore();
+
+    const result = await testTools.adv_run_test.execute(
+      {
+        taskId: "tk-abc",
+        command: "node -e \"console.log('x'.repeat(3000))\"",
+      },
+      store,
+      "/tmp",
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.passed).toBe(true);
+    expect(parsed.classification).toBe("passed");
+    expect(parsed.outputTruncated).toBe(true);
+    expect(parsed.maxBufferExceeded).toBe(false);
+    expect(parsed.outputBytesSeen).toBeGreaterThan(parsed.outputBytesRetained);
+    expect(parsed.output).toContain("... (truncated)");
+  });
+
+  test("advises repo-local oc-test wrapper without rewriting command", async () => {
+    const root = mkdtempSync(join(tmpdir(), "adv-run-test-"));
+    const workdir = join(root, "plugin");
+    mkdirSync(join(root, "bin"), { recursive: true });
+    mkdirSync(workdir, { recursive: true });
+    writeFileSync(join(root, "bin", "oc-test"), "#!/usr/bin/env bash\n");
+
+    try {
+      const store = createMockStore();
+      const result = await testTools.adv_run_test.execute(
+        {
+          taskId: "tk-abc",
+          command: "printf direct-command; : pnpm test",
+        },
+        store,
+        workdir,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.command).toBe("printf direct-command; : pnpm test");
+      expect(parsed.output).toContain("direct-command");
+      expect(parsed.advisories).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            kind: "repo_test_wrapper_available",
+            message: expect.stringContaining(
+              "executed supplied command unchanged",
+            ),
+          }),
+        ]),
+      );
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  test("does not advise when caller already uses repo-local oc-test wrapper", async () => {
+    const root = mkdtempSync(join(tmpdir(), "adv-run-test-"));
+    const workdir = join(root, "plugin");
+    mkdirSync(join(root, "bin"), { recursive: true });
+    mkdirSync(workdir, { recursive: true });
+    writeFileSync(
+      join(root, "bin", "oc-test"),
+      "#!/usr/bin/env bash\nprintf wrapper-used\n",
+      { mode: 0o755 },
+    );
+
+    try {
+      const store = createMockStore();
+      const result = await testTools.adv_run_test.execute(
+        {
+          taskId: "tk-abc",
+          command: "../bin/oc-test targeted -- --help",
+        },
+        store,
+        workdir,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.advisories).toBeUndefined();
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 
   test("records adv_run_test substep telemetry phases", async () => {
@@ -248,6 +407,26 @@ describe("test tools — simplified adv_run_test", () => {
       expect(parsed.output).toMatch(/\b3\b/);
     });
 
+    test("captures stdout, stderr, and redirect semantics through shell", async () => {
+      const store = createMockStore();
+
+      const result = await testTools.adv_run_test.execute(
+        {
+          taskId: "tk-abc",
+          command:
+            'tmp=$(mktemp) && printf redirected > "$tmp" && cat "$tmp" && rm "$tmp" && printf stderr-line >&2',
+        },
+        store,
+        "/tmp",
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.exitCode).toBe(0);
+      expect(parsed.output).toContain("redirected");
+      expect(parsed.output).toContain("stderr-line");
+      expect(parsed.classification).toBe("passed");
+    });
+
     test("does not execute command when task is missing", async () => {
       const store = createMockStore();
       vi.mocked(store.tasks.get).mockResolvedValue(null);
@@ -282,6 +461,8 @@ describe("test tools — simplified adv_run_test", () => {
 
       const parsed = JSON.parse(result);
       expect(parsed.timedOut).toBe(true);
+      expect(parsed.passed).toBe(false);
+      expect(parsed.classification).toBe("timed_out");
       expect(parsed.maxBufferExceeded).toBe(false);
       expect(parsed.output).toContain("[adv_run_test] Command timed out");
       expect(parsed.timeoutMs).toBe(500);
@@ -302,6 +483,9 @@ describe("test tools — simplified adv_run_test", () => {
 
       const parsed = JSON.parse(result);
       expect(parsed.maxBufferExceeded).toBe(true);
+      expect(parsed.passed).toBe(false);
+      expect(parsed.classification).toBe("output_limit");
+      expect(parsed.outputBytesSeen).toBeGreaterThan(2000);
       expect(parsed.timedOut).toBe(false);
       expect(parsed.output).toContain(
         "[adv_run_test] Command exceeded maxBuffer",
@@ -355,6 +539,8 @@ describe("test tools — simplified adv_run_test", () => {
       const parsed = JSON.parse(result);
       expect(parsed.success).toBe(true);
       expect(parsed.exitCode).toBe(7);
+      expect(parsed.passed).toBe(false);
+      expect(parsed.classification).toBe("failed");
       expect(parsed.timedOut).toBe(false);
       expect(parsed.maxBufferExceeded).toBe(false);
     });
