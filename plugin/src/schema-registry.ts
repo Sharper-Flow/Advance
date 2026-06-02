@@ -9,6 +9,9 @@ import {
   TaskSchema,
 } from "./types";
 
+// Public `$id` values intentionally use the canonical trunk URL. Feature-branch
+// validation uses the committed local artifacts plus `schemas:check`; external
+// consumers should resolve these IDs after changes land on trunk.
 export const ADV_SCHEMA_BASE_URL =
   "https://raw.githubusercontent.com/Sharper-Flow/Advance/trunk/plugin/schemas/";
 
