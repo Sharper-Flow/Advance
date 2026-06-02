@@ -1060,6 +1060,125 @@ export function applyStatusView(
 }
 
 // =============================================================================
+// adv_status probe helpers
+// =============================================================================
+//
+// Extracted from the adv_status execute handler to lower its cyclomatic
+// complexity and make each block independently testable (AC9 of
+// remediateSlopScanFindings). These are faithful relocations — no behavior
+// change. The handler still calls them in the same order, so probe ordering,
+// the temporalHealth→queueServiceability dependency, and recommendation
+// side-effects are preserved.
+
+interface OpencodeDebtCounts {
+  orphanGhost: number;
+  liveInFlight: number;
+  idleActiveSession: number;
+  repairableToolPart: number;
+  liveToolPart: number;
+  idleToolPart: number;
+}
+
+/** Census of worktree-auto-managed markers across recent changes. */
+export function computeAutoManagedCensus(
+  recent: ReadonlyArray<{ worktree_auto_managed?: boolean }>,
+): { auto: number; legacy: number; unmigrated: number } {
+  const census = { auto: 0, legacy: 0, unmigrated: 0 };
+  for (const c of recent) {
+    const marker = c.worktree_auto_managed;
+    if (marker === true) census.auto += 1;
+    else if (marker === false) census.legacy += 1;
+    else census.unmigrated += 1;
+  }
+  return census;
+}
+
+/**
+ * Derive OpenCode session-debt counts from a scan snapshot, preferring the
+ * `total_*` fields and falling back to array lengths. Returns null when the
+ * snapshot is unavailable.
+ */
+export function deriveOpencodeDebtCounts(
+  snapshot: Awaited<ReturnType<typeof scanOpenCodeSessionDebt>>,
+): OpencodeDebtCounts | null {
+  if (!snapshot.available) return null;
+  return {
+    orphanGhost:
+      (snapshot.total_orphan_ghost as number | undefined) ??
+      snapshot.orphan_ghost.length,
+    liveInFlight:
+      (snapshot.total_live_in_flight as number | undefined) ??
+      snapshot.live_in_flight.length,
+    idleActiveSession:
+      (snapshot.total_idle_active_session as number | undefined) ??
+      snapshot.idle_active_session.length,
+    repairableToolPart:
+      (snapshot.total_repairable_tool_parts as number | undefined) ??
+      snapshot.repairable_tool_parts?.length ??
+      0,
+    liveToolPart:
+      (snapshot.total_live_tool_parts as number | undefined) ??
+      snapshot.live_tool_parts?.length ??
+      0,
+    idleToolPart:
+      (snapshot.total_idle_tool_parts as number | undefined) ??
+      snapshot.idle_tool_parts?.length ??
+      0,
+  };
+}
+
+/** Fallback TemporalHealthSnapshot used when the health probe throws. */
+function buildTemporalHealthFallback(err: unknown): TemporalHealthSnapshot {
+  return {
+    server_alive: false,
+    worker_alive: false,
+    worker_process_alive: false,
+    registered_queues: [],
+    last_op_at: null,
+    last_error: err instanceof Error ? err.message : String(err),
+    fallback_counts: { ...getTemporalFallbackTelemetry() },
+    stale_queues: [],
+    reconnect_count: 0,
+    op_counters: [],
+    worker_lock: null,
+    last_worker_run_error: null,
+  };
+}
+
+/**
+ * Append queue-serviceability recommendations (stale-queue warnings + suspect
+ * v1 worker.lock). Mutates `status.recommendations` in place so ordering
+ * relative to the other probes is preserved exactly.
+ */
+function pushQueueServiceabilityRecommendations(input: {
+  status: { recommendations: string[] };
+  temporalHealth: TemporalHealthSnapshot;
+  queueServiceability: StatusQueueServiceabilitySnapshot | null | undefined;
+}): void {
+  const { status, temporalHealth, queueServiceability } = input;
+  if (temporalHealth.stale_queues.length > 0) {
+    const serviceableQueue =
+      queueServiceability?.serviceability.status === "serviceable"
+        ? queueServiceability.expectedQueue
+        : null;
+    for (const sq of temporalHealth.stale_queues) {
+      if (sq.queue === serviceableQueue) continue;
+      status.recommendations.push(
+        `⚠️ Stale Temporal queue \`${sq.queue}\` has ${sq.running_count} Running workflows older than 5 min with no local poller. See docs/temporal-recovery.md § "Stale \`adv/change/*\` and \`adv/project/*\` workflows".`,
+      );
+    }
+  }
+  if (
+    queueServiceability?.serviceability.status !== "serviceable" &&
+    temporalHealth.worker_lock?.schema_version === 1
+  ) {
+    status.recommendations.push(
+      "⚠️ Suspect live legacy v1 worker.lock with unproven queue serviceability — explicit approval is required for reclaim, or restart the owning OpenCode session.",
+    );
+  }
+}
+
+// =============================================================================
 // Tool Definitions
 // =============================================================================
 
@@ -1143,20 +1262,7 @@ export const statusTools = {
               temporalHealth = temporalProbe.value;
               probeFreshness.temporal_health = temporalProbe.freshness;
             } catch (err) {
-              temporalHealth = {
-                server_alive: false,
-                worker_alive: false,
-                worker_process_alive: false,
-                registered_queues: [],
-                last_op_at: null,
-                last_error: err instanceof Error ? err.message : String(err),
-                fallback_counts: { ...getTemporalFallbackTelemetry() },
-                stale_queues: [],
-                reconnect_count: 0,
-                op_counters: [],
-                worker_lock: null,
-                last_worker_run_error: null,
-              };
+              temporalHealth = buildTemporalHealthFallback(err);
               probeFreshness.temporal_health = {
                 cached_at: new Date().toISOString(),
                 stale: true,
@@ -1179,27 +1285,11 @@ export const statusTools = {
             probeFreshness.queue_serviceability =
               queueServiceabilityProbe.freshness;
 
-            if (temporalHealth.stale_queues.length > 0) {
-              const serviceableQueue =
-                queueServiceability?.serviceability.status === "serviceable"
-                  ? queueServiceability.expectedQueue
-                  : null;
-              for (const sq of temporalHealth.stale_queues) {
-                if (sq.queue === serviceableQueue) continue;
-                status.recommendations.push(
-                  `⚠️ Stale Temporal queue \`${sq.queue}\` has ${sq.running_count} Running workflows older than 5 min with no local poller. See docs/temporal-recovery.md § "Stale \`adv/change/*\` and \`adv/project/*\` workflows".`,
-                );
-              }
-            }
-
-            if (
-              queueServiceability?.serviceability.status !== "serviceable" &&
-              temporalHealth.worker_lock?.schema_version === 1
-            ) {
-              status.recommendations.push(
-                "⚠️ Suspect live legacy v1 worker.lock with unproven queue serviceability — explicit approval is required for reclaim, or restart the owning OpenCode session.",
-              );
-            }
+            pushQueueServiceabilityRecommendations({
+              status,
+              temporalHealth,
+              queueServiceability,
+            });
           }
 
           let searchAttributes: SearchAttributesSnapshot | undefined;
@@ -1260,18 +1350,11 @@ export const statusTools = {
           }
 
           const recentForCensus = status.changes.recent ?? [];
-          const autoManagedCensus = {
-            auto: 0,
-            legacy: 0,
-            unmigrated: 0,
-          };
-          for (const c of recentForCensus) {
-            const marker = (c as { worktree_auto_managed?: boolean })
-              .worktree_auto_managed;
-            if (marker === true) autoManagedCensus.auto += 1;
-            else if (marker === false) autoManagedCensus.legacy += 1;
-            else autoManagedCensus.unmigrated += 1;
-          }
+          const autoManagedCensus = computeAutoManagedCensus(
+            recentForCensus as ReadonlyArray<{
+              worktree_auto_managed?: boolean;
+            }>,
+          );
 
           if (plan.recentEnrichment) {
             const recentChanges = await withRecordedPhase(
@@ -1376,41 +1459,7 @@ export const statusTools = {
               "sessionDebtScan",
               () => scanOpenCodeSessionDebt(),
             );
-            opencodeDebtCounts = opencodeSessionDebt.available
-              ? {
-                  orphanGhost:
-                    (opencodeSessionDebt.total_orphan_ghost as
-                      | number
-                      | undefined) ?? opencodeSessionDebt.orphan_ghost.length,
-                  liveInFlight:
-                    (opencodeSessionDebt.total_live_in_flight as
-                      | number
-                      | undefined) ?? opencodeSessionDebt.live_in_flight.length,
-                  idleActiveSession:
-                    (opencodeSessionDebt.total_idle_active_session as
-                      | number
-                      | undefined) ??
-                    opencodeSessionDebt.idle_active_session.length,
-                  repairableToolPart:
-                    (opencodeSessionDebt.total_repairable_tool_parts as
-                      | number
-                      | undefined) ??
-                    opencodeSessionDebt.repairable_tool_parts?.length ??
-                    0,
-                  liveToolPart:
-                    (opencodeSessionDebt.total_live_tool_parts as
-                      | number
-                      | undefined) ??
-                    opencodeSessionDebt.live_tool_parts?.length ??
-                    0,
-                  idleToolPart:
-                    (opencodeSessionDebt.total_idle_tool_parts as
-                      | number
-                      | undefined) ??
-                    opencodeSessionDebt.idle_tool_parts?.length ??
-                    0,
-                }
-              : null;
+            opencodeDebtCounts = deriveOpencodeDebtCounts(opencodeSessionDebt);
             if (
               opencodeSessionDebt.available &&
               opencodeDebtCounts &&
