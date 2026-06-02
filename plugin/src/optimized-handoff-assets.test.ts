@@ -43,7 +43,6 @@ function expectAnchors(content: string, anchors: string[], label: string) {
 function expectScannerBundlePayloadSkeleton(
   content: string,
   phase: "review" | "harden",
-  scannerCount: number,
 ) {
   expect(content).toContain('"schema_version": "1.0"');
   expect(content).toContain('"change_id": "{change-id}"');
@@ -54,7 +53,7 @@ function expectScannerBundlePayloadSkeleton(
   );
   expect(content).toContain('"agent": "adv-scanner-bundle"');
   expect(content).toContain(`"phase": "${phase}"`);
-  expect(content).toContain(`"scanner_count": ${scannerCount}`);
+  expect(content).toMatch(/"scanner_count":\s*\{selected_scanner_count\}/);
   expect(content).toContain('"dimensions": [');
   expect(content).toContain('"findings": []');
   expect(content).toContain('"follow_ups": []');
@@ -159,7 +158,6 @@ describe("optimized handoff command packets", () => {
       expectScannerBundlePayloadSkeleton(
         command,
         path === "adv-review.md" ? "review" : "harden",
-        path === "adv-review.md" ? 5 : 6,
       );
       expectAnchors(
         command,

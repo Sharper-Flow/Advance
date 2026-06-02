@@ -48,32 +48,37 @@ Every finding MUST use exactly one label:
 
 ---
 
-## Minimum Findings Threshold
+## Clean Verdict Evidence
 
-**Requirement**: At least **3 non-nit findings** per review.
+**Requirement**: Reviews may return no actionable findings only when the checked dimensions and file-level evidence support an evidence-backed clean verdict.
 
-Non-nit = `blocker:`, `issue:`, `suggestion:`, or `question:`.
+Actionable = `blocker:`, `issue:`, `suggestion:`, or `question:`. `nit:` and `praise:` do not create remediation obligations.
 
-### If fewer than 3 non-nit findings
-
-The reviewer MUST provide a **genuinely-clean justification** with file-level evidence:
+The reviewer MUST provide clean verdict evidence when blockers/issues are absent and no validated in-scope suggestions remain:
 
 ```
-GENUINELY CLEAN JUSTIFICATION:
+CLEAN VERDICT EVIDENCE:
 
 Files reviewed:
 - src/foo.ts (142 lines) — No issues: straightforward CRUD, follows existing patterns
 - src/bar.ts (87 lines) — No issues: thin wrapper with full test coverage
 - src/baz.test.ts (203 lines) — No issues: comprehensive assertions, edge cases covered
 
-Why this is genuinely clean:
+Checked dimensions:
+- Contract traceability: {pass/reviewed evidence}
+- Correctness and edge cases: {pass/reviewed evidence}
+- Security surface: {pass/reviewed evidence or no surface}
+- Tests/TDD evidence: {pass/reviewed evidence}
+- Scope conformance: {pass/reviewed evidence}
+
+Why this is clean:
 - Change is small and well-scoped ({N} files, {M} lines changed)
 - Follows established patterns with no novel logic
 - Full test coverage verified via TDD evidence
 - No security surface (no user input, no auth, no external calls)
 ```
 
-**Red flags that invalidate "genuinely clean":**
+**Red flags that invalidate a clean verdict unless specifically checked with evidence:**
 - Change touches > 500 lines
 - Introduces new architectural patterns
 - Handles user input or authentication

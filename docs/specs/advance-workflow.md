@@ -135,36 +135,39 @@ Capability: Workflow contract layer for ADV — gate model, autonomy boundaries,
 
 **ID:** `rq-R3v13wR1` | **Priority:** **[MUST]**
 
-/adv-review and /adv-harden must enforce a minimum findings threshold to prevent shallow 'LGTM' behavior. /adv-review must run mandatory remediation that fixes all blocker/issue findings, investigates all suggestions/questions, implements validated suggestions, and runs cleanup before final verdict.
+/adv-review and /adv-harden must prevent shallow 'LGTM' behavior through evidence-backed clean verdicts, checked dimensions, and red-flag invalidators instead of a fixed finding count. /adv-review owns contract, correctness, security, tests, and scope validation. /adv-harden owns release, deploy, production, docs, and cleanup readiness. Both phases retain a critical blocker backstop and mandatory remediation for blocker/issue and validated in-scope findings.
 
 #### Scenarios
 
-**Minimum findings validation** (`rq-R3v13wR1.1`)
+**Evidence-backed clean verdict validation** (`rq-R3v13wR1.1`)
 
 **Given:**
 
-- A review with fewer than 3 non-nit findings
+- A review or harden pass produces few or no actionable findings
 
-**When:** Gate completion is attempted
+**When:** The final verdict is emitted
 
 **Then:**
 
-- The gate remains open and requires explicit justification for the clean result
+- The verdict includes evidence-backed clean justification for checked dimensions
+- Red-flag invalidators are evaluated before accepting the clean result
+- The gate does not remain open solely because a fixed finding count was not reached
 
 **Review remediation is mandatory** (`rq-R3v13wR1.2`)
 
 **Given:**
 
-- A review produces blocker, issue, suggestion, or question findings
+- Review or harden produces blocker/issue findings or validated in-scope findings
 
-**When:** /adv-review enters remediation
+**When:** The phase enters remediation
 
 **Then:**
 
-- All blocker and issue findings are fixed and verified
+- All blocker and issue findings are fixed and verified unless rejected with evidence as invalid or out of scope
 - Each suggestion/question is investigated and marked validated or rejected with evidence
 - Validated suggestions are implemented
-- A cleanup pass runs before final verdict is emitted
+- Validated in-scope findings are not deferred as report-only, future-work, or accepted debt
+- A cleanup pass runs before final verdict is emitted when cleanup is in phase scope
 
 ---
 

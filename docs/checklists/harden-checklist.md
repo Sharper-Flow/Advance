@@ -4,9 +4,9 @@ Referenced by `/adv-harden`. Enforces adversarial rigor to prevent shallow "all 
 
 ---
 
-## 6-Scanner Coverage
+## Risk-Triggered Scanner Coverage
 
-Every hardening pass MUST run all 6 scanners. Mark `[x]` when analyzed (even if no findings):
+Every hardening pass MUST assess each release-readiness dimension. Mark `[x]` when analyzed inline or by a dedicated scanner; spawn dedicated scanners only when risk triggers apply:
 
 - [ ] **Test Coverage** — File-level coverage ratio, TDD evidence audit
 - [ ] **AI-Slop Detection** — Placeholders, type erosion, naive patterns, structural issues
@@ -15,7 +15,7 @@ Every hardening pass MUST run all 6 scanners. Mark `[x]` when analyzed (even if 
 - [ ] **Production Readiness** — Security, reliability, performance, maintainability
 - [ ] **Deployment Readiness** — Env vars, migrations, external services, CI/CD, infrastructure, feature flags, deployment steps
 
-**Minimum**: All 6 must be executed. Skipping a scanner requires explicit justification (e.g., "Cleanup: N/A — no file artifacts in this change").
+**Minimum**: All release-owned dimensions must be checked or marked N/A with evidence. Skipping a triggered scanner requires explicit justification (e.g., "Cleanup scanner not spawned — no file artifacts; inline cleanup check found 0 candidates").
 
 ---
 
@@ -45,18 +45,16 @@ Priority = Impact x Effort
 
 ---
 
-## Minimum Findings Threshold
+## Clean Verdict Evidence
 
-**Requirement**: At least **3 non-nit findings** per hardening pass.
+**Requirement**: Hardening may return no actionable release-readiness findings only when scanner/readiness dimensions and file-level evidence support an evidence-backed clean verdict.
 
-Non-nit = `BLOCKER`, `HIGH`, `MEDIUM`, or any actionable finding (not purely cosmetic).
+Actionable = `BLOCKER`, `HIGH`, `MEDIUM`, or any validated in-scope finding that is not purely cosmetic.
 
-### If fewer than 3 non-nit findings
-
-The reviewer MUST provide a **genuinely-clean justification** with file-level evidence:
+The reviewer MUST provide clean verdict evidence when no blocker/high findings remain and no validated in-scope findings are unresolved:
 
 ```
-GENUINELY CLEAN JUSTIFICATION:
+CLEAN VERDICT EVIDENCE:
 
 Scanners run:
 - Test Coverage: 100% file coverage (5/5 files have tests), TDD evidence present
@@ -65,7 +63,14 @@ Scanners run:
 - Cleanup: 0 candidates — no temp files, debug code, or dead imports
 - Production Readiness: All gates pass (security, reliability, performance, maintainability)
 
-Why this is genuinely clean:
+Checked dimensions:
+- Release/deploy readiness: {pass/reviewed evidence}
+- Production readiness: {pass/reviewed evidence}
+- Documentation hygiene: {pass/reviewed evidence}
+- Cleanup candidates: {pass/reviewed evidence}
+- Residual slop/maintainability: {pass/reviewed evidence}
+
+Why this is clean:
 - Change is small and well-scoped ({N} files, {M} lines changed)
 - All code follows established patterns (no novel architecture)
 - Full TDD cycle completed with red/green evidence via `adv_run_test`
@@ -73,7 +78,7 @@ Why this is genuinely clean:
 - No security surface changes
 ```
 
-**Red flags that invalidate "genuinely clean":**
+**Red flags that invalidate a clean verdict unless specifically checked with evidence:**
 - Change touches > 500 lines
 - Introduces new external dependencies
 - Contains any `TODO` or `FIXME` in implementation paths
