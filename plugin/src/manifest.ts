@@ -71,8 +71,7 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
   // ---- Core Workflow ----
   "adv-status": {
     name: "adv-status",
-    description:
-      "Show operational health: in-flight changes, Temporal, worktrees, session debt",
+    description: "Show fast ADV status table",
     phase: "core",
     requiresChangeId: false,
     prerequisites: [],
