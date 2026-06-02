@@ -46,13 +46,17 @@ Extract from `$ARGUMENTS`:
 
 #### Purpose
 
-Reusable hardening methodology for ADV harden workflows. Provides the 6-scanner framework overview.
+Reusable hardening methodology for ADV harden workflows. Provides release-readiness dimensions, risk-triggered scanner routing, evidence-backed clean verdict rules, and harden-owned validation responsibilities.
 
 **Runtime source:** this embedded section provides the hardening methodology needed during command execution.
 
-#### 6-Scanner Framework
+#### Harden Ownership
 
-Every hardening pass must run all 6 scanners:
+Harden owns release, deploy, production, docs, and cleanup readiness. Review owns contract, correctness, security, tests/TDD evidence, and scope conformance. **Critical blocker backstop:** harden may still flag security, data-loss, contract, or release-safety blockers discovered during release readiness checks.
+
+#### Release-Readiness Dimensions
+
+Every hardening pass must assess the release-owned dimensions. Dedicated scanner workers are risk-triggered; narrow low-risk changes may use compact inline evidence instead of broad fan-out.
 
 | Scanner               | Focus                                                            |
 | --------------------- | ---------------------------------------------------------------- |
@@ -63,7 +67,7 @@ Every hardening pass must run all 6 scanners:
 | Production Readiness  | Security, reliability, performance, maintainability              |
 | Deployment Readiness  | Env vars, migrations, external services, CI/CD, infrastructure   |
 
-All 6 must be executed. Skipping requires explicit justification.
+All release-owned dimensions must be checked or marked N/A with evidence. Skipping a triggered scanner requires explicit justification.
 
 #### Constraints
 
@@ -260,14 +264,13 @@ REPORT PAYLOAD:
   "scope": { "kind": "change", "scope_key": "scanner-bundle:harden" },
   "agent": "adv-scanner-bundle",
   "phase": "harden",
-  "scanner_count": 6,
+  "scanner_count": {selected_scanner_count},
   "dimensions": [
-    "test-coverage",
-    "ai-slop-detection",
-    "documentation-hygiene",
-    "cleanup",
+    "release-deploy-readiness",
     "production-readiness",
-    "deployment-readiness"
+    "documentation-hygiene",
+    "cleanup-readiness",
+    "residual-slop-maintainability"
   ],
   "summary": "bounded synthesis",
   "findings": [],
@@ -276,21 +279,38 @@ REPORT PAYLOAD:
 EXPECTED ACTION: orchestrator calls adv_subagent_report_submit with SCANNER_BUNDLE_REPORT after synthesis
 ```
 
-Spawn **6 sub-agents in two batches** (`subagent_type: "explore"`). Batch 1: sub-agents 1–3. Wait for completions. Batch 2: sub-agents 4–6. Each receives the Harden Scanner Context Packet above plus dimension-specific instructions.
+### Risk-Triggered Scanner Routing
 
-### Sub-Agent 1: Test Coverage Scanner
+Harden uses risk-triggered scanner selection instead of fixed broad fan-out.
+
+Always assess and record evidence for release/deploy readiness, production readiness, documentation hygiene, cleanup readiness, and residual slop/maintainability. For narrow low-risk changes, the orchestrator may perform these checks inline and submit a scanner bundle with the checked dimensions. Spawn `explore` scanners only when risk triggers apply.
+
+Risk triggers requiring dedicated scanner workers:
+
+- New/changed tests, risky logic, or missing TDD evidence → test coverage scanner.
+- Generated/AI-heavy code, broad edits, or suspicious placeholders/type erosion → AI-slop scanner.
+- Docs, command contracts, user-facing workflow text, or agent guidance changes → documentation-hygiene scanner.
+- File moves/deletions, generated artifacts, debug/temp candidates, or remediation churn → cleanup scanner.
+- Release-safety, reliability, performance, security-critical, or public API changes → production-readiness scanner.
+- Env/config/migration/external service/CI/CD/infrastructure changes → deployment-readiness scanner.
+
+### Scanner Dimension Contracts
+
+Each selected scanner receives the Harden Scanner Context Packet above plus dimension-specific instructions.
+
+#### Test Coverage Scanner
 
 Analyze test coverage: for each source file check for test file, calculate coverage ratio, check TDD adherence (red/green evidence via `adv_run_test`), report test runner availability.
 
 Return JSON with: `dimension: "test_coverage"`, `files_with_tests`, `files_without_tests`, `coverage_percent`, `tdd_audit`, `issues`.
 
-### Sub-Agent 2: AI-Slop Detection Scanner
+#### AI-Slop Detection Scanner
 
 Use the methodology from `adv-slop-detection` loaded in Phase 0 for this scanner dimension. Preserve same severity ladder as the dedicated slop-scan workflow: BLOCKER (security/data loss) > HIGH (silent failures) > MEDIUM (debt) > LOW (style).
 
 Return JSON with: `dimension: "ai_slop"`, `summary` (total, blockers, high, by_category), `issues` (severity, category, file, line, pattern, code_snippet, message, fix_suggestion), `debt_quadrant`.
 
-### Sub-Agent 3: Documentation Hygiene Scanner
+#### Documentation Hygiene Scanner
 
 Analyze doc quality for affected files:
 
@@ -304,13 +324,13 @@ Severity: BLOCKER (contradicts impl) > HIGH (stale refs to deleted code) > MEDIU
 
 Return JSON with: `dimension: "documentation_hygiene"`, `conflicts`, `stale`, `deletions`, `updates_needed`, `verbose`, `inline_docs`, `issues`.
 
-### Sub-Agent 4: Cleanup Scanner
+#### Cleanup Scanner
 
 Find cleanup candidates: temp files (_.bak, _.tmp, _.orig, _~, _.swp), marked files (ONETIME-_, DELETE-AFTER-\*), dev directories (poc/, scratch/, temp/), dead imports, orphaned tests, debug code (console.log, debugger, print()). Preserve: scripts/, tools/, migrations.
 
 Return JSON with: `dimension: "cleanup"`, `extension_based`, `explicitly_marked`, `dev_directories`, `dead_imports`, `debug_code`, `total_candidates`.
 
-### Sub-Agent 5: Production Readiness Scanner
+#### Production Readiness Scanner
 
 Check quality gates for affected files:
 | Area | Checks |
@@ -324,7 +344,7 @@ Complexity thresholds: 1-10 low, 11-20 moderate, 21-50 high (refactor), 51+ very
 
 Return JSON with: `dimension: "production_readiness"`, `security`, `reliability`, `performance`, `maintainability` (each with pass/issues), `complexity_hotspots`, `overall_status`.
 
-### Sub-Agent 6: Deployment & Operational Readiness Scanner
+#### Deployment & Operational Readiness Scanner
 
 Check deployment readiness for affected files:
 | Area | Checks |
@@ -360,9 +380,9 @@ Priority = Impact × Effort
   20-25: Critical | 12-19: High | 6-11: Medium | 1-5: Low
 ```
 
-### Minimum Findings Enforcement
+### Evidence-Backed Clean Verdict
 
-Count non-nit findings. If <3 → require genuinely-clean justification with scanner-level evidence per the Harden Methodology section above.
+If no blocker/high findings remain → require evidence-backed clean verdict with checked dimensions and red-flag invalidators evaluated per the Harden Methodology section above. Do not manufacture findings to satisfy a count. Mandatory remediation remains required for blockers/high findings and validated in-scope findings.
 
 ### Status Determination
 

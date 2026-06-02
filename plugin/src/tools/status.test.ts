@@ -302,6 +302,74 @@ describe("Status Tools", () => {
       expect(followRec).toContain(parentParsed.changeId);
     });
 
+    test("stale pre-execution change keeps one canonical next-gate action", async () => {
+      const gates = createDefaultGates();
+      for (const gateId of ["proposal", "discovery", "design"] as const) {
+        gates[gateId] = {
+          status: "done",
+          completed_at: "2026-01-01T00:00:00.000Z",
+          completed_by: "test-user",
+        };
+      }
+      await store.changes.save({
+        id: "stalePlanningChange",
+        title: "Stale Planning Change",
+        status: "draft",
+        created_at: "2026-01-01T00:00:00.000Z",
+        tasks: [],
+        deltas: {},
+        gates,
+      } as never);
+
+      const result = await statusTools.adv_status.execute({}, store);
+      const parsed = parseToolOutput<{ recommendations: string[] }>(result);
+      const recs = parsed.recommendations.filter((r) =>
+        r.includes("stalePlanningChange"),
+      );
+
+      expect(recs).toEqual(
+        expect.arrayContaining([
+          expect.stringContaining("next gate is `planning`"),
+        ]),
+      );
+      expect(recs.join("\n")).toContain("/adv-prep stalePlanningChange");
+      expect(recs.join("\n")).not.toContain("/adv-apply stalePlanningChange");
+    });
+
+    test("stale execution-ready change does not duplicate apply command", async () => {
+      const gates = createDefaultGates();
+      for (const gateId of [
+        "proposal",
+        "discovery",
+        "design",
+        "planning",
+      ] as const) {
+        gates[gateId] = {
+          status: "done",
+          completed_at: "2026-01-01T00:00:00.000Z",
+          completed_by: "test-user",
+        };
+      }
+      await store.changes.save({
+        id: "staleApplyChange",
+        title: "Stale Apply Change",
+        status: "draft",
+        created_at: "2026-01-01T00:00:00.000Z",
+        tasks: [],
+        deltas: {},
+        gates,
+      } as never);
+
+      const result = await statusTools.adv_status.execute({}, store);
+      const parsed = parseToolOutput<{ recommendations: string[] }>(result);
+      const text = parsed.recommendations
+        .filter((r) => r.includes("staleApplyChange"))
+        .join("\n");
+
+      expect(text).toContain("/adv-apply staleApplyChange");
+      expect(text.match(/\/adv-apply staleApplyChange/g) ?? []).toHaveLength(1);
+    });
+
     test("product-linked status defaults to current repo scoped changes", async () => {
       store.productContext = {
         currentRoot: tempDir,

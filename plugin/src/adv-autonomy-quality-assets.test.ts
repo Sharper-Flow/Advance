@@ -220,14 +220,16 @@ describe("Archive and spec assets", () => {
     expect(content).not.toMatch(/call `adv_gate_complete gateId: 'release'`/);
   });
 
-  test("adv-archive.md requires local deploy before shipped finalization", () => {
+  test("adv-archive.md surfaces local deploy as visible release evidence", () => {
     const content = readAsset(join(COMMAND_DIR, "adv-archive.md"));
     expect(content).toMatch(/Step 5\.0: Local Deploy Gate/);
     expect(content).toMatch(/scripts\/deploy-local\.sh/);
     expect(content).toMatch(/deploy-local\.sh" --fix/);
-    expect(content).toMatch(/If deploy fails → STOP\. Do not push/i);
+    expect(content).toMatch(/Deploy visibility/i);
+    expect(content).toMatch(/If deploy fails[\s\S]*nonblocking advisory/i);
+    expect(content).not.toMatch(/If deploy fails → STOP\. Do not push/i);
     expect(content).toMatch(
-      /Local deploy: \{ran \| not available \| not needed \| failed: <reason>\}/,
+      /Local deploy: \{ran \| not available \| not needed \| failed: <reason>; nonblocking\}/,
     );
     expect(content).toMatch(
       /GIT FINALIZATION COMPLETE[\s\S]*local deploy status/i,

@@ -19,9 +19,9 @@ Every discovery MUST execute each step and report results. Mark `[x]` when compl
 - [ ] **Draft Spec Delta Shapes** — Each identified delta must have a concrete `rq-*` requirement ID and ≥1 Given/When/Then scenario. If no deltas needed, state "No spec deltas required" with rationale.
 - [ ] **P25 Related-Pattern Scan** — Identify the class of bug/gap being addressed and scan for similar patterns elsewhere in the codebase. Output: "Related Pattern Scan" section with matches or "no similar patterns found".
 - [ ] **LBP Check** — Verify the likely direction matches long-term best practice. Output: "LBP Check" section with direction and evidence. When the discovery agenda contains ecosystem unknowns or an open design question lists external tools/libraries/services as a realistic option, perform the External-Solution Check: consult any cited `docs/*-prep.md` pack first, and only run new Exa queries when no relevant pack covers the question. Purely internal changes may state "No external alternatives apply" with rationale.
-- [ ] **Phase 3.5: Discovery Opportunity Scout** — Run a mandatory bounded opportunity-scout pass using `adv-opportunity-scout` skill (mode: discovery). Load skill, spawn `adv-researcher` with discovery-mode prompt, collect ≤5 candidates, sort by payoff/risk, route adoption (auto-adopt narrow only: contract-tied, low risk, no user-value tradeoff; surface all others to user). Integrate adopted findings into agreement. Output: "Discovery Opportunity Scout" section with candidate counts and adoption summary. Trivially scoped changes may skip with rationale. INCONCLUSIVE is always valid (mandatory = must attempt, not must succeed).
+- [ ] **Phase 3.5: Discovery Opportunity Scout** — Run a trigger-based opportunity-scout pass using `adv-opportunity-scout` skill (mode: discovery) when strategic, architecture, product, ecosystem, external-option, or broad objective/AC leverage exists. Load skill, spawn `adv-researcher` with discovery-mode prompt when triggered, collect ≤5 candidates, sort by payoff/risk, route adoption (auto-adopt narrow only: contract-tied, low risk, no user-value tradeoff; surface all others to user). Integrate adopted findings into agreement. Output: "Discovery Opportunity Scout" section with trigger decision, candidate counts, and adoption summary. Narrow low-opportunity changes may record `Scout: skipped — {rationale}`. INCONCLUSIVE is always valid (`Scout: inconclusive ({reason})`).
 
-**Minimum**: All 10 steps (including scout) must be executed. Skipping a step requires explicit justification in the Discovery Checklist output section.
+**Minimum**: All 10 protocol steps must be evaluated and reported. Triggered steps must execute; untriggered scout paths require explicit `Scout: skipped — {rationale}` in the Discovery Checklist output section.
 
 ---
 
@@ -52,7 +52,7 @@ Graceful degradation rules for each protocol step:
 | P25 Scan          | Zero pattern matches                                 | State "no similar patterns found" explicitly. Do not omit.                                                                                                   |
 | P25 Scan          | Many matches found                                   | Cap at top N with rationale for prioritization.                                                                                                              |
 | Opportunity Scout | Skill unavailable or sub-agent fails                 | Record "Scout: inconclusive ({reason})". Proceed without blocking.                                                                                           |
-| Opportunity Scout | Trivially scoped change (narrow fix, single path)    | Record "Scout: skipped — {rationale}". Proceed without blocking.                                                                                             |
+| Opportunity Scout | Narrow low-opportunity change (narrow fix, single path, no strategic/architecture/product/external-option leverage) | Record "Scout: skipped — {rationale}". Proceed without blocking.                                                                                             |
 | Opportunity Scout | Zero candidates returned                              | Record "Scout: 0 candidates found". Proceed normally.                                                                                                       |
 
 ---
@@ -107,12 +107,14 @@ If scan is clean (no findings), emit: `### AMBIGUITY ANALYSIS — no ambiguity f
 
 After producing the AMBIGUITY ANALYSIS, evaluate findings to determine if `/adv-discover` can proceed:
 
-| Condition | Action |
-|-----------|--------|
-| CRITICAL ≥ 1 | Halt discovery. Do NOT call `adv_gate_complete gateId: 'discovery'`. Output handoff: "Run `/adv-clarify {change-id}` to resolve CRITICAL findings, then rerun `/adv-discover {change-id}`." |
-| HIGH ≥ 2 (no CRITICAL) | Halt discovery. Same handoff as above. |
-| Single HIGH only | Warning logged inline. Continue to Phase 3 (Persist Discovery Findings). |
-| All clean | Continue to Phase 3. |
+| Class | Condition | Action |
+|-------|-----------|--------|
+| **Blocking ambiguity** | CRITICAL ≥ 1 | Halt discovery. Do NOT call `adv_gate_complete gateId: 'discovery'`. Output evidence quotes and handoff: "Run `/adv-clarify {change-id}` to resolve CRITICAL findings, then rerun `/adv-discover {change-id}`." |
+| **Blocking ambiguity** | HIGH ≥ 2 (no CRITICAL) | Halt discovery. Same handoff as above with evidence quotes. |
+| **Advisory ambiguity** | Single HIGH only | Emit one concise advisory (finding ID, severity, evidence quote, next action). Continue to Phase 3 (Persist Discovery Findings). |
+| **Clean** | All clean | Continue to Phase 3 without advisory warning. |
+
+Concise advisory findings must not be repeated across unrelated output sections.
 
 Skip trigger evaluation when `clarify_enforcement: 'off'` or when discovery gate is already completed (legacy/in-flight changes).
 

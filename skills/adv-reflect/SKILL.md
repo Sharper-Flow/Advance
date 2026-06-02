@@ -58,7 +58,7 @@ Load from archived change:
 - Gate timestamps and completion evidence
 - Error recovery logs, retry counts, doom-loop markers
 - Cancellation records and reasons
-- Investment report metrics
+- Local task/gate metrics from archived change state
 
 ## Friction Mapping
 
@@ -102,7 +102,7 @@ Recommended derived values:
 - `completed_gates = count(done gates)`
 - `delegation_count = tasks with delegation evidence`
 - `drift_triggers = review/harden drift pauses`
-- `investment_tier = small | medium | large` based on elapsed time + task count from investment report
+- `scope_size = small | medium | large` based on elapsed time + task count from local archived change metrics
 
 Label missing metrics as `unknown`; do not fabricate.
 
@@ -120,7 +120,7 @@ Label missing metrics as `unknown`; do not fabricate.
 - Tasks: {done}/{total} done, {cancelled} cancelled
 - Retries: {retry_total} total (density: {retry_density})
 - Elapsed: {elapsed_minutes} min
-- Investment tier: {tier}
+- Scope size: {small | medium | large | unknown}
 
 **Quality**
 - TDD compliance: {tdd_compliance}%

@@ -135,36 +135,39 @@ Capability: Workflow contract layer for ADV — gate model, autonomy boundaries,
 
 **ID:** `rq-R3v13wR1` | **Priority:** **[MUST]**
 
-/adv-review and /adv-harden must enforce a minimum findings threshold to prevent shallow 'LGTM' behavior. /adv-review must run mandatory remediation that fixes all blocker/issue findings, investigates all suggestions/questions, implements validated suggestions, and runs cleanup before final verdict.
+/adv-review and /adv-harden must prevent shallow 'LGTM' behavior through evidence-backed clean verdicts, checked dimensions, and red-flag invalidators instead of a fixed finding count. /adv-review owns contract, correctness, security, tests, and scope validation. /adv-harden owns release, deploy, production, docs, and cleanup readiness. Both phases retain a critical blocker backstop and mandatory remediation for blocker/issue and validated in-scope findings.
 
 #### Scenarios
 
-**Minimum findings validation** (`rq-R3v13wR1.1`)
+**Evidence-backed clean verdict validation** (`rq-R3v13wR1.1`)
 
 **Given:**
 
-- A review with fewer than 3 non-nit findings
+- A review or harden pass produces few or no actionable findings
 
-**When:** Gate completion is attempted
+**When:** The final verdict is emitted
 
 **Then:**
 
-- The gate remains open and requires explicit justification for the clean result
+- The verdict includes evidence-backed clean justification for checked dimensions
+- Red-flag invalidators are evaluated before accepting the clean result
+- The gate does not remain open solely because a fixed finding count was not reached
 
 **Review remediation is mandatory** (`rq-R3v13wR1.2`)
 
 **Given:**
 
-- A review produces blocker, issue, suggestion, or question findings
+- Review or harden produces blocker/issue findings or validated in-scope findings
 
-**When:** /adv-review enters remediation
+**When:** The phase enters remediation
 
 **Then:**
 
-- All blocker and issue findings are fixed and verified
+- All blocker and issue findings are fixed and verified unless rejected with evidence as invalid or out of scope
 - Each suggestion/question is investigated and marked validated or rejected with evidence
 - Validated suggestions are implemented
-- A cleanup pass runs before final verdict is emitted
+- Validated in-scope findings are not deferred as report-only, future-work, or accepted debt
+- A cleanup pass runs before final verdict is emitted when cleanup is in phase scope
 
 ---
 
@@ -587,6 +590,61 @@ When `/adv-archive` Phase 9 finalization succeeds, archive success MUST be gated
 - Direct archive mode re-verifies the change branch is reachable from and pushed with the default branch before repair
 - PR archive mode re-verifies the change branch was pushed for PR handoff before repair
 - If finalization evidence is missing or invalid, repair is rejected and release remains not done
+
+---
+
+### Archive Deploy and Reflection Visibility Without Noise
+
+**ID:** `rq-archiveVisibility01` | **Priority:** **[MUST]**
+
+`/adv-archive` terminal output MUST keep deploy and reflection status visible and prominent while treating deploy/reflection failures as nonblocking advisories unless they reveal a structural release-safety failure already governed by contract proof, conformance, merge reachability, push safety, release projection durability, or dirty-main safety checks. `/adv-reflect` MUST provide an archive-visible summary and rerun guidance. This policy MUST NOT absorb separate active-change scope such as archive cleanup scanner behavior or first-class executive-summary ownership; those remain coordinated boundaries, not duplicate implementation in this slice.
+
+**Tags:** `workflow`, `archive`, `reflection`, `deploy`, `noise`
+
+#### Scenarios
+
+**Archive report exposes deploy/reflection advisory state** (`rq-archiveVisibility01.1`)
+
+**Given:**
+
+- A change is finalized through `/adv-archive`
+
+**When:** The archive terminal report is emitted
+
+**Then:**
+
+- Local deploy status is shown as ran, not available, not needed, or failed with reason and nonblocking marker
+- Reflection status is shown as completed or failed with reason and nonblocking marker
+- Deploy and reflection visibility does not reintroduce investment-report summary noise
+
+**Advisory deploy/reflection failures do not block release** (`rq-archiveVisibility01.2`)
+
+**Given:**
+
+- Phase 9 merge/push/release projection proof is structurally satisfied
+- Deploy or reflection generation fails without invalidating release safety
+
+**When:** Archive completion is evaluated
+
+**Then:**
+
+- The release remains complete
+- The failed deploy or reflection is reported as a nonblocking advisory
+- Archive blocks only when the failure also proves structural release-safety failure
+
+**Overlap boundaries stay outside this policy slice** (`rq-archiveVisibility01.3`)
+
+**Given:**
+
+- Related active changes own archive cleanup scanner behavior or executive-summary artifact semantics
+
+**When:** Workflow-noise policy is updated
+
+**Then:**
+
+- This policy does not duplicate archive cleanup scanner implementation
+- This policy does not change executive-summary ownership beyond removing investment-report noise
+- Coordination boundaries are visible in design and command/test surfaces
 
 ---
 

@@ -647,7 +647,13 @@ async function enrichRecentChangeStatus(
     proposalText,
     changeId,
   );
-  appendRecencyRecommendation(status.recommendations, rc, changeId);
+  appendRecencyRecommendation(
+    status.recommendations,
+    rc,
+    changeId,
+    undefined,
+    nextGate as GateId | undefined,
+  );
 }
 
 function appendClarifyRecommendation(
@@ -679,6 +685,7 @@ function appendRecencyRecommendation(
   rc: ChangeRecency & { workerSessionId?: string },
   changeId: string,
   currentSessionId?: string,
+  nextGate?: GateId,
 ): void {
   const minutesSinceActivity = Number(rc.minutesSinceActivity ?? 0);
   if (minutesSinceActivity >= 180) {
@@ -686,7 +693,9 @@ function appendRecencyRecommendation(
     const label =
       hours >= 24 ? `${Math.floor(hours / 24)}d ago` : `${hours}h ago`;
     recommendations.push(
-      `⏰ Stale change \`${changeId}\` (last activity ${label}, ${rc.completedTasks}/${rc.taskCount} tasks done) — resume with \`/adv-apply ${changeId}\``,
+      nextGate
+        ? `⏰ Stale change \`${changeId}\` (last activity ${label}, ${rc.completedTasks}/${rc.taskCount} tasks done) — resume from listed \`${nextGate}\` gate action`
+        : `⏰ Stale change \`${changeId}\` (last activity ${label}, ${rc.completedTasks}/${rc.taskCount} tasks done) — review current gate status before resuming`,
     );
     return;
   }

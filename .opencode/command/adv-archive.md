@@ -33,8 +33,7 @@ If empty → `adv_change_list` → auto-select the only plausible change; ask vi
 2. `adv_task_list` → all tasks must be "done". If incomplete → ARCHIVE BLOCKED banner → stop
 3. `adv_change_validate strict: true` → if fails → show errors/warnings → stop and review the validation output before retrying
 4. `adv_status` → check for `[doctor]` entries: JSON/SQLite inconsistency or broken refs → block; pending WAL → warn only (advisory — benign when transient, escalate only if it persists after rerunning `/adv-status` or restarting OpenCode)
-5. `adv_investment_report changeId: {id}` → include investment summary in archive report (informational)
-6. If `change.contract` exists → run the Contract Proof Gate below before user signoff.
+5. If `change.contract` exists → run the Contract Proof Gate below before user signoff.
 
 ### Contract Proof Gate
 
@@ -164,9 +163,17 @@ For each affected capability: `adv_spec action: "show"` → verify new requireme
 
 ## Phase 8: Archive Report
 
-Use archive terminal variant of the Gate Handoff Voice spine (see `docs/command-voice-standard.md § Archive terminal variant`). The terminal verb branches by push state:
+Before the final archive report, invoke reflection (non-blocking) and capture the result for the report:
 
-- **Shipped.** — push succeeded AND `deploy_action` ∈ {`ran`, `not available`, `not needed`} AND `sync_action` ∈ {`auto via hook`, `manual fix`, `not needed`}
+- `adv_reflect changeId: {change-id}` → produce the reflection report
+- Runs after archive directory creation (Phase 6) and before the final archive report
+- If reflection succeeds → record `Reflection: completed: {reflection-id/path/one-line summary}`
+- If reflection fails → record `Reflection: failed: <reason>; nonblocking`, emit `[ADV:WARN] Reflection generation failed: {reason}; does not block release. Rerun /adv-reflect {change-id} later.`
+- Reflection report is informational only and never blocks release unless it exposes a structural release-safety failure already covered by Phase 9 proof, contract proof, conformance, or merge/push reachability checks.
+
+Use archive terminal variant of the Gate Handoff Voice spine (see `docs/command-voice-standard.md § Archive terminal variant`). The terminal verb branches by push state; deploy/reflection failures stay visible in Delivered lines but do not choose the terminal verb unless they expose a structural release-safety failure:
+
+- **Shipped.** — push succeeded AND `sync_action` ∈ {`auto via hook`, `manual fix`, `not needed`}
 - **Merged locally.** — no remote configured OR push skipped OR push failed (with explicit reason)
 
 ```
@@ -184,26 +191,17 @@ What shipped (or merged locally), what spec deltas applied.
 - Archive location: {path}
 - Git merge: {default-branch} ({merge-mode: ff-only | reconcile | pr})
 - Push: {SHA range pushed | skipped: <reason>}
-- Local deploy: {ran | not available | not needed | failed: <reason>}
+- Local deploy: {ran | not available | not needed | failed: <reason>; nonblocking}
+- Reflection: {completed: <id/path/summary> | failed: <reason>; nonblocking}
 - Pre-push hooks: {hooksPath | githooks | husky | lefthook | standard | none}
 - Asset sync: {auto via hook | manual fix | not needed | n/a}
 - Cleanup: worktree + temp artifacts
 - Continue from: {mainCheckout} ({default-branch})
-- Investment: N tasks / M retries / T min / tier: {auto|escalate|hardstop}
 
 ---
 
 > **{change-id}** · release ✓ · {Shipped. | Merged locally.}
 ```
-
-After archive summary is displayed, invoke reflection (non-blocking):
-
-- `adv_reflect changeId: {change-id}` → produce the reflection report
-- Runs after archive directory creation (Phase 6) and after archive summary (above)
-- If reflection fails → log a warning and continue — do NOT block archive
-- Reflection report is informational only
-
----
 
 ## Phase 9: Git Finalization (Mandatory)
 
@@ -346,13 +344,13 @@ User picks `auto`. b.ts skipped, a.ts auto-resolved (THEIRS side written + add +
 
 Before pushing, projects may run the Local Deploy Gate below when required by their release policy. The runtime helper currently enforces merge/push evidence; deploy execution remains human/agent orchestration unless project tooling adds a runtime hook.
 
-#### Step 5.0: Local Deploy Gate
+#### Step 5.0: Local Deploy Gate — Deploy visibility
 
 If `$MAIN/scripts/deploy-local.sh` exists and is executable:
 
 1. Run `git -C "$MAIN" status --porcelain` and require it to be empty before deploy.
 2. Run `"$MAIN/scripts/deploy-local.sh" --fix` from `$MAIN`; capture output verbatim.
-3. If deploy fails → STOP. Do not push. Report `Local deploy: failed: <reason>` and leave the worktree intact.
+3. If deploy fails → record `deploy_action: failed` with reason and keep it as a nonblocking advisory; continue finalization unless the failure also proves a structural release-safety failure (dirty main after deploy, missing release evidence, failed conformance/contract proof, merge reachability failure, or push safety failure). Report `Local deploy: failed: <reason>; nonblocking` prominently in Phase 8.
 4. If deploy succeeds → record `deploy_action: ran` for Phase 8.
 
 If the script is absent → record `deploy_action: not available`. If the project explicitly documents that no local deploy is needed → record `deploy_action: not needed` with the source of that evidence.
@@ -466,7 +464,7 @@ Remove `*.bak`, `*.tmp`, `*.orig` from `$MAIN` (excluding `node_modules`).
 
 ### Completion
 
-Emit `GIT FINALIZATION COMPLETE` only after Step 6 proof. Include: commit SHA, merge target (`$MAIN` default-branch HEAD), push status, local deploy status, verification status, worktree cleanup status, artifacts removed, `Continue from: {mainCheckout} ({default-branch})`, final `git -C "$MAIN" status --short --branch`. If push/deploy failed, use non-shipped terminal verb + exact remaining command.
+Emit `GIT FINALIZATION COMPLETE` only after Step 6 proof. Include: commit SHA, merge target (`$MAIN` default-branch HEAD), push status, local deploy status, verification status, reflection status, worktree cleanup status, artifacts removed, `Continue from: {mainCheckout} ({default-branch})`, final `git -C "$MAIN" status --short --branch`. If push failed, use non-shipped terminal verb + exact remaining command. If deploy or reflection failed without structural release-safety failure, keep release complete and surface the advisory line.
 
 ### Step 9: Post-Deploy Nudge
 

@@ -649,3 +649,73 @@ After creating a skill, the agent MUST load it via `skill()`, use it in the curr
 - User rejects → skill file deleted
 
 ---
+
+### Trigger-Based Discovery Opportunity Scout
+
+**ID:** `rq-discOpportunityScout01` | **Priority:** **[MUST]**
+
+/adv-discover MUST run a trigger-based Discovery Opportunity Scout pass (Phase 3.5) after current-state research (Phase 3) and before agreement formation (Phase 4) when the change has strategic, architecture, product, ecosystem, external-option, or broad objective/AC leverage. The scout uses a split-load contract: orchestrator owns ScoutCandidate schema, routing, fallback/degradation, adoption, and mutations; adv-researcher may load the adv-opportunity-scout skill in discovery mode for worker methodology. It returns ≤5 structured candidates. The scout phase MUST include an INCONCLUSIVE degradation path (Scout: inconclusive) for worker skill-load unavailable, sub-agent failure, or empty output. Narrow low-opportunity changes MAY skip the scout with documented rationale (Scout: skipped). The orchestrator routes adoption per the skill's taxonomy: auto-adopt only when contract-tied, low risk, and no user-value tradeoff; surface all others to user.
+
+#### Scenarios
+
+**Scout phase executes for strategic and high-opportunity changes** (`rq-discOpportunityScout01.1`)
+
+**Given:**
+- A /adv-discover invocation for a strategic, architecture, product, ecosystem, external-option, or broad objective/AC change
+- Discovery Phase 3 has completed
+
+**When:** Phase 3.5 executes
+
+**Then:**
+- The orchestrator prepares schema, routing, fallback/degradation, and adoption rules
+- adv-researcher is spawned with discovery-mode prompt and may load adv-opportunity-scout in worker context
+- ≤5 candidates are returned with 8-field ScoutCandidate schema
+- Candidates are sorted by payoff/risk ratio
+- Adoption is routed per taxonomy (auto-adopt narrow, surface others)
+
+**Scout degradation proceeds without blocking** (`rq-discOpportunityScout01.2`)
+
+**Given:**
+- Worker skill-load is unavailable
+- Or adv-researcher returns empty/malformed output
+- Or adv-researcher times out
+
+**When:** Phase 3.5 encounters a failure
+
+**Then:**
+- A Scout: inconclusive entry is recorded with reason
+- Discovery proceeds to Phase 4 without blocking
+
+**Narrow low-opportunity changes may skip scout** (`rq-discOpportunityScout01.3`)
+
+**Given:**
+- A narrow bug fix, local refactor, or low-opportunity internal change with no viable opportunity surface
+
+**When:** Phase 3.5 evaluates opt-out criteria
+
+**Then:**
+- The scout is skipped with documented rationale
+- Phase 3.5 records Scout: skipped — {rationale}
+
+---
+
+### Scout Uses Existing adv-researcher
+
+**ID:** `rq-discOpportunityScout02` | **Priority:** **[MUST]**
+
+The Discovery Opportunity Scout MUST use the existing adv-researcher sub-agent for research execution. No new sub-agent identity MAY be introduced for scouting. The scout skill provides read-only worker methodology; commands retain workflow, schema, routing, fallback, adoption, and state ownership.
+
+#### Scenarios
+
+**Scout uses adv-researcher not new agent** (`rq-discOpportunityScout02.1`)
+
+**Given:**
+- Phase 3.5 executes the Discovery Opportunity Scout
+
+**When:** The scout spawns a research sub-agent
+
+**Then:**
+- The sub-agent is adv-researcher (existing bundled global agent)
+- No new sub-agent identity is created
+- The scout skill provides prompt templates and output schema
+- ADV state mutations are not performed by the scout

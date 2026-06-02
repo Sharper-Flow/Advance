@@ -28,9 +28,13 @@ Orchestrate multi-dimensional review of the delivered work. Command is part of t
 
 #### Purpose
 
-Reusable code review methodology for ADV review workflows. Provides the 12-dimension framework and conventional comment labels.
+Reusable code review methodology for ADV review workflows. Provides the 12-dimension framework, conventional comment labels, evidence-backed clean verdict rules, and review-owned validation responsibilities.
 
 **Runtime source:** this embedded section provides the review methodology needed during command execution.
+
+#### Review Ownership
+
+Review owns delivered-work validation: contract traceability, correctness, security, tests/TDD evidence, and scope conformance. Harden owns release/deploy/production/docs/cleanup readiness. **Critical blocker backstop:** review may still flag security, data-loss, contract, or release-safety blockers discovered during acceptance review.
 
 #### 12-Dimension Framework
 
@@ -179,13 +183,13 @@ REPORT PAYLOAD:
   "scope": { "kind": "change", "scope_key": "scanner-bundle:review" },
   "agent": "adv-scanner-bundle",
   "phase": "review",
-  "scanner_count": 5,
+  "scanner_count": {selected_scanner_count},
   "dimensions": [
-    "requirement-traceability",
-    "logic-edge-cases",
+    "contract-traceability",
+    "correctness-edge-cases",
     "security",
-    "architecture-quality",
-    "cross-repo"
+    "tests-tdd-evidence",
+    "scope-conformance"
   ],
   "summary": "bounded synthesis",
   "findings": [],
@@ -194,25 +198,42 @@ REPORT PAYLOAD:
 EXPECTED ACTION: orchestrator calls adv_subagent_report_submit with SCANNER_BUNDLE_REPORT after synthesis
 ```
 
-Spawn **5 sub-agents in two batches** (`subagent_type: "explore"`). Batch 1: sub-agents 1–3. Wait for completions. Batch 2: sub-agents 4–5. Each receives the Review Scanner Context Packet above plus dimension-specific instructions.
-### Sub-Agent 1: Requirement Traceability
-For each scenario → search files for implementation evidence → calculate coverage → flag untraced. Return: `dimension`, `coverage_percent`, `traced`, `untraced`, `issues`.
-### Sub-Agent 2: Logic & Edge Cases
+### Risk-Triggered Scanner Routing
+
+Review uses risk-triggered scanner selection instead of fixed broad fan-out.
+
+Always assess and record evidence for the review-owned dimensions: contract traceability, correctness/edge cases, security surface, tests/TDD evidence, and scope conformance. For narrow low-risk changes, the orchestrator may perform these checks inline and submit a scanner bundle with the checked dimensions. Spawn `explore` scanners only when risk triggers apply.
+
+Risk triggers requiring dedicated scanner workers:
+
+- Contract, acceptance-criteria, task-evidence, or cross-repo changes → contract/scope scanner.
+- Logic/control-flow/concurrency/error-handling changes → correctness/edge-case scanner.
+- User input, auth, secrets, permissions, external calls, or persistence changes → security scanner.
+- Risky logic or broad implementation changes → tests/TDD evidence scanner.
+- Broad multi-file, architectural, or unfamiliar subsystem changes → architecture/scope scanner.
+
+### Scanner Dimension Contracts
+
+Each selected scanner receives the Review Scanner Context Packet above plus dimension-specific instructions.
+
+#### Contract Traceability / Scope
+For each scenario and contract item → search files/tasks for implementation evidence → calculate coverage → flag untraced or out-of-scope work. Return: `dimension`, `coverage_percent`, `traced`, `untraced`, `issues`.
+#### Correctness & Edge Cases
 Check: off-by-one, null/undefined handling, boolean logic, unreachable code, edge cases (empty/zero/max), concurrency. Return: `dimension`, `issues` (label, category, file, line, what, why, fix), `edge_cases_checked`.
-### Sub-Agent 3: Security
+#### Security
 OWASP-based: A01 Broken Access Control, A02 Crypto Failures, A03 Injection, A04 Insecure Design, A05 Misconfiguration, A06 Vulnerable Components, A07 Auth Failures, A08 Data Integrity, A09 Logging Failures, A10 SSRF. Return: `dimension`, `issues`, `auth_assessment`, `secrets_scan`.
-### Sub-Agent 4: Architecture & Quality
+#### Tests / TDD Evidence
+Verify tests fail when code breaks where practical, task evidence includes red/green or justified N/A, and risky touched code has adequate coverage. Return: `dimension`, `issues`, `tdd_audit`, `coverage_assessment`.
+#### Architecture & Quality
 Check: pattern conformance, module boundaries, naming, complexity (>50 lines, cyclomatic >10), DRY violations, SOLID. Return: `dimension`, `issues`, `complexity_hotspots`, `praise_worthy`.
-### Sub-Agent 5: Cross-Repo Verification
-Verify: all target_repo/target_path tasks done, cancelled tasks have approval. Return: `dimension`, `status`, `missing_tasks`, `unapproved_cancellations`.
 
 ---
 ## Phase 3: Synthesis
 > Anti-Loop: after sub-agents → `>>> SYNTHESIS COMPLETE <<<` → aggregate immediately.
 1. Combine all issues → group by label (blocker > issue > suggestion > nit) → deduplicate
 2. Cross-reference with spec scenarios
-### Minimum Findings Enforcement
-If <3 non-nit findings → require genuinely-clean justification with file-level evidence per the Review Methodology section above.
+### Evidence-Backed Clean Verdict
+If no blocker/issue findings remain → require evidence-backed clean verdict with checked dimensions and red-flag invalidators evaluated per the Review Methodology section above. Do not manufacture findings to satisfy a count. Mandatory remediation remains required for blockers/issues and validated in-scope findings.
 ### Verdict
 | Verdict | Criteria |
 |---------|----------|
@@ -485,7 +506,6 @@ Using `agreement.md`, produce:
 3. **Constraints respected / avoidances honored**
 4. **Preview URL** — report `live`, `not_applicable`, or `blocked` state from Preview URL Proof. For `live`, include URL + reachability evidence. For `not_applicable`, include rationale. For `blocked`, stop before asking for acceptance.
 5. **Outstanding caveats**
-6. **Investment summary** — call `adv_investment_report changeId: {id}`; include one line: `Investment: N tasks / M retries / T min / tier: {auto|escalate|hardstop}`. Informational only; not a gate.
 
 Keep concise; user-facing.
 
@@ -493,8 +513,8 @@ Keep concise; user-facing.
 
 Before acceptance prompt, persist durable executive summary:
 
-1. `adv_investment_report changeId: {id}` → task counts, elapsed time, retry density, gate durations.
-2. Compose from acceptance summary + metrics:
+1. Use `adv_change_show` task/gate evidence already loaded for review: task counts, implementation summaries, verification notes, retry summaries, and gate state.
+2. Compose from acceptance summary + task/gate evidence:
    ```
    # Executive Summary
 
@@ -507,12 +527,11 @@ Before acceptance prompt, persist durable executive summary:
    ## What Was Built
    1. {ordered list from change.tasks, using implementation_summary}
 
-   ## What Was Verified
-    - Verdict: {verdict} with {N} findings ({severity breakdown})
-    - Tests: {pass/fail summary}
-    - Preview URL: {sanitized url + reachability evidence + verification timestamp | not_applicable + rationale | blocked + reason}
-    - Investment: {N tasks / M retries / T min / tier}
-    - Contract matrix: {required rows passed/respected, if contract exists}
+    ## What Was Verified
+     - Verdict: {verdict} with {N} findings ({severity breakdown})
+     - Tests: {pass/fail summary}
+     - Preview URL: {sanitized url + reachability evidence + verification timestamp | not_applicable + rationale | blocked + reason}
+     - Contract matrix: {required rows passed/respected, if contract exists}
 
    ## Remaining Concerns
    {open items or "None".}

@@ -65,8 +65,6 @@ tools:
   adv_wisdom_list: true
   adv_wisdom_add: true
   adv_project_wisdom_list: true
-  # Investment governance
-  adv_investment_report: true
   # Agenda
   adv_agenda_list: true
   adv_agenda_add: true
