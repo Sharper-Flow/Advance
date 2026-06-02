@@ -566,4 +566,70 @@ describe("createChangeOps", () => {
 
     expect(invalidateChangeMock).toHaveBeenCalledWith("cacheChange");
   });
+
+  /**
+   * AC2 (remediateSlopScanFindings / QUAL-002) — the Layer-1 aggregate-size
+   * precheck MUST count existing `state.documents`. `getTemporalChange`
+   * returns a `LoadResult` (`{ success, data }`); the previous code read
+   * `.documents` off the wrapper (always `undefined`), so the aggregate cap
+   * only ever measured the proposed payload. This test seeds ~1.75 MB of
+   * existing documents and adds a 200 KB field within the per-artifact cap;
+   * the projected aggregate (~1.95 MB) exceeds the ~1.8 MB hard cap and
+   * `updateArtifacts` MUST reject.
+   *
+   * RED before the unwrap fix: `existingDocuments` resolves to `{}`, so the
+   * projected aggregate is only 200 KB and no error is thrown.
+   */
+  test("aggregate-size precheck counts existing documents (AC2)", async () => {
+    const filler = "z".repeat(350 * 1024); // 5 × 350 KB ≈ 1.75 MB existing
+    const signalMock = vi.fn().mockResolvedValue(undefined);
+    const legacy = {
+      paths: { changes: "/tmp/changes", root: "/tmp/project" },
+      changes: {
+        get: vi.fn().mockResolvedValue({
+          success: true,
+          data: { id: "capChange", adv_project_id: "pid-cap" },
+        }),
+        updateArtifacts: vi.fn().mockResolvedValue({ success: true }),
+      },
+    };
+    const workflowClient = {
+      workflow: { getHandle: vi.fn(() => ({ signal: signalMock })) },
+    };
+    const ops = createChangeOps({
+      input: {
+        legacy,
+        temporal: { client: workflowClient },
+        projectId: "pid-cap",
+      },
+      legacy,
+      invalidateChange: vi.fn(),
+      updateOverlay: vi.fn(),
+      emitChangeSummarySignal: vi.fn(),
+      indexTasksFromState: vi.fn(),
+      setCachedChange: vi.fn(),
+      // Real LoadResult shape: documents live on `.data`, not the wrapper.
+      getTemporalChange: vi.fn().mockResolvedValue({
+        success: true,
+        data: {
+          documents: {
+            proposal: filler,
+            problemStatement: filler,
+            agreement: filler,
+            design: filler,
+            executiveSummary: filler,
+          },
+        },
+      }),
+      listResolvedChanges: vi.fn(),
+      getTemporalWorkflowClient: () => workflowClient,
+      dualWriteAfterMutation: vi.fn(),
+    } as never);
+
+    // 200 KB acceptance field is within the per-artifact cap (256 KB) but
+    // pushes the projected aggregate over the ~1.8 MB hard cap.
+    await expect(
+      ops.updateArtifacts("capChange", { acceptance: "a".repeat(200 * 1024) }),
+    ).rejects.toThrow(/exceeds hard cap/i);
+  });
 });

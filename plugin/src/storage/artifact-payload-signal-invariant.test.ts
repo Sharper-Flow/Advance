@@ -83,7 +83,9 @@ function buildRecordingDeps(): {
     emitChangeSummarySignal: vi.fn(),
     indexTasksFromState: vi.fn(),
     setCachedChange: vi.fn(),
-    getTemporalChange: vi.fn().mockResolvedValue({ documents: {} }),
+    getTemporalChange: vi
+      .fn()
+      .mockResolvedValue({ success: true, data: { documents: {} } }),
     listResolvedChanges: vi.fn(),
     getTemporalWorkflowClient: () => workflowClient,
     dualWriteAfterMutation: vi.fn(),

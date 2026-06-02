@@ -629,9 +629,14 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
         {};
       try {
         const snapshot = await getTemporalChange(changeId);
-        existingDocuments =
-          (snapshot as unknown as { documents?: typeof existingDocuments })
-            .documents ?? {};
+        // `getTemporalChange` returns a `LoadResult` (`{ success, data }`).
+        // The documents live on `.data`, never on the wrapper — read through
+        // the success branch so the aggregate cap projection sees the real
+        // persisted documents (QUAL-002).
+        if (snapshot.success && snapshot.data) {
+          existingDocuments =
+            (snapshot.data.documents as typeof existingDocuments) ?? {};
+        }
       } catch {
         // Snapshot may be unavailable for in-flight workflows or test
         // fixtures; aggregate cap then computes against the proposed payload
