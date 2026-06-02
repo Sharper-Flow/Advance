@@ -1,0 +1,1559 @@
+{
+  "id": "hardenToolContracts",
+  "title": "Harden tool contracts",
+  "status": "archived",
+  "created_at": "2026-06-01T21:42:52.908Z",
+  "tasks": [
+    {
+      "id": "tk-60834f9112c3",
+      "title": "Add deterministic Zod-to-JSON schema generation",
+      "type": "code",
+      "section": "Schema generation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-06-01T22:07:14.727Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "C1",
+          "C2",
+          "C5"
+        ],
+        "verifies": [
+          "AC1"
+        ],
+        "respects": [
+          "DONT4"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-01T22:15:46.990Z",
+      "verification": "Passed: pnpm test -- src/schema-registry.test.ts; pnpm run schemas:check.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added `plugin/src/schema-registry.ts` with curated public schema registry, canonical Advance schema URLs, deterministic sorted `z.toJSONSchema(..., target: \"draft-07\")` rendering, and all-schema rendering. Added `plugin/scripts/generate-json-schemas.ts` with write/check modes plus `schemas:generate` and `schemas:check` scripts integrated into `pnpm run check`. Replaced committed `plugin/schemas/*.schema.json` stubs with generated non-empty JSON schema artifacts. Added `plugin/src/schema-registry.test.ts` covering public artifact set, canonical IDs, non-empty generated schemas, and committed-output drift.",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "978158840d5c179da9732ce661b1d128c8be136c",
+      "completedAt": "2026-06-01T23:05:38.663Z",
+      "completed_at": "2026-06-01T23:05:38.663Z",
+      "notes": "Generated public JSON schemas from Zod v4, added deterministic schema registry and generator/check scripts, replaced stub schema artifacts with generated content. Verification passed: `pnpm test -- src/schema-registry.test.ts`; `pnpm run schemas:check`. Checkpoint recorded at 978158840d5c179da9732ce661b1d128c8be136c.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "updatedAt": "2026-06-01T23:06:02.400Z"
+    },
+    {
+      "id": "tk-3cd32b209b7b",
+      "title": "Replace dead schema URLs and migrate stored spec refs",
+      "type": "code",
+      "section": "Schema generation",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-06-01T22:07:25.226Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-60834f9112c3"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC2"
+        ],
+        "verifies": [
+          "AC2"
+        ],
+        "respects": [
+          "C5",
+          "DONT4"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-01T23:06:35.211Z",
+      "verification": "Passed red/green targeted test for schema URL assets. Passed verify: pnpm test -- src/schema-url-assets.test.ts src/storage/store-disk.judgment-calls-removal.test.ts src/schema-registry.test.ts; pnpm run typecheck.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added `plugin/src/schema-url-assets.test.ts` to scan stored spec artifacts plus change/spec artifact default code for retired `anomalyco/oc-plugins` URLs. Replaced archive spec scaffolding with `SPEC_SCHEMA_URL` and disk-store change scaffolding with `CHANGE_SCHEMA_URL`. Updated relevant storage tests to use `CHANGE_SCHEMA_URL`. Migrated all tracked `.adv/specs/*/spec.json` `$schema` refs to the canonical `Sharper-Flow/Advance/trunk/plugin/schemas/spec.schema.json` URL.",
+      "filesTouched": [
+        ".adv/specs/adv-discover/spec.json",
+        ".adv/specs/adv-prep/spec.json",
+        ".adv/specs/adv-proposal/spec.json",
+        ".adv/specs/advance-delivery/spec.json",
+        ".adv/specs/advance-meta/spec.json",
+        ".adv/specs/advance-workflow/spec.json",
+        ".adv/specs/arch-scan/spec.json",
+        ".adv/specs/backlog-coordination/spec.json",
+        ".adv/specs/chat-output-display/spec.json",
+        ".adv/specs/delegation-defaults/spec.json",
+        ".adv/specs/domain-context/spec.json",
+        ".adv/specs/prep-readiness/spec.json",
+        ".adv/specs/slop-scan/spec.json",
+        ".adv/specs/snapshot-health/spec.json",
+        ".adv/specs/spec-conformance/spec.json",
+        ".adv/specs/subagent-reports/spec.json",
+        ".adv/specs/tdd-contract/spec.json",
+        ".adv/specs/worktree-lifecycle/spec.json",
+        ".adv/specs/worktree-warp-mode/spec.json",
+        "plugin/src/archive/delta.ts",
+        "plugin/src/schema-url-assets.test.ts",
+        "plugin/src/storage/store-disk.judgment-calls-removal.test.ts",
+        "plugin/src/storage/store-disk.ts"
+      ],
+      "touched_files": [
+        ".adv/specs/adv-discover/spec.json",
+        ".adv/specs/adv-prep/spec.json",
+        ".adv/specs/adv-proposal/spec.json",
+        ".adv/specs/advance-delivery/spec.json",
+        ".adv/specs/advance-meta/spec.json",
+        ".adv/specs/advance-workflow/spec.json",
+        ".adv/specs/arch-scan/spec.json",
+        ".adv/specs/backlog-coordination/spec.json",
+        ".adv/specs/chat-output-display/spec.json",
+        ".adv/specs/delegation-defaults/spec.json",
+        ".adv/specs/domain-context/spec.json",
+        ".adv/specs/prep-readiness/spec.json",
+        ".adv/specs/slop-scan/spec.json",
+        ".adv/specs/snapshot-health/spec.json",
+        ".adv/specs/spec-conformance/spec.json",
+        ".adv/specs/subagent-reports/spec.json",
+        ".adv/specs/tdd-contract/spec.json",
+        ".adv/specs/worktree-lifecycle/spec.json",
+        ".adv/specs/worktree-warp-mode/spec.json",
+        "plugin/src/archive/delta.ts",
+        "plugin/src/schema-url-assets.test.ts",
+        "plugin/src/storage/store-disk.judgment-calls-removal.test.ts",
+        "plugin/src/storage/store-disk.ts"
+      ],
+      "checkpointSha": "62f0d2b2ec48034ee7e446d3c6b4b1d543a01574",
+      "completedAt": "2026-06-01T23:11:51.025Z",
+      "completed_at": "2026-06-01T23:11:51.025Z",
+      "notes": "Replaced retired `anomalyco/oc-plugins` schema URLs in generated change/spec artifact defaults and all tracked `.adv/specs/*/spec.json` refs. Added asset test preventing regressions. Verification passed: red/green schema URL test, targeted related tests, and `pnpm run typecheck`. Checkpoint 62f0d2b2ec48034ee7e446d3c6b4b1d543a01574.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "updatedAt": "2026-06-01T23:12:01.134Z"
+    },
+    {
+      "id": "tk-d3a0b19f168e",
+      "title": "Add preflight policy drift guards",
+      "type": "code",
+      "section": "Tool preflight",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-06-01T22:07:36.366Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC3",
+          "AC5"
+        ],
+        "verifies": [
+          "AC3",
+          "AC5"
+        ],
+        "respects": [
+          "C4",
+          "DONT3",
+          "DONT4"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-01T23:12:19.464Z",
+      "verification": "Passed red/green/verify: pnpm test -- src/utils/tool-arg-preflight.test.ts. Passed pnpm run typecheck and pnpm run format:check.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Exported `listToolArgFieldPolicies()` plus policy types from `plugin/src/utils/tool-arg-preflight.ts`. Added `FIELD_POLICIES` entries for `adv_change_update` recovery audit fields, `adv_change_archive` worktree/recovery fields, and `adv_snapshot_health` repair approval fields. Added drift-guard tests in `tool-arg-preflight.test.ts`: an explicit audited field policy matrix asserts required blank/zero/empty-array/record-value behavior, and a registry comparison builds `createToolMap()` to ensure every `FIELD_POLICIES` tool/field still maps to a live registered argument. Ran Prettier, which also normalized previously-added schema test formatting.",
+      "filesTouched": [
+        "plugin/src/schema-registry.ts",
+        "plugin/src/schema-url-assets.test.ts",
+        "plugin/src/utils/tool-arg-preflight.test.ts",
+        "plugin/src/utils/tool-arg-preflight.ts"
+      ],
+      "touched_files": [
+        "plugin/src/schema-registry.ts",
+        "plugin/src/schema-url-assets.test.ts",
+        "plugin/src/utils/tool-arg-preflight.test.ts",
+        "plugin/src/utils/tool-arg-preflight.ts"
+      ],
+      "checkpointSha": "7cf0f1e72fa20e5c31e613145ece02dadd69a9a4",
+      "completedAt": "2026-06-01T23:20:41.341Z",
+      "completed_at": "2026-06-01T23:20:41.341Z",
+      "notes": "Added exported read-only preflight policy metadata and drift tests. Coverage now fails when audited placeholder/audit fields lack policy entries or when policy entries reference removed/renamed registered args. Added policies for archive recovery/worktree path and snapshot repair approval fields. Verification passed: `pnpm test -- src/utils/tool-arg-preflight.test.ts`; `pnpm run typecheck`; `pnpm run format:check`. Checkpoint 7cf0f1e72fa20e5c31e613145ece02dadd69a9a4.",
+      "error_recovery": {
+        "last_error": "`pnpm run format:check` failed because newly-added schema/preflight files needed Prettier formatting.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "Formatting applied; reran focused test, typecheck, and format check successfully.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "`pnpm run format:check` reported style issues in src/schema-registry.ts, src/schema-url-assets.test.ts, and src/utils/tool-arg-preflight.test.ts.",
+            "diagnosis": "Implementation was correct but touched source/test files were not formatted after adding long policy matrix entries.",
+            "fix_tried": "Ran `pnpm run format` and reran `pnpm test -- src/utils/tool-arg-preflight.test.ts`, `pnpm run typecheck`, and `pnpm run format:check`.",
+            "strategy_label": "format-and-rerun",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-01T23:19:30.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-01T23:20:59.815Z"
+    },
+    {
+      "id": "tk-88603a7cdf2c",
+      "title": "Harden representative high-risk tool argument failures",
+      "type": "code",
+      "section": "Tool preflight",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-06-01T22:07:47.689Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-d3a0b19f168e"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC4",
+          "AC5"
+        ],
+        "verifies": [
+          "AC4",
+          "AC5"
+        ],
+        "respects": [
+          "C4",
+          "DONT3",
+          "DONT4"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-01T23:21:55.799Z",
+      "verification": "Passed red/green high-risk preflight blocking test. Passed verify: pnpm exec vitest run src/tool-registry.test.ts; pnpm test -- src/utils/tool-arg-preflight.test.ts; pnpm run typecheck; pnpm run format:check. Initial `pnpm test -- src/tool-registry.test.ts` routed into unrelated concurrent-signaling integration failure; direct vitest targeted rerun passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added `tool-registry.test.ts` coverage proving `registerTool` returns structured `INVALID_TOOL_ARGS` and does not call the handler for malformed high-risk payloads: blank task recovery evidence on `adv_task_update`/`adv_task_add`, and empty `adv_snapshot_health.repair_actions`. Extended `FIELD_POLICIES` for task recovery evidence (`adv_task_update`, `adv_task_add`, `adv_task_cancel`) and gate recovery audit fields (`recoveryEvidence`, `recoveryReason`, `priorApprovalEvidence`). Extended the audited policy matrix to pin these fields so future missing/dead policy drift fails deterministically.",
+      "filesTouched": [
+        "plugin/src/tool-registry.test.ts",
+        "plugin/src/utils/tool-arg-preflight.test.ts",
+        "plugin/src/utils/tool-arg-preflight.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tool-registry.test.ts",
+        "plugin/src/utils/tool-arg-preflight.test.ts",
+        "plugin/src/utils/tool-arg-preflight.ts"
+      ],
+      "checkpointSha": "0dd504f08ced6c2d1adc553919ad32a21d61a544",
+      "completedAt": "2026-06-01T23:28:25.605Z",
+      "completed_at": "2026-06-01T23:28:25.605Z",
+      "notes": "Added registry-level preflight blocking coverage for representative high-risk malformed args and extended policies so blank poisoned-history recovery evidence rejects before handler execution. Verification passed via direct targeted vitest, preflight tests, typecheck, and format check. Checkpoint 0dd504f08ced6c2d1adc553919ad32a21d61a544.",
+      "error_recovery": {
+        "last_error": "`pnpm test -- src/tool-registry.test.ts` ran into an unrelated `concurrent-signaling.itest.ts` state predicate timeout despite targeting tool-registry.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "ENVIRONMENTAL",
+        "next_strategy": "Use direct vitest file targeting for this evidence; full suite remains for final verification.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "`pnpm test -- src/tool-registry.test.ts` failed in `src/temporal/__tests__/concurrent-signaling.itest.ts`, not in `tool-registry.test.ts`.",
+            "diagnosis": "Package-script invocation routed through broader Vitest discovery and hit an unrelated integration timeout. Direct file-targeted Vitest is the appropriate focused verification for this task.",
+            "fix_tried": "Reran with `pnpm exec vitest run src/tool-registry.test.ts`; it passed 27/27 tests.",
+            "strategy_label": "direct-vitest-target",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-01T23:28:06.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-01T23:28:40.639Z"
+    },
+    {
+      "id": "tk-050e9b3f509c",
+      "title": "Preserve strict sub-agent report contracts and touched packet anchors",
+      "type": "code",
+      "section": "Sub-agent contracts",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-06-01T22:07:58.432Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC6",
+          "AC7"
+        ],
+        "verifies": [
+          "AC6",
+          "AC7"
+        ],
+        "respects": [
+          "DONT1",
+          "DONT2",
+          "DONT4",
+          "OOS2",
+          "OOS3"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-01T23:29:00.191Z",
+      "verification": "Passed: pnpm exec vitest run src/types/subagent-reports.test.ts src/tools/subagent-report.test.ts src/agent-tool-contracts-assets.test.ts src/subagent-reports-spec-assets.test.ts src/adv-engineer-assets.test.ts src/adv-reviewer-asset.test.ts src/adv-designer-assets.test.ts (7 files, 205 tests).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Confirmed sub-agent report strictness and packet-anchor coverage through focused regression suites: `types/subagent-reports.test.ts` pins strict schemas, identity field sources, packet anchor mapping, and unsupported scope/agent pair rejection; `tools/subagent-report.test.ts` pins `INVALID_REPORT` behavior before persistence/signaling for malformed payloads; `agent-tool-contracts-assets.test.ts`, `subagent-reports-spec-assets.test.ts`, and adv-engineer/reviewer/designer asset tests pin schema/context-packet/prompt/spec anchors. No production or test code changes were required for this task.",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "0dd504f08ced6c2d1adc553919ad32a21d61a544",
+      "completedAt": "2026-06-01T23:30:49.735Z",
+      "completed_at": "2026-06-01T23:30:49.735Z",
+      "notes": "Verified strict sub-agent report schemas and packet/prompt/spec anchors remain intact. No code changes needed: existing structural schemas still reject malformed/missing identity reports as `INVALID_REPORT`, and asset tests pin worker packet anchors. Verification passed: 7 focused test files, 205 tests. Checkpoint recorded at 0dd504f08ced6c2d1adc553919ad32a21d61a544.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "updatedAt": "2026-06-01T23:31:02.350Z"
+    },
+    {
+      "id": "tk-301330fdc801",
+      "title": "Update docs/specs for enforced tool-contract behavior",
+      "type": "code",
+      "section": "Docs and specs",
+      "status": "done",
+      "priority": 5,
+      "created_at": "2026-06-01T22:08:09.166Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-60834f9112c3"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-d3a0b19f168e"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "C1",
+          "C2",
+          "C5"
+        ],
+        "verifies": [
+          "AC7"
+        ],
+        "respects": [
+          "DONT4"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-01T23:31:24.316Z",
+      "verification": "Passed: pnpm exec vitest run src/repo-instructions-assets.test.ts src/agent-tool-contracts-assets.test.ts; pnpm exec prettier --check ../AGENTS.md ../project.md ../docs/agent-tool-contracts.md ../skills/adv-agent-tool-contracts/SKILL.md; pnpm run schemas:check; node -e JSON.parse(fs.readFileSync('../.adv/specs/advance-workflow/spec.json','utf8')).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Updated `project.md` and `AGENTS.md` to document generated public JSON schemas, `schemas:generate`, `schemas:check`, Zod v4 `z.toJSONSchema()`, and CI check ordering. Updated `.gitattributes` and `.lgrepignore` comments to treat `plugin/schemas/` as generated schema artifacts instead of stubs. Extended `docs/agent-tool-contracts.md` and `skills/adv-agent-tool-contracts/SKILL.md` with `FIELD_POLICIES`, `INVALID_TOOL_ARGS`, normalized preflight payload behavior, and drift-test expectations. Updated `rq-toolPlaceholderPolicy01` in `.adv/specs/advance-workflow/spec.json` to make policy metadata and drift guards capability law. Added/extended asset tests in `repo-instructions-assets.test.ts` and `agent-tool-contracts-assets.test.ts` to pin the updated documentation anchors.",
+      "filesTouched": [
+        ".adv/specs/advance-workflow/spec.json",
+        ".gitattributes",
+        ".lgrepignore",
+        "AGENTS.md",
+        "docs/agent-tool-contracts.md",
+        "plugin/src/agent-tool-contracts-assets.test.ts",
+        "plugin/src/repo-instructions-assets.test.ts",
+        "project.md",
+        "skills/adv-agent-tool-contracts/SKILL.md"
+      ],
+      "touched_files": [
+        ".adv/specs/advance-workflow/spec.json",
+        ".gitattributes",
+        ".lgrepignore",
+        "AGENTS.md",
+        "docs/agent-tool-contracts.md",
+        "plugin/src/agent-tool-contracts-assets.test.ts",
+        "plugin/src/repo-instructions-assets.test.ts",
+        "project.md",
+        "skills/adv-agent-tool-contracts/SKILL.md"
+      ],
+      "checkpointSha": "db2175b0a8bbc553fdb501a60b9813b0f8f16401",
+      "completedAt": "2026-06-01T23:42:44.364Z",
+      "completed_at": "2026-06-01T23:42:44.364Z",
+      "notes": "Updated stale schema-generation guidance and tool-contract docs/specs. Verification passed: `pnpm exec vitest run src/repo-instructions-assets.test.ts src/agent-tool-contracts-assets.test.ts`; `pnpm exec prettier --check ../AGENTS.md ../project.md ../docs/agent-tool-contracts.md ../skills/adv-agent-tool-contracts/SKILL.md`; `pnpm run schemas:check`; `node -e \"const fs=require('fs'); JSON.parse(fs.readFileSync('../.adv/specs/advance-workflow/spec.json','utf8'));\"`. Checkpoint recorded at db2175b0a8bbc553fdb501a60b9813b0f8f16401.",
+      "error_recovery": {
+        "last_error": "Initial Prettier check over the touched docs/spec set failed because `.adv/specs/advance-workflow/spec.json` formatting changed.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "`pnpm exec prettier --check ../AGENTS.md ../project.md ../docs/agent-tool-contracts.md ../skills/adv-agent-tool-contracts/SKILL.md ../.adv/specs/advance-workflow/spec.json` exited 1 with `[warn] ../.adv/specs/advance-workflow/spec.json`.",
+            "diagnosis": "The spec JSON edit was valid but not Prettier-formatted for the touched hunk; broad formatting caused unrelated compact-array rewrites.",
+            "fix_tried": "Formatted once, then manually reverted unrelated formatting-only hunks and used JSON parse validation plus docs-only Prettier check for current state.",
+            "strategy_label": "format-targeted-docs-and-validate-json",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-01T23:41:00.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-01T23:43:12.900Z"
+    },
+    {
+      "id": "tk-26fd938199f6",
+      "title": "Run final contract validation and full project verification",
+      "type": "code",
+      "section": "Verification",
+      "status": "done",
+      "priority": 6,
+      "created_at": "2026-06-01T22:09:52.506Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-3cd32b209b7b"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-88603a7cdf2c"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-050e9b3f509c"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-301330fdc801"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7",
+          "AC8"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "DONT6",
+          "OOS1",
+          "OOS2",
+          "OOS3",
+          "OOS4"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-01T23:43:44.137Z",
+      "verification": "Release hardening fix passed: bin/oc-test targeted -- src/schema-registry.test.ts; pnpm run schemas:check; pnpm exec prettier --check src/schema-registry.ts.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Ran final contract validation and project verification, remediated acceptance review CI schemas:check issue, then during release hardening remediated the generated-schema `$id` documentation suggestion. Added `.github/workflows/ci.yml` `Schema drift check` before typecheck, updated `AGENTS.md`/`project.md` CI order, extended `repo-instructions-assets.test.ts`, and added a `schema-registry.ts` comment documenting trunk-pinned public `$id` semantics and local validation via committed artifacts plus `schemas:check`. Verified targeted contract and schema suites, `pnpm run check`, `bin/oc-test full`, and `pnpm run build`.",
+      "filesTouched": [
+        "plugin/src/schema-registry.ts"
+      ],
+      "touched_files": [
+        "plugin/src/schema-registry.ts"
+      ],
+      "checkpointSha": "64e4ef5b788518f9d4e430b9a2c38abac6d8572b",
+      "completedAt": "2026-06-02T00:15:06.051Z",
+      "completed_at": "2026-06-02T00:15:06.051Z",
+      "notes": "Final verification and release hardening passed. Additional harden remediation after acceptance: documented canonical trunk `$id` URL semantics in `plugin/src/schema-registry.ts`; completed three review-created agenda items with one fix and two rationales. Evidence: `bin/oc-test targeted -- src/schema-registry.test.ts` passed; `pnpm run schemas:check` passed; `pnpm exec prettier --check src/schema-registry.ts` passed. Prior evidence: targeted contract suite 317 tests; `pnpm run check`; `bin/oc-test full`; `pnpm run build`; `adv_change_validate` 0 errors. Hardening checkpoint: 64e4ef5b788518f9d4e430b9a2c38abac6d8572b.",
+      "error_recovery": {
+        "last_error": "During release hardening, review-created agenda items included one valid adjacent documentation suggestion and two non-applicable/future hygiene items.",
+        "retry_count": 2,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "Architecture review issue: docs stated CI/`pnpm run check` enforced `schemas:check`, but CI had no dedicated schema drift check.",
+            "diagnosis": "Adding a dedicated CI step was the structural fix for AC1 CI drift enforcement.",
+            "fix_tried": "Added `.github/workflows/ci.yml` `Schema drift check`; updated docs; added asset test.",
+            "strategy_label": "add-ci-schema-check",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-02T00:00:00.000Z"
+          },
+          {
+            "attempt_number": 2,
+            "error": "Review-created agenda suggested documenting trunk-pinned schema `$id` semantics.",
+            "diagnosis": "Safe adjacent hardening doc fix; no contract drift.",
+            "fix_tried": "Added comment in `plugin/src/schema-registry.ts`; verified schema-registry test, schemas:check, and Prettier.",
+            "strategy_label": "document-trunk-schema-ids",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-02T00:15:00.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-02T00:15:35.015Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "hardenToolContracts",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:discovery-opportunity-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Tool-contract hardening opportunity scout: schema/preflight/report-contract leverage points",
+      "sources": [
+        {
+          "label": "JSON schema stubs (empty definitions)",
+          "locator": "/home/jon/dev/advance/plugin/schemas/change.schema.json, task.schema.json, spec.schema.json (definitions:{change:{}}, task:{}, spec:{})",
+          "summary": "All 7 published schema stubs have empty `definitions` bodies — they validate nothing. $id points to anomalyco/oc-plugins, not the live Sharper-Flow/Advance repo."
+        },
+        {
+          "label": "Dead $schema URL emitted on every Change",
+          "locator": "/home/jon/dev/advance/plugin/src/storage/store-disk.ts:360-361",
+          "summary": "Change artifacts stamp $schema = raw.githubusercontent.com/anomalyco/oc-plugins/main/advance/plugin/schemas/change.schema.json — wrong org/path (404) and resolves to an empty stub even if reachable. Also in archive/delta.ts:358 (spec) and tested against in store-disk.judgment-calls-removal.test.ts."
+        },
+        {
+          "label": "Zod v4 first-party JSON Schema export",
+          "locator": "https://github.com/colinhacks/zod (z.toJSONSchema; Context7 /colinhacks/zod json-schema.mdx)",
+          "summary": "Zod 4 ships z.toJSONSchema(schema) and z.toJSONSchema(z.globalRegistry,{uri}) for interlinked $ref output. Plugin already pins zod@4.3.6 (tool-registry.ts P1.12 comment), so codegen is first-party, no new dep, and avoids unmaintained zod-to-json-schema."
+        },
+        {
+          "label": "Preflight policy table is hand-maintained per-tool",
+          "locator": "/home/jon/dev/advance/plugin/src/utils/tool-arg-preflight.ts:56-210 (FIELD_POLICIES), 309-413 (CROSS_FIELD_VALIDATORS)",
+          "summary": "FIELD_POLICIES is a manual map keyed by tool name. New audit/path/evidence fields on new tools silently get no placeholder policy. No test asserts coverage of placeholder-sensitive fields against live arg schemas."
+        },
+        {
+          "label": "Tool-name drift guard exists; policy/schema drift guard does not",
+          "locator": "/home/jon/dev/advance/plugin/src/tool-registry.test.ts:66-103, 474-485; tool-name-assets.test.ts",
+          "summary": "ADV_TOOL_NAMES is drift-guarded against createToolMap and every tool has non-empty args. No equivalent guard links FIELD_POLICIES (or published JSON schemas) to the actual Zod arg schemas."
+        },
+        {
+          "label": "Placeholder/preflight is already capability law",
+          "locator": "/home/jon/dev/advance/.adv/specs/advance-workflow/spec.json:2318,2397,2310",
+          "summary": "Spec already mandates central placeholder classification + blank-artifact normalization + storage-boundary rejection. Implementation matches. This area is hardened; remaining gaps are coverage-guard + published-schema fidelity, not new policy."
+        },
+        {
+          "label": "Issue #133 scope",
+          "locator": "https://github.com/Sharper-Flow/Advance/issues/133",
+          "summary": "Blank-optional-string investigation across ADV tools — already addressed by FIELD_POLICIES/spec. The forward-looking gap is preventing regressions on NEW tools, not re-auditing existing ones."
+        }
+      ],
+      "architecture_assessment": "Tool-contract surface has two healthy structural pillars (Zod-typed report ingest with strict INVALID_REPORT, and centralized preflight placeholder policy backed by advance-workflow spec law) and one decayed pillar: the published JSON schemas. The schemas/*.schema.json stubs are empty {} and the $schema URLs stamped onto every emitted Change/Spec artifact point to a non-existent anomalyco/oc-plugins repo. This is a P33 structural-correctness violation: artifacts assert conformance against a schema that validates nothing and cannot be fetched. The live source of truth is the Zod types (types/changes.ts, types/subagent-reports.ts). The leverage point is to make the Zod types the generator of the published schemas via Zod 4's first-party z.toJSONSchema (no new dependency, version already pinned), then drift-guard it. Secondary leverage: the FIELD_POLICIES preflight table and report contract checklist are correct but rely on humans remembering to extend them per new tool — a coverage-guard test (parallel to the existing ADV_TOOL_NAMES drift guard) would make recurrence structural rather than checklist-dependent.",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "No security/release blocker. Two real, in-scope structural gaps confirmed by file evidence: (1) empty/dead published JSON schemas vs live Zod types; (2) no coverage drift-guard for preflight policy / published schemas on new tools. The change workflow `hardenToolContracts` is NOT reachable via adv_change_show or this project's adv_change_list (WorkflowNotFoundError) — packet/state mismatch; orchestrator should confirm change identity before planning."
+      },
+      "recommendation": "Within approved scope, prioritize 2 auto-adopt candidates and surface 1 to the user. AUTO-ADOPT C1: Generate plugin/schemas/*.schema.json from live Zod types using Zod 4 z.toJSONSchema (boring, first-party, no new dep) and fix the emitted $schema URLs to the real Sharper-Flow/Advance path (or drop the URL if schemas aren't actually published/fetched). AUTO-ADOPT C2: Add a drift-guard test that fails when a tool in ADV_TOOL_NAMES has placeholder-sensitive arg fields (audit/evidence/path/identity/command/branch) with no FIELD_POLICIES entry — mirrors the existing ADV_TOOL_NAMES↔createToolMap guard. USER-SURFACE C3: whether to publish JSON schemas at all (regenerate-and-publish vs delete stubs + remove $schema stamping) — this is a product/distribution decision needing orchestrator/user input. Do NOT expand into report-schema redesign or seven-gate work (OOS).",
+      "follow_ups": [
+        "ScoutCandidate C1 [auto-adopt]: codegen plugin/schemas/*.schema.json from Zod types via z.toJSONSchema; fix dead anomalyco/oc-plugins $schema URLs in store-disk.ts:361 and archive/delta.ts:358. Evidence: empty stubs + 404 org path.",
+        "ScoutCandidate C2 [auto-adopt]: add FIELD_POLICIES coverage drift-guard test parallel to tool-registry.test.ts ADV_TOOL_NAMES guard, so new tools with audit/path/evidence fields cannot ship without a placeholder policy.",
+        "ScoutCandidate C3 [user-surface]: decide publish-vs-remove for JSON schemas — regenerate+publish under correct repo path, or delete stubs and stop stamping $schema. Distribution/product call.",
+        "ScoutCandidate C4 [inconclusive]: agent-tool-contracts.md checklist could become an executable lint (assert packet anchors↔report-schema required fields), but no current tooling hook exists; needs orchestrator decision on enforcement appetite before estimating.",
+        "ScoutCandidate C5 [inconclusive]: SupportedSubagentReportSchema (types/subagent-reports.ts:359) is a deprecated alias still exported; possible dead-narrowing of ingest surface, but consumer audit not completed in this bounded pass.",
+        "WARNING: orchestrator packet supplied scope anchors but change workflow `hardenToolContracts` is unreachable (WorkflowNotFoundError on adv_change_show; absent from adv_change_list). Confirm change identity/store state before planning."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "hardenToolContracts",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-leverage-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design leverage scout: schema generation, dead-URL scope, preflight coverage, report contract hardening",
+      "sources": [
+        {
+          "label": "Zod v4 JSON Schema docs (canonical)",
+          "locator": "https://zod.dev/json-schema",
+          "summary": "z.toJSONSchema native. target accepts 'draft-07' (and 'draft-7'); default draft-2020-12. unrepresentable defaults to 'throw' (bigint/date/symbol/transform/custom/map/set/nan), giving fail-loud behavior for free. reused:'inline' default; reused:'ref' extracts $defs. io:'output' default. cycles:'ref' default."
+        },
+        {
+          "label": "Zod v4 changelog: transforms non-introspectable",
+          "locator": "https://zod.dev/v4?id=100x-reduction-in-tsc-instantiations",
+          "summary": "transform() -> ZodPipe is a runtime black box; .overwrite() preserves introspectable output type and is JSON-Schema-compatible. Confirms design risk note re transforms is real but only triggers throw, not silent loss."
+        },
+        {
+          "label": "Local: plugin/package.json",
+          "locator": "/home/jon/dev/advance/plugin/package.json:41",
+          "summary": "zod ^4.3.6 confirmed; native z.toJSONSchema available. check script = typecheck + check-test-isolation + check-lockfile-policy + lint + format:check; schemas:check insertion point identified. 'schemas' already in files[] for publish."
+        },
+        {
+          "label": "Local: existing schema stubs are empty",
+          "locator": "/home/jon/dev/advance/plugin/schemas/change.schema.json:8",
+          "summary": "All 7 target schema files exist but definitions are empty stubs (\"change\": {}) AND carry dead anomalyco $id. Validates 'generate truthful schemas' objective; current files are non-truthful skeletons."
+        },
+        {
+          "label": "Local: dead anomalyco URL blast radius",
+          "locator": "/home/jon/dev/advance (lgrep search_text anomalyco/oc-plugins)",
+          "summary": "Dead URLs span MORE than store-disk.ts + delta.ts: also schema $id fields inside plugin/schemas/*.json, store-disk.judgment-calls-removal.test.ts (2x), and 22 .adv/specs/*/spec.json $schema refs. Design's named replacement scope is incomplete."
+        },
+        {
+          "label": "Local: curated Zod artifact schemas exist, no unrepresentable types",
+          "locator": "/home/jon/dev/advance/plugin/src/types/{specs,tasks,changes,project,artifacts}.ts",
+          "summary": "ChangeSchema/TaskSchema/SpecSchema/RequirementSchema/ScenarioSchema/DeltaSchema/ProjectConfig exported. No .transform(), z.custom(, or z.date( in types/. Generator import path sound; unrepresentable:'throw' risk is low for these 7."
+        },
+        {
+          "label": "Local: preflight FIELD_POLICIES + tool-registry introspection surface",
+          "locator": "/home/jon/dev/advance/plugin/src/utils/tool-arg-preflight.ts:56 ; src/tool-registry.ts:246 createToolMap",
+          "summary": "FIELD_POLICIES is a pure module-const map keyed by tool name; createToolMap returns a static object of bound tools whose .args Zod schemas are introspectable. Coverage test (policy-key vs registered-arg-key diff) is feasible without store/Temporal."
+        }
+      ],
+      "architecture_assessment": "Design is boring-correct on the load-bearing decision. Zod-as-source-of-truth with derived JSON Schema via native z.toJSONSchema (Zod >=4.0.0, present at 4.3.6) is the canonical Zod v4 path; zod-to-json-schema is the v3-era third-party tool and would be the worse choice here. target:'draft-07' is a documented enum value and preserves the existing dialect (existing stubs declare draft-07), so no downstream $schema-dialect churn. The fail-loud requirement (schemas:check must fail on unrepresentable types) is FREE: unrepresentable defaults to 'throw' — the generator does not need custom detection logic, it just must NOT pass unrepresentable:'any'. Local evidence shows the 7 target schemas contain no transforms/custom/date, so throw will not spuriously fire today. Two design gaps surfaced: (1) dead-URL replacement scope is under-specified — anomalyco URLs also live in schema $id fields, a test file, and 22 .adv/specs spec.json $schema refs, not just store-disk.ts/delta.ts; the AC 'no dead anomalyco URLs' cannot be met by the named-file list alone. (2) determinism/stable-ordering risk is real because reused:'inline' is the default and object key order from z.toJSONSchema is insertion-ordered — a JSON.stringify with sorted keys (or a fixed serializer) is needed for a stable CI diff, otherwise schemas:check will flap.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "No anti-patterns. Core tech choice (native z.toJSONSchema, draft-07, Zod source-of-truth, derived artifacts, high-risk+guards scope) is verified against canonical Zod v4 docs and local code. Two non-blocking corrections needed before/at planning: (a) widen dead-URL replacement to ALL occurrences incl schema $id + 22 spec.json + test file, or AC is unmeetable; (b) specify deterministic serialization (sorted keys / canonical formatter) so schemas:check is stable. Keep unrepresentable at default 'throw' (do not set 'any') to satisfy fail-loud AC with zero extra code."
+      },
+      "recommendation": "ADOPT the design with two scoped corrections. ScoutCandidates (<=5): [1 AUTO-ADOPT] Use z.toJSONSchema(schema,{target:'draft-07'}) and rely on DEFAULT unrepresentable:'throw' for the fail-loud schemas:check guard — no custom transform-detection needed (cite zod.dev/json-schema). [2 USER-SURFACE] Dead-URL replacement scope is incomplete: design names only store-disk.ts + delta.ts, but anomalyco/oc-plugins also appears in plugin/schemas/*.json $id, store-disk.judgment-calls-removal.test.ts, and 22 .adv/specs/*/spec.json $schema refs — confirm whether spec.json $schema refs are in-scope for 'no dead anomalyco URLs' AC or explicitly deferred. [3 AUTO-ADOPT] Emit generated schemas through a deterministic serializer (sorted object keys + trailing newline) so schemas:check produces a stable diff; reused:'inline' default means key-order, not $defs churn, is the flap risk. [4 AUTO-ADOPT] Preflight coverage test can introspect createToolMap's returned tool .args against FIELD_POLICIES keys purely (no store/Temporal) — keep it in the pure registry layer per design. [5 INCONCLUSIVE] Whether generated schemas should keep the $ref/$defs envelope shape of the current stubs (title/$id/$ref/definitions) vs a flat self-contained schema — current stubs use a definitions wrapper; native output is self-contained. Pick one shape explicitly in design to avoid consumer ($schema validators) breakage; evidence insufficient to know which consumers read these files.",
+      "follow_ups": [
+        "Planning: enumerate the full anomalyco/oc-plugins occurrence set (schema $id, test, 22 spec.json) and decide in-scope vs deferred against the 'no dead anomalyco URLs' AC.",
+        "Design: pin generated-schema envelope shape (self-contained vs definitions-wrapper) and a deterministic serializer before writing schemas:generate.",
+        "Confirm no curated artifact schema later adds .transform()/z.date(); if it does, schemas:check will throw by design — document the .overwrite() escape hatch."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "hardenToolContracts",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation for hardenToolContracts",
+      "sources": [
+        {
+          "label": "Zod v4 JSON Schema docs (official)",
+          "locator": "https://zod.dev/json-schema",
+          "summary": "z.toJSONSchema() native in zod@^3.25/v4. Confirms exact option names: target:'draft-07' (plus draft-2020-12/draft-04/openapi-3.0), unrepresentable:'throw' (default) | 'any', cycles, reused, uri. z.object() emits additionalProperties:false (output mode). Design's stated target/unrepresentable settings are correct."
+        },
+        {
+          "label": "package.json zod version",
+          "locator": "/home/jon/dev/advance/plugin/package.json:41",
+          "summary": "zod ^4.3.6 installed — native toJSONSchema available, no extra dependency needed (simplicity-positive)."
+        },
+        {
+          "label": "Dead schema artifact",
+          "locator": "/home/jon/dev/advance/plugin/schemas/change.schema.json",
+          "summary": "Stub: definitions.change = {} and $id points at anomalyco/oc-plugins. Confirms objectives 1+2 (empty + dead URL). Validates the problem diagnosis."
+        },
+        {
+          "label": "Dead URL spread",
+          "locator": "store-disk.ts:361, archive/delta.ts:358, store-disk.judgment-calls-removal.test.ts:92/126, and 19 .adv/specs/*/spec.json files",
+          "summary": "anomalyco/oc-plugins $schema URL appears in 2 source files, 2 test sites, and ~19 stored spec.json artifacts. Design names store-disk.ts/archive+tests+current specs but says 'current .adv/specs/*/spec.json' generically; the count (~19) should be tracked in planning so no spec is missed (AC2)."
+        },
+        {
+          "label": "Canonical repo confirmed",
+          "locator": "/home/jon/dev/advance/CHANGELOG.md:1661, README.md:15",
+          "summary": "Sharper-Flow/Advance is the live canonical GitHub repo. Supports replacing anomalyco URLs with Sharper-Flow/Advance canonical URLs via shared constants."
+        },
+        {
+          "label": "Preflight policy internals",
+          "locator": "/home/jon/dev/advance/plugin/src/utils/tool-arg-preflight.ts:56,309,432",
+          "summary": "FIELD_POLICIES and CROSS_FIELD_VALIDATORS are module-private today; only validateToolArgsBeforeExecute/preflightToolArgs/formatToolArgPreflightError exported. Design's 'expose read-only policy metadata' is a real, minimal new export. Pure/synchronous boundary explicitly documented (no fs/store/Temporal) — aligns with hardening at the pure-preflight layer."
+        },
+        {
+          "label": "Established drift-guard precedent",
+          "locator": "/home/jon/dev/advance/plugin/src/tool-registry.test.ts:66-74",
+          "summary": "ADV_TOOL_NAMES-vs-createToolMap keys drift guard already exists. The proposed 'compare registered createToolMap args against placeholder-sensitive allowlist; fail on missing/dead policies' reuses an in-repo proven pattern (boring/proven, simplicity-positive)."
+        }
+      ],
+      "architecture_assessment": "Design is correct and grounded. Every material technical claim verified: (1) Zod v4 z.toJSONSchema with target:'draft-07' and unrepresentable:'throw' is exact official API on the installed zod@4.3.6; (2) schemas/*.schema.json are genuinely dead stubs with anomalyco URLs; (3) the dead URL is also embedded in ~19 stored spec.json artifacts plus source+tests, matching AC2 scope; (4) preflight policy tables are private and the proposed read-only export + coverage guard mirror the existing createToolMap/ADV_TOOL_NAMES drift-guard precedent. Zod-as-source-of-truth + generate-then-check is the canonical boring approach for JSON Schema in TS codebases. No anti-patterns. The single watch item is breadth bookkeeping (~19 spec files + tests) rather than a design flaw.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "No conflicts with specs or constraints. Cautions are scope-precision/determinism notes, not design errors."
+      },
+      "recommendation": "Proceed to planning as VALIDATED with two caution riders. (a) Determinism: z.object() output-mode emits additionalProperties:false and Zod inlines reused schemas by default; pin io mode, key-ordering (stable JSON.stringify with sorted keys), and reused/cycles options in the generator so schemas:check is byte-stable across machines/CI — this directly satisfies the deterministic-generation constraint and AC1. (b) Breadth: enumerate all anomalyco/oc-plugins occurrences (2 source files, 2 test sites, ~19 .adv/specs/*/spec.json) as explicit planning tasks so AC2 ('no dead URLs in stored change/spec artifacts') is provably complete rather than sampled. Both are planning-level precision, not design changes.",
+      "follow_ups": [
+        "Planning: enumerate exact file list for anomalyco->Sharper-Flow URL replacement (~19 spec.json + store-disk.ts + archive/delta.ts + 2 test sites) to guarantee AC2 completeness.",
+        "Generator: lock io mode + deterministic key ordering + reused/cycles options so schemas:check is byte-stable (AC1 determinism).",
+        "Confirm whether stored spec.json $schema rewrite is a one-time data migration vs only changing the emitter; AC2 says stored artifacts must be clean, implying a migration step."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "hardenToolContracts",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/hardenToolContracts",
+      "scope": {
+        "kind": "change",
+        "scope_key": "scanner-bundle:review"
+      },
+      "agent": "adv-scanner-bundle",
+      "phase": "review",
+      "scanner_count": 6,
+      "dimensions": [
+        "requirement-traceability",
+        "logic-edge-cases",
+        "security",
+        "architecture-quality",
+        "cross-repo",
+        "architecture-quality-reverification"
+      ],
+      "summary": "Acceptance review completed. One architecture issue was found and fixed: CI now runs `pnpm run schemas:check` before typecheck and docs/tests pin the order. No remaining blockers or issues. Remaining items are nonblocking suggestions/info only.",
+      "findings": [
+        {
+          "scanner": "architecture-quality",
+          "severity": "suggestion",
+          "summary": "`ADV_SCHEMA_BASE_URL` pins `$id` URLs to `/trunk/`; acceptable because generated schemas are committed artifacts and in-repo drift is tested, but future docs could note trunk-only IDs for feature-branch consumers.",
+          "evidence": [
+            {
+              "label": "architecture scanner",
+              "locator": "plugin/src/schema-registry.ts:13",
+              "summary": "Scanner reported trunk URL pin as nonblocking suggestion; no runtime fetch behavior found."
+            }
+          ]
+        },
+        {
+          "scanner": "logic-edge-cases",
+          "severity": "suggestion",
+          "summary": "`generate-json-schemas.ts --check` detects stale/missing generated files but not orphan schema files removed from the registry; low risk because consumers use curated generated set and CI drift checks committed outputs.",
+          "evidence": [
+            {
+              "label": "logic scanner",
+              "locator": "plugin/scripts/generate-json-schemas.ts:33-40",
+              "summary": "Scanner classified orphan-file detection as acceptable gap, not issue."
+            }
+          ]
+        },
+        {
+          "scanner": "requirement-traceability",
+          "severity": "info",
+          "summary": "Minor test describe label uses internal `AC12` wording, not public AC1-AC8 numbering; nonblocking readability nit.",
+          "evidence": [
+            {
+              "label": "requirement scanner",
+              "locator": "plugin/src/utils/tool-arg-preflight.test.ts:1137",
+              "summary": "Scanner reported as nit only; no correctness impact."
+            }
+          ]
+        },
+        {
+          "scanner": "cross-repo",
+          "severity": "info",
+          "summary": "Unrelated prunable stale worktree exists under `/tmp`; does not affect this change.",
+          "evidence": [
+            {
+              "label": "cross-repo scanner",
+              "locator": "git worktree list",
+              "summary": "Scanner reported current worktree clean and branch valid; stale `/tmp` worktree is unrelated cleanup."
+            }
+          ]
+        },
+        {
+          "scanner": "architecture-quality-reverification",
+          "severity": "info",
+          "summary": "Previously blocking CI schemas:check issue resolved.",
+          "evidence": [
+            {
+              "label": "recheck scanner",
+              "locator": ".github/workflows/ci.yml:38-40",
+              "summary": "`Schema drift check` runs `pnpm run schemas:check` before `Type check`."
+            },
+            {
+              "label": "recheck scanner",
+              "locator": "plugin/src/repo-instructions-assets.test.ts:33-46",
+              "summary": "Asset test pins docs and CI order."
+            }
+          ]
+        }
+      ],
+      "follow_ups": [
+        "Optional: document that generated schema `$id` URLs intentionally point at `trunk` for public canonical identity.",
+        "Optional: consider orphan-file detection if public schemas are removed from the registry in future.",
+        "Unrelated hygiene: prune stale `/tmp/adv-worktree-root-fVkDfH/repo-worktree` worktree entry when convenient."
+      ],
+      "consumer_warnings": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "hardenToolContracts",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/hardenToolContracts",
+      "scope": {
+        "kind": "change",
+        "scope_key": "scanner-bundle:harden"
+      },
+      "agent": "adv-scanner-bundle",
+      "phase": "harden",
+      "scanner_count": 6,
+      "dimensions": [
+        "test-coverage",
+        "ai-slop-detection",
+        "documentation-hygiene",
+        "cleanup",
+        "production-readiness",
+        "deployment-readiness"
+      ],
+      "summary": "Release hardening READY. All six scanners ran. No in-scope blockers or high findings remain. One valid adjacent review-created agenda item was fixed; two agenda items were closed with out-of-scope/future rationale. Current change verification remains green: schema-registry targeted test, schemas:check, Prettier, and `pnpm run check` passed after harden fix.",
+      "findings": [
+        {
+          "scanner": "test-coverage",
+          "severity": "suggestion",
+          "summary": "Generator CLI has indirect coverage through schema-registry deterministic-output tests and schemas:check, but no direct unit test for CLI arg parsing/error output.",
+          "evidence": [
+            {
+              "label": "test coverage scanner",
+              "locator": "plugin/scripts/generate-json-schemas.ts:10",
+              "summary": "Low-severity coverage suggestion; not a release blocker because script delegates to tested renderer and CI runs schemas:check."
+            }
+          ]
+        },
+        {
+          "scanner": "ai-slop-detection",
+          "severity": "info",
+          "summary": "Pre-existing disk-store wisdom search type/observability issues were found outside touched scope; rejected for this release and tracked as follow-up.",
+          "evidence": [
+            {
+              "label": "ai-slop scanner",
+              "locator": "plugin/src/storage/store-disk.ts:775-812",
+              "summary": "Findings are in wisdom search/listAll blocks, not the schema URL scaffolding touched by this change; fixing would expand scope beyond tool-contract hardening."
+            }
+          ]
+        },
+        {
+          "scanner": "ai-slop-detection",
+          "severity": "info",
+          "summary": "Pre-existing disk fallback ID generation and delta sort fallback concerns were found outside touched scope; rejected for this release and tracked as follow-up.",
+          "evidence": [
+            {
+              "label": "ai-slop scanner",
+              "locator": "plugin/src/storage/store-disk.ts:644,729; plugin/src/archive/delta.ts:257",
+              "summary": "Not introduced by this change; Temporal path overrides disk ID generation; delta fallback is pre-existing and not part of schema URL migration."
+            }
+          ]
+        },
+        {
+          "scanner": "documentation-hygiene",
+          "severity": "suggestion",
+          "summary": "Docs have some intentional duplicate schema-generation guidance across AGENTS.md and project.md; acceptable for separate developer and agent audiences but a future cleanup could consolidate wording.",
+          "evidence": [
+            {
+              "label": "docs scanner",
+              "locator": "AGENTS.md; project.md",
+              "summary": "Medium/low duplication risk, no contradiction or stale guidance found."
+            }
+          ]
+        },
+        {
+          "scanner": "cleanup",
+          "severity": "info",
+          "summary": "No cleanup candidates found; worktree clean, no temp files, no debug leftovers.",
+          "evidence": [
+            {
+              "label": "cleanup scanner",
+              "locator": "git status --porcelain and source scans",
+              "summary": "No candidates."
+            }
+          ]
+        },
+        {
+          "scanner": "production-readiness",
+          "severity": "info",
+          "summary": "Production readiness passed. Only low, pre-existing notes remain around hardcoded schema base URL/versioning; current comment documents intended trunk semantics.",
+          "evidence": [
+            {
+              "label": "production scanner",
+              "locator": "plugin/src/schema-registry.ts:12-15",
+              "summary": "No blocker/high/medium production concern in current change."
+            }
+          ]
+        },
+        {
+          "scanner": "deployment-readiness",
+          "severity": "suggestion",
+          "summary": "Generated schema artifacts are large, especially change.schema.json; acceptable because generated, deterministic, packaged, and CI-checked.",
+          "evidence": [
+            {
+              "label": "deployment scanner",
+              "locator": "plugin/schemas/change.schema.json",
+              "summary": "Medium maintenance note, not deployment blocker."
+            }
+          ]
+        }
+      ],
+      "follow_ups": [
+        "Consider direct unit coverage for `plugin/scripts/generate-json-schemas.ts` CLI `--check`/usage error paths if the script grows beyond a thin wrapper.",
+        "Investigate pre-existing disk-store wisdom type/observability cleanup: `store-disk.ts` wisdom.search/listAll `as never`, silent catch, and duplicated project-wisdom loading block.",
+        "Investigate pre-existing disk fallback ID generation and delta sort fallback hardening: `store-disk.ts` Math.random IDs and `archive/delta.ts` unknown operation sort fallback.",
+        "Optional doc cleanup: reduce duplicated schema-generation guidance across AGENTS.md/project.md while preserving separate developer vs agent audiences."
+      ],
+      "consumer_warnings": []
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-2-B1yZ",
+      "type": "pattern",
+      "content": "For public JSON schema artifacts, keep a curated registry of exported Zod schemas and generate deterministic files by sorting JSON object keys after `z.toJSONSchema()`. This avoids filesystem scraping, keeps Zod authoritative, and lets `schemas:check` compare committed artifacts byte-for-byte in CI.",
+      "source_task": "tk-60834f9112c3",
+      "recorded_at": "2026-06-01T23:06:09.612Z"
+    },
+    {
+      "id": "ws-G6sbWo",
+      "type": "pattern",
+      "content": "When retiring published schema URLs, update both runtime scaffolding constants and tracked `.adv/specs/*/spec.json` refs, then add an asset test that scans stored artifacts plus scaffold defaults. Keep test-file mentions of the retired host allowed only as the sentinel string under test.",
+      "source_task": "tk-3cd32b209b7b",
+      "recorded_at": "2026-06-01T23:12:07.013Z"
+    },
+    {
+      "id": "ws-kr-GXr",
+      "type": "pattern",
+      "content": "For tool preflight drift guards, export read-only policy metadata from the pure preflight module and test it two ways: an explicit audited-field matrix for required policy behavior, plus a registry-backed dead-entry check against `createToolMap()` args. This catches both missing audit policies and stale renamed fields without heuristic ownership.",
+      "source_task": "tk-d3a0b19f168e",
+      "recorded_at": "2026-06-01T23:21:06.239Z"
+    },
+    {
+      "id": "ws-hbqxBj",
+      "type": "gotcha",
+      "content": "`pnpm test -- <file>` can still route through broader Vitest discovery in this repo and surface unrelated integration timeouts. For focused single-file evidence after such a mismatch, rerun with `pnpm exec vitest run <file>` and leave full-suite coverage to the final verification task.",
+      "source_task": "tk-88603a7cdf2c",
+      "recorded_at": "2026-06-01T23:28:47.714Z"
+    },
+    {
+      "id": "ws-wzb8ZC",
+      "type": "success",
+      "content": "Sub-agent report contract surfaces already have layered tests: schema strictness in `types/subagent-reports.test.ts`, ingest/persistence rejection in `tools/subagent-report.test.ts`, and packet/prompt/spec anchors in agent/spec asset tests. For preservation tasks, focused verification can be sufficient when no touched report contract code changes are needed.",
+      "source_task": "tk-050e9b3f509c",
+      "recorded_at": "2026-06-01T23:31:09.913Z"
+    },
+    {
+      "id": "ws-_5bXMM",
+      "type": "pattern",
+      "content": "When schema-generation behavior changes, update both agent-facing context (`project.md`) and developer quick-reference (`AGENTS.md`) plus asset tests that reject stale guidance. Also scan ignore/linguist comments (`.lgrepignore`, `.gitattributes`) because they often preserve old \"stub/generated\" assumptions outside docs.",
+      "source_task": "tk-301330fdc801",
+      "recorded_at": "2026-06-01T23:43:18.642Z"
+    },
+    {
+      "id": "ws-BKGt7V",
+      "type": "success",
+      "content": "For final contract hardening verification, one targeted suite can cover acceptance-specific surfaces before full gates: schema registry, schema URL guards, preflight policy, registry blocking, strict sub-agent reports, agent/spec asset anchors, and repo instruction drift. Follow with `pnpm run check`, `bin/oc-test full`, and `pnpm run build` for repo-level confidence.",
+      "source_task": "tk-26fd938199f6",
+      "recorded_at": "2026-06-01T23:47:12.953Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-06-01T21:45:59.491Z",
+      "completed_by": "agent",
+      "approval_evidence": "Proposal approved by user via Tier A continuation command: user invoked /adv-discover after proposal handoff for hardenToolContracts.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "path": "/home/jon/.local/share/opencode-projects/3f9f88dbc6c65a2463945f1cfda1fc59794f411d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/hardenToolContracts/proposal.md",
+        "content_hash": "98af074c3fba01e51268b337407a76b3d48df9f383ea25d856cddc94b1e8a59a",
+        "non_whitespace_chars": 7186,
+        "checked_at": "2026-06-01T21:43:58.852Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-06-01T21:58:17.023Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery findings persisted, agreement approved by user reply `approve`, ChangeContract minted with AC/C/DONT/OOS spine.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "path": "/home/jon/.local/share/opencode-projects/3f9f88dbc6c65a2463945f1cfda1fc59794f411d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/hardenToolContracts/agreement.md",
+        "content_hash": "6c9af605ad54c0e2a11897aa9738c6b3ae6d10bd623f1f86afbc8a894cc05ddc",
+        "non_whitespace_chars": 3792,
+        "checked_at": "2026-06-01T21:43:58.853Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-06-01T22:05:38.075Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design artifact recorded. Mandatory independent validator returned VALIDATED with planning-level cautions only; no unresolved conflict, user-value tradeoff, or contract-compromise risk.",
+      "artifact_evidence": {
+        "kind": "design",
+        "path": "/home/jon/.local/share/opencode-projects/3f9f88dbc6c65a2463945f1cfda1fc59794f411d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/hardenToolContracts/design.md",
+        "content_hash": "dbc4a57933bba14a1bf82435e1523dff0d6355ec7243a6cd2c2a6ed9c99e6496",
+        "non_whitespace_chars": 8006,
+        "checked_at": "2026-06-01T21:43:58.854Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-06-01T22:14:46.681Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved prep vision and task graph with reply: \"approve\". Task graph has 7 tasks with contract refs and dependencies."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-06-01T23:47:34.114Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 7 planned tasks are done. Final verification passed: adv_change_validate strict=true had 0 errors (non-blocking NO_DELTAS warning), targeted contract suite passed (12 files / 316 tests), `pnpm run check` passed, `bin/oc-test full` passed, and `pnpm run build` passed. Worktree clean at db2175b0a8bbc553fdb501a60b9813b0f8f16401."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-06-02T00:12:45.706Z",
+      "completed_by": "user:accept",
+      "approval_evidence": "User accepted delivered work with reply `accept`. Pre-acceptance proof exists: executive summary persisted and verified; contract review matrix persisted with 24 rows and 0 failing rows; acceptance review verdict APPROVED with 0 unresolved blockers/issues; preview URL not_applicable due no visual surface; final verification passed targeted contract suite, `pnpm run check`, `bin/oc-test full`, `pnpm run build`, and `adv_change_validate` 0 errors.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/hardenToolContracts/executive-summary.md",
+        "content_hash": "47964d1c42715e464a05e22ce0ce051968c819570064c7e12cfc1160709687cf",
+        "non_whitespace_chars": 2008,
+        "checked_at": "2026-06-01T21:43:58.855Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "6c9af605ad54c0e2a11897aa9738c6b3ae6d10bd623f1f86afbc8a894cc05ddc",
+      "approvedAt": "2026-06-01T21:58:09.917Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "`plugin/schemas/*.schema.json` are generated from authoritative Zod schemas with non-empty validation content, canonical Advance `$id`/`$schema` URLs, and a deterministic CI drift check.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6c9af605ad54c0e2a11897aa9738c6b3ae6d10bd623f1f86afbc8a894cc05ddc",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Stored change/spec artifacts no longer advertise dead `anomalyco/oc-plugins` schema URLs.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6c9af605ad54c0e2a11897aa9738c6b3ae6d10bd623f1f86afbc8a894cc05ddc",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Preflight policy coverage tests fail on missing or dead `FIELD_POLICIES` entries for audited placeholder/audit fields.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6c9af605ad54c0e2a11897aa9738c6b3ae6d10bd623f1f86afbc8a894cc05ddc",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Representative high-risk malformed tool calls return structured `INVALID_TOOL_ARGS` before handler execution and before Temporal/filesystem mutation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6c9af605ad54c0e2a11897aa9738c6b3ae6d10bd623f1f86afbc8a894cc05ddc",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Blank optional placeholders normalize to omitted only where policy allows; blank audit/approval/evidence fields reject.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6c9af605ad54c0e2a11897aa9738c6b3ae6d10bd623f1f86afbc8a894cc05ddc",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Sub-agent reports still reject missing required identity fields as `INVALID_REPORT`; no heuristic inference is added.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6c9af605ad54c0e2a11897aa9738c6b3ae6d10bd623f1f86afbc8a894cc05ddc",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "Packet/prompt/doc/spec tests cover required anchors for any touched agent-callable report contracts.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6c9af605ad54c0e2a11897aa9738c6b3ae6d10bd623f1f86afbc8a894cc05ddc",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC8",
+        "kind": "acceptance_criterion",
+        "text": "Validation passes with targeted tests plus project check/build commands required by repo conventions.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6c9af605ad54c0e2a11897aa9738c6b3ae6d10bd623f1f86afbc8a894cc05ddc",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Zod remains the authoritative runtime schema source.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6c9af605ad54c0e2a11897aa9738c6b3ae6d10bd623f1f86afbc8a894cc05ddc",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "JSON schema generation must use Zod v4 native `z.toJSONSchema()` unless discovery/design proves a stronger current alternative.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6c9af605ad54c0e2a11897aa9738c6b3ae6d10bd623f1f86afbc8a894cc05ddc",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Do not remove the `tool-registry.ts` SDK `as any` compatibility cast without verified SDK-compatible replacement evidence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6c9af605ad54c0e2a11897aa9738c6b3ae6d10bd623f1f86afbc8a894cc05ddc",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Scope is high-risk tools plus drift/coverage guards, not an all-tools validation rewrite.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6c9af605ad54c0e2a11897aa9738c6b3ae6d10bd623f1f86afbc8a894cc05ddc",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Generated schema workflow must be deterministic and CI-checkable.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6c9af605ad54c0e2a11897aa9738c6b3ae6d10bd623f1f86afbc8a894cc05ddc",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C6",
+        "kind": "constraint",
+        "text": "Target project is `/home/jon/dev/advance`; toolbox is origin context only.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6c9af605ad54c0e2a11897aa9738c6b3ae6d10bd623f1f86afbc8a894cc05ddc",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not downgrade `INVALID_REPORT` strictness.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6c9af605ad54c0e2a11897aa9738c6b3ae6d10bd623f1f86afbc8a894cc05ddc",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not infer missing `change_id`, `task_id`, `phase`, `attempt`, `scope`, or `workdir_used` heuristically.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6c9af605ad54c0e2a11897aa9738c6b3ae6d10bd623f1f86afbc8a894cc05ddc",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not accept blank audit, approval, recovery, or confirmation evidence fields.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6c9af605ad54c0e2a11897aa9738c6b3ae6d10bd623f1f86afbc8a894cc05ddc",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not rely on prompt prose as sole enforcement for correctness-critical tool arguments.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6c9af605ad54c0e2a11897aa9738c6b3ae6d10bd623f1f86afbc8a894cc05ddc",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "Do not expand into broad gate redesign, lgrep/Vision performance, OpenCode DB maintenance, or worktree cleanup rewrite.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6c9af605ad54c0e2a11897aa9738c6b3ae6d10bd623f1f86afbc8a894cc05ddc",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT6",
+        "kind": "avoidance",
+        "text": "Do not fix #138/#136 unless contract-boundary validation is proven as root cause.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6c9af605ad54c0e2a11897aa9738c6b3ae6d10bd623f1f86afbc8a894cc05ddc",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "Full all-tools validation migration beyond representative high-risk paths and same-pattern touched surfaces.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6c9af605ad54c0e2a11897aa9738c6b3ae6d10bd623f1f86afbc8a894cc05ddc",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "Broad agent-contract executable lint across every command packet.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6c9af605ad54c0e2a11897aa9738c6b3ae6d10bd623f1f86afbc8a894cc05ddc",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "Sub-agent report schema redesign.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6c9af605ad54c0e2a11897aa9738c6b3ae6d10bd623f1f86afbc8a894cc05ddc",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS4",
+        "kind": "out_of_scope",
+        "text": "Tool performance optimization unrelated to validation correctness.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6c9af605ad54c0e2a11897aa9738c6b3ae6d10bd623f1f86afbc8a894cc05ddc",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-06-02T00:04:00.000Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Generated schemas from Zod registry; schemas:check in local check and CI. Targeted suite 317 tests and pnpm run check passed.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Schema URL asset test scans specs/scaffolds for retired anomalyco host; targeted suite passed.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "FIELD_POLICIES audited matrix and live registry drift guard passed.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Tool registry tests verify INVALID_TOOL_ARGS before handler execution for malformed high-risk calls.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Preflight tests cover omit/reject behavior for blank optional placeholders and audit/evidence fields.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Sub-agent report schema and ingest tests reject missing identity as INVALID_REPORT.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Agent/tool contract and subagent-report asset tests pin packet/prompt/doc/spec anchors.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC8",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Targeted suite 317 tests, pnpm run check, bin/oc-test full, pnpm run build, and adv_change_validate 0 errors passed.",
+          "notes": "NO_DELTAS warning non-blocking."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Zod remains authoritative via schema-registry z.toJSONSchema renderer.",
+          "notes": ""
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Zod v4 native z.toJSONSchema is used; no alternate generator added.",
+          "notes": ""
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "tool-registry SDK as any cast was not removed.",
+          "notes": ""
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Scope stayed on high-risk paths and drift guards, not all-tools rewrite.",
+          "notes": ""
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Schema generation deterministic and CI-checkable through schema tests, schemas:check, and CI step.",
+          "notes": ""
+        },
+        {
+          "contractId": "C6",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "All changes were in Advance worktree; cross-repo scanner found single-repo scope only.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "INVALID_REPORT strictness tests passed.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Report identity fields remain explicit; no heuristic inference found.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Blank audit/approval/recovery/evidence fields reject in preflight tests.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Correctness-critical args are enforced by FIELD_POLICIES, registry preflight, Zod validation, and tests.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No broad gate redesign, lgrep/Vision performance, DB maintenance, or worktree cleanup rewrite.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT6",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No #138/#136 fix work performed.",
+          "notes": ""
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Full all-tools validation migration out of scope.",
+          "notes": ""
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Broad command-packet lint out of scope.",
+          "notes": ""
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Sub-agent report schema redesign out of scope.",
+          "notes": ""
+        },
+        {
+          "contractId": "OOS4",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Unrelated tool performance optimization out of scope.",
+          "notes": ""
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "`plugin/schemas/*.schema.json` are generated from authoritative Zod schemas with non-empty validation content, canonical Advance `$id`/`$schema` URLs, and a deterministic CI drift check.",
+    "Stored change/spec artifacts no longer advertise dead `anomalyco/oc-plugins` schema URLs.",
+    "Preflight policy coverage tests fail on missing or dead `FIELD_POLICIES` entries for audited placeholder/audit fields.",
+    "Representative high-risk malformed tool calls return structured `INVALID_TOOL_ARGS` before handler execution and before Temporal/filesystem mutation.",
+    "Blank optional placeholders normalize to omitted only where policy allows; blank audit/approval/evidence fields reject.",
+    "Sub-agent reports still reject missing required identity fields as `INVALID_REPORT`; no heuristic inference is added.",
+    "Packet/prompt/doc/spec tests cover required anchors for any touched agent-callable report contracts.",
+    "Validation passes with targeted tests plus project check/build commands required by repo conventions."
+  ],
+  "documents": {
+    "proposal": "# Harden Tool Contracts\n\n## Why\n\nADV’s agent-callable tool contracts are not consistently structural across schemas, SDK boundary parsing, prompts/context packets, specs, and tests. Some correctness still depends on prose validation or caller discipline, so malformed inputs, blank optional fields, missing packet anchors, or schema/prompt drift can fail late in workflows instead of being rejected clearly at the boundary.\n\nDesired outcome: make ADV tool contracts structurally enforced and regression-tested so tool calls, sub-agent reports, command packets, and persisted workflow mutations fail early with clear validation errors and remain aligned as contracts evolve.\n\n## What Changes\n\n- Audit ADV tool-contract surfaces where schema, preflight validation, handler validation, command packets, agent prompts, specs, and tests must agree.\n- Close structural validation gaps at the tool boundary, prioritizing fail-fast Zod/preflight validation over prose-only instructions.\n- Decide whether JSON schema stubs should remain documented anchor stubs or be replaced by generated/deleted artifacts; then update docs/tests so the chosen source-of-truth story is explicit.\n- Normalize or reject blank optional placeholders consistently across tools, preserving audit fields as non-blank.\n- Add regression tests that tie required identity fields and scope anchors to prompts/context packets/spec expectations.\n- Collapse stale prose instructions only where structural validation and tests now enforce the behavior.\n\n## Success Criteria\n\n- Invalid tool arguments for representative high-risk tools fail before handler execution with structured `INVALID_TOOL_ARGS` output.\n- Blank optional fields are either normalized to omitted or rejected according to a documented field policy; audit evidence fields reject blank values.\n- `adv_change_update` with no artifact content is rejected quickly with a clear at-least-one-artifact error.\n- Sub-agent report contracts keep strict `INVALID_REPORT` behavior for missing required identity fields; no heuristic inference is introduced.\n- Tests cover schema/preflight behavior plus packet/prompt/doc anchors for agent-callable report contracts.\n- Documentation states the authoritative schema source and does not imply validation coverage that does not exist.\n\n## Affected Code\n\n- `plugin/src/tool-registry.ts` — SDK boundary registration and tool preflight.\n- `plugin/src/utils/tool-arg-preflight.ts` and tests — structural argument validation and placeholder policy.\n- `plugin/src/tools/*` — tool-local Zod schemas and handler validation that may need boundary refinements.\n- `plugin/src/tools/subagent-report.ts` and tests — strict typed report ingest.\n- `plugin/src/types*` — authoritative Zod/domain schemas when contract changes require type updates.\n- `plugin/schemas/*.schema.json` — JSON schema stub/generation/deletion decision surface.\n- `docs/agent-tool-contracts.md`, `skills/adv-agent-tool-contracts/SKILL.md`, `.opencode/agents/*`, `.opencode/command/*` — prompt/context packet alignment where affected.\n- `docs/specs/*` / capability specs — update only when behavior is capability law.\n\n## Related Repositories\n\n- Primary: `Sharper-Flow/Advance` (`/home/jon/dev/advance`).\n- Related runtime consumer: toolbox/OpenCode global environment consumes deployed ADV, but no toolbox code changes are in scope unless deployment docs/backups must be synced after ADV changes.\n\n## Constraints\n\n- Preserve Zod as the authoritative runtime schema source unless discovery proves generated JSON schemas provide clear value.\n- Do not weaken strict report ingest to compensate for missing packet context.\n- Do not infer missing `change_id`, `task_id`, `phase`, `attempt`, `scope`, or `workdir_used` heuristically.\n- Keep correctness structural: schemas, validators, tests, specs, and state checks own enforcement.\n- Avoid broad gate redesign, lgrep/Vision performance work, OpenCode DB maintenance, and worktree cleanup rewrites.\n- Fix #138/#136 only if discovery shows contract-boundary validation is the root cause.\n\n## Impact\n\n- Earlier, clearer failures for malformed agent/tool calls.\n- Lower risk of invalid Temporal signals or persisted workflow state.\n- Less prompt/schema drift as tools, sub-agents, and commands evolve.\n- Better CI detection when contract fields change without matching prompts/specs/tests.\n- Faster diagnosis of ADV failures because boundary errors are structured instead of timing out or surfacing later.\n\n## Context\n\nEvidence gathered during proposal:\n\n- `docs/agent-tool-contracts.md` defines the schema → context packet → prompt → transport → tests → specs checklist and says missing required fields should remain strict validation failures.\n- `plugin/src/tool-registry.ts` already wraps tool execution with `preflightToolArgs`, exposes a test-only Zod type guard, and keeps the SDK `as any` cast as an intentional compatibility bridge.\n- `plugin/src/utils/tool-arg-preflight.ts` already contains field policies for many blank placeholders and cross-field validators for `adv_change_create` / `adv_change_update`, so this change should audit and harden remaining gaps rather than assume nothing exists.\n- `plugin/src/tools/subagent-report.ts` already returns `INVALID_REPORT` for malformed typed reports.\n- GitHub issues related to this scope remain open: #42 JSON schema stubs, #45 SDK-boundary Zod validation, #65 prose-based MCP arg validation, #133 blank optional strings.\n\n## Scope\n\n### In Scope\n\n- Structural validation audit of ADV agent-callable tool contracts.\n- Tool boundary validation hardening for representative high-risk tools and any same-pattern gaps found in touched surfaces.\n- Blank optional placeholder policy review and targeted fixes.\n- JSON schema stub source-of-truth decision and corresponding docs/tests cleanup.\n- Sub-agent report packet/prompt/test alignment where required schema fields or scope anchors drift.\n- Capability spec/doc updates needed to make new enforcement durable.\n\n### Out of Scope\n\n- Broad redesign of the seven-gate lifecycle.\n- General performance work for lgrep, Vision, or OpenCode DB maintenance.\n- Worktree cleanup architecture rewrite.\n- Full repo-wide migration of every possible validation rule if discovery finds a larger backlog; broader findings should become follow-ups.\n- Product-feature changes unrelated to ADV tool/report contracts.\n\n### Must Not\n\n- Must not downgrade `INVALID_REPORT` strictness.\n- Must not accept blank audit evidence fields.\n- Must not rely on prompt prose as the sole enforcement for correctness-critical tool arguments.\n- Must not remove the `tool-registry.ts` SDK `as any` compatibility cast unless a verified SDK-compatible replacement exists.\n- Must not create generated schema artifacts without adding deterministic generation/check workflow, if generation is chosen.\n\n## Discovery Findings\n\n### Discovery Checklist\n\n| Step | Status | Result |\n|---|---:|---|\n| Skill Discovery | PASS | Loaded `adv-agent-tool-contracts`; loaded `adv-audit` as supporting drift method. No `review_status: pending` skill frontmatter found. |\n| Prior Research Extension | PASS | Cited `docs/repo-improve-prep.md` and `docs/adv-run-test-prep.md`; added tool-contract-specific findings below. |\n| Conflict & Related-Work Scan | PASS with limitation | `adv_change_list target_path:/home/jon/dev/advance` shows active `hardenToolContracts` and unrelated draft `fixHygieneDiagnostics`. `adv_change_validate` ran but lacks `target_path`; it returned `WorkflowNotFoundError` from current toolbox context. `adv_agenda_list` has 62 toolbox agenda items; none is a direct replacement for this target change. |\n| Edge Case Investigation | PASS | Edge cases captured per gap below. |\n| Design Question Depth | PASS | Open design questions include trust model, blast radius, alternatives. |\n| Draft Spec Delta Shapes | PASS | Draft `rq-*` deltas below. |\n| Related Pattern Scan | PASS | Found similar prose/handler validation patterns and packet anchor surfaces. |\n| LBP Check | PASS | Zod-native schema generation if publishing schemas; otherwise delete/document stubs. Avoid unmaintained `zod-to-json-schema` for Zod v4 schemas. |\n\n### Skills Considered\n\n- `adv-agent-tool-contracts`: strong match; checklist maps exactly to schema/context packet/prompt/tests/specs alignment.\n- `adv-audit`: supporting match; useful for spec↔implementation drift checks and ambiguity gates.\n- `adv-arch-detection`: partial match; P33 structural correctness informs rationale, but full architecture scan is not needed for discovery.\n- Gap detection: no new skill needed; core domain is covered.\n\n### Extends\n\n- `docs/repo-improve-prep.md` — prior latency/performance pack. New finding: performance pack says Zod validation is not the bottleneck and should not be optimized away; current discovery finds the higher-value contract gap is schema fidelity and coverage guards, not removing validation.\n- `docs/adv-run-test-prep.md` — prior scoped pack on `adv_run_test`. New finding: `adv_run_test` is a concrete example of model-facing contract drift: shell trust boundary, `phase` docs/spec drift, and evidence semantics need structural fields if this change touches test-tool contracts.\n- Archived changes: none surfaced by target project state.\n\n### Conflict Scan\n\n- Related active change: `fixHygieneDiagnostics` is a hot draft but targets hygiene diagnostics, not tool-contract hardening.\n- Required validation tool result: `adv_change_validate hardenToolContracts` returned `WorkflowNotFoundError` because the callable tool has no `target_path` argument and looked in the current toolbox project. Orchestrator confirmed the change exists via `adv_change_list` and `adv_change_show` with `target_path:/home/jon/dev/advance`.\n- Agenda overlap: current toolbox agenda includes several stale/subagent items and one packet-warning follow-up; no direct active change supersedes this scope.\n\n### Current State\n\n- `plugin/src/tool-registry.ts` registers tools, keeps a deliberate SDK-boundary `as any` cast, and calls `preflightToolArgs` before handler execution.\n- `plugin/src/utils/tool-arg-preflight.ts` centralizes blank/sentinel/empty-array/zero placeholder policy and cross-field validators for `adv_change_create` and `adv_change_update`.\n- `plugin/src/utils/tool-arg-preflight.test.ts` already verifies blank artifact normalization, audit-field blank rejection, `origin_issue_number: 0` omission, and Zod checks against normalized args.\n- `plugin/src/tools/subagent-report.ts` parses typed reports with Zod and returns `INVALID_REPORT` for malformed payloads.\n- `plugin/schemas/*.schema.json` are empty `$ref` stubs; `plugin/schemas/change.schema.json` has `definitions.change: {}` and validates nothing.\n- Emitted artifacts still use `$schema` URLs under `raw.githubusercontent.com/anomalyco/oc-plugins/...` in `plugin/src/storage/store-disk.ts:360-361` and `plugin/src/archive/delta.ts:357-358`.\n- Docs intentionally say Zod types are authoritative and JSON schemas are stubs (`project.md:95-97`, `AGENTS.md:172-174`, `.gitattributes:7-8`).\n- OpenCode docs say custom tools use `tool()` with Zod schema args and that `tool.schema` is Zod.\n- Zod v4 docs provide first-party `z.toJSONSchema()`. `zod-to-json-schema` docs say it will no longer be actively maintained after Nov 2025 and does not support v4 schemas directly.\n\n### Edge Cases\n\n1. JSON schema publishing/stubs\n   - Consumer follows `$schema` URL and receives a dead/empty schema; validation falsely passes.\n   - Generated schema encounters Zod transforms/custom schemas that JSON Schema cannot represent; generation must fail clearly or use an explicit `unrepresentable` policy.\n\n2. Placeholder and blank optional fields\n   - Strict-mode provider sends blank strings for optional artifact fields; these should normalize to omitted without tripping unrelated schema errors.\n   - Audit/evidence fields receive blank strings; these must reject, not normalize, because empty approval evidence weakens safety.\n\n3. Preflight coverage drift\n   - New tool adds optional target/audit fields but no `FIELD_POLICIES` entry; behavior silently falls back to raw Zod behavior.\n   - Existing policy remains for a renamed/removed tool field; tests should catch dead policy entries.\n\n4. Sub-agent report contracts\n   - Worker omits `TASK`, `PHASE`, `ATTEMPT`, or `SCOPE KEY`; strict report validation should reject instead of inferring.\n   - Scanner lane calls `adv_subagent_report_submit` directly; transport-lane distinction should remain structural in prompts/tests.\n\n### Open Design Questions\n\n1. Publish real JSON schemas or delete schema artifacts?\n   - Trust model: joint; agent can recommend, user decides distribution promise.\n   - Blast radius: external validation and artifact `$schema` URLs either become real contract or disappear.\n   - Alternatives: generate with Zod v4 `z.toJSONSchema` plus drift check; delete stubs and remove `$schema` URLs; keep documented stubs. Recommendation: publish real generated schemas only if we want external schema contract; otherwise delete stubs and stop emitting dead URLs.\n\n2. How broad should the first validation sweep be?\n   - Trust model: joint; affects delivery size and acceptance boundary.\n   - Blast radius: broad sweep touches many tools; narrow sweep may leave known gaps as follow-ups.\n   - Alternatives: representative high-risk tools + coverage guard; full all-tool sweep; only #42/#45/#65/#133. Recommendation: representative high-risk tools plus guards that make remaining gaps visible.\n\n3. Should agent-tool contract guidance become executable lint?\n   - Trust model: agent-led technical decision unless user wants strict acceptance boundary.\n   - Blast radius: prompt/test churn across commands and agents.\n   - Alternatives: keep asset tests; add packet-anchor lint for required fields; defer. Recommendation: defer broad lint; add targeted tests where this change touches packet contracts.\n\n4. SDK-boundary strategy\n   - Trust model: agent-owned technical decision.\n   - Blast radius: incorrect change could break every tool registration.\n   - Alternatives: keep `as any` + test-only guard; use `tool.schema`; wait for SDK API change. Recommendation: keep cast unless verified replacement exists.\n\n### Draft Spec Deltas\n\n- `rq-toolSchemaPublish01` — Published schema artifacts must be either real generated validation schemas or absent.\n  - Given a stored change/spec artifact includes `$schema`\n  - When a consumer resolves the schema reference or CI checks schema artifacts\n  - Then the referenced schema validates the artifact shape or the artifact does not advertise a schema URL\n\n- `rq-toolPreflightCoverage01` — Tool preflight policy coverage must not silently drift from registered tool arg schemas.\n  - Given a registered ADV tool has fields governed by placeholder/audit policy\n  - When the tool registry drift tests run\n  - Then missing/dead policy entries fail with field-level evidence\n\n- `rq-toolBoundaryValidation01` — Representative high-risk tool argument errors must fail before handler execution.\n  - Given malformed args for change/task/gate/archive/target-path mutation tools\n  - When the tool call reaches the registry boundary\n  - Then it returns structured `INVALID_TOOL_ARGS` without Temporal or filesystem mutation\n\n- `rq-agentContractAnchors01` — Typed worker packets must expose schema-required identity and scope anchors.\n  - Given a worker prompt or command packet delegates to `adv-engineer`, `adv-reviewer`, `adv-designer`, `adv-researcher`, or `adv-tron`\n  - When asset tests inspect the packet\n  - Then required anchors (`WORKING DIRECTORY`, `CHANGE`, `TASK` or `SCOPE KEY`, `PHASE` when needed, `ATTEMPT`, `EXPECTED OUTPUT`) are present\n\n### Related Pattern Scan\n\n- Tool descriptions/handlers with approval or evidence prose: `adv_temporal_register_search_attributes`, `adv_gate_complete`, `adv_task_cancel`, `adv_task_reclassify_tdd`, `adv_change_close`, `adv_change_bulk_close`, `adv_snapshot_health`.\n- At-least-one and non-empty rules still appear in handlers/descriptions: `adv_change_update`, `adv_change_update_issues`, `adv_snapshot_health`, `adv_contract_review_matrix_set`.\n- Cross-project confirmation descriptions recur in `subagent-report.ts`, `temporal-ops.ts`, `task.ts`, `target-project.ts`, `change.ts`.\n- Packet anchors exist in `.opencode/command/adv-apply.md`, `adv-review.md`, `adv-harden.md`, `adv-design.md`, `adv-discover.md`, `adv-tron.md`; only targeted packet tests should be added for touched contracts.\n\n### LBP Check\n\n- Long-term best practice: keep Zod as source of truth; enforce at the boundary; publish schemas only as derived artifacts with deterministic checks.\n- Use Zod v4 native `z.toJSONSchema()` if schema generation is adopted; do not add `zod-to-json-schema` for v4 schema generation because its docs say it is no longer actively maintained after Nov 2025 and does not directly support Zod v4 schemas.\n- OpenCode docs support current direction: tool args are Zod schema shapes and the `tool()` helper provides type-safety/validation.\n- Existing `preflightToolArgs` is the right structural seam; improvement should add coverage/drift guards and fill targeted gaps, not duplicate validation in prose.\n\n### Discovery Opportunity Scout\n\n- Attempted with `adv-researcher`; report submitted successfully.\n- Candidates considered: 5.\n- Auto-adopted: generated/real schema or remove-dead-schema decision; `FIELD_POLICIES` coverage guard.\n- Surfaced to user: publish-vs-remove JSON schemas.\n- Deferred/inconclusive: executable lint for `agent-tool-contracts.md`; deprecated `SupportedSubagentReportSchema` alias audit.\n\n### Recommended Objectives\n\n1. Make published schema behavior truthful: generated schemas with canonical URLs and drift checks, or no advertised schema artifacts.\n2. Add preflight coverage/drift tests so tool-field policy cannot silently fall behind registered schemas.\n3. Harden representative high-risk tool argument paths to fail before handler execution with `INVALID_TOOL_ARGS`.\n4. Preserve strict sub-agent report validation and add only targeted packet/prompt anchor tests for touched contracts.\n5. Collapse or redirect prose instructions only when code/tests structurally enforce the rule.\n6. Produce follow-up issues for broad all-tool sweeps or contract-lint work not needed for this change.\n\n### AMBIGUITY ANALYSIS\n\nM1 MEDIUM Missing Information — Discovery still needs user choice on schema distribution promise.\n  Evidence: `Decide whether JSON schema stubs should remain documented anchor stubs or be replaced by generated/deleted artifacts`\n  Reason: unclear because implementation direction depends on whether published JSON schemas are a supported external contract.\n\nCoverage: B:C F:C S:C M:P\n\nTrigger evaluation: no CRITICAL findings and fewer than two HIGH findings; discovery can proceed to agreement questions.\n\n## Discovery Agenda\n\n### Codebase unknowns\n\n- Which registered tools still rely on handler/prose validation that should move into `preflightToolArgs` or local Zod schemas?\n- Are #42, #45, #65, and #133 fully open, partially implemented, or stale relative to current code?\n- Which command packets/prompts still lack required schema-derived anchors after the recent agent-tool-contract work?\n\n### Ecosystem unknowns\n\n- Whether `zod-to-json-schema` or another Zod v4-compatible generator is mature enough for this repo, or whether deleting/documenting stubs is cleaner.\n- Whether the OpenCode plugin SDK now exposes a better typed boundary that reduces the need for local test-only schema guards.\n\n### Domain unknowns\n\n- Which tool contracts are most failure-prone in real ADV sessions: change mutation, task mutation, gate completion, archive, target-path mutations, or sub-agent report submit.\n- Whether external consumers actually rely on `plugin/schemas/*.schema.json` today.\n\n### Integration unknowns\n\n- How target-path mutation confirmation and recovery-mode audit fields should be handled by generic blank placeholder policy.\n- Whether changing validation timing affects existing tests, command examples, or sub-agent prompt packets.\n\n## Proposal Quality Scan\n\n- Boundaries: In Scope, Out of Scope, and Must Not populated.\n- Functional Scope: Success Criteria are testable and name expected failure modes.\n- Completion Signals: Avoids vague completion language; discovery unknowns are explicit.",
+    "problemStatement": "ADV’s agent-callable tool contracts are not consistently structural across schemas, SDK boundary parsing, prompts/context packets, specs, and tests. Some correctness still depends on prose validation or caller discipline, so malformed inputs, blank optional fields, missing packet anchors, or schema/prompt drift can fail late in workflows instead of being rejected clearly at the boundary.\n\nDesired outcome: make ADV tool contracts structurally enforced and regression-tested so tool calls, sub-agent reports, command packets, and persisted workflow mutations fail early with clear validation errors and remain aligned as contracts evolve.\n\nExpected scope:\n- Audit current ADV tool/report contract surfaces.\n- Harden runtime validation at tool/SDK boundaries.\n- Replace fragile prose-only validation with declarative schema/refinement checks where appropriate.\n- Sweep known weak spots like blank optional strings and generated/stub schema drift.\n- Add tests tying schema fields to prompts/context packets/spec expectations.\n\nNot intended scope:\n- Broad gate redesign.\n- lgrep/Vision performance work.\n- OpenCode DB maintenance.\n- Worktree cleanup rewrite.\n- Fixing specific #138/#136 terminal gate bugs unless contract validation is root cause.",
+    "agreement": "# Agreement\n\n## Objectives\n\n1. Generate truthful JSON schema artifacts from authoritative Zod schemas and stop advertising dead or empty schema URLs.\n2. Add drift/coverage guards so tool preflight placeholder/audit policy stays aligned with registered tool arg schemas.\n3. Harden representative high-risk tool argument paths so malformed inputs fail before handler execution, Temporal signals, or filesystem mutation.\n4. Preserve strict typed sub-agent report contracts and required packet identity anchors.\n5. Update docs/specs/prompts only where structural enforcement and tests exist.\n\n## Acceptance Criteria\n\n1. `plugin/schemas/*.schema.json` are generated from authoritative Zod schemas with non-empty validation content, canonical Advance `$id`/`$schema` URLs, and a deterministic CI drift check.\n2. Stored change/spec artifacts no longer advertise dead `anomalyco/oc-plugins` schema URLs.\n3. Preflight policy coverage tests fail on missing or dead `FIELD_POLICIES` entries for audited placeholder/audit fields.\n4. Representative high-risk malformed tool calls return structured `INVALID_TOOL_ARGS` before handler execution and before Temporal/filesystem mutation.\n5. Blank optional placeholders normalize to omitted only where policy allows; blank audit/approval/evidence fields reject.\n6. Sub-agent reports still reject missing required identity fields as `INVALID_REPORT`; no heuristic inference is added.\n7. Packet/prompt/doc/spec tests cover required anchors for any touched agent-callable report contracts.\n8. Validation passes with targeted tests plus project check/build commands required by repo conventions.\n\n## Constraints\n\n1. Zod remains the authoritative runtime schema source.\n2. JSON schema generation must use Zod v4 native `z.toJSONSchema()` unless discovery/design proves a stronger current alternative.\n3. Do not remove the `tool-registry.ts` SDK `as any` compatibility cast without verified SDK-compatible replacement evidence.\n4. Scope is high-risk tools plus drift/coverage guards, not an all-tools validation rewrite.\n5. Generated schema workflow must be deterministic and CI-checkable.\n6. Target project is `/home/jon/dev/advance`; toolbox is origin context only.\n\n## Avoidances\n\n1. Do not downgrade `INVALID_REPORT` strictness.\n2. Do not infer missing `change_id`, `task_id`, `phase`, `attempt`, `scope`, or `workdir_used` heuristically.\n3. Do not accept blank audit, approval, recovery, or confirmation evidence fields.\n4. Do not rely on prompt prose as sole enforcement for correctness-critical tool arguments.\n5. Do not expand into broad gate redesign, lgrep/Vision performance, OpenCode DB maintenance, or worktree cleanup rewrite.\n6. Do not fix #138/#136 unless contract-boundary validation is proven as root cause.\n\n## Out of Scope\n\n1. Full all-tools validation migration beyond representative high-risk paths and same-pattern touched surfaces.\n2. Broad agent-contract executable lint across every command packet.\n3. Sub-agent report schema redesign.\n4. Tool performance optimization unrelated to validation correctness.\n\n## Preview Applicability\n\nvisual_surface: false\n\nRationale: this change affects ADV plugin/tooling schemas, validation, docs, tests, and generated artifacts. It does not affect browser-visible UI or visual output.\n\n## Decisions\n\n### User Decisions\n\n1. Lineage confirmed: toolbox-created follow-up into Advance is valid context.\n2. JSON schema strategy: generate real schemas rather than delete or keep stubs.\n3. Scope breadth: high-risk tools plus guards, not all tools and not issue-only.\n4. Acceptance criteria approved by user reply: `approve`.\n\n### Agent Decisions (LBP)\n\n1. Keep Zod as source of truth; generate published schemas from Zod rather than hand-maintain dual schemas.\n2. Prefer Zod v4 native `z.toJSONSchema()` over `zod-to-json-schema`, because Zod v4 has first-party conversion and `zod-to-json-schema` docs say it is no longer actively maintained after Nov 2025 and does not directly support Zod v4 schemas.\n3. Keep `tool-registry.ts` SDK `as any` bridge unless design finds a verified SDK-native replacement.\n4. Use existing `preflightToolArgs` as the structural seam for argument hardening.\n5. Preserve strict `INVALID_REPORT`; missing context packet fields are packet/prompt bugs, not schema bugs.\n\n## Deferred Questions\n\nNone.\n\n## Sign-Off\n\nAcceptance criteria approved by user on 2026-06-01 with reply `approve`.",
+    "design": "# Design\n\n## Architecture Overview\n\nUse Zod as the single source of truth and add two derived/enforcement layers:\n\n1. **Generated public JSON schemas** — `plugin/schemas/*.schema.json` become deterministic artifacts generated from curated Zod schemas in `plugin/src/types/*`.\n2. **Contract drift guards** — tests make tool preflight policy and touched sub-agent packet anchors fail when they drift from registered schemas/prompts.\n\nThe implementation keeps the existing runtime structure:\n\n- `plugin/src/tool-registry.ts` remains the registry boundary and keeps the SDK `as any` compatibility bridge.\n- `plugin/src/utils/tool-arg-preflight.ts` remains the pure synchronous placeholder/cross-field validation seam.\n- Tool handlers keep store-aware checks that require current change/task state, but representative malformed calls return the same structured `INVALID_TOOL_ARGS` envelope before mutation.\n- `plugin/src/tools/subagent-report.ts` keeps strict Zod ingest and `INVALID_REPORT` behavior.\n\n## Key Decisions\n\n1. **Generate schemas with Zod v4 native conversion**\n   - Use `z.toJSONSchema()` from the installed Zod v4 dependency.\n   - Target `draft-07` to preserve current schema dialect in existing stubs.\n   - Keep default `unrepresentable: \"throw\"`; do not pass `\"any\"`. This makes transforms/custom/unrepresentable schemas fail loudly.\n   - Pin generator options for byte stability: explicit IO mode, `reused`, `cycles`, deterministic sorting, and trailing newline.\n\n2. **Curated schema registry, not filesystem scraping**\n   - Add a small registry mapping public artifact names to Zod schemas and canonical filenames:\n     - `change` → `ChangeSchema`\n     - `task` → `TaskSchema`\n     - `spec` → `SpecSchema`\n     - `requirement` → `RequirementSchema`\n     - `scenario` → `ScenarioSchema`\n     - `delta` → `DeltaSchema`\n     - `project` → `ProjectConfigSchema`\n   - The registry is the reviewed public schema contract; internal/private schemas remain internal.\n\n3. **Canonical schema URLs**\n   - Replace hardcoded `anomalyco/oc-plugins` URLs with a shared constants helper.\n   - Canonical base: `https://raw.githubusercontent.com/Sharper-Flow/Advance/trunk/plugin/schemas/` unless implementation finds package-local URLs are more correct for published package consumers.\n   - Update current `.adv/specs/*/spec.json` `$schema` refs as part of AC2 because they are stored spec artifacts advertising the dead URL.\n\n4. **Check, don't trust generated artifacts**\n   - Add `schemas:generate` and `schemas:check` package scripts.\n   - Integrate `schemas:check` into `pnpm run check` so CI fails on stale schema output.\n   - `schemas:check` regenerates into memory/temp and compares byte-for-byte against committed files.\n\n5. **Preflight coverage guard**\n   - Expose read-only policy metadata from `tool-arg-preflight.ts` for tests.\n   - Add tests comparing registered tool args from `createToolMap()` against an explicit placeholder-sensitive field classifier.\n   - The classifier is intentionally explicit/allowlisted for audit/evidence/path/approval/recovery/command/branch/content fields to avoid noisy heuristic ownership.\n   - Test fails on missing policies for audited high-risk fields and on dead policy entries for removed/renamed fields.\n\n6. **Representative high-risk hardening**\n   - Pure preflight: shape/placeholder/cross-field rules that need no store access.\n   - Store-aware pre-mutation validation: task/change existence, `blockedBy`, cancellation task IDs, or other checks requiring current state.\n   - Initial representative set should include existing `adv_change_update` baseline plus newly hardened paths from discovery such as `adv_change_update_issues`, `adv_snapshot_health repair`, `adv_contract_review_matrix_set`, and target-path confirmation/evidence trios where current behavior is handler/prose-owned.\n\n7. **Sub-agent reports remain strict**\n   - Missing schema-required report identity fields stay `INVALID_REPORT`.\n   - Packet/prompt tests are added only for touched agent-callable report surfaces; broad executable lint is deferred.\n\n## ADR Drafts\n\nNo ADR draft needed. The schema-generation choice is a reversible implementation strategy backed by existing agreement and external docs; it is not hard-to-reverse enough to require a standalone ADR.\n\n## Implementation Strategy\n\n1. **Schema generation foundation**\n   - Add `plugin/scripts/generate-json-schemas.ts`.\n   - Add `plugin/src/schema-registry.ts` or equivalent near type exports for public schema map and canonical URL helper.\n   - Generate all seven existing schema files with non-empty validation content.\n   - Add `schemas:generate` / `schemas:check` scripts and wire check into `pnpm run check`.\n\n2. **Canonical URL sweep**\n   - Replace hardcoded URLs in `plugin/src/storage/store-disk.ts` and `plugin/src/archive/delta.ts`.\n   - Update tests that assert old URLs.\n   - Enumerate and update every current `.adv/specs/*/spec.json` `$schema` occurrence from `anomalyco/oc-plugins` to canonical Advance URLs as a one-time stored-artifact migration.\n\n3. **Preflight policy guard**\n   - Add exported read-only policy metadata or test-only accessor.\n   - Build tests using `createToolMap()` arg schemas and an explicit sensitive-field allowlist.\n   - Add dead-entry checks for policies referencing nonexistent registered tool fields.\n\n4. **High-risk validation hardening**\n   - Move or mirror handler/prose validation into `preflightToolArgs` when pure.\n   - For store-aware cases, add pre-mutation validators returning structured `INVALID_TOOL_ARGS` before any signal/file mutation.\n   - Add regression tests for representative malformed calls.\n\n5. **Packet/report contract tests**\n   - Preserve existing `agent-tool-contracts` asset tests.\n   - Add targeted anchor tests only where touched prompts/report contracts change.\n\n6. **Docs/spec cleanup**\n   - Update docs that say schemas are empty stubs.\n   - Add/modify specs for generated schema contract and preflight policy drift guard.\n   - Remove prose duplication only after code/tests enforce the behavior.\n\n## LBP Analysis\n\n- Zod is already the runtime validation source and project standard; generated JSON schemas should be derived, never separately authored.\n- Zod v4 native `z.toJSONSchema()` is current best fit: first-party, already installed, documented support for `draft-07`, fail-loud defaults for unrepresentable schemas.\n- Third-party `zod-to-json-schema` is not preferred because its docs say it is no longer actively maintained after Nov 2025 and does not directly support Zod v4 schemas.\n- Preflight remains the right seam for pure tool-boundary validation because it runs before handlers and already normalizes provider placeholder artifacts.\n- Store-aware validation should stay outside pure preflight to keep the registry boundary deterministic and side-effect-free.\n\n## Affected Components\n\n- `plugin/schemas/*.schema.json`\n- `plugin/scripts/*`\n- `plugin/package.json`\n- `plugin/src/types/*`\n- `plugin/src/tool-registry.ts`\n- `plugin/src/utils/tool-arg-preflight.ts`\n- `plugin/src/tools/*` representative high-risk tools\n- `plugin/src/storage/store-disk.ts`\n- `plugin/src/archive/delta.ts`\n- `.adv/specs/*/spec.json`\n- `docs/agent-tool-contracts.md`, `project.md`, `AGENTS.md`, `README.md`\n- Targeted `.opencode/command/*` / `.opencode/agents/*` only if touched packet/report contracts require anchor updates\n\n## Risks / Mitigations\n\n- **Risk:** Zod conversion cannot represent a schema.\n  - Mitigation: keep default `unrepresentable: \"throw\"`; schema check fails loudly.\n\n- **Risk:** Generated schema diff churn.\n  - Mitigation: deterministic serializer, explicit registry order, pinned generator options, format tests.\n\n- **Risk:** Preflight coverage guard becomes heuristic noise.\n  - Mitigation: use explicit sensitive-field allowlist and per-field exceptions with rationale.\n\n- **Risk:** Public schema URLs become a distribution promise.\n  - Mitigation: user already chose generated schemas; keep URL constants centralized and CI-checked.\n\n- **Risk:** Store-aware validation gets mixed into pure registry preflight.\n  - Mitigation: two-layer validation rule: pure preflight first, store-aware pre-mutation second.\n\n## Design Leverage Scout\n\n- Candidates considered: 5.\n- Auto-adopted:\n  - Use `target: \"draft-07\"` with default `unrepresentable: \"throw\"`.\n  - Deterministic serializer for generated schema output.\n  - Preflight coverage test stays pure and introspects registered `createToolMap()` args vs policy metadata.\n- Surfaced/user decision already resolved:\n  - Dead-URL scope includes current `.adv/specs/*/spec.json`; include these because AC2 covers stored spec artifacts.\n- Inconclusive/deferred:\n  - Exact generated schema envelope shape (`definitions` wrapper vs self-contained native output) should be selected during implementation based on Zod output and consumer compatibility tests.\n\n## Validator Result\n\nValidator: VALIDATED with two planning-level cautions.\n\n- Caution: AC2 breadth includes all current `.adv/specs/*/spec.json` `$schema` refs, not just emitters. Planning must enumerate every occurrence so the migration is complete.\n- Caution: deterministic generation must pin options and serialization explicitly for byte-stable `schemas:check`.\n\nNo design conflict, no contract-compromise risk, and no user-value tradeoff remains unresolved.",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\n\nADV tool contracts are structurally hardened and release-ready: public schemas are generated from Zod, placeholder/audit arguments fail early at preflight, strict sub-agent report ingest is preserved, and docs/specs/CI match enforced behavior. Acceptance review and release hardening found no remaining in-scope blockers or high findings.\n\n## Verdict\n\nREADY\n\n## What Was Built\n\n1. Deterministic public JSON schema generation from the curated Zod registry, with `schemas:generate`, `schemas:check`, committed generated artifacts, and CI schema drift checking.\n2. Canonical `Sharper-Flow/Advance` schema URLs across generated schemas, artifact scaffolding, and tracked spec refs.\n3. Explicit `FIELD_POLICIES` metadata and drift guards for placeholder-sensitive ADV tool args.\n4. Registry-level `INVALID_TOOL_ARGS` tests proving malformed high-risk calls fail before handler execution or mutation.\n5. Strict sub-agent report regression coverage for missing identity fields as `INVALID_REPORT`.\n6. Updated docs/specs/skills/context for generated schemas, preflight policy, and tool-contract anchors.\n7. CI `Schema drift check` before typecheck.\n8. Release hardening documented trunk-pinned public schema `$id` semantics in `schema-registry.ts`.\n\n## What Was Verified\n\n- Review: APPROVED with 0 unresolved blockers/issues; one CI schemas:check issue fixed and re-verified.\n- Harden: READY after all 6 scanners; no in-scope blockers/high findings; one adjacent agenda item fixed, two review-created agenda items closed with rationale.\n- Tests: targeted contract suite 317 tests; `pnpm run check`; `bin/oc-test full`; `pnpm run build`; schema-registry targeted test and `schemas:check` after harden fix.\n- Preview URL: not_applicable — no visual surface.\n- Investment: 7 tasks / 3 retries / 87 min / tier: auto.\n- Contract matrix: 24 rows persisted; 0 failed/violated/unknown/missing rows.\n\n## Remaining Concerns\n\nNo blocking concerns. Nonblocking follow-ups recorded for optional generator CLI direct tests, pre-existing disk-store wisdom cleanup, pre-existing disk fallback/delta-order hardening, and optional doc consolidation.\n",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-06-02T00:04:00.000Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| AC1 | acceptance_criterion | `plugin/schemas/*.schema.json` are generated from authoritative Zod schemas with non-empty validation content, canonical Advance `$id`/`$schema` URLs, and a deterministic CI drift check. | pass | Generated schemas from Zod registry; schemas:check in local check and CI. Targeted suite 317 tests and pnpm run check passed. |\n| AC2 | acceptance_criterion | Stored change/spec artifacts no longer advertise dead `anomalyco/oc-plugins` schema URLs. | pass | Schema URL asset test scans specs/scaffolds for retired anomalyco host; targeted suite passed. |\n| AC3 | acceptance_criterion | Preflight policy coverage tests fail on missing or dead `FIELD_POLICIES` entries for audited placeholder/audit fields. | pass | FIELD_POLICIES audited matrix and live registry drift guard passed. |\n| AC4 | acceptance_criterion | Representative high-risk malformed tool calls return structured `INVALID_TOOL_ARGS` before handler execution and before Temporal/filesystem mutation. | pass | Tool registry tests verify INVALID_TOOL_ARGS before handler execution for malformed high-risk calls. |\n| AC5 | acceptance_criterion | Blank optional placeholders normalize to omitted only where policy allows; blank audit/approval/evidence fields reject. | pass | Preflight tests cover omit/reject behavior for blank optional placeholders and audit/evidence fields. |\n| AC6 | acceptance_criterion | Sub-agent reports still reject missing required identity fields as `INVALID_REPORT`; no heuristic inference is added. | pass | Sub-agent report schema and ingest tests reject missing identity as INVALID_REPORT. |\n| AC7 | acceptance_criterion | Packet/prompt/doc/spec tests cover required anchors for any touched agent-callable report contracts. | pass | Agent/tool contract and subagent-report asset tests pin packet/prompt/doc/spec anchors. |\n| AC8 | acceptance_criterion | Validation passes with targeted tests plus project check/build commands required by repo conventions. | pass | Targeted suite 317 tests, pnpm run check, bin/oc-test full, pnpm run build, and adv_change_validate 0 errors passed. |\n| C1 | constraint | Zod remains the authoritative runtime schema source. | respected | Zod remains authoritative via schema-registry z.toJSONSchema renderer. |\n| C2 | constraint | JSON schema generation must use Zod v4 native `z.toJSONSchema()` unless discovery/design proves a stronger current alternative. | respected | Zod v4 native z.toJSONSchema is used; no alternate generator added. |\n| C3 | constraint | Do not remove the `tool-registry.ts` SDK `as any` compatibility cast without verified SDK-compatible replacement evidence. | respected | tool-registry SDK as any cast was not removed. |\n| C4 | constraint | Scope is high-risk tools plus drift/coverage guards, not an all-tools validation rewrite. | respected | Scope stayed on high-risk paths and drift guards, not all-tools rewrite. |\n| C5 | constraint | Generated schema workflow must be deterministic and CI-checkable. | respected | Schema generation deterministic and CI-checkable through schema tests, schemas:check, and CI step. |\n| C6 | constraint | Target project is `/home/jon/dev/advance`; toolbox is origin context only. | respected | All changes were in Advance worktree; cross-repo scanner found single-repo scope only. |\n| DONT1 | avoidance | Do not downgrade `INVALID_REPORT` strictness. | respected | INVALID_REPORT strictness tests passed. |\n| DONT2 | avoidance | Do not infer missing `change_id`, `task_id`, `phase`, `attempt`, `scope`, or `workdir_used` heuristically. | respected | Report identity fields remain explicit; no heuristic inference found. |\n| DONT3 | avoidance | Do not accept blank audit, approval, recovery, or confirmation evidence fields. | respected | Blank audit/approval/recovery/evidence fields reject in preflight tests. |\n| DONT4 | avoidance | Do not rely on prompt prose as sole enforcement for correctness-critical tool arguments. | respected | Correctness-critical args are enforced by FIELD_POLICIES, registry preflight, Zod validation, and tests. |\n| DONT5 | avoidance | Do not expand into broad gate redesign, lgrep/Vision performance, OpenCode DB maintenance, or worktree cleanup rewrite. | respected | No broad gate redesign, lgrep/Vision performance, DB maintenance, or worktree cleanup rewrite. |\n| DONT6 | avoidance | Do not fix #138/#136 unless contract-boundary validation is proven as root cause. | respected | No #138/#136 fix work performed. |\n| OOS1 | out_of_scope | Full all-tools validation migration beyond representative high-risk paths and same-pattern touched surfaces. | not_applicable | Full all-tools validation migration out of scope. |\n| OOS2 | out_of_scope | Broad agent-contract executable lint across every command packet. | not_applicable | Broad command-packet lint out of scope. |\n| OOS3 | out_of_scope | Sub-agent report schema redesign. | not_applicable | Sub-agent report schema redesign out of scope. |\n| OOS4 | out_of_scope | Tool performance optimization unrelated to validation correctness. | not_applicable | Unrelated tool performance optimization out of scope. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "path": "/home/jon/.local/share/opencode-projects/3f9f88dbc6c65a2463945f1cfda1fc59794f411d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/hardenToolContracts/proposal.md",
+      "updatedAt": "2026-06-01T21:52:11.533Z",
+      "contentHash": "39cb5cfb09d9b2cfc0caf6930383f23fe70fd0d00fecc7ae89be6290f2a3cacb"
+    },
+    "agreement": {
+      "path": "/home/jon/.local/share/opencode-projects/3f9f88dbc6c65a2463945f1cfda1fc59794f411d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/hardenToolContracts/agreement.md",
+      "updatedAt": "2026-06-01T21:57:49.816Z",
+      "contentHash": "6c9af605ad54c0e2a11897aa9738c6b3ae6d10bd623f1f86afbc8a894cc05ddc"
+    },
+    "design": {
+      "path": "/home/jon/.local/share/opencode-projects/3f9f88dbc6c65a2463945f1cfda1fc59794f411d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/hardenToolContracts/design.md",
+      "updatedAt": "2026-06-01T22:05:27.506Z",
+      "contentHash": "dbc4a57933bba14a1bf82435e1523dff0d6355ec7243a6cd2c2a6ed9c99e6496"
+    },
+    "executiveSummary": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/hardenToolContracts/executive-summary.md",
+      "updatedAt": "2026-06-02T00:25:18.812Z",
+      "contentHash": "21da885fc724f93e7ef84f244906e6f676160cd114dc8a9bb2cb4df31da1f4b3"
+    }
+  },
+  "lastSignalAt": "2026-06-02T00:25:18.812Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d"
+}

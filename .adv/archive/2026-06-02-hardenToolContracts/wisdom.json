@@ -1,0 +1,54 @@
+{
+  "entries": [
+    {
+      "id": "ws-2-B1yZ",
+      "type": "pattern",
+      "content": "For public JSON schema artifacts, keep a curated registry of exported Zod schemas and generate deterministic files by sorting JSON object keys after `z.toJSONSchema()`. This avoids filesystem scraping, keeps Zod authoritative, and lets `schemas:check` compare committed artifacts byte-for-byte in CI.",
+      "source_task": "tk-60834f9112c3",
+      "recorded_at": "2026-06-01T23:06:09.612Z"
+    },
+    {
+      "id": "ws-G6sbWo",
+      "type": "pattern",
+      "content": "When retiring published schema URLs, update both runtime scaffolding constants and tracked `.adv/specs/*/spec.json` refs, then add an asset test that scans stored artifacts plus scaffold defaults. Keep test-file mentions of the retired host allowed only as the sentinel string under test.",
+      "source_task": "tk-3cd32b209b7b",
+      "recorded_at": "2026-06-01T23:12:07.013Z"
+    },
+    {
+      "id": "ws-kr-GXr",
+      "type": "pattern",
+      "content": "For tool preflight drift guards, export read-only policy metadata from the pure preflight module and test it two ways: an explicit audited-field matrix for required policy behavior, plus a registry-backed dead-entry check against `createToolMap()` args. This catches both missing audit policies and stale renamed fields without heuristic ownership.",
+      "source_task": "tk-d3a0b19f168e",
+      "recorded_at": "2026-06-01T23:21:06.239Z"
+    },
+    {
+      "id": "ws-hbqxBj",
+      "type": "gotcha",
+      "content": "`pnpm test -- <file>` can still route through broader Vitest discovery in this repo and surface unrelated integration timeouts. For focused single-file evidence after such a mismatch, rerun with `pnpm exec vitest run <file>` and leave full-suite coverage to the final verification task.",
+      "source_task": "tk-88603a7cdf2c",
+      "recorded_at": "2026-06-01T23:28:47.714Z"
+    },
+    {
+      "id": "ws-wzb8ZC",
+      "type": "success",
+      "content": "Sub-agent report contract surfaces already have layered tests: schema strictness in `types/subagent-reports.test.ts`, ingest/persistence rejection in `tools/subagent-report.test.ts`, and packet/prompt/spec anchors in agent/spec asset tests. For preservation tasks, focused verification can be sufficient when no touched report contract code changes are needed.",
+      "source_task": "tk-050e9b3f509c",
+      "recorded_at": "2026-06-01T23:31:09.913Z"
+    },
+    {
+      "id": "ws-_5bXMM",
+      "type": "pattern",
+      "content": "When schema-generation behavior changes, update both agent-facing context (`project.md`) and developer quick-reference (`AGENTS.md`) plus asset tests that reject stale guidance. Also scan ignore/linguist comments (`.lgrepignore`, `.gitattributes`) because they often preserve old \"stub/generated\" assumptions outside docs.",
+      "source_task": "tk-301330fdc801",
+      "recorded_at": "2026-06-01T23:43:18.642Z"
+    },
+    {
+      "id": "ws-BKGt7V",
+      "type": "success",
+      "content": "For final contract hardening verification, one targeted suite can cover acceptance-specific surfaces before full gates: schema registry, schema URL guards, preflight policy, registry blocking, strict sub-agent reports, agent/spec asset anchors, and repo instruction drift. Follow with `pnpm run check`, `bin/oc-test full`, and `pnpm run build` for repo-level confidence.",
+      "source_task": "tk-26fd938199f6",
+      "recorded_at": "2026-06-01T23:47:12.953Z"
+    }
+  ],
+  "count": 7
+}
