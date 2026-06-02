@@ -44,7 +44,7 @@ Parse `$ARGUMENTS`: `change-id` required. If empty, use `adv_change_list` → au
 
 ## Phase 2: Gather Metrics
 
-Call `adv_investment_report changeId: <target>`. Capture task count, retry count, elapsed time, per-gate durations, doom-loop signal.
+Use the loaded change state and `adv_reflect`'s local metric extraction. Capture task count, retry count, elapsed time, per-gate durations, and task-derived work-time metrics without calling a separate user-facing investment tool.
 
 ---
 
@@ -112,6 +112,5 @@ When invoked from `/adv-archive`, reflection failure MUST NOT block archive flow
 | Purpose | Tool |
 |---|---|
 | Load change | `adv_change_show` |
-| Investment | `adv_investment_report` |
 | Persist | `adv_reflect` |
 | Wisdom | `adv_wisdom_list` |

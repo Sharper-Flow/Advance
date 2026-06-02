@@ -171,8 +171,7 @@ const REQUIRED_BLOCKED_TOOLS = [
   "adv_agenda_complete",
   "adv_agenda_cancel",
   "adv_agenda_prioritize",
-  // Investment / temporal
-  "adv_investment_report",
+  // Temporal
   "adv_temporal_worker_restart",
   // Worktree mutations
   "adv_worktree_create",

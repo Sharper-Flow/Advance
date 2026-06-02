@@ -33,8 +33,7 @@ If empty → `adv_change_list` → auto-select the only plausible change; ask vi
 2. `adv_task_list` → all tasks must be "done". If incomplete → ARCHIVE BLOCKED banner → stop
 3. `adv_change_validate strict: true` → if fails → show errors/warnings → stop and review the validation output before retrying
 4. `adv_status` → check for `[doctor]` entries: JSON/SQLite inconsistency or broken refs → block; pending WAL → warn only (advisory — benign when transient, escalate only if it persists after rerunning `/adv-status` or restarting OpenCode)
-5. `adv_investment_report changeId: {id}` → include investment summary in archive report (informational)
-6. If `change.contract` exists → run the Contract Proof Gate below before user signoff.
+5. If `change.contract` exists → run the Contract Proof Gate below before user signoff.
 
 ### Contract Proof Gate
 

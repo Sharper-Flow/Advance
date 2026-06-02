@@ -368,7 +368,6 @@ EXPECTED OUTPUT: return ScoutCandidate rows and call adv_subagent_report_submit 
   - **Avoidances / rejected approaches**
   - **Preview applicability** — record preview applicability as `visual_surface: true|false|unknown` plus rationale. Use `true` when the change affects front-end, browser-visible, or any visual output; `false` when no visual output can be affected; `unknown` when uncertainty remains. `unknown` carries forward as an acceptance blocker until clarified.
   - **Open questions**
-  - **Investment snapshot** — call `adv_investment_report changeId: {id}` and include a one-line summary: `Investment: N tasks / M retries / T min / tier: {auto|escalate|hardstop}`. Purely informational; does not gate agreement.
 - Agreement sign-off uses the **Inline Approval prompt (Tier A)** at Phase 4.5.1 (AC checkpoint) and Phase 4.6 (Persist Agreement). Phase 4.5 (Open Question Resolution Loop) keeps the `question` tool — that is a non-checkpoint clarification round.
 
 ### Phase 4.5: Open Question Resolution Loop

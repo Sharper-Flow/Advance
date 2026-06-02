@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { readFileSync } from "fs";
+import { existsSync, readFileSync } from "fs";
 import { join, resolve } from "path";
 
 const REPO_ROOT = resolve(__dirname, "../..");
@@ -66,8 +66,12 @@ describe("workflow noise reduction policy", () => {
     const review = readCommand("adv-review.md");
     const harden = readCommand("adv-harden.md");
 
-    expect(review).toMatch(/Review owns.*contract.*correctness.*security.*tests.*scope/is);
-    expect(harden).toMatch(/Harden owns.*release.*deploy.*production.*docs.*cleanup/is);
+    expect(review).toMatch(
+      /Review owns.*contract.*correctness.*security.*tests.*scope/is,
+    );
+    expect(harden).toMatch(
+      /Harden owns.*release.*deploy.*production.*docs.*cleanup/is,
+    );
     expect(review).toMatch(/critical blocker backstop/i);
     expect(harden).toMatch(/critical blocker backstop/i);
 
@@ -99,7 +103,9 @@ describe("discovery opportunity scout and ambiguity noise policy", () => {
     expect(discover).toMatch(/narrow low-opportunity changes/i);
     expect(discover).toMatch(/Scout: skipped/i);
     expect(discover).toMatch(/Scout: inconclusive/i);
-    expect(discover).not.toMatch(/Run a mandatory bounded opportunity-scout pass/i);
+    expect(discover).not.toMatch(
+      /Run a mandatory bounded opportunity-scout pass/i,
+    );
   });
 
   test("discover checklist distinguishes blocking ambiguity from concise advisory findings", () => {
@@ -112,5 +118,42 @@ describe("discovery opportunity scout and ambiguity noise policy", () => {
       expect(content).toMatch(/evidence quotes/i);
       expect(content).toMatch(/concise advisory/i);
     }
+  });
+});
+
+describe("investment report removal", () => {
+  const activeSurfaces = [
+    "plugin/src/tool-registry.ts",
+    "plugin/src/utils/tool-title.ts",
+    "plugin/src/adv-reviewer-asset.test.ts",
+    "plugin/src/tools/investment.ts",
+    "plugin/src/tools/investment.test.ts",
+    ".opencode/agents/adv.md",
+    ".opencode/agents/adv-atc.md",
+    ".opencode/agents/adv-reviewer.md",
+    ".opencode/agents/adv-designer.md",
+    ".opencode/agents/adv-engineer.md",
+    ".opencode/command/adv-discover.md",
+    ".opencode/command/adv-review.md",
+    ".opencode/command/adv-archive.md",
+    ".opencode/command/adv-reflect.md",
+  ];
+
+  test("active command, agent, registry, and tool surfaces do not expose adv_investment_report", () => {
+    for (const path of activeSurfaces) {
+      const fullPath = join(REPO_ROOT, path);
+      if (!existsSync(fullPath)) continue;
+      expect(readFileSync(fullPath, "utf8"), path).not.toContain(
+        "adv_investment_report",
+      );
+    }
+  });
+
+  test("reflection owns local metric extraction without importing investment tool surface", () => {
+    const reflection = readRepoFile("plugin/src/tools/reflection.ts");
+
+    expect(reflection).not.toMatch(/from\s+["']\.\/investment["']/);
+    expect(reflection).toContain("computePerGateDurations");
+    expect(reflection).toContain("computePerGateWorkDurations");
   });
 });

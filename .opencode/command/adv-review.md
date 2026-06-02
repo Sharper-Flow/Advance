@@ -506,7 +506,6 @@ Using `agreement.md`, produce:
 3. **Constraints respected / avoidances honored**
 4. **Preview URL** — report `live`, `not_applicable`, or `blocked` state from Preview URL Proof. For `live`, include URL + reachability evidence. For `not_applicable`, include rationale. For `blocked`, stop before asking for acceptance.
 5. **Outstanding caveats**
-6. **Investment summary** — call `adv_investment_report changeId: {id}`; include one line: `Investment: N tasks / M retries / T min / tier: {auto|escalate|hardstop}`. Informational only; not a gate.
 
 Keep concise; user-facing.
 
@@ -514,8 +513,8 @@ Keep concise; user-facing.
 
 Before acceptance prompt, persist durable executive summary:
 
-1. `adv_investment_report changeId: {id}` → task counts, elapsed time, retry density, gate durations.
-2. Compose from acceptance summary + metrics:
+1. Use `adv_change_show` task/gate evidence already loaded for review: task counts, implementation summaries, verification notes, retry summaries, and gate state.
+2. Compose from acceptance summary + task/gate evidence:
    ```
    # Executive Summary
 
