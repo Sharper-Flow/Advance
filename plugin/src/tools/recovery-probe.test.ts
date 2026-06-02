@@ -122,7 +122,9 @@ describe("classifyCompletedOrPoisonedRecovery", () => {
 
   it("non-completed error recovers when describe carries poisoned evidence", async () => {
     const handle = {
-      describe: async () => ({ memo: { lastError: "TMPRL1100 nondeterminism" } }),
+      describe: async () => ({
+        memo: { lastError: "TMPRL1100 nondeterminism" },
+      }),
     };
     const result = await classifyCompletedOrPoisonedRecovery(
       handle,

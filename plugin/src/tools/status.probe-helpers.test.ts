@@ -5,10 +5,7 @@
  */
 
 import { describe, expect, test } from "vitest";
-import {
-  computeAutoManagedCensus,
-  deriveOpencodeDebtCounts,
-} from "./status";
+import { computeAutoManagedCensus, deriveOpencodeDebtCounts } from "./status";
 
 type DebtSnapshot = Parameters<typeof deriveOpencodeDebtCounts>[0];
 
