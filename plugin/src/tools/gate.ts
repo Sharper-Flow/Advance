@@ -9,6 +9,7 @@ import type { Store } from "../storage/store";
 import {
   type GateId,
   type GateCompletion,
+  type GateArtifactEvidence,
   type Gates,
   type Task,
   type FeatureFlags,
@@ -74,6 +75,7 @@ import {
   writeArtifactActivity,
 } from "../temporal/activities";
 import { changeToWorkflowState } from "../temporal/change-state";
+import type { ChangeWorkflowState } from "../temporal/contracts";
 import { RECOVERY_RECONCILIATION_WARNING } from "../temporal/recovery-classification";
 import {
   classifyCompletedOrPoisonedRecovery,
@@ -225,13 +227,129 @@ function buildRecoveryReadinessState(input: {
 }
 
 /**
+ * Acceptance-specific recovery artifact-evidence resolution, extracted from
+ * `completeGateViaRecovery` so the acceptance path is independently testable
+ * (AC8). When the recovered state carries a contract review matrix, this
+ * writes the acceptance projection, verifies the executive-summary proof, and
+ * returns acceptance artifact evidence; on any failure it returns a blocked
+ * response string. With no review matrix it is a no-op that returns
+ * `fallbackEvidence` unchanged — preserving the original
+ * `gateId === "acceptance" && recoveryState.contract?.reviewMatrix` guard.
+ */
+async function resolveAcceptanceRecoveryArtifactEvidence(input: {
+  store: Store;
+  changeId: string;
+  recoveryState: ChangeWorkflowState;
+  fallbackEvidence: GateArtifactEvidence | undefined;
+}): Promise<
+  | { ok: true; artifactEvidence: GateArtifactEvidence | undefined }
+  | { ok: false; response: string }
+> {
+  if (!input.recoveryState.contract?.reviewMatrix) {
+    return { ok: true, artifactEvidence: input.fallbackEvidence };
+  }
+  const acceptanceWrite = await writeArtifactActivity({
+    changesDir: input.store.paths.changes,
+    changeId: input.changeId,
+    kind: "acceptance",
+    content: renderAcceptanceProjection(input.recoveryState),
+  });
+  if (!acceptanceWrite.ok) {
+    return {
+      ok: false,
+      response: workflowReadinessBlockedResponse({
+        changeId: input.changeId,
+        gateId: "acceptance",
+        gate: {
+          status: "stuck",
+          stuck_reason: "ACCEPTANCE_PROJECTION_WRITE_FAILED",
+          readiness_blockers: [
+            {
+              code: "ACCEPTANCE_PROJECTION_WRITE_FAILED",
+              gateId: "acceptance",
+              artifactKind: "acceptance",
+              message: acceptanceWrite.error,
+              remediation:
+                "Fix acceptance projection generation before retrying recovery.",
+            },
+          ],
+        },
+      }),
+    };
+  }
+  const executiveSummary = await inspectArtifactActivity({
+    changesDir: input.store.paths.changes,
+    changeId: input.changeId,
+    kind: "executiveSummary",
+  });
+  if (
+    !executiveSummary.ok ||
+    executiveSummary.nonWhitespaceChars <
+      MIN_RECOVERY_ARTIFACT_NON_WHITESPACE_CHARS ||
+    executiveSummary.contentHash !==
+      input.recoveryState.artifacts.executiveSummary?.contentHash
+  ) {
+    const code = !executiveSummary.ok
+      ? executiveSummary.code === "missing"
+        ? "ACCEPTANCE_EXECUTIVE_SUMMARY_MISSING"
+        : "ACCEPTANCE_EXECUTIVE_SUMMARY_UNREADABLE"
+      : executiveSummary.nonWhitespaceChars <
+          MIN_RECOVERY_ARTIFACT_NON_WHITESPACE_CHARS
+        ? "ACCEPTANCE_EXECUTIVE_SUMMARY_UNDERSIZED"
+        : "ACCEPTANCE_EXECUTIVE_SUMMARY_HASH_STALE";
+    return {
+      ok: false,
+      response: workflowReadinessBlockedResponse({
+        changeId: input.changeId,
+        gateId: "acceptance",
+        gate: {
+          status: "stuck",
+          stuck_reason: code,
+          readiness_blockers: [
+            {
+              code,
+              gateId: "acceptance",
+              artifactKind: "acceptance",
+              message: !executiveSummary.ok
+                ? executiveSummary.error
+                : "executive-summary proof failed recovery validation",
+              remediation:
+                "Repair executive-summary.md and workflow metadata before retrying recovery.",
+            },
+          ],
+        },
+      }),
+    };
+  }
+  const acceptanceArtifact = await inspectArtifactActivity({
+    changesDir: input.store.paths.changes,
+    changeId: input.changeId,
+    kind: "acceptance",
+  });
+  if (acceptanceArtifact.ok) {
+    return {
+      ok: true,
+      artifactEvidence: {
+        kind: "acceptance",
+        path: acceptanceArtifact.path,
+        content_hash: acceptanceArtifact.contentHash,
+        non_whitespace_chars: acceptanceArtifact.nonWhitespaceChars,
+        checked_at: acceptanceArtifact.checkedAt,
+      },
+    };
+  }
+  return { ok: true, artifactEvidence: input.fallbackEvidence };
+}
+
+/**
  * rq-extend-poisoned-recovery AC4: generalized poisoned-history gate
  * recovery. Supports acceptance and release gates. Each requires
  * `compatibilityReason` and respects prior-gate sequencing + task
  * completeness.
  *
  * Replaces the prior `completeAcceptanceViaRecovery` helper — call sites
- * now use this entrypoint directly.
+ * now use this entrypoint directly. The acceptance-specific artifact-evidence
+ * resolution lives in `resolveAcceptanceRecoveryArtifactEvidence` (AC8).
  */
 async function completeGateViaRecovery(input: {
   store: Store;
@@ -342,88 +460,15 @@ async function completeGateViaRecovery(input: {
     });
   }
   let artifactEvidence = readiness.evidence;
-  if (input.gateId === "acceptance" && recoveryState.contract?.reviewMatrix) {
-    const acceptanceWrite = await writeArtifactActivity({
-      changesDir: input.store.paths.changes,
+  if (input.gateId === "acceptance") {
+    const acceptance = await resolveAcceptanceRecoveryArtifactEvidence({
+      store: input.store,
       changeId: input.changeId,
-      kind: "acceptance",
-      content: renderAcceptanceProjection(recoveryState),
+      recoveryState,
+      fallbackEvidence: readiness.evidence,
     });
-    if (!acceptanceWrite.ok) {
-      return workflowReadinessBlockedResponse({
-        changeId: input.changeId,
-        gateId: input.gateId,
-        gate: {
-          status: "stuck",
-          stuck_reason: "ACCEPTANCE_PROJECTION_WRITE_FAILED",
-          readiness_blockers: [
-            {
-              code: "ACCEPTANCE_PROJECTION_WRITE_FAILED",
-              gateId: "acceptance",
-              artifactKind: "acceptance",
-              message: acceptanceWrite.error,
-              remediation:
-                "Fix acceptance projection generation before retrying recovery.",
-            },
-          ],
-        },
-      });
-    }
-    const executiveSummary = await inspectArtifactActivity({
-      changesDir: input.store.paths.changes,
-      changeId: input.changeId,
-      kind: "executiveSummary",
-    });
-    if (
-      !executiveSummary.ok ||
-      executiveSummary.nonWhitespaceChars <
-        MIN_RECOVERY_ARTIFACT_NON_WHITESPACE_CHARS ||
-      executiveSummary.contentHash !==
-        recoveryState.artifacts.executiveSummary?.contentHash
-    ) {
-      const code = !executiveSummary.ok
-        ? executiveSummary.code === "missing"
-          ? "ACCEPTANCE_EXECUTIVE_SUMMARY_MISSING"
-          : "ACCEPTANCE_EXECUTIVE_SUMMARY_UNREADABLE"
-        : executiveSummary.nonWhitespaceChars <
-            MIN_RECOVERY_ARTIFACT_NON_WHITESPACE_CHARS
-          ? "ACCEPTANCE_EXECUTIVE_SUMMARY_UNDERSIZED"
-          : "ACCEPTANCE_EXECUTIVE_SUMMARY_HASH_STALE";
-      return workflowReadinessBlockedResponse({
-        changeId: input.changeId,
-        gateId: input.gateId,
-        gate: {
-          status: "stuck",
-          stuck_reason: code,
-          readiness_blockers: [
-            {
-              code,
-              gateId: "acceptance",
-              artifactKind: "acceptance",
-              message: !executiveSummary.ok
-                ? executiveSummary.error
-                : "executive-summary proof failed recovery validation",
-              remediation:
-                "Repair executive-summary.md and workflow metadata before retrying recovery.",
-            },
-          ],
-        },
-      });
-    }
-    const acceptanceArtifact = await inspectArtifactActivity({
-      changesDir: input.store.paths.changes,
-      changeId: input.changeId,
-      kind: "acceptance",
-    });
-    if (acceptanceArtifact.ok) {
-      artifactEvidence = {
-        kind: "acceptance",
-        path: acceptanceArtifact.path,
-        content_hash: acceptanceArtifact.contentHash,
-        non_whitespace_chars: acceptanceArtifact.nonWhitespaceChars,
-        checked_at: acceptanceArtifact.checkedAt,
-      };
-    }
+    if (!acceptance.ok) return acceptance.response;
+    artifactEvidence = acceptance.artifactEvidence;
   }
 
   const completedAt = new Date().toISOString();
