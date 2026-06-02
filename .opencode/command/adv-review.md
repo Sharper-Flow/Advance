@@ -527,12 +527,11 @@ Before acceptance prompt, persist durable executive summary:
    ## What Was Built
    1. {ordered list from change.tasks, using implementation_summary}
 
-   ## What Was Verified
-    - Verdict: {verdict} with {N} findings ({severity breakdown})
-    - Tests: {pass/fail summary}
-    - Preview URL: {sanitized url + reachability evidence + verification timestamp | not_applicable + rationale | blocked + reason}
-    - Investment: {N tasks / M retries / T min / tier}
-    - Contract matrix: {required rows passed/respected, if contract exists}
+    ## What Was Verified
+     - Verdict: {verdict} with {N} findings ({severity breakdown})
+     - Tests: {pass/fail summary}
+     - Preview URL: {sanitized url + reachability evidence + verification timestamp | not_applicable + rationale | blocked + reason}
+     - Contract matrix: {required rows passed/respected, if contract exists}
 
    ## Remaining Concerns
    {open items or "None".}

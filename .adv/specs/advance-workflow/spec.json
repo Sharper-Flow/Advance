@@ -557,6 +557,53 @@
       ]
     },
     {
+      "id": "rq-archiveVisibility01",
+      "title": "Archive Deploy and Reflection Visibility Without Noise",
+      "body": "/adv-archive terminal output MUST keep deploy and reflection status visible and prominent while treating deploy/reflection failures as nonblocking advisories unless they reveal a structural release-safety failure already governed by contract proof, conformance, merge reachability, push safety, release projection durability, or dirty-main safety checks. /adv-reflect MUST provide an archive-visible summary and rerun guidance. This policy MUST NOT absorb separate active-change scope such as archive cleanup scanner behavior or first-class executive-summary ownership; those remain coordinated boundaries, not duplicate implementation in this slice.",
+      "priority": "must",
+      "tags": ["workflow", "archive", "reflection", "deploy", "noise"],
+      "scenarios": [
+        {
+          "id": "rq-archiveVisibility01.1",
+          "title": "Archive report exposes deploy/reflection advisory state",
+          "given": ["A change is finalized through /adv-archive"],
+          "when": "The archive terminal report is emitted",
+          "then": [
+            "Local deploy status is shown as ran, not available, not needed, or failed with reason and nonblocking marker",
+            "Reflection status is shown as completed or failed with reason and nonblocking marker",
+            "Deploy and reflection visibility does not reintroduce investment-report summary noise"
+          ]
+        },
+        {
+          "id": "rq-archiveVisibility01.2",
+          "title": "Advisory deploy/reflection failures do not block release",
+          "given": [
+            "Phase 9 merge/push/release projection proof is structurally satisfied",
+            "Deploy or reflection generation fails without invalidating release safety"
+          ],
+          "when": "Archive completion is evaluated",
+          "then": [
+            "The release remains complete",
+            "The failed deploy or reflection is reported as a nonblocking advisory",
+            "Archive blocks only when the failure also proves structural release-safety failure"
+          ]
+        },
+        {
+          "id": "rq-archiveVisibility01.3",
+          "title": "Overlap boundaries stay outside this policy slice",
+          "given": [
+            "Related active changes own archive cleanup scanner behavior or executive-summary artifact semantics"
+          ],
+          "when": "Workflow-noise policy is updated",
+          "then": [
+            "This policy does not duplicate archive cleanup scanner implementation",
+            "This policy does not change executive-summary ownership beyond removing investment-report noise",
+            "Coordination boundaries are visible in design and command/test surfaces"
+          ]
+        }
+      ]
+    },
+    {
       "id": "rq-productLinking01",
       "title": "Product-Linked ADV State",
       "body": "ADV MAY link separate repositories into one product state plane. Linked products MUST keep two identity planes: repo_project_id for repo-local git/spec/worktree mechanics, and product_project_id for canonical product state (changes, agenda, wisdom, reflections, status aggregation). Product topology MUST be declared in project.json via product metadata plus related_repos entries; single-repo projects without product config MUST keep existing behavior unchanged. Missing or invalid primary repo resolution MUST fail structurally unless the explicit missing_primary_policy allows read_only or isolated degradation.",

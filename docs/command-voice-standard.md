@@ -309,7 +309,7 @@ No other sections, headings, or structural elements in the handoff. The blockquo
 
 `/adv-archive` is the terminal message; verb branches by push state.
 
-**Shipped** (push succeeded AND assets propagated):
+**Shipped** (push succeeded; deploy/reflection advisory state visible):
 
 ```
 ## Shipped.
@@ -325,10 +325,11 @@ What shipped, what spec deltas applied.
 - Archive location: {path}
 - Git merge: {default-branch} ({mode})
 - Push: {SHA range pushed}
+- Local deploy: {ran | not available | not needed | failed: <reason>; nonblocking}
+- Reflection: {completed | failed: <reason>; nonblocking}
 - Pre-push hooks: {strategy}
 - Asset sync: {action}
 - Cleanup: worktree + temp artifacts
-- Investment: {summary}
 
 ---
 
@@ -351,8 +352,9 @@ What was merged locally, what spec deltas applied. Note: not pushed.
 - Archive location: {path}
 - Git merge: {default-branch} ({mode})
 - Push: skipped ({reason: no_remote | local_only_mode | push_failed})
+- Local deploy: {ran | not available | not needed | failed: <reason>; nonblocking}
+- Reflection: {completed | failed: <reason>; nonblocking}
 - Cleanup: worktree + temp artifacts
-- Investment: {summary}
 
 ---
 
@@ -363,6 +365,8 @@ What was merged locally, what spec deltas applied. Note: not pushed.
 |---|---|
 | push succeeded AND `sync_action` ∈ {`auto via hook`, `manual fix`, `not needed`} | **Shipped.** |
 | no remote OR push skipped OR push failed (with explicit reason) | **Merged locally.** |
+
+Deploy/reflection failures remain visible in Delivered lines and do not block release unless they reveal structural release-safety failure already covered by archive proof checks.
 
 Both variants use a single-line blockquote terminal — the change is final.
 

@@ -4,7 +4,7 @@ description: "Produce a structured two-plane reflection report for an archived c
 phaseGoal: "Synthesize post-completion learnings into a durable reflection artifact for process improvement."
 ---
 
-<!-- manifest: adv-reflect · gate: none · requiresChangeId: true · prereqs: [adv-archive] · scope: reads[change, tasks, wisdom, investment] · modifies[reflections.jsonl, archive/REFLECTION.md] -->
+<!-- manifest: adv-reflect · gate: none · requiresChangeId: true · prereqs: [adv-archive] · scope: reads[change, tasks, wisdom, local-metrics] · modifies[reflections.jsonl, archive/REFLECTION.md] -->
 
 # ADV Reflect — Two-Plane Reflection Report
 
@@ -18,7 +18,7 @@ Produce two-plane reflection for archived change: project execution + system fri
 
 `skill("adv-reflect")` → two-plane dimensions, friction taxonomy, metric synthesis, REFLECTION.md template, persistence rules. If unavailable, use fallback below.
 
-Fallback: load archived change, gather investment metrics, synthesize Plane 1 + Plane 2, call `adv_reflect`, write REFLECTION.md, present summary.
+Fallback: load archived change, gather local task/gate metrics, synthesize Plane 1 + Plane 2, call `adv_reflect`, write REFLECTION.md, present summary.
 
 ## Exits
 
@@ -81,6 +81,13 @@ Use wisdom entries, error recovery logs, cancellations, and runtime-specific fai
 
 Emit REFLECTION COMPLETE banner with change ID/title, Plane 1 summary, Plane 2 friction count/top categories, archive path, persisted reflection ID.
 
+### Archive-visible summary
+
+When invoked from `/adv-archive`, return one concise line that the archive terminal report can include:
+
+- `Reflection: completed: {reflection-id}; {friction-count} friction item(s); REFLECTION.md: {path}`
+- On failure: Reflection: failed: <reason>; nonblocking — rerun `/adv-reflect <change-id>` later
+
 ---
 
 ## Error Handling
@@ -88,10 +95,10 @@ Emit REFLECTION COMPLETE banner with change ID/title, Plane 1 summary, Plane 2 f
 | Error | Action |
 |---|---|
 | Change not archived | Block; require `/adv-archive` first |
-| `adv_reflect` fails | Warn, emit REFLECTION WARNING, stop |
-| REFLECTION.md write fails | Warn, emit REFLECTION WARNING, stop |
+| `adv_reflect` fails | Warn, emit REFLECTION WARNING, stop; when called from archive, return archive-visible failed summary |
+| REFLECTION.md write fails | Warn, emit REFLECTION WARNING, stop; when called from archive, return archive-visible failed summary |
 
-When invoked from `/adv-archive`, reflection failure MUST NOT block archive flow: catch error, emit `[ADV:WARN] Reflection generation failed: {reason}`, continue archive, user may rerun `/adv-reflect <change-id>` later.
+When invoked from `/adv-archive`, reflection failure MUST NOT block archive flow: catch error, emit `[ADV:WARN] Reflection generation failed: {reason}; does not block release`, continue archive, and show rerun `/adv-reflect <change-id>` later in the archive-visible summary.
 
 ---
 

@@ -502,7 +502,7 @@ export const reflectionTools = {
       // Plane 1: Project Execution
       // =====================================================================
 
-      // Efficiency metrics — reuse investment.ts computation
+      // Efficiency metrics — local reflection-only computation
       const taskCounts = {
         total: tasks.length,
         done: tasks.filter((t) => t.status === "done").length,

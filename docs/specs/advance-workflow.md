@@ -593,6 +593,61 @@ When `/adv-archive` Phase 9 finalization succeeds, archive success MUST be gated
 
 ---
 
+### Archive Deploy and Reflection Visibility Without Noise
+
+**ID:** `rq-archiveVisibility01` | **Priority:** **[MUST]**
+
+`/adv-archive` terminal output MUST keep deploy and reflection status visible and prominent while treating deploy/reflection failures as nonblocking advisories unless they reveal a structural release-safety failure already governed by contract proof, conformance, merge reachability, push safety, release projection durability, or dirty-main safety checks. `/adv-reflect` MUST provide an archive-visible summary and rerun guidance. This policy MUST NOT absorb separate active-change scope such as archive cleanup scanner behavior or first-class executive-summary ownership; those remain coordinated boundaries, not duplicate implementation in this slice.
+
+**Tags:** `workflow`, `archive`, `reflection`, `deploy`, `noise`
+
+#### Scenarios
+
+**Archive report exposes deploy/reflection advisory state** (`rq-archiveVisibility01.1`)
+
+**Given:**
+
+- A change is finalized through `/adv-archive`
+
+**When:** The archive terminal report is emitted
+
+**Then:**
+
+- Local deploy status is shown as ran, not available, not needed, or failed with reason and nonblocking marker
+- Reflection status is shown as completed or failed with reason and nonblocking marker
+- Deploy and reflection visibility does not reintroduce investment-report summary noise
+
+**Advisory deploy/reflection failures do not block release** (`rq-archiveVisibility01.2`)
+
+**Given:**
+
+- Phase 9 merge/push/release projection proof is structurally satisfied
+- Deploy or reflection generation fails without invalidating release safety
+
+**When:** Archive completion is evaluated
+
+**Then:**
+
+- The release remains complete
+- The failed deploy or reflection is reported as a nonblocking advisory
+- Archive blocks only when the failure also proves structural release-safety failure
+
+**Overlap boundaries stay outside this policy slice** (`rq-archiveVisibility01.3`)
+
+**Given:**
+
+- Related active changes own archive cleanup scanner behavior or executive-summary artifact semantics
+
+**When:** Workflow-noise policy is updated
+
+**Then:**
+
+- This policy does not duplicate archive cleanup scanner implementation
+- This policy does not change executive-summary ownership beyond removing investment-report noise
+- Coordination boundaries are visible in design and command/test surfaces
+
+---
+
 ### Product-Linked ADV State
 
 **ID:** `rq-productLinking01` | **Priority:** **[MUST]**

@@ -157,3 +157,56 @@ describe("investment report removal", () => {
     expect(reflection).toContain("computePerGateWorkDurations");
   });
 });
+
+describe("archive and reflection visibility policy", () => {
+  test("archive and reflect commands keep deploy/reflection visible but nonblocking", () => {
+    const archive = readCommand("adv-archive.md");
+    const reflect = readCommand("adv-reflect.md");
+
+    expect(archive).toMatch(/Deploy visibility/i);
+    expect(archive).toMatch(
+      /If deploy fails[\s\S]*nonblocking advisory[\s\S]*structural release-safety failure/i,
+    );
+    expect(archive).not.toMatch(/If deploy fails → STOP\. Do not push/i);
+    expect(archive).toMatch(
+      /Reflection: \{completed[\s\S]*failed[\s\S]*nonblocking/i,
+    );
+    expect(archive).toMatch(
+      /Reflection generation failed[\s\S]*does not block release/i,
+    );
+    expect(reflect).toMatch(/Archive-visible summary/i);
+    expect(reflect).toMatch(/rerun `\/adv-reflect <change-id>`/i);
+  });
+
+  test("archive terminal and executive summary surfaces avoid investment-report noise", () => {
+    const archive = readCommand("adv-archive.md");
+    const review = readCommand("adv-review.md");
+    const voice = readRepoFile("docs/command-voice-standard.md");
+
+    for (const content of [archive, review, voice]) {
+      expect(content).not.toMatch(/Investment:/);
+      expect(content).not.toMatch(/tier: \{auto\|escalate\|hardstop\}/);
+    }
+
+    expect(archive).toMatch(
+      /Local deploy: \{ran \| not available \| not needed \| failed: <reason>; nonblocking\}/,
+    );
+    expect(voice).toMatch(
+      /Reflection: \{completed \| failed: <reason>; nonblocking\}/,
+    );
+  });
+
+  test("advance-workflow spec records archive visibility and overlap boundaries", () => {
+    const spec = readRepoFile(".adv/specs/advance-workflow/spec.json");
+    const docs = readRepoFile("docs/specs/advance-workflow.md");
+
+    for (const content of [spec, docs]) {
+      expect(content).toContain("rq-archiveVisibility01");
+      expect(content).toMatch(/deploy.*reflection.*visible/i);
+      expect(content).toMatch(/nonblocking/i);
+      expect(content).toMatch(/structural release-safety failure/i);
+      expect(content).toMatch(/archive cleanup scanner/i);
+      expect(content).toMatch(/executive-summary/i);
+    }
+  });
+});
