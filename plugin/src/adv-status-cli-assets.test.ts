@@ -7,9 +7,25 @@ const ADV_STATUS_COMMAND = join(
   REPO_ROOT,
   ".opencode/command/adv-status.md",
 );
+const ADV_AGENT = join(REPO_ROOT, ".opencode/agents/adv.md");
+const ADVANCE_META_SPEC = join(REPO_ROOT, ".adv/specs/advance-meta/spec.json");
 
 function readAdvStatusCommand(): string {
   return readFileSync(ADV_STATUS_COMMAND, "utf8");
+}
+
+function readAdvAgent(): string {
+  return readFileSync(ADV_AGENT, "utf8");
+}
+
+function readAdvanceMetaSpec(): {
+  requirements?: Array<{
+    id?: string;
+    priority?: string;
+    scenarios?: Array<{ id?: string }>;
+  }>;
+} {
+  return JSON.parse(readFileSync(ADVANCE_META_SPEC, "utf8"));
 }
 
 describe("adv-status CLI bridge command contract", () => {
@@ -44,5 +60,31 @@ describe("adv-status CLI bridge command contract", () => {
       forbidden.filter((token) => content.includes(token)),
       "adv-status.md must stay a CLI bridge, not a prompt-driven status workflow",
     ).toEqual([]);
+  });
+
+  test("ADV agent routes project status to CLI bridge and health to explicit diagnostics", () => {
+    const content = readAdvAgent();
+
+    expect(content).toContain("`/adv-status` for fast project table");
+    expect(content).toContain(
+      'use `adv_status view:"health"` only for explicit health diagnostics',
+    );
+  });
+
+  test("advance-meta spec pins the status CLI bridge law", () => {
+    const spec = readAdvanceMetaSpec();
+    const requirement = spec.requirements?.find(
+      (item) => item.id === "rq-statusCliBridge01",
+    );
+
+    expect(requirement).toMatchObject({
+      id: "rq-statusCliBridge01",
+      priority: "must",
+    });
+    expect(requirement?.scenarios?.map((scenario) => scenario.id)).toEqual([
+      "rq-statusCliBridge01.1",
+      "rq-statusCliBridge01.2",
+      "rq-statusCliBridge01.3",
+    ]);
   });
 });
