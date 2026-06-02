@@ -1101,28 +1101,30 @@ export const gateTools = {
           // the raw error matches the legacy regex OR workflow describe
           // carries poisoned evidence. compatibilityReason is still required
           // inside completeGateViaRecovery.
-          const { completedWorkflow, recover } =
-            await classifyCompletedOrPoisonedRecovery(handle, error);
-          if ((gateId === "acceptance" || gateId === "release") && recover) {
-            const boundaryWarning = validateGateBoundary(gateId, completedBy);
-            return completeGateViaRecovery({
-              store: activeStore,
-              change,
-              changeId,
-              gateId,
-              gates,
-              completedBy,
-              notes,
-              compatibilityReason,
-              boundaryWarning,
-              diskDirect: completedWorkflow,
-              recoveryReason,
-              recoveryEvidence,
-              priorApprovalEvidence,
-              extraPayload: projectContext
-                ? { _projectContext: projectContext }
-                : {},
-            });
+          if (gateId === "acceptance" || gateId === "release") {
+            const { completedWorkflow, recover } =
+              await classifyCompletedOrPoisonedRecovery(handle, error);
+            if (recover) {
+              const boundaryWarning = validateGateBoundary(gateId, completedBy);
+              return completeGateViaRecovery({
+                store: activeStore,
+                change,
+                changeId,
+                gateId,
+                gates,
+                completedBy,
+                notes,
+                compatibilityReason,
+                boundaryWarning,
+                diskDirect: completedWorkflow,
+                recoveryReason,
+                recoveryEvidence,
+                priorApprovalEvidence,
+                extraPayload: projectContext
+                  ? { _projectContext: projectContext }
+                  : {},
+              });
+            }
           }
           throw error;
         }
@@ -1284,27 +1286,29 @@ export const gateTools = {
           // rq-fix-gate-tools-recovery AC2 + rq-extend-poisoned-recovery AC4:
           // also recover release gate when workflow describe carries
           // poisoned evidence.
-          const { completedWorkflow, recover } =
-            await classifyCompletedOrPoisonedRecovery(handle, error);
-          if ((gateId === "acceptance" || gateId === "release") && recover) {
-            return completeGateViaRecovery({
-              store: activeStore,
-              change,
-              changeId,
-              gateId,
-              gates,
-              completedBy,
-              notes,
-              compatibilityReason,
-              boundaryWarning,
-              diskDirect: completedWorkflow,
-              recoveryReason,
-              recoveryEvidence,
-              priorApprovalEvidence,
-              extraPayload: projectContext
-                ? { _projectContext: projectContext }
-                : {},
-            });
+          if (gateId === "acceptance" || gateId === "release") {
+            const { completedWorkflow, recover } =
+              await classifyCompletedOrPoisonedRecovery(handle, error);
+            if (recover) {
+              return completeGateViaRecovery({
+                store: activeStore,
+                change,
+                changeId,
+                gateId,
+                gates,
+                completedBy,
+                notes,
+                compatibilityReason,
+                boundaryWarning,
+                diskDirect: completedWorkflow,
+                recoveryReason,
+                recoveryEvidence,
+                priorApprovalEvidence,
+                extraPayload: projectContext
+                  ? { _projectContext: projectContext }
+                  : {},
+              });
+            }
           }
           throw error;
         }

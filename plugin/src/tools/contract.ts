@@ -341,24 +341,28 @@ export const contractTools = {
             // rq-fix-gate-tools-recovery AC3: poisoned-history mint recovers
             // when EITHER the signal error matches the legacy regex OR the
             // workflow's own describe carries poisoned evidence.
-            const { completedWorkflow, recover } =
-              await classifyCompletedOrPoisonedRecovery(handle, signalError);
-            if (args.recoveryMode === "poisoned_history" && recover) {
-              await saveRecoveredContract({
-                store: activeStore,
-                change,
-                contract,
-                diskDirect: completedWorkflow,
-              });
-              return formatToolOutput({
-                success: true,
-                changeId: args.changeId,
-                itemCount: contract.items.length,
-                contractIds: contract.items.map((item) => item.id),
-                _recoveryMutation: true,
-                reconciliationWarning: RECOVERY_RECONCILIATION_WARNING,
-                ...(projectContext ? { _projectContext: projectContext } : {}),
-              });
+            if (args.recoveryMode === "poisoned_history") {
+              const { completedWorkflow, recover } =
+                await classifyCompletedOrPoisonedRecovery(handle, signalError);
+              if (recover) {
+                await saveRecoveredContract({
+                  store: activeStore,
+                  change,
+                  contract,
+                  diskDirect: completedWorkflow,
+                });
+                return formatToolOutput({
+                  success: true,
+                  changeId: args.changeId,
+                  itemCount: contract.items.length,
+                  contractIds: contract.items.map((item) => item.id),
+                  _recoveryMutation: true,
+                  reconciliationWarning: RECOVERY_RECONCILIATION_WARNING,
+                  ...(projectContext
+                    ? { _projectContext: projectContext }
+                    : {}),
+                });
+              }
             }
             throw signalError;
           }
@@ -520,30 +524,34 @@ export const contractTools = {
           } catch (signalError) {
             // rq-fix-gate-tools-recovery AC4: review-matrix poisoned recovery
             // also runs when describe carries poisoned evidence.
-            const { completedWorkflow, recover } =
-              await classifyCompletedOrPoisonedRecovery(handle, signalError);
-            if (args.recoveryMode === "poisoned_history" && recover) {
-              await saveRecoveredReviewMatrix({
-                store: activeStore,
-                change,
-                reviewMatrix,
-                authorization: {
-                  reason: args.recoveryReason ?? "review_matrix_recovery",
-                  evidence: args.recoveryEvidence ?? String(signalError),
-                },
-                diskDirect: completedWorkflow,
-              });
-              return formatToolOutput({
-                success: true,
-                changeId: args.changeId,
-                rowCount: reviewMatrix.rows.length,
-                failingRows: reviewMatrix.rows.filter((row) =>
-                  isFailingContractReviewStatus(row.status),
-                ).length,
-                _recoveryMutation: true,
-                reconciliationWarning: RECOVERY_RECONCILIATION_WARNING,
-                ...(projectContext ? { _projectContext: projectContext } : {}),
-              });
+            if (args.recoveryMode === "poisoned_history") {
+              const { completedWorkflow, recover } =
+                await classifyCompletedOrPoisonedRecovery(handle, signalError);
+              if (recover) {
+                await saveRecoveredReviewMatrix({
+                  store: activeStore,
+                  change,
+                  reviewMatrix,
+                  authorization: {
+                    reason: args.recoveryReason ?? "review_matrix_recovery",
+                    evidence: args.recoveryEvidence ?? String(signalError),
+                  },
+                  diskDirect: completedWorkflow,
+                });
+                return formatToolOutput({
+                  success: true,
+                  changeId: args.changeId,
+                  rowCount: reviewMatrix.rows.length,
+                  failingRows: reviewMatrix.rows.filter((row) =>
+                    isFailingContractReviewStatus(row.status),
+                  ).length,
+                  _recoveryMutation: true,
+                  reconciliationWarning: RECOVERY_RECONCILIATION_WARNING,
+                  ...(projectContext
+                    ? { _projectContext: projectContext }
+                    : {}),
+                });
+              }
             }
             throw signalError;
           }
