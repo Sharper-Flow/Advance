@@ -34,7 +34,7 @@ const PrepReadinessCodes = {
   SCENARIO_INADEQUATE: "SCENARIO_INADEQUATE", // warning
 
   // Task graph integrity
-  TASK_TDD_INVERSION: "TASK_TDD_INVERSION", // must (error)
+  TASK_TDD_INVERSION: "TASK_TDD_INVERSION", // advisory (warning) on heuristic path — see rq-PR003tdd.1
   TASK_ORPHAN: "TASK_ORPHAN", // warning
 
   // TDD intent assignment (rq-PR006tdi)
@@ -221,10 +221,16 @@ export function checkTaskGraphIntegrity(change: Change): ValidationIssue[] {
       for (const dep of blockedByDeps) {
         const depTask = taskById.get(dep.target);
         if (depTask && classifierIsImplTask(depTask.title)) {
+          // Advisory only (rq-PR003tdd.1): this inversion is detected purely
+          // by title heuristics (the explicit-metadata path is skipped via
+          // skipInversion above). A title regex must not solely own a hard
+          // gate-block (P33), so this is a warning. The authoritative
+          // gate-block for missing/invalid TDD intent is
+          // TASK_TDD_INTENT_MISSING (error in strict mode).
           issues.push({
             code: PrepReadinessCodes.TASK_TDD_INVERSION,
-            severity: "error",
-            message: `TDD inversion: test task "${task.id}" is blocked_by impl task "${depTask.id}". Tests must come before implementation (red-before-green).`,
+            severity: "warning",
+            message: `Possible TDD inversion: test task "${task.id}" is blocked_by impl task "${depTask.id}" (detected by title heuristic). Tests should come before implementation (red-before-green).`,
             path: `tasks.${task.id}`,
             details: {
               testTaskId: task.id,
@@ -232,7 +238,7 @@ export function checkTaskGraphIntegrity(change: Change): ValidationIssue[] {
               implTaskId: depTask.id,
               implTaskTitle: depTask.title,
               remediation:
-                "Merge the test task into the implementation task as inline TDD (red/green phases within the same task). If this is a legitimate cross-cutting test, set metadata.tdd_intent='separate_verification' instead.",
+                "Merge the test task into the implementation task as inline TDD (red/green phases within the same task). If this is a legitimate cross-cutting test, set metadata.tdd_intent='separate_verification'. Set an explicit metadata.tdd_intent to resolve this advisory.",
             },
           });
         }

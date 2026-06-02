@@ -130,21 +130,22 @@
     {
       "id": "rq-PR003tdd",
       "title": "TDD Inversion Detection",
-      "body": "Prep-readiness owns enforcement of TDD inversion at planning time. A task graph where a same-scope test task is blocked_by an implementation task violates the inline TDD contract. Detection uses metadata.tdd_intent first (values: inline, separate_verification, not_applicable), falling back to title-based heuristics for legacy tasks without metadata. Tasks with tdd_intent 'separate_verification' or 'not_applicable' are exempt from inversion checks. Canonical TDD semantics and classifier expectations are defined by tdd-contract/rq-TDD005inv; this requirement defines the prep gate readiness behavior and failure surface.",
+      "body": "Prep-readiness owns enforcement of TDD inversion at planning time. A task graph where a same-scope test task is blocked_by an implementation task violates the inline TDD contract. Detection uses metadata.tdd_intent first (values: inline, separate_verification, not_applicable), falling back to title-based heuristics for legacy tasks without metadata. Tasks with tdd_intent 'separate_verification' or 'not_applicable' are exempt from inversion checks. On the title-heuristic (metadata-less) path the inversion finding is advisory (severity 'warning') and does NOT by itself block the prep gate: a title regex must not solely own a hard gate-block (P33 structural-correctness). The authoritative gate-block for missing or invalid TDD intent is TASK_TDD_INTENT_MISSING (rq-PR006tdi). Canonical TDD semantics and classifier expectations are defined by tdd-contract/rq-TDD005inv and rq-TDD002sep; this requirement defines the prep gate readiness behavior and failure surface.",
       "priority": "must",
       "tags": ["prep", "tdd", "task-graph", "metadata"],
       "scenarios": [
         {
           "id": "rq-PR003tdd.1",
-          "title": "Test task blocked by impl task is a must-failure (title heuristic)",
+          "title": "Test task blocked by impl task is an advisory warning (title heuristic)",
           "given": [
             "A task without metadata.tdd_intent whose title matches test-task heuristics",
             "That task has a blocked_by dependency on another task whose title matches impl-task heuristics"
           ],
           "when": "runPrepReadinessChecks is called",
           "then": [
-            "A TASK_TDD_INVERSION issue with severity 'error' is returned",
-            "The prep gate is blocked"
+            "A TASK_TDD_INVERSION issue with severity 'warning' is returned (advisory)",
+            "The prep gate is NOT blocked by the inversion finding alone",
+            "The authoritative gate-block for missing or invalid TDD intent is TASK_TDD_INTENT_MISSING"
           ]
         },
         {
