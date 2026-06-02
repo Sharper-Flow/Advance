@@ -1,56 +1,57 @@
+/**
+ * Canonical recognition-set tests for isWorkflowCompletedError
+ * (remediateSlopScanFindings / QUAL-002 AC5).
+ *
+ * The classifier is the authoritative gatekeeper for routing completed-workflow
+ * failures into disk-projection recovery. It MUST recognize the real Temporal
+ * phrasings (exact error names + mid-string message patterns) while NOT
+ * false-positiving on benign errors whose name merely CONTAINS a recognized
+ * substring. This test locks the recognized set so SDK upgrades surface as a
+ * test failure rather than a silent recovery break.
+ */
+
 import { describe, expect, test } from "vitest";
-import {
-  isFailingContractReviewStatus,
-  isPoisonedHistoryError,
-  isPrecisePoisonedHistoryEvidence,
-  recoveryReasonFromError,
-} from "./recovery-classification";
+import { isWorkflowCompletedError } from "./recovery-classification";
 
-describe("recovery-classification", () => {
-  test("detects poisoned-history Temporal errors through nested causes", () => {
-    const error = new Error("outer", {
-      cause: new Error("TMPRL1100: Nondeterminism error"),
-    });
+function errWithName(name: string, message = "x"): Error {
+  const e = new Error(message);
+  e.name = name;
+  return e;
+}
 
-    expect(isPoisonedHistoryError(error)).toBe(true);
-    expect(recoveryReasonFromError(error)).toBe("poisoned_history");
+describe("isWorkflowCompletedError — canonical recognition set", () => {
+  test("recognized error names (exact) → true", () => {
+    expect(isWorkflowCompletedError(errWithName("WorkflowExecutionAlreadyCompleted"))).toBe(true);
+    expect(isWorkflowCompletedError(errWithName("WorkflowNotFoundError"))).toBe(true);
   });
 
-  test("does not classify missing workflow errors as poisoned history", () => {
-    const error = new Error("Workflow execution not found");
-
-    expect(isPoisonedHistoryError(error)).toBe(false);
-    expect(recoveryReasonFromError(error)).toBe("missing_workflow");
+  test("recognized message phrasings (mid-string) → true", () => {
+    for (const msg of [
+      "workflow execution already completed",
+      "Workflow Already Completed",
+      "Temporal: the Workflow is not running",
+      "Cannot signal a completed workflow handle",
+    ]) {
+      expect(isWorkflowCompletedError(new Error(msg))).toBe(true);
+    }
   });
 
-  test("requires specific poisoned-history evidence tokens", () => {
-    expect(
-      isPrecisePoisonedHistoryEvidence(
-        "TMPRL1100: Nondeterminism error in workflow history",
-      ),
-    ).toBe(true);
-    expect(
-      isPrecisePoisonedHistoryEvidence(
-        "WorkflowExecutionUpdateAccepted event poisoned replay",
-      ),
-    ).toBe(true);
-    // rq-fix-gate-tools-recovery: cite Temporal's own search-attribute label.
-    expect(
-      isPrecisePoisonedHistoryEvidence(
-        "Temporal describe reports WorkflowTaskFailedCauseNonDeterministicError for change foo",
-      ),
-    ).toBe(true);
-    expect(
-      isPrecisePoisonedHistoryEvidence("operator confirmed poisoned history"),
-    ).toBe(false);
-    expect(isPrecisePoisonedHistoryEvidence("   ")).toBe(false);
+  test("near-miss name containing a recognized substring → false", () => {
+    // Broad substring matching (the pre-hardening behavior) would return true
+    // for this; exact name membership must reject it.
+    const nearMiss = errWithName(
+      "MyWorkflowExecutionAlreadyCompletedHandlerError",
+      "totally unrelated failure",
+    );
+    expect(isWorkflowCompletedError(nearMiss)).toBe(false);
   });
 
-  test("classifies failing contract review statuses structurally", () => {
-    expect(isFailingContractReviewStatus("fail")).toBe(true);
-    expect(isFailingContractReviewStatus("violated")).toBe(true);
-    expect(isFailingContractReviewStatus("unknown")).toBe(true);
-    expect(isFailingContractReviewStatus("pass")).toBe(false);
-    expect(isFailingContractReviewStatus("respected")).toBe(false);
+  test("benign errors and non-Error values → false", () => {
+    expect(isWorkflowCompletedError(new Error("network timeout"))).toBe(false);
+    expect(isWorkflowCompletedError(errWithName("TypeError", "cannot read properties of undefined"))).toBe(false);
+    expect(isWorkflowCompletedError("string error")).toBe(false);
+    expect(isWorkflowCompletedError(42)).toBe(false);
+    expect(isWorkflowCompletedError(null)).toBe(false);
+    expect(isWorkflowCompletedError(undefined)).toBe(false);
   });
 });

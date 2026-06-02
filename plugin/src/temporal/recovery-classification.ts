@@ -31,17 +31,31 @@ export function isPrecisePoisonedHistoryEvidence(evidence: string): boolean {
   return POISONED_HISTORY_EVIDENCE_RE.test(evidence);
 }
 
+// Exact lowercased Temporal error names that signal a completed/absent
+// workflow. Exact membership (not substring) avoids false positives on
+// benign errors whose name merely contains one of these substrings.
+const COMPLETED_WORKFLOW_NAMES: ReadonlySet<string> = new Set([
+  "workflowexecutionalreadycompleted",
+  "workflownotfounderror",
+]);
+
+// Case-insensitive SUBSTRING (mid-string) patterns for the real Temporal
+// message phrasings. NOT line-anchored: the phrasings appear embedded in
+// larger messages (e.g. "...Cannot signal a completed workflow handle").
+const COMPLETED_WORKFLOW_MESSAGE_PATTERNS: readonly RegExp[] = [
+  /workflow execution already completed/i,
+  /already completed/i,
+  /workflow is not running/i,
+  /cannot signal a completed/i,
+];
+
 export function isWorkflowCompletedError(err: unknown): boolean {
   if (!(err instanceof Error)) return false;
-  const msg = err.message?.toLowerCase() ?? "";
   const name = err.name?.toLowerCase() ?? "";
-  return (
-    msg.includes("already completed") ||
-    msg.includes("workflow execution already completed") ||
-    name.includes("workflowexecutionalreadycompleted") ||
-    name.includes("workflownotfounderror") ||
-    msg.includes("workflow is not running") ||
-    msg.includes("cannot signal a completed")
+  if (COMPLETED_WORKFLOW_NAMES.has(name)) return true;
+  const msg = err.message ?? "";
+  return COMPLETED_WORKFLOW_MESSAGE_PATTERNS.some((pattern) =>
+    pattern.test(msg),
   );
 }
 
