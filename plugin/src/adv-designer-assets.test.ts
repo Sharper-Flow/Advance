@@ -12,6 +12,25 @@ const AGENT_PATH = join(REPO_ROOT, ".opencode/agents/adv-designer.md");
 const DEPLOY_SCRIPT_PATH = join(REPO_ROOT, "scripts/deploy-local.sh");
 const APPLY_COMMAND_PATH = join(REPO_ROOT, ".opencode/command/adv-apply.md");
 
+function splitFrontmatter(content: string): {
+  frontmatter: string;
+  body: string;
+} {
+  const match = content.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
+  if (!match) {
+    throw new Error("File does not have a valid YAML frontmatter block");
+  }
+  return { frontmatter: match[1], body: match[2] };
+}
+
+function getToolGrant(frontmatter: string, toolName: string): boolean | null {
+  const escaped = toolName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const re = new RegExp(`^\\s+${escaped}:\\s*(true|false)\\s*$`, "m");
+  const match = frontmatter.match(re);
+  if (!match) return null;
+  return match[1] === "true";
+}
+
 function sectionAfterHeading(content: string, heading: string): string {
   const marker = `#### ${heading}`;
   const start = content.indexOf(marker);
@@ -95,6 +114,22 @@ describe("adv-designer assets", () => {
     const content = readFileSync(AGENT_PATH, "utf8");
     const frontmatter = content.split("---")[1] ?? "";
     expect(frontmatter).toContain("adv_subagent_report_submit: true");
+  });
+
+  test("allows Playwright MCP tools and skill loading", () => {
+    const { frontmatter } = splitFrontmatter(readFileSync(AGENT_PATH, "utf8"));
+
+    expect(getToolGrant(frontmatter, "playwright_*")).toBe(true);
+    expect(getToolGrant(frontmatter, "skill")).toBe(true);
+  });
+
+  test("instructs designer to load playwright-mcp skill for browser UI verification", () => {
+    const { body } = splitFrontmatter(readFileSync(AGENT_PATH, "utf8"));
+
+    expect(body).toContain('skill("playwright-mcp")');
+    expect(body).toMatch(/Playwright MCP/i);
+    expect(body).toMatch(/UI verification|browser-driven/i);
+    expect(body).toMatch(/not\s+.*web research/i);
   });
 
   test("contains required contract section headings", () => {

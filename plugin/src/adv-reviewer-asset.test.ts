@@ -113,6 +113,7 @@ const REQUIRED_ALLOWED_TOOLS = [
   "grep",
   "todowrite",
   "question",
+  "skill",
   // Local code intelligence (representative — full lgrep set follows adv-engineer)
   "lgrep_search_semantic",
   "lgrep_search_symbols",
@@ -123,6 +124,8 @@ const REQUIRED_ALLOWED_TOOLS = [
   "exa_*",
   "searchcode_*",
   "webfetch",
+  // Browser/UI verification
+  "playwright_*",
   // ADV reads
   "adv_spec",
   "adv_status",
@@ -256,6 +259,15 @@ describe("adv-reviewer agent asset", () => {
         expect(body).toContain(anchor);
       });
     }
+  });
+
+  test("instructs reviewer to load playwright-mcp skill for visual UI review", () => {
+    const { body } = splitFrontmatter(readFileSync(AGENT_PATH, "utf8"));
+
+    expect(body).toContain('skill("playwright-mcp")');
+    expect(body).toMatch(/Playwright MCP/i);
+    expect(body).toMatch(/visual review|browser-driven|UI verification/i);
+    expect(body).toMatch(/not\s+.*web research/i);
   });
 
   test("REVIEWER_REPORT schema mentions all required fields", () => {

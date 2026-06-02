@@ -645,6 +645,33 @@ describe("delegation matrix coverage", () => {
       expect(text.toLowerCase()).toContain(requiredField);
     }
   });
+
+  // rq-delDefaults07: frontend-capable workers must have browser verification capability.
+  test("browser verification capability for frontend workers is represented in the spec", () => {
+    const spec = loadSpec();
+    const requirement = spec.requirements?.find(
+      (entry) => entry.id === "rq-delDefaults07",
+    );
+    expect(requirement, "rq-delDefaults07 must exist").toBeDefined();
+
+    const text = [
+      requirement?.body ?? "",
+      ...(requirement?.scenarios ?? []).flatMap(
+        (scenario) => scenario.then ?? [],
+      ),
+    ].join("\n");
+
+    for (const expected of [
+      "adv-designer",
+      "adv-reviewer",
+      "playwright_*",
+      "skill: true",
+      'skill("playwright-mcp")',
+      "not for web research",
+    ]) {
+      expect(text).toContain(expected);
+    }
+  });
 });
 
 describe("delegation matrix cross-reference", () => {

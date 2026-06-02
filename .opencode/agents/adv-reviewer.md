@@ -13,6 +13,7 @@ tools:
   bash: true
   todowrite: true
   question: true
+  skill: true
   glob: true
   grep: true
   # Local code intelligence
@@ -33,6 +34,8 @@ tools:
   firecrawl_firecrawl_scrape: true
   firecrawl_firecrawl_crawl: true
   firecrawl_firecrawl_check_crawl_status: true
+  # Browser/UI verification
+  playwright_*: true
   # === ADV reads (narrow, read-only) ===
   adv_spec: true
   adv_status: true
@@ -141,6 +144,12 @@ Once scope is locked, work in short cycles:
 5. **Verify** — Run relevant checks. Fix anything that breaks. Record `verification` evidence.
 
 Repeat until the assigned dimension is complete and the scope boundary is reached.
+
+## Browser Visual Review
+
+When review or harden scope includes frontend/design behavior and browser-driven evidence would improve confidence, load `skill("playwright-mcp")` before using Playwright MCP tools. Use Playwright MCP for local app UI verification, accessibility snapshots, visual review, and interactive reproduction only — not for web research, docs lookup, or page scraping.
+
+Before the first browser action, confirm the spawned session exposes `playwright_*` tools. If Playwright MCP or the `playwright-mcp` skill is unavailable, continue with deterministic review/harden checks and record the limitation in `REVIEWER_REPORT.verification.evidence` and `REVIEWER_REPORT.risks`.
 
 ## Prune-First Heuristic
 

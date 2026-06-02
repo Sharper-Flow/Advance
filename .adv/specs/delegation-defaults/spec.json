@@ -4,7 +4,7 @@
   "title": "Delegation Defaults",
   "purpose": "Canonical definition of default delegation modes for each ADV workflow step. Establishes which steps allow sub-agent delegation, which require inline execution, and what safety boundaries constrain delegation. The matrix is the single source of truth for delegation routing decisions; command files and orchestrator guidance reference this spec rather than duplicating delegation prose.",
   "version": "1.0.0",
-  "updated_at": "2026-05-26T00:00:00.000Z",
+  "updated_at": "2026-06-02T00:00:00.000Z",
   "delegation_matrix": [
     {
       "step": "proposal",
@@ -418,6 +418,39 @@
             "If a step is inline_required in the spec, its command file does not mandate sub-agent usage",
             "If a step is hybrid in the spec, its command file does not say 'no sub-agents'",
             "Contradictions are caught by the test suite"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-delDefaults07",
+      "title": "Browser Verification Access for Frontend-Capable Workers",
+      "body": "Frontend-capable ADV worker agents MUST have browser verification capability when their assigned scope needs UI evidence. adv-designer and adv-reviewer MUST expose Playwright MCP tools through `playwright_*: true`, MUST expose skill loading through `skill: true`, and MUST instruct workers to load `skill(\"playwright-mcp\")` before browser-driven UI verification or visual review. Playwright MCP is for local app UI verification, accessibility snapshots, visual review, and interactive reproduction; it is not for web research, docs lookup, or page scraping.",
+      "priority": "must",
+      "tags": ["delegation", "frontend", "playwright", "skills", "visual-review"],
+      "scenarios": [
+        {
+          "id": "rq-delDefaults07.1",
+          "title": "Frontend implementation worker can verify UI in browser",
+          "given": ["ADV delegates frontend/component implementation to adv-designer"],
+          "when": "The task benefits from browser-driven evidence",
+          "then": [
+            "adv-designer frontmatter includes playwright_*: true",
+            "adv-designer frontmatter includes skill: true",
+            "adv-designer prompt instructs loading skill(\"playwright-mcp\") before Playwright MCP use",
+            "Playwright MCP is documented as not for web research"
+          ]
+        },
+        {
+          "id": "rq-delDefaults07.2",
+          "title": "Reviewer can perform visual UI review when needed",
+          "given": ["ADV delegates review or harden analysis to adv-reviewer for frontend/design scope"],
+          "when": "Visual review, accessibility snapshots, or interactive reproduction materially improves review confidence",
+          "then": [
+            "adv-reviewer frontmatter includes playwright_*: true",
+            "adv-reviewer frontmatter includes skill: true",
+            "adv-reviewer prompt instructs loading skill(\"playwright-mcp\") before Playwright MCP use",
+            "Playwright MCP is documented as not for web research"
           ]
         }
       ]
