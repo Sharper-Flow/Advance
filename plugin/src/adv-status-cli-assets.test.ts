@@ -3,10 +3,7 @@ import { readFileSync } from "fs";
 import { join, resolve } from "path";
 
 const REPO_ROOT = resolve(__dirname, "../..");
-const ADV_STATUS_COMMAND = join(
-  REPO_ROOT,
-  ".opencode/command/adv-status.md",
-);
+const ADV_STATUS_COMMAND = join(REPO_ROOT, ".opencode/command/adv-status.md");
 const ADV_AGENT = join(REPO_ROOT, ".opencode/agents/adv.md");
 const ADVANCE_META_SPEC = join(REPO_ROOT, ".adv/specs/advance-meta/spec.json");
 
