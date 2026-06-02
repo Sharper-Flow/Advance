@@ -15,13 +15,14 @@ overrides:
   uuid: '>=14.0.0'
   fast-uri: '>=3.1.2'
   zod: 4.3.6
+  postcss: '>=8.5.10'
 
 importers:
 
   .:
     dependencies:
       '@opencode-ai/plugin':
-        specifier: latest
+        specifier: ^1.15.7
         version: 1.15.7
       '@temporalio/client':
         specifier: ^1.16.0
@@ -66,9 +67,6 @@ importers:
       eslint-config-prettier:
         specifier: ^10.1.8
         version: 10.1.8(eslint@10.2.0)
-      postcss:
-        specifier: ^8.5.10
-        version: 8.5.10
       prettier:
         specifier: ^3.8.2
         version: 3.8.2
@@ -1782,7 +1780,7 @@ packages:
     engines: {node: '>= 18'}
     peerDependencies:
       jiti: '>=1.21.0'
-      postcss: '>=8.0.9'
+      postcss: '>=8.5.10'
       tsx: ^4.8.1
       yaml: ^2.4.2
     peerDependenciesMeta:
@@ -2025,7 +2023,7 @@ packages:
     peerDependencies:
       '@microsoft/api-extractor': ^7.36.0
       '@swc/core': ^1
-      postcss: ^8.4.12
+      postcss: '>=8.5.10'
       typescript: '>=4.5.0'
     peerDependenciesMeta:
       '@microsoft/api-extractor':

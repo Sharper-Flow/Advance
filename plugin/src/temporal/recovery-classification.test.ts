@@ -21,8 +21,14 @@ function errWithName(name: string, message = "x"): Error {
 
 describe("isWorkflowCompletedError — canonical recognition set", () => {
   test("recognized error names (exact) → true", () => {
-    expect(isWorkflowCompletedError(errWithName("WorkflowExecutionAlreadyCompleted"))).toBe(true);
-    expect(isWorkflowCompletedError(errWithName("WorkflowNotFoundError"))).toBe(true);
+    expect(
+      isWorkflowCompletedError(
+        errWithName("WorkflowExecutionAlreadyCompleted"),
+      ),
+    ).toBe(true);
+    expect(isWorkflowCompletedError(errWithName("WorkflowNotFoundError"))).toBe(
+      true,
+    );
   });
 
   test("recognized message phrasings (mid-string) → true", () => {
@@ -48,7 +54,11 @@ describe("isWorkflowCompletedError — canonical recognition set", () => {
 
   test("benign errors and non-Error values → false", () => {
     expect(isWorkflowCompletedError(new Error("network timeout"))).toBe(false);
-    expect(isWorkflowCompletedError(errWithName("TypeError", "cannot read properties of undefined"))).toBe(false);
+    expect(
+      isWorkflowCompletedError(
+        errWithName("TypeError", "cannot read properties of undefined"),
+      ),
+    ).toBe(false);
     expect(isWorkflowCompletedError("string error")).toBe(false);
     expect(isWorkflowCompletedError(42)).toBe(false);
     expect(isWorkflowCompletedError(null)).toBe(false);
