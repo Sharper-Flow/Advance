@@ -1,0 +1,1360 @@
+{
+  "id": "reduceWorkflowNoise",
+  "title": "Reduce workflow noise",
+  "status": "archived",
+  "created_at": "2026-06-02T15:55:30.958Z",
+  "tasks": [
+    {
+      "id": "tk-2c8b4227cabd",
+      "title": "Review/harden evidence-backed rigor and risk-adaptive scanner policy",
+      "type": "code",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-06-02T16:25:47.759Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC2",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "DONT1",
+          "DONT2",
+          "OOS1",
+          "OOS2",
+          "OOS3"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-02T16:30:05.708Z",
+      "verification": "RED: pnpm test -- src/workflow-noise-reduction-assets.test.ts failed against fixed-quota policy. GREEN: same targeted test passed after replacing quota with evidence-backed clean verdict policy. VERIFY: pnpm test -- src/optimized-handoff-assets.test.ts src/workflow-noise-reduction-assets.test.ts passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".adv/specs/advance-workflow/spec.json",
+        ".opencode/command/adv-harden.md",
+        ".opencode/command/adv-review.md",
+        "docs/checklists/harden-checklist.md",
+        "docs/checklists/review-checklist.md",
+        "docs/specs/advance-workflow.md",
+        "plugin/src/optimized-handoff-assets.test.ts",
+        "plugin/src/workflow-noise-reduction-assets.test.ts"
+      ],
+      "touched_files": [
+        ".adv/specs/advance-workflow/spec.json",
+        ".opencode/command/adv-harden.md",
+        ".opencode/command/adv-review.md",
+        "docs/checklists/harden-checklist.md",
+        "docs/checklists/review-checklist.md",
+        "docs/specs/advance-workflow.md",
+        "plugin/src/optimized-handoff-assets.test.ts",
+        "plugin/src/workflow-noise-reduction-assets.test.ts"
+      ],
+      "checkpointSha": "17328882c44946a6afb943de093ff3dd6760f0d0",
+      "completedAt": "2026-06-02T16:40:01.238Z",
+      "completed_at": "2026-06-02T16:40:01.238Z"
+    },
+    {
+      "id": "tk-c0cadc94f0cb",
+      "title": "Discovery opportunity-scout and ambiguity-noise policy cleanup",
+      "type": "code",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-06-02T16:25:59.596Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "AC5",
+          "AC6"
+        ],
+        "verifies": [
+          "AC5",
+          "AC6"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C4",
+          "C5",
+          "C6",
+          "DONT2",
+          "DONT6",
+          "OOS1",
+          "OOS2",
+          "OOS4"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-02T16:40:22.508Z",
+      "verification": "RED: pnpm test -- src/workflow-noise-reduction-assets.test.ts failed on missing trigger-based scout and blocking/advisory ambiguity policy. GREEN: same targeted test passed after updating adv-discover spec/command/checklist/docs. VERIFY: pnpm test -- src/workflow-noise-reduction-assets.test.ts src/__tests__/atc-assets.test.ts src/skill-loading-policy-assets.test.ts src/adv-autonomy-quality-assets.test.ts passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".adv/specs/adv-discover/spec.json",
+        ".opencode/command/adv-discover.md",
+        "docs/checklists/discover-checklist.md",
+        "docs/specs/adv-discover.md",
+        "plugin/src/workflow-noise-reduction-assets.test.ts"
+      ],
+      "touched_files": [
+        ".adv/specs/adv-discover/spec.json",
+        ".opencode/command/adv-discover.md",
+        "docs/checklists/discover-checklist.md",
+        "docs/specs/adv-discover.md",
+        "plugin/src/workflow-noise-reduction-assets.test.ts"
+      ],
+      "checkpointSha": "ab621e46d9381b46d4ca965045797499e0e2fbc7",
+      "completedAt": "2026-06-02T16:47:48.182Z",
+      "completed_at": "2026-06-02T16:47:48.182Z"
+    },
+    {
+      "id": "tk-8cde3a4f9d54",
+      "title": "Status canonical next-action recommendation and warning separation",
+      "type": "code",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-06-02T16:26:15.449Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC3",
+          "AC6",
+          "AC7"
+        ],
+        "verifies": [
+          "AC6",
+          "AC7"
+        ],
+        "respects": [
+          "C1",
+          "C4",
+          "C5",
+          "C6",
+          "DONT6",
+          "OOS4"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-02T16:48:04.102Z",
+      "verification": "RED: pnpm test -- src/tools/status.test.ts failed on stale recommendations containing duplicate/wrong /adv-apply commands. GREEN: pnpm exec vitest run src/tools/status.test.ts passed (37 tests). VERIFY: pnpm exec vitest run src/tools/status.test.ts src/workflow-noise-reduction-assets.test.ts passed (44 tests).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/status.test.ts",
+        "plugin/src/tools/status.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/status.test.ts",
+        "plugin/src/tools/status.ts"
+      ],
+      "checkpointSha": "a625ef7a16b5d3dd77e48259803b53492941b08e",
+      "completedAt": "2026-06-02T16:52:39.915Z",
+      "completed_at": "2026-06-02T16:52:39.915Z"
+    },
+    {
+      "id": "tk-04e296f5c1e6",
+      "title": "Remove `adv_investment_report` MCP surface and keep reflection-local metrics",
+      "type": "code",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-06-02T16:26:32.745Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-2c8b4227cabd"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-c0cadc94f0cb"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC2",
+          "AC8"
+        ],
+        "verifies": [
+          "AC8"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C4",
+          "C6",
+          "DONT3",
+          "OOS2",
+          "OOS3"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-02T16:52:58.822Z",
+      "verification": "RED: pnpm exec vitest run src/workflow-noise-reduction-assets.test.ts failed before removal because adv_investment_report remained exposed and reflection imported ./investment. GREEN: pnpm exec vitest run src/workflow-noise-reduction-assets.test.ts src/tools/reflection.test.ts src/tool-registry.test.ts src/adv-reviewer-asset.test.ts passed (4 files, 128 tests). VERIFY: pnpm run typecheck passed; pnpm run lint passed; pnpm run format:check passed after formatting; final targeted vitest verify passed (4 files, 128 tests).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".opencode/agents/adv-atc.md",
+        ".opencode/agents/adv-designer.md",
+        ".opencode/agents/adv-engineer.md",
+        ".opencode/agents/adv-reviewer.md",
+        ".opencode/agents/adv.md",
+        ".opencode/command/adv-archive.md",
+        ".opencode/command/adv-discover.md",
+        ".opencode/command/adv-reflect.md",
+        ".opencode/command/adv-review.md",
+        "plugin/src/adv-reviewer-asset.test.ts",
+        "plugin/src/tool-registry.ts",
+        "plugin/src/tools/investment.test.ts",
+        "plugin/src/tools/investment.ts",
+        "plugin/src/tools/reflection.ts",
+        "plugin/src/utils/tool-title.ts",
+        "plugin/src/workflow-noise-reduction-assets.test.ts"
+      ],
+      "touched_files": [
+        ".opencode/agents/adv-atc.md",
+        ".opencode/agents/adv-designer.md",
+        ".opencode/agents/adv-engineer.md",
+        ".opencode/agents/adv-reviewer.md",
+        ".opencode/agents/adv.md",
+        ".opencode/command/adv-archive.md",
+        ".opencode/command/adv-discover.md",
+        ".opencode/command/adv-reflect.md",
+        ".opencode/command/adv-review.md",
+        "plugin/src/adv-reviewer-asset.test.ts",
+        "plugin/src/tool-registry.ts",
+        "plugin/src/tools/investment.test.ts",
+        "plugin/src/tools/investment.ts",
+        "plugin/src/tools/reflection.ts",
+        "plugin/src/utils/tool-title.ts",
+        "plugin/src/workflow-noise-reduction-assets.test.ts"
+      ],
+      "checkpointSha": "67b953a42e41bbb7edd9eaa20e65d79b750f7576",
+      "completedAt": "2026-06-02T17:01:13.530Z",
+      "completed_at": "2026-06-02T17:01:13.530Z"
+    },
+    {
+      "id": "tk-4ce9be88f917",
+      "title": "Archive/reflection visibility, nonblocking release policy, and overlap coordination",
+      "type": "code",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-06-02T16:26:48.288Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-04e296f5c1e6"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC3",
+          "AC9",
+          "AC10"
+        ],
+        "verifies": [
+          "AC9",
+          "AC10"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C6",
+          "C7",
+          "DONT4",
+          "DONT5",
+          "OOS1",
+          "OOS2",
+          "OOS4",
+          "OOS5"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-02T17:01:47.398Z",
+      "verification": "RED: pnpm exec vitest run src/workflow-noise-reduction-assets.test.ts src/adv-autonomy-quality-assets.test.ts failed after tests required deploy/reflection visibility, nonblocking failure semantics, removal of Investment summary noise, and rq-archiveVisibility01. GREEN: same targeted tests passed (2 files, 42 tests) after updating archive/reflect/review commands, voice standard, spec docs, adv-reflect skill, and tests. VERIFY: targeted vitest with reflection tests passed (3 files, 45 tests); pnpm run format:check passed; pnpm run lint passed; node JSON.parse of .adv/specs/advance-workflow/spec.json passed; adv_change_validate strict passed with only pre-existing NO_DELTAS warning.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".adv/specs/advance-workflow/spec.json",
+        ".opencode/command/adv-archive.md",
+        ".opencode/command/adv-reflect.md",
+        ".opencode/command/adv-review.md",
+        "docs/command-voice-standard.md",
+        "docs/specs/advance-workflow.md",
+        "plugin/src/adv-autonomy-quality-assets.test.ts",
+        "plugin/src/tools/reflection.ts",
+        "plugin/src/workflow-noise-reduction-assets.test.ts",
+        "skills/adv-reflect/SKILL.md"
+      ],
+      "touched_files": [
+        ".adv/specs/advance-workflow/spec.json",
+        ".opencode/command/adv-archive.md",
+        ".opencode/command/adv-reflect.md",
+        ".opencode/command/adv-review.md",
+        "docs/command-voice-standard.md",
+        "docs/specs/advance-workflow.md",
+        "plugin/src/adv-autonomy-quality-assets.test.ts",
+        "plugin/src/tools/reflection.ts",
+        "plugin/src/workflow-noise-reduction-assets.test.ts",
+        "skills/adv-reflect/SKILL.md"
+      ],
+      "checkpointSha": "e30c5a31217d721b60f417c8bd3a08665f93d867",
+      "completedAt": "2026-06-02T17:11:07.862Z",
+      "completed_at": "2026-06-02T17:11:07.862Z"
+    },
+    {
+      "id": "tk-b32cf202100e",
+      "title": "Final structural verification, generated artifacts, and contract coverage proof",
+      "type": "code",
+      "status": "done",
+      "priority": 5,
+      "created_at": "2026-06-02T16:27:04.043Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-8cde3a4f9d54"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-4ce9be88f917"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "verifies": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7",
+          "AC8",
+          "AC9",
+          "AC10",
+          "AC11"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "C7",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "DONT6",
+          "OOS1",
+          "OOS2",
+          "OOS3",
+          "OOS4",
+          "OOS5"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-02T17:11:35.764Z",
+      "verification": "VERIFY: bin/oc-test smoke passed (pnpm run check plus smoke test slice); bin/oc-test targeted -- src/workflow-noise-reduction-assets.test.ts src/adv-autonomy-quality-assets.test.ts src/optimized-handoff-assets.test.ts src/tools/status.test.ts src/tools/reflection.test.ts src/tool-registry.test.ts src/adv-reviewer-asset.test.ts src/__tests__/atc-assets.test.ts src/skill-loading-policy-assets.test.ts passed (9 files, 228 tests); bin/oc-test full passed; adv_change_validate strict passed with only pre-existing NO_DELTAS warning. Contract coverage proof: task contract refs verify SC1-SC3 and AC1-AC11 and respect C1-C7, DONT1-DONT6, OOS1-OOS5; no dirty worktree after verification.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "e30c5a31217d721b60f417c8bd3a08665f93d867",
+      "completedAt": "2026-06-02T17:13:59.763Z",
+      "completed_at": "2026-06-02T17:13:59.763Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "reduceWorkflowNoise",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:discovery-opportunity-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Discovery opportunity scout: workflow noise reduction",
+      "sources": [
+        {
+          "label": "Status stale-recommendation logic (hard-coded /adv-apply)",
+          "locator": "plugin/src/tools/status.ts:627-691",
+          "summary": "nextGate recommendation (L635) and recency recommendation (L688-689) are emitted independently per change; recency always says '/adv-apply' regardless of actual next gate, producing the misleading-recommendation smell from success criterion #8."
+        },
+        {
+          "label": "repo-improve-prep.md status over-computation findings",
+          "locator": "docs/repo-improve-prep.md:35-97,148-156",
+          "summary": "Pre-existing HIGH-severity evidence that adv_status summary view builds full payload (health, cleanup, census, full change hydration) before projection. Directly supports the status-noise + cost reduction objectives with file:line evidence."
+        },
+        {
+          "label": "retireinvestmentgovernancedead archive (precedent)",
+          "locator": ".adv/archive/2026-05-07-retireinvestmentgovernancedead/agreement.md:26-27,64-65",
+          "summary": "Prior change already retired investment governance machinery, confirmed 'only adv orchestrator references adv_investment_report', and slimmed the tool. Establishes precedent + consumer-audit method for SC #9 (demote/remove investment report)."
+        },
+        {
+          "label": "Minimum Findings spec + checklists",
+          "locator": ".adv/specs/advance-workflow/spec.json:117-149; docs/checklists/review-checklist.md:51-82; docs/checklists/harden-checklist.md:48-83",
+          "summary": "rq-R3v13wR1 requires '<3 non-nit findings → gate stays open + justification'. Checklists already provide a 'GENUINELY CLEAN JUSTIFICATION' escape with file-level evidence and red-flag invalidators — an evidence-backed clean-verdict path already exists, supporting SC #2 reframing rather than removal."
+        },
+        {
+          "label": "Opportunity scout spec degradation + opt-out",
+          "locator": ".adv/specs/adv-discover/spec.json:717-770",
+          "summary": "rq-discOpportunityScout01.3 already permits trivially-scoped changes to skip the scout with documented rationale, and 01.2 permits INCONCLUSIVE. The 'mandatory' framing already has a structural opt-out — SC #5 is a trigger-policy tightening, not a new capability."
+        },
+        {
+          "label": "Active-change conflict scan",
+          "locator": "adv_change_list in-flight (addArchiveCleanupScanner, firstClassExecutiveSummary)",
+          "summary": "Both named conflict changes are stale drafts (>18000 min idle, 0 or fully-complete tasks). addArchiveCleanupScanner touches archive Phase 9 scanner surface; firstClassExecutiveSummary touches archive/reflection reporting. Low live-conflict risk; coordinate spec/checklist edits."
+        }
+      ],
+      "architecture_assessment": "All eight target surfaces have concrete, pre-existing evidence; this is a policy-consolidation change, not greenfield. Two structural assets already exist and should be leveraged rather than rebuilt: (1) the 'GENUINELY CLEAN JUSTIFICATION' block in both checklists is already an evidence-backed clean-verdict mechanism — SC #2 should reframe rq-R3v13wR1 to make that path primary and drop the fixed-3-count incentive, not invent new machinery; (2) rq-discOpportunityScout01.2/01.3 already encode INCONCLUSIVE + trivial-skip, so SC #5 is a trigger-condition tightening within existing spec scope. The status surface has the highest-confidence, lowest-risk win: the stale recommendation hard-codes /adv-apply (status.ts:689) and is emitted alongside the gate recommendation, directly causing SC #8's misleading-recommendation smell; the fix is gate-aware recency text. The investment-report demotion has a direct precedent (retireinvestmentgovernancedead) with a proven consumer-audit method. Risk concentration is in over-trimming review/harden (SC #1-3) where security/correctness/release blockers MUST remain — those belong to the orchestrator + reviewer, not auto-adoption.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "No safety blockers found. All candidates stay within approved scope and preserve gates/spec-law/TDD/worktree/release evidence. The two auto-adopt candidates (status gate-aware recommendation; minimum-findings reframe to existing clean-justification path) are contract-tied, low-risk, and have no user-value tradeoff. Investment-report fate and review/harden de-dup must be surfaced to user because they carry remove-vs-demote and safety-boundary tradeoffs respectively."
+      },
+      "recommendation": "Adopt now into the agreement: (C1) status gate-aware next-action — make the recency/stale recommendation derive the resume command from the change's actual next gate instead of hard-coding /adv-apply, and dedupe against the gate recommendation (SC #8, status.ts:688-689). (C2) Reframe rq-R3v13wR1 / checklists so a clean verdict requires the existing file-level GENUINELY-CLEAN-JUSTIFICATION evidence instead of a manufactured 3-finding minimum (SC #2); keep mandatory remediation untouched. Surface to user (do not auto-adopt): (C3) investment-report remove-vs-demote decision — reuse retireinvestmentgovernancedead's consumer audit; only adv orchestrator consumes it (SC #9). (C4) review/harden responsibility de-dup — define the split but treat as design-time decision because security/release blockers must be preserved (SC #3). Follow-up (record, do not block): (C5) fold the repo-improve-prep status over-computation findings (lazy views, defer cleanup, summary-index) into this change's status work or cross-link, since they share the adv_status hot path (SC #8 cost dimension).",
+      "follow_ups": [
+        "C5 lazy-view / summary-index status work from docs/repo-improve-prep.md overlaps SC #8 cost reduction — orchestrator decides whether to absorb here or cross-link as separate change.",
+        "Coordinate archive Phase 9 edits (SC #7) with stale draft addArchiveCleanupScanner to avoid spec/checklist drift.",
+        "Reflection value-gap (SC #6): no structured evidence found that reflection output is queried/actioned downstream beyond reflections.jsonl persistence — recommend orchestrator confirm whether high-friction-only trigger loses any real consumer before narrowing."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "reduceWorkflowNoise",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-leverage-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design leverage scout — reduce ADV workflow noise",
+      "sources": [
+        {
+          "label": "Spec rq-R3v13wR1 (shared review+harden threshold)",
+          "locator": ".adv/specs/advance-workflow/spec.json:117-149",
+          "summary": "Single spec requirement body ('must enforce a minimum findings threshold') + scenario rq-R3v13wR1.1 ('fewer than 3 non-nit findings → gate remains open') governs BOTH /adv-review and /adv-harden. The fixed-quota anchor is structural in ONE shared spec, not two command files."
+        },
+        {
+          "label": "Quota prose in both commands",
+          "locator": ".opencode/command/adv-review.md:215 and .opencode/command/adv-harden.md:365",
+          "summary": "Identical '<3 non-nit findings → require genuinely-clean justification' prose duplicated in review and harden. adv-harden.md:371-372 also bakes '>3 MEDIUM' numeric thresholds into the verdict matrix."
+        },
+        {
+          "label": "Stale tier reference (already-removed surface)",
+          "locator": ".opencode/command/adv-review.md:488, adv-discover.md:366, adv-reflect.md:47/115, adv-archive.md:36",
+          "summary": "adv-review.md:488 still prints 'tier: {auto|escalate|hardstop}' but retireinvestmentgovernancedead (archived 2026-05-07) already removed threshold_tier from adv_investment_report. These doc lines are stale today, independent of removal."
+        },
+        {
+          "label": "Reflection→investment coupling is two pure helpers only",
+          "locator": "plugin/src/tools/reflection.ts:17-20,396,401",
+          "summary": "reflection.ts imports ONLY computePerGateDurations + computePerGateWorkDurations from ./investment (pure formatters over change state, no Store/tool dependency). The tool object adv_investment_report is not imported by reflection."
+        },
+        {
+          "label": "Hidden workflow-surface investment query",
+          "locator": "plugin/src/temporal/workflows.ts:194-204,344-373,535; contracts.ts:42; messages.ts:99-100; workflows.queries.test.ts:14,148",
+          "summary": "An independent getInvestmentReportQuery (wf.defineQuery, COMPAT_QUERY_NAMES.getInvestmentReport) lives in the change-workflow surface, derived from state, consumed ONLY by its own test. Not consumed by adv_investment_report tool (which computes from store.changes.get locally). Design draft slice D does not mention it."
+        },
+        {
+          "label": "Stale /adv-apply recommendation bypasses manifest",
+          "locator": "plugin/src/tools/status.ts:688-689 vs 555-571 getRecommendationForGate/getCommandsByGate",
+          "summary": "Recency path hardcodes 'resume with /adv-apply' on any >180min staleness regardless of gate. A manifest-driven getRecommendationForGate already emits the correct next-gate command and is used by the primary next-gate path."
+        }
+      ],
+      "architecture_assessment": "Draft design is sound and low-risk; decisions are policy cleanup within existing architecture, reversible via specs/commands, no ADR needed (concur with draft §3). Five leverage points sharpen it. (1) The review/harden split + quota removal MUST be implemented as a shared spec edit: rq-R3v13wR1 body + scenario .1 is the single structural anchor for BOTH commands — editing only adv-review.md/adv-harden.md prose without rewriting the spec scenario leaves the law contradicting the commands (P33 structural-correctness; spec-law preservation is an agreement constraint). The design's own §2 'pin absence of fixed finding quotas' asset-test intent should target the spec scenario rewrite, not just prose grep. (2) Re your ASK 'shared policy data vs prose-only': the split is genuinely shared (one spec requirement, duplicated prose, duplicated numeric matrix in harden). Recommend expressing review-vs-harden ownership as ONE spec requirement split into two scenarios (review=contract/correctness/security/tests/scope; harden=release/deploy/prod/docs/cleanup) rather than a new policy-data module — a code-level policy table is over-engineering (P19) for two markdown commands; the spec IS the shared source of truth. (3) Re your ASK 'does removing adv_investment_report break reflection/registry consumers': reflection does NOT break — it imports only two pure helpers (computePerGateDurations, computePerGateWorkDurations); design slice D's plan to relocate them into a reflection-local pure helper is correct and sufficient. (4) HIDDEN RISK the draft missed: an independent getInvestmentReportQuery exists in the Temporal change-workflow surface (workflows.ts/contracts.ts/messages.ts) consumed only by its own test. It is a wf.defineQuery (read-only handler), NOT a defineUpdate, so it is below the AGENTS.md defineUpdate replay cliff — but it is still a workflow-surface symbol. Removing it is a SEPARATE decision from removing the tool (the tool never consumed it). Safest: leave the compat query in place (it is harmless dead derivation, removing it touches the workflow bundle for zero user value) OR scope its removal explicitly with workflow-bundle-boundary + replay awareness. The draft's slice-D deletion list ('registry/tool-title/agent allowlists/command references') is correct for the tool but should EXPLICITLY state the workflow query is out of scope to avoid an apply agent over-reaching into workflows.ts. (5) Free win: adv-review.md:488 tier text is already stale (threshold_tier removed 2026-05-07) — removal naturally cleans it; flag so the apply agent does not 'preserve' it.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "No agreement-weakening detected. All candidates tie to approved agreement items (quota removal, status canonical action, investment removal, review/harden split). Mandatory remediation, gates, spec-law, TDD, contract/release proof all preserved. One must-do correction: the quota-removal slice has to rewrite spec rq-R3v13wR1 (body + scenario .1), not just command prose, or spec-law will contradict commands."
+      },
+      "recommendation": "Adopt 5 refinements: (A) auto-adopt — make quota-removal slice rewrite spec rq-R3v13wR1 body+scenario.1 as the structural anchor, with the absence-pinning asset test asserting the spec no longer encodes a numeric finding threshold; harden.md:371-372 '>3 MEDIUM' matrix must be reworded to evidence-clean verdicts too. (B) auto-adopt — implement review/harden ownership split as two scenarios under the existing single spec requirement (shared spec, not new policy-data code); avoids over-engineering. (C) auto-adopt — relocate computePerGateDurations+computePerGateWorkDurations to a reflection-local pure helper exactly as slice D plans; confirmed reflection imports nothing else from investment.ts. (D) surface-to-user / design-around — explicitly scope the Temporal getInvestmentReportQuery OUT of the tool-removal slice (it is independent dead derivation; removing it touches the workflow bundle for zero value and is a separate replay-aware decision). (E) auto-adopt — route the status.ts:688 stale-recency recommendation through the existing manifest helper getRecommendationForGate instead of hardcoded /adv-apply, simultaneously satisfying agreement 'one canonical next action' + 'no stale /adv-apply before implementation gates' by reuse; and drop the already-stale tier text at adv-review.md:488.",
+      "follow_ups": [
+        "Verify status.ts:688 reuse of getRecommendationForGate handles archived/closed changes gracefully (recency path currently fires before gate-satisfaction guard at 666-667).",
+        "Confirm workflows.queries.test.ts:148 expectation is left intact if getInvestmentReportQuery is retained (recommended) — no test churn needed.",
+        "When rewriting rq-R3v13wR1, mirror edits into docs/specs/advance-workflow.md per the retireinvestmentgovernancedead precedent (markdown mirror exists)."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "reduceWorkflowNoise",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation for reduceWorkflowNoise (workflow-policy consolidation)",
+      "sources": [
+        {
+          "label": "advance-workflow spec rq-R3v13wR1",
+          "locator": ".adv/specs/advance-workflow/spec.json:117-138",
+          "summary": "Current law: '/adv-review and /adv-harden must enforce a minimum findings threshold'; scenario .1 keys on 'fewer than 3 non-nit findings'. Confirms the fixed-quota law KD1/Slice A targets, and that scenario .2 (mandatory remediation) must be preserved per AC2."
+        },
+        {
+          "label": "adv-discover spec rq-discOpportunityScout01",
+          "locator": ".adv/specs/adv-discover/spec.json:717-767",
+          "summary": "Scout already MUST run Phase 3.5 with INCONCLUSIVE degradation and a 'Trivially scoped changes MAY skip' path (scenario .3). KD4/Slice B tightens triggers atop existing skip/inconclusive machinery — incremental, not a new mechanism."
+        },
+        {
+          "label": "status.ts recommendation logic",
+          "locator": "plugin/src/tools/status.ts:627-651,677-703",
+          "summary": "enrichRecentChangeStatus already pushes a canonical next-gate rec via getRecommendationForGate (L635-640), then appendRecencyRecommendation (L650) SEPARATELY hard-codes '/adv-apply {changeId}' for any change stale >=180m regardless of gate (L689). This is the exact AC7 dual/conflicting-recommendation bug; KD5 names the correct functions and the fix is local."
+        },
+        {
+          "label": "investment.ts consumers + Temporal query",
+          "locator": "plugin/src/tools/reflection.ts:18-20,396,401; plugin/src/temporal/workflows.ts:194,535; plugin/src/temporal/messages.ts:99",
+          "summary": "computePerGateDurations/computePerGateWorkDurations are pure functions (investment.ts:147+) consumed by reflection.ts — relocatable cleanly (KD6). getInvestmentReportQuery exists in workflows.ts+messages.ts+workflows.queries.test.ts; KD6 scopes its removal OUT, correctly avoiding the documented Temporal replay-cliff (AGENTS.md signal/query surface)."
+        },
+        {
+          "label": "AC10 coordination targets + new overlap",
+          "locator": "adv_change_list in-flight: addArchiveCleanupScanner, firstClassExecutiveSummary, rewriteStatusCli",
+          "summary": "addArchiveCleanupScanner (draft, 0 tasks) and firstClassExecutiveSummary (draft, 6/6 tasks) both exist — AC10 coordination targets are real. A newer draft rewriteStatusCli (created after agreement) overlaps status surfaces; its own proposal states the user requested it stay SEPARATE from reduceWorkflowNoise."
+        }
+      ],
+      "architecture_assessment": "Design is a disciplined workflow-policy consolidation that edits existing spec/command/checklist/test surfaces plus narrow runtime touch (status.ts, investment.ts removal, registry/allowlist/tool-title cleanup). Every material source claim in the design was verified against the codebase: rq-R3v13wR1 fixed-quota law, rq-discOpportunityScout01 skip/inconclusive paths, the status.ts dual-recommendation bug, investment.ts pure-helper consumers, and the Temporal getInvestmentReportQuery replay-cliff risk. The six-slice decomposition maps cleanly to the 11 ACs. KD2's choice to express the review/harden split as spec/command prose rather than a new runtime policy-data table is the simpler, boring option and is justified (only two markdown commands consume it). KD6's scope-out of the Temporal query from the removal slice is the correct conservative call given the project's documented signal/query-only workflow surface and defineUpdate replay poisoning history. No constraint (C1-C7) is violated by the design: seven gates, spec-law, contract/release proof, and structural blockers are all preserved; quota removal is replaced by an evidence-backed clean-verdict path that the existing checklists already encode (GENUINELY CLEAN JUSTIFICATION blocks), satisfying C4/DONT1.",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "VALIDATED with one CAUTION. Substance of the design is correct, simple, and spec-law-compliant across all four dimensions. The single caution is a coordination gap that emerged after the agreement was written: a new draft change `rewriteStatusCli` also touches status surfaces (.opencode/command/adv-status.md, bin/adv) and was explicitly split from reduceWorkflowNoise by the user. The reduceWorkflowNoise design/AC10 names only addArchiveCleanupScanner and firstClassExecutiveSummary. File overlap is minimal (KD5 edits status.ts MCP-tool internals; rewriteStatusCli edits the slash command + CLI), so this is a sequencing/coordination caution, not a structural conflict. Recommend the design add a one-line coordination note acknowledging rewriteStatusCli to satisfy C7's spirit and prevent status-routing-doc churn collisions during planning. Minor secondary note: ensure Slice D's investment removal updates adv-reviewer-asset.test.ts:175 and tool-registry.ts:432-434,741 (all confirmed present) so AC8's zero-active-reference assertion holds."
+      },
+      "recommendation": "Proceed to planning. The design solves all stated objectives, is the simplest viable approach (prose/spec policy over new runtime subsystems, pure-helper relocation, query scope-out), and contradicts no existing spec. Before or during planning, add an explicit coordination note for the newer `rewriteStatusCli` change alongside the existing addArchiveCleanupScanner/firstClassExecutiveSummary coordination (C7/AC10 spirit), since both now touch status-routing surfaces; confirm the split keeps KD5 (status.ts recommendation dedup) and rewriteStatusCli (CLI/command rewrite) non-overlapping at the file level. Verify Slice D enumerates every confirmed adv_investment_report reference (tool-registry.ts L432-434/L741, tool-title.ts L105, adv-reviewer-asset.test.ts L175, investment.ts/.test.ts) and that reflection.ts helper relocation keeps the pure-function signatures intact.",
+      "follow_ups": [
+        "Add rewriteStatusCli to the design's coordination/AC10 surface to avoid status-routing-doc collisions during planning.",
+        "During planning, pin Slice D task to assert zero active adv_investment_report references across registry, tool-title, agent allowlists, reviewer asset test, and commands.",
+        "Confirm computePerGateDurations/computePerGateWorkDurations relocation target (reflection-local) preserves existing pure signatures consumed at reflection.ts:396,401."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "reduceWorkflowNoise",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/reduceWorkflowNoise",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "Path preflight for scoped files: .opencode/command/{adv-review,adv-harden,adv-discover,adv-archive,adv-reflect}.md, .adv/specs/{advance-workflow,adv-discover}/spec.json, docs/checklists/{review,harden,discover}-checklist.md, plugin/src/{tool-registry.ts,tools/status.ts,tools/reflection.ts,tools/change.ts,workflow-noise-reduction-assets.test.ts}",
+          "git diff --stat trunk...HEAD && git diff --name-only trunk...HEAD",
+          "lgrep_search_text adv_investment_report",
+          "bin/oc-test targeted -- src/workflow-noise-reduction-assets.test.ts src/tools/status.test.ts src/tools/reflection.test.ts src/adv-reviewer-asset.test.ts",
+          "bin/oc-test smoke",
+          "git status --short"
+        ],
+        "results": "pass",
+        "evidence": "Preflight: all scoped files present. Diff covers workflow-noise surfaces: review/harden/discover/archive/reflect commands, advance-workflow and adv-discover specs/docs/checklists, agent allowlists, registry/tool-title investment report removal, status tests/implementation, reflection local metrics, workflow-noise asset tests. adv_investment_report text remains only in historical CHANGELOG and workflow-noise tests among exact active tool-name refs; no active command/agent/registry/tool-title exposure found. Targeted tests: 4 files passed, 141 tests passed. Smoke: schemas:check, typecheck, test isolation, lockfile policy, lint, format:check passed; smoke tests 2 files passed, 39 tests passed. Worktree clean. Orchestrator execution evidence also recorded full suite and strict validation passed earlier. Note: requested scope_key acceptance-review normalized to schema-valid review:acceptance."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Temporal compatibility query names containing InvestmentReport remain internal/non-user-facing; reviewed as nonblocking because AC8 targets removal of adv_investment_report tool exposure and reflection now computes metrics locally."
+      ],
+      "required_main_agent_actions": [
+        "Proceed with acceptance if orchestrator accepts smoke + targeted verification plus recorded full-suite execution evidence.",
+        "No reviewer remediation needed."
+      ],
+      "consumer_warnings": [
+        {
+          "kind": "consumer_failure",
+          "message": "Initial report submission using requested scope_key acceptance-review was rejected by schema; target-path submission then failed because target Temporal worker was not registered; final retry submitted without target_path to current project context."
+        }
+      ]
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-06-02T15:57:32.366Z",
+      "completed_by": "user:proposal-approval",
+      "approval_evidence": "User approved proposal with exact reply: \"approve\". Proceeding inline to discovery per Tier A auto-continue.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/reduceWorkflowNoise/proposal.md",
+        "content_hash": "65456ac1cb1e4abccf00ed48220458a478e68462245fbf9b46afb39b9a054c15",
+        "non_whitespace_chars": 8568,
+        "checked_at": "2026-06-02T15:55:30.977Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-06-02T16:13:31.105Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery complete. User approved acceptance criteria/agreement with exact reply: \"approve\". Agreement persisted; contract minted with SC/AC/C/DONT/OOS spine; no blocking ambiguity findings; preview applicability false.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/reduceWorkflowNoise/agreement.md",
+        "content_hash": "787c74f4820eb5ab0639ea7c65d835a2bb55cf81fe05c3943ba3dc8e858d9481",
+        "non_whitespace_chars": 7128,
+        "checked_at": "2026-06-02T15:55:30.978Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-06-02T16:21:41.378Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design recorded and validated. Independent validator verdict: VALIDATED (CAUTION). Caution about rewriteStatusCli coordination resolved in design via KD9/Slice C; no unresolved CONFLICT and no contract-compromise risk.",
+      "artifact_evidence": {
+        "kind": "design",
+        "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/reduceWorkflowNoise/design.md",
+        "content_hash": "d9499570381d76cbda9a147e84ee3ef8d702f181a559991b687367a9ef9c4fed",
+        "non_whitespace_chars": 12703,
+        "checked_at": "2026-06-02T15:55:30.979Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-06-02T16:28:47.890Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved prep plan with exact reply: \"approve\". Six contract-traced tasks created; strict validation passed with nonblocking NO_DELTAS warning; proceeding inline to execution per Tier A auto-continue."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-06-02T17:16:07.227Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 6 execution tasks done. Verification evidence includes RED/GREEN/VERIFY task tests, bin/oc-test smoke, targeted 9-file suite (228 tests), bin/oc-test full, strict change validation with only NO_DELTAS warning, and clean worktree."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-06-02T18:41:03.695Z",
+      "completed_by": "user:acceptance-approval",
+      "approval_evidence": "User accepted delivered work with exact reply: \"approve\" after acceptance review. Evidence: independent reviewer READY with 0 findings; bin/oc-test smoke passed; targeted 9-file suite passed (228 tests); bin/oc-test full passed; contract matrix 32/32 rows passed/respected; executive summary persisted.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/reduceWorkflowNoise/executive-summary.md",
+        "content_hash": "2a2aa4e8b9c85e61714113ddaa2788e0074e17ae01704de5fa02d8ce3ac6b532",
+        "non_whitespace_chars": 1824,
+        "checked_at": "2026-06-02T15:55:30.980Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "adhoc"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "787c74f4820eb5ab0639ea7c65d835a2bb55cf81fe05c3943ba3dc8e858d9481",
+      "approvedAt": "2026-06-02T16:11:47.312Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "ADV workflow cost/noise is reduced on the targeted surfaces without removing seven gates, spec-law, TDD/task evidence, worktree isolation, contract proof, or release/merge/push proof.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "787c74f4820eb5ab0639ea7c65d835a2bb55cf81fe05c3943ba3dc8e858d9481",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "Review, harden, discovery, status, archive, reflection, and investment-reporting policies are clearer, less duplicative, and structurally encoded in specs/commands/tests.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "787c74f4820eb5ab0639ea7c65d835a2bb55cf81fe05c3943ba3dc8e858d9481",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "User-facing ADV output becomes more decision-oriented: one correct next action, fewer non-actionable findings, and visible but nonblocking archive deploy/reflection signals.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "787c74f4820eb5ab0639ea7c65d835a2bb55cf81fe05c3943ba3dc8e858d9481",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "`/adv-review` and `/adv-harden` no longer require a fixed minimum number of non-nit findings; command/checklist/spec asset tests assert clean verdicts require evidence-backed checked dimensions and red-flag invalidator handling, not a fixed finding count.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "787c74f4820eb5ab0639ea7c65d835a2bb55cf81fe05c3943ba3dc8e858d9481",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Mandatory remediation remains intact for blockers/issues and validated in-scope findings; `advance-workflow` spec and review/harden command tests still require remediation for blocker/issue/validated in-scope findings.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "787c74f4820eb5ab0639ea7c65d835a2bb55cf81fe05c3943ba3dc8e858d9481",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Review/harden responsibility split is explicit and non-duplicative; command/checklist text and tests show review owns contract/correctness/security/tests/scope while harden owns release/deploy/prod/docs/cleanup readiness with critical blocker backstop.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "787c74f4820eb5ab0639ea7c65d835a2bb55cf81fe05c3943ba3dc8e858d9481",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Scanner breadth is risk-adaptive without dropping mandatory high-risk checks; tests/specs cover trigger conditions for broad scanners and mandatory checks for security/correctness/release/deployment-sensitive changes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "787c74f4820eb5ab0639ea7c65d835a2bb55cf81fe05c3943ba3dc8e858d9481",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Discovery opportunity scout is trigger-based; `adv-discover` spec/command/checklist tests allow documented skip/inconclusive for narrow low-opportunity changes and require scout for strategic/architecture/product/external-option changes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "787c74f4820eb5ab0639ea7c65d835a2bb55cf81fe05c3943ba3dc8e858d9481",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Ambiguity output remains structurally blocking where needed but quieter elsewhere; proposal/discovery/audit/status tests distinguish blocking structural ambiguity from concise advisory findings and preserve evidence-quote rules.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "787c74f4820eb5ab0639ea7c65d835a2bb55cf81fe05c3943ba3dc8e858d9481",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "`adv_status` emits one canonical next action per active change; status tests prove stale pre-execution changes do not recommend `/adv-apply` and hygiene/ambiguity warnings are separated or deduped.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "787c74f4820eb5ab0639ea7c65d835a2bb55cf81fe05c3943ba3dc8e858d9481",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC8",
+        "kind": "acceptance_criterion",
+        "text": "`adv_investment_report` is removed unless design proves decision value; if removed, registry/tool-title/agent allowlists/commands/tests have zero active `adv_investment_report` references and reflection uses local metric extraction if needed.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "787c74f4820eb5ab0639ea7c65d835a2bb55cf81fe05c3943ba3dc8e858d9481",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC9",
+        "kind": "acceptance_criterion",
+        "text": "Archive keeps deploy/reflection visible but nonblocking; archive/reflect command tests show deploy nudge and reflection summary remain visible/prominent, and reflection/deploy failures do not block release unless structural release safety fails.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "787c74f4820eb5ab0639ea7c65d835a2bb55cf81fe05c3943ba3dc8e858d9481",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC10",
+        "kind": "acceptance_criterion",
+        "text": "Existing related active changes are not silently overwritten; design records coordination with `addArchiveCleanupScanner` and `firstClassExecutiveSummary`, and implementation tasks avoid duplicate archive cleanup/executive-summary scope.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "787c74f4820eb5ab0639ea7c65d835a2bb55cf81fe05c3943ba3dc8e858d9481",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC11",
+        "kind": "acceptance_criterion",
+        "text": "Reduced workflow policy is machine-checkable; updated specs, commands, checklists, allowlists/registry, and asset tests pass `pnpm run check` and targeted tests.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "787c74f4820eb5ab0639ea7c65d835a2bb55cf81fe05c3943ba3dc8e858d9481",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Do not remove ADV's seven-gate lifecycle.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "787c74f4820eb5ab0639ea7c65d835a2bb55cf81fe05c3943ba3dc8e858d9481",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Do not remove spec-law, Temporal state, worktree isolation, task checkpoints, TDD evidence, contract proof, or release/merge/push proof.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "787c74f4820eb5ab0639ea7c65d835a2bb55cf81fe05c3943ba3dc8e858d9481",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Do not weaken blockers for correctness, security, data loss, conformance, contract proof, release readiness, or merge/push evidence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "787c74f4820eb5ab0639ea7c65d835a2bb55cf81fe05c3943ba3dc8e858d9481",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Do not replace structural gates with purely heuristic judgment.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "787c74f4820eb5ab0639ea7c65d835a2bb55cf81fe05c3943ba3dc8e858d9481",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Do not hide real risk by suppressing warnings without an alternate evidence path.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "787c74f4820eb5ab0639ea7c65d835a2bb55cf81fe05c3943ba3dc8e858d9481",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C6",
+        "kind": "constraint",
+        "text": "Do not create duplicate responsibilities across commands.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "787c74f4820eb5ab0639ea7c65d835a2bb55cf81fe05c3943ba3dc8e858d9481",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C7",
+        "kind": "constraint",
+        "text": "Coordinate with active archive/reporting changes before modifying overlapping archive cleanup or executive-summary surfaces.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "787c74f4820eb5ab0639ea7c65d835a2bb55cf81fe05c3943ba3dc8e858d9481",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Avoid manufactured findings or fixed-count issue quotas.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "787c74f4820eb5ab0639ea7c65d835a2bb55cf81fe05c3943ba3dc8e858d9481",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Avoid mandatory broad scanner fan-out for narrow internal changes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "787c74f4820eb5ab0639ea7c65d835a2bb55cf81fe05c3943ba3dc8e858d9481",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Avoid user-facing investment metrics unless they demonstrably drive decisions.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "787c74f4820eb5ab0639ea7c65d835a2bb55cf81fe05c3943ba3dc8e858d9481",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Avoid moving production deployment inside ADV's release gate lifecycle.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "787c74f4820eb5ab0639ea7c65d835a2bb55cf81fe05c3943ba3dc8e858d9481",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "Avoid making reflection block archive.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "787c74f4820eb5ab0639ea7c65d835a2bb55cf81fe05c3943ba3dc8e858d9481",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT6",
+        "kind": "avoidance",
+        "text": "Avoid broad latency/index work beyond status recommendation noise unless needed for AC7.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "787c74f4820eb5ab0639ea7c65d835a2bb55cf81fe05c3943ba3dc8e858d9481",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "Removing ADV's seven-gate lifecycle.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "787c74f4820eb5ab0639ea7c65d835a2bb55cf81fe05c3943ba3dc8e858d9481",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "Removing spec-law, Temporal state, worktree isolation, task checkpoints, TDD evidence, contract proof, or release/merge/push proof.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "787c74f4820eb5ab0639ea7c65d835a2bb55cf81fe05c3943ba3dc8e858d9481",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "Rewriting the whole ADV architecture or replacing Temporal.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "787c74f4820eb5ab0639ea7c65d835a2bb55cf81fe05c3943ba3dc8e858d9481",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS4",
+        "kind": "out_of_scope",
+        "text": "Implementing unrelated workflow features from the backlog.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "787c74f4820eb5ab0639ea7c65d835a2bb55cf81fe05c3943ba3dc8e858d9481",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS5",
+        "kind": "out_of_scope",
+        "text": "Closing or merging existing unrelated active changes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "787c74f4820eb5ab0639ea7c65d835a2bb55cf81fe05c3943ba3dc8e858d9481",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-06-02T17:21:10.044Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "bin/oc-test smoke and full passed; targeted workflow-noise tests passed. Updated policy preserves seven gates, spec-law, TDD/task evidence, worktree isolation, contract proof, and release proof.",
+          "notes": "Core safety model preserved while targeted noise surfaces reduced."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Specs, command contracts, checklists, allowlists/registry, and asset tests updated; bin/oc-test smoke/full passed.",
+          "notes": "Review, harden, discovery, status, archive, reflection, and investment surfaces covered."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Status tests verify one canonical next action; archive/reflect report lines keep deploy/reflection visible but nonblocking; reviewer verdict READY.",
+          "notes": "User-facing output is more decision-oriented."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "plugin/src/workflow-noise-reduction-assets.test.ts and plugin/src/optimized-handoff-assets.test.ts pass; review/harden commands and checklists no longer require fixed finding quotas.",
+          "notes": "Evidence-backed clean verdict policy replaces manufactured finding minimums."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "workflow-noise tests assert mandatory remediation language remains for blocker/issue and validated in-scope findings; bin/oc-test targeted suite passed.",
+          "notes": "Mandatory remediation intact."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "workflow-noise tests assert review owns contract/correctness/security/tests/scope and harden owns release/deploy/production/docs/cleanup; targeted suite passed.",
+          "notes": "Responsibility split explicit and non-duplicative."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "advance-workflow spec and review/harden command/checklist tests assert risk-triggered scanner policy and high-risk mandatory checks; targeted suite passed.",
+          "notes": "Scanner breadth risk-adaptive."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "adv-discover spec/command/checklist updated for trigger-based scout with skipped/inconclusive paths; workflow-noise and discover asset tests passed.",
+          "notes": "Scout no longer blanket mandatory."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "discover ambiguity policy tests passed; status next-action warning separation tests passed.",
+          "notes": "Blocking/advisory ambiguity split preserved."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "plugin/src/tools/status.test.ts passed; stale pre-execution recommendations no longer emit wrong duplicate /adv-apply.",
+          "notes": "One canonical next action per active change."
+        },
+        {
+          "contractId": "AC8",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "adv_investment_report removed from registry, tool title, allowlists, commands, and tests; reflection owns local metric extraction; targeted tests and full suite passed.",
+          "notes": "Temporal compatibility query intentionally left out of removal scope."
+        },
+        {
+          "contractId": "AC9",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "archive/reflect command tests assert deploy/reflection visible, failure nonblocking, rerun guidance, and structural release-safety exception; targeted tests passed.",
+          "notes": "Archive report keeps deploy/reflection prominent."
+        },
+        {
+          "contractId": "AC10",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Design and rq-archiveVisibility01 record boundaries for addArchiveCleanupScanner and firstClassExecutiveSummary; implementation avoids duplicate cleanup-scanner and executive-summary scope.",
+          "notes": "Overlap coordination preserved."
+        },
+        {
+          "contractId": "AC11",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "bin/oc-test smoke passed (pnpm run check plus smoke tests); targeted 9-file suite passed; bin/oc-test full passed.",
+          "notes": "Policy machine-checkable."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No gate count or gate ordering changes; gate status proposal/discovery/design/planning/execution complete, acceptance/release pending as expected.",
+          "notes": "Seven-gate lifecycle preserved."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Spec-law and command contract updates made in tracked specs/docs; no direct ADV state file edits.",
+          "notes": "Spec-law respected."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Contract review matrix, task contract refs, and release proof language remain in commands/specs.",
+          "notes": "Contract/release proof retained."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "TDD evidence recorded per task with RED/GREEN/VERIFY; final verification ran smoke/targeted/full tests.",
+          "notes": "TDD/task evidence retained."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Implementation stayed in change worktree /home/jon/.local/share/opencode/worktree/.../change/reduceWorkflowNoise on branch change/reduceWorkflowNoise.",
+          "notes": "Worktree isolation respected."
+        },
+        {
+          "contractId": "C6",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No new runtime policy subsystem/table added; policy encoded in specs, commands, checklists, skills, and tests.",
+          "notes": "No runtime policy table."
+        },
+        {
+          "contractId": "C7",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Archive deploy/reflection policy keeps structural release-safety blockers intact for conformance, contract proof, merge/push, dirty main, and projection durability.",
+          "notes": "Release safety intact."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Tests assert no fixed review/harden finding quota remains.",
+          "notes": "No manufactured findings."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Risk-triggered scanners and trigger-based discovery scout tests passed; no blanket broad fan-out required for narrow changes.",
+          "notes": "No broad scanner fan-out."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "adv_investment_report active-surface scan passes; only historical changelog/test guard references remain.",
+          "notes": "Investment MCP surface removed."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Archive cleanup scanner behavior explicitly left to related active change scope; no duplicate implementation added.",
+          "notes": "No duplicate cleanup scanner scope."
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Executive-summary ownership unchanged except removal of investment summary noise; no first-class executive summary duplicate implementation added.",
+          "notes": "No duplicate executive-summary scope."
+        },
+        {
+          "contractId": "DONT6",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Status and ambiguity tests separate canonical next actions from advisory warnings; no extra prompts added.",
+          "notes": "No extra non-checkpoint prompts."
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No archive cleanup scanner implementation introduced.",
+          "notes": "Out-of-scope respected."
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No first-class executive summary subsystem implemented; only current command summary text adjusted.",
+          "notes": "Out-of-scope respected."
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Temporal getInvestmentReport compatibility query left in place by design.",
+          "notes": "Out-of-scope respected."
+        },
+        {
+          "contractId": "OOS4",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No roadmap/triage backlog behavior changed.",
+          "notes": "Out-of-scope respected."
+        },
+        {
+          "contractId": "OOS5",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No production deploy automation added; archive keeps production deploy nudge only.",
+          "notes": "Out-of-scope respected."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "`/adv-review` and `/adv-harden` no longer require a fixed minimum number of non-nit findings; command/checklist/spec asset tests assert clean verdicts require evidence-backed checked dimensions and red-flag invalidator handling, not a fixed finding count.",
+    "Mandatory remediation remains intact for blockers/issues and validated in-scope findings; `advance-workflow` spec and review/harden command tests still require remediation for blocker/issue/validated in-scope findings.",
+    "Review/harden responsibility split is explicit and non-duplicative; command/checklist text and tests show review owns contract/correctness/security/tests/scope while harden owns release/deploy/prod/docs/cleanup readiness with critical blocker backstop.",
+    "Scanner breadth is risk-adaptive without dropping mandatory high-risk checks; tests/specs cover trigger conditions for broad scanners and mandatory checks for security/correctness/release/deployment-sensitive changes.",
+    "Discovery opportunity scout is trigger-based; `adv-discover` spec/command/checklist tests allow documented skip/inconclusive for narrow low-opportunity changes and require scout for strategic/architecture/product/external-option changes.",
+    "Ambiguity output remains structurally blocking where needed but quieter elsewhere; proposal/discovery/audit/status tests distinguish blocking structural ambiguity from concise advisory findings and preserve evidence-quote rules.",
+    "`adv_status` emits one canonical next action per active change; status tests prove stale pre-execution changes do not recommend `/adv-apply` and hygiene/ambiguity warnings are separated or deduped.",
+    "`adv_investment_report` is removed unless design proves decision value; if removed, registry/tool-title/agent allowlists/commands/tests have zero active `adv_investment_report` references and reflection uses local metric extraction if needed.",
+    "Archive keeps deploy/reflection visible but nonblocking; archive/reflect command tests show deploy nudge and reflection summary remain visible/prominent, and reflection/deploy failures do not block release unless structural release safety fails.",
+    "Existing related active changes are not silently overwritten; design records coordination with `addArchiveCleanupScanner` and `firstClassExecutiveSummary`, and implementation tasks avoid duplicate archive cleanup/executive-summary scope.",
+    "Reduced workflow policy is machine-checkable; updated specs, commands, checklists, allowlists/registry, and asset tests pass `pnpm run check` and targeted tests."
+  ],
+  "documents": {
+    "proposal": "# Reduce workflow noise\n\n## Why\n\nADV has accumulated high-cost ceremony and user-facing noise across review, harden, discovery, archive, status, reflection, and investment-reporting surfaces. The current workflow can spend attention on broad scanner fan-out, minimum-finding pressure, duplicate review/harden checks, mandatory opportunity scouting, non-actionable reflection output, oversized archive finalization ceremony, noisy status recommendations, and investment-report summaries that may not influence decisions.\n\nThe goal is to reduce workflow cost and noise without weakening ADV's core safety model: spec-law, gates, TDD evidence, worktree isolation, contract proof, security/correctness review, and release evidence must remain protected.\n\n## What Changes\n\n- Make expensive review/harden checks risk-adaptive instead of blanket ceremony where evidence supports doing so.\n- Replace minimum-finding pressure with evidence-backed clean verdict requirements.\n- Reduce ambiguity-scan noise by keeping structural blockers and demoting advisory heuristics where they are not actionable.\n- De-duplicate review and harden responsibilities while preserving critical correctness, security, contract, release, and deployment checks.\n- Assess whether reflection should become actionable/queryable or run only on high-friction changes.\n- Narrow archive Phase 9 to essential release proof and policy-driven finalization steps.\n- Fix status output so it emits one correct next action per change and suppresses misleading recommendations.\n- Assess removal or demotion of `adv_investment_report` from user-facing workflow reports.\n\n## Success Criteria\n\n1. Review/harden scanner policy is documented with risk triggers; mandatory broad scans are retained only where they protect correctness, security, contract proof, release readiness, or deployment safety.\n2. `/adv-review` and `/adv-harden` no longer incentivize manufactured findings; a clean verdict must be supported by concrete evidence instead of a fixed minimum-finding count.\n3. Review/harden responsibility split is explicit and non-duplicative: review owns delivered-work contract/correctness/security; harden owns release/deployment/production-readiness risks.\n4. Ambiguity checks still block structurally unsafe proposals/discovery agreements, but non-blocking heuristic findings are concise and actionable.\n5. Opportunity scouting is triggered by clear scope/risk conditions or explicitly skipped with rationale; narrow changes do not pay mandatory scout cost by default.\n6. Reflection remains always available/prominent enough to preserve learning value, but its archive-path output is concise and nonblocking.\n7. Archive finalization keeps required merge/push/release evidence and cleanup safety; deploy and reflection signals remain visible, not hidden, and nonblocking unless they reveal a structural release-safety blocker.\n8. `adv_status` stops recommending impossible or lower-priority next commands when earlier gates are pending; each active change gets one canonical next action plus separate hygiene warnings only when requested.\n9. `adv_investment_report` is removed entirely if discovery/design cannot prove actionable value that justifies keeping it; otherwise any remaining metric collection must be localized to its consumer rather than user-facing ceremony.\n10. Existing specs, command contracts, and asset tests are updated so the reduced workflow remains machine-checkable and drift-resistant.\n\n## Scope\n\n### In Scope\n\n- Review/harden scanner fan-out and minimum-finding requirements.\n- Ambiguity-scan blocking and reporting policy for proposal/discovery/audit surfaces where workflow noise is observed.\n- Review vs harden responsibility split.\n- Discovery opportunity scout trigger policy.\n- Reflection invocation/value policy.\n- Archive Phase 9 user-facing/reporting/finalization policy.\n- Status recommendation ranking and noise reduction.\n- `adv_investment_report` usage in command contracts and user-facing reports.\n- Related spec and asset-test updates needed to preserve structural correctness.\n\n### Out of Scope\n\n- Removing ADV's seven-gate lifecycle.\n- Removing spec-law, Temporal state, worktree isolation, task checkpoints, or TDD evidence requirements.\n- Removing security/correctness/release readiness review obligations.\n- Rewriting the whole ADV architecture or replacing Temporal.\n- Implementing unrelated workflow features from the backlog.\n- Closing or merging existing unrelated active changes.\n\n### Must Not\n\n- Must not weaken blockers for correctness, security, data loss, contract proof, conformance, release readiness, or merge/push evidence.\n- Must not reduce review/harden value merely because the current implementation is costly.\n- Must not replace structural gates with purely heuristic judgment.\n- Must not hide real risk by suppressing warnings without an alternate evidence path.\n- Must not create duplicate responsibilities across commands after the cleanup.\n\n## Affected Code\n\nExpected affected surfaces:\n\n- `.opencode/command/adv-review.md`\n- `.opencode/command/adv-harden.md`\n- `.opencode/command/adv-discover.md`\n- `.opencode/command/adv-archive.md`\n- `.opencode/command/adv-status.md`\n- `.opencode/command/adv-reflect.md`\n- `.adv/specs/advance-workflow/spec.json`\n- `.adv/specs/adv-discover/spec.json`\n- `docs/checklists/review-checklist.md`\n- `docs/checklists/harden-checklist.md`\n- `docs/checklists/discover-checklist.md`\n- `plugin/src/tools/status.ts` and related status tests if recommendation logic changes.\n- `plugin/src/tools/investment.ts`, `plugin/src/tool-registry.ts`, tool allowlists, and related tests if `adv_investment_report` is removed or demoted.\n- Asset tests that pin command/spec/agent/tool contracts.\n\n## Related Repositories\n\nCurrent repo only: `advance`. No cross-repo scope identified in proposal preflight.\n\n## Constraints\n\n- Preserve ADV's durable evidence model: gates, specs, task state, verification evidence, and release proof remain auditable.\n- Keep structural correctness first: specs, command contracts, schemas, validators, and tests must encode the new policy.\n- Use existing change/state tools; do not read ADV state files directly.\n- Treat active changes as potential conflicts, especially `addArchiveCleanupScanner` and `firstClassExecutiveSummary`, during discovery/design.\n\n## Impact\n\nExpected benefits:\n\n- Lower token/time cost in ordinary ADV runs.\n- Fewer non-actionable warnings and follow-up agenda items.\n- Clearer review/harden ownership.\n- Status output that better guides resumption.\n- Less user-facing ceremony around investment metrics unless those metrics drive decisions.\n\nExpected risks:\n\n- Over-trimming could reduce defect detection or release safety.\n- Existing specs require mandatory minimum-finding and opportunity-scout behavior; changes must update spec law rather than bypass it.\n- Removing `adv_investment_report` may affect reflection and archive/reporting paths if those still consume it.\n\n## Context\n\nEvidence gathered during proposal prep:\n\n- `/adv-review` and `/adv-harden` both contain `Minimum Findings Enforcement` sections.\n- `advance-workflow` spec requirement `rq-R3v13wR1` requires minimum findings threshold and mandatory remediation.\n- `adv-discover` spec requirements `rq-discOpportunityScout01` and `rq-discOpportunityScout02` require the Discovery Opportunity Scout using `adv-researcher`.\n- `adv_investment_report` is referenced by `.opencode/command/adv-discover.md`, `.opencode/command/adv-review.md`, `.opencode/command/adv-archive.md`, `.opencode/command/adv-reflect.md`, tool registry, agent allowlists, and tests.\n- Current `adv_status` output shows duplicate/misleading recommendations such as `/adv-apply` for changes whose next gate is still proposal or discovery.\n- Active related changes exist but are narrower; none is an obvious duplicate of this workflow-noise reduction proposal.\n\n## INVEST Check\n\n- **Independent:** Can be implemented as one workflow-policy cleanup across command/spec/tool surfaces.\n- **Negotiable:** Discovery may decide to demote rather than remove a noisy feature when it still carries value.\n- **Valuable:** Reduces recurring ADV operating cost while preserving safety.\n- **Estimable:** Scope is bounded to identified command/spec/tool surfaces.\n- **Small enough:** Broad but cohesive; individual implementation tasks can be separated during prep.\n- **Testable:** Success criteria map to command/spec asset tests, status tool tests, and workflow-contract assertions.\n\n## Smell Detection\n\n- **Bloat smell:** Mandatory scanners and reports may run even when risk does not justify them.\n- **Noise smell:** Status and ambiguity findings can produce multiple warnings without a single clear action.\n- **Duplication smell:** Review and harden can inspect overlapping quality dimensions.\n- **Non-actionable metric smell:** Investment report appears in user-facing summaries while token tracking is not implemented and metrics are informational.\n- **Overreach smell:** Archive finalization mixes release proof with optional deployment, issue, cleanup, and reporting policy.\n\n## Discovery Agenda\n\n- Determine which review/harden checks are critical and must remain mandatory.\n- Define risk triggers for scanner fan-out and opportunity scouting.\n- Confirm whether minimum-finding thresholds can be replaced with clean-verdict evidence without weakening review depth.\n- Decide whether ambiguity taxonomy changes affect proposal, discovery, audit, or all three.\n- Audit `adv_investment_report` consumers and decide: remove tool, keep tool but remove user-facing usage, or keep as optional diagnostics.\n- Map archive Phase 9 steps into essential release proof vs policy-driven optional actions.\n- Specify status recommendation ranking rules and hygiene separation.\n- Identify active-change conflicts with `addArchiveCleanupScanner` and `firstClassExecutiveSummary` before implementation.\n\n## Discovery Findings\n\n### Discovery Checklist\n\n| Step | Status | Reason |\n|---|---|---|\n| Origin validation | PASS | Local `adhoc` change; no cross-project origin or fast-follow lineage. |\n| Skill discovery | PASS | Pending-review scan found no pending skill frontmatter; loaded `adv-improve` and `adv-audit`; `adv-opportunity-scout` used by researcher. |\n| Prior research extension | PASS | Cited `docs/repo-improve-prep.md`, `docs/adv-run-test-prep.md`, and archived `retireinvestmentgovernancedead`; added new findings below. |\n| Conflict & related-work scan | PASS | Ran `adv_change_list includeArchived`, `adv_change_validate`, and `adv_agenda_list`; own-change `NO_TASKS`/`NO_DELTAS` warnings are expected pre-prep state. |\n| Edge case investigation | PASS | Edge/failure modes documented for each gap. |\n| Design question depth | PASS | Questions include trust model, blast radius, and alternatives. |\n| Draft spec delta shapes | PASS | Draft `rq-*` modifications/additions listed with Given/When/Then shapes. |\n| P25 related-pattern scan | PASS | Similar workflow-noise patterns found across commands, specs, checklists, status, investment, and archive/reflection surfaces. |\n| LBP check | PASS | Internal workflow/governance cleanup; external replacement not applicable. Prior research supports deterministic/lazy workflow execution rather than more ceremony. |\n| Discovery Opportunity Scout | PASS | `adv-researcher` returned 5 candidates; C1/C2 adopted, C3/C4 surfaced/resolved by user, C5 recorded as follow-up. |\n\n### Skills Considered\n\n| Skill | Match | Action |\n|---|---|---|\n| `adv-improve` | Strong | Loaded. Used current-state/improvement rubric and cited existing research pack. |\n| `adv-audit` | Strong | Loaded. Used spec-vs-command drift framing and ambiguity-quality-gate caution. |\n| `adv-opportunity-scout` | Strong | Loaded by `adv-researcher` worker for missed-opportunity pass. |\n| `adv-cleanup` | Partial | Existing cleanup-triage skill is adjacent but not core. |\n| `adv-reflect` | Partial | Reflection value policy is in scope; implementation will inspect command/tool consumers. |\n\nPending-review scan: no true `review_status: pending` skill frontmatter found; one instructional example string only.\n\n### Extends\n\n- `docs/repo-improve-prep.md` already found high-impact `adv_status` cost issues: summary view builds full status payload, status invokes worktree cleanup, and list/status hydrates full changes. New finding: this change should absorb the recommendation-noise part now and cross-link deeper latency/index work as follow-up rather than mixing it into workflow-policy cleanup.\n- `docs/adv-run-test-prep.md` shows a similar pattern: model-facing evidence can be noisy when structural result fields are weak. New finding: review/harden clean verdicts should prefer structural evidence rows over manufactured finding counts.\n- Archived `retireinvestmentgovernancedead` already retired investment governance deadweight and slimmed `adv_investment_report`; its agreement kept only metrics consumed by reflection. New finding: current user direction raises the bar further — remove `adv_investment_report` entirely if a concrete value argument cannot be proven.\n\n### Conflict Scan\n\n- Active `addArchiveCleanupScanner` overlaps archive cleanup proof. This change must not duplicate its strict cleanup-worker scope; archive-noise work should focus on report/finalization policy unless discovery/design decides to coordinate with or supersede that change.\n- Active `firstClassExecutiveSummary` overlaps archive/release reporting but targets executive-summary propagation. Keep this change away from executive-summary artifact semantics.\n- Many pending agenda items are subagent follow-ups; this supports the noise hypothesis and should inform scanner/report reductions.\n- Scout-created follow-ups for deeper status latency and cleanup policy are lower priority than the core workflow-noise contract.\n\n### Current State\n\n- `/adv-review` spawns 5 scanner agents and enforces a minimum-finding rule (`.opencode/command/adv-review.md:197-215`).\n- `/adv-harden` spawns 6 scanner agents and enforces a minimum-finding rule (`.opencode/command/adv-harden.md:218-365`).\n- Review checklist requires 12 dimensions and at least 3 non-nit findings; harden checklist requires all 6 scanners and at least 3 non-nit findings (`docs/checklists/review-checklist.md:7-83`, `docs/checklists/harden-checklist.md:7-83`).\n- Spec law currently requires minimum findings threshold and mandatory remediation (`advance-workflow` `rq-R3v13wR1`).\n- Discovery requires mandatory opportunity scout for full proposal workflows (`adv-discover` `rq-discOpportunityScout01/02`).\n- `adv_status` adds next-gate, ambiguity, and recency recommendations independently; stale recency hard-codes `/adv-apply` regardless of actual next gate (`plugin/src/tools/status.ts:627-690`).\n- `adv_investment_report` is read-only/stateless and returns task counts, elapsed/active time, retry metrics, doom-loop state, per-gate durations, and `token_hint: \"Token tracking not yet available\"` (`plugin/src/tools/investment.ts:25-120`).\n- Investment report is user-facing in discover/review/archive and consumed by reflect (`.opencode/command/adv-discover.md:366`, `.opencode/command/adv-review.md:488-520`, `.opencode/command/adv-archive.md:36`, `.opencode/command/adv-reflect.md:47-115`).\n- Archive pre-check includes investment report, status, contract proof, then Phase 9 finalization and post-deploy nudge. Reflection is already informational/nonblocking (`.opencode/command/adv-archive.md:30-102`, `.opencode/command/adv-reflect.md:11-12,94`).\n\nInvestment snapshot for current discovery: 0 tasks / 0 retries / proposal gate duration only; token tracking unavailable. This supports treating current investment-report output as non-decisional for this change.\n\n### Edge Cases\n\n| Gap | Edge cases / failure modes |\n|---|---|\n| Scanner reduction | (1) Tiny docs change pays 11 scanner agents. (2) Security-sensitive change loses mandatory security review if reduction is too broad. |\n| Minimum-finding removal | (1) Review regresses to shallow LGTM. (2) Fixed-count threshold causes manufactured findings and agenda spam. |\n| Review/harden split | (1) Dedupe removes safety backstop for severe release blockers. (2) Keeping all overlap keeps current cost/noise. |\n| Ambiguity reduction | (1) Heuristic findings hide real missing acceptance boundaries. (2) Non-actionable warnings train agents/users to ignore clarify warnings. |\n| Opportunity scout trigger | (1) Broad strategy change skips useful leverage search. (2) Narrow internal edit pays unnecessary researcher cost. |\n| Investment report removal | (1) Reflection loses efficiency metrics unless replaced locally. (2) Keeping tool preserves user-facing noise with no decision value. |\n| Status ranking | (1) Stale warning points to `/adv-apply` while proposal/discovery/design is pending. (2) Suppressing all stale warnings hides abandoned changes. |\n| Archive extras | (1) Deploy/reflection hidden too much, reducing operational follow-through/learning. (2) Making deploy/reflection blocking expands archive ceremony beyond release proof. |\n\n### Open Design Questions and Resolutions\n\n| Question | Trust model | Blast radius | Resolution |\n|---|---|---|---|\n| Investment report fate | Joint | Removing entirely may require replacing reflection-local metrics; keeping it may preserve deadweight. | User: remove entirely if no strong value argument can be made. Design must audit consumers before deletion. |\n| Review/harden split | Joint | Wrong split can miss safety issues or preserve duplicate work. | User: use long-term-best-practice split. Design should define review vs harden by durable responsibility, not by current scanner names. |\n| Reflection policy | Joint | Removing/weakening reflection loses learning loop; always-on verbose reflection creates noise. | User: always but concise. Reflection should remain visible/prominent enough, nonblocking, and compact. |\n| Archive deploy/reflection visibility | Joint | Hiding deploy/reflection too much hurts operations/learning; making them blockers bloats release. | User: keep more prominent. Design should preserve visible deploy/reflection output while keeping release proof structurally separate. |\n| Status recommendation algorithm | Agent | Wrong action guidance wastes sessions and causes gate misrouting. | Agent: one canonical next action derived from actual next gate; stale/hygiene warnings separated/deduped. |\n| Opportunity scout trigger | Agent with user-scope guard | Too strict misses leverage; too broad is costly. | Agent: trigger by strategic/architecture/product/external-option risk; skip/demote for narrow internal changes with rationale. |\n\n### Discovery Opportunity Scout\n\nResearcher candidates:\n\n| Candidate | Fate | Resolution |\n|---|---|---|\n| C1 Status gate-aware next-action | adopt now | Add objective/AC for next-gate-derived canonical status action and deduped stale warning. |\n| C2 Reframe minimum findings to clean justification | adopt/design around | Replace fixed 3-count incentive with evidence-backed clean verdict path; preserve mandatory remediation. |\n| C3 Investment remove-vs-demote | surfaced | User chose remove entirely if no value argument survives audit. |\n| C4 Review/harden responsibility de-dup | surfaced | User chose long-term-best-practice split. |\n| C5 Fold status over-computation findings | follow-up | Keep deeper latency/index work separate; this change handles recommendation noise. |\n\n### Draft Spec Deltas\n\n1. `rq-reviewCleanEvidence01` — modify/replace `advance-workflow` `rq-R3v13wR1`.\n   - Given `/adv-review` or `/adv-harden` finds fewer than a fixed number of issues,\n   - When a clean verdict is emitted,\n   - Then the verdict must include evidence-backed checked dimensions and red-flag invalidators instead of requiring manufactured non-nit findings.\n\n2. `rq-reviewHardenSplit01` — add/modify `advance-workflow` review/harden ownership.\n   - Given review and harden both inspect a completed change,\n   - When their command contracts define required dimensions,\n   - Then review owns delivered-work contract, correctness, security, tests, and scope conformance while harden owns release/deployment/production/documentation/cleanup readiness, with critical blocker backstop preserved.\n\n3. `rq-discOpportunityTrigger01` — modify `adv-discover` `rq-discOpportunityScout01`.\n   - Given a discovery workflow is for a narrow internal change with low opportunity surface,\n   - When the scout trigger policy evaluates scope/risk,\n   - Then the scout may be skipped or run lightweight with documented rationale; strategic/architecture/product/external-option changes still trigger scout.\n\n4. `rq-statusCanonicalNextAction01` — add status recommendation requirement.\n   - Given a change has pending gates before execution,\n   - When `adv_status` emits recommendations,\n   - Then it emits one canonical next-gate action and must not emit stale/resume guidance that points to `/adv-apply` before implementation gates are complete.\n\n5. `rq-investmentReportRetire01` — remove or localize investment-report surfaces.\n   - Given `adv_investment_report` has no proven decision-driving consumer,\n   - When workflow summaries are generated,\n   - Then discovery/review/archive user-facing output does not include investment metrics and the tool is removed or replaced by localized reflection metric calculation.\n\n6. `rq-reflectionConcise01` — refine reflection/archive reporting.\n   - Given archive completes and reflection is generated,\n   - When reflection output is shown,\n   - Then reflection remains visible and concise, failure remains nonblocking, and users can rerun `/adv-reflect` if needed.\n\n7. `rq-archiveReportPolicy01` — refine archive extras.\n   - Given archive Phase 9 finalization completes release proof,\n   - When deploy/reflection/issue-close/status extras are emitted,\n   - Then they are visible but do not block release unless they reveal a structural release-safety failure.\n\n8. `rq-ambiguitySignalQuality01` — refine ambiguity policy.\n   - Given ambiguity checks produce advisory findings,\n   - When findings are emitted in status/proposal/discovery/audit,\n   - Then blocking findings remain structural and evidence-backed, while nonblocking heuristic findings are concise, actionable, and suppressible outside the relevant view.\n\n### Related Pattern Scan\n\n- Minimum-finding pressure appears in both review and harden command contracts and checklists.\n- Mandatory scout appears in command, checklist, spec, asset tests, and skill.\n- Status recommendation fan-out appears in `enrichRecentChangeStatus`, `appendClarifyRecommendation`, and `appendRecencyRecommendation`.\n- Investment-report references span tool registry, agent allowlists, discover/review/archive/reflect commands, tests, and changelog history.\n- Reflection is already nonblocking but has roadmap items for friction query/status surfacing, indicating incomplete actionability.\n- Archive cleanup/finalization policy overlaps active `addArchiveCleanupScanner`; coordinate before editing archive cleanup proof.\n\n### LBP Check\n\nNo fresh external search required: this is an internal workflow-policy cleanup with no viable external tool/service alternative. Existing `docs/repo-improve-prep.md` external landscape supports deterministic orchestration, lazy execution plans, and per-step observability — it does not support adding more blanket LLM/scanner ceremony.\n\nRecommended LBP direction:\n\n- Keep ADV gates and structural evidence.\n- Move from blanket scanner count/finding-count rules to risk-triggered/evidence-backed checks.\n- Keep critical safety surfaces mandatory by responsibility, not by duplicated scanner lists.\n- Make status and archive output decision-oriented.\n- Remove `adv_investment_report` if its only use remains informational display; replace reflection needs with local metric extraction only if needed.\n\n### Recommended Objectives\n\n1. Replace review/harden minimum-finding thresholds with evidence-backed clean-verdict requirements and preserved mandatory remediation.\n2. Define a long-term-best-practice review/harden split: review validates delivered contract/correctness/security/tests; harden validates release/deploy/prod/docs/cleanup readiness.\n3. Make review/harden scanner breadth risk-adaptive while preserving mandatory checks for high-risk surfaces.\n4. Convert discovery opportunity scout from blanket mandatory to trigger-based with documented skip/inconclusive paths.\n5. Keep ambiguity blockers structural and evidence-backed; reduce advisory/status noise.\n6. Fix `adv_status` to emit one canonical next action per active change and separate stale/hygiene warnings from action guidance.\n7. Audit and remove `adv_investment_report` entirely unless a concrete value argument survives; if reflection needs metrics, calculate them locally or behind a non-user-facing helper.\n8. Keep archive deploy/reflection signals visible/prominent but nonblocking; preserve merge/push/release/worktree safety as the structural archive core.\n9. Update specs, command contracts, checklists, agent/tool allowlists, and asset tests to encode the reduced workflow structurally.\n10. Coordinate with `addArchiveCleanupScanner` and `firstClassExecutiveSummary` to avoid duplicate archive/reporting edits.\n\n### AMBIGUITY ANALYSIS\n\nNo blocking ambiguity findings.\n\nCoverage: B:C F:C S:C M:C\n\nEvidence:\n\n- B clear: `## Scope`, `### Out of Scope`, and `### Must Not` define boundaries.\n- F clear: success criteria cover concrete workflow surfaces and consumer decisions.\n- S clear: criteria are testable through command/spec/tool/asset-test changes.\n- M clear: mandatory user-facing decisions were resolved in discovery; remaining work is technical audit/design.\n\nTrigger evaluation: 0 CRITICAL, 0 HIGH. Discovery may proceed to acceptance-criteria checkpoint.\n",
+    "problemStatement": "ADV workflow has accumulated high-cost ceremony and user-facing noise across review, harden, discovery, archive, status, reflection, and investment-reporting surfaces. The change should reduce recurring workflow cost without weakening critical ADV safety: spec-law, gates, TDD evidence, worktree isolation, contract proof, security/correctness review, and release evidence must remain protected.",
+    "agreement": "# Agreement\n\n## Success Criteria\n\n- SC1: ADV workflow cost/noise is reduced on the targeted surfaces without removing seven gates, spec-law, TDD/task evidence, worktree isolation, contract proof, or release/merge/push proof.\n- SC2: Review, harden, discovery, status, archive, reflection, and investment-reporting policies are clearer, less duplicative, and structurally encoded in specs/commands/tests.\n- SC3: User-facing ADV output becomes more decision-oriented: one correct next action, fewer non-actionable findings, and visible but nonblocking archive deploy/reflection signals.\n\n## Objectives\n\n1. Replace review/harden fixed minimum-finding thresholds with evidence-backed clean-verdict requirements while preserving mandatory remediation for validated findings.\n2. Define a long-term-best-practice review/harden split: review validates delivered contract/correctness/security/tests/scope; harden validates release/deployment/production/docs/cleanup readiness.\n3. Make scanner breadth risk-adaptive while keeping high-risk correctness/security/release-safety checks mandatory.\n4. Convert discovery opportunity scout from blanket mandatory to trigger-based with documented skip/inconclusive paths.\n5. Keep ambiguity blockers structural and evidence-backed; reduce advisory/status noise.\n6. Fix `adv_status` so each active change gets one canonical next action and stale guidance cannot point to `/adv-apply` before implementation gates are complete.\n7. Remove `adv_investment_report` entirely unless design proves concrete value; if reflection needs metrics, calculate them locally or behind a non-user-facing helper.\n8. Keep deploy and reflection visible/prominent in archive output, but nonblocking unless they reveal a structural release-safety failure.\n9. Preserve ADV's core safety model: seven gates, spec-law, TDD/task evidence, worktree isolation, contract proof, release/merge/push proof.\n10. Update specs, command contracts, checklists, tool allowlists/registry, and asset tests so the reduced workflow remains structurally encoded.\n\n## Acceptance Criteria\n\n- AC1: `/adv-review` and `/adv-harden` no longer require a fixed minimum number of non-nit findings; command/checklist/spec asset tests assert clean verdicts require evidence-backed checked dimensions and red-flag invalidator handling, not a fixed finding count.\n- AC2: Mandatory remediation remains intact for blockers/issues and validated in-scope findings; `advance-workflow` spec and review/harden command tests still require remediation for blocker/issue/validated in-scope findings.\n- AC3: Review/harden responsibility split is explicit and non-duplicative; command/checklist text and tests show review owns contract/correctness/security/tests/scope while harden owns release/deploy/prod/docs/cleanup readiness with critical blocker backstop.\n- AC4: Scanner breadth is risk-adaptive without dropping mandatory high-risk checks; tests/specs cover trigger conditions for broad scanners and mandatory checks for security/correctness/release/deployment-sensitive changes.\n- AC5: Discovery opportunity scout is trigger-based; `adv-discover` spec/command/checklist tests allow documented skip/inconclusive for narrow low-opportunity changes and require scout for strategic/architecture/product/external-option changes.\n- AC6: Ambiguity output remains structurally blocking where needed but quieter elsewhere; proposal/discovery/audit/status tests distinguish blocking structural ambiguity from concise advisory findings and preserve evidence-quote rules.\n- AC7: `adv_status` emits one canonical next action per active change; status tests prove stale pre-execution changes do not recommend `/adv-apply` and hygiene/ambiguity warnings are separated or deduped.\n- AC8: `adv_investment_report` is removed unless design proves decision value; if removed, registry/tool-title/agent allowlists/commands/tests have zero active `adv_investment_report` references and reflection uses local metric extraction if needed.\n- AC9: Archive keeps deploy/reflection visible but nonblocking; archive/reflect command tests show deploy nudge and reflection summary remain visible/prominent, and reflection/deploy failures do not block release unless structural release safety fails.\n- AC10: Existing related active changes are not silently overwritten; design records coordination with `addArchiveCleanupScanner` and `firstClassExecutiveSummary`, and implementation tasks avoid duplicate archive cleanup/executive-summary scope.\n- AC11: Reduced workflow policy is machine-checkable; updated specs, commands, checklists, allowlists/registry, and asset tests pass `pnpm run check` and targeted tests.\n\n## Constraints\n\n- C1: Do not remove ADV's seven-gate lifecycle.\n- C2: Do not remove spec-law, Temporal state, worktree isolation, task checkpoints, TDD evidence, contract proof, or release/merge/push proof.\n- C3: Do not weaken blockers for correctness, security, data loss, conformance, contract proof, release readiness, or merge/push evidence.\n- C4: Do not replace structural gates with purely heuristic judgment.\n- C5: Do not hide real risk by suppressing warnings without an alternate evidence path.\n- C6: Do not create duplicate responsibilities across commands.\n- C7: Coordinate with active archive/reporting changes before modifying overlapping archive cleanup or executive-summary surfaces.\n\n## Avoidances\n\n- DONT1: Avoid manufactured findings or fixed-count issue quotas.\n- DONT2: Avoid mandatory broad scanner fan-out for narrow internal changes.\n- DONT3: Avoid user-facing investment metrics unless they demonstrably drive decisions.\n- DONT4: Avoid moving production deployment inside ADV's release gate lifecycle.\n- DONT5: Avoid making reflection block archive.\n- DONT6: Avoid broad latency/index work beyond status recommendation noise unless needed for AC7.\n\n## Out of Scope\n\n- OOS1: Removing ADV's seven-gate lifecycle.\n- OOS2: Removing spec-law, Temporal state, worktree isolation, task checkpoints, TDD evidence, contract proof, or release/merge/push proof.\n- OOS3: Rewriting the whole ADV architecture or replacing Temporal.\n- OOS4: Implementing unrelated workflow features from the backlog.\n- OOS5: Closing or merging existing unrelated active changes.\n\n## Preview Applicability\n\n`visual_surface: false`\n\nRationale: this change affects ADV workflow contracts, specs, tools, tests, and command output. It does not create a browser-visible or visual-output surface. Acceptance should verify command/tool text output and tests, not a preview URL.\n\n## Decisions\n\n### User Decisions\n\n| Question | User Choice | Why It Matters |\n|---|---|---|\n| Investment report outcome | Remove entirely if no strong value argument can be made | Prevents keeping non-actionable metrics as ceremony; design must audit consumers first. |\n| Review/harden split | Long-term-best-practice split | Prevents cutting critical checks merely to reduce cost; design must preserve safety by responsibility. |\n| Reflection policy | Always but concise | Preserves learning loop while reducing archive/report noise. |\n| Archive deploy/reflection visibility | Keep more prominent | Deploy/reflection should stay visible in archive output while remaining nonblocking unless structural release safety fails. |\n\n### Agent Decisions (LBP)\n\n| Question | Decision | Rationale |\n|---|---|---|\n| Status recommendation direction | One canonical next-gate action, with warnings separated/deduped | Current stale recommendation hard-codes `/adv-apply` and conflicts with earlier pending gates. |\n| Opportunity scout default | Trigger-based by scope/risk | Existing scout already has skip/inconclusive paths; broad strategy changes should still scout. |\n| Minimum findings replacement | Evidence-backed clean-verdict path | Existing checklists already define clean-justification evidence and red-flag invalidators; use that instead of fixed quotas. |\n| External solution search | Not needed | This is internal ADV workflow governance; prior research supports deterministic/lazy orchestration rather than external replacement. |\n\n## Deferred Questions\n\nNone.\n\n## Sign-Off\n\nUser approved acceptance criteria and agreement with exact reply: `approve`.\n",
+    "design": "# Design\n\n## Architecture Overview\n\nThis is a workflow-policy consolidation change. Keep the ADV architecture intact and update the policy sources that currently create recurring noise:\n\n- Spec law (`.adv/specs/*/spec.json`) remains the source of truth.\n- Command contracts (`.opencode/command/*.md`) express the phase workflows agents follow.\n- Checklists (`docs/checklists/*.md`) express reviewer/harden/discover rigor.\n- Asset/unit tests lock the policy text, parser-visible requirements, and tool behavior.\n- Runtime code changes are limited to surfaces where prose policy maps to actual tool behavior (`adv_status`, `adv_investment_report` removal/reflection helper relocation, registry/allowlists/tool-title cleanup).\n\nThe design avoids a new workflow subsystem. This change edits existing command/spec/tool surfaces and tests them structurally.\n\n## Key Decisions\n\n### KD1 — Replace fixed finding quotas with evidence-backed clean verdicts\n\nRewrite `advance-workflow` `rq-R3v13wR1` and its scenarios. The new law should preserve adversarial rigor but remove the fixed `>=3 non-nit findings` incentive.\n\n- Required: `/adv-review` and `/adv-harden` must show checked dimensions and concrete clean evidence when few/no findings exist.\n- Required: red-flag invalidators remain explicit (security surface, missing tests, novel architecture, broad/risky changes).\n- Required: mandatory remediation remains for blockers/issues and validated in-scope findings.\n- Removed: any requirement that the gate remains open solely because fewer than three findings were produced.\n\nRationale: the current checklists already contain `GENUINELY CLEAN JUSTIFICATION` evidence blocks. Make that the primary mechanism rather than a quota that encourages manufactured findings.\n\n### KD2 — Review/harden split is spec-backed prose, not a new policy-data table\n\nImplement the split as command/checklist/spec responsibilities, not as a new runtime policy object.\n\n- Review owns delivered-work validation: contract traceability, correctness, security, tests, scope conformance, cross-repo task integrity.\n- Harden owns release readiness: deployment, production readiness, documentation hygiene, cleanup, residual slop/maintainability risks.\n- Critical blocker backstop remains in both: either phase may flag security/data-loss/release-safety blockers it discovers.\n\nRationale: only two markdown commands need this policy. The spec is the shared source of truth. A code-level policy registry would be over-engineering unless a validator later needs machine selection.\n\n### KD3 — Scanner breadth becomes risk-triggered\n\nReduce blanket scanner fan-out by requiring broad scanners only when risk triggers apply.\n\nCandidate triggers:\n\n- Contract/correctness/security/test changes → review traceability, logic/edge, security, tests mandatory.\n- Release/deploy/config/env/migration/external-service/docs changes → harden deployment/prod/docs/cleanup mandatory.\n- Broad/multi-file/architectural changes → run broader scanner bundle.\n- Narrow internal docs/tooling changes → allow compact checklist evidence instead of full fan-out, with rationale.\n\nThe implementation should keep command-owned evidence requirements; scanner agents are a means, not the law.\n\n### KD4 — Opportunity scout becomes trigger-based using existing skip/inconclusive paths\n\nModify `adv-discover` `rq-discOpportunityScout01` and command/checklist wording:\n\n- Trigger scout for strategic, product, architecture, external-option, high-ambiguity, or broad-scope changes.\n- Allow documented skip/lightweight pass for narrow internal/tooling/doc fixes with low opportunity surface.\n- Preserve `INCONCLUSIVE` degradation and `adv-researcher` execution when scout runs.\n\nRationale: existing spec already has trivial-scope skip and inconclusive paths. This change tightens the trigger policy rather than inventing a new scout mechanism.\n\n### KD5 — Status recommendation fix is gate-aware and local\n\nUpdate `plugin/src/tools/status.ts` around `enrichRecentChangeStatus`, `getRecommendationForGate`, and `appendRecencyRecommendation`.\n\nDesign shape:\n\n- Compute `nextGate` once per change.\n- Emit one canonical next-gate recommendation via `getRecommendationForGate`.\n- Recency/stale text may remain, but it must not prescribe `/adv-apply` when next gate is proposal/discovery/design/planning.\n- Prefer either recency warning without command, or recency warning that reuses the same next-gate command.\n- Deduplicate/hide lower-priority guidance when it conflicts with canonical next action.\n- Keep hygiene/health warnings in `view:\"hygiene\"` or separated from next-action recommendations where practical.\n\nTests should cover stale changes at proposal/discovery/design/planning/execution gates.\n\n### KD6 — Remove `adv_investment_report` tool if no value argument survives\n\nCurrent evidence does not show a decision-driving user-facing value. The tool is read-only/stateless, token tracking is unavailable, and user-facing summaries say it is informational.\n\nImplementation if removal proceeds:\n\n- Delete or retire `plugin/src/tools/investment.ts` as an MCP tool surface.\n- Remove `adv_investment_report` from `plugin/src/tool-registry.ts`, `ADV_TOOL_NAMES`, `plugin/src/utils/tool-title.ts`, agent allowlists, reviewer asset tests, and command references.\n- Remove discover/review/archive investment-summary lines.\n- Update/delete investment tool tests.\n- Move `computePerGateDurations` and `computePerGateWorkDurations` into a reflection-local helper module, e.g. `plugin/src/tools/reflection-metrics.ts` or `plugin/src/tools/reflection.ts`, so `adv_reflect` keeps concise execution metrics without retaining the MCP tool.\n- Keep Temporal workflow `getInvestmentReportQuery` out of this removal slice unless a separate workflow-surface audit proves it is unused and safe to remove. It is a compatibility query, not the MCP tool.\n\nIf design later proves real value, keeping the tool must include an explicit decision it gates or changes; otherwise remove.\n\n### KD7 — Archive keeps deploy/reflection visible, not blocking\n\nArchive policy changes should remove investment summary and reduce chatter, but keep visible deploy/reflection signals.\n\n- Keep merge/push/release/worktree cleanup safety as structural core.\n- Keep deploy nudge visible after archive finalization.\n- Keep reflection always-on and concise; reflection failure remains nonblocking with clear rerun instruction.\n- Coordinate archive cleanup wording with `addArchiveCleanupScanner`; do not duplicate its cleanup-worker scope.\n- Coordinate executive-summary/reporting wording with `firstClassExecutiveSummary`; do not modify executive-summary artifact semantics.\n\n### KD8 — Ambiguity noise reduction remains structural-first\n\nDo not remove ambiguity scans wholesale. Refine where they surface:\n\n- Blocking ambiguity remains evidence-backed and structural: missing boundaries, missing AC, contradictory scope, no evidence quotes.\n- Advisory findings should be concise and view-scoped.\n- `adv_status` should not pile ambiguity recommendations on top of canonical next-action guidance unless clarify is truly the next blocking action.\n- Audit ambiguity rules can remain richer because audit is explicitly diagnostic; status/proposal/discovery user-facing output should be shorter.\n\n### KD9 — Coordinate status CLI/doc overlap\n\nValidator found `rewriteStatusCli` overlaps status-routing documentation while this change edits `status.ts` MCP internals.\n\n- Keep this change focused on MCP `adv_status` recommendation correctness and workflow docs/specs.\n- Keep `rewriteStatusCli` separate if it targets CLI/command-wrapper behavior (`.opencode/command/adv-status.md`, `bin/adv`).\n- During prep, add a coordination task to inspect `rewriteStatusCli` before editing status docs/tests to avoid contradictory status-command guidance.\n\n## ADR Drafts\n\nNone. These decisions are policy refinements within existing ADV architecture, not hard-to-reverse architectural choices requiring ADRs.\n\n## Implementation Strategy\n\n### Slice A — Review/harden quotas and split\n\n1. Update `advance-workflow` `rq-R3v13wR1` body/scenarios.\n2. Update `docs/checklists/review-checklist.md` and `docs/checklists/harden-checklist.md`:\n   - remove fixed `3 non-nit` requirement,\n   - preserve clean evidence template,\n   - preserve red-flag invalidators,\n   - encode ownership split.\n3. Update `.opencode/command/adv-review.md` and `.opencode/command/adv-harden.md`:\n   - remove fixed-count enforcement,\n   - make scanner breadth risk-triggered,\n   - preserve mandatory remediation and critical blocker semantics.\n4. Update asset tests that pin review/harden rigor.\n\n### Slice B — Discovery scout trigger and ambiguity noise\n\n1. Update `adv-discover` spec `rq-discOpportunityScout01` and checklist.\n2. Update `.opencode/command/adv-discover.md` Phase 3.5.\n3. Update opportunity-scout asset tests.\n4. Refine ambiguity wording/tests where status/proposal/discovery output is overly noisy, preserving structural blockers and evidence-quote requirements.\n\n### Slice C — Status canonical next action\n\n1. Add failing status tests for stale changes whose next gates are proposal/discovery/design/planning; expected output must not recommend `/adv-apply`.\n2. Refactor `appendRecencyRecommendation` to accept `nextGate`/canonical command or to emit non-command stale text.\n3. Deduplicate recommendation strings when canonical action and recency refer to the same change.\n4. Keep hygiene diagnostics separate from canonical action where current view selector permits.\n5. Coordinate status docs/CLI overlap with `rewriteStatusCli` before editing command-level status guidance.\n\n### Slice D — Investment report removal/reflection metric localization\n\n1. Audit all active `adv_investment_report` references.\n2. Move pure duration helpers from `tools/investment.ts` to reflection-local code if reflection still needs them.\n3. Remove MCP tool registration, names, tool title, agent allowlist entries, command references, and tests.\n4. Keep workflow `getInvestmentReportQuery` scoped out unless a separate Temporal compatibility audit authorizes removal.\n5. Add regression tests proving reflection still emits concise metrics or intentionally omits them according to updated reflection policy.\n\n### Slice E — Archive/reflection visibility\n\n1. Remove archive investment summary line.\n2. Keep deploy nudge visible.\n3. Keep reflection summary visible/prominent and nonblocking.\n4. Add/adjust asset tests for visible deploy/reflection output and nonblocking behavior.\n5. Avoid archive cleanup-worker scope already covered by `addArchiveCleanupScanner` unless explicitly coordinating or superseding it.\n\n### Slice F — Conformance and docs cleanup\n\n1. Update command/spec/checklist asset tests.\n2. Update generated docs/spec markdown if required by project tooling.\n3. Run targeted tests for status, contract/asset surfaces, reflection, and tool registry.\n4. Run `pnpm run check` and relevant targeted tests in prep/execution.\n\n## LBP Analysis\n\nLong-term best practice is to keep ADV's workflow safety in spec/contract/test surfaces while making expensive agent activity conditional on risk. Deterministic orchestration and structural evidence beat blanket LLM/scanner ceremony. The design uses existing sources of truth instead of adding a policy runtime.\n\n## Affected Components\n\n- `.adv/specs/advance-workflow/spec.json`\n- `.adv/specs/adv-discover/spec.json`\n- `.opencode/command/adv-review.md`\n- `.opencode/command/adv-harden.md`\n- `.opencode/command/adv-discover.md`\n- `.opencode/command/adv-archive.md`\n- `.opencode/command/adv-reflect.md`\n- `.opencode/command/adv-status.md` if status command guidance changes\n- `docs/checklists/review-checklist.md`\n- `docs/checklists/harden-checklist.md`\n- `docs/checklists/discover-checklist.md`\n- `plugin/src/tools/status.ts`\n- `plugin/src/tools/status.test.ts`\n- `plugin/src/tools/investment.ts` and tests, likely removed or converted\n- `plugin/src/tools/reflection.ts` / reflection tests\n- `plugin/src/tool-registry.ts`\n- `plugin/src/utils/tool-title.ts`\n- `.opencode/agents/adv.md`, `.opencode/agents/adv-atc.md`, and asset tests pinning tool allowlists\n- `plugin/src/*assets.test.ts` surfaces that pin command/spec strings\n\n## Risks / Mitigations\n\n| Risk | Mitigation |\n|---|---|\n| Review/harden become shallow after quota removal | Require clean-verdict evidence, checked dimensions, and red-flag invalidators; preserve mandatory remediation. |\n| Critical safety checks fall through the split | Keep critical blocker backstop in both review and harden. |\n| `adv_investment_report` removal breaks reflection | Relocate pure metric helpers locally; keep Temporal compatibility query scoped out. |\n| Status fix expands into broad latency work | Limit AC7 implementation to recommendation correctness; cross-link deeper lazy-view/index work as follow-up. |\n| Archive edits conflict with active archive cleanup/executive-summary changes | Explicit coordination task; avoid cleanup-worker and executive-summary semantics unless chosen. |\n| Opportunity scout becomes too easy to skip | Require trigger policy and documented rationale; still mandatory for strategic/broad/external-option changes. |\n| Status docs conflict with `rewriteStatusCli` | Prep task inspects `rewriteStatusCli` scope before editing command-level status guidance. |\n\n## Design Leverage Scout\n\n- Candidates considered: 5.\n- Auto-adopted: 4.\n  - Rewrite `rq-R3v13wR1` directly; spec law must change with command prose.\n  - Express review/harden split as scenarios under the existing shared spec requirement, not a new runtime policy table.\n  - Relocate only reflection's two pure metric helpers if `adv_investment_report` is removed.\n  - Reuse `getRecommendationForGate`/next-gate logic for status stale-recency guidance.\n- Design-around: 1.\n  - Keep Temporal `getInvestmentReportQuery` out of the MCP tool removal slice unless a separate compatibility audit proves safe removal.\n- Surfaced to user: none remaining; prior discovery resolved investment/reporting tradeoffs.\n\n## Validator Result\n\nValidator: `VALIDATED (CAUTION)`.\n\nFindings:\n\n- Correctness: design maps to all objectives and verified current law/source evidence.\n- Simplicity: no new subsystem; spec/command/checklist/tests carry policy.\n- Spec-law compliance: constraints preserved; quota removal replaced with evidence-backed clean verdicts; mandatory remediation remains.\n- Caution: `rewriteStatusCli` overlaps status documentation/CLI guidance. Design updated with KD9 and Slice C coordination task; no contract compromise.\n",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\n\nReduced ADV workflow noise across review, harden, discovery, status, archive, reflection, and investment-reporting surfaces while preserving core safety gates and proof paths.\n\n## Verdict\n\nREADY_FOR_ACCEPTANCE\n\n## What Was Built\n\n1. Replaced fixed review/harden finding quotas with evidence-backed clean verdict policy, mandatory remediation, risk-triggered scanner breadth, and explicit review-vs-harden ownership.\n2. Made discovery opportunity-scout and ambiguity handling trigger-based with skip/inconclusive and blocking-vs-advisory paths.\n3. Fixed `adv_status` stale active-change recommendations so one canonical next action is emitted and warnings do not compete with gate guidance.\n4. Removed the `adv_investment_report` MCP surface from registry, tool title, agent allowlists, commands, and tests; reflection now computes metrics locally.\n5. Updated archive/reflection policy so deploy and reflection status stay visible and prominent, but advisory failures do not block release unless structural release-safety proof fails.\n6. Added spec/docs/test coverage for coordination boundaries with archive cleanup scanner and first-class executive-summary related work.\n\n## What Was Verified\n\n- Review: independent `adv-reviewer` verdict READY; 0 blocking findings; 0 nonblocking findings.\n- Tests: `bin/oc-test smoke` passed; targeted 9-file suite passed (228 tests); `bin/oc-test full` passed.\n- Static checks: schemas:check, typecheck, lint, format:check passed through `bin/oc-test smoke`.\n- Preview URL: not_applicable — workflow-policy/documentation/tooling change with no browser-visible surface.\n- Contract matrix: 32/32 rows passed or respected; SC1-SC3, AC1-AC11, C1-C7, DONT1-DONT6, and OOS1-OOS5 covered.\n\n## Remaining Concerns\n\n- `adv_change_validate strict` still reports pre-existing nonblocking `NO_DELTAS` warning because this change directly edited tracked specs/docs/tests rather than carrying separate delta records.\n- Runtime tool reload needed after archive/deploy before the removed MCP surface is reflected in a live OpenCode session.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-06-02T17:21:10.044Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | ADV workflow cost/noise is reduced on the targeted surfaces without removing seven gates, spec-law, TDD/task evidence, worktree isolation, contract proof, or release/merge/push proof. | pass | bin/oc-test smoke and full passed; targeted workflow-noise tests passed. Updated policy preserves seven gates, spec-law, TDD/task evidence, worktree isolation, contract proof, and release proof. |\n| SC2 | success_criterion | Review, harden, discovery, status, archive, reflection, and investment-reporting policies are clearer, less duplicative, and structurally encoded in specs/commands/tests. | pass | Specs, command contracts, checklists, allowlists/registry, and asset tests updated; bin/oc-test smoke/full passed. |\n| SC3 | success_criterion | User-facing ADV output becomes more decision-oriented: one correct next action, fewer non-actionable findings, and visible but nonblocking archive deploy/reflection signals. | pass | Status tests verify one canonical next action; archive/reflect report lines keep deploy/reflection visible but nonblocking; reviewer verdict READY. |\n| AC1 | acceptance_criterion | `/adv-review` and `/adv-harden` no longer require a fixed minimum number of non-nit findings; command/checklist/spec asset tests assert clean verdicts require evidence-backed checked dimensions and red-flag invalidator handling, not a fixed finding count. | pass | plugin/src/workflow-noise-reduction-assets.test.ts and plugin/src/optimized-handoff-assets.test.ts pass; review/harden commands and checklists no longer require fixed finding quotas. |\n| AC2 | acceptance_criterion | Mandatory remediation remains intact for blockers/issues and validated in-scope findings; `advance-workflow` spec and review/harden command tests still require remediation for blocker/issue/validated in-scope findings. | pass | workflow-noise tests assert mandatory remediation language remains for blocker/issue and validated in-scope findings; bin/oc-test targeted suite passed. |\n| AC3 | acceptance_criterion | Review/harden responsibility split is explicit and non-duplicative; command/checklist text and tests show review owns contract/correctness/security/tests/scope while harden owns release/deploy/prod/docs/cleanup readiness with critical blocker backstop. | pass | workflow-noise tests assert review owns contract/correctness/security/tests/scope and harden owns release/deploy/production/docs/cleanup; targeted suite passed. |\n| AC4 | acceptance_criterion | Scanner breadth is risk-adaptive without dropping mandatory high-risk checks; tests/specs cover trigger conditions for broad scanners and mandatory checks for security/correctness/release/deployment-sensitive changes. | pass | advance-workflow spec and review/harden command/checklist tests assert risk-triggered scanner policy and high-risk mandatory checks; targeted suite passed. |\n| AC5 | acceptance_criterion | Discovery opportunity scout is trigger-based; `adv-discover` spec/command/checklist tests allow documented skip/inconclusive for narrow low-opportunity changes and require scout for strategic/architecture/product/external-option changes. | pass | adv-discover spec/command/checklist updated for trigger-based scout with skipped/inconclusive paths; workflow-noise and discover asset tests passed. |\n| AC6 | acceptance_criterion | Ambiguity output remains structurally blocking where needed but quieter elsewhere; proposal/discovery/audit/status tests distinguish blocking structural ambiguity from concise advisory findings and preserve evidence-quote rules. | pass | discover ambiguity policy tests passed; status next-action warning separation tests passed. |\n| AC7 | acceptance_criterion | `adv_status` emits one canonical next action per active change; status tests prove stale pre-execution changes do not recommend `/adv-apply` and hygiene/ambiguity warnings are separated or deduped. | pass | plugin/src/tools/status.test.ts passed; stale pre-execution recommendations no longer emit wrong duplicate /adv-apply. |\n| AC8 | acceptance_criterion | `adv_investment_report` is removed unless design proves decision value; if removed, registry/tool-title/agent allowlists/commands/tests have zero active `adv_investment_report` references and reflection uses local metric extraction if needed. | pass | adv_investment_report removed from registry, tool title, allowlists, commands, and tests; reflection owns local metric extraction; targeted tests and full suite passed. |\n| AC9 | acceptance_criterion | Archive keeps deploy/reflection visible but nonblocking; archive/reflect command tests show deploy nudge and reflection summary remain visible/prominent, and reflection/deploy failures do not block release unless structural release safety fails. | pass | archive/reflect command tests assert deploy/reflection visible, failure nonblocking, rerun guidance, and structural release-safety exception; targeted tests passed. |\n| AC10 | acceptance_criterion | Existing related active changes are not silently overwritten; design records coordination with `addArchiveCleanupScanner` and `firstClassExecutiveSummary`, and implementation tasks avoid duplicate archive cleanup/executive-summary scope. | pass | Design and rq-archiveVisibility01 record boundaries for addArchiveCleanupScanner and firstClassExecutiveSummary; implementation avoids duplicate cleanup-scanner and executive-summary scope. |\n| AC11 | acceptance_criterion | Reduced workflow policy is machine-checkable; updated specs, commands, checklists, allowlists/registry, and asset tests pass `pnpm run check` and targeted tests. | pass | bin/oc-test smoke passed (pnpm run check plus smoke tests); targeted 9-file suite passed; bin/oc-test full passed. |\n| C1 | constraint | Do not remove ADV's seven-gate lifecycle. | respected | No gate count or gate ordering changes; gate status proposal/discovery/design/planning/execution complete, acceptance/release pending as expected. |\n| C2 | constraint | Do not remove spec-law, Temporal state, worktree isolation, task checkpoints, TDD evidence, contract proof, or release/merge/push proof. | respected | Spec-law and command contract updates made in tracked specs/docs; no direct ADV state file edits. |\n| C3 | constraint | Do not weaken blockers for correctness, security, data loss, conformance, contract proof, release readiness, or merge/push evidence. | respected | Contract review matrix, task contract refs, and release proof language remain in commands/specs. |\n| C4 | constraint | Do not replace structural gates with purely heuristic judgment. | respected | TDD evidence recorded per task with RED/GREEN/VERIFY; final verification ran smoke/targeted/full tests. |\n| C5 | constraint | Do not hide real risk by suppressing warnings without an alternate evidence path. | respected | Implementation stayed in change worktree /home/jon/.local/share/opencode/worktree/.../change/reduceWorkflowNoise on branch change/reduceWorkflowNoise. |\n| C6 | constraint | Do not create duplicate responsibilities across commands. | respected | No new runtime policy subsystem/table added; policy encoded in specs, commands, checklists, skills, and tests. |\n| C7 | constraint | Coordinate with active archive/reporting changes before modifying overlapping archive cleanup or executive-summary surfaces. | respected | Archive deploy/reflection policy keeps structural release-safety blockers intact for conformance, contract proof, merge/push, dirty main, and projection durability. |\n| DONT1 | avoidance | Avoid manufactured findings or fixed-count issue quotas. | respected | Tests assert no fixed review/harden finding quota remains. |\n| DONT2 | avoidance | Avoid mandatory broad scanner fan-out for narrow internal changes. | respected | Risk-triggered scanners and trigger-based discovery scout tests passed; no blanket broad fan-out required for narrow changes. |\n| DONT3 | avoidance | Avoid user-facing investment metrics unless they demonstrably drive decisions. | respected | adv_investment_report active-surface scan passes; only historical changelog/test guard references remain. |\n| DONT4 | avoidance | Avoid moving production deployment inside ADV's release gate lifecycle. | respected | Archive cleanup scanner behavior explicitly left to related active change scope; no duplicate implementation added. |\n| DONT5 | avoidance | Avoid making reflection block archive. | respected | Executive-summary ownership unchanged except removal of investment summary noise; no first-class executive summary duplicate implementation added. |\n| DONT6 | avoidance | Avoid broad latency/index work beyond status recommendation noise unless needed for AC7. | respected | Status and ambiguity tests separate canonical next actions from advisory warnings; no extra prompts added. |\n| OOS1 | out_of_scope | Removing ADV's seven-gate lifecycle. | respected | No archive cleanup scanner implementation introduced. |\n| OOS2 | out_of_scope | Removing spec-law, Temporal state, worktree isolation, task checkpoints, TDD evidence, contract proof, or release/merge/push proof. | respected | No first-class executive summary subsystem implemented; only current command summary text adjusted. |\n| OOS3 | out_of_scope | Rewriting the whole ADV architecture or replacing Temporal. | respected | Temporal getInvestmentReport compatibility query left in place by design. |\n| OOS4 | out_of_scope | Implementing unrelated workflow features from the backlog. | respected | No roadmap/triage backlog behavior changed. |\n| OOS5 | out_of_scope | Closing or merging existing unrelated active changes. | respected | No production deploy automation added; archive keeps production deploy nudge only. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/reduceWorkflowNoise/proposal.md",
+      "updatedAt": "2026-06-02T16:09:34.033Z",
+      "contentHash": "a519f23a34c4914065707743d45aaea8755d5cdbabb6213759d3c9b917d945f7"
+    },
+    "problemStatement": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/reduceWorkflowNoise/problem-statement.md",
+      "updatedAt": "2026-06-02T15:55:59.634Z",
+      "contentHash": "d6bec20914e52c58093dcb9683520459842441ede81c81539ff849cfda2defdd"
+    },
+    "agreement": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/reduceWorkflowNoise/agreement.md",
+      "updatedAt": "2026-06-02T16:13:07.420Z",
+      "contentHash": "787c74f4820eb5ab0639ea7c65d835a2bb55cf81fe05c3943ba3dc8e858d9481"
+    },
+    "design": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/reduceWorkflowNoise/design.md",
+      "updatedAt": "2026-06-02T16:21:33.797Z",
+      "contentHash": "d9499570381d76cbda9a147e84ee3ef8d702f181a559991b687367a9ef9c4fed"
+    },
+    "executiveSummary": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/reduceWorkflowNoise/executive-summary.md",
+      "updatedAt": "2026-06-02T17:21:27.860Z",
+      "contentHash": "2a2aa4e8b9c85e61714113ddaa2788e0074e17ae01704de5fa02d8ce3ac6b532"
+    }
+  },
+  "lastSignalAt": "2026-06-02T18:41:03.695Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_MISSING_SUCCESS_CRITERIA",
+      "severity": "warning",
+      "message": "Success criteria are placeholder or empty. What measurable outcomes define done?",
+      "recorded_at": "2026-06-02T15:55:39.273Z"
+    },
+    {
+      "code": "CLARIFY_MISSING_ERROR_HANDLING",
+      "severity": "warning",
+      "message": "Proposal describes behavior that could fail but doesn't mention error handling or rollback. What happens when things go wrong?",
+      "recorded_at": "2026-06-02T15:55:39.273Z",
+      "resolved": true,
+      "resolved_at": "2026-06-02T16:12:04.881Z"
+    }
+  ],
+  "worktree_auto_managed": true
+}
