@@ -1,0 +1,637 @@
+{
+  "id": "firstClassExecutiveSummary",
+  "title": "First-class executive summary",
+  "status": "archived",
+  "created_at": "2026-05-20T23:25:15.618Z",
+  "tasks": [
+    {
+      "id": "tk-2e069d703019",
+      "title": "Add shared `readArtifactWithArchiveFallback` helper + extend 4 simple include flags",
+      "type": "code",
+      "section": "ADV — Archive Fallback",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-20T23:31:24.217Z",
+      "started_at": "2026-05-20T23:56:42.829Z",
+      "completed_at": "2026-05-21T00:01:37.674Z",
+      "implementation_summary": "Added readArtifactWithArchiveFallback(changeDir, archiveDir, changeId, filename) in plugin/src/tools/change.ts. Updated include.problemStatement, include.agreement, include.design, and include.executiveSummary to read active artifact content first and fall back to the latest archive bundle located by findArchiveBundle(). Added a parameterized archived-bundle regression test covering problem-statement.md, agreement.md, design.md, and executive-summary.md.",
+      "verification": "Implemented shared archive fallback for simple artifact include flags in adv_change_show.",
+      "summary": "Added readArtifactWithArchiveFallback(changeDir, archiveDir, changeId, filename) in plugin/src/tools/change.ts. Updated include.problemStatement, include.agreement, include.design, and include.executiveSummary to read active artifact content first and fall back to the latest archive bundle located by findArchiveBundle(). Added a parameterized archived-bundle regression test covering problem-statement.md, agreement.md, design.md, and executive-summary.md.",
+      "filesTouched": [],
+      "completedAt": "2026-05-21T00:01:37.674Z",
+      "assignedTo": "agent",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "touched_files": [],
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2"
+        ]
+      },
+      "updatedAt": "2026-06-02T20:46:09.820Z"
+    },
+    {
+      "id": "tk-61b0956fc80d",
+      "title": "Extend `loadProposalWithFallback` to support archive bundle fallback",
+      "type": "code",
+      "section": "ADV — Archive Fallback",
+      "status": "done",
+      "priority": 1,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-2e069d703019"
+        }
+      ],
+      "created_at": "2026-05-20T23:31:34.538Z",
+      "started_at": "2026-05-21T00:02:04.935Z",
+      "completed_at": "2026-05-21T00:08:23.797Z",
+      "implementation_summary": "Updated loadProposalWithFallback(changeDir, title, options) to accept optional archiveDir/changeId, read active proposal.md first, then read proposal.md from the latest archive bundle via findArchiveBundle before generating a scaffold. Wired adv_change_show's proposal context and include.proposal path to pass archive context. Added storage-level and tool-level archived proposal regression tests.",
+      "verification": "Extended proposal fallback to archive bundles and wired adv_change_show include.proposal to pass archive context.",
+      "summary": "Updated loadProposalWithFallback(changeDir, title, options) to accept optional archiveDir/changeId, read active proposal.md first, then read proposal.md from the latest archive bundle via findArchiveBundle before generating a scaffold. Wired adv_change_show's proposal context and include.proposal path to pass archive context. Added storage-level and tool-level archived proposal regression tests.",
+      "filesTouched": [],
+      "completedAt": "2026-05-21T00:08:23.797Z",
+      "assignedTo": "agent",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "touched_files": [],
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2"
+        ]
+      },
+      "updatedAt": "2026-06-02T20:46:11.592Z"
+    },
+    {
+      "id": "tk-17de9d92b530",
+      "title": "Enrich auto-release.yml CHANGELOG with executive summary content",
+      "type": "code",
+      "section": "GitHub Actions",
+      "status": "done",
+      "priority": 2,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-61b0956fc80d"
+        }
+      ],
+      "created_at": "2026-05-20T23:31:49.578Z",
+      "started_at": "2026-05-21T00:09:08.146Z",
+      "completed_at": "2026-05-21T00:11:16.638Z",
+      "implementation_summary": "Enhanced `.github/workflows/auto-release.yml` Generate CHANGELOG step to collect `.adv/archive/*/executive-summary.md` files changed between the last tag and HEAD, render each under `### Change Highlights` using the archive bundle directory name, and skip gracefully when files are missing or empty. Also fixed the existing `sha256sum *.tar.gz` shellcheck warning by using `./*.tar.gz` so actionlint passes.",
+      "verification": "Updated auto-release CHANGELOG generation to append archived executive summary highlights and fixed same-file actionlint shellcheck warning.",
+      "summary": "Enhanced `.github/workflows/auto-release.yml` Generate CHANGELOG step to collect `.adv/archive/*/executive-summary.md` files changed between the last tag and HEAD, render each under `### Change Highlights` using the archive bundle directory name, and skip gracefully when files are missing or empty. Also fixed the existing `sha256sum *.tar.gz` shellcheck warning by using `./*.tar.gz` so actionlint passes.",
+      "filesTouched": [],
+      "completedAt": "2026-05-21T00:11:16.638Z",
+      "assignedTo": "agent",
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "touched_files": [],
+      "contract_refs": {
+        "implements": [
+          "AC3"
+        ]
+      },
+      "updatedAt": "2026-06-02T20:46:13.280Z"
+    },
+    {
+      "id": "tk-79fdef349f18",
+      "title": "Corded: extend `ArchivedReleaseChange` with `executive_summary: Option<String>` + load sibling file",
+      "type": "code",
+      "section": "Corded — Data Layer",
+      "status": "done",
+      "priority": 3,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-17de9d92b530"
+        }
+      ],
+      "created_at": "2026-05-20T23:32:03.410Z",
+      "started_at": "2026-05-21T00:11:40.297Z",
+      "completed_at": "2026-05-21T00:16:08.014Z",
+      "implementation_summary": "Created Corded branch change/firstClassExecutiveSummary. Added `executive_summary: Option<String>` to `ArchivedReleaseChange`. Added `archive_executive_summary_path()` to map `.adv/archive/*/change.json` to sibling `executive-summary.md`. Updated `load_adv_archived_changes()` to build a path-to-blob map from the Git tree, fetch a non-empty sibling executive summary when present, and store it on the resolved archived change. Updated existing ArchivedReleaseChange test fixtures.",
+      "verification": "Corded data layer now loads optional sibling executive-summary.md for archived ADV changes.",
+      "summary": "Created Corded branch change/firstClassExecutiveSummary. Added `executive_summary: Option<String>` to `ArchivedReleaseChange`. Added `archive_executive_summary_path()` to map `.adv/archive/*/change.json` to sibling `executive-summary.md`. Updated `load_adv_archived_changes()` to build a path-to-blob map from the Git tree, fetch a non-empty sibling executive summary when present, and store it on the resolved archived change. Updated existing ArchivedReleaseChange test fixtures.",
+      "filesTouched": [],
+      "completedAt": "2026-05-21T00:16:08.014Z",
+      "assignedTo": "agent",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "touched_files": [],
+      "contract_refs": {
+        "implements": [
+          "AC4"
+        ]
+      },
+      "updatedAt": "2026-06-02T20:46:15.127Z"
+    },
+    {
+      "id": "tk-e19c4d90567b",
+      "title": "Corded: extend `ReleaseSummaryInputArchiveChange` + thread exec-summary into prompts.rs",
+      "type": "code",
+      "section": "Corded — Prompt Layer",
+      "status": "done",
+      "priority": 4,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-79fdef349f18"
+        }
+      ],
+      "created_at": "2026-05-20T23:32:19.098Z",
+      "started_at": "2026-05-21T00:16:32.158Z",
+      "completed_at": "2026-05-21T00:20:22.380Z",
+      "implementation_summary": "Extended `ReleaseSummaryInputArchiveChange` with `executive_summary: Option<String>`. Threaded the field from `ArchivedReleaseChange` into archive-summary AI inputs. Updated `build_release_summary_prompt_from_archived_changes()` to render non-empty executive summaries under `executive_summary (primary narrative source)` and label completed task lines as supporting evidence. Updated the archive system prompt to prefer executive_summary when present, and added regression coverage.",
+      "verification": "Corded prompt layer now treats archived executive summaries as primary narrative source.",
+      "summary": "Extended `ReleaseSummaryInputArchiveChange` with `executive_summary: Option<String>`. Threaded the field from `ArchivedReleaseChange` into archive-summary AI inputs. Updated `build_release_summary_prompt_from_archived_changes()` to render non-empty executive summaries under `executive_summary (primary narrative source)` and label completed task lines as supporting evidence. Updated the archive system prompt to prefer executive_summary when present, and added regression coverage.",
+      "filesTouched": [],
+      "completedAt": "2026-05-21T00:20:22.380Z",
+      "assignedTo": "agent",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "touched_files": [],
+      "contract_refs": {
+        "implements": [
+          "AC4"
+        ]
+      },
+      "updatedAt": "2026-06-02T20:46:16.815Z"
+    },
+    {
+      "id": "tk-838aeeb636a9",
+      "title": "Full verification: ADV tests + corded build/test + smoke check",
+      "type": "code",
+      "section": "Verification",
+      "status": "done",
+      "priority": 5,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-e19c4d90567b"
+        }
+      ],
+      "created_at": "2026-05-20T23:32:29.813Z",
+      "started_at": "2026-05-21T00:20:47.855Z",
+      "completed_at": "2026-05-21T00:42:07.425Z",
+      "implementation_summary": "Ran full Advance verification (`pnpm run check`, `pnpm test`, `pnpm run build`, `actionlint .github/workflows/auto-release.yml`) and full Corded verification (`cargo build`, `cargo test`). Review remediation passed: ADV raw include fallback no longer scaffolds missing proposal and no longer falls back from existing empty active artifacts; Corded archive prompt treats executive summaries as untrusted data, caps by char count, preserves later source_index records, and escapes BEGIN/END sentinel-looking lines inside summary content. Committed review remediation in both repos (`a793e436` Advance, `1b81af2` Corded).",
+      "verification": "Full verification passed after review remediation and prompt delimiter hardening; both working trees clean.",
+      "summary": "Ran full Advance verification (`pnpm run check`, `pnpm test`, `pnpm run build`, `actionlint .github/workflows/auto-release.yml`) and full Corded verification (`cargo build`, `cargo test`). Review remediation passed: ADV raw include fallback no longer scaffolds missing proposal and no longer falls back from existing empty active artifacts; Corded archive prompt treats executive summaries as untrusted data, caps by char count, preserves later source_index records, and escapes BEGIN/END sentinel-looking lines inside summary content. Committed review remediation in both repos (`a793e436` Advance, `1b81af2` Corded).",
+      "filesTouched": [],
+      "completedAt": "2026-05-21T00:42:07.425Z",
+      "assignedTo": "agent",
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "touched_files": [],
+      "contract_refs": {
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5"
+        ]
+      },
+      "updatedAt": "2026-06-02T20:46:18.796Z"
+    }
+  ],
+  "subagent_reports": [],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-mQZHNa",
+      "type": "pattern",
+      "content": "For archived-change narrative artifact reads, keep the active-dir read first and fall back through `findArchiveBundle()` rather than branching on change status. This covers active, archived, and partially-migrated states with one helper and keeps missing artifacts as `undefined` at the tool surface.",
+      "source_task": "tk-2e069d703019",
+      "recorded_at": "2026-05-21T00:01:45.415Z"
+    },
+    {
+      "id": "ws-9m-dP2",
+      "type": "pattern",
+      "content": "When extending a widely-used helper like `loadProposalWithFallback`, add archive behavior behind an optional options object (`{ archiveDir, changeId }`) so existing call sites keep their current scaffold fallback semantics while tool paths that know archive context opt in structurally.",
+      "source_task": "tk-61b0956fc80d",
+      "recorded_at": "2026-05-21T00:08:31.142Z"
+    },
+    {
+      "id": "ws-Sx2Gna",
+      "type": "gotcha",
+      "content": "`actionlint` runs shellcheck against workflow `run:` blocks and can surface pre-existing same-file issues while validating a workflow edit. Fix adjacent shellcheck findings (e.g. `sha256sum ./*.tar.gz` for SC2035) before treating workflow verification as green.",
+      "source_task": "tk-17de9d92b530",
+      "recorded_at": "2026-05-21T00:11:23.632Z"
+    },
+    {
+      "id": "ws-YvFxgW",
+      "type": "pattern",
+      "content": "For Corded archive enrichment, keep `change.json` serde pure and put sibling markdown (`executive-summary.md`) on the resolved `ArchivedReleaseChange` layer. Build one path→blob map from the Git tree, then optional-fetch the sibling blob so old archive bundles remain backward-compatible.",
+      "source_task": "tk-79fdef349f18",
+      "recorded_at": "2026-05-21T00:16:14.191Z"
+    },
+    {
+      "id": "ws-O_Dkc3",
+      "type": "pattern",
+      "content": "For Corded archive prompts, label curated ADV `executive_summary` content explicitly as the primary narrative source and demote completed task lines to supporting evidence. This gives the AI a deterministic priority order without removing task-level grounding.",
+      "source_task": "tk-e19c4d90567b",
+      "recorded_at": "2026-05-21T00:20:29.064Z"
+    },
+    {
+      "id": "ws-zAreIB",
+      "type": "success",
+      "content": "Cross-repo verification stayed clean by committing Corded work on its own `change/firstClassExecutiveSummary` branch and keeping Advance verification commits separate. `adv_task_checkpoint` can record clean verification tasks after all implementation commits are already checkpointed.",
+      "source_task": "tk-838aeeb636a9",
+      "recorded_at": "2026-05-21T00:24:49.686Z"
+    },
+    {
+      "id": "ws-sfv8Jl",
+      "type": "gotcha",
+      "content": "Do not use scaffold-generating helpers for raw include/read APIs. `adv_change_show include.proposal` must omit `_proposal` when proposal.md is absent; `loadProposalWithFallback` is appropriate for context snapshots/readiness, not raw artifact attachment.",
+      "source_task": "tk-838aeeb636a9",
+      "recorded_at": "2026-05-21T00:38:16.119Z"
+    },
+    {
+      "id": "ws-FItQT-",
+      "type": "gotcha",
+      "content": "Rust `String::truncate(byte_len)` panics if `byte_len` is not a UTF-8 char boundary. Prompt builders handling arbitrary markdown should cap by `.chars()` or another boundary-safe mechanism, especially when content may include emoji or non-ASCII text.",
+      "source_task": "tk-838aeeb636a9",
+      "recorded_at": "2026-05-21T00:38:26.481Z"
+    },
+    {
+      "id": "ws-Y83Jp1",
+      "type": "pattern",
+      "content": "When wrapping untrusted markdown in prompt delimiters, also escape delimiter-looking lines inside the data. Delimiters plus anti-instruction prose are weaker if content can visually emit the same BEGIN/END sentinel.",
+      "source_task": "tk-838aeeb636a9",
+      "recorded_at": "2026-05-21T00:42:13.341Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-20T23:25:26.123Z",
+      "completed_by": "agent",
+      "approval_evidence": "Quick contract confirmed via question tool: 'Confirmed — execute'. Fast-follow of archived persistExecutiveSummary; scope = ADV archived-change reads + auto-release.yml CHANGELOG enrichment + corded release-notes integration. Cross-repo (corded at /home/jon/dev/corded)."
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-20T23:31:06.160Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery via adv-researcher validator: surveyed corded structure, ADV include-flag patterns, and auto-release.yml CHANGELOG generation step. All three integration points have established patterns to follow."
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-20T23:31:11.420Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design persisted with three integration points and validator verdicts. Independent validator (adv-researcher) confirmed: Path A (sibling loader) for Rust serde, inline bash sufficient for GHA workflow v1, extend all 5 ADV include flags via shared helper (P23 campsite). Concrete code shapes captured for each touchpoint."
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-20T23:56:24.080Z",
+      "completed_by": "agent",
+      "approval_evidence": "User instructed: \"Continue if you have next steps, or stop and ask for clarification if you are unsure how to proceed.\" Existing task graph is concrete and loaded from ADV state; proceeding to execution."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-21T00:25:04.326Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 6 planned tasks completed. Full verification passed across Advance and Corded: Advance check/test/build/actionlint; Corded cargo build/test; CHANGELOG executive-summary smoke check. Both working trees clean."
+    },
+    "acceptance": {
+      "status": "done",
+      "started_at": "2026-06-02T20:36:09.183Z",
+      "completed_at": "2026-06-02T20:36:49.989Z",
+      "completed_by": "user:cleanup-audit",
+      "approval_evidence": "Cleanup audit acceptance. Code merged 12d ago. Pre-contract change with poisoned history (disk fallback). Executive summary persisted retroactively.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/firstClassExecutiveSummary/executive-summary.md",
+        "content_hash": "af3a3642e4c7d468d8b45780590d74101fa9671557f2852fd7962cc60dbb080b",
+        "non_whitespace_chars": 1108,
+        "checked_at": "2026-06-01T20:25:07.524Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "fast_follow_of": {
+    "parent_change_id": "persistExecutiveSummary",
+    "linked_at": "2026-05-20T23:25:15.743Z"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "3eccccb775c4302f16eda497c710edaca17325337617c567830491392460aede",
+      "approvedAt": "2026-05-20T23:31:06.160Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "`adv_change_show include.executiveSummary` returns artifact content for archived changes",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3eccccb775c4302f16eda497c710edaca17325337617c567830491392460aede",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Same archive-fallback applies to all 5 include flags (proposal, problemStatement, agreement, design, executiveSummary)",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3eccccb775c4302f16eda497c710edaca17325337617c567830491392460aede",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "`auto-release.yml` CHANGELOG step injects executive summary highlights from archived changes",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3eccccb775c4302f16eda497c710edaca17325337617c567830491392460aede",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Corded reads sibling `executive-summary.md` and uses it as primary narrative in release-notes prompt",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3eccccb775c4302f16eda497c710edaca17325337617c567830491392460aede",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "ADV test suite passes; Corded compiles and tests pass",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3eccccb775c4302f16eda497c710edaca17325337617c567830491392460aede",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Preserve backward compatibility with archive bundles lacking executive-summary.md",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3eccccb775c4302f16eda497c710edaca17325337617c567830491392460aede",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "No new tools or schemas — extend existing include-flag surface",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3eccccb775c4302f16eda497c710edaca17325337617c567830491392460aede",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Do not duplicate Corded prompt logic",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3eccccb775c4302f16eda497c710edaca17325337617c567830491392460aede",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "GitHub issue closure comments",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3eccccb775c4302f16eda497c710edaca17325337617c567830491392460aede",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Dedicated changelog/release-notes aggregator tool",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3eccccb775c4302f16eda497c710edaca17325337617c567830491392460aede",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Archive compression / bundle restructuring",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3eccccb775c4302f16eda497c710edaca17325337617c567830491392460aede",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "GitHub issue closure comments",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3eccccb775c4302f16eda497c710edaca17325337617c567830491392460aede",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "Dedicated changelog/release-notes aggregator tool",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3eccccb775c4302f16eda497c710edaca17325337617c567830491392460aede",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "Corded's stale gate-name set",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3eccccb775c4302f16eda497c710edaca17325337617c567830491392460aede",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS4",
+        "kind": "out_of_scope",
+        "text": "Archive compression / bundle restructuring",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3eccccb775c4302f16eda497c710edaca17325337617c567830491392460aede",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-06-02T20:35:58.271Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Archive fallback tests in change.test.ts cover all 5 include flags for archived changes"
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Same archive-fallback helper (findArchiveBundle) used for all 5 flags"
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "auto-release.yml CHANGELOG step updated with executive summary injection; actionlint clean"
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Corded tests pass for sibling exec-summary loading and prompt rendering"
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Full verification passed: ADV check/test/build, Corded cargo build/test"
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Optional String field with fallback for missing files"
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No new tools or schemas added — extends existing include flags"
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No duplicated Corded prompt logic"
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No GitHub issue closure comment changes"
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No dedicated aggregator tool"
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No archive compression changes"
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "GitHub issue closure comments out of scope"
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Aggregator tool out of scope"
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Corded gate-name set out of scope"
+        },
+        {
+          "contractId": "OOS4",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Archive compression out of scope"
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "`adv_change_show include.executiveSummary` returns artifact content for archived changes",
+    "Same archive-fallback applies to all 5 include flags (proposal, problemStatement, agreement, design, executiveSummary)",
+    "`auto-release.yml` CHANGELOG step injects executive summary highlights from archived changes",
+    "Corded reads sibling `executive-summary.md` and uses it as primary narrative in release-notes prompt",
+    "ADV test suite passes; Corded compiles and tests pass"
+  ],
+  "documents": {
+    "agreement": "# Agreement: First-Class Executive Summary\n\n## Objectives\n1. Make `executive-summary.md` readable for archived changes via `adv_change_show include.executiveSummary`\n2. Enrich CHANGELOG generation with executive summary content from archive bundles\n3. Thread executive summaries into Corded's release-notes prompt as primary narrative source\n\n## Acceptance Criteria\n- `adv_change_show include.executiveSummary` returns artifact content for archived changes\n- Same archive-fallback applies to all 5 include flags (proposal, problemStatement, agreement, design, executiveSummary)\n- `auto-release.yml` CHANGELOG step injects executive summary highlights from archived changes\n- Corded reads sibling `executive-summary.md` and uses it as primary narrative in release-notes prompt\n- ADV test suite passes; Corded compiles and tests pass\n\n## Constraints\n- Preserve backward compatibility with archive bundles lacking executive-summary.md\n- No new tools or schemas — extend existing include-flag surface\n- Do not duplicate Corded prompt logic\n\n## Avoidances\n- GitHub issue closure comments\n- Dedicated changelog/release-notes aggregator tool\n- Archive compression / bundle restructuring\n\n## Out of Scope\n- GitHub issue closure comments\n- Dedicated changelog/release-notes aggregator tool\n- Corded's stale gate-name set\n- Archive compression / bundle restructuring\n",
+    "executiveSummary": "# First-Class Executive Summary\n\n## What Changed\n\nMade `executive-summary.md` a first-class artifact across three integration surfaces:\n\n1. **ADV archived-change reads** — `adv_change_show include.executiveSummary` (and all 5 include flags) now fall back to archive bundles when reading archived changes. Previously, archived changes returned nothing for artifact include flags.\n\n2. **CHANGELOG enrichment** — `auto-release.yml` now injects executive summary content from `.adv/archive/*/executive-summary.md` into generated CHANGELOG entries under `### Change Highlights`.\n\n3. **Corded release notes** — Corded reads sibling `executive-summary.md` alongside `change.json` and uses it as the primary narrative source when generating release notes, with completed task lines demoted to supporting evidence.\n\n## Why\n\nExecutive summaries were persisted at acceptance and archived in bundles, but downstream consumers couldn't read them. Archive reads silently returned nothing, CHANGELOG generation ignored them, and Corded had no ingestion path.\n\n## Cross-Repo\n\nBoth Advance (TypeScript plugin) and Corded (Rust release-notes service) were modified. Archive fallback uses backward-compatible optional fields. Untrusted content is capped and delimiter-escaped in Corded prompts.\n",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-06-02T20:35:58.271Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| AC1 | acceptance_criterion | `adv_change_show include.executiveSummary` returns artifact content for archived changes | pass | Archive fallback tests in change.test.ts cover all 5 include flags for archived changes |\n| AC2 | acceptance_criterion | Same archive-fallback applies to all 5 include flags (proposal, problemStatement, agreement, design, executiveSummary) | pass | Same archive-fallback helper (findArchiveBundle) used for all 5 flags |\n| AC3 | acceptance_criterion | `auto-release.yml` CHANGELOG step injects executive summary highlights from archived changes | pass | auto-release.yml CHANGELOG step updated with executive summary injection; actionlint clean |\n| AC4 | acceptance_criterion | Corded reads sibling `executive-summary.md` and uses it as primary narrative in release-notes prompt | pass | Corded tests pass for sibling exec-summary loading and prompt rendering |\n| AC5 | acceptance_criterion | ADV test suite passes; Corded compiles and tests pass | pass | Full verification passed: ADV check/test/build, Corded cargo build/test |\n| C1 | constraint | Preserve backward compatibility with archive bundles lacking executive-summary.md | respected | Optional String field with fallback for missing files |\n| C2 | constraint | No new tools or schemas — extend existing include-flag surface | respected | No new tools or schemas added — extends existing include flags |\n| C3 | constraint | Do not duplicate Corded prompt logic | respected | No duplicated Corded prompt logic |\n| DONT1 | avoidance | GitHub issue closure comments | respected | No GitHub issue closure comment changes |\n| DONT2 | avoidance | Dedicated changelog/release-notes aggregator tool | respected | No dedicated aggregator tool |\n| DONT3 | avoidance | Archive compression / bundle restructuring | respected | No archive compression changes |\n| OOS1 | out_of_scope | GitHub issue closure comments | not_applicable | GitHub issue closure comments out of scope |\n| OOS2 | out_of_scope | Dedicated changelog/release-notes aggregator tool | not_applicable | Aggregator tool out of scope |\n| OOS3 | out_of_scope | Corded's stale gate-name set | not_applicable | Corded gate-name set out of scope |\n| OOS4 | out_of_scope | Archive compression / bundle restructuring | not_applicable | Archive compression out of scope |\n\n"
+  },
+  "artifacts": {
+    "agreement": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/firstClassExecutiveSummary/agreement.md",
+      "updatedAt": "2026-06-02T20:35:26.366Z",
+      "contentHash": "3eccccb775c4302f16eda497c710edaca17325337617c567830491392460aede"
+    },
+    "executiveSummary": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/firstClassExecutiveSummary/executive-summary.md",
+      "updatedAt": "2026-06-02T20:36:27.400Z",
+      "contentHash": "af3a3642e4c7d468d8b45780590d74101fa9671557f2852fd7962cc60dbb080b"
+    }
+  },
+  "lastSignalAt": "2026-06-02T20:46:18.796Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_MISSING_SUCCESS_CRITERIA",
+      "severity": "warning",
+      "message": "Success criteria are placeholder or empty. What measurable outcomes define done?",
+      "recorded_at": "2026-06-02T20:22:09.490Z"
+    }
+  ]
+}

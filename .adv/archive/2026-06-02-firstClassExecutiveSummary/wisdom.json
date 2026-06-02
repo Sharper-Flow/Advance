@@ -1,0 +1,68 @@
+{
+  "entries": [
+    {
+      "id": "ws-mQZHNa",
+      "type": "pattern",
+      "content": "For archived-change narrative artifact reads, keep the active-dir read first and fall back through `findArchiveBundle()` rather than branching on change status. This covers active, archived, and partially-migrated states with one helper and keeps missing artifacts as `undefined` at the tool surface.",
+      "source_task": "tk-2e069d703019",
+      "recorded_at": "2026-05-21T00:01:45.415Z"
+    },
+    {
+      "id": "ws-9m-dP2",
+      "type": "pattern",
+      "content": "When extending a widely-used helper like `loadProposalWithFallback`, add archive behavior behind an optional options object (`{ archiveDir, changeId }`) so existing call sites keep their current scaffold fallback semantics while tool paths that know archive context opt in structurally.",
+      "source_task": "tk-61b0956fc80d",
+      "recorded_at": "2026-05-21T00:08:31.142Z"
+    },
+    {
+      "id": "ws-Sx2Gna",
+      "type": "gotcha",
+      "content": "`actionlint` runs shellcheck against workflow `run:` blocks and can surface pre-existing same-file issues while validating a workflow edit. Fix adjacent shellcheck findings (e.g. `sha256sum ./*.tar.gz` for SC2035) before treating workflow verification as green.",
+      "source_task": "tk-17de9d92b530",
+      "recorded_at": "2026-05-21T00:11:23.632Z"
+    },
+    {
+      "id": "ws-YvFxgW",
+      "type": "pattern",
+      "content": "For Corded archive enrichment, keep `change.json` serde pure and put sibling markdown (`executive-summary.md`) on the resolved `ArchivedReleaseChange` layer. Build one path→blob map from the Git tree, then optional-fetch the sibling blob so old archive bundles remain backward-compatible.",
+      "source_task": "tk-79fdef349f18",
+      "recorded_at": "2026-05-21T00:16:14.191Z"
+    },
+    {
+      "id": "ws-O_Dkc3",
+      "type": "pattern",
+      "content": "For Corded archive prompts, label curated ADV `executive_summary` content explicitly as the primary narrative source and demote completed task lines to supporting evidence. This gives the AI a deterministic priority order without removing task-level grounding.",
+      "source_task": "tk-e19c4d90567b",
+      "recorded_at": "2026-05-21T00:20:29.064Z"
+    },
+    {
+      "id": "ws-zAreIB",
+      "type": "success",
+      "content": "Cross-repo verification stayed clean by committing Corded work on its own `change/firstClassExecutiveSummary` branch and keeping Advance verification commits separate. `adv_task_checkpoint` can record clean verification tasks after all implementation commits are already checkpointed.",
+      "source_task": "tk-838aeeb636a9",
+      "recorded_at": "2026-05-21T00:24:49.686Z"
+    },
+    {
+      "id": "ws-sfv8Jl",
+      "type": "gotcha",
+      "content": "Do not use scaffold-generating helpers for raw include/read APIs. `adv_change_show include.proposal` must omit `_proposal` when proposal.md is absent; `loadProposalWithFallback` is appropriate for context snapshots/readiness, not raw artifact attachment.",
+      "source_task": "tk-838aeeb636a9",
+      "recorded_at": "2026-05-21T00:38:16.119Z"
+    },
+    {
+      "id": "ws-FItQT-",
+      "type": "gotcha",
+      "content": "Rust `String::truncate(byte_len)` panics if `byte_len` is not a UTF-8 char boundary. Prompt builders handling arbitrary markdown should cap by `.chars()` or another boundary-safe mechanism, especially when content may include emoji or non-ASCII text.",
+      "source_task": "tk-838aeeb636a9",
+      "recorded_at": "2026-05-21T00:38:26.481Z"
+    },
+    {
+      "id": "ws-Y83Jp1",
+      "type": "pattern",
+      "content": "When wrapping untrusted markdown in prompt delimiters, also escape delimiter-looking lines inside the data. Delimiters plus anti-instruction prose are weaker if content can visually emit the same BEGIN/END sentinel.",
+      "source_task": "tk-838aeeb636a9",
+      "recorded_at": "2026-05-21T00:42:13.341Z"
+    }
+  ],
+  "count": 9
+}
