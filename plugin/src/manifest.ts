@@ -4,7 +4,7 @@
  * Type-safe workflow manifest defining all ADV commands with their
  * phase, gate affinity, prerequisites, and successors.
  *
- * Used by adv-status for context-aware next-step recommendations.
+ * Used by command tooling for command metadata and workflow sequencing.
  * TypeScript constant — compile-time checked, zero parse overhead.
  */
 
