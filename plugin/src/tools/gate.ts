@@ -74,11 +74,11 @@ import {
   writeArtifactActivity,
 } from "../temporal/activities";
 import { changeToWorkflowState } from "../temporal/change-state";
+import { RECOVERY_RECONCILIATION_WARNING } from "../temporal/recovery-classification";
 import {
-  RECOVERY_RECONCILIATION_WARNING,
-  isWorkflowCompletedError,
-} from "../temporal/recovery-classification";
-import { workflowHasPoisonedRecoveryEvidence } from "./recovery-probe";
+  classifyCompletedOrPoisonedRecovery,
+  workflowHasPoisonedRecoveryEvidence,
+} from "./recovery-probe";
 import { saveRecoveredGateCompletion } from "./_recovery-writers";
 
 // rq-releaseFinalization01: gate completion confirmation must be durable.
@@ -1056,14 +1056,9 @@ export const gateTools = {
           // the raw error matches the legacy regex OR workflow describe
           // carries poisoned evidence. compatibilityReason is still required
           // inside completeGateViaRecovery.
-          const completedWorkflow = isWorkflowCompletedError(error);
-          if (
-            (gateId === "acceptance" || gateId === "release") &&
-            (completedWorkflow ||
-              (await workflowHasPoisonedRecoveryEvidence(handle, {
-                signalError: error,
-              })))
-          ) {
+          const { completedWorkflow, recover } =
+            await classifyCompletedOrPoisonedRecovery(handle, error);
+          if ((gateId === "acceptance" || gateId === "release") && recover) {
             const boundaryWarning = validateGateBoundary(gateId, completedBy);
             return completeGateViaRecovery({
               store: activeStore,
@@ -1244,14 +1239,9 @@ export const gateTools = {
           // rq-fix-gate-tools-recovery AC2 + rq-extend-poisoned-recovery AC4:
           // also recover release gate when workflow describe carries
           // poisoned evidence.
-          const completedWorkflow = isWorkflowCompletedError(error);
-          if (
-            (gateId === "acceptance" || gateId === "release") &&
-            (completedWorkflow ||
-              (await workflowHasPoisonedRecoveryEvidence(handle, {
-                signalError: error,
-              })))
-          ) {
+          const { completedWorkflow, recover } =
+            await classifyCompletedOrPoisonedRecovery(handle, error);
+          if ((gateId === "acceptance" || gateId === "release") && recover) {
             return completeGateViaRecovery({
               store: activeStore,
               change,

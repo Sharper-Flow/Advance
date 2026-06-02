@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  classifyCompletedOrPoisonedRecovery,
   workflowHasPoisonedDescription,
   workflowPoisonedDescriptionEvidence,
   workflowHasPoisonedRecoveryEvidence,
@@ -97,5 +98,45 @@ describe("workflow poisoned description probe", () => {
         { signalError: new Error("network unavailable") },
       ),
     ).resolves.toBe(false);
+  });
+});
+
+describe("classifyCompletedOrPoisonedRecovery", () => {
+  it("completed-workflow error short-circuits the describe probe", async () => {
+    let described = false;
+    const handle = {
+      describe: async () => {
+        described = true;
+        return { status: "RUNNING" };
+      },
+    };
+    const result = await classifyCompletedOrPoisonedRecovery(
+      handle,
+      new Error("workflow execution already completed"),
+    );
+    expect(result).toEqual({ completedWorkflow: true, recover: true });
+    // `||` short-circuit: the describe() poisoned probe must NOT run when the
+    // workflow is already known completed.
+    expect(described).toBe(false);
+  });
+
+  it("non-completed error recovers when describe carries poisoned evidence", async () => {
+    const handle = {
+      describe: async () => ({ memo: { lastError: "TMPRL1100 nondeterminism" } }),
+    };
+    const result = await classifyCompletedOrPoisonedRecovery(
+      handle,
+      new Error("signal failed for unrelated reason"),
+    );
+    expect(result).toEqual({ completedWorkflow: false, recover: true });
+  });
+
+  it("non-completed error with clean describe does not recover", async () => {
+    const handle = { describe: async () => ({ status: "RUNNING" }) };
+    const result = await classifyCompletedOrPoisonedRecovery(
+      handle,
+      new Error("network unavailable"),
+    );
+    expect(result).toEqual({ completedWorkflow: false, recover: false });
   });
 });

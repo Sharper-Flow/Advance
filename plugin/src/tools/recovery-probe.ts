@@ -12,7 +12,10 @@
  * projection.
  */
 
-import { isPoisonedHistoryError } from "../temporal/recovery-classification";
+import {
+  isPoisonedHistoryError,
+  isWorkflowCompletedError,
+} from "../temporal/recovery-classification";
 
 // Keep the core markers aligned with `temporal/recovery-classification.ts`.
 // This probe intentionally accepts richer `describe()` output shapes while the
@@ -58,6 +61,34 @@ export async function workflowHasPoisonedRecoveryEvidence(
     return true;
   }
   return workflowHasPoisonedDescription(handle);
+}
+
+/**
+ * Shared classifier for the completed-OR-poisoned recovery decision used by the
+ * gate (acceptance/release) and contract (poisoned_history) recovery paths.
+ *
+ * Returns:
+ *   - `completedWorkflow` — the error indicates a completed/absent workflow
+ *     (callers use this as `diskDirect`).
+ *   - `recover` — recovery should be attempted at all: completed OR
+ *     describe-confirmed poisoned. The `||` short-circuits the describe() probe
+ *     when the workflow is already known completed.
+ *
+ * Call sites keep their own GATING (gateId scope vs recoveryMode) and their own
+ * recovery ACTION; this only consolidates the duplicated detection expression.
+ * NOTE: the completed-only recovery sites (which intentionally do NOT probe for
+ * poisoned evidence) must keep calling `isWorkflowCompletedError` directly and
+ * must NOT adopt this combinator — doing so would broaden their recovery.
+ */
+export async function classifyCompletedOrPoisonedRecovery(
+  handle: PoisonedDescribeProbeTarget,
+  error: unknown,
+): Promise<{ completedWorkflow: boolean; recover: boolean }> {
+  const completedWorkflow = isWorkflowCompletedError(error);
+  const recover =
+    completedWorkflow ||
+    (await workflowHasPoisonedRecoveryEvidence(handle, { signalError: error }));
+  return { completedWorkflow, recover };
 }
 
 /**

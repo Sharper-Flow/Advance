@@ -24,10 +24,12 @@ import {
   RECOVERY_RECONCILIATION_WARNING,
   isFailingContractReviewStatus,
   isPreciseWorkflowRecoveryEvidence,
-  isWorkflowCompletedError,
 } from "../temporal/recovery-classification";
 import { fireSignalAndRefresh, getChangeHandle } from "./_adapters";
-import { workflowHasPoisonedRecoveryEvidence } from "./recovery-probe";
+import {
+  classifyCompletedOrPoisonedRecovery,
+  workflowHasPoisonedRecoveryEvidence,
+} from "./recovery-probe";
 import {
   formatTargetProjectContext,
   withTargetPathStore,
@@ -339,14 +341,9 @@ export const contractTools = {
             // rq-fix-gate-tools-recovery AC3: poisoned-history mint recovers
             // when EITHER the signal error matches the legacy regex OR the
             // workflow's own describe carries poisoned evidence.
-            const completedWorkflow = isWorkflowCompletedError(signalError);
-            if (
-              args.recoveryMode === "poisoned_history" &&
-              (completedWorkflow ||
-                (await workflowHasPoisonedRecoveryEvidence(handle, {
-                  signalError,
-                })))
-            ) {
+            const { completedWorkflow, recover } =
+              await classifyCompletedOrPoisonedRecovery(handle, signalError);
+            if (args.recoveryMode === "poisoned_history" && recover) {
               await saveRecoveredContract({
                 store: activeStore,
                 change,
@@ -523,14 +520,9 @@ export const contractTools = {
           } catch (signalError) {
             // rq-fix-gate-tools-recovery AC4: review-matrix poisoned recovery
             // also runs when describe carries poisoned evidence.
-            const completedWorkflow = isWorkflowCompletedError(signalError);
-            if (
-              args.recoveryMode === "poisoned_history" &&
-              (completedWorkflow ||
-                (await workflowHasPoisonedRecoveryEvidence(handle, {
-                  signalError,
-                })))
-            ) {
+            const { completedWorkflow, recover } =
+              await classifyCompletedOrPoisonedRecovery(handle, signalError);
+            if (args.recoveryMode === "poisoned_history" && recover) {
               await saveRecoveredReviewMatrix({
                 store: activeStore,
                 change,
