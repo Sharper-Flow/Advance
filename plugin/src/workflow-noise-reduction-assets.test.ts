@@ -77,3 +77,40 @@ describe("workflow noise reduction policy", () => {
     expect(`${review}\n${harden}`).toMatch(/risk-triggered scanner/i);
   });
 });
+
+describe("discovery opportunity scout and ambiguity noise policy", () => {
+  test("discover spec makes opportunity scout trigger-based", () => {
+    const spec = readRepoFile(".adv/specs/adv-discover/spec.json");
+
+    expect(spec).toContain("rq-discOpportunityScout01");
+    expect(spec).toMatch(/trigger-based Discovery Opportunity Scout/i);
+    expect(spec).toMatch(/strategic|architecture|product|external-option/i);
+    expect(spec).toMatch(/narrow low-opportunity changes/i);
+    expect(spec).toMatch(/Scout: skipped/i);
+    expect(spec).toMatch(/Scout: inconclusive/i);
+    expect(spec).not.toMatch(/for every full proposal workflow/i);
+  });
+
+  test("discover command records trigger, skip, and inconclusive scout paths", () => {
+    const discover = readCommand("adv-discover.md");
+
+    expect(discover).toMatch(/Trigger Conditions/i);
+    expect(discover).toMatch(/strategic|architecture|product|external-option/i);
+    expect(discover).toMatch(/narrow low-opportunity changes/i);
+    expect(discover).toMatch(/Scout: skipped/i);
+    expect(discover).toMatch(/Scout: inconclusive/i);
+    expect(discover).not.toMatch(/Run a mandatory bounded opportunity-scout pass/i);
+  });
+
+  test("discover checklist distinguishes blocking ambiguity from concise advisory findings", () => {
+    const command = readCommand("adv-discover.md");
+    const checklist = readChecklist("discover-checklist.md");
+
+    for (const content of [command, checklist]) {
+      expect(content).toMatch(/Blocking ambiguity/i);
+      expect(content).toMatch(/Advisory ambiguity/i);
+      expect(content).toMatch(/evidence quotes/i);
+      expect(content).toMatch(/concise advisory/i);
+    }
+  });
+});

@@ -715,21 +715,21 @@
     },
     {
       "id": "rq-discOpportunityScout01",
-      "title": "Mandatory Discovery Opportunity Scout",
-      "body": "/adv-discover MUST execute a bounded Discovery Opportunity Scout pass (Phase 3.5) for every full proposal workflow after current-state research (Phase 3) and before agreement formation (Phase 4). The scout uses a split-load contract: orchestrator owns ScoutCandidate schema, routing, fallback/degradation, adoption, and mutations; adv-researcher may load the adv-opportunity-scout skill in discovery mode for worker methodology. It returns \u22645 structured candidates. The scout phase MUST include an INCONCLUSIVE degradation path (worker skill-load unavailable, sub-agent failure, empty output). Trivially scoped changes MAY skip the scout with documented rationale. The orchestrator routes adoption per the skill's taxonomy: auto-adopt only when contract-tied, low risk, and no user-value tradeoff; surface all others to user.",
+      "title": "Trigger-Based Discovery Opportunity Scout",
+      "body": "/adv-discover MUST run a trigger-based Discovery Opportunity Scout pass (Phase 3.5) after current-state research (Phase 3) and before agreement formation (Phase 4) when the change has strategic, architecture, product, ecosystem, external-option, or broad objective/AC leverage. The scout uses a split-load contract: orchestrator owns ScoutCandidate schema, routing, fallback/degradation, adoption, and mutations; adv-researcher may load the adv-opportunity-scout skill in discovery mode for worker methodology. It returns \u22645 structured candidates. The scout phase MUST include an INCONCLUSIVE degradation path (Scout: inconclusive) for worker skill-load unavailable, sub-agent failure, or empty output. Narrow low-opportunity changes MAY skip the scout with documented rationale (Scout: skipped). The orchestrator routes adoption per the skill's taxonomy: auto-adopt only when contract-tied, low risk, and no user-value tradeoff; surface all others to user.",
       "priority": "must",
       "tags": [
         "discover",
         "scout",
         "opportunity",
-        "mandatory"
+        "trigger-based"
       ],
       "scenarios": [
         {
           "id": "rq-discOpportunityScout01.1",
-          "title": "Scout phase executes for full proposals",
+          "title": "Scout phase executes for strategic and high-opportunity changes",
           "given": [
-            "A /adv-discover invocation for a full proposal workflow",
+            "A /adv-discover invocation for a strategic, architecture, product, ecosystem, external-option, or broad objective/AC change",
             "Discovery Phase 3 has completed"
           ],
           "when": "Phase 3.5 executes",
@@ -757,9 +757,9 @@
         },
         {
           "id": "rq-discOpportunityScout01.3",
-          "title": "Trivially scoped changes may skip scout",
+          "title": "Narrow low-opportunity changes may skip scout",
           "given": [
-            "A narrow bug fix or local refactor with no viable opportunity surface"
+            "A narrow bug fix, local refactor, or low-opportunity internal change with no viable opportunity surface"
           ],
           "when": "Phase 3.5 evaluates opt-out criteria",
           "then": [

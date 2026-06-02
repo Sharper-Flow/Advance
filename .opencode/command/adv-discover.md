@@ -277,14 +277,14 @@ After producing the AMBIGUITY ANALYSIS, evaluate findings before proceeding to P
 
 1. **Count findings** — count CRITICAL findings + count HIGH findings across all categories (required AND optional)
 2. **Resolution log check** — read `## Clarify Resolution Log` section from proposal.md if present; previously-resolved findings are excluded from current trigger count
-3. **Evaluate threshold:**
+3. **Classify output noise:**
 
-| Condition | Action |
-|-----------|--------|
-| CRITICAL ≥ 1 | Halt discovery. Do NOT call `adv_gate_complete gateId: 'discovery'`. Do NOT proceed to Phase 3. Output: "AMBIGUITY CRITICAL finding(s) detected. Run `/adv-clarify {change-id}` to resolve, then rerun `/adv-discover {change-id}`." |
-| HIGH ≥ 2 (no CRITICAL) | Halt discovery. Same handoff as above. |
-| Single HIGH only | Warning logged inline. Continue to Phase 3. |
-| All clean | Continue to Phase 3. |
+| Class | Condition | Action |
+|-------|-----------|--------|
+| **Blocking ambiguity** | CRITICAL ≥ 1 | Halt discovery. Do NOT call `adv_gate_complete gateId: 'discovery'`. Output evidence quotes and hand off to `/adv-clarify {change-id}`. |
+| **Blocking ambiguity** | HIGH ≥ 2 (no CRITICAL) | Halt discovery. Same handoff as above with evidence quotes. |
+| **Advisory ambiguity** | Single HIGH only | Continue to Phase 3. Log one concise advisory with finding ID, severity, and evidence quote. Do not repeat the warning in unrelated status text. |
+| **Clean** | No trigger findings | Continue to Phase 3. |
 
 4. **Skip trigger evaluation** when `clarify_enforcement: 'off'` or when discovery gate is already completed (legacy/in-flight changes)
 5. **Rerun cap:** After `/adv-clarify` resolves findings and user reruns `/adv-discover`, cap at 2 reruns before escalating to user via `question` tool per EC4
@@ -300,30 +300,35 @@ Update proposal artifact with the discovery findings so the sign-off flow can pr
 ## Phase 3.5: Discovery Opportunity Scout
 <!-- rq-discOpportunityScout01 -->
 
-Run a mandatory bounded opportunity-scout pass after current-state research and before agreement formation. The scout identifies missed opportunities: alternative approaches, overlooked patterns, gaps in objectives/AC, and unconsidered edge cases.
+Run a trigger-based Discovery Opportunity Scout pass after current-state research and before agreement formation when Trigger Conditions apply. The scout identifies missed opportunities: alternative approaches, overlooked patterns, gaps in objectives/AC, and unconsidered edge cases.
+
+### Trigger Conditions
+
+Run the scout for strategic, architecture, product, ecosystem, external-option, or broad objective/AC changes. Skip for narrow low-opportunity changes where the opportunity surface is likely zero and record `Scout: skipped — {rationale}`.
 
 ### Execution
 
-1. **Prepare split-load contract** — orchestrator owns ScoutCandidate schema, routing taxonomy, fallback/degradation, adoption, and all ADV mutations. Do not load scout methodology into main context unless worker loading is unavailable.
-2. **Prepare context** — assemble proposal summary, agreement objectives/AC/constraints/avoidances, current-state findings (Phase 2–3), and prior-consideration data from Phase 1.6 conflict scan.
-3. **Spawn adv-researcher** — prompt worker to load `skill("adv-opportunity-scout")` in `discovery` mode when available; otherwise use the embedded schema/routing summary in this command. The researcher returns ≤5 structured candidates (8-field ScoutCandidate schema) and submits a compact `RESEARCHER_REPORT` before final response.
-4. **Sort candidates** — by payoff/risk ratio (highest first).
-5. **Route adoption** per the skill's routing taxonomy:
+1. **Evaluate Trigger Conditions** — decide `run`, `skip`, or `inconclusive` before spawning. Record rationale in the phase output.
+2. **Prepare split-load contract** — orchestrator owns ScoutCandidate schema, routing taxonomy, fallback/degradation, adoption, and all ADV mutations. Do not load scout methodology into main context unless worker loading is unavailable.
+3. **Prepare context** — assemble proposal summary, agreement objectives/AC/constraints/avoidances, current-state findings (Phase 2–3), and prior-consideration data from Phase 1.6 conflict scan.
+4. **Spawn adv-researcher when triggered** — prompt worker to load `skill("adv-opportunity-scout")` in `discovery` mode when available; otherwise use the embedded schema/routing summary in this command. The researcher returns ≤5 structured candidates (8-field ScoutCandidate schema) and submits a compact `RESEARCHER_REPORT` before final response.
+5. **Sort candidates** — by payoff/risk ratio (highest first).
+6. **Route adoption** per the skill's routing taxonomy:
    - **Auto-adopt** only when: contract-tied (not "untied"), low risk, `adopt_now`/`design_around` fate, no user-value tradeoff.
    - **Surface to user** for all other candidates (untied, medium+ risk, or user-value tradeoff).
-6. **Integrate adopted findings** — auto-adopted candidates are incorporated into the agreement's objectives or AC before Phase 4 agreement presentation.
+7. **Integrate adopted findings** — auto-adopted candidates are incorporated into the agreement's objectives or AC before Phase 4 agreement presentation.
 
 ### Opt-Out
 
-The scout phase may be skipped with rationale for trivially scoped changes where the opportunity surface is likely zero. Record "Scout: skipped — {rationale}" in the phase output.
+The scout phase may be skipped with rationale for narrow low-opportunity changes. Record `Scout: skipped — {rationale}` in the phase output.
 
 ### Degradation
 
-If worker skill-load is unavailable, adv-researcher spawn fails, returns empty/malformed output, or times out: record "Scout: inconclusive ({reason})" and proceed without blocking. Mandatory means "must attempt," not "must succeed."
+If worker skill-load is unavailable, adv-researcher spawn fails, returns empty/malformed output, or times out: record `Scout: inconclusive ({reason})` and proceed without blocking. Triggered means must attempt when applicable, not must succeed.
 
 ### Output
 
-- "Discovery Opportunity Scout" section with: candidates considered (count), auto-adopted (count + summary), surfaced to user (count + summary), inconclusive/skipped (if applicable).
+- "Discovery Opportunity Scout" section with: trigger decision (`run`/`skip`/`inconclusive`), candidates considered (count), auto-adopted (count + summary), surfaced to user (count + summary), inconclusive/skipped (if applicable).
 
 ### Researcher Scout Packet
 
