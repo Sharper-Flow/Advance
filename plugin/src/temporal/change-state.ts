@@ -137,14 +137,9 @@ export function changeSeedStateFromChange(
     worktree_auto_managed: safeChange.worktree_auto_managed,
     target_worktree_path: safeChange.target_worktree_path,
     scope_worktrees: safeChange.scope_worktrees,
-    seenReportIds: (safeChange as unknown as { seenReportIds?: string[] })
-      .seenReportIds,
-    signal_rejections: (
-      safeChange as unknown as { signal_rejections?: SignalRejection[] }
-    ).signal_rejections,
-    signal_rejections_total: (
-      safeChange as unknown as { signal_rejections_total?: number }
-    ).signal_rejections_total,
+    seenReportIds: safeChange.seenReportIds,
+    signal_rejections: safeChange.signal_rejections,
+    signal_rejections_total: safeChange.signal_rejections_total,
   };
 }
 

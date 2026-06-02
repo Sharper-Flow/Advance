@@ -465,6 +465,31 @@ export const ChangeOriginSchema = z.object({
 
 export type ChangeOrigin = z.infer<typeof ChangeOriginSchema>;
 
+// =============================================================================
+// Signal Rejection (workflow-state sidecar projection)
+// =============================================================================
+
+/**
+ * Zod mirror of the workflow-layer `SignalPayloadDigest` (temporal/digest.ts)
+ * and `SignalRejection` (temporal/contracts.ts). Declared here so ChangeSchema
+ * can type the persisted `signal_rejections` projection at the read boundary
+ * instead of relying on `as unknown as` casts (AI-007). Structurally identical
+ * to the workflow interfaces; keep the two in sync.
+ */
+export const SignalPayloadDigestSchema = z.object({
+  payload_size: z.number(),
+  payload_sample: z.string(),
+  payload_fnv1a: z.string(),
+});
+
+export const SignalRejectionSchema = z.object({
+  signalName: z.string(),
+  errorMessage: z.string(),
+  errorClass: z.string(),
+  payloadDigest: SignalPayloadDigestSchema,
+  rejectedAt: z.string(),
+});
+
 export const ChangeSchema = z
   .object({
     $schema: z.string().optional(),
@@ -599,6 +624,22 @@ export const ChangeSchema = z
      * relies on for deterministic per-repo deletion.
      */
     scope_worktrees: z.record(z.string(), z.string()).optional(),
+
+    /**
+     * Idempotency keys for sub-agent reports already folded into workflow
+     * state. Workflow-state projection persisted on the change snapshot
+     * (referenced by subagent-reports spec).
+     */
+    seenReportIds: z.array(z.string()).optional(),
+
+    /**
+     * Persisted signal-rejection audit projection (e.g. T8 size-guard
+     * rejections). Typed here so the read boundary needs no casts (AI-007).
+     */
+    signal_rejections: z.array(SignalRejectionSchema).optional(),
+
+    /** Running total of rejected signals across the workflow's lifetime. */
+    signal_rejections_total: z.number().optional(),
   })
   .passthrough(); // Allow extra fields for forward/backward compatibility
 

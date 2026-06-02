@@ -2290,6 +2290,63 @@
       },
       "type": "object"
     },
+    "seenReportIds": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "signal_rejections": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "errorClass": {
+            "type": "string"
+          },
+          "errorMessage": {
+            "type": "string"
+          },
+          "payloadDigest": {
+            "additionalProperties": false,
+            "properties": {
+              "payload_fnv1a": {
+                "type": "string"
+              },
+              "payload_sample": {
+                "type": "string"
+              },
+              "payload_size": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "payload_size",
+              "payload_sample",
+              "payload_fnv1a"
+            ],
+            "type": "object"
+          },
+          "rejectedAt": {
+            "type": "string"
+          },
+          "signalName": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "signalName",
+          "errorMessage",
+          "errorClass",
+          "payloadDigest",
+          "rejectedAt"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "signal_rejections_total": {
+      "type": "number"
+    },
     "status": {
       "enum": [
         "draft",
