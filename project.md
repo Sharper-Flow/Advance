@@ -64,7 +64,7 @@ pnpm run schemas:check        # deterministic schema drift check
 
 Single test file: `pnpm test -- src/tools/change.test.ts`
 
-CI order: typecheck → lint → format:check → test → build (Node 20.x + 22.x)
+CI order: schemas:check → typecheck → lint → format:check → test → build (Node 24.x)
 
 ## Architecture Conventions
 

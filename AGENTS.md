@@ -65,7 +65,7 @@ bin/oc-test full
 
 `bin/oc-test` delegates to `oc-test-gate` when available and falls back to direct plugin commands without changing `adv_run_test` command semantics.
 
-**CI order** (`.github/workflows/ci.yml`): typecheck → lint → format:check → test → build. Node 20.x + 22.x.
+**CI order** (`.github/workflows/ci.yml`): schemas:check → typecheck → lint → format:check → test → build. Node 24.x.
 
 ### Source-vs-Dist Reload Gotcha
 
