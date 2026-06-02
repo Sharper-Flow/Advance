@@ -1,0 +1,1066 @@
+{
+  "id": "rewriteStatusCli",
+  "title": "Rewrite status CLI",
+  "status": "archived",
+  "created_at": "2026-06-02T16:13:36.762Z",
+  "tasks": [
+    {
+      "id": "tk-48e5fb208e7c",
+      "title": "Add RED asset coverage for `/adv-status` CLI bridge",
+      "type": "code",
+      "section": "Testing",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-06-02T16:33:46.688Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC4"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC4",
+          "AC6",
+          "AC7"
+        ],
+        "respects": [
+          "C2",
+          "C4",
+          "DONT1",
+          "DONT2",
+          "DONT3"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-02T16:36:14.685Z",
+      "verification": "Release harden formatting verification passed: `pnpm run check` passed (schemas:check, typecheck, test-isolation check, lockfile policy check, lint, format:check); `bin/oc-test targeted -- src/adv-status-cli-assets.test.ts src/manifest-doc-drift.test.ts` passed (2 files, 22 tests).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/adv-status-cli-assets.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/adv-status-cli-assets.test.ts"
+      ],
+      "checkpointSha": "ff6fd98526e31701d1cec2ee934a94894ea2dc8a",
+      "completedAt": "2026-06-02T17:18:56.117Z",
+      "completed_at": "2026-06-02T17:18:56.117Z",
+      "notes": "Added RED asset coverage for `/adv-status` CLI bridge. RED evidence recorded: `pnpm test -- src/adv-status-cli-assets.test.ts` failed with expected assertions for missing `!`adv status --no-color``, missing verbatim/no-analysis guidance, and forbidden fanout tokens. Checkpoint commit f4edd191f7f3d27d55cdd7cd09ac8c54bc2971ca.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "updatedAt": "2026-06-02T16:38:46.858Z"
+    },
+    {
+      "id": "tk-a3ffd63f464c",
+      "title": "Rewrite `/adv-status` as CLI shell-output bridge and sync command descriptions",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-06-02T16:34:05.991Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-48e5fb208e7c"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC7"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC7"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "OOS2",
+          "OOS3",
+          "OOS5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-02T16:39:13.589Z",
+      "verification": "Acceptance review cleanup verified by reviewer: `bin/oc-test targeted -- src/adv-status-cli-assets.test.ts src/manifest-doc-drift.test.ts` passed (2 files, 20 tests). Main orchestrator reran same targeted tests and `adv status --no-color`; both passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/manifest.ts"
+      ],
+      "touched_files": [
+        "plugin/src/manifest.ts"
+      ],
+      "checkpointSha": "89d635a6f1b85540ff1ae3ceb8d37698bef04e1b",
+      "completedAt": "2026-06-02T17:05:08.355Z",
+      "completed_at": "2026-06-02T17:05:08.355Z",
+      "notes": "Rewrote `/adv-status` command as CLI bridge, synced fast-table descriptions in manifest/docs/ADV agent routing, and verified targeted asset/drift tests. Checkpoint commit 8e5dd06efb840652fd5703a48b864f27a529d175.",
+      "error_recovery": {
+        "last_error": "Initial green run used `pnpm test -- ...` and also ran a Temporal integration test; command-file assertion also failed because recommendation text crossed a newline.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "`pnpm test -- src/adv-status-cli-assets.test.ts src/manifest-doc-drift.test.ts` failed: asset regex did not match multi-line command text; unrelated Temporal continue-as-new integration test also ran and timed out.",
+            "diagnosis": "The command text split 'Do not analyze' and 'recommendations' across lines, and the pnpm script invocation was less targeted than `pnpm exec vitest run`.",
+            "fix_tried": "Made the command guidance single-line and reran with `pnpm exec vitest run src/adv-status-cli-assets.test.ts src/manifest-doc-drift.test.ts`.",
+            "strategy_label": "tighten command prose and targeted runner",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-02T16:42:45.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-02T16:43:20.992Z"
+    },
+    {
+      "id": "tk-c24c55d9a78f",
+      "title": "Add `rq-statusCliBridge01` spec law for status CLI bridge",
+      "type": "code",
+      "section": "Spec Law",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-06-02T16:34:06.358Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-48e5fb208e7c"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC4",
+          "AC6",
+          "AC7"
+        ],
+        "verifies": [
+          "AC6",
+          "AC7"
+        ],
+        "respects": [
+          "C4",
+          "C5",
+          "DONT1",
+          "DONT2",
+          "DONT5",
+          "OOS1",
+          "OOS2",
+          "OOS4"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-02T16:43:33.419Z",
+      "verification": "Spec verification passed: Node JSON/requirement check found rq-statusCliBridge01 with 3 scenarios; `pnpm run schemas:check` passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Updated `.adv/specs/advance-meta/spec.json` to version 1.13.0 with `rq-statusCliBridge01`. Requirement makes `/adv-status` default command template a thin `adv status --no-color` shell-output bridge, forbids default ADV MCP fanout/heavy synthesis, and preserves explicit opt-in diagnostics. Verification passed with a Node JSON/requirement check and `pnpm run schemas:check`.",
+      "filesTouched": [
+        ".adv/specs/advance-meta/spec.json"
+      ],
+      "touched_files": [
+        ".adv/specs/advance-meta/spec.json"
+      ],
+      "checkpointSha": "28adbe365709b317a76fe96a8084b938b3e798c0",
+      "completedAt": "2026-06-02T16:45:14.269Z",
+      "completed_at": "2026-06-02T16:45:14.269Z",
+      "notes": "Added `rq-statusCliBridge01` to `advance-meta` spec with three scenarios covering CLI table bridge, no agent fanout, and no fallback on CLI failure. Bumped spec version/date. Checkpoint commit 28adbe365709b317a76fe96a8084b938b3e798c0.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "updatedAt": "2026-06-02T16:45:25.082Z"
+    },
+    {
+      "id": "tk-3a7ee7672a0f",
+      "title": "Run targeted verification for status CLI bridge",
+      "type": "code",
+      "section": "Verification",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-06-02T16:34:26.159Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-a3ffd63f464c"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-c24c55d9a78f"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7",
+          "SC1",
+          "SC2",
+          "SC3",
+          "SC4"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-02T16:46:03.979Z",
+      "verification": "Final verification passed: `bin/oc-test targeted -- src/adv-status-cli-assets.test.ts src/manifest-doc-drift.test.ts` (2 files, 20 tests), `adv status --no-color`, `pnpm run schemas:check`, and no diff touching `bin/adv` (no new CLI flags).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Ran final verification for AC1-AC7/SC1-SC4. Targeted asset/drift tests passed through repo-local `bin/oc-test`, CLI smoke produced table plus counts, schema check passed, and static no-`bin/adv`-diff check confirmed no `--health`/`--json` flag changes were introduced.",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "28adbe365709b317a76fe96a8084b938b3e798c0",
+      "completedAt": "2026-06-02T16:46:46.707Z",
+      "completed_at": "2026-06-02T16:46:46.707Z",
+      "notes": "Final targeted verification passed. Evidence: `bin/oc-test targeted -- src/adv-status-cli-assets.test.ts src/manifest-doc-drift.test.ts` passed 2 files/20 tests; `adv status --no-color` printed table plus counts; `pnpm run schemas:check` passed; no `bin/adv` diff confirms no new CLI flags. Checkpoint clean at 28adbe365709b317a76fe96a8084b938b3e798c0.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "updatedAt": "2026-06-02T16:47:03.177Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "rewriteStatusCli",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation: rewriteStatusCli",
+      "sources": [
+        {
+          "label": "OpenCode Commands docs (shell output injection)",
+          "locator": "https://github.com/anomalyco/opencode/blob/dev/packages/web/src/content/docs/commands.mdx",
+          "summary": "Confirms !`command` injects bash output, commands run in project root, and the processed template is sent as a user message to the LLM (one model turn). Validates KD1/KD2 mechanism and agreement C1's acknowledgement that one model turn remains."
+        },
+        {
+          "label": ".opencode/command/adv-status.md (current bloated prompt)",
+          "locator": "/home/jon/dev/advance/.opencode/command/adv-status.md",
+          "summary": "Current file instructs agent to call adv_status, adv_change_list, adv_change_show and synthesize cross-change health/roadmap/recommendations — the exact fanout the design removes. Frontmatter description = 'Show operational health: in-flight changes, Temporal, worktrees, session debt'."
+        },
+        {
+          "label": "bin/adv status CLI implementation",
+          "locator": "/home/jon/dev/advance/bin/adv",
+          "summary": "Read-only disk-projection CLI. runStatus prints active-change table plus 'N active · N archived · N closed' footer and supports --no-color. Satisfies AC3 output shape (table + counts). Exits 1 (no git) / 2 (no ADV state) on failure, surfacing stderr — supports AC4."
+        },
+        {
+          "label": "plugin/src/manifest-doc-drift.test.ts",
+          "locator": "/home/jon/dev/advance/plugin/src/manifest-doc-drift.test.ts",
+          "summary": "Drift tests REQUIRE: command-file frontmatter description == manifest.ts description (line 138), and README.md + ADV_INSTRUCTIONS.md command-table descriptions == manifest description (line 233). Any frontmatter description change forces synchronized manifest + README + ADV_INSTRUCTIONS edits or tests go RED."
+        },
+        {
+          "label": "plugin/src/manifest.ts adv-status entry + advance-meta spec",
+          "locator": "/home/jon/dev/advance/plugin/src/manifest.ts",
+          "summary": "manifest.ts description currently 'Show operational health...'. advance-meta spec requirements (rq-advcfg01, rq-statusProbeCache01, rq-opencodeDebt01) constrain the adv_status MCP TOOL surface, not the /adv-status slash command — no spec requirement mandates the slash command emit health sections, so removing fanout does not contradict spec law."
+        }
+      ],
+      "architecture_assessment": "Design is sound and correctly diagnoses the regression: the slash command's prompt instructs LLM-side computation/fanout instead of deterministic rendering. Converting /adv-status to a thin !`adv status --no-color` shell-output bridge is the boring, structural fix aligned with repo rule P33 (structural-before-heuristic). Mechanism is verified against OpenCode docs. Three status surfaces stay cleanly separated (fast table slash, direct CLI, explicit adv_status view:health for diagnostics). No spec-law conflict: advance-meta requirements govern the adv_status MCP tool, which is unchanged. The one material completeness gap is the manifest-doc-drift coupling: KD2 changes the frontmatter description, which the drift test forces to propagate to manifest.ts + README.md + ADV_INSTRUCTIONS.md command tables. The design enumerates these files but frames them as conditional ('only if description changes'), understating that the change is mandatory once the new frontmatter ships. A simpler equivalent design exists that avoids that coupling work entirely: keep the manifest/frontmatter description string unchanged and only rewrite the command body — but the agreement (AC7) explicitly wants wording to say 'fast table', so changing it is intentional and acceptable provided all four coupled surfaces are updated atomically.",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "No conflicts. One caution: KD2's frontmatter description change ('Show fast ADV status table') triggers manifest-doc-drift.test.ts coupling — manifest.ts, README.md (line 297), and ADV_INSTRUCTIONS.md (line 123) command-table descriptions MUST be updated to the identical string in the same change or those drift tests go RED. Design lists these files but as conditional; should be treated as required. Second minor note: command-template output is still one LLM turn (docs-confirmed) so 'return verbatim' guidance is the correct and necessary mitigation — keep AC4/DONT1 negative-token tests, since the LLM could still editorialize around injected output."
+      },
+      "recommendation": "VALIDATED with CAUTION. Proceed with the design as written; the architecture, mechanism, spec compliance, and simplicity are all sound and the no-fanout asset tests (KD4) make the contract drift-resistant. Before/within execution, treat the manifest-doc-drift coupling as a hard requirement, not conditional: when KD2 changes the .opencode/command/adv-status.md frontmatter description, update plugin/src/manifest.ts adv-status.description, README.md line 297, and ADV_INSTRUCTIONS.md line 123 to the exact same new string atomically, and add/keep a green run of manifest-doc-drift.test.ts in the planned test set. No simpler viable alternative was overlooked that also satisfies AC7's 'fast table' wording requirement; the markdown-file form (vs opencode.jsonc template config) is the correct repo-convention choice.",
+      "follow_ups": [
+        "Add manifest-doc-drift.test.ts to the planned targeted test run so the frontmatter/manifest/README/ADV_INSTRUCTIONS description quartet stays synchronized.",
+        "Consider an asset assertion that the new command body contains no analysis directive beyond 'return verbatim', since one LLM turn still occurs per OpenCode docs."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "rewriteStatusCli",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/rewriteStatusCli",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [
+        {
+          "file": "plugin/src/manifest.ts",
+          "summary": "Updated stale file header comment from adv-status next-step recommendations wording to neutral command metadata/workflow sequencing wording, aligning manifest prose with no-recommendations status CLI contract.",
+          "verification": "`bin/oc-test targeted -- src/adv-status-cli-assets.test.ts src/manifest-doc-drift.test.ts` passed: 2 files, 20 tests."
+        }
+      ],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/adv-status-cli-assets.test.ts src/manifest-doc-drift.test.ts",
+          "adv status --no-color",
+          "python no-fanout token check for .opencode/command/adv-status.md",
+          "python base diff file-scope/bin-adv check"
+        ],
+        "results": "pass",
+        "evidence": "Scoped asset/drift tests passed (2 files, 20 tests). `adv status --no-color` printed active-change table and counts only. Static command check found no forbidden ADV MCP fanout/heavy-section tokens and confirmed `!`adv status --no-color``. Base diff touches only scoped files and `bin/adv` is untouched. Used valid schema scope_key `review:acceptance`; context requested `reviewer:acceptance-review`, but submit schema rejects that value."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Unmodified out-of-scope command docs may still contain historical `/adv-status` operational-health wording, but scoped acceptance surfaces and changed files are coherent."
+      ],
+      "required_main_agent_actions": [
+        "Review and stage the manifest comment cleanup if desired before final acceptance/archive."
+      ],
+      "consumer_warnings": [
+        {
+          "kind": "consumer_failure",
+          "message": "Context packet requested scope_key `reviewer:acceptance-review`, but adv_subagent_report_submit schema accepts `review:acceptance` for independent review summaries; first submit attempt failed validation and was retried with the valid canonical scope key."
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "rewriteStatusCli",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/rewriteStatusCli",
+      "scope": {
+        "kind": "change",
+        "scope_key": "scanner-bundle:harden"
+      },
+      "agent": "adv-scanner-bundle",
+      "phase": "harden",
+      "scanner_count": 6,
+      "dimensions": [
+        "test-coverage",
+        "ai-slop-detection",
+        "documentation-hygiene",
+        "cleanup",
+        "production-readiness",
+        "deployment-readiness"
+      ],
+      "summary": "Harden READY. Initial test-coverage scanner found 1 MEDIUM and 1 LOW asset-test coverage gap; both were remediated by adding ADV agent routing and rq-statusCliBridge01 spec-law assertions. Targeted re-verification confirmed both resolved. AI slop, documentation hygiene, cleanup, production readiness, and deployment readiness scanners reported zero active findings. Verification passed: targeted asset/drift tests now 22 tests, schemas:check, dry-run merge up to date.",
+      "findings": [
+        {
+          "scanner": "test-coverage",
+          "severity": "info",
+          "summary": "Resolved coverage gap: ADV agent status routing is now pinned by asset test.",
+          "evidence": [
+            {
+              "label": "test assertion",
+              "locator": "plugin/src/adv-status-cli-assets.test.ts",
+              "summary": "New test asserts adv.md routes `/adv-status` for fast project table and `adv_status view:\"health\"` only for explicit diagnostics."
+            },
+            {
+              "label": "verification",
+              "locator": "bin/oc-test targeted -- src/adv-status-cli-assets.test.ts src/manifest-doc-drift.test.ts",
+              "summary": "Passed: 2 files, 22 tests."
+            }
+          ]
+        },
+        {
+          "scanner": "test-coverage",
+          "severity": "info",
+          "summary": "Resolved coverage gap: rq-statusCliBridge01 spec law is now pinned by asset test.",
+          "evidence": [
+            {
+              "label": "test assertion",
+              "locator": "plugin/src/adv-status-cli-assets.test.ts",
+              "summary": "New test asserts rq-statusCliBridge01 exists with priority must and scenarios .1, .2, .3."
+            },
+            {
+              "label": "verification",
+              "locator": "bin/oc-test targeted -- src/adv-status-cli-assets.test.ts src/manifest-doc-drift.test.ts",
+              "summary": "Passed: 2 files, 22 tests."
+            }
+          ]
+        }
+      ],
+      "follow_ups": [],
+      "consumer_warnings": []
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-06-02T16:21:15.097Z",
+      "completed_by": "user:proposal-approval",
+      "approval_evidence": "User approved proposal with exact reply: \"approve\". Proceeding inline to discovery per Tier A auto-continue.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/rewriteStatusCli/proposal.md",
+        "content_hash": "71bd45c677f97b66a1760852b9b20b442bc76e89bbca01cb2a657779b146df46",
+        "non_whitespace_chars": 7727,
+        "checked_at": "2026-06-02T16:13:36.778Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-06-02T16:27:50.668Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery agreement approved by user with exact reply: \"approve\". Agreement persisted and ChangeContract minted with AC1-AC7 plus constraints/avoidances/out-of-scope items.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/rewriteStatusCli/agreement.md",
+        "content_hash": "e6ad2c53cfeb812a400ff2163d110167e673425d0bb3aca79c4caff8217df5dd",
+        "non_whitespace_chars": 5201,
+        "checked_at": "2026-06-02T16:13:36.779Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-06-02T16:33:03.062Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design persisted. Independent validator returned CAUTION with no conflict/contract compromise; caution incorporated as mandatory manifest/docs wording sync. Proceeding to planning per design workflow.",
+      "artifact_evidence": {
+        "kind": "design",
+        "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/rewriteStatusCli/design.md",
+        "content_hash": "3b84d1818f2cbd0a6e010eca4cd901588b89bb870829d16d57ab4ca9679f6693",
+        "non_whitespace_chars": 7236,
+        "checked_at": "2026-06-02T16:13:36.780Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-06-02T16:35:22.704Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved prep plan with exact reply: \"approve\". Task graph contains 4 tasks with dependencies, TDD intent, and contract refs."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-06-02T16:47:27.962Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 4 planned tasks completed with checkpoints. Final verification passed: asset/drift tests, CLI smoke, schemas:check, no bin/adv diff. Worktree clean. Strict validation passed with only NO_DELTAS warning; spec law was edited directly in `.adv/specs/advance-meta/spec.json`."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-06-02T17:04:06.389Z",
+      "completed_by": "user:acceptance-approval",
+      "approval_evidence": "User accepted delivered work with exact reply: `accept`. Pre-acceptance proof existed before prompt: executive-summary artifact hash 7f5eb0ad818789279a41014fcebd38ae79d9e3fb671d0295d8cea3f147aceb7a; contract review matrix 26 rows pass/respected, 0 failing; reviewer verdict READY with 0 findings; targeted tests and CLI smoke passed.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "checked_at": "1970-01-01T00:00:00.000Z",
+        "compatibility_reason": "not used; normal acceptance gate completion"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "discovery",
+    "source_artifact": "conversation:adv-status-transcript-2026-06-02"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "e6ad2c53cfeb812a400ff2163d110167e673425d0bb3aca79c4caff8217df5dd",
+      "approvedAt": "2026-06-02T16:27:35.560Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "Status requests through `/adv-status` no longer cause agent-driven ADV MCP fanout for the default table path.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e6ad2c53cfeb812a400ff2163d110167e673425d0bb3aca79c4caff8217df5dd",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "The default status surface remains useful for quick orientation by showing active changes, gate/task progress, last activity, and active/archived/closed counts.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e6ad2c53cfeb812a400ff2163d110167e673425d0bb3aca79c4caff8217df5dd",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "Explicit health diagnostics remain available for users who ask for system health.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e6ad2c53cfeb812a400ff2163d110167e673425d0bb3aca79c4caff8217df5dd",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC4",
+        "kind": "success_criterion",
+        "text": "The no-fanout slash-command contract is protected by tests and documentation wording.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e6ad2c53cfeb812a400ff2163d110167e673425d0bb3aca79c4caff8217df5dd",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "`.opencode/command/adv-status.md` default body uses shell output injection to run `adv status --no-color`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e6ad2c53cfeb812a400ff2163d110167e673425d0bb3aca79c4caff8217df5dd",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Default `/adv-status` contains no instructions to call `adv_status`, `adv_change_list`, `adv_change_show`, `adv_gate_status`, or `adv_spec`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e6ad2c53cfeb812a400ff2163d110167e673425d0bb3aca79c4caff8217df5dd",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Default `/adv-status` output is CLI table plus active/archived/closed counts only.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e6ad2c53cfeb812a400ff2163d110167e673425d0bb3aca79c4caff8217df5dd",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "CLI failure surfaces command stderr/error; no agent/tool fallback is used.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e6ad2c53cfeb812a400ff2163d110167e673425d0bb3aca79c4caff8217df5dd",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "No new `--health` or `--json` CLI flags are added in this change.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e6ad2c53cfeb812a400ff2163d110167e673425d0bb3aca79c4caff8217df5dd",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Asset tests pin the no-fanout command shape and required CLI invocation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e6ad2c53cfeb812a400ff2163d110167e673425d0bb3aca79c4caff8217df5dd",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "Docs/manifest wording says `/adv-status` is fast table status; health diagnostics remain explicit opt-in via `adv_status view:\"health\"`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e6ad2c53cfeb812a400ff2163d110167e673425d0bb3aca79c4caff8217df5dd",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "OpenCode slash commands are prompt templates; this change removes tool fanout, not OpenCode's one model turn for command-template output.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e6ad2c53cfeb812a400ff2163d110167e673425d0bb3aca79c4caff8217df5dd",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "The default command must use non-color output (`--no-color`) so table rendering is stable in command-template shell execution.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e6ad2c53cfeb812a400ff2163d110167e673425d0bb3aca79c4caff8217df5dd",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "The installed `adv` CLI path is the preferred default. If `adv` is missing or fails, show the command error only.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e6ad2c53cfeb812a400ff2163d110167e673425d0bb3aca79c4caff8217df5dd",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Direct ADV state reads remain encapsulated in the CLI implementation. The slash command must not instruct the agent to inspect ADV state files.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e6ad2c53cfeb812a400ff2163d110167e673425d0bb3aca79c4caff8217df5dd",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Diagnostic health remains explicit opt-in because it may require Temporal/worker/session probes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e6ad2c53cfeb812a400ff2163d110167e673425d0bb3aca79c4caff8217df5dd",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not fallback from `/adv-status` CLI failure into `adv_status` or per-change ADV MCP tool calls.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e6ad2c53cfeb812a400ff2163d110167e673425d0bb3aca79c4caff8217df5dd",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not include cross-change health, roadmap freshness, spec requirement listing, or synthesized recommendations in default `/adv-status` output.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e6ad2c53cfeb812a400ff2163d110167e673425d0bb3aca79c4caff8217df5dd",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not add `--health`, `--json`, or other new CLI modes as part of this focused change.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e6ad2c53cfeb812a400ff2163d110167e673425d0bb3aca79c4caff8217df5dd",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not merge this with the broader `reduceWorkflowNoise` change.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e6ad2c53cfeb812a400ff2163d110167e673425d0bb3aca79c4caff8217df5dd",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "Do not weaken ADV gate/spec/task correctness or diagnostic availability.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e6ad2c53cfeb812a400ff2163d110167e673425d0bb3aca79c4caff8217df5dd",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "Broad workflow-noise cleanup across review, harden, discovery, archive, reflection, or investment reports.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e6ad2c53cfeb812a400ff2163d110167e673425d0bb3aca79c4caff8217df5dd",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "Replacing or removing the `adv_status` MCP tool.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e6ad2c53cfeb812a400ff2163d110167e673425d0bb3aca79c4caff8217df5dd",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "Implementing OpenCode native plugin-command support.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e6ad2c53cfeb812a400ff2163d110167e673425d0bb3aca79c4caff8217df5dd",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS4",
+        "kind": "out_of_scope",
+        "text": "Rewriting ADV state storage, Temporal workflows, or ranked backlog behavior.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e6ad2c53cfeb812a400ff2163d110167e673425d0bb3aca79c4caff8217df5dd",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS5",
+        "kind": "out_of_scope",
+        "text": "Adding new CLI diagnostic or JSON flags.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e6ad2c53cfeb812a400ff2163d110167e673425d0bb3aca79c4caff8217df5dd",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-06-02T16:53:48Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Reviewer READY report: no ADV MCP fanout instructions in default command. Asset tests passed; command is CLI bridge only.",
+          "notes": "Default /adv-status no longer instructs agent-driven status/list/show/spec fanout."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`adv status --no-color` passed and printed table rows with TASKS, GATES, LAST ACTIVITY plus footer `11 active · 164 archived · 2 closed`.",
+          "notes": "Preview URL not_applicable: terminal/chat text output, visual_surface:false in agreement."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Docs/manifest route health diagnostics to explicit opt-in `adv_status view:\"health\"`; adv_status MCP tool unchanged.",
+          "notes": "Fast table default separated from health diagnostics."
+        },
+        {
+          "contractId": "SC4",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`bin/oc-test targeted -- src/adv-status-cli-assets.test.ts src/manifest-doc-drift.test.ts` passed: 2 files, 20 tests.",
+          "notes": "No-fanout command shape and docs/manifest drift protected by asset tests."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Asset test passed asserting `.opencode/command/adv-status.md` contains shell-output injection `!`adv status --no-color``.",
+          "notes": "Required CLI invocation pinned."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Asset test and reviewer static check passed: command contains none of `adv_status`, `adv_change_list`, `adv_change_show`, `adv_gate_status`, `adv_spec`.",
+          "notes": "No default ADV MCP fanout tokens."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`adv status --no-color` smoke passed with table plus counts footer only; no health sections or recommendations in observed output.",
+          "notes": "Output is non-visual terminal status; preview URL not_applicable."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "Command body is shell-output bridge with verbatim/no-analysis guidance and no fallback instructions; reviewer report found no fallback path.",
+          "notes": "CLI stderr/error remains the only failure surface."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "Static diff check: `git diff --name-only 66e113ac476a902a51fc68fd0b117b1bb72ffa6c HEAD -- bin/adv` returned no files; CLI implementation untouched.",
+          "notes": "No new `--health` or `--json` flags added."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`plugin/src/adv-status-cli-assets.test.ts` added and targeted run passed: 20 tests across asset and manifest drift suites.",
+          "notes": "Regression protection present."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`manifest-doc-drift.test.ts` passed after synced wording in command frontmatter, manifest, README, ADV_INSTRUCTIONS, and ADV agent routing.",
+          "notes": "Health diagnostics remain explicit opt-in via `adv_status view:\"health\"`."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "design_proof",
+          "evidence": "OpenCode command remains a prompt-template shell-output injection; docs-validated one model turn acknowledged in design and command tells model to return output verbatim.",
+          "notes": "Tool fanout removed; template mechanics unchanged."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Command invocation is exactly `adv status --no-color`; asset tests passed.",
+          "notes": "Stable non-color table output."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Command uses installed `adv`, not repo-local `bin/adv`; no fallback instructions present.",
+          "notes": "Failure surfaces command error only."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Command contains no direct ADV state file read guidance and no ADV MCP state-tool instructions; state access remains inside CLI.",
+          "notes": "ADV state encapsulated."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Docs/manifest/agent wording point health diagnostics to explicit opt-in `adv_status view:\"health\"`; reviewer READY report confirms separation.",
+          "notes": "Default fast path avoids Temporal/worker/session probes."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Reviewer READY report and command inspection found no fallback from CLI failure to ADV MCP tools.",
+          "notes": "Avoidance honored."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Asset tests reject heavy-section/recommendation/fanout tokens; `adv status --no-color` output smoke showed table plus counts only.",
+          "notes": "No cross-change health/roadmap/spec/recommendation prose in default command."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "`bin/adv` unchanged in branch diff; no new CLI modes implemented.",
+          "notes": "No `--health`, `--json`, or equivalent flag."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Diff scope limited to `/adv-status` command, synced docs/manifest/agent wording, status asset tests, and advance-meta spec; reduceWorkflowNoise untouched.",
+          "notes": "Separate change retained."
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "`pnpm run schemas:check` passed; `adv_change_validate strict` previously passed with only NO_DELTAS warning; reviewer found no correctness degradation.",
+          "notes": "Gate/spec/task correctness preserved."
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Review diff scope found no broad workflow-noise cleanup across other workflows.",
+          "notes": "Out-of-scope not implemented."
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "`adv_status` MCP tool unchanged; change edits slash command/docs/spec only.",
+          "notes": "Out-of-scope not implemented."
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No native OpenCode plugin-command support added; existing command-template mechanism used.",
+          "notes": "Out-of-scope not implemented."
+        },
+        {
+          "contractId": "OOS4",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No Temporal workflow, ADV state storage, or ranked backlog implementation files changed.",
+          "notes": "Out-of-scope not implemented."
+        },
+        {
+          "contractId": "OOS5",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "`bin/adv` untouched; no CLI diagnostic or JSON flags added.",
+          "notes": "Out-of-scope not implemented."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "`.opencode/command/adv-status.md` default body uses shell output injection to run `adv status --no-color`.",
+    "Default `/adv-status` contains no instructions to call `adv_status`, `adv_change_list`, `adv_change_show`, `adv_gate_status`, or `adv_spec`.",
+    "Default `/adv-status` output is CLI table plus active/archived/closed counts only.",
+    "CLI failure surfaces command stderr/error; no agent/tool fallback is used.",
+    "No new `--health` or `--json` CLI flags are added in this change.",
+    "Asset tests pin the no-fanout command shape and required CLI invocation.",
+    "Docs/manifest wording says `/adv-status` is fast table status; health diagnostics remain explicit opt-in via `adv_status view:\"health\"`."
+  ],
+  "documents": {
+    "proposal": "# Rewrite status CLI\n\n## Why\n\n`/adv-status` is currently a prompt-heavy OpenCode slash command. Its command file instructs the agent to call `adv_status`, build cross-change health from `adv_change_list` plus per-change `adv_change_show`, read roadmap freshness, list specs, reason about gates, and synthesize prose. In practice, a simple status request can spend dozens of tool calls and long reasoning time when the user only needs the active-change table.\n\nThe desired outcome is a programmatic fast status path: the `/adv-status` slash command should run the ADV CLI status table and return that output, not ask the agent to reconstruct status from ADV tools.\n\n## What Changes\n\n- Rewrite `.opencode/command/adv-status.md` from a full orchestration prompt into a tiny shell-output bridge.\n- Make the slash command execute the CLI status table, e.g. `!\\`adv status --no-color\\``, and tell the agent to return the CLI output verbatim without analysis.\n- Keep `bin/adv` / `adv status` as the primary programmatic status table path.\n- Remove default slash-command instructions for cross-change health, roadmap freshness, per-spec listing, per-change gate/show fanout, and synthesized recommendations.\n- Keep heavier operational diagnostics available only through explicit opt-in surfaces such as `adv_status({ view: \"health\" })` or future CLI health flags.\n- Add command/asset tests that prevent `/adv-status` from regressing into a bloated prompt.\n\n## Success Criteria\n\n1. `.opencode/command/adv-status.md` runs the ADV CLI status command and contains no instructions to call `adv_status`, `adv_change_list`, `adv_change_show`, `adv_gate_status`, or `adv_spec` for the default path.\n2. `/adv-status` default output is the CLI status table plus counts, with no agent-generated cross-change health, roadmap freshness, spec requirement listing, or recommendation prose.\n3. The CLI command used by `/adv-status` is stable in non-interactive command-template execution and disables color/control sequences by default.\n4. Full Temporal/session/worktree diagnostics remain available through explicit opt-in health tooling; the default table path does not pay that cost.\n5. Tests pin the command contract so future edits cannot reintroduce default ADV tool fanout or prompt-heavy sections.\n6. Documentation/manifest wording distinguishes fast table status from operational health diagnostics so users know when to use each.\n\n## Scope\n\n### In Scope\n\n- `.opencode/command/adv-status.md` rewrite.\n- `bin/adv` / `adv status` behavior needed for slash-command use, including non-color output and stable table rendering.\n- Asset tests for `/adv-status` command content.\n- Minimal docs/manifest text updates needed to distinguish fast table status from diagnostics.\n- Optional CLI flags only if discovery/design proves they are required for the slash bridge.\n\n### Out of Scope\n\n- Broad workflow-noise cleanup across review, harden, discovery, archive, reflection, or investment reports.\n- Replacing the `adv_status` MCP tool.\n- Removing `adv_status view:\"health\"` or other diagnostic views.\n- Implementing OpenCode native plugin-command support.\n- Rewriting ADV state storage or Temporal workflows.\n- Changing ranked backlog behavior; `/adv-roadmap` remains separate.\n\n### Must Not\n\n- Must not make default `/adv-status` call per-change ADV tools or ask the agent to synthesize status.\n- Must not hide or remove explicit health diagnostics for users who ask for system health.\n- Must not rely on colorized output or terminal-only behavior inside OpenCode command-template shell execution.\n- Must not read ADV state directly from the agent prompt; direct disk reads stay encapsulated inside the CLI implementation.\n- Must not weaken ADV gate/spec/task state correctness.\n\n## Affected Code\n\nExpected affected surfaces:\n\n- `.opencode/command/adv-status.md`\n- `bin/adv`\n- `SETUP.md` / `README.md` command descriptions if wording changes\n- `ADV_INSTRUCTIONS.md` and `.opencode/agents/adv.md` status-routing wording if needed\n- Asset tests for command prompt shape, likely under `plugin/src/*assets.test.ts`\n- Existing manifest tests only if manifest description changes\n\n## Related Repositories\n\nCurrent repo only: `advance`. No product-linked or cross-repo scope identified.\n\n## Constraints\n\n- OpenCode slash commands are prompt templates; the practical no-fanout path is command-template shell output plus a minimal verbatim-return instruction.\n- Existing CLI currently reads ADV disk projection and prints an active-change table. Discovery must verify whether that projection is sufficient for default status and how to phrase degraded/diagnostic cases.\n- ADV state access policy still applies to agents: the command prompt should run the CLI, not instruct the agent to inspect ADV state files.\n- Diagnostic health remains explicit opt-in because it may require Temporal/worker/session checks.\n\n## Impact\n\nExpected benefits:\n\n- Status requests stop consuming large numbers of agent/tool calls.\n- `/adv-status` becomes predictable and table-focused.\n- Operational health remains available without being paid for on every status glance.\n- The status command becomes easier to test because default behavior is pinned to a script contract.\n\nExpected risks:\n\n- CLI disk projection may not include every field users previously saw in `/adv-status` health output.\n- If `adv` is not installed on PATH inside OpenCode command execution, the slash bridge could fail; design should decide whether to invoke `bin/adv` relatively or document install requirements.\n- If OpenCode shell-output commands always flow through the model, output still incurs one model turn; this change removes fanout, not OpenCode's prompt-template architecture.\n\n## Context\n\nEvidence gathered during proposal prep:\n\n- Current `.opencode/command/adv-status.md` lines 10-73 instruct the agent to call `adv_status`, build cross-change health via `adv_change_list` / `adv_change_show`, read roadmap freshness, and emit recommendations.\n- Current `bin/adv` lines 1-10 describe a read-only status CLI that prints a formatted table without requiring an OpenCode session.\n- Current `bin/adv` lines 352-440 implement the `status` subcommand and table/count output.\n- OpenCode command documentation supports shell-output injection via `!\\`command\\`` inside command templates.\n- User-provided transcript shows the current slash command causing `adv_status`, `adv_change_list`, 16 `adv_gate_status` calls, 16 `adv_change_show` calls, shell `stat`, `adv_spec`, and long reasoning for a desired table.\n- Existing active change `reduceWorkflowNoise` is related but broader; user explicitly requested this focused CLI rewrite remain separate.\n\n## INVEST Check\n\n- **Independent:** Can ship as a focused command/CLI contract change without completing broader workflow-noise cleanup.\n- **Negotiable:** Exact CLI invocation (`adv status --no-color` vs relative `bin/adv status --no-color`) can be decided in discovery/design.\n- **Valuable:** Removes recurring status-command waste immediately.\n- **Estimable:** Bounded to one command file, CLI behavior, docs, and asset tests.\n- **Small enough:** Focused change; no task decomposition needed until prep.\n- **Testable:** Command file assertions can forbid ADV tool fanout and require CLI shell-output bridge.\n\n## Smell Detection\n\n- **Prompt bloat smell:** `/adv-status` embeds a full operational report spec for a table request.\n- **Tool fanout smell:** One status glance can trigger per-change gate/show calls.\n- **Mixed-purpose smell:** Table glance, health diagnostics, roadmap freshness, and cross-change analysis are combined by default.\n- **Agent reconstruction smell:** Agent synthesizes status already available through programmatic state/CLI surfaces.\n\n## Discovery Agenda\n\n- Verify OpenCode shell-output command behavior and failure display for `!\\`adv status --no-color\\``.\n- Decide whether slash command should call `adv` from PATH or repository-relative `bin/adv`.\n- Verify CLI output is sufficient for default table status and identify any missing table-only fields.\n- Determine whether CLI needs `--json`, `--health`, or `--diagnostics` flags in this change or a follow-up.\n- Identify command asset tests that should pin the new no-fanout contract.\n- Check docs/agent routing surfaces that still describe `/adv-status` as full operational health and update wording as needed.\n\n## Proposal Ambiguity Scan\n\n### B/F/S Findings\n\nNo CRITICAL findings.\n\n- B1 LOW Boundaries: CLI invocation path still undecided.\n  - Evidence: \"Exact CLI invocation (`adv status --no-color` vs relative `bin/adv status --no-color`) can be decided in discovery/design.\"\n  - Reason: implementation choice affects portability but not user intent.\n- S1 LOW Completion Signals: future CLI health/json flags are optional.\n  - Evidence: \"Determine whether CLI needs `--json`, `--health`, or `--diagnostics` flags in this change or a follow-up.\"\n  - Reason: default slash-command rewrite remains measurable without these flags.\n\nCoverage: B:P F:C S:P\n",
+    "problemStatement": "`/adv-status` is currently prompt-driven, so OpenCode feeds a large workflow spec to the agent. The agent then fans out into `adv_status`, `adv_change_list`, per-change gate/show calls, `adv_spec`, shell `stat`, reasoning, and hand-built prose. The actual need is fast table output. Replace default `/adv-status` with a programmatic CLI-backed status table: make `adv status` the primary fast path, rewrite `.opencode/command/adv-status.md` into a tiny shell-output bridge, avoid default ADV tool fanout and agent analysis, and keep full diagnostics as explicit opt-in.",
+    "agreement": "# Agreement\n\n## Objectives\n\n1. Convert `/adv-status` from a prompt-heavy orchestration command into a CLI-backed fast status table.\n2. Make the default `/adv-status` path execute `adv status --no-color` through OpenCode shell-output injection and return that output without agent synthesis.\n3. Preserve explicit diagnostic paths for health/system investigation without paying those costs for the default table glance.\n4. Add structural tests so future command edits cannot reintroduce default ADV MCP tool fanout.\n5. Keep this change focused on status CLI/slash-command behavior, separate from broader workflow-noise cleanup.\n\n## Success Criteria\n\n- SC1. Status requests through `/adv-status` no longer cause agent-driven ADV MCP fanout for the default table path.\n- SC2. The default status surface remains useful for quick orientation by showing active changes, gate/task progress, last activity, and active/archived/closed counts.\n- SC3. Explicit health diagnostics remain available for users who ask for system health.\n- SC4. The no-fanout slash-command contract is protected by tests and documentation wording.\n\n## Acceptance Criteria\n\n- AC1. `.opencode/command/adv-status.md` default body uses shell output injection to run `adv status --no-color`.\n- AC2. Default `/adv-status` contains no instructions to call `adv_status`, `adv_change_list`, `adv_change_show`, `adv_gate_status`, or `adv_spec`.\n- AC3. Default `/adv-status` output is CLI table plus active/archived/closed counts only.\n- AC4. CLI failure surfaces command stderr/error; no agent/tool fallback is used.\n- AC5. No new `--health` or `--json` CLI flags are added in this change.\n- AC6. Asset tests pin the no-fanout command shape and required CLI invocation.\n- AC7. Docs/manifest wording says `/adv-status` is fast table status; health diagnostics remain explicit opt-in via `adv_status view:\"health\"`.\n\n## Constraints\n\n- C1. OpenCode slash commands are prompt templates; this change removes tool fanout, not OpenCode's one model turn for command-template output.\n- C2. The default command must use non-color output (`--no-color`) so table rendering is stable in command-template shell execution.\n- C3. The installed `adv` CLI path is the preferred default. If `adv` is missing or fails, show the command error only.\n- C4. Direct ADV state reads remain encapsulated in the CLI implementation. The slash command must not instruct the agent to inspect ADV state files.\n- C5. Diagnostic health remains explicit opt-in because it may require Temporal/worker/session probes.\n\n## Avoidances\n\n- DONT1. Do not fallback from `/adv-status` CLI failure into `adv_status` or per-change ADV MCP tool calls.\n- DONT2. Do not include cross-change health, roadmap freshness, spec requirement listing, or synthesized recommendations in default `/adv-status` output.\n- DONT3. Do not add `--health`, `--json`, or other new CLI modes as part of this focused change.\n- DONT4. Do not merge this with the broader `reduceWorkflowNoise` change.\n- DONT5. Do not weaken ADV gate/spec/task correctness or diagnostic availability.\n\n## Out of Scope\n\n- OOS1. Broad workflow-noise cleanup across review, harden, discovery, archive, reflection, or investment reports.\n- OOS2. Replacing or removing the `adv_status` MCP tool.\n- OOS3. Implementing OpenCode native plugin-command support.\n- OOS4. Rewriting ADV state storage, Temporal workflows, or ranked backlog behavior.\n- OOS5. Adding new CLI diagnostic or JSON flags.\n\n## Preview Applicability\n\nvisual_surface: false\n\nRationale: output is terminal/chat text, not browser-visible UI or frontend visual behavior. Acceptance can verify rendered command text and CLI output in terminal context; no browser preview required.\n\n## Decisions\n\n### User Decisions\n\n- CLI failure behavior: show error only; do not fallback to agent/tool fanout.\n- Default output: table plus counts only.\n- CLI flags: add no new `--health` or `--json` flags in this change.\n- Scope: keep `rewriteStatusCli` separate from `reduceWorkflowNoise`.\n\n### Agent Decisions (LBP)\n\n- Use OpenCode command shell-output injection (`!`command``) because current OpenCode custom commands are prompt templates and do not provide merged native direct plugin-command execution.\n- Use installed `adv status --no-color` as the default bridge because it succeeded from PATH and avoided noisy repo-local `bin/adv` warnings observed during discovery.\n- Pin command-shape behavior with asset tests rather than relying on prose guidance.\n- Keep `adv_status view:\"health\"` as the explicit diagnostic path instead of expanding the focused CLI rewrite.\n\n## Discovery Findings\n\n- Current `.opencode/command/adv-status.md` instructs the agent to call `adv_status`, build cross-change health via `adv_change_list` / `adv_change_show`, read roadmap freshness, and emit recommendations.\n- User transcript showed current `/adv-status` causing `adv_status`, `adv_change_list`, 16 `adv_gate_status` calls, 16 `adv_change_show` calls, shell `stat`, `adv_spec`, and long reasoning for a desired table.\n- OpenCode docs state command templates support shell-output injection with `!`command`` and that commands run in the project root.\n- `adv status --no-color` resolved from PATH and produced the desired table plus counts.\n- Repo-local `bin/adv status --no-color` produced many warnings from stale `.json` entries in the disk projection before the final table; avoid using that path as the default slash bridge.\n- `docs/repo-improve-prep.md` contains broader status latency findings, but this change intentionally targets slash-command fanout rather than the whole `adv_status` read path.\n\n## Draft Spec Delta\n\n- `advance-meta` add `rq-statusCliBridge01`: `/adv-status` default command template runs CLI status table through shell-output injection and forbids default agent-directed ADV MCP status/list/show/spec fanout.\n\n## Deferred Questions\n\nNone.\n\n## Sign-Off\n\nUser approved acceptance criteria with exact reply: `approve`. Discovery agreement persisted from approved objectives, acceptance criteria, constraints, avoidances, and decisions.\n",
+    "design": "# Design\n\n## Architecture Overview\n\nDefault `/adv-status` becomes a thin OpenCode command-template bridge over the installed ADV CLI. The command file stops owning status computation and no longer instructs the agent to call ADV MCP tools. Status computation for the default path stays encapsulated in `adv status --no-color`.\n\nThe design keeps three surfaces distinct:\n\n1. Fast table status: `/adv-status` → shell output injection → `adv status --no-color`.\n2. Programmatic terminal status: users may run `adv status --no-color` directly.\n3. Explicit diagnostics: `adv_status view:\"health\"` remains the MCP health/diagnostic path when user asks for system health.\n\nNo new CLI flags are introduced. No native OpenCode plugin-command support is implemented.\n\n## Key Decisions\n\n### KD1 — Use installed `adv status --no-color` from PATH\n\nUse `!`adv status --no-color`` in `.opencode/command/adv-status.md`.\n\nRationale:\n\n- OpenCode command docs confirm shell-output injection with `!`command`` and commands run in the project root.\n- `adv status --no-color` succeeded from PATH during discovery and returned the desired table plus counts.\n- Repo-local `bin/adv status --no-color` produced noisy stale-projection warnings in this session, so it is not the preferred default slash bridge.\n- `--no-color` makes command-template output stable and avoids ANSI/control sequence noise.\n\nFailure behavior: show command error/stderr only. Do not fallback to `adv_status` or per-change tool calls.\n\n### KD2 — Make `/adv-status` a command-contract file, not a workflow prompt\n\nRewrite `.opencode/command/adv-status.md` to a minimal shape:\n\n```md\n---\nname: adv-status\ndescription: Show fast ADV status table\n---\n<!-- manifest: adv-status · requiresChangeId: false -->\n# ADV Status\n\nReturn this command output verbatim. Do not call ADV tools. Do not analyze, summarize, or add recommendations.\n\n!`adv status --no-color`\n```\n\nRationale:\n\n- This directly addresses the failure transcript: the current prompt tells agent to compute status manually.\n- It preserves the slash-command user entry point while removing default ADV MCP fanout.\n- The shell command encapsulates direct state reads inside CLI implementation, keeping the agent prompt away from ADV state files.\n\n### KD3 — Preserve diagnostics by wording, not by default execution\n\nUpdate docs/manifest wording to distinguish:\n\n- `/adv-status`: fast active-change table.\n- `adv_status view:\"health\"`: detailed operational diagnostics.\n\nRationale:\n\n- Users still need health diagnostics sometimes.\n- Default table status should not pay Temporal/worker/session probe costs.\n- Existing `adv_status` views remain available and unchanged.\n\n### KD4 — Encode no-fanout contract in asset tests\n\nAdd or extend command asset tests to assert:\n\n- `.opencode/command/adv-status.md` contains `!`adv status --no-color``.\n- It contains verbatim/no-analysis guidance.\n- It does not contain default-path tokens: `adv_status`, `adv_change_list`, `adv_change_show`, `adv_gate_status`, `adv_spec`, `Cross-Change Health`, `Roadmap Freshness`, `Recommendations:`.\n- Manifest/docs wording for `/adv-status` uses the same fast-table description where drift tests require equality.\n\nRationale:\n\n- Prose-only guidance caused the current regression.\n- Tests make the contract structural and drift-resistant.\n\n### KD5 — Treat manifest/docs wording sync as mandatory\n\nChanging `.opencode/command/adv-status.md` frontmatter description requires exact synchronized wording in `plugin/src/manifest.ts`, `README.md`, and `ADV_INSTRUCTIONS.md`, because `plugin/src/manifest-doc-drift.test.ts` asserts command, manifest, and docs descriptions match.\n\nRationale:\n\n- Independent validator found this coupling and classified it as the only caution.\n- AC7 requires updated wording, so keeping the old operational-health description is not acceptable.\n- The implementation must update all coupled surfaces atomically and run the manifest-doc drift test.\n\n## ADR Drafts\n\nNone. The decision is reversible command-shape cleanup, not hard-to-reverse architecture.\n\n## Implementation Strategy\n\n1. Add RED asset test coverage for the current bloated `/adv-status` command file.\n2. Rewrite `.opencode/command/adv-status.md` to the minimal shell-output bridge.\n3. Atomically update the status command description in:\n   - `.opencode/command/adv-status.md` frontmatter\n   - `plugin/src/manifest.ts`\n   - `README.md`\n   - `ADV_INSTRUCTIONS.md`\n   - `.opencode/agents/adv.md` if routing prose still frames `/adv-status` as full operational health.\n4. Ensure command-reference wording says:\n   - `/adv-status` = fast status table.\n   - health diagnostics = explicit `adv_status view:\"health\"`.\n5. Keep `bin/adv` behavior unchanged unless tests show the installed CLI cannot satisfy AC1-AC4.\n6. Run targeted tests for command assets, manifest-doc drift, and any touched manifest/docs tests.\n7. Do not add `--health`, `--json`, native plugin commands, or MCP fallback logic.\n\n## LBP Analysis\n\nThe LBP is deterministic/scripted execution for fixed status output rather than LLM-routed orchestration. This matches the user's target outcome and the repo's broader structural-correctness rule: correctness and persistence stay inside programmatic tools; heuristics and agent synthesis do not own routine status rendering.\n\nThe design avoids a larger refactor of `adv_status` because the issue is the slash command's prompt fanout. Existing `adv_status view:\"summary\"` and `view:\"health\"` remain valid MCP surfaces for agents and diagnostics, but `/adv-status` should not invoke them by default.\n\n## Affected Components\n\n- `.opencode/command/adv-status.md` — primary rewrite.\n- `plugin/src/*assets.test.ts` — add command-shape regression tests.\n- `plugin/src/manifest.ts` and `plugin/src/manifest-doc-drift.test.ts` — synchronized description contract.\n- `README.md` — command table wording.\n- `ADV_INSTRUCTIONS.md` and `.opencode/agents/adv.md` — status-routing wording.\n- `bin/adv` — no planned behavior change.\n\n## Risks / Mitigations\n\n| Risk | Mitigation |\n|---|---|\n| `adv` missing from PATH in OpenCode command execution | Show command error only; no fanout fallback. Docs/setup already describe installing `adv`. |\n| User expects detailed health from `/adv-status` | Update wording to make fast-table scope explicit and point to `adv_status view:\"health\"` for diagnostics. |\n| Future edit reintroduces prompt fanout | Asset tests forbid ADV MCP tool names and heavy sections in `.opencode/command/adv-status.md`. |\n| CLI disk projection differs from Temporal health | Default table is intentionally not health-authoritative. Explicit health path remains. |\n| Agent adds prose around shell output | Command body says return output verbatim; test pins no-analysis guidance. |\n| Description drift breaks tests | Update command frontmatter, manifest, README, and ADV_INSTRUCTIONS together; run manifest-doc drift test. |\n\n## Contract Mapping\n\n- AC1: command file contains `!`adv status --no-color``.\n- AC2 / DONT1 / DONT2: command file negative-token asset tests.\n- AC3 / SC2: CLI smoke evidence from `adv status --no-color` table plus counts.\n- AC4 / C3: command wording forbids fallback; no fallback logic added.\n- AC5 / DONT3: no CLI flag implementation tasks.\n- AC6 / SC4: asset tests.\n- AC7 / SC3 / C5: docs/manifest wording update and manifest-doc drift test.\n\n## Design Leverage Scout\n\nScout: skipped — trivially scoped command-shape rewrite. Opportunity surface is bounded to one slash command bridge plus tests/docs; no leverage candidate is likely to change architecture, safety, or user value without exceeding approved scope.\n\n## Validator Result\n\nValidator: CAUTION.\n\nFindings:\n\n- Correctness: design solves the regression via shell-output bridge. Current command prompt owns fanout; KD2 replaces it with `!`adv status --no-color``. CLI emits table + counts and stderr/error on failure.\n- Simplicity: minimal viable approach; no simpler alternative satisfies AC7.\n- Spec-law compliance: no conflict. `advance-meta` health-probe requirements govern the `adv_status` MCP tool, which remains unchanged.\n- Key alternatives: no significant viable alternative overlooked.\n- Caution: manifest-doc drift coupling makes docs/manifest description updates mandatory, not optional. This design revision incorporates that as KD5 and in the implementation strategy.\n\nRecommendation: proceed. No CONFLICT, no contract compromise, no user-value tradeoff.\n",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\n\n`/adv-status` was converted from a prompt-heavy ADV orchestration command into a fast CLI-backed status table. Default status now uses `adv status --no-color`, avoids ADV MCP fanout, and keeps health diagnostics as explicit opt-in via `adv_status view:\"health\"`.\n\n## Verdict\n\nAPPROVED / RELEASE READY\n\n## What Was Built\n\n1. Added RED asset coverage for the status CLI bridge, including required shell-output invocation, verbatim/no-analysis guidance, and forbidden fanout tokens.\n2. Rewrote `.opencode/command/adv-status.md` as a minimal shell-output bridge using `!`adv status --no-color`` and synced fast-table wording across manifest/docs/ADV agent routing.\n3. Added `rq-statusCliBridge01` to `advance-meta` spec law for the no-fanout `/adv-status` default command contract.\n4. Hardened regression coverage by pinning the ADV agent status-routing row and the `rq-statusCliBridge01` spec-law presence/scenario IDs in asset tests.\n5. Review cleanup: neutralized stale `plugin/src/manifest.ts` header wording about adv-status recommendations.\n\n## What Was Verified\n\n- Acceptance review: READY with 0 blockers, 0 issues, 0 suggestions, 0 nits.\n- Harden scanners: READY; 6 dimensions run; 2 non-blocking coverage gaps found and fixed; re-verification resolved both.\n- Tests: `bin/oc-test targeted -- src/adv-status-cli-assets.test.ts src/manifest-doc-drift.test.ts` passed (2 files, 22 tests).\n- Full plugin check: `pnpm run check` passed (schemas:check, typecheck, test-isolation check, lockfile policy check, lint, format:check).\n- CLI smoke: `adv status --no-color` passed and printed table rows plus active/archived/closed counts.\n- Static check: no branch diff touches `bin/adv`; no `--health` or `--json` flags added.\n- Merge compatibility: dry-run merge against `origin/trunk` reported already up to date; worktree clean after abort/no-op.\n- Preview URL: not_applicable — agreement declares `visual_surface: false`; implementation is terminal/chat text output, not browser-visible UI.\n- Investment: 4 tasks / 1 retry / 41 min elapsed / tier: auto.\n- Contract matrix: 26 rows passed/respected; 0 failed, violated, unknown, or missing rows.\n\n## Remaining Concerns\n\nNone.\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/rewriteStatusCli/proposal.md",
+      "updatedAt": "2026-06-02T16:13:36.784Z",
+      "contentHash": "71bd45c677f97b66a1760852b9b20b442bc76e89bbca01cb2a657779b146df46"
+    },
+    "problemStatement": {
+      "path": "",
+      "updatedAt": "2026-06-02T16:13:36.784Z"
+    },
+    "agreement": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/rewriteStatusCli/agreement.md",
+      "updatedAt": "2026-06-02T16:27:30.064Z",
+      "contentHash": "e6ad2c53cfeb812a400ff2163d110167e673425d0bb3aca79c4caff8217df5dd"
+    },
+    "design": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/rewriteStatusCli/design.md",
+      "updatedAt": "2026-06-02T16:32:44.846Z",
+      "contentHash": "3b84d1818f2cbd0a6e010eca4cd901588b89bb870829d16d57ab4ca9679f6693"
+    },
+    "executiveSummary": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/rewriteStatusCli/executive-summary.md",
+      "updatedAt": "2026-06-02T17:19:16.916Z",
+      "contentHash": "cebf2d668fc524dfb3dd80949f813cc558191cb0107f0ee217319f091776de73"
+    }
+  },
+  "lastSignalAt": "2026-06-02T17:19:16.916Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_MISSING_SUCCESS_CRITERIA",
+      "severity": "warning",
+      "message": "Success criteria are placeholder or empty. What measurable outcomes define done?",
+      "recorded_at": "2026-06-02T16:13:47.751Z"
+    }
+  ],
+  "worktree_auto_managed": true
+}

@@ -294,7 +294,7 @@ This also enables model comparison: run the same change on two models and compar
 
 | Command           | Description                                                                       |
 | ----------------- | --------------------------------------------------------------------------------- |
-| `/adv-status`     | Show operational health: in-flight changes, Temporal, worktrees, session debt     |
+| `/adv-status`     | Show fast ADV status table                                                        |
 | `/adv-roadmap`    | Show prioritized backlog with active-change cross-reference                       |
 | `/adv-idea`       | Explore rough ideas before drafting a proposal                                    |
 | `/adv-problem`    | Triage issues before fixing or drafting a proposal                                |
