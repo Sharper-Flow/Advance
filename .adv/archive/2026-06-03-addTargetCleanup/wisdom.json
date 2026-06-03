@@ -1,0 +1,26 @@
+{
+  "entries": [
+    {
+      "id": "ws-jSxyiy",
+      "type": "pattern",
+      "content": "When a read-only ADV triage tool accepts a target project/root and recommends a mutation tool, the mutation tool must support the same target context or the recommendation becomes non-actionable from cross-project sessions. Capture this as spec law, not only operator guidance.",
+      "source_task": "tk-538971f6fd33",
+      "recorded_at": "2026-06-03T18:38:11.530Z"
+    },
+    {
+      "id": "ws-SjTRsY",
+      "type": "success",
+      "content": "Passing the current store root into read-only triage let recommendation formatting distinguish same-project vs target-project inspections without making triage mutate state or introducing heuristic path guessing.",
+      "source_task": "tk-c93c7cb5ffab",
+      "recorded_at": "2026-06-03T18:52:49.036Z"
+    },
+    {
+      "id": "ws-2VkBBu",
+      "type": "gotcha",
+      "content": "`bin/oc-test smoke` catches Prettier drift after targeted tests pass; run formatter on touched TypeScript before smoke/full to avoid false implementation regressions.",
+      "source_task": "tk-8c0c91513c61",
+      "recorded_at": "2026-06-03T18:59:03.930Z"
+    }
+  ],
+  "count": 3
+}

@@ -1,0 +1,746 @@
+{
+  "id": "addTargetCleanup",
+  "title": "Add target cleanup",
+  "status": "archived",
+  "created_at": "2026-06-03T18:30:15.356Z",
+  "tasks": [
+    {
+      "id": "tk-538971f6fd33",
+      "title": "Update worktree-lifecycle spec for target cleanup",
+      "type": "code",
+      "section": "Spec law",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-06-03T18:35:44.601Z",
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4"
+        ],
+        "verifies": [],
+        "respects": [
+          "C1",
+          "C2",
+          "C3"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-03T18:36:54.870Z",
+      "verification": "python -m json.tool .adv/specs/worktree-lifecycle/spec.json >/tmp/worktree-lifecycle-spec.json passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Updated worktree-lifecycle spec and markdown docs with target-project cleanup routing requirement covering unconfirmed target mutation rejection, approved target store/Temporal routing, preserved safety gates, and actionable target triage recommendations.",
+      "filesTouched": [
+        ".adv/specs/worktree-lifecycle/spec.json",
+        "docs/specs/worktree-lifecycle.md"
+      ],
+      "touched_files": [
+        ".adv/specs/worktree-lifecycle/spec.json",
+        "docs/specs/worktree-lifecycle.md"
+      ],
+      "checkpointSha": "94eb144a219b5b6ee81aaf8adcefcaf1aedab1da",
+      "completedAt": "2026-06-03T18:37:57.448Z",
+      "completed_at": "2026-06-03T18:37:57.448Z",
+      "notes": "Spec-law requirement rq-worktreeTargetCleanup01 added and JSON validity verified. Checkpoint 94eb144a219b5b6ee81aaf8adcefcaf1aedab1da recorded.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "updatedAt": "2026-06-03T18:38:05.235Z"
+    },
+    {
+      "id": "tk-38c0ac1a4578",
+      "title": "Add target-path support to worktree delete and cleanup tools",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-06-03T18:36:02.033Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-538971f6fd33"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC4"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC4"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-03T18:38:30.815Z",
+      "verification": "RED: pnpm test -- src/tools/adv-worktree.test.ts failed on new target_path tests and citation invariant. GREEN: pnpm test -- src/tools/adv-worktree.test.ts passed after target-store routing implementation.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added target worktree mutation args and routed delete/cleanup target_path calls through `withTargetPathStore` with `temporal-required` target state. Existing delete/cleanup safety functions remain sole authorities. Added tests for target store routing and unconfirmed target mutation rejection.",
+      "filesTouched": [
+        "plugin/src/tools/adv-worktree.test.ts",
+        "plugin/src/tools/adv-worktree.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/adv-worktree.test.ts",
+        "plugin/src/tools/adv-worktree.ts"
+      ],
+      "checkpointSha": "9e81b2e51ab40c139ea90169c19f11f9b43a790b",
+      "completedAt": "2026-06-03T18:46:16.109Z",
+      "completed_at": "2026-06-03T18:46:16.109Z",
+      "notes": "Target-path routing added for `adv_worktree_delete` and `adv_worktree_cleanup`. Targeted tests pass. Checkpoint 9e81b2e51ab40c139ea90169c19f11f9b43a790b recorded.",
+      "error_recovery": {
+        "last_error": "Initial green run failed because the test mock lacked the imported `targetPathSchema` export.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "Avoid mock/export coupling by defining local worktree target arg schemas in `adv-worktree.ts`; rerun targeted tests.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "Vitest reported: No `targetPathSchema` export is defined on the `./target-project` mock.",
+            "diagnosis": "Wrapper imported a schema from a mocked module without updating the mock; tests failed at module import before behavior ran.",
+            "fix_tried": "Replaced imported schema spread with local Zod arg schema object for the worktree mutation tools.",
+            "strategy_label": "mock-boundary fix",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-03T18:45:48.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-03T18:46:27.111Z"
+    },
+    {
+      "id": "tk-c93c7cb5ffab",
+      "title": "Make worktree triage recommendations target-aware",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-06-03T18:36:13.581Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-38c0ac1a4578"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC3"
+        ],
+        "verifies": [
+          "AC3"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-03T18:46:34.213Z",
+      "verification": "RED: pnpm test -- src/tools/worktree/triage.test.ts failed on missing target_path remediation. GREEN: pnpm test -- src/tools/worktree/triage.test.ts passed. VERIFY: pnpm test -- src/tools/adv-worktree.test.ts passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Extended triage with current-project context so target-project inspections include `target_path`, `target_confirmed`, and confirmation evidence guidance in delete/cleanup recommendations. Updated wrapper to pass current root and tests to cover target recommendations.",
+      "filesTouched": [
+        "plugin/src/tools/adv-worktree.test.ts",
+        "plugin/src/tools/adv-worktree.ts",
+        "plugin/src/tools/worktree/triage.test.ts",
+        "plugin/src/tools/worktree/triage.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/adv-worktree.test.ts",
+        "plugin/src/tools/adv-worktree.ts",
+        "plugin/src/tools/worktree/triage.test.ts",
+        "plugin/src/tools/worktree/triage.ts"
+      ],
+      "checkpointSha": "31c14713cb01734dc43a034eb8ff26be158c107a",
+      "completedAt": "2026-06-03T18:52:32.262Z",
+      "completed_at": "2026-06-03T18:52:32.262Z",
+      "notes": "Target-aware triage recommendations added and verified. Checkpoint 31c14713cb01734dc43a034eb8ff26be158c107a recorded.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "updatedAt": "2026-06-03T18:52:40.188Z"
+    },
+    {
+      "id": "tk-8c0c91513c61",
+      "title": "Regenerate schemas and run verification",
+      "type": "code",
+      "section": "Verification",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-06-03T18:36:28.925Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-c93c7cb5ffab"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "contract_refs": {
+        "implements": [],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-03T18:52:59.668Z",
+      "verification": "pnpm run schemas:check passed; pnpm test -- src/tools/adv-worktree.test.ts src/tools/worktree/triage.test.ts passed; bin/oc-test smoke initially failed on Prettier formatting then passed after formatting; bin/oc-test full passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Ran schema check, targeted worktree tests, smoke validation, and full repo validation. Applied Prettier formatting for touched TypeScript files after smoke identified formatting drift.",
+      "filesTouched": [
+        "plugin/src/tools/adv-worktree.test.ts",
+        "plugin/src/tools/worktree/triage.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/adv-worktree.test.ts",
+        "plugin/src/tools/worktree/triage.ts"
+      ],
+      "checkpointSha": "6ec2bee4fa45ab2007ae75af263798ce9407a78d",
+      "completedAt": "2026-06-03T18:58:42.534Z",
+      "completed_at": "2026-06-03T18:58:42.534Z",
+      "notes": "Schema, targeted, smoke, and full verification completed. Formatting issue fixed. Checkpoint 6ec2bee4fa45ab2007ae75af263798ce9407a78d recorded.",
+      "error_recovery": {
+        "last_error": "`bin/oc-test smoke` failed on Prettier formatting for `src/tools/adv-worktree.test.ts` and `src/tools/worktree/triage.ts`.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "Formatting fixed with Prettier; smoke and full validation passed.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "Prettier format check failed for two touched files during smoke validation.",
+            "diagnosis": "Implementation changed code layout without running formatter.",
+            "fix_tried": "Ran `pnpm exec prettier --write src/tools/adv-worktree.test.ts src/tools/worktree/triage.ts src/tools/adv-worktree.ts`.",
+            "strategy_label": "format-fix",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-03T18:55:55.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-03T18:58:56.216Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "addTargetCleanup",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:target-cleanup-routing"
+      },
+      "agent": "adv-researcher",
+      "topic": "Target-project routing for adv_worktree_delete/cleanup and actionable triage recommendations",
+      "sources": [
+        {
+          "label": "target-project.ts withTargetPathStore",
+          "locator": "plugin/src/tools/target-project.ts:160-220",
+          "summary": "Canonical cross-project routing helper. Resolves target project, enforces trust/confirmation gate (mutation && !trusted && !hasConfirmation throws TargetProjectError), ensures target Temporal queue (ensureProjectTemporalQueue), and returns a Store whose paths.root is the TARGET root. stateRequirement 'temporal-required' for mutation, 'snapshot-ok' for read."
+        },
+        {
+          "label": "target-project.ts trust/confirmation gate",
+          "locator": "plugin/src/tools/target-project.ts:140-144",
+          "summary": "Untrusted target_path mutation requires target_confirmed:true + confirmationEvidence before changing target state — exactly the refusal AC2 needs. Reused verbatim, no new auth logic required."
+        },
+        {
+          "label": "contract.ts withContractStore pattern",
+          "locator": "plugin/src/tools/contract.ts:38-75",
+          "summary": "Reference adopter pattern: local targetArgs object (target_path/target_confirmed/confirmationEvidence) + thin withXStore wrapper delegating to withTargetPathStore with stateRequirement:'temporal-required'. This is the boring template to copy for worktree tools."
+        },
+        {
+          "label": "task.ts cross-project task mutation",
+          "locator": "plugin/src/tools/task.ts:6,567-651",
+          "summary": "rq-crossProjectTaskMutation01 reference: mutation tools route lookup/validation/signal/cache through the target store; target_confirmed/confirmationEvidence in args schema; role 'target' when target_path present."
+        },
+        {
+          "label": "adv-worktree.ts tool definitions",
+          "locator": "plugin/src/tools/adv-worktree.ts:357-490",
+          "summary": "adv_worktree_delete (357), adv_worktree_cleanup (395), adv_worktree_triage (470). All three derive projectRoot=store.paths.root then initWorktreeDb(projectRoot) and pass store into impl deps. triage already takes a projectRoot override arg (482) but its recommendations omit target_path."
+        },
+        {
+          "label": "adv-worktree.ts projectRoot derivation",
+          "locator": "plugin/src/tools/adv-worktree.ts:345-352,376-390,418-435",
+          "summary": "Every worktree tool computes projectRoot=store.paths.root and database=initWorktreeDb(projectRoot), and threads store into deps. Swapping store for a target store automatically redirects git ops, registry projectId, and Temporal queue — no impl-internal changes needed."
+        },
+        {
+          "label": "worktree/state.ts initStateDb + registry snapshot",
+          "locator": "plugin/src/tools/worktree/state.ts:338-343,687-733",
+          "summary": "initStateDb(projectDir) returns {projectDir, projectId}. getWorktreeRegistrySnapshot keys off access.projectId and queries Temporal workflows `${CHANGE_WORKFLOW_PREFIX}${projectId}/${changeId}` via getService().client. Worktree registry authority is projectId-scoped Temporal change-workflow state, not a sidecar — so redirecting projectRoot+queue is sufficient."
+        },
+        {
+          "label": "worktree/index.ts delete/cleanup deps",
+          "locator": "plugin/src/tools/worktree/index.ts:1313-1339,2062-2079,2315-2342",
+          "summary": "AdvWorktreeDeleteDeps and AdvWorktreeCleanupDeps both carry projectRoot+database+log+store. advWorktreeCleanup forwards them to advWorktreeDelete (sole deletion authority). pending_worktree_deletes queue is per-change-workflow Temporal state (projectId-scoped); no separate sidecar to redirect."
+        },
+        {
+          "label": "worktree/triage.ts recommendations",
+          "locator": "plugin/src/tools/worktree/triage.ts:122-228,178-227",
+          "summary": "triageWorktrees(repoRoot) is read-only and keys off repoRoot. recommendedFix strings embed bare `adv_worktree_delete <branch>` / `adv_worktree_cleanup` with NO target_path. When triage runs against a target (projectRoot override), these commands are NOT actionable from the current session — they would run against the current project. This is the AC3 gap."
+        },
+        {
+          "label": "worktree-lifecycle spec rq-terminalCleanupSafety01 / rq-worktreeBoundedCleanup01",
+          "locator": ".adv/specs worktree-lifecycle v1.4.0",
+          "summary": "advWorktreeDelete is sole deletion authority; must verify durable ADV terminal state, branch integration, clean tree, no live CWD. Cleanup must stay sequential/bounded (max 5 retries). These MUST gates must remain intact under target routing — routing changes WHICH project's state is checked, not the gates."
+        },
+        {
+          "label": "advance-meta rq-worktreeRegistry01 / rq-multiSessionCoordination01",
+          "locator": "docs/specs/advance-meta.md:1201-1289",
+          "summary": "Worktree state authority lives in change-workflow Temporal state with cross-change visibility via AdvWorktreeBranches/AdvWorktreePaths search attributes; no client-side soft locks (per-process flock only for git worktree add/remove). Cross-session coordination flows through Temporal signals — target routing must keep using the target's Temporal queue, which withTargetPathStore guarantees."
+        },
+        {
+          "label": "adv-review.md cross-project tool-mode law",
+          "locator": ".opencode/command/adv-review.md:92",
+          "summary": "Established law: target reads via snapshot-ok, target mutations via temporal-required, untrusted mutations include target_confirmed + confirmationEvidence. adv_worktree_delete/cleanup are mutations → temporal-required; adv_worktree_triage is read → snapshot-ok."
+        }
+      ],
+      "architecture_assessment": "Existing pattern: worktree mutation tools (adv_worktree_delete/cleanup) and read tool (adv_worktree_triage) operate on the CURRENT project only. Each tool derives projectRoot=store.paths.root, database=initWorktreeDb(projectRoot) (projectId-scoped), and threads `store` (Temporal queue) into impl deps. Worktree registry/pending-delete authority is projectId-scoped Temporal change-workflow state (rq-worktreeRegistry01), NOT a sidecar DB. Reference pattern: the boring, proven cross-project pattern already used by contract.ts (withContractStore) and task.ts (rq-crossProjectTaskMutation01) — a local targetArgs schema block plus a thin wrapper delegating to withTargetPathStore. withTargetPathStore returns a Store whose paths.root is the target root AND ensures the target Temporal queue, so a single store swap structurally redirects all three worktree dep surfaces (git ops, registry projectId, Temporal queue/pending-delete queue) with no changes inside advWorktreeDelete/Cleanup. Deviation: NONE for the delete/cleanup routing approach (it converges exactly on the canonical helper). The only real gap is AC3: triage recommendedFix strings (triage.ts:178-227) hardcode bare `adv_worktree_delete <branch>` without target_path, so they are non-actionable when triage inspected a different project.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "Recommended approach (wrap delete/cleanup in withTargetPathStore with temporal-required; make triage recommendations target-aware) is structurally sound, reuses the established cross-project helper verbatim, and preserves every worktree-lifecycle MUST gate because routing changes only WHICH project's durable state the existing gates evaluate. No spec law requires a new requirement to permit this — it is an additive application of existing cross-project + worktree-authority laws. Risks are scoped and listed in follow_ups, not blocking."
+      },
+      "recommendation": "Adopt the contract.ts/task.ts cross-project template — do NOT invent a new routing mechanism. Concretely: (1) Add target_path/target_confirmed/confirmationEvidence to adv_worktree_delete and adv_worktree_cleanup arg schemas (reuse target-project.ts targetPathSchema fields); regenerate public JSON schemas (pnpm run schemas:generate). (2) In each mutation tool's execute, when target_path is present, wrap the body in withTargetPathStore({ currentProjectPath: store.paths.root, target_path, target_confirmed, confirmationEvidence, stateRequirement:'temporal-required' }) and derive projectRoot/database/store from the TARGET scope store; keep the no-target_path path unchanged. The untrusted-mutation refusal (target_path:140-144) satisfies AC2 with zero new auth code. (3) Leave advWorktreeDelete/advWorktreeCleanup impl bodies untouched — they already key entirely off deps.projectRoot/database/store, so all safety gates (terminal/merged/clean/in-use, bounded sequential drain) automatically evaluate the target project. (4) For AC3, make triageWorktrees emit target-aware recommendedFix when called with a non-current repoRoot: thread a target_path/projectRoot hint into the recommendation strings so they read `adv_worktree_delete --target_path <root> <branch>` (and cleanup likewise) and are callable from the current session. Keep triage read-only (snapshot-ok semantics; no mutation) per the Avoidance. (5) Tests: target-path arg acceptance, untrusted-no-confirmation rejection before any deletion, target registry/missing-from-disk repair via target store, dirty/in-use refusal under target routing, and triage recommendation string includes target_path when repoRoot != current. Route suites through bin/oc-test.",
+      "follow_ups": [
+        "Decide the exact target-aware command surface for triage recommendations (e.g. `--target_path <root>` flag text vs a structured field) — confirm with the planner so AC3 'actionable from a different current repo' is met without over-coupling triage to delete CLI string format.",
+        "Confirm dryRun semantics for target_path delete/cleanup: per ADV_INSTRUCTIONS dry-run + cross-project, target_path dry-runs may read target state without untrusted-mutation confirmation; ensure the wrapper passes a read path (snapshot-ok or non-mutating) for dryRun:true so preview does not trip the target_confirmed gate.",
+        "Verify worktree mutation guard interaction (rq-worktreeMutationGuard01): adv_worktree_delete/cleanup are not gate/task-state transitions, but confirm the guard does not block target-routed cleanup from the current main checkout; the existing tools do not invoke the guard, so likely no change needed — flag for the engineer to confirm during apply.",
+        "collectWorktreeCleanupTargets already models a 'target' role and target_worktree_path (cleanup-targets.ts:30-40); check whether archive-flow target cleanup should converge on the same new target_path delete routing to avoid two cross-project cleanup mechanisms."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addTargetCleanup",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addTargetCleanup",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [
+        {
+          "type": "pattern",
+          "content": "Target-project worktree cleanup routing is cleanest when deletion authority remains in advWorktreeDelete/advWorktreeCleanup and target selection is only a store/context wrapper at the tool boundary."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "Path preflight: test -e for all scoped files",
+          "Review inspection: .adv/specs/worktree-lifecycle/spec.json, docs/specs/worktree-lifecycle.md, plugin/src/tools/adv-worktree.ts, plugin/src/tools/worktree/triage.ts, plugin/src/tools/adv-worktree.test.ts, plugin/src/tools/worktree/triage.test.ts",
+          "bin/oc-test targeted -- src/tools/adv-worktree.test.ts src/tools/worktree/triage.test.ts",
+          "git status --short"
+        ],
+        "results": "pass",
+        "evidence": "Scoped paths present. Target cleanup requirement rq-worktreeTargetCleanup01 present in spec/docs. adv_worktree_delete and adv_worktree_cleanup route target_path through withTargetPathStore with temporal-required state, mutation gated by !dryRun, target project store/root, and existing advWorktreeDelete/advWorktreeCleanup safety authority preserved. adv_worktree_triage passes currentProjectRoot so target recommendations include target_path/confirmation context. Targeted tests passed: 2 files, 36 tests. git status --short returned clean."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Live ADV tool behavior still requires rebuild/deploy/restart for source changes to affect cached OpenCode plugin runtime; review verified source and tests only.",
+        "Direct cleanup unconfirmed-target rejection is covered by shared withTargetPathStore code path; explicit test coverage is strongest for delete routing/rejection and cleanup approved routing."
+      ],
+      "required_main_agent_actions": [
+        "Use existing full-suite evidence plus this targeted reviewer verification as acceptance evidence.",
+        "Do not revisit out-of-scope worktree lifecycle areas beyond the six scoped files for this acceptance review unless a new finding appears."
+      ],
+      "consumer_warnings": [
+        {
+          "kind": "consumer_failure",
+          "message": "First task-scoped report submission using TASK anchor acceptance-review was rejected because it is not an existing ADV task id; resubmitted as independent change-scoped acceptance review per tool guidance."
+        }
+      ]
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-jSxyiy",
+      "type": "pattern",
+      "content": "When a read-only ADV triage tool accepts a target project/root and recommends a mutation tool, the mutation tool must support the same target context or the recommendation becomes non-actionable from cross-project sessions. Capture this as spec law, not only operator guidance.",
+      "source_task": "tk-538971f6fd33",
+      "recorded_at": "2026-06-03T18:38:11.530Z"
+    },
+    {
+      "id": "ws-SjTRsY",
+      "type": "success",
+      "content": "Passing the current store root into read-only triage let recommendation formatting distinguish same-project vs target-project inspections without making triage mutate state or introducing heuristic path guessing.",
+      "source_task": "tk-c93c7cb5ffab",
+      "recorded_at": "2026-06-03T18:52:49.036Z"
+    },
+    {
+      "id": "ws-2VkBBu",
+      "type": "gotcha",
+      "content": "`bin/oc-test smoke` catches Prettier drift after targeted tests pass; run formatter on touched TypeScript before smoke/full to avoid false implementation regressions.",
+      "source_task": "tk-8c0c91513c61",
+      "recorded_at": "2026-06-03T18:59:03.930Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-06-03T18:30:26.365Z",
+      "completed_by": "adv-task",
+      "approval_evidence": "Fast-track proposal confirmed by user via question tool: Confirmed — execute. Warning handled in agreement constraints: reject unapproved cross-project mutation; preserve safety refusals.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addTargetCleanup/proposal.md",
+        "content_hash": "017345a0908a4ac0180415d05b77b38bfd7ac20e5f9167f10bfe839645a340d9",
+        "non_whitespace_chars": 884,
+        "checked_at": "2026-06-03T18:30:15.388Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "started_at": "2026-06-03T18:35:11.455Z",
+      "completed_at": "2026-06-03T18:35:27.435Z",
+      "completed_by": "adv-task",
+      "approval_evidence": "Spec-law assessment completed: Modify worktree-lifecycle with draft rq-worktreeTargetCleanup01 obligation. Contract minted. Architecture validated by adv-researcher local analysis; no conflicts.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "non_whitespace_chars": 1062,
+        "checked_at": "2026-06-03T18:30:15.389Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-06-03T18:35:34.022Z",
+      "completed_by": "adv-task",
+      "approval_evidence": "Design approved through fast-track: target-store routing for delete/cleanup; triage remains read-only with target-aware recommendations; no validator conflict.",
+      "artifact_evidence": {
+        "kind": "design",
+        "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addTargetCleanup/design.md",
+        "content_hash": "8b7820d563898365bf9fbd2df512c6c1a1d2c16aa78bac76c3f7a34bbd7facd0",
+        "non_whitespace_chars": 2637,
+        "checked_at": "2026-06-03T18:30:15.390Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-06-03T18:36:41.841Z",
+      "completed_by": "adv-task",
+      "approval_evidence": "Fast-track prep approved by user via question tool: Confirmed — execute. Task graph created with spec-law, implementation, triage, and verification tasks. Validation passed with no blocking errors; spec delta warning is addressed by first task."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-06-03T18:59:33.130Z",
+      "completed_by": "adv-apply",
+      "approval_evidence": "All four tasks done with checkpoints. Verification includes schemas:check, targeted worktree tests, smoke, and full test gate passing. Worktree clean."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-06-03T19:03:57.270Z",
+      "completed_by": "adv-review",
+      "approval_evidence": "User accepted delivered work: `approve`. Contract review matrix has 10/10 passing/respected rows; independent reviewer READY with no blockers; verification passed.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addTargetCleanup/executive-summary.md",
+        "content_hash": "49b5f01f42c08449e19ad734c2fee3c3a91d4e5a9bc11aef7d0a95b1aae6bb0f",
+        "non_whitespace_chars": 788,
+        "checked_at": "2026-06-03T18:30:15.391Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "triage",
+    "source_artifact": "ag-6vG9FdxN"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "9098e263d0a1a8e91d9381aa79a647558a49cd917c93bb0f28526c6a322a8e5d",
+      "approvedAt": "2026-06-03T18:35:21.747Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "Given an explicit approved `target_path`, when `adv_worktree_delete` is invoked for a target-project stale/missing worktree, then it uses the target project's worktree registry/state and completes or refuses using existing safety gates.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9098e263d0a1a8e91d9381aa79a647558a49cd917c93bb0f28526c6a322a8e5d",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Given target-project cleanup is requested without explicit confirmation, then mutation is rejected before deletion/registry changes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9098e263d0a1a8e91d9381aa79a647558a49cd917c93bb0f28526c6a322a8e5d",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Given `adv_worktree_triage projectRoot` reports target-project drift, then recommended remediation is actionable from a different current repo.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9098e263d0a1a8e91d9381aa79a647558a49cd917c93bb0f28526c6a322a8e5d",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Given dirty or in-use target worktrees, then cleanup refuses unless existing safe force rules permit it.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9098e263d0a1a8e91d9381aa79a647558a49cd917c93bb0f28526c6a322a8e5d",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Targeted tests and repo smoke checks pass.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9098e263d0a1a8e91d9381aa79a647558a49cd917c93bb0f28526c6a322a8e5d",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "No direct ADV state file reads/writes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9098e263d0a1a8e91d9381aa79a647558a49cd917c93bb0f28526c6a322a8e5d",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "No weakening dirty/in-use/merged/terminal safety checks.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9098e263d0a1a8e91d9381aa79a647558a49cd917c93bb0f28526c6a322a8e5d",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "No unapproved cross-project mutation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9098e263d0a1a8e91d9381aa79a647558a49cd917c93bb0f28526c6a322a8e5d",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not add shell-workaround-only cleanup paths.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9098e263d0a1a8e91d9381aa79a647558a49cd917c93bb0f28526c6a322a8e5d",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not make `adv_worktree_triage` mutate state.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9098e263d0a1a8e91d9381aa79a647558a49cd917c93bb0f28526c6a322a8e5d",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-06-03T19:02:41.949Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`plugin/src/tools/adv-worktree.test.ts` target_path delete test passed via `pnpm test -- src/tools/adv-worktree.test.ts src/tools/worktree/triage.test.ts` and `bin/oc-test full`.",
+          "notes": "Delete wrapper routes target_path through target store and preserves advWorktreeDelete authority."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`adv_worktree_delete rejects unconfirmed target mutation before deleting` test passed; full suite passed.",
+          "notes": "Unconfirmed non-dryRun target mutation rejects before advWorktreeDelete call."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`plugin/src/tools/worktree/triage.test.ts` target_path remediation test passed; full suite passed.",
+          "notes": "Triage receives currentProjectRoot and emits target-aware recommendations for cross-project inspection."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Code review confirmed existing `advWorktreeDelete`/`advWorktreeCleanup` bodies remain safety authorities; target routing only changes store/root context. adv-reviewer verdict READY.",
+          "notes": "Dirty/in-use/merged/terminal checks not weakened."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`pnpm run schemas:check` passed; targeted tests passed; `bin/oc-test smoke` passed; `bin/oc-test full` passed.",
+          "notes": "Smoke initially found formatting drift; fixed and reran successfully."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No direct ADV state file reads/writes used; implementation routes through target store and worktree state helpers.",
+          "notes": ""
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Existing deletion and cleanup functions remain sole authorities; no safety checks removed. adv-reviewer READY.",
+          "notes": ""
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Unconfirmed target mutation rejection test passed; target routing uses `withTargetPathStore` confirmation gate.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No shell-workaround cleanup path added; solution uses tool/store architecture.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Triage remains read-only and only formats recommendations.",
+          "notes": ""
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "Given an explicit approved `target_path`, when `adv_worktree_delete` is invoked for a target-project stale/missing worktree, then it uses the target project's worktree registry/state and completes or refuses using existing safety gates.",
+    "Given target-project cleanup is requested without explicit confirmation, then mutation is rejected before deletion/registry changes.",
+    "Given `adv_worktree_triage projectRoot` reports target-project drift, then recommended remediation is actionable from a different current repo.",
+    "Given dirty or in-use target worktrees, then cleanup refuses unless existing safe force rules permit it.",
+    "Targeted tests and repo smoke checks pass."
+  ],
+  "documents": {
+    "proposal": "# Add target cleanup\n\n## Intent\nMake worktree cleanup tools repair target-project registry/worktrees from a different current ADV session, matching `adv_worktree_triage projectRoot` visibility.\n\n## LBP Targets\n- Add explicit target-project routing to cleanup mutation tools without weakening safety gates.\n- Preserve dirty/in-use/merged/terminal deletion checks.\n- Require explicit confirmation for cross-project mutation.\n- Ensure triage recommendations name commands that are callable from the current context.\n\n## Scope\n- `plugin/src/tools/worktree*.ts`\n- Target-store/cross-project routing helpers as needed\n- Tool arg schemas and public schema artifacts if affected\n- Worktree cleanup specs/tests/docs\n\n## Success Criteria\n- Target-path cleanup can delete/repair stale target-project registry/worktrees after explicit approval.\n- Read-only triage recommendations point to callable target-aware cleanup actions.\n- Tests cover target-project registry repair and safety refusal.\n\n## Source\nAgenda `ag-6vG9FdxN`.",
+    "problemStatement": "ADV worktree triage can inspect another project via `projectRoot`, but worktree cleanup mutation tools cannot operate on that same target project from the current session, leaving stale target-project registry entries after safe git cleanup.",
+    "agreement": "# Agreement\n\n## Objectives\n- Add target-project support for worktree cleanup mutations.\n- Keep cross-project mutation approval explicit and auditable.\n- Preserve all existing deletion safety checks.\n- Align triage recommendations with callable cleanup commands.\n\n## Acceptance Criteria\n- Given an explicit approved `target_path`, when `adv_worktree_delete` is invoked for a target-project stale/missing worktree, then it uses the target project's worktree registry/state and completes or refuses using existing safety gates.\n- Given target-project cleanup is requested without explicit confirmation, then mutation is rejected before deletion/registry changes.\n- Given `adv_worktree_triage projectRoot` reports target-project drift, then recommended remediation is actionable from a different current repo.\n- Given dirty or in-use target worktrees, then cleanup refuses unless existing safe force rules permit it.\n- Targeted tests and repo smoke checks pass.\n\n## Constraints\n- No direct ADV state file reads/writes.\n- No weakening dirty/in-use/merged/terminal safety checks.\n- No unapproved cross-project mutation.\n\n## Avoidances\n- Do not add shell-workaround-only cleanup paths.\n- Do not make `adv_worktree_triage` mutate state.",
+    "design": "# Design\n\n## Approach\nAdd target-project routing to worktree cleanup mutation tools using the existing `withTargetPathStore` pattern.\n\n- `adv_worktree_delete`: add `target_path`, `target_confirmed`, and `confirmationEvidence` args; when `target_path` is present, run existing delete body against the target store with `stateRequirement: \"temporal-required\"`.\n- `adv_worktree_cleanup`: same target-path routing; retain current timeout and dry-run behavior.\n- `adv_worktree_triage`: keep read-only, but when `projectRoot` differs from current store root, include target-aware remediation text so output is callable from the current project context.\n- Keep `advWorktreeDelete` / `advWorktreeCleanup` safety logic unchanged; target store selection changes the project root, registry, Temporal queue, and worktree DB context structurally.\n\n## LBP Validation\nValidated by local architecture research:\n\n- `withTargetPathStore` already gates untrusted cross-project mutation via `target_confirmed:true` and `confirmationEvidence`.\n- Worktree wrappers already derive `projectRoot`, `database`, and `store` from the provided store.\n- Registry authority is project-scoped Temporal state; target store routing is the correct redirect mechanism.\n\n## Spec-Law Impact\nModify: `worktree-lifecycle`.\n\nDraft spec-delta obligation:\n\n- Capability/spec: `worktree-lifecycle`\n- Delta kind: add\n- Requirement ID: `rq-worktreeTargetCleanup01`\n- Requirement: Worktree deletion and cleanup mutation tools that support target-project operation MUST route target-path calls through the target project store/Temporal queue, require explicit confirmation for untrusted target mutation, and preserve existing delete/cleanup safety gates. Worktree triage target-project recommendations MUST be actionable from the current session by including target-aware remediation.\n- Rationale: `adv_worktree_triage projectRoot` can inspect target-project drift, but cleanup mutation tools previously lacked matching target-project operation, leaving registry drift unrepaired from cross-project sessions.\n- Scenario 1: Given `adv_worktree_delete` is called with an untrusted `target_path` and no confirmation, when the tool validates args, then it refuses before filesystem or registry mutation.\n- Scenario 2: Given `adv_worktree_delete` is called with an approved `target_path`, when it evaluates deletion, then it uses the target project's root, registry, and Temporal queue while preserving dirty/in-use/merged/terminal safety gates.\n- Scenario 3: Given `adv_worktree_triage projectRoot` inspects a different project, when it reports a cleanup recommendation, then the recommendation includes target-aware remediation usable from the current session.\n\n## Validation Plan\n- Unit tests for target-path routing on delete and cleanup.\n- Unit test for unconfirmed target mutation refusal.\n- Unit tests for target-aware triage recommendation text.\n- Existing worktree tests for delete/cleanup safety remain green.\n- Smoke verification via `bin/oc-test smoke`.",
+    "executiveSummary": "# Executive Summary\n\nImplemented target-project worktree cleanup support for ADV.\n\n## Outcome\n- `adv_worktree_delete` and `adv_worktree_cleanup` now accept target-project arguments and route approved target operations through the target project's store and Temporal queue.\n- Untrusted target mutations require explicit `target_confirmed: true` and `confirmationEvidence`; dry-run target reads remain non-mutating.\n- `adv_worktree_triage` now formats cross-project remediation with target-aware cleanup arguments instead of bare current-project commands.\n- Added `rq-worktreeTargetCleanup01` to `worktree-lifecycle` spec and docs.\n\n## Verification\n- `pnpm run schemas:check` passed.\n- `pnpm test -- src/tools/adv-worktree.test.ts src/tools/worktree/triage.test.ts` passed.\n- `bin/oc-test smoke` passed.\n- `bin/oc-test full` passed.\n- Independent reviewer verdict: READY, no blocking findings.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-06-03T19:02:41.949Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| AC1 | acceptance_criterion | Given an explicit approved `target_path`, when `adv_worktree_delete` is invoked for a target-project stale/missing worktree, then it uses the target project's worktree registry/state and completes or refuses using existing safety gates. | pass | `plugin/src/tools/adv-worktree.test.ts` target_path delete test passed via `pnpm test -- src/tools/adv-worktree.test.ts src/tools/worktree/triage.test.ts` and `bin/oc-test full`. |\n| AC2 | acceptance_criterion | Given target-project cleanup is requested without explicit confirmation, then mutation is rejected before deletion/registry changes. | pass | `adv_worktree_delete rejects unconfirmed target mutation before deleting` test passed; full suite passed. |\n| AC3 | acceptance_criterion | Given `adv_worktree_triage projectRoot` reports target-project drift, then recommended remediation is actionable from a different current repo. | pass | `plugin/src/tools/worktree/triage.test.ts` target_path remediation test passed; full suite passed. |\n| AC4 | acceptance_criterion | Given dirty or in-use target worktrees, then cleanup refuses unless existing safe force rules permit it. | pass | Code review confirmed existing `advWorktreeDelete`/`advWorktreeCleanup` bodies remain safety authorities; target routing only changes store/root context. adv-reviewer verdict READY. |\n| AC5 | acceptance_criterion | Targeted tests and repo smoke checks pass. | pass | `pnpm run schemas:check` passed; targeted tests passed; `bin/oc-test smoke` passed; `bin/oc-test full` passed. |\n| C1 | constraint | No direct ADV state file reads/writes. | respected | No direct ADV state file reads/writes used; implementation routes through target store and worktree state helpers. |\n| C2 | constraint | No weakening dirty/in-use/merged/terminal safety checks. | respected | Existing deletion and cleanup functions remain sole authorities; no safety checks removed. adv-reviewer READY. |\n| C3 | constraint | No unapproved cross-project mutation. | respected | Unconfirmed target mutation rejection test passed; target routing uses `withTargetPathStore` confirmation gate. |\n| DONT1 | avoidance | Do not add shell-workaround-only cleanup paths. | respected | No shell-workaround cleanup path added; solution uses tool/store architecture. |\n| DONT2 | avoidance | Do not make `adv_worktree_triage` mutate state. | respected | Triage remains read-only and only formats recommendations. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addTargetCleanup/proposal.md",
+      "updatedAt": "2026-06-03T18:30:15.411Z",
+      "contentHash": "017345a0908a4ac0180415d05b77b38bfd7ac20e5f9167f10bfe839645a340d9"
+    },
+    "problemStatement": {
+      "path": "",
+      "updatedAt": "2026-06-03T18:30:15.411Z"
+    },
+    "agreement": {
+      "path": "",
+      "updatedAt": "2026-06-03T18:30:15.411Z"
+    },
+    "design": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addTargetCleanup/design.md",
+      "updatedAt": "2026-06-03T18:35:05.932Z",
+      "contentHash": "8b7820d563898365bf9fbd2df512c6c1a1d2c16aa78bac76c3f7a34bbd7facd0"
+    },
+    "executiveSummary": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addTargetCleanup/executive-summary.md",
+      "updatedAt": "2026-06-03T19:02:53.213Z",
+      "contentHash": "49b5f01f42c08449e19ad734c2fee3c3a91d4e5a9bc11aef7d0a95b1aae6bb0f"
+    }
+  },
+  "lastSignalAt": "2026-06-03T19:03:57.270Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_MISSING_ERROR_HANDLING",
+      "severity": "warning",
+      "message": "Proposal describes behavior that could fail but doesn't mention error handling or rollback. What happens when things go wrong?",
+      "recorded_at": "2026-06-03T18:32:13.982Z"
+    }
+  ],
+  "worktree_auto_managed": true
+}
