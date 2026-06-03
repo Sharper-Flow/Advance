@@ -30,6 +30,11 @@ import {
 } from "../utils/workspace-warp";
 import { triageWorktrees } from "./worktree/triage";
 import { initStateDb, type WorktreeStateAccess } from "./worktree/state";
+import {
+  appendTargetProjectContextOutput,
+  withTargetPathStore,
+  type TargetProjectContext,
+} from "./target-project";
 
 /** Simple no-op-ish logger for ADV worktree tools. */
 function createLogger(): {
@@ -59,6 +64,146 @@ export interface AdvWorktreeCreateRuntime {
    * is attached automatically (rq-warpModeContract04).
    */
   client?: OpencodeClient;
+}
+
+interface TargetWorktreeMutationArgs {
+  target_path?: string;
+  target_confirmed?: true;
+  confirmationEvidence?: string;
+}
+
+interface WorktreeDeleteArgs extends TargetWorktreeMutationArgs {
+  branch: string;
+  force?: boolean;
+  dryRun?: boolean;
+}
+
+interface WorktreeCleanupArgs extends TargetWorktreeMutationArgs {
+  reason: string;
+  dryRun?: boolean;
+  timeoutMs?: number;
+}
+
+const targetWorktreeMutationArgSchemas = {
+  target_path: z
+    .string()
+    .optional()
+    .describe(
+      "Optional absolute path to another ADV project. When provided, routes the operation through that project's target worktree store.",
+    ),
+  target_confirmed: z
+    .literal(true)
+    .optional()
+    .describe(
+      "Required for untrusted target_path mutation. Confirms the target project was explicitly approved.",
+    ),
+  confirmationEvidence: z
+    .string()
+    .optional()
+    .describe(
+      "Required with target_confirmed for untrusted target_path mutation. Cite user approval evidence.",
+    ),
+};
+
+function buildWarpDeps(input: {
+  projectRoot: string;
+  serverUrl?: URL;
+  client?: OpencodeClient;
+}): WarpDeps | undefined {
+  return input.serverUrl
+    ? {
+        serverUrl: input.serverUrl,
+        directory: input.projectRoot,
+        client: input.client,
+      }
+    : undefined;
+}
+
+function formatMaybeTargetOutput(
+  output: string,
+  context?: TargetProjectContext,
+): string {
+  return context ? appendTargetProjectContextOutput(output, context) : output;
+}
+
+async function executeWorktreeDelete(
+  args: WorktreeDeleteArgs,
+  store: Store,
+  options: { serverUrl?: URL; client?: OpencodeClient } = {},
+  context?: TargetProjectContext,
+): Promise<string> {
+  const projectRoot = store.paths.root;
+  const database = await initWorktreeDb(projectRoot);
+  const log = createLogger();
+  const warpDeps = buildWarpDeps({
+    projectRoot,
+    serverUrl: options.serverUrl,
+    client: options.client,
+  });
+  const result = await advWorktreeDelete(
+    args.branch,
+    { force: args.force, dryRun: args.dryRun },
+    { projectRoot, database, log, store, warpDeps },
+  );
+  return formatMaybeTargetOutput(formatToolOutput(result), context);
+}
+
+async function executeWorktreeCleanup(
+  args: WorktreeCleanupArgs,
+  store: Store,
+  options: { serverUrl?: URL; client?: OpencodeClient } = {},
+  context?: TargetProjectContext,
+): Promise<string> {
+  const projectRoot = store.paths.root;
+  const database = await initWorktreeDb(projectRoot);
+  const log = createLogger();
+  const warpDeps = buildWarpDeps({
+    projectRoot,
+    serverUrl: options.serverUrl,
+    client: options.client,
+  });
+  const cleanupPromise = advWorktreeCleanup(args.reason, {
+    projectRoot,
+    database,
+    log,
+    dryRun: args.dryRun,
+    store,
+    warpDeps,
+  });
+  // rq-extend-poisoned-recovery AC7: bound the cleanup tool with a
+  // wall-clock timeout so cleanup hangs (e.g. inside discovery's
+  // workflow queries on poisoned workflows) don't exceed the SDK's
+  // tool-execution timeout and surface as console errors.
+  const timeoutMs = args.timeoutMs ?? 8000;
+  let timeoutHandle: NodeJS.Timeout | undefined;
+  const timeoutPromise = new Promise<{
+    timedOut: true;
+  }>((resolve) => {
+    timeoutHandle = setTimeout(() => resolve({ timedOut: true }), timeoutMs);
+  });
+  const result = await Promise.race([cleanupPromise, timeoutPromise]);
+  if (timeoutHandle) clearTimeout(timeoutHandle);
+  if ("timedOut" in result) {
+    return formatMaybeTargetOutput(
+      formatToolOutput({
+        success: false,
+        timedOut: true,
+        error: `adv_worktree_cleanup timed out after ${timeoutMs}ms. Cleanup likely blocked on a poisoned workflow or stuck I/O. Retry after the underlying workflow is resolved (see adv_temporal_diagnose).`,
+        remediation:
+          "Pass a larger timeoutMs to retry, or fix the poisoned workflow via adv_change_archive recoveryMode=poisoned_history first.",
+      }),
+      context,
+    );
+  }
+  return formatMaybeTargetOutput(
+    formatToolOutput({
+      success: true,
+      removed: result.removed,
+      retained: result.retained,
+      ...(result.dryRun ? { dryRun: true } : {}),
+    }),
+    context,
+  );
 }
 
 /**
@@ -367,28 +512,30 @@ export const advWorktreeTools = {
         .boolean()
         .optional()
         .describe("Preview deletion without running hooks or removing files"),
+      ...targetWorktreeMutationArgSchemas,
     },
     execute: async (
-      args: { branch: string; force?: boolean; dryRun?: boolean },
+      args: WorktreeDeleteArgs,
       store: Store,
       options: { serverUrl?: URL; client?: OpencodeClient } = {},
     ) => {
-      const projectRoot = store.paths.root;
-      const database = await initWorktreeDb(projectRoot);
-      const log = createLogger();
-      const warpDeps: WarpDeps | undefined = options.serverUrl
-        ? {
-            serverUrl: options.serverUrl,
-            directory: projectRoot,
-            client: options.client,
-          }
-        : undefined;
-      const result = await advWorktreeDelete(
-        args.branch,
-        { force: args.force, dryRun: args.dryRun },
-        { projectRoot, database, log, store, warpDeps },
-      );
-      return formatToolOutput(result);
+      // rq-worktreeTargetCleanup01: target_path delete uses the target store
+      // while preserving advWorktreeDelete as the sole deletion authority.
+      if (args.target_path) {
+        return withTargetPathStore(
+          {
+            currentProjectPath: store.paths.root,
+            target_path: args.target_path,
+            target_confirmed: args.target_confirmed,
+            confirmationEvidence: args.confirmationEvidence,
+            stateRequirement: "temporal-required",
+            mutation: !args.dryRun,
+          },
+          async ({ context, store: targetStore }) =>
+            executeWorktreeDelete(args, targetStore, options, context),
+        );
+      }
+      return executeWorktreeDelete(args, store, options);
     },
   },
 
@@ -409,61 +556,30 @@ export const advWorktreeTools = {
         .describe(
           "Optional wall-clock timeout for the cleanup pass. Defaults to 8000ms so the tool returns before the 10s SDK timeout when cleanup hangs on poisoned workflows or stuck I/O.",
         ),
+      ...targetWorktreeMutationArgSchemas,
     },
     execute: async (
-      args: { reason: string; dryRun?: boolean; timeoutMs?: number },
+      args: WorktreeCleanupArgs,
       store: Store,
       options: { serverUrl?: URL; client?: OpencodeClient } = {},
     ) => {
-      const projectRoot = store.paths.root;
-      const database = await initWorktreeDb(projectRoot);
-      const log = createLogger();
-      const warpDeps: WarpDeps | undefined = options.serverUrl
-        ? {
-            serverUrl: options.serverUrl,
-            directory: projectRoot,
-            client: options.client,
-          }
-        : undefined;
-      const cleanupPromise = advWorktreeCleanup(args.reason, {
-        projectRoot,
-        database,
-        log,
-        dryRun: args.dryRun,
-        store,
-        warpDeps,
-      });
-      // rq-extend-poisoned-recovery AC7: bound the cleanup tool with a
-      // wall-clock timeout so cleanup hangs (e.g. inside discovery's
-      // workflow queries on poisoned workflows) don't exceed the SDK's
-      // tool-execution timeout and surface as console errors.
-      const timeoutMs = args.timeoutMs ?? 8000;
-      let timeoutHandle: NodeJS.Timeout | undefined;
-      const timeoutPromise = new Promise<{
-        timedOut: true;
-      }>((resolve) => {
-        timeoutHandle = setTimeout(
-          () => resolve({ timedOut: true }),
-          timeoutMs,
+      // rq-worktreeTargetCleanup01: target_path cleanup uses the target store
+      // while preserving advWorktreeCleanup's bounded shared cleanup path.
+      if (args.target_path) {
+        return withTargetPathStore(
+          {
+            currentProjectPath: store.paths.root,
+            target_path: args.target_path,
+            target_confirmed: args.target_confirmed,
+            confirmationEvidence: args.confirmationEvidence,
+            stateRequirement: "temporal-required",
+            mutation: !args.dryRun,
+          },
+          async ({ context, store: targetStore }) =>
+            executeWorktreeCleanup(args, targetStore, options, context),
         );
-      });
-      const result = await Promise.race([cleanupPromise, timeoutPromise]);
-      if (timeoutHandle) clearTimeout(timeoutHandle);
-      if ("timedOut" in result) {
-        return formatToolOutput({
-          success: false,
-          timedOut: true,
-          error: `adv_worktree_cleanup timed out after ${timeoutMs}ms. Cleanup likely blocked on a poisoned workflow or stuck I/O. Retry after the underlying workflow is resolved (see adv_temporal_diagnose).`,
-          remediation:
-            "Pass a larger timeoutMs to retry, or fix the poisoned workflow via adv_change_archive recoveryMode=poisoned_history first.",
-        });
       }
-      return formatToolOutput({
-        success: true,
-        removed: result.removed,
-        retained: result.retained,
-        ...(result.dryRun ? { dryRun: true } : {}),
-      });
+      return executeWorktreeCleanup(args, store, options);
     },
   },
 

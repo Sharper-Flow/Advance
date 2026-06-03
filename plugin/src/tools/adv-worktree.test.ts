@@ -29,10 +29,16 @@ const workspaceWarpMock = vi.hoisted(() => ({
   workspaceAndWarpAvailable: vi.fn(),
 }));
 
+const targetProjectMock = vi.hoisted(() => ({
+  appendTargetProjectContextOutput: vi.fn((output: string) => output),
+  withTargetPathStore: vi.fn(),
+}));
+
 vi.mock("./worktree", () => worktreeMock);
 vi.mock("./worktree/state", () => stateMock);
 vi.mock("./worktree/triage", () => triageMock);
 vi.mock("../utils/workspace-warp", () => workspaceWarpMock);
+vi.mock("./target-project", () => targetProjectMock);
 
 import { advWorktreeTools } from "./adv-worktree";
 import type { Store } from "../storage/store-types";
@@ -42,12 +48,30 @@ const store = {
   paths: { root: "/repo" },
 } as Store;
 
+const targetStore = {
+  paths: { root: "/target" },
+} as Store;
+
 const mockClient = { session: { get: vi.fn() } } as unknown as OpencodeClient;
 
 describe("advWorktreeTools", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     worktreeMock.loadWorktreeConfig.mockResolvedValue({ mode: "warp" });
+    targetProjectMock.withTargetPathStore.mockImplementation(
+      async (_input, fn) =>
+        fn({
+          context: {
+            root: "/target",
+            projectId: "target-project",
+            externalRoot: "/external/target-project",
+            trusted: false,
+            trustSource: "explicit",
+            stateMode: "temporal",
+          },
+          store: targetStore,
+        }),
+    );
   });
 
   it("adv_worktree_create delegates to advWorktreeCreate", async () => {
@@ -551,6 +575,57 @@ describe("advWorktreeTools", () => {
     expect(out).toContain('"dryRun":true');
   });
 
+  it("adv_worktree_delete routes target_path mutations through target store", async () => {
+    const database = { projectDir: "/target", projectId: "target-project" };
+    stateMock.initStateDb.mockResolvedValue(database);
+    worktreeMock.advWorktreeDelete.mockResolvedValue({
+      ok: true,
+      branch: "change/x",
+    });
+
+    await advWorktreeTools.adv_worktree_delete.execute(
+      {
+        branch: "change/x",
+        target_path: "/target",
+        target_confirmed: true,
+        confirmationEvidence: "User approved target cleanup",
+      },
+      store,
+    );
+
+    expect(targetProjectMock.withTargetPathStore).toHaveBeenCalledWith(
+      expect.objectContaining({
+        currentProjectPath: "/repo",
+        target_path: "/target",
+        target_confirmed: true,
+        confirmationEvidence: "User approved target cleanup",
+        stateRequirement: "temporal-required",
+      }),
+      expect.any(Function),
+    );
+    expect(stateMock.initStateDb).toHaveBeenCalledWith("/target");
+    expect(worktreeMock.advWorktreeDelete).toHaveBeenCalledWith(
+      "change/x",
+      expect.any(Object),
+      expect.objectContaining({ projectRoot: "/target", database, store: targetStore }),
+    );
+  });
+
+  it("adv_worktree_delete rejects unconfirmed target mutation before deleting", async () => {
+    targetProjectMock.withTargetPathStore.mockRejectedValue(
+      new Error("target confirmation required"),
+    );
+
+    await expect(
+      advWorktreeTools.adv_worktree_delete.execute(
+        { branch: "change/x", target_path: "/target" },
+        store,
+      ),
+    ).rejects.toThrow("target confirmation required");
+
+    expect(worktreeMock.advWorktreeDelete).not.toHaveBeenCalled();
+  });
+
   it("adv_worktree_cleanup formats removed and retained branches", async () => {
     const database = { projectDir: "/repo", projectId: "p" };
     stateMock.initStateDb.mockResolvedValue(database);
@@ -606,6 +681,49 @@ describe("advWorktreeTools", () => {
       }),
     );
     expect(out).toContain('"dryRun":true');
+  });
+
+  it("adv_worktree_cleanup routes target_path mutations through target store", async () => {
+    const database = { projectDir: "/target", projectId: "target-project" };
+    stateMock.initStateDb.mockResolvedValue(database);
+    worktreeMock.advWorktreeCleanup.mockResolvedValue({
+      removed: ["change/done"],
+      retained: [],
+    });
+
+    await advWorktreeTools.adv_worktree_cleanup.execute(
+      {
+        reason: "retry target cleanup",
+        dryRun: true,
+        target_path: "/target",
+        target_confirmed: true,
+        confirmationEvidence: "User approved target cleanup",
+      },
+      store,
+      { serverUrl: new URL("http://127.0.0.1:4096"), client: mockClient },
+    );
+
+    expect(targetProjectMock.withTargetPathStore).toHaveBeenCalledWith(
+      expect.objectContaining({
+        currentProjectPath: "/repo",
+        target_path: "/target",
+        target_confirmed: true,
+        confirmationEvidence: "User approved target cleanup",
+        stateRequirement: "temporal-required",
+      }),
+      expect.any(Function),
+    );
+    expect(stateMock.initStateDb).toHaveBeenCalledWith("/target");
+    expect(worktreeMock.advWorktreeCleanup).toHaveBeenCalledWith(
+      "retry target cleanup",
+      expect.objectContaining({
+        projectRoot: "/target",
+        database,
+        dryRun: true,
+        store: targetStore,
+        warpDeps: expect.objectContaining({ directory: "/target" }),
+      }),
+    );
   });
 
   // rq-extend-poisoned-recovery AC7: cleanup tool returns a graceful
