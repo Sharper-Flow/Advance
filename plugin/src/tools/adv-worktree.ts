@@ -596,7 +596,9 @@ export const advWorktreeTools = {
     },
     execute: async (args: { projectRoot?: string }, store: Store) => {
       const repoRoot = args.projectRoot ?? store.paths.root;
-      const result = await triageWorktrees(repoRoot);
+      const result = await triageWorktrees(repoRoot, undefined, {
+        currentProjectRoot: store.paths.root,
+      });
       return formatToolOutput({
         success: true,
         orphans: result.orphans,

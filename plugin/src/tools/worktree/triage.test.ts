@@ -168,6 +168,35 @@ describe("triageWorktrees (T18)", () => {
     expect(orphan?.recommendedFix).toContain("disk_missing change/ghost");
   });
 
+  it("includes target_path remediation when triaging a different project root", async () => {
+    mockRegistrySnapshot([
+      {
+        branch: "change/target-ghost",
+        path: "/nonexistent/target/path",
+        changeId: "targetghost",
+        status: "active",
+        createdAt: "2026-05-01T00:00:00Z",
+        lastSeenAt: "2026-05-01T00:00:00Z",
+        baseRef: "trunk",
+        headSha: "deadbeef",
+        source: "tool",
+        sourceVersion: 1,
+      },
+    ]);
+
+    const result = await triageWorktrees(repoRoot, undefined, {
+      currentProjectRoot: "/current-project",
+    });
+    const orphan = result.orphans.find((o) => o.class === "missing_from_disk");
+
+    expect(orphan?.recommendedFix).toContain(`target_path: "${repoRoot}"`);
+    expect(orphan?.recommendedFix).toContain("target_confirmed: true");
+    expect(orphan?.recommendedFix).toContain("confirmationEvidence");
+    expect(orphan?.recommendedFix).not.toBe(
+      "adv_worktree_delete --reason disk_missing change/target-ghost",
+    );
+  });
+
   it("reports archived_not_cleaned when registry worktree backs archived change", async () => {
     const wtPath = join(tempRoot, "wt-archived");
     execFileSync(

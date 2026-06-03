@@ -33,6 +33,7 @@ import {
 } from "./state";
 import { detectStaleBranchHead } from "../../utils/stale-head";
 import { execFileGitAsync } from "../../utils/git-binary";
+import { resolve } from "path";
 
 // =============================================================================
 // Public types
@@ -61,6 +62,10 @@ export interface TriageResult {
   warnings?: WorktreeCrossChangeWarning[];
 }
 
+export interface TriageOptions {
+  currentProjectRoot?: string;
+}
+
 // =============================================================================
 // Helpers
 // =============================================================================
@@ -68,6 +73,34 @@ export interface TriageResult {
 interface DiskWorktree {
   path: string;
   branch?: string;
+}
+
+function isTargetProjectTriage(
+  repoRoot: string,
+  options?: TriageOptions,
+): boolean {
+  return Boolean(
+    options?.currentProjectRoot &&
+      resolve(options.currentProjectRoot) !== resolve(repoRoot),
+  );
+}
+
+function targetArgsSuffix(repoRoot: string, targetProject: boolean): string {
+  return targetProject
+    ? ` target_path: "${repoRoot}" target_confirmed: true confirmationEvidence: "<target cleanup approval>"`
+    : "";
+}
+
+function deleteFix(
+  branch: string | undefined,
+  repoRoot: string,
+  targetProject: boolean,
+): string {
+  return `adv_worktree_delete ${branch ?? "<branch>"}${targetArgsSuffix(repoRoot, targetProject)}`;
+}
+
+function cleanupFix(repoRoot: string, targetProject: boolean): string {
+  return `adv_worktree_cleanup${targetArgsSuffix(repoRoot, targetProject)}`;
 }
 
 /**
@@ -122,8 +155,12 @@ async function listDiskWorktrees(repoRoot: string): Promise<DiskWorktree[]> {
 export async function triageWorktrees(
   repoRoot: string,
   accessOverride?: WorktreeStateAccess,
+  options?: TriageOptions,
 ): Promise<TriageResult> {
   const orphans: OrphanRecord[] = [];
+  // rq-worktreeTargetCleanup01: recommendations from target-project triage
+  // must carry target_path context so callers in another repo can act safely.
+  const targetProject = isTargetProjectTriage(repoRoot, options);
 
   // 1. Stale HEAD on main checkout.
   const stale = await detectStaleBranchHead(repoRoot).catch(() => null);
@@ -177,7 +214,7 @@ export async function triageWorktrees(
       reason: `Disk worktree at ${dw.path} (branch ${dw.branch}) has no entry in worktree_registry`,
       recommendedFix:
         `If still active, resume/materialize the owning ADV worktree with adv_worktree_resume for ${dw.branch}; ` +
-        `otherwise inspect manually, then use adv_worktree_delete ${dw.branch} and let the terminal/merged/clean gates decide`,
+        `otherwise inspect manually, then use ${deleteFix(dw.branch, repoRoot, targetProject)} and let the terminal/merged/clean gates decide`,
     });
   }
 
@@ -190,7 +227,9 @@ export async function triageWorktrees(
       branch: r.branch,
       path: r.path,
       reason: `worktree_registry has ${r.branch} at ${r.path}, but no on-disk worktree exists`,
-      recommendedFix: `adv_worktree_delete --reason disk_missing ${r.branch}`,
+      recommendedFix:
+        `${deleteFix(r.branch, repoRoot, targetProject)} ` +
+        `# reason: disk_missing ${r.branch}`,
     });
   }
 
@@ -205,7 +244,7 @@ export async function triageWorktrees(
       path: r.path,
       reason: `worktree_registry has ${r.branch} at ${r.path}, but the record has no owning changeId`,
       recommendedFix:
-        `repair registry metadata for ${r.branch}, then use adv_worktree_delete ` +
+        `repair registry metadata for ${r.branch}, then use ${deleteFix(r.branch, repoRoot, targetProject)} ` +
         `so terminal+merged+clean verification stays centralized`,
     });
   }
@@ -223,7 +262,7 @@ export async function triageWorktrees(
       branch: r.branch,
       path: r.path,
       reason: `Worktree ${r.branch} backs archived change ${changeId} (3-condition gate not yet exercised)`,
-      recommendedFix: `adv_worktree_delete ${r.branch}  # 3-condition gate enforces archived+merged+clean`,
+      recommendedFix: `${deleteFix(r.branch, repoRoot, targetProject)}  # 3-condition gate enforces archived+merged+clean`,
     });
   }
 
@@ -267,7 +306,7 @@ export async function triageWorktrees(
       reason:
         `Terminal cleanup retained ${pendingDelete.branch}: ${pendingDelete.reason}. ` +
         `Attempts: ${pendingDelete.attempts}.`,
-      recommendedFix: `Resolve the blocker, then run adv_worktree_cleanup for ${pendingDelete.branch}.`,
+      recommendedFix: `Resolve the blocker, then run ${cleanupFix(repoRoot, targetProject)} for ${pendingDelete.branch}.`,
     });
   }
 

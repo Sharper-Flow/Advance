@@ -757,7 +757,11 @@ describe("advWorktreeTools", () => {
       store,
     );
 
-    expect(triageMock.triageWorktrees).toHaveBeenCalledWith("/override");
+    expect(triageMock.triageWorktrees).toHaveBeenCalledWith(
+      "/override",
+      undefined,
+      { currentProjectRoot: "/repo" },
+    );
     expect(out).toContain("missing_from_disk");
   });
 });
