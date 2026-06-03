@@ -442,6 +442,52 @@
           ]
         }
       ]
+    },
+    {
+      "id": "rq-worktreeTargetCleanup01",
+      "title": "Target-Project Worktree Cleanup Routing",
+      "body": "Worktree cleanup mutation tools that support target-project operation MUST route target_path calls through the target project's store and Temporal queue, require explicit confirmation for untrusted target mutation, and preserve existing delete/cleanup safety gates. Worktree triage recommendations for a target project MUST be actionable from the current session by including target-aware remediation instead of bare current-project cleanup commands.",
+      "priority": "must",
+      "tags": ["worktree", "cleanup", "target-path", "cross-project"],
+      "scenarios": [
+        {
+          "id": "rq-worktreeTargetCleanup01.1",
+          "title": "Unconfirmed target cleanup mutation is rejected",
+          "given": [
+            "adv_worktree_delete or adv_worktree_cleanup is called with an untrusted target_path",
+            "target_confirmed is missing or confirmationEvidence is blank"
+          ],
+          "when": "The tool validates the target-project mutation",
+          "then": [
+            "The tool rejects the call before filesystem or registry mutation",
+            "The response explains that target confirmation evidence is required"
+          ]
+        },
+        {
+          "id": "rq-worktreeTargetCleanup01.2",
+          "title": "Approved target cleanup uses target project state",
+          "given": [
+            "adv_worktree_delete or adv_worktree_cleanup is called with an approved target_path"
+          ],
+          "when": "The cleanup operation evaluates a worktree or queued cleanup candidate",
+          "then": [
+            "The tool uses the target project's root, worktree registry, and Temporal queue",
+            "Existing dirty, in-use, merged, terminal-state, timeout, and bounded-cleanup safety checks still apply"
+          ]
+        },
+        {
+          "id": "rq-worktreeTargetCleanup01.3",
+          "title": "Target triage recommendations are actionable",
+          "given": [
+            "adv_worktree_triage inspects a project root different from the current store root"
+          ],
+          "when": "The triage result includes a delete or cleanup remediation",
+          "then": [
+            "The recommendation includes target_path context or equivalent target-aware remediation",
+            "The recommendation does not imply that a bare current-project adv_worktree_delete call will repair target-project drift"
+          ]
+        }
+      ]
     }
   ]
 }

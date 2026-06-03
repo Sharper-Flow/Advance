@@ -520,3 +520,55 @@ Worktree cleanup operations must be bounded to prevent runaway deletion. After e
 - Worktrees are processed sequentially, one at a time
 - Each item has a bounded retry count (max 5)
 - Batch or parallel unbounded deletion is not performed
+
+---
+
+### Target-Project Worktree Cleanup Routing
+
+**ID:** `rq-worktreeTargetCleanup01` | **Priority:** **[MUST]**
+
+Worktree cleanup mutation tools that support target-project operation MUST route target_path calls through the target project's store and Temporal queue, require explicit confirmation for untrusted target mutation, and preserve existing delete/cleanup safety gates. Worktree triage recommendations for a target project MUST be actionable from the current session by including target-aware remediation instead of bare current-project cleanup commands.
+
+**Tags:** `worktree`, `cleanup`, `target-path`, `cross-project`
+
+#### Scenarios
+
+**Unconfirmed target cleanup mutation is rejected** (`rq-worktreeTargetCleanup01.1`)
+
+**Given:**
+
+- adv_worktree_delete or adv_worktree_cleanup is called with an untrusted target_path
+- target_confirmed is missing or confirmationEvidence is blank
+
+**When:** The tool validates the target-project mutation
+
+**Then:**
+
+- The tool rejects the call before filesystem or registry mutation
+- The response explains that target confirmation evidence is required
+
+**Approved target cleanup uses target project state** (`rq-worktreeTargetCleanup01.2`)
+
+**Given:**
+
+- adv_worktree_delete or adv_worktree_cleanup is called with an approved target_path
+
+**When:** The cleanup operation evaluates a worktree or queued cleanup candidate
+
+**Then:**
+
+- The tool uses the target project's root, worktree registry, and Temporal queue
+- Existing dirty, in-use, merged, terminal-state, timeout, and bounded-cleanup safety checks still apply
+
+**Target triage recommendations are actionable** (`rq-worktreeTargetCleanup01.3`)
+
+**Given:**
+
+- adv_worktree_triage inspects a project root different from the current store root
+
+**When:** The triage result includes a delete or cleanup remediation
+
+**Then:**
+
+- The recommendation includes target_path context or equivalent target-aware remediation
+- The recommendation does not imply that a bare current-project adv_worktree_delete call will repair target-project drift
