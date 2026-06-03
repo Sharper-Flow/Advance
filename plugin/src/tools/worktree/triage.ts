@@ -81,7 +81,7 @@ function isTargetProjectTriage(
 ): boolean {
   return Boolean(
     options?.currentProjectRoot &&
-      resolve(options.currentProjectRoot) !== resolve(repoRoot),
+    resolve(options.currentProjectRoot) !== resolve(repoRoot),
   );
 }
 

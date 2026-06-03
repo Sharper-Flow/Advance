@@ -607,7 +607,11 @@ describe("advWorktreeTools", () => {
     expect(worktreeMock.advWorktreeDelete).toHaveBeenCalledWith(
       "change/x",
       expect.any(Object),
-      expect.objectContaining({ projectRoot: "/target", database, store: targetStore }),
+      expect.objectContaining({
+        projectRoot: "/target",
+        database,
+        store: targetStore,
+      }),
     );
   });
 
