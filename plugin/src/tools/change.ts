@@ -42,7 +42,10 @@ import {
 import type { ChangeCreateInitialMetadata, Store } from "../storage/store";
 import { createDiskStore as createLegacyStore } from "../storage/store-disk";
 import { getReflection } from "../storage/reflection";
-import { getProjectId, getExternalRoot } from "../utils/project-id";
+import {
+  getProjectId,
+  getExternalRootForProject,
+} from "../utils/project-id";
 import { isSyntheticValidationDraftPattern } from "../utils/synthetic-fixture-detector";
 import { validateChange } from "../validator";
 import { createLogger } from "../utils/debug-log";
@@ -776,7 +779,7 @@ async function createCrossProjectFollowUp({
     : undefined;
   const targetProjectId = await getProjectId(target_path);
   const targetExternalRoot = targetProjectId
-    ? getExternalRoot(targetProjectId)
+    ? getExternalRootForProject(targetProjectId)
     : undefined;
 
   let targetStore: Store;
