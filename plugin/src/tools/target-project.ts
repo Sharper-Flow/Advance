@@ -7,7 +7,11 @@ import { loadProjectConfig } from "../storage/json";
 import { validateCrossRepoTarget } from "../temporal/activities";
 import { getService } from "../temporal/service";
 import { ensureProjectTemporalQueue } from "../plugin-init";
-import { getExternalRoot, getExternalRootForProject, getProjectId } from "../utils/project-id";
+import {
+  getExternalRoot,
+  getExternalRootForProject,
+  getProjectId,
+} from "../utils/project-id";
 
 export type TargetStateRequirement =
   | "snapshot-ok"

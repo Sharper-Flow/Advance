@@ -112,14 +112,12 @@ describe("cross-project coordination metadata", () => {
         await canonicalTargetStore.init();
         await callerShardTargetStore.init();
 
-        const canonicalChange = await canonicalTargetStore.changes.get(
-          "addShardedFollowup",
-        );
+        const canonicalChange =
+          await canonicalTargetStore.changes.get("addShardedFollowup");
         expect(canonicalChange.success).toBe(true);
 
-        const callerShardChange = await callerShardTargetStore.changes.get(
-          "addShardedFollowup",
-        );
+        const callerShardChange =
+          await callerShardTargetStore.changes.get("addShardedFollowup");
         expect(callerShardChange.success).toBe(false);
       } finally {
         canonicalTargetStore.close();

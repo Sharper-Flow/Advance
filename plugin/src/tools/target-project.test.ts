@@ -81,7 +81,11 @@ describe("target project resolver", () => {
     mocks.getProjectId.mockImplementation(async (path: string) =>
       path === currentProjectPath ? SOURCE_PROJECT_ID : TARGET_PROJECT_ID,
     );
-    process.env.XDG_DATA_HOME = join(root, "opencode-projects", SOURCE_PROJECT_ID);
+    process.env.XDG_DATA_HOME = join(
+      root,
+      "opencode-projects",
+      SOURCE_PROJECT_ID,
+    );
   });
 
   afterEach(async () => {
@@ -182,7 +186,11 @@ describe("withTargetPathStore", () => {
     await mkdir(join(currentProjectPath, ".git"), { recursive: true });
     await mkdir(join(targetPath, ".git"), { recursive: true });
     mocks.getProjectId.mockResolvedValue(TARGET_PROJECT_ID);
-    process.env.XDG_DATA_HOME = join(root, "opencode-projects", SOURCE_PROJECT_ID);
+    process.env.XDG_DATA_HOME = join(
+      root,
+      "opencode-projects",
+      SOURCE_PROJECT_ID,
+    );
   });
 
   afterEach(async () => {
