@@ -1548,6 +1548,63 @@
       ]
     },
     {
+      "id": "rq-targetPathCanonicalShard01",
+      "title": "Target Path Operations Use Target Project Canonical Shard",
+      "body": "ADV tools that resolve another ADV-enabled project via `target_path` MUST derive that target project's external ADV state root from the target project id, not from the caller project's per-process OpenCode shard. When `XDG_DATA_HOME` structurally matches the per-project shard layout `.../opencode-projects/{40-hex-project-id}`, target state MUST resolve to the sibling shard `.../opencode-projects/{target-project-id}/opencode/plugins/advance/{target-project-id}`. When the shard layout cannot be derived, tools MUST preserve the legacy `$XDG_DATA_HOME/opencode/plugins/advance/{target-project-id}` behavior. Existing shadow records in caller shards MUST NOT be automatically migrated by this routing rule.",
+      "priority": "must",
+      "tags": [
+        "workflow",
+        "cross-project",
+        "target-path",
+        "state-routing",
+        "opencode-sharding"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-targetPathCanonicalShard01.1",
+          "title": "Sharded target create writes target canonical shard",
+          "given": [
+            "The caller session has XDG_DATA_HOME set to .../opencode-projects/{sourceProjectId}",
+            "An ADV tool creates or mutates state for a different project via target_path",
+            "The target project id is targetProjectId"
+          ],
+          "when": "The target store external root is resolved",
+          "then": [
+            "The external root is .../opencode-projects/{targetProjectId}/opencode/plugins/advance/{targetProjectId}",
+            "The target state is not written under the caller shard",
+            "Subsequent target_path reads use the same target canonical root"
+          ]
+        },
+        {
+          "id": "rq-targetPathCanonicalShard01.2",
+          "title": "Non-sharded sessions preserve legacy target root",
+          "given": [
+            "XDG_DATA_HOME does not structurally match .../opencode-projects/{40-hex-project-id}",
+            "An ADV tool resolves a target project via target_path"
+          ],
+          "when": "The target store external root is resolved",
+          "then": [
+            "The external root remains $XDG_DATA_HOME/opencode/plugins/advance/{targetProjectId}",
+            "The operation does not fail solely because the canonical shard layout is absent"
+          ]
+        },
+        {
+          "id": "rq-targetPathCanonicalShard01.3",
+          "title": "Existing shadow records are not auto-migrated",
+          "given": [
+            "A prior target_path operation wrote target state under a caller project shard",
+            "The canonical target shard can now be derived"
+          ],
+          "when": "A future target_path operation resolves target state",
+          "then": [
+            "The future operation uses the canonical target shard",
+            "The tool does not automatically copy, move, or delete the old caller-shard shadow record",
+            "Any recovery of old shadow state remains an explicit operator action"
+          ]
+        }
+      ]
+    },
+    {
       "id": "rq-dryRunMutation01",
       "title": "Mutation Dry-Run Preview Is Same-Shape and Side-Effect Free",
       "body": "ADV mutation tools that expose `dryRun` must execute schema and relational validation, return the normal success response shape with `dryRun: true`, and skip every side effect. Dry-run calls must not fire Temporal signals, save ADV state, delete worktrees, run worktree deletion hooks, write conformance audit entries, or write files. Validation failures must remain identical to real-run failures except for the absence of side effects.",
