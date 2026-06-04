@@ -3,6 +3,9 @@ import { mkdir, mkdtemp, rm } from "fs/promises";
 import { join } from "path";
 import { tmpdir } from "os";
 
+const SOURCE_PROJECT_ID = "c".repeat(40);
+const TARGET_PROJECT_ID = "a".repeat(40);
+
 const mocks = vi.hoisted(() => {
   const diskStore = {
     init: vi.fn(async () => {}),
@@ -63,6 +66,7 @@ import {
 } from "./target-project";
 
 describe("target project resolver", () => {
+  const originalXdgDataHome = process.env.XDG_DATA_HOME;
   let root: string;
   let currentProjectPath: string;
   let targetPath: string;
@@ -75,11 +79,15 @@ describe("target project resolver", () => {
     await mkdir(join(currentProjectPath, ".git"), { recursive: true });
     await mkdir(join(targetPath, ".git"), { recursive: true });
     mocks.getProjectId.mockImplementation(async (path: string) =>
-      path === currentProjectPath ? "c".repeat(40) : "a".repeat(40),
+      path === currentProjectPath ? SOURCE_PROJECT_ID : TARGET_PROJECT_ID,
     );
+    process.env.XDG_DATA_HOME = join(root, "opencode-projects", SOURCE_PROJECT_ID);
   });
 
   afterEach(async () => {
+    if (originalXdgDataHome !== undefined)
+      process.env.XDG_DATA_HOME = originalXdgDataHome;
+    else delete process.env.XDG_DATA_HOME;
     await rm(root, { recursive: true, force: true });
   });
 
@@ -109,11 +117,17 @@ describe("target project resolver", () => {
 
     expect(context).toMatchObject({
       root: targetPath,
-      projectId: "a".repeat(40),
+      projectId: TARGET_PROJECT_ID,
       trusted: false,
       trustSource: "explicit",
+      externalRoot: join(
+        root,
+        "opencode-projects",
+        TARGET_PROJECT_ID,
+        "opencode/plugins/advance",
+        TARGET_PROJECT_ID,
+      ),
     });
-    expect(context.externalRoot).toContain("opencode/plugins/advance");
   });
 
   test("treats omitted target_path as current project", async () => {
@@ -121,7 +135,7 @@ describe("target project resolver", () => {
 
     expect(context).toMatchObject({
       root: currentProjectPath,
-      projectId: "c".repeat(40),
+      projectId: SOURCE_PROJECT_ID,
       trusted: true,
       trustSource: "current_project",
       stateMode: "current",
@@ -155,6 +169,7 @@ describe("target project resolver", () => {
 });
 
 describe("withTargetPathStore", () => {
+  const originalXdgDataHome = process.env.XDG_DATA_HOME;
   let root: string;
   let currentProjectPath: string;
   let targetPath: string;
@@ -166,10 +181,14 @@ describe("withTargetPathStore", () => {
     targetPath = join(root, "target");
     await mkdir(join(currentProjectPath, ".git"), { recursive: true });
     await mkdir(join(targetPath, ".git"), { recursive: true });
-    mocks.getProjectId.mockResolvedValue("a".repeat(40));
+    mocks.getProjectId.mockResolvedValue(TARGET_PROJECT_ID);
+    process.env.XDG_DATA_HOME = join(root, "opencode-projects", SOURCE_PROJECT_ID);
   });
 
   afterEach(async () => {
+    if (originalXdgDataHome !== undefined)
+      process.env.XDG_DATA_HOME = originalXdgDataHome;
+    else delete process.env.XDG_DATA_HOME;
     await rm(root, { recursive: true, force: true });
   });
 
@@ -186,7 +205,13 @@ describe("withTargetPathStore", () => {
     expect(result.context.stateMode).toBe("disk-snapshot");
     expect(result.store).toBe(mocks.diskStore);
     expect(mocks.createLegacyStore).toHaveBeenCalledWith(targetPath, {
-      externalRoot: expect.stringContaining("opencode/plugins/advance"),
+      externalRoot: join(
+        root,
+        "opencode-projects",
+        TARGET_PROJECT_ID,
+        "opencode/plugins/advance",
+        TARGET_PROJECT_ID,
+      ),
     });
     expect(mocks.createStore).not.toHaveBeenCalled();
     expect(mocks.ensureProjectTemporalQueue).not.toHaveBeenCalled();
@@ -226,11 +251,17 @@ describe("withTargetPathStore", () => {
     expect(result.context.stateMode).toBe("temporal");
     expect(result.store).toBe(mocks.temporalStore);
     expect(mocks.ensureProjectTemporalQueue).toHaveBeenCalledWith(
-      "a".repeat(40),
+      TARGET_PROJECT_ID,
     );
     expect(mocks.createStore).toHaveBeenCalledWith(targetPath, {
-      externalRoot: expect.stringContaining("opencode/plugins/advance"),
-      projectIdOverride: "a".repeat(40),
+      externalRoot: join(
+        root,
+        "opencode-projects",
+        TARGET_PROJECT_ID,
+        "opencode/plugins/advance",
+        TARGET_PROJECT_ID,
+      ),
+      projectIdOverride: TARGET_PROJECT_ID,
       temporalBundle: mocks.temporalBundle,
     });
     expect(mocks.temporalStore.init).toHaveBeenCalled();
@@ -251,11 +282,17 @@ describe("withTargetPathStore", () => {
     expect(result.context.stateMode).toBe("temporal");
     expect(result.store).toBe(mocks.temporalStore);
     expect(mocks.ensureProjectTemporalQueue).toHaveBeenCalledWith(
-      "a".repeat(40),
+      TARGET_PROJECT_ID,
     );
     expect(mocks.createStore).toHaveBeenCalledWith(targetPath, {
-      externalRoot: expect.stringContaining("opencode/plugins/advance"),
-      projectIdOverride: "a".repeat(40),
+      externalRoot: join(
+        root,
+        "opencode-projects",
+        TARGET_PROJECT_ID,
+        "opencode/plugins/advance",
+        TARGET_PROJECT_ID,
+      ),
+      projectIdOverride: TARGET_PROJECT_ID,
       temporalBundle: mocks.temporalBundle,
     });
   });

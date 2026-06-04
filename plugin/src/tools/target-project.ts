@@ -7,7 +7,7 @@ import { loadProjectConfig } from "../storage/json";
 import { validateCrossRepoTarget } from "../temporal/activities";
 import { getService } from "../temporal/service";
 import { ensureProjectTemporalQueue } from "../plugin-init";
-import { getExternalRoot, getProjectId } from "../utils/project-id";
+import { getExternalRoot, getExternalRootForProject, getProjectId } from "../utils/project-id";
 
 export type TargetStateRequirement =
   | "snapshot-ok"
@@ -146,7 +146,7 @@ export async function resolveTargetProject(
   return {
     root: targetRoot,
     projectId,
-    externalRoot: getExternalRoot(projectId),
+    externalRoot: getExternalRootForProject(projectId),
     trusted,
     trustSource: trusted ? "related_repos" : "explicit",
     stateMode: "disk-snapshot",
