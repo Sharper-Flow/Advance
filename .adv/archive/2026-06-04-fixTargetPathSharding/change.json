@@ -1,0 +1,931 @@
+{
+  "id": "fixTargetPathSharding",
+  "title": "Fix target path sharding",
+  "status": "archived",
+  "created_at": "2026-06-04T19:17:54.467Z",
+  "tasks": [
+    {
+      "id": "tk-c021d721319d",
+      "title": "Update spec law for canonical target_path external roots",
+      "type": "code",
+      "section": "Spec Law",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-06-04T19:35:02.648Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC6"
+        ],
+        "verifies": [],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-04T19:38:11.317Z",
+      "verification": "node -e JSON.parse .adv/specs/advance-workflow/spec.json passed: spec json ok",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added spec-law requirement rq-targetPathCanonicalShard01 covering target_path canonical target shard behavior under opencode-projects sharding, non-sharded fallback, and existing shadow record non-migration.",
+      "filesTouched": [
+        ".adv/specs/advance-workflow/spec.json"
+      ],
+      "touched_files": [
+        ".adv/specs/advance-workflow/spec.json"
+      ],
+      "checkpointSha": "908b9ff1b4bdd34e939223ab1cc4358b71acc33b",
+      "completedAt": "2026-06-04T19:39:30.003Z",
+      "completed_at": "2026-06-04T19:39:30.003Z",
+      "notes": "Added rq-targetPathCanonicalShard01 to advance-workflow spec with sharded target create/read routing, legacy fallback, and no-auto-migration scenarios. Verified JSON parse.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "updatedAt": "2026-06-04T19:39:38.725Z"
+    },
+    {
+      "id": "tk-d7a4c817b20e",
+      "title": "Add shard-aware target external-root helper with unit tests",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-06-04T19:35:15.467Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-c021d721319d"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC4",
+          "AC5"
+        ],
+        "verifies": [
+          "AC4",
+          "AC5"
+        ],
+        "respects": [
+          "C2",
+          "C3",
+          "C4",
+          "DONT2",
+          "DONT3"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-04T19:39:58.569Z",
+      "verification": "RED: bin/oc-test targeted -- src/utils/project-id.test.ts failed because getExternalRootForProject was missing. GREEN: same command passed 34 tests.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Implemented getExternalRootForProject(projectId) in project-id.ts. It detects canonical .../opencode-projects/{40hex} XDG_DATA_HOME, derives sibling target shard via dirname()+projectId, falls back to getExternalRoot() for non-canonical/non-sharded homes, and preserves relative XDG validation. Added project-id unit tests and verified green.",
+      "filesTouched": [
+        "plugin/src/utils/project-id.test.ts",
+        "plugin/src/utils/project-id.ts"
+      ],
+      "touched_files": [
+        "plugin/src/utils/project-id.test.ts",
+        "plugin/src/utils/project-id.ts"
+      ],
+      "checkpointSha": "02938f8113c8a0ed48df5c9b0e8d19131c598567",
+      "completedAt": "2026-06-04T19:41:16.319Z",
+      "completed_at": "2026-06-04T19:41:16.319Z",
+      "notes": "Added getExternalRootForProject() with structural sibling-shard derivation and tests for canonical sharded, non-sharded fallback, non-canonical shard fallback, and relative XDG rejection.",
+      "error_recovery": {
+        "last_error": "Initial RED failed as expected because getExternalRootForProject was not exported.",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "getExternalRootForProject is not a function",
+            "diagnosis": "Failing RED confirmed new helper was absent.",
+            "fix_tried": "Implemented helper and export in project-id.ts.",
+            "strategy_label": "add-central-helper",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-04T19:41:07.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-04T19:41:27.165Z"
+    },
+    {
+      "id": "tk-ea9efb72514d",
+      "title": "Route target_path stores and advisory target reads through canonical target root",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-06-04T19:35:27.896Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-d7a4c817b20e"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC2",
+          "AC3"
+        ],
+        "verifies": [
+          "AC2",
+          "AC3",
+          "AC5"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "DONT2",
+          "DONT3"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-04T19:41:58.719Z",
+      "verification": "RED: bin/oc-test targeted -- src/tools/target-project.test.ts failed because target stores used caller shard. GREEN: same command passed 12 tests after routing through getExternalRootForProject.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Updated resolveTargetProject() target branch to use getExternalRootForProject while preserving current-project getExternalRoot(). Updated external-dependency-status target store creation to use getExternalRootForProject. Strengthened target-project tests with sharded XDG_DATA_HOME and exact target canonical externalRoot assertions for disk snapshot and Temporal-backed target stores.",
+      "filesTouched": [
+        "plugin/src/tools/external-dependency-status.ts",
+        "plugin/src/tools/target-project.test.ts",
+        "plugin/src/tools/target-project.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/external-dependency-status.ts",
+        "plugin/src/tools/target-project.test.ts",
+        "plugin/src/tools/target-project.ts"
+      ],
+      "checkpointSha": "079466be6bf4bb96e223c4054578139133e73f06",
+      "completedAt": "2026-06-04T19:43:14.777Z",
+      "completed_at": "2026-06-04T19:43:14.777Z",
+      "notes": "Routed target-project context and withTargetPathStore external roots through getExternalRootForProject. Advisory external dependency reads now use the target canonical helper. Target-project tests verify exact target sibling shard for snapshot-ok and temporal-required paths.",
+      "error_recovery": {
+        "last_error": "Initial RED failed because target externalRoot still used caller shard.",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "target-project.test expected target sibling shard but received caller-shard externalRoot",
+            "diagnosis": "resolveTargetProject() used process-global getExternalRoot(projectId) for target projects.",
+            "fix_tried": "Switched target project externalRoot and advisory reads to getExternalRootForProject.",
+            "strategy_label": "route-target-store-helper",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-04T19:43:00.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-04T19:43:28.591Z"
+    },
+    {
+      "id": "tk-09e21cf2d2af",
+      "title": "Route cross-project change creation through canonical target root",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-06-04T19:35:38.861Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-d7a4c817b20e"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC6"
+        ],
+        "verifies": [
+          "AC1",
+          "AC5",
+          "AC6"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-04T19:43:56.565Z",
+      "verification": "RED: bin/oc-test targeted -- src/tools/cross-project-coordination.test.ts failed because canonical target store did not see the created follow-up. GREEN: same command passed 8 tests after createCrossProjectFollowUp used getExternalRootForProject.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Updated createCrossProjectFollowUp() to use getExternalRootForProject(targetProjectId). Added sharded cross-project create regression using real git fixture repos to obtain test project IDs; test verifies canonical target store contains new follow-up and caller-shard target store does not.",
+      "filesTouched": [
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/cross-project-coordination.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/cross-project-coordination.test.ts"
+      ],
+      "checkpointSha": "7e433cf4abcd9a378a0c91968a486053cc72fea0",
+      "completedAt": "2026-06-04T19:45:55.807Z",
+      "completed_at": "2026-06-04T19:45:55.807Z",
+      "notes": "Cross-project create now resolves targetExternalRoot with getExternalRootForProject. Regression test sets sharded source XDG_DATA_HOME and proves created target change is visible under target canonical shard, not caller-shard target root.",
+      "error_recovery": {
+        "last_error": "Initial RED failed because canonical target store did not contain created change.",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "canonicalChange.success was false in sharded cross-project create regression",
+            "diagnosis": "createCrossProjectFollowUp() still used process-global getExternalRoot(targetProjectId), writing to caller-shard target root.",
+            "fix_tried": "Switched cross-project targetExternalRoot to getExternalRootForProject.",
+            "strategy_label": "route-cross-project-create",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-04T19:45:38.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-04T19:46:07.266Z"
+    },
+    {
+      "id": "tk-f2cd592a14ef",
+      "title": "Run related-scan and targeted verification for target_path sharding",
+      "type": "code",
+      "section": "Verification",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-06-04T19:35:50.892Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-ea9efb72514d"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-09e21cf2d2af"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-04T19:46:38.664Z",
+      "verification": "Related scan classified remaining getExternalRoot() calls; target call sites use getExternalRootForProject. Verification passed: targeted tests 54 passed, format:check passed, typecheck passed, lint passed, spec JSON parse passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Ran final related scan and verification. Remaining getExternalRoot() uses are current-project roots, test shadow-root assertion, helper fallback, or existing advance-meta text. Target create/read/mutation call sites use getExternalRootForProject. Formatted touched files and verified targeted tests, format, typecheck, lint, and spec JSON validity.",
+      "filesTouched": [
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/cross-project-coordination.test.ts",
+        "plugin/src/tools/target-project.test.ts",
+        "plugin/src/tools/target-project.ts",
+        "plugin/src/utils/project-id.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/cross-project-coordination.test.ts",
+        "plugin/src/tools/target-project.test.ts",
+        "plugin/src/tools/target-project.ts",
+        "plugin/src/utils/project-id.ts"
+      ],
+      "checkpointSha": "25047c732243d3a540c383f2d2f1eaa835c98144",
+      "completedAt": "2026-06-04T19:49:07.340Z",
+      "completed_at": "2026-06-04T19:49:07.340Z",
+      "notes": "Related scan classified remaining getExternalRoot() calls: current-project plugin init/context/worktree calls preserved; target-project call sites converted; test caller-shard call intentionally asserts non-authoritative shadow root; helper fallback call is internal. Verification passed: targeted tests (54), format:check, typecheck, lint, and spec JSON parse.",
+      "error_recovery": {
+        "last_error": "format:check initially failed after code edits.",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "pnpm run format:check reported 5 unformatted files",
+            "diagnosis": "Prettier formatting needed after manual patches.",
+            "fix_tried": "Ran pnpm run format, then reran format:check and targeted tests.",
+            "strategy_label": "format-and-rerun",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-04T19:47:45.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-04T19:49:19.766Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "fixTargetPathSharding",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation for target_path external-root sharding fix",
+      "sources": [
+        {
+          "label": "oc wrapper (shard key = 40-hex root SHA)",
+          "locator": "/home/jon/.local/bin/oc:10-22,72-92",
+          "summary": "resolve_key() returns the 40-hex root commit SHA when it matches ^[0-9a-f]{40}$, then exports XDG_DATA_HOME=$HOME/.local/share/opencode-projects/{key}. Confirms caller shard structure .../opencode-projects/{40-hex} that the design keys on, and confirms path-{12hex}/nogit fallback shard forms exist."
+        },
+        {
+          "label": "getExternalRoot / getDataHome",
+          "locator": "/home/jon/dev/advance/plugin/src/utils/project-id.ts:149-185",
+          "summary": "getExternalRoot(projectId)=join(getDataHome(),'opencode/plugins/advance',projectId). getDataHome() reads process-scoped XDG_DATA_HOME. Proves cross-project resolution currently lands under caller shard, never the target shard."
+        },
+        {
+          "label": "target store construction",
+          "locator": "/home/jon/dev/advance/plugin/src/tools/target-project.ts:117-153,209-213",
+          "summary": "resolveTargetProject() calls getExternalRoot(projectId) for externalRoot in both current and disk-snapshot branches; createStore/createLegacyStore consume context.externalRoot. Single choke point the design routes through."
+        },
+        {
+          "label": "cross-project create + external-dependency-status call sites",
+          "locator": "/home/jon/dev/advance/plugin/src/tools/change.ts:777-790; /home/jon/dev/advance/plugin/src/tools/external-dependency-status.ts:55-60",
+          "summary": "Both compute targetExternalRoot via getExternalRoot(targetProjectId) under caller XDG. These are exactly D3's three target call sites; non-target sites (plugin-init, worktree, plugin-context, status) are current-project scoped and correctly excluded."
+        },
+        {
+          "label": "projectId == target shard key identity",
+          "locator": "/home/jon/dev/advance/plugin/src/utils/project-id.ts:98-136; /home/jon/.local/bin/oc:12-14",
+          "summary": "getProjectId(targetRoot) yields the target root commit 40-hex SHA, identical to the oc shard key. So canonical target shard basename == targetProjectId, making 'derive sibling shard' a deterministic basename swap, not a guess."
+        },
+        {
+          "label": "existing cross-project test lacks sharded XDG",
+          "locator": "/home/jon/dev/advance/plugin/src/tools/cross-project-coordination.test.ts:18-34",
+          "summary": "beforeEach uses temp dirs with no XDG_DATA_HOME=.../opencode-projects/{40-hex}; current suite never exercises the bug. Design step 3 RED regression is necessary and feasible: synthesizeTestProjectId returns 40-char hex (project-id.test.ts:44-48) so a sharded XDG fixture is constructible."
+        }
+      ],
+      "architecture_assessment": "Design correctly localizes a real defect at the single getExternalRoot()-under-caller-XDG choke point. Cross-project external root is currently resolved with the caller's process-scoped XDG_DATA_HOME, so under oc per-project sharding all target_path state is written/read under the caller shard instead of the target's canonical .../opencode-projects/{targetSHA} shard. Because targetProjectId equals the target shard key, the 'derive sibling shard' helper is a deterministic basename substitution, satisfying P33 structural-correctness. D2 (keep getExternalRoot unchanged for current-project) is the right scoping decision: getDataHome/getExternalRoot have ~23 current-project consumers and must not be globally rewritten. D3 target call sites (target-project.ts, change.ts cross-project create, external-dependency-status.ts) are exactly the cross-project sites; current-project sites are correctly out of scope. Test strategy (RED sharded/non-sharded/relative-XDG-reject helper tests, exact-externalRoot target-store assertions, sharded cross-project regression) maps 1:1 to acceptance criteria.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "Two non-blocking cautions. (1) D1 only matches 40-hex caller shards; path-{12hex} and nogit oc shard forms fall back to caller XDG and remain mis-sharded for cross-project writes — acceptable for the dominant 40-hex case but should be stated as a known limitation, not silently elided, to honor the 'no silent shadow write when canonical shard derivable' avoidance (these forms are NOT canonically derivable, so fallback is correct). (2) 'derive sibling shard' must be implemented as a precise basename swap of the trailing path segment (callerSHA -> targetProjectId), not a string append/replace-anywhere; an imprecise replace risks corrupting paths if the SHA substring recurs. Recommend the helper rebuild from dirname(getDataHome())+targetProjectId rather than string replace. No spec law (advance-meta, advance-workflow) hard-codes the external-root path, so no spec-law conflict; the convention lives in code + AGENTS.md and the design preserves it. Constraints honored: no Temporal workflow-ID/project-ID derivation change, no auto-migration, legacy non-sharded XDG unchanged."
+      },
+      "recommendation": "Proceed. The design is correct, minimal, and spec-compliant; it resolves the defect at the only choke point and preserves current-project and legacy non-sharded behavior. Before implementation, tighten two points: (a) implement 'sibling shard' as a structural rebuild — join(dirname(getDataHome()), targetProjectId, 'opencode/plugins/advance', targetProjectId) — rather than a string replace, to avoid SHA-substring path corruption; (b) explicitly document that path-{12hex}/nogit caller shards fall back to caller XDG (they are not canonically derivable, so fallback is the correct, non-silent behavior, but it should be named in design Risks and covered by the fallback test). No simpler viable alternative exists that meets all objectives: parameterizing getDataHome() globally would touch ~23 current-project sites and violate the do-not-break-legacy constraint; the focused target helper is the boring, correct choice.",
+      "follow_ups": [
+        "Confirm design Risks section names the path-{12hex}/nogit caller-shard fallback as an intended limitation with test coverage.",
+        "Ensure RED regression in cross-project-coordination.test.ts sets XDG_DATA_HOME to a .../opencode-projects/{40-hex} fixture and asserts target state under target shard, absent from caller shard."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixTargetPathSharding",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixTargetPathSharding",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "Path preflight for all scoped files: .adv/specs/advance-workflow/spec.json, plugin/src/utils/project-id.ts, plugin/src/utils/project-id.test.ts, plugin/src/tools/target-project.ts, plugin/src/tools/target-project.test.ts, plugin/src/tools/change.ts, plugin/src/tools/cross-project-coordination.test.ts, plugin/src/tools/external-dependency-status.ts",
+          "bin/oc-test targeted -- src/utils/project-id.test.ts src/tools/target-project.test.ts src/tools/cross-project-coordination.test.ts",
+          "git status --short"
+        ],
+        "results": "pass",
+        "evidence": "Preflight: all scoped paths present. Targeted shard routing tests passed: 3 files, 54 tests, duration 3.14s. Worktree clean after review. Existing evidence cited in context also reports format:check, typecheck, lint, and spec JSON parse passing."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Live OpenCode tool behavior still requires rebuild/deploy/session restart if source changes have not already been deployed, per repo source-vs-dist reload gotcha."
+      ],
+      "required_main_agent_actions": [
+        "Proceed with acceptance/release decision; no reviewer blockers or issues remain."
+      ],
+      "consumer_warnings": []
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-BQgT75",
+      "type": "pattern",
+      "content": "When fixing cross-project ADV routing under per-project OpenCode shards, make spec law cover both the canonical sharded target path and the legacy fallback/non-migration behavior. Otherwise the implementation can accidentally overreach into shadow-state migration or break non-sharded sessions.",
+      "source_task": "tk-c021d721319d",
+      "recorded_at": "2026-06-04T19:39:48.110Z"
+    },
+    {
+      "id": "ws-_HTYZP",
+      "type": "pattern",
+      "content": "For per-project OpenCode shard routing, derive target sibling shards structurally with dirname(getDataHome()) + targetProjectId, not string replacement. Validate canonical shard shape with parent basename `opencode-projects` and 40-hex shard basename; fallback preserves non-canonical/legacy sessions.",
+      "source_task": "tk-d7a4c817b20e",
+      "recorded_at": "2026-06-04T19:41:37.827Z"
+    },
+    {
+      "id": "ws-D-63t_",
+      "type": "pattern",
+      "content": "For target_path reads/mutations, preserve current-project getExternalRoot() behavior and switch only target-project externalRoot construction to the canonical target helper. Tests should assert exact target sibling shard paths for both snapshot/disk and Temporal-backed store creation, not just substring containment.",
+      "source_task": "tk-ea9efb72514d",
+      "recorded_at": "2026-06-04T19:43:37.994Z"
+    },
+    {
+      "id": "ws-ymbAh8",
+      "type": "gotcha",
+      "content": "Cross-project create tests using createTestProject fixtures may have stub `.git` dirs without root commits, so getProjectId() returns null in Vitest. To exercise shard-aware target root logic, convert the temp source/target fixtures into real git repos with one commit before calling adv_change_create.",
+      "source_task": "tk-09e21cf2d2af",
+      "recorded_at": "2026-06-04T19:46:15.138Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-06-04T19:25:53.822Z",
+      "completed_by": "agent",
+      "approval_evidence": "User replied `approve` after proposal problem framing; full proposal updated with success criteria, scope, constraints, and rollback handling.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixTargetPathSharding/proposal.md",
+        "content_hash": "248808cc9c38c237f62182e10ae3aa27d1c752096695101266024370ca2f220a",
+        "non_whitespace_chars": 4621,
+        "checked_at": "2026-06-04T19:17:54.495Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-06-04T19:29:50.864Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery recorded; user approved acceptance criteria and agreement with `approve`; contract minted with 15 items.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixTargetPathSharding/agreement.md",
+        "content_hash": "ad6d06568d1dc6c14dafb1ae26de4c29f55cb72632409501e050cd0a4e452cdf",
+        "non_whitespace_chars": 2287,
+        "checked_at": "2026-06-04T19:17:54.496Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-06-04T19:34:11.472Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design recorded; independent adv-researcher validator returned VALIDATED; cautions incorporated into design.",
+      "artifact_evidence": {
+        "kind": "design",
+        "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixTargetPathSharding/design.md",
+        "content_hash": "b719306353ce1994c9b59c452e67ef6203281900b13c805c73882ead420e0fe6",
+        "non_whitespace_chars": 7127,
+        "checked_at": "2026-06-04T19:17:54.497Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-06-04T19:37:53.365Z",
+      "completed_by": "agent",
+      "approval_evidence": "User replied `approve` to prep vision; 5-task graph approved for autonomous implementation."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-06-04T19:49:31.301Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 5 approved tasks completed with checkpoints. Verification passed: targeted tests 54, format:check, typecheck, lint, spec JSON parse; related scan completed."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-06-04T19:54:45.730Z",
+      "completed_by": "agent",
+      "approval_evidence": "User replied `approve` to accept delivered work. Review verdict READY with no blockers/issues. Contract review matrix has 15 rows and 0 failing rows.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixTargetPathSharding/executive-summary.md",
+        "content_hash": "9da7984f3e1f292298d27e9aa142c8ce9b198f77a5130fbd4f9bf01d728d707f",
+        "non_whitespace_chars": 487,
+        "checked_at": "2026-06-04T19:17:54.498Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "discovery",
+    "source_artifact": "user-transcript:pokeedge-web/fixCiCoverage-target_path-shadow"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "ad6d06568d1dc6c14dafb1ae26de4c29f55cb72632409501e050cd0a4e452cdf",
+      "approvedAt": "2026-06-04T19:29:42.625Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "From a sharded source session, `adv_change_create target_path:/target` writes the target change under the target project's canonical shard, not the caller shard.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "ad6d06568d1dc6c14dafb1ae26de4c29f55cb72632409501e050cd0a4e452cdf",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "`adv_change_show` and `adv_change_list` with `target_path:/target` read from the same canonical target shard used by creation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "ad6d06568d1dc6c14dafb1ae26de4c29f55cb72632409501e050cd0a4e452cdf",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Existing mutation tools using `withTargetPathStore()` resolve target external roots through the target canonical shard under sharding.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "ad6d06568d1dc6c14dafb1ae26de4c29f55cb72632409501e050cd0a4e452cdf",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Non-sharded `$XDG_DATA_HOME/opencode/plugins/advance/{projectId}` behavior remains unchanged.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "ad6d06568d1dc6c14dafb1ae26de4c29f55cb72632409501e050cd0a4e452cdf",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Tests cover sharded helper behavior, legacy fallback behavior, target-store routing, and cross-project create.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "ad6d06568d1dc6c14dafb1ae26de4c29f55cb72632409501e050cd0a4e452cdf",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Existing shadow records, including `fixArchiveTimeout` under the pokeedge-web shard, are not automatically migrated.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "ad6d06568d1dc6c14dafb1ae26de4c29f55cb72632409501e050cd0a4e452cdf",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "Targeted tests pass for edited helper/tool paths.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "ad6d06568d1dc6c14dafb1ae26de4c29f55cb72632409501e050cd0a4e452cdf",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Do not read ADV state files directly in agent workflow.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "ad6d06568d1dc6c14dafb1ae26de4c29f55cb72632409501e050cd0a4e452cdf",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Keep correctness structural: explicit helper/tests for shard-aware path resolution, not ad hoc path concatenation at call sites.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "ad6d06568d1dc6c14dafb1ae26de4c29f55cb72632409501e050cd0a4e452cdf",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Do not break legacy non-sharded `XDG_DATA_HOME` deployments.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "ad6d06568d1dc6c14dafb1ae26de4c29f55cb72632409501e050cd0a4e452cdf",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Do not change Temporal workflow IDs or project ID derivation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "ad6d06568d1dc6c14dafb1ae26de4c29f55cb72632409501e050cd0a4e452cdf",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "No manual state copying between shards as primary fix.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "ad6d06568d1dc6c14dafb1ae26de4c29f55cb72632409501e050cd0a4e452cdf",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "No shell wrapper or symlink workaround.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "ad6d06568d1dc6c14dafb1ae26de4c29f55cb72632409501e050cd0a4e452cdf",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "No silent shadow write when target canonical shard can be derived.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "ad6d06568d1dc6c14dafb1ae26de4c29f55cb72632409501e050cd0a4e452cdf",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "No broad rework of OpenCode `oc` wrapper or per-project DB sharding.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "ad6d06568d1dc6c14dafb1ae26de4c29f55cb72632409501e050cd0a4e452cdf",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-06-04T19:52:43.582Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "src/tools/cross-project-coordination.test.ts sharded regression; bin/oc-test targeted -- src/utils/project-id.test.ts src/tools/target-project.test.ts src/tools/cross-project-coordination.test.ts passed 54 tests.",
+          "notes": "Cross-project create visible under target canonical shard and absent from caller-shard target root."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "src/tools/target-project.test.ts verifies withTargetPathStore snapshot-ok externalRoot exact target shard; show/list target_path use withOptionalTargetPathStore -> withTargetPathStore snapshot-ok.",
+          "notes": "Read target store uses same target external root helper."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "src/tools/target-project.test.ts verifies temporal-required target store externalRoot exact target shard and projectIdOverride target ID.",
+          "notes": "Mutation paths through withTargetPathStore resolve target canonical shard."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "src/utils/project-id.test.ts verifies non-sharded /custom/data fallback to /custom/data/opencode/plugins/advance/{targetProjectId}.",
+          "notes": "Legacy fallback preserved."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Helper, fallback, target-store routing, and cross-project create tests included in 54-test targeted pass.",
+          "notes": "Coverage spans project-id, target-project, and cross-project-coordination tests."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Review of implementation: no copy/move/delete migration logic added; future target_path operations route canonical helper only.",
+          "notes": "Existing shadow records intentionally untouched."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Passed: targeted tests 54, pnpm run format:check, pnpm run typecheck, pnpm run lint, spec JSON parse.",
+          "notes": "All edited helper/tool paths verified."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Agent workflow used ADV tools for ADV state; implementation does not add direct ADV state file reads.",
+          "notes": "No code path added for direct ADV state file reads."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "getExternalRootForProject central helper plus unit tests; no scattered path string hacks.",
+          "notes": "Sibling shard built via dirname(getDataHome()) + targetProjectId."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "src/utils/project-id.test.ts non-sharded fallback test passes.",
+          "notes": "Legacy non-sharded deployments unchanged."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Implementation did not modify workflow ID or getProjectId derivation; only external root helper added.",
+          "notes": "Temporal workflow IDs unaffected."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No migration/copy logic added; AC6 review evidence confirms shadow records not touched.",
+          "notes": "No manual state copying."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No shell wrapper or symlink workaround added; fix is TypeScript helper/store routing.",
+          "notes": "Architectural fix in source."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "cross-project sharded regression asserts caller-shard target store does not contain created follow-up.",
+          "notes": "Prevents silent shadow write when canonical shard derived."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No changes to oc wrapper or OpenCode DB sharding policy; touched files are ADV plugin/spec/test files only.",
+          "notes": "Scope stayed in ADV plugin."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "From a sharded source session, `adv_change_create target_path:/target` writes the target change under the target project's canonical shard, not the caller shard.",
+    "`adv_change_show` and `adv_change_list` with `target_path:/target` read from the same canonical target shard used by creation.",
+    "Existing mutation tools using `withTargetPathStore()` resolve target external roots through the target canonical shard under sharding.",
+    "Non-sharded `$XDG_DATA_HOME/opencode/plugins/advance/{projectId}` behavior remains unchanged.",
+    "Tests cover sharded helper behavior, legacy fallback behavior, target-store routing, and cross-project create.",
+    "Existing shadow records, including `fixArchiveTimeout` under the pokeedge-web shard, are not automatically migrated.",
+    "Targeted tests pass for edited helper/tool paths."
+  ],
+  "documents": {
+    "proposal": "# Fix target_path sharding\n\n## Why\nCross-project `target_path` create/read/mutation is not canonical under per-project OpenCode shards. The tool layer derives target external state from the caller process `XDG_DATA_HOME`, creating shadow target records invisible from the target project's own OpenCode session.\n\n## Problem\nCross-project `target_path` operations resolve target ADV external state under the caller OpenCode shard when sessions use per-project `XDG_DATA_HOME` shards.\n\nObserved case:\n- caller project: `pokeedge-web`, shard/project `67fe3e95bc2afb49e94cada183986fa1712e47d5`\n- target project: `/home/jon/dev/advance`, project `bdf259aa162ae192af5b18899ccdc653b085528d`\n- attempted target change: `fixArchiveTimeout`\n- shadow write path: `~/.local/share/opencode-projects/67fe3e95bc2afb49e94cada183986fa1712e47d5/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/...`\n- canonical Advance read path: `~/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/...`\n\n## Evidence\nSource inspection shows:\n- `plugin/src/tools/change.ts`: `createCrossProjectFollowUp()` calls `getExternalRoot(targetProjectId)`.\n- `plugin/src/tools/target-project.ts`: `resolveTargetProject()` calls `getExternalRoot(projectId)`.\n- `plugin/src/utils/project-id.ts`: `getExternalRoot()` derives from process `XDG_DATA_HOME`.\n\nIn a sharded source session, `XDG_DATA_HOME` points at the source project shard, so target state is written under the source shard.\n\n## What Changes\n- Add centralized shard-aware external-root resolution for target projects.\n- Use target project canonical shard for `target_path` state when per-project `opencode-projects/{projectId}` layout is active.\n- Align cross-project change creation with target-store routing or the same target external-root helper used by `withTargetPathStore()`.\n- Add tests proving target state is not written/read under the caller shard.\n\n## Success Criteria\n1. From a sharded source session, `adv_change_create target_path:/target` writes the target change under the target project's canonical shard.\n2. `adv_change_show/list target_path:/target` read from the same canonical target shard.\n3. Existing target mutation tools using `withTargetPathStore()` use canonical target external roots under sharding.\n4. Non-sharded `$XDG_DATA_HOME/opencode/plugins/advance/{projectId}` behavior remains unchanged.\n5. Targeted tests pass for project-id helpers, target-project routing, and cross-project create.\n\n## Scope\n\n### In Scope\n- `plugin/src/utils/project-id.ts` external-root helper behavior.\n- `plugin/src/tools/target-project.ts` target path resolution.\n- `plugin/src/tools/change.ts` cross-project follow-up creation path.\n- All `target_path` surfaces that route through target external-root helpers: create, read/show/list, update, task/gate/worktree/test/report mutations.\n- Tests near `project-id.test.ts`, `target-project.test.ts`, and `cross-project-coordination.test.ts`.\n- Spec/doc citation updates if new requirement IDs are added.\n\n### Out of Scope\n- Manual migration/copy of existing shadow ADV records between shards.\n- Reworking OpenCode `oc` wrapper or per-project DB sharding policy.\n- Changing Temporal workflow IDs or project ID derivation.\n- Broader cross-project session listing or product-wide visibility features.\n\n### Must Not\n- Must not write target ADV state under the caller shard when target canonical shard can be derived.\n- Must not break legacy non-sharded users.\n- Must not introduce symlink/manual file-copy workaround as primary fix.\n- Must not read ADV state files directly in agent workflow.\n\n## Affected Code\n- `plugin/src/utils/project-id.ts`\n- `plugin/src/tools/target-project.ts`\n- `plugin/src/tools/change.ts`\n- `plugin/src/tools/external-dependency-status.ts` if it needs target canonical reads.\n- Tests near `plugin/src/utils/project-id.test.ts`, `plugin/src/tools/target-project.test.ts`, `plugin/src/tools/cross-project-coordination.test.ts`.\n\n## Related Repositories\n- Source incident came from `pokeedge-web / fixCiCoverage` creating a follow-up in `Advance`.\n- Implementation is current repo only: `/home/jon/dev/advance`.\n\n## Constraints\n- Correctness must be structural: explicit helper/tests, not call-site string hacks.\n- Preserve Temporal-only runtime assumptions.\n- Keep target read and mutation paths consistent.\n- Honor per-project OpenCode shard layout while retaining fallback behavior.\n\n## Impact\n- Fixes invisible cross-project follow-ups and target mutations under sharded OpenCode sessions.\n- Prevents future shadow ADV state records under caller shards.\n- Improves reliability of cross-project coordination in current Warp/`oc` workflow.\n\n## Discovery Findings\n\n### Discovery Checklist\n| Step | Result | Reason |\n|---|---|---|\n| Skills Considered | PASS | Loaded `adv-agent-tool-contracts`; this is an agent-callable tool routing contract. |\n| Prior Research Extension | PASS | No `temp/*.md`; `docs/*-prep.md` found but not directly about target_path shard routing. |\n| Conflict Scan | PASS | `adv_change_validate` passed with expected pre-prep warnings `NO_TASKS` and `NO_DELTAS`; agenda has related cross-project cleanup items but no blocker. |\n| Edge Case Investigation | PASS | Sharded source→target, non-sharded fallback, unresolved project ID, target Temporal init failure. |\n| Design Question Depth | PASS | Technical decisions resolved by source evidence; user decided migration/surface/fallback outcomes. |\n| Draft Spec Deltas | PASS | Add/adjust workflow law for target_path external-root canonicalization if not already covered. |\n| Related Pattern Scan | PASS | `getExternalRoot(` call sites found in plugin init/context, target-project, change, external-dependency-status, worktree. |\n| LBP Check | PASS | Central helper + target-store routing is long-term best practice; no external alternative relevant. |\n\n### Current State\n- `getExternalRoot(projectId)` is process-global and based on `XDG_DATA_HOME`.\n- `resolveTargetProject()` and `createCrossProjectFollowUp()` pass target project IDs into that process-global helper.\n- Current session confirms sharded `XDG_DATA_HOME`: `/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d`.\n\n### User Decisions\n- Do not migrate existing shadow `fixArchiveTimeout` state.\n- Cover all `target_path` surfaces, not creation only.\n- Use legacy fallback when shard layout cannot be derived.\n\n### AMBIGUITY ANALYSIS\nCoverage: B:C F:C S:C M:C\nNo blocking ambiguity remains. One stale clarify warning exists from initial proposal snapshot, but current proposal now includes Success Criteria, Scope, and Error Handling / Rollback sections.\n\n## Discovery Agenda\nResolved by discovery. Remaining implementation details move to design: helper naming, exact call-site conversion, and regression fixture structure.",
+    "problemStatement": "Cross-project `target_path` create/read/mutation is not canonical under per-project OpenCode shards. The tool layer derives target external state from the caller process `XDG_DATA_HOME`, creating shadow target records invisible from the target project's own OpenCode session.",
+    "agreement": "# Agreement\n\n## Objectives\n1. Resolve every `target_path` ADV external root to the target project's canonical OpenCode shard when per-project sharding is active.\n2. Keep all target read/write paths consistent: create, show/list, update, task/gate/worktree/test/report mutations.\n3. Preserve legacy non-sharded behavior for users without `opencode-projects/{projectId}` `XDG_DATA_HOME` layout.\n4. Add regression tests proving target project state is not written under the caller shard.\n\n## Acceptance Criteria\n1. From a sharded source session, `adv_change_create target_path:/target` writes the target change under the target project's canonical shard, not the caller shard.\n2. `adv_change_show` and `adv_change_list` with `target_path:/target` read from the same canonical target shard used by creation.\n3. Existing mutation tools using `withTargetPathStore()` resolve target external roots through the target canonical shard under sharding.\n4. Non-sharded `$XDG_DATA_HOME/opencode/plugins/advance/{projectId}` behavior remains unchanged.\n5. Tests cover sharded helper behavior, legacy fallback behavior, target-store routing, and cross-project create.\n6. Existing shadow records, including `fixArchiveTimeout` under the pokeedge-web shard, are not automatically migrated.\n7. Targeted tests pass for edited helper/tool paths.\n\n## Constraints\n- Do not read ADV state files directly in agent workflow.\n- Keep correctness structural: explicit helper/tests for shard-aware path resolution, not ad hoc path concatenation at call sites.\n- Do not break legacy non-sharded `XDG_DATA_HOME` deployments.\n- Do not change Temporal workflow IDs or project ID derivation.\n\n## Avoidances\n- No manual state copying between shards as primary fix.\n- No shell wrapper or symlink workaround.\n- No silent shadow write when target canonical shard can be derived.\n- No broad rework of OpenCode `oc` wrapper or per-project DB sharding.\n\n## Preview Applicability\nvisual_surface: false\nRationale: ADV tool/state routing only; no browser-visible or visual output surface.\n\n## Decisions\n\n### User Decisions\n- Shadow record handling: do not migrate; use canonical `fixTargetPathSharding`.\n- Scope: cover all `target_path` surfaces.\n- Fallback: legacy fallback for non-sharded sessions.\n- Acceptance criteria approved by user reply: `approve`.\n\n### Agent Decisions (LBP)\n- Use centralized helper as source of truth for shard-aware external roots.\n- Prefer structural path-shape detection over call-site heuristics.\n- Keep target read and mutation stores aligned through shared helper/target-store code.\n\n## Deferred Questions\nNone.\n\n## Sign-Off\nApproved by user reply: `approve`.",
+    "design": "# Design\n\n## Architecture Overview\n\nIntroduce one canonical target external-root helper and route every cross-project ADV store through it.\n\nCurrent state helpers are process-scoped:\n\n```ts\ngetExternalRoot(projectId) = join(getDataHome(), \"opencode/plugins/advance\", projectId)\n```\n\nThat is correct for the current project, but wrong when a source session uses per-project `XDG_DATA_HOME` and operates on a different `target_path` project. The design separates:\n\n- **current-process external root** — existing `getExternalRoot(projectId)` behavior.\n- **canonical project-shard external root** — new helper used when resolving another project by project ID.\n\nTarget store construction then receives the canonical target external root before disk/Temporal store creation.\n\n## Key Decisions\n\n### D1. Add a centralized shard-aware helper\n\nAdd a helper in `plugin/src/utils/project-id.ts`, for example:\n\n```ts\nexport function getExternalRootForProject(projectId: string): string\n```\n\nBehavior:\n1. Read `getDataHome()`.\n2. If data home structurally matches `.../opencode-projects/{40-hex}`:\n   - derive base as parent of current shard directory with `dirname(getDataHome())`.\n   - return `join(base, projectId, \"opencode/plugins/advance\", projectId)`.\n3. Otherwise return existing legacy path: `getExternalRoot(projectId)`.\n\nImportant implementation constraint: build the sibling path structurally. Do **not** string-replace the caller project ID inside the current path; repeated substrings could corrupt paths.\n\nThis makes correctness structural and testable. It avoids scattering `opencode-projects` string logic across target call sites.\n\n### D2. Keep `getExternalRoot()` backward-compatible\n\nDo not change current-project semantics. `plugin-init.ts`, `plugin-context.ts`, worktree pending-delete files, and current-project state should continue using `getExternalRoot()` unless they explicitly resolve a different target project.\n\n### D3. Use canonical target helper for target stores\n\nUpdate target-aware store construction:\n\n- `plugin/src/tools/target-project.ts`\n  - `resolveTargetProject()` sets `externalRoot` with the canonical target helper.\n  - `withTargetPathStore()` then passes that `externalRoot` into disk/Temporal store creation.\n\n- `plugin/src/tools/change.ts`\n  - `createCrossProjectFollowUp()` uses the same canonical target helper for `targetExternalRoot`, or routes through `withTargetPathStore({ stateRequirement: \"scaffold\" })` if that stays simple.\n  - Preserve cross-project origin and source-side link behavior.\n\n- `plugin/src/tools/external-dependency-status.ts`\n  - Use canonical helper when opening advisory target stores.\n\n### D4. Legacy fallback stays explicit\n\nWhen `XDG_DATA_HOME` does not match `.../opencode-projects/{40hex}`, use the current legacy root:\n\n```text\n$XDG_DATA_HOME/opencode/plugins/advance/{projectId}\n```\n\nNo warning required. This is approved behavior for non-sharded sessions.\n\nKnown limitation: non-canonical caller shards such as `path-{12hex}` or `nogit` are not deterministically mappable to a target project shard. They intentionally use legacy fallback. Cover this as fallback behavior in tests rather than guessing.\n\n### D5. No automatic shadow-state migration\n\nExisting shadow state, including `fixArchiveTimeout` under pokeedge-web's shard, is not copied or migrated. This change prevents future wrong writes. Recovery of old shadow records remains manual/operator-driven if needed.\n\n## ADR Drafts\n\nNone. This is important but not hard-to-reverse after tests; no standalone ADR needed.\n\n## Implementation Strategy\n\n1. **RED tests — helper behavior**\n   - Add `getExternalRootForProject()` tests in `plugin/src/utils/project-id.test.ts`:\n     - sharded current data home `/tmp/opencode-projects/{source40}` + target `{target40}` returns `/tmp/opencode-projects/{target40}/opencode/plugins/advance/{target40}`.\n     - non-sharded `/custom/data` returns `/custom/data/opencode/plugins/advance/{target40}`.\n     - non-canonical sharded forms such as `/tmp/opencode-projects/path-abcdef123456` fall back to legacy behavior.\n     - relative `XDG_DATA_HOME` still rejects via `getDataHome()`.\n\n2. **RED tests — target store routing**\n   - Update `plugin/src/tools/target-project.test.ts` assertions from `contains(\"opencode/plugins/advance\")` to exact canonical target shard path under a stubbed sharded `XDG_DATA_HOME`.\n   - Cover both `snapshot-ok` and `temporal-required` paths.\n\n3. **RED tests — cross-project create**\n   - Extend `plugin/src/tools/cross-project-coordination.test.ts` to set sharded `XDG_DATA_HOME` and verify the created target change is visible through a target store using target canonical external root, not through caller-shard external root.\n   - Keep existing source-side outbound link assertion.\n\n4. **GREEN implementation**\n   - Implement helper in `project-id.ts` using `path.basename`, `path.dirname`, 40-hex validation, and `join`.\n   - Replace target call sites:\n     - `target-project.ts` imports new helper.\n     - `change.ts` cross-project target root uses new helper.\n     - `external-dependency-status.ts` uses new helper.\n   - Avoid modifying current-project plugin initialization roots unless tests show they are target-scoped.\n\n5. **Related-scan**\n   - Re-run exact search for `getExternalRoot(`.\n   - Classify each remaining call as current-project or target-project.\n   - Convert only target-project call sites.\n\n## LBP Analysis\n\nCentralized path derivation is the least brittle long-term fix:\n\n- One helper owns the `opencode-projects/{projectId}` layout knowledge.\n- Existing non-sharded behavior remains unchanged.\n- Tool call sites express intent: current project uses `getExternalRoot`; target project uses `getExternalRootForProject`.\n- Tests can prove canonical target path derivation without depending on live ADV state reads.\n\nAlternatives rejected:\n\n- **Manual state copy/migration** — fixes one incident, not future writes.\n- **Change `getExternalRoot()` globally** — risks changing current-project behavior and worktree state paths unexpectedly.\n- **Wrapper/env override** — workaround outside ADV's state contract; brittle across agents/tools.\n- **Symlink target shards** — hides ownership and can corrupt state boundaries.\n\n## Affected Components\n\n- `plugin/src/utils/project-id.ts`\n  - new helper and path-shape parser.\n\n- `plugin/src/tools/target-project.ts`\n  - canonical target context `externalRoot`.\n\n- `plugin/src/tools/change.ts`\n  - cross-project follow-up creation.\n\n- `plugin/src/tools/external-dependency-status.ts`\n  - advisory target dependency reads.\n\n- Tests:\n  - `plugin/src/utils/project-id.test.ts`\n  - `plugin/src/tools/target-project.test.ts`\n  - `plugin/src/tools/cross-project-coordination.test.ts`\n\n## Risks / Mitigations\n\n| Risk | Mitigation |\n|---|---|\n| Mis-detecting normal data homes as sharded | Require basename to be exactly 40 lowercase hex and parent basename `opencode-projects`. |\n| String replacement corrupts paths | Use `dirname(getDataHome())` + target ID + static suffix; no replace-anywhere logic. |\n| Non-canonical caller shards (`path-*`, `nogit`) cannot derive target shard | Intentional legacy fallback; add fallback test. |\n| Breaking non-sharded users | Explicit fallback tests for `/custom/data`. |\n| Partial conversion leaves one target surface shadow-writing | Related-scan for every `getExternalRoot(` call and tests for target-store + create. |\n| Changing current-project state roots accidentally | Keep `getExternalRoot()` unchanged; new helper only for target project contexts. |\n| Shadow record confusion remains | Agreement explicitly says no auto-migration; final report should mention old shadow record ignored. |\n\n## Design Leverage Scout\n\nScout: skipped — narrow internal routing bug with one clear structural fix. Opportunity surface is low: central helper + target-store call-site conversion is already the leverage point.\n\n## Validator Result\n\nValidator: `VALIDATED`.\n\nFindings incorporated:\n- Use structural sibling path derivation with `dirname(getDataHome())`, not string replacement.\n- Document and test non-canonical `path-*` / `nogit` fallback behavior.\n\nRecommendation: proceed to prep. No unresolved conflict, no contract-compromise risk, no user-value tradeoff.",
+    "executiveSummary": "Fixed cross-project `target_path` state routing for per-project OpenCode shards. ADV now has a shard-aware `getExternalRootForProject()` helper and uses it for target project stores, cross-project change creation, and advisory target dependency reads. Sharded create/read/mutation paths now resolve target state under the target project's canonical shard; non-sharded and non-canonical shard sessions keep legacy fallback behavior. Existing shadow records, including the original `fixArchiveTimeout` record under the pokeedge-web shard, are not migrated.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-06-04T19:52:43.582Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| AC1 | acceptance_criterion | From a sharded source session, `adv_change_create target_path:/target` writes the target change under the target project's canonical shard, not the caller shard. | pass | src/tools/cross-project-coordination.test.ts sharded regression; bin/oc-test targeted -- src/utils/project-id.test.ts src/tools/target-project.test.ts src/tools/cross-project-coordination.test.ts passed 54 tests. |\n| AC2 | acceptance_criterion | `adv_change_show` and `adv_change_list` with `target_path:/target` read from the same canonical target shard used by creation. | pass | src/tools/target-project.test.ts verifies withTargetPathStore snapshot-ok externalRoot exact target shard; show/list target_path use withOptionalTargetPathStore -> withTargetPathStore snapshot-ok. |\n| AC3 | acceptance_criterion | Existing mutation tools using `withTargetPathStore()` resolve target external roots through the target canonical shard under sharding. | pass | src/tools/target-project.test.ts verifies temporal-required target store externalRoot exact target shard and projectIdOverride target ID. |\n| AC4 | acceptance_criterion | Non-sharded `$XDG_DATA_HOME/opencode/plugins/advance/{projectId}` behavior remains unchanged. | pass | src/utils/project-id.test.ts verifies non-sharded /custom/data fallback to /custom/data/opencode/plugins/advance/{targetProjectId}. |\n| AC5 | acceptance_criterion | Tests cover sharded helper behavior, legacy fallback behavior, target-store routing, and cross-project create. | pass | Helper, fallback, target-store routing, and cross-project create tests included in 54-test targeted pass. |\n| AC6 | acceptance_criterion | Existing shadow records, including `fixArchiveTimeout` under the pokeedge-web shard, are not automatically migrated. | pass | Review of implementation: no copy/move/delete migration logic added; future target_path operations route canonical helper only. |\n| AC7 | acceptance_criterion | Targeted tests pass for edited helper/tool paths. | pass | Passed: targeted tests 54, pnpm run format:check, pnpm run typecheck, pnpm run lint, spec JSON parse. |\n| C1 | constraint | Do not read ADV state files directly in agent workflow. | respected | Agent workflow used ADV tools for ADV state; implementation does not add direct ADV state file reads. |\n| C2 | constraint | Keep correctness structural: explicit helper/tests for shard-aware path resolution, not ad hoc path concatenation at call sites. | respected | getExternalRootForProject central helper plus unit tests; no scattered path string hacks. |\n| C3 | constraint | Do not break legacy non-sharded `XDG_DATA_HOME` deployments. | respected | src/utils/project-id.test.ts non-sharded fallback test passes. |\n| C4 | constraint | Do not change Temporal workflow IDs or project ID derivation. | respected | Implementation did not modify workflow ID or getProjectId derivation; only external root helper added. |\n| DONT1 | avoidance | No manual state copying between shards as primary fix. | respected | No migration/copy logic added; AC6 review evidence confirms shadow records not touched. |\n| DONT2 | avoidance | No shell wrapper or symlink workaround. | respected | No shell wrapper or symlink workaround added; fix is TypeScript helper/store routing. |\n| DONT3 | avoidance | No silent shadow write when target canonical shard can be derived. | respected | cross-project sharded regression asserts caller-shard target store does not contain created follow-up. |\n| DONT4 | avoidance | No broad rework of OpenCode `oc` wrapper or per-project DB sharding. | respected | No changes to oc wrapper or OpenCode DB sharding policy; touched files are ADV plugin/spec/test files only. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixTargetPathSharding/proposal.md",
+      "updatedAt": "2026-06-04T19:28:21.329Z",
+      "contentHash": "1c7428cdb2d9abba5a781d0e1e87be9f3a9267475bc65a589b577df28bfa8e4f"
+    },
+    "problemStatement": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixTargetPathSharding/problem-statement.md",
+      "updatedAt": "2026-06-04T19:28:21.329Z",
+      "contentHash": "ca6a635f3963e8f62e5fd193388aa489da89189722a606af6bc10237b3023a57"
+    },
+    "agreement": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixTargetPathSharding/agreement.md",
+      "updatedAt": "2026-06-04T19:29:30.349Z",
+      "contentHash": "ad6d06568d1dc6c14dafb1ae26de4c29f55cb72632409501e050cd0a4e452cdf"
+    },
+    "design": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixTargetPathSharding/design.md",
+      "updatedAt": "2026-06-04T19:34:02.766Z",
+      "contentHash": "b719306353ce1994c9b59c452e67ef6203281900b13c805c73882ead420e0fe6"
+    },
+    "executiveSummary": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixTargetPathSharding/executive-summary.md",
+      "updatedAt": "2026-06-04T19:52:56.444Z",
+      "contentHash": "9da7984f3e1f292298d27e9aa142c8ce9b198f77a5130fbd4f9bf01d728d707f"
+    }
+  },
+  "lastSignalAt": "2026-06-04T19:54:45.730Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_MISSING_SUCCESS_CRITERIA",
+      "severity": "warning",
+      "message": "Proposal has no Success Criteria section. How will we know this change is done?",
+      "recorded_at": "2026-06-04T19:21:55.471Z"
+    },
+    {
+      "code": "CLARIFY_UNCLEAR_SCOPE",
+      "severity": "warning",
+      "message": "Proposal has no Scope section. What files and modules will be affected?",
+      "recorded_at": "2026-06-04T19:21:55.471Z",
+      "resolved": true,
+      "resolved_at": "2026-06-04T19:26:02.006Z"
+    },
+    {
+      "code": "CLARIFY_MISSING_ERROR_HANDLING",
+      "severity": "warning",
+      "message": "Proposal describes behavior that could fail but doesn't mention error handling or rollback. What happens when things go wrong?",
+      "recorded_at": "2026-06-04T19:21:55.471Z",
+      "resolved": true,
+      "resolved_at": "2026-06-04T19:26:02.006Z"
+    }
+  ],
+  "worktree_auto_managed": true
+}

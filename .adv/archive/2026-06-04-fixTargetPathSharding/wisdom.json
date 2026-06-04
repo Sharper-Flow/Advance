@@ -1,0 +1,33 @@
+{
+  "entries": [
+    {
+      "id": "ws-BQgT75",
+      "type": "pattern",
+      "content": "When fixing cross-project ADV routing under per-project OpenCode shards, make spec law cover both the canonical sharded target path and the legacy fallback/non-migration behavior. Otherwise the implementation can accidentally overreach into shadow-state migration or break non-sharded sessions.",
+      "source_task": "tk-c021d721319d",
+      "recorded_at": "2026-06-04T19:39:48.110Z"
+    },
+    {
+      "id": "ws-_HTYZP",
+      "type": "pattern",
+      "content": "For per-project OpenCode shard routing, derive target sibling shards structurally with dirname(getDataHome()) + targetProjectId, not string replacement. Validate canonical shard shape with parent basename `opencode-projects` and 40-hex shard basename; fallback preserves non-canonical/legacy sessions.",
+      "source_task": "tk-d7a4c817b20e",
+      "recorded_at": "2026-06-04T19:41:37.827Z"
+    },
+    {
+      "id": "ws-D-63t_",
+      "type": "pattern",
+      "content": "For target_path reads/mutations, preserve current-project getExternalRoot() behavior and switch only target-project externalRoot construction to the canonical target helper. Tests should assert exact target sibling shard paths for both snapshot/disk and Temporal-backed store creation, not just substring containment.",
+      "source_task": "tk-ea9efb72514d",
+      "recorded_at": "2026-06-04T19:43:37.994Z"
+    },
+    {
+      "id": "ws-ymbAh8",
+      "type": "gotcha",
+      "content": "Cross-project create tests using createTestProject fixtures may have stub `.git` dirs without root commits, so getProjectId() returns null in Vitest. To exercise shard-aware target root logic, convert the temp source/target fixtures into real git repos with one commit before calling adv_change_create.",
+      "source_task": "tk-09e21cf2d2af",
+      "recorded_at": "2026-06-04T19:46:15.138Z"
+    }
+  ],
+  "count": 4
+}
