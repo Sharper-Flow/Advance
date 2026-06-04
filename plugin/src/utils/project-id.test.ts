@@ -12,6 +12,7 @@ import {
   getProjectIdFromGit,
   getDataHome,
   getExternalRoot,
+  getExternalRootForProject,
   getWorktreeHomeOverride,
   getWorktreeBase,
   isPathInsideDirectory,
@@ -208,6 +209,52 @@ describe("getExternalRoot", () => {
     const root = getExternalRoot("");
     // Should still return a path (caller is responsible for null-checking projectId)
     expect(root).toBe(join(homedir(), ".local/share/opencode/plugins/advance"));
+  });
+});
+
+describe("getExternalRootForProject", () => {
+  const originalEnv = process.env.XDG_DATA_HOME;
+  const sourceProjectId = "1".repeat(40);
+  const targetProjectId = "2".repeat(40);
+
+  afterEach(() => {
+    if (originalEnv !== undefined) {
+      process.env.XDG_DATA_HOME = originalEnv;
+    } else {
+      delete process.env.XDG_DATA_HOME;
+    }
+  });
+
+  test("uses sibling target project shard when XDG_DATA_HOME is a canonical opencode-projects shard", () => {
+    process.env.XDG_DATA_HOME = `/tmp/opencode-projects/${sourceProjectId}`;
+
+    expect(getExternalRootForProject(targetProjectId)).toBe(
+      `/tmp/opencode-projects/${targetProjectId}/opencode/plugins/advance/${targetProjectId}`,
+    );
+  });
+
+  test("falls back to legacy external root when XDG_DATA_HOME is not sharded", () => {
+    process.env.XDG_DATA_HOME = "/custom/data";
+
+    expect(getExternalRootForProject(targetProjectId)).toBe(
+      `/custom/data/opencode/plugins/advance/${targetProjectId}`,
+    );
+  });
+
+  test("falls back for non-canonical opencode-projects shard names", () => {
+    process.env.XDG_DATA_HOME = "/tmp/opencode-projects/path-abcdef123456";
+
+    expect(getExternalRootForProject(targetProjectId)).toBe(
+      `/tmp/opencode-projects/path-abcdef123456/opencode/plugins/advance/${targetProjectId}`,
+    );
+  });
+
+  test("rejects relative XDG_DATA_HOME paths", () => {
+    process.env.XDG_DATA_HOME = "relative/data";
+
+    expect(() => getExternalRootForProject(targetProjectId)).toThrow(
+      /XDG_DATA_HOME must be absolute/,
+    );
   });
 });
 

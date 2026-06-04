@@ -24,7 +24,7 @@
  */
 
 import { execFileGitCb } from "./git-binary";
-import { isAbsolute, join, relative, resolve } from "path";
+import { basename, dirname, isAbsolute, join, relative, resolve } from "path";
 import { homedir } from "os";
 import { createHash } from "crypto";
 
@@ -182,6 +182,35 @@ export function getWorktreeHomeOverride(): string | null {
  */
 export function getExternalRoot(projectId: string): string {
   return join(getDataHome(), "opencode/plugins/advance", projectId);
+}
+
+/**
+ * Resolve the canonical external state directory for a project id.
+ *
+ * rq-targetPathCanonicalShard01: `target_path` tools may run inside a source
+ * project's per-project OpenCode shard. When the current process is using the
+ * canonical shard layout (`.../opencode-projects/{40hex}`), target project
+ * state belongs under the target project's sibling shard, not the caller's
+ * shard. Non-canonical or non-sharded data homes preserve legacy behavior.
+ */
+export function getExternalRootForProject(projectId: string): string {
+  const dataHome = getDataHome();
+  const currentShard = basename(dataHome);
+  const shardParent = dirname(dataHome);
+
+  if (
+    basename(shardParent) === "opencode-projects" &&
+    /^[0-9a-f]{40}$/.test(currentShard)
+  ) {
+    return join(
+      shardParent,
+      projectId,
+      "opencode/plugins/advance",
+      projectId,
+    );
+  }
+
+  return getExternalRoot(projectId);
 }
 
 /**
