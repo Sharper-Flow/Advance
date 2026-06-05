@@ -76,6 +76,10 @@ jobs:
         run: pnpm test
         working-directory: plugin
 
+      - name: Test bin CLI (Bun)
+        run: bun test bin/
+        working-directory: .
+
   build:
     name: Build
     runs-on: ubuntu-latest

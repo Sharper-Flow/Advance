@@ -121,7 +121,7 @@ Each workflow command has a defined phase goal. Canonical in `manifest.ts` (`pha
 | `/adv-idea`                 | Explore rough ideas before drafting a proposal                                      |
 | `/adv-problem`              | Triage issues before fixing or drafting a proposal                                  |
 | `/adv-status`               | Show fast ADV status table                                                          |
-| `/adv-roadmap`              | Show prioritized backlog with active-change cross-reference                         |
+| `/adv-roadmap`              | Show fast ADV roadmap table                                                         |
 | `/adv-proposal <summary>`   | Extract problem statement, success criteria, and constraints without creating tasks |
 | `/adv-validate <change-id>` | Validate change compliance against specs; block archive on failure                  |
 | `/adv-apply <change-id>`    | Implement change with TDD, retry on failure, and final verification                 |

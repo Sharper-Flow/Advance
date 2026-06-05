@@ -295,7 +295,7 @@ This also enables model comparison: run the same change on two models and compar
 | Command           | Description                                                                       |
 | ----------------- | --------------------------------------------------------------------------------- |
 | `/adv-status`     | Show fast ADV status table                                                        |
-| `/adv-roadmap`    | Show prioritized backlog with active-change cross-reference                       |
+| `/adv-roadmap`    | Show fast ADV roadmap table                                                       |
 | `/adv-idea`       | Explore rough ideas before drafting a proposal                                    |
 | `/adv-problem`    | Triage issues before fixing or drafting a proposal                                |
 | `/adv-proposal`   | Extract problem statement, success criteria, and constraints without creating tasks |
