@@ -1,0 +1,203 @@
+import { describe, expect, test } from "vitest";
+import { readFileSync } from "fs";
+import { join, resolve } from "path";
+import { ADV_TOOL_NAMES } from "./tool-registry";
+
+const REPO_ROOT = resolve(__dirname, "../..");
+const ADVANCE_META_SPEC = join(REPO_ROOT, ".adv/specs/advance-meta/spec.json");
+const ADV_CLI = join(REPO_ROOT, "bin/adv");
+
+function readAdvanceMetaSpec(): {
+  requirements?: Array<{
+    id?: string;
+    priority?: string;
+    scenarios?: Array<{ id?: string }>;
+  }>;
+} {
+  return JSON.parse(readFileSync(ADVANCE_META_SPEC, "utf8"));
+}
+
+interface BridgeCase {
+  command: string;
+  token: string;
+  specId: string;
+}
+
+const BRIDGES: BridgeCase[] = [
+  {
+    command: ".opencode/command/adv-status.md",
+    token: "!`adv status --no-color`",
+    specId: "rq-statusCliBridge01",
+  },
+  {
+    command: ".opencode/command/adv-roadmap.md",
+    token: "!`adv roadmap --no-color`",
+    specId: "rq-roadmapCliBridge01",
+  },
+];
+
+const FORBIDDEN_FANOUT_TOKENS = [
+  "adv_status",
+  "adv_roadmap",
+  "adv_backlog_state",
+  "adv_change_list",
+  "adv_change_show",
+  "adv_gate_status",
+  "adv_spec",
+  "Recommendations:",
+  "active_change",
+];
+
+describe("CLI bridge command contracts", () => {
+  for (const bridge of BRIDGES) {
+    const absPath = join(REPO_ROOT, bridge.command);
+    const name = bridge.command.split("/").pop() ?? bridge.command;
+
+    describe(name, () => {
+      test("bridge token is present", () => {
+        const content = readFileSync(absPath, "utf8");
+        expect(content).toContain(bridge.token);
+      });
+
+      test("requires verbatim output and forbids analysis", () => {
+        const content = readFileSync(absPath, "utf8");
+        expect(content).toMatch(/return this command output verbatim/i);
+        expect(content).toMatch(/do not analyze/i);
+        expect(content).toMatch(/do not .*recommendations/i);
+      });
+
+      test("does not instruct ADV MCP fanout", () => {
+        const content = readFileSync(absPath, "utf8");
+        const found = FORBIDDEN_FANOUT_TOKENS.filter((token) =>
+          content.includes(token),
+        );
+        expect(
+          found,
+          `${name} must stay a CLI bridge, not a prompt-driven workflow`,
+        ).toEqual([]);
+      });
+
+      test(`advance-meta spec pins ${bridge.specId}`, () => {
+        const spec = readAdvanceMetaSpec();
+        const requirement = spec.requirements?.find(
+          (item) => item.id === bridge.specId,
+        );
+        expect(requirement).toMatchObject({
+          id: bridge.specId,
+          priority: "must",
+        });
+        expect(requirement?.scenarios?.map((s) => s.id)).toEqual([
+          `${bridge.specId}.1`,
+          `${bridge.specId}.2`,
+          `${bridge.specId}.3`,
+        ]);
+      });
+    });
+  }
+});
+
+describe("REGISTRY NO-REMOVAL GUARD (AC6/DONT1)", () => {
+  test("ADV_TOOL_NAMES matches frozen snapshot", () => {
+    const frozen: readonly string[] = [
+      "adv_spec",
+      "adv_roadmap",
+      "adv_backlog_state",
+      "adv_wip_state",
+      "adv_change_list",
+      "adv_change_show",
+      "adv_change_create",
+      "adv_change_update",
+      "adv_change_close",
+      "adv_change_bulk_close",
+      "adv_change_validate",
+      "adv_change_archive",
+      "adv_change_update_issues",
+      "adv_change_reenter",
+      "adv_contract_mint",
+      "adv_contract_review_matrix_set",
+      "adv_task_show",
+      "adv_task_list",
+      "adv_task_ready",
+      "adv_task_update",
+      "adv_task_add",
+      "adv_task_cancel",
+      "adv_task_reclassify_tdd",
+      "adv_subagent_report_submit",
+      "adv_wisdom_add",
+      "adv_wisdom_list",
+      "adv_project_wisdom_list",
+      "adv_status",
+      "adv_agenda_list",
+      "adv_agenda_add",
+      "adv_agenda_start",
+      "adv_agenda_complete",
+      "adv_agenda_cancel",
+      "adv_agenda_prioritize",
+      "adv_project_context",
+      "adv_project_metadata",
+      "adv_gate_status",
+      "adv_gate_complete",
+      "adv_run_test",
+      "adv_temporal_diagnose",
+      "adv_temporal_register_search_attributes",
+      "adv_temporal_reconnect",
+      "adv_temporal_worker_restart",
+      "adv_task_checkpoint",
+      "adv_reflect",
+      "adv_conformance",
+      "adv_worktree_create",
+      "adv_worktree_resume",
+      "adv_worktree_delete",
+      "adv_worktree_cleanup",
+      "adv_worktree_triage",
+      "adv_session_list",
+      "adv_session_show",
+      "adv_snapshot_health",
+    ];
+    expect(ADV_TOOL_NAMES).toEqual(frozen);
+  });
+});
+
+describe("NO-CLI-MUTATION GUARD (AC9/DONT3)", () => {
+  test("bin/adv dispatch only recognizes safe subcommands", () => {
+    const content = readFileSync(ADV_CLI, "utf8");
+
+    const allowedDispatch = ["status", "roadmap"];
+    const allowedGlobalFlags = ["help", "version"];
+    const forbidden = [
+      "create",
+      "update",
+      "close",
+      "archive",
+      "gate",
+      "task",
+      "delete",
+      "reenter",
+      "mint",
+      "lock",
+      "unlock",
+    ];
+
+    // Sanity: allowed subcommand dispatch strings are present
+    for (const sub of allowedDispatch) {
+      expect(content).toContain(`"${sub}"`);
+    }
+
+    // Sanity: global flags / functions are present
+    for (const sub of allowedGlobalFlags) {
+      expect(
+        content.includes(`run${sub.charAt(0).toUpperCase() + sub.slice(1)}`) ||
+          content.includes(`"${sub}"`),
+      ).toBe(true);
+    }
+
+    // Forbidden mutation verbs must not appear as subcommand dispatch strings.
+    // We look for the exact dispatch pattern (=== "verb") to avoid false
+    // positives from variable names like archiveDir.
+    const found = forbidden.filter((verb) => content.includes(`=== "${verb}"`));
+    expect(
+      found,
+      "bin/adv must not contain mutation subcommand dispatch",
+    ).toEqual([]);
+  });
+});

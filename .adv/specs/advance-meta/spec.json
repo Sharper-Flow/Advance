@@ -146,6 +146,61 @@
       ]
     },
     {
+      "id": "rq-roadmapCliBridge01",
+      "title": "Roadmap Slash Command Uses CLI Bridge",
+      "body": "The default /adv-roadmap slash command must be a thin OpenCode shell-output bridge over `adv roadmap --no-color`. It must return the CLI roadmap table output without instructing the agent to call adv_roadmap, adv_backlog_state, adv_change_list, adv_change_show, adv_gate_status, adv_spec, synthesize recommendations, or read freshness metadata. Active-change annotation is explicitly out of CLI file mode and available only via explicit MCP backlog tooling; the CLI MUST NOT fabricate annotation from disk.",
+      "priority": "must",
+      "tags": [
+        "roadmap",
+        "command",
+        "cli",
+        "no-fanout"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-roadmapCliBridge01.1",
+          "title": "Default slash command runs CLI table",
+          "given": [
+            "A user invokes /adv-roadmap",
+            "The installed `adv` CLI is available on PATH"
+          ],
+          "when": "The OpenCode command template is processed",
+          "then": [
+            "The command template injects shell output from `adv roadmap --no-color`",
+            "The default output is the CLI roadmap table",
+            "ANSI color/control output is disabled for stable command-template rendering"
+          ]
+        },
+        {
+          "id": "rq-roadmapCliBridge01.2",
+          "title": "Default slash command forbids agent fanout",
+          "given": [
+            "The /adv-roadmap command file is inspected"
+          ],
+          "when": "Its default body is evaluated for roadmap work instructions",
+          "then": [
+            "It does not instruct the agent to call adv_roadmap, adv_backlog_state, adv_change_list, adv_change_show, adv_gate_status, or adv_spec",
+            "It does not instruct the agent to build active-change cross-reference, synthesize recommendations, or read freshness metadata",
+            "It tells the agent to return the command output verbatim without analysis"
+          ]
+        },
+        {
+          "id": "rq-roadmapCliBridge01.3",
+          "title": "CLI failure does not fallback to ADV tools",
+          "given": [
+            "The /adv-roadmap command template runs `adv roadmap --no-color`",
+            "The CLI is missing, exits non-zero, or writes an error"
+          ],
+          "when": "The default /adv-roadmap path handles that result",
+          "then": [
+            "The shell command error or stderr is surfaced to the user",
+            "No fallback path instructs the agent to call ADV MCP roadmap/backlog/list/show/spec tools",
+            "Active-change annotation remains an explicit MCP opt-in action"
+          ]
+        }
+      ]
+    },
+    {
       "id": "rq-statusProbeCache01",
       "title": "Bounded Cached Health Probes",
       "body": "ADV health and recovery diagnostics that probe Temporal, task queues, worker diagnostics, search-attribute health, or worktree census must use bounded cached probes. Cached probe responses must surface _freshness metadata with cached_at, stale, and optional error. Stale probe data may inform recommendations but must not authorize safety-critical mutations such as worker-lock reclaim, restart success, override, unlock, or archive decisions.",
