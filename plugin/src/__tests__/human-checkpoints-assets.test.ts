@@ -59,9 +59,9 @@ describe("rq-autonomy01 human checkpoint assets", () => {
     expect(content).toMatch(
       /Phase\s+4\.5\.1:\s+Acceptance Criteria Checkpoint/i,
     );
-    // Updated outcome wording (no longer "Approve acceptance criteria"
+    // Updated outcome wording (criteria approval now covers AC + SC)
     // option label — inline reply with `approve` whitelist hit)
-    expect(content).toMatch(/approve AC and proceed/i);
+    expect(content).toMatch(/approve criteria and proceed/i);
     expect(content).toMatch(/\/adv-clarify \{change-id\}/);
     expect(content).toMatch(/describe what to add\/clarify/i);
     const checkpointIdx = content.indexOf(

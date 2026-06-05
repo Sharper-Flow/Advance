@@ -107,14 +107,14 @@ That combination is the product.
 
 Advance is an original implementation, but it is not an isolated idea. It owes a lot to projects that made agentic engineering more structured, durable, and spec-driven.
 
-| Inspo tool | Technique / idea | Upgrade with Advance |
-| --- | --- | --- |
-| [Beads](https://github.com/steveyegge/beads) | Agent-friendly task memory, dependency graphs, ready-task discovery, structured issue state. | Binds tasks to gates, contracts, TDD evidence, checkpoint commits, worktrees, and Temporal recovery. |
-| [Spec Kit](https://github.com/github/spec-kit) | Spec-driven flow: define, plan, task, implement. | Adds durable gates, user checkpoints, MCP tools, contract review matrices, spec promotion, and release governance. |
-| [OpenSpec](https://github.com/Fission-AI/OpenSpec) | Proposal/change folders, agreed-before-build behavior, deltas, design notes, archive-as-spec-promotion. | Makes the lifecycle stateful and auditable with Temporal, artifact readiness, shared ADV state, review, harden, and release controls. |
-| [OpenCode](https://github.com/anomalyco/opencode) | Local agent host, plugins, slash commands, sub-agents, tool-mediated development. | Adds context engineering: one primary orchestrator, bounded sub-agents, structured tools, gate contracts, and evidence capture. |
-| [opencode-worktree](https://github.com/kdcokenny/opencode-worktree) | Isolated OpenCode agent worktrees with terminal spawning, sync, and cleanup. | Makes worktrees part of the delivery contract: gate ownership, Temporal state, task checkpoints, branch-local specs, and safe archive merge. |
-| [Temporal](https://temporal.io/) | Durable workflow execution, signal/query state, replay-safe orchestration. | Uses Temporal as the persistence spine for changes, tasks, gates, recovery state, and multi-session handoffs. |
+| Inspo tool                                                          | Technique / idea                                                                                        | Upgrade with Advance                                                                                                                         |
+| ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| [Beads](https://github.com/steveyegge/beads)                        | Agent-friendly task memory, dependency graphs, ready-task discovery, structured issue state.            | Binds tasks to gates, contracts, TDD evidence, checkpoint commits, worktrees, and Temporal recovery.                                         |
+| [Spec Kit](https://github.com/github/spec-kit)                      | Spec-driven flow: define, plan, task, implement.                                                        | Adds durable gates, user checkpoints, MCP tools, contract review matrices, spec promotion, and release governance.                           |
+| [OpenSpec](https://github.com/Fission-AI/OpenSpec)                  | Proposal/change folders, agreed-before-build behavior, deltas, design notes, archive-as-spec-promotion. | Makes the lifecycle stateful and auditable with Temporal, artifact readiness, shared ADV state, review, harden, and release controls.        |
+| [OpenCode](https://github.com/anomalyco/opencode)                   | Local agent host, plugins, slash commands, sub-agents, tool-mediated development.                       | Adds context engineering: one primary orchestrator, bounded sub-agents, structured tools, gate contracts, and evidence capture.              |
+| [opencode-worktree](https://github.com/kdcokenny/opencode-worktree) | Isolated OpenCode agent worktrees with terminal spawning, sync, and cleanup.                            | Makes worktrees part of the delivery contract: gate ownership, Temporal state, task checkpoints, branch-local specs, and safe archive merge. |
+| [Temporal](https://temporal.io/)                                    | Durable workflow execution, signal/query state, replay-safe orchestration.                              | Uses Temporal as the persistence spine for changes, tasks, gates, recovery state, and multi-session handoffs.                                |
 
 The pattern is deliberate: take strong primitives from each predecessor, then vertically integrate them into one enforceable agent harness.
 
@@ -276,15 +276,15 @@ Advance exposes one canonical orchestrator agent (`adv`) instead of role-based l
 
 **The ADV orchestrator model:** A single ADV agent carries the full change lifecycle from proposal through archive. It sees the problem statement, agreement, design, task graph, implementation evidence, and review findings. Provider-specific guidance is injected at runtime from structured provider/model identity. When specialized work is needed, the orchestrator delegates to bounded sub-agents for one task — not an entire lifecycle phase.
 
-| Aspect | Role agents (planner / coder / reviewer) | Single ADV orchestrator |
-| --- | --- | --- |
-| Context continuity | Lost at every handoff | Full lifecycle in one agent |
-| Gate coherence | Each agent sees a phase slice | One agent owns all 7 gates |
-| Model tuning | One prompt fits all models | Runtime provider hints when structured identity is known |
-| Model comparison | Hard — different agents run different phases | Same workflow, different models, directly comparable |
-| User model | "Which agent handles this phase?" | Use `adv`, get the full lifecycle |
-| Tool surface | Per-role tool subsets to maintain | Shared MCP tools, one policy layer |
-| Delegation | Role-to-role handoffs, no recovery | Scoped sub-agent tasks with structured reports |
+| Aspect             | Role agents (planner / coder / reviewer)     | Single ADV orchestrator                                  |
+| ------------------ | -------------------------------------------- | -------------------------------------------------------- |
+| Context continuity | Lost at every handoff                        | Full lifecycle in one agent                              |
+| Gate coherence     | Each agent sees a phase slice                | One agent owns all 7 gates                               |
+| Model tuning       | One prompt fits all models                   | Runtime provider hints when structured identity is known |
+| Model comparison   | Hard — different agents run different phases | Same workflow, different models, directly comparable     |
+| User model         | "Which agent handles this phase?"            | Use `adv`, get the full lifecycle                        |
+| Tool surface       | Per-role tool subsets to maintain            | Shared MCP tools, one policy layer                       |
+| Delegation         | Role-to-role handoffs, no recovery           | Scoped sub-agent tasks with structured reports           |
 
 The sub-agent system still exists: `adv-engineer` implements backend/state/API work, `adv-designer` is the apply-phase frontend/component specialist (write-only, never review/harden owner), `adv-researcher` validates architecture/docs/examples, `adv-reviewer` remediates review/harden findings (with a `FRONTEND DESIGN REVIEW SKILL` anchor for design-inclusive changes), and `explore` scans code. They are context-engineering tools, not owners of the lifecycle.
 
@@ -292,35 +292,35 @@ This also enables model comparison: run the same change on two models and compar
 
 ## Command reference
 
-| Command           | Description                                                                       |
-| ----------------- | --------------------------------------------------------------------------------- |
-| `/adv-status`     | Show fast ADV status table                                                        |
-| `/adv-roadmap`    | Show prioritized backlog with active-change cross-reference                       |
-| `/adv-idea`       | Explore rough ideas before drafting a proposal                                    |
-| `/adv-problem`    | Triage issues before fixing or drafting a proposal                                |
-| `/adv-proposal`   | Extract problem statement, success criteria, and constraints without creating tasks |
-| `/adv-discover`   | Gather context, analyze current state, identify objectives, and obtain user agreement |
-| `/adv-design`     | Validate architecture decisions, produce implementation strategy, and present design for user review |
-| `/adv-prep`       | Analyze gaps and synthesize tasks from validated research findings                |
-| `/adv-apply`      | Implement change with TDD, retry on failure, and final verification              |
-| `/adv-review`     | Review code for correctness, security, and architecture; emit REVIEW_FINDINGS     |
-| `/adv-harden`     | Detect low-quality code, verify test coverage, clean up; block archive on open findings |
-| `/adv-archive`    | Archive completed change: apply spec deltas and finalize git                      |
-| `/adv-validate`   | Validate change compliance against specs; block archive on failure                |
-| `/adv-clarify`    | Ask clarifying questions to resolve ambiguous requirements                        |
-| `/adv-research`   | Produce a defined, fully-researched proposed plan ready for user approval         |
-| `/adv-task`       | Fast-track small changes: assess spec-law impact, prep, and hand off |
+| Command          | Description                                                                                          |
+| ---------------- | ---------------------------------------------------------------------------------------------------- |
+| `/adv-status`    | Show fast ADV status table                                                                           |
+| `/adv-roadmap`   | Show prioritized backlog with active-change cross-reference                                          |
+| `/adv-idea`      | Explore rough ideas before drafting a proposal                                                       |
+| `/adv-problem`   | Triage issues before fixing or drafting a proposal                                                   |
+| `/adv-proposal`  | Extract problem statement, user outcomes, and constraints without creating tasks                     |
+| `/adv-discover`  | Gather context, analyze current state, identify objectives, and obtain user agreement                |
+| `/adv-design`    | Validate architecture decisions, produce implementation strategy, and present design for user review |
+| `/adv-prep`      | Analyze gaps and synthesize tasks from approved agreement plus validated design                      |
+| `/adv-apply`     | Implement change with TDD, retry on failure, and final verification                                  |
+| `/adv-review`    | Review code for correctness, security, and architecture; emit REVIEW_FINDINGS                        |
+| `/adv-harden`    | Detect low-quality code, verify test coverage, clean up; block archive on open findings              |
+| `/adv-archive`   | Archive completed change: apply spec deltas and finalize git                                         |
+| `/adv-validate`  | Validate change compliance against specs; block archive on failure                                   |
+| `/adv-clarify`   | Ask clarifying questions to resolve ambiguous requirements                                           |
+| `/adv-research`  | Produce a defined, fully-researched proposed plan ready for user approval                            |
+| `/adv-task`      | Fast-track small changes: assess spec-law impact, prep, and hand off                                 |
 | `/adv-atc`       | Execute autonomous ROADMAP pipeline, deferring HITL to GitHub issues, stop only on safety boundaries |
-| `/adv-audit`      | Detect drift between specs and current implementation                             |
-| `/adv-slop-scan`  | Scan slop, deletion safety, and detector coverage                                |
-| `/adv-arch-scan`  | Scan architecture stack packs, coverage, and heuristic fallbacks                  |
-| `/adv-comp-scan`  | Scan competitor capabilities against this project for competitive intelligence    |
-| `/adv-refactor`   | Refresh a stale proposal or batch-refresh the oldest 30% of active changes       |
-| `/adv-cleanup`    | Triage stale, abandoned, duplicate, and ready-to-archive active changes          |
-| `/adv-triage`     | Triage all backlog sources, score features with WSJF, regenerate ROADMAP.md      |
-| `/adv-improve`    | Suggest targeted improvements to existing specs or implementation                 |
-| `/adv-tron`       | Investigate codebase structure, hotspots, risks, and suggest follow-up agenda candidates |
-| `/adv-reflect`    | Produce a structured two-plane reflection report for an archived change           |
+| `/adv-audit`     | Detect drift between specs and current implementation                                                |
+| `/adv-slop-scan` | Scan slop, deletion safety, and detector coverage                                                    |
+| `/adv-arch-scan` | Scan architecture stack packs, coverage, and heuristic fallbacks                                     |
+| `/adv-comp-scan` | Scan competitor capabilities against this project for competitive intelligence                       |
+| `/adv-refactor`  | Refresh a stale proposal or batch-refresh the oldest 30% of active changes                           |
+| `/adv-cleanup`   | Triage stale, abandoned, duplicate, and ready-to-archive active changes                              |
+| `/adv-triage`    | Triage all backlog sources, score features with WSJF, regenerate ROADMAP.md                          |
+| `/adv-improve`   | Suggest targeted improvements to existing specs or implementation                                    |
+| `/adv-tron`      | Investigate codebase structure, hotspots, risks, and suggest follow-up agenda candidates             |
+| `/adv-reflect`   | Produce a structured two-plane reflection report for an archived change                              |
 
 ## Quick start
 

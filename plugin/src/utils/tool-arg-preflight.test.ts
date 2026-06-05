@@ -771,17 +771,32 @@ describe("tool arg preflight", () => {
     ],
     [
       "adv_task_cancel",
-      { taskIds: ["t"], approvedByUser: true, approvalEvidence: "ok", confirmationEvidence: " " },
+      {
+        taskIds: ["t"],
+        approvedByUser: true,
+        approvalEvidence: "ok",
+        confirmationEvidence: " ",
+      },
       "confirmationEvidence",
     ],
     [
       "adv_task_cancel",
-      { taskIds: ["t"], approvedByUser: true, approvalEvidence: "ok", recoveryEvidence: " " },
+      {
+        taskIds: ["t"],
+        approvedByUser: true,
+        approvalEvidence: "ok",
+        recoveryEvidence: " ",
+      },
       "recoveryEvidence",
     ],
     [
       "adv_task_reclassify_tdd",
-      { taskId: "t", toIntent: "inline", approvalEvidence: "ok", confirmationEvidence: " " },
+      {
+        taskId: "t",
+        toIntent: "inline",
+        approvalEvidence: "ok",
+        confirmationEvidence: " ",
+      },
       "confirmationEvidence",
     ],
     [
@@ -1257,20 +1272,24 @@ describe("tool arg preflight", () => {
     // fields as blank strings. This test reproduces the exact deadlock that
     // GPT-5.5 hit — every optional field blank, non-recovery gate.
     test("full strict-mode adv_gate_complete payload normalizes to minimal valid", () => {
-      const result = preflightToolArgs("adv_gate_complete", {}, {
-        changeId: "fixPcIdentityScope",
-        gateId: "execution",
-        completedBy: "",
-        userApproved: false,
-        notes: "",
-        compatibilityReason: "",
-        recoveryReason: "",
-        recoveryEvidence: "",
-        priorApprovalEvidence: "",
-        target_path: "",
-        target_confirmed: true,
-        confirmationEvidence: "",
-      });
+      const result = preflightToolArgs(
+        "adv_gate_complete",
+        {},
+        {
+          changeId: "fixPcIdentityScope",
+          gateId: "execution",
+          completedBy: "",
+          userApproved: false,
+          notes: "",
+          compatibilityReason: "",
+          recoveryReason: "",
+          recoveryEvidence: "",
+          priorApprovalEvidence: "",
+          target_path: "",
+          target_confirmed: true,
+          confirmationEvidence: "",
+        },
+      );
       expect(result.ok).toBe(true);
       expect(result.invalid).toEqual([]);
       // Only non-blank required fields + boolean + literal survive.

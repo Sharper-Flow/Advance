@@ -56,9 +56,10 @@ export const WORKTREE_TOOL_SAFE_TIMEOUT_MS = 8_000;
  *
  * rq-worktreeBoundedCleanup02 AC2.
  */
-function clampToSafeBudget(
-  requestedMs: number | undefined,
-): { effectiveTimeoutMs: number; wasClamped: boolean } {
+function clampToSafeBudget(requestedMs: number | undefined): {
+  effectiveTimeoutMs: number;
+  wasClamped: boolean;
+} {
   const requested = requestedMs ?? WORKTREE_TOOL_SAFE_TIMEOUT_MS;
   if (requested > WORKTREE_TOOL_SAFE_TIMEOUT_MS) {
     return {
@@ -269,7 +270,9 @@ async function executeWorktreeCleanup(
     );
   }
 
-  const cleanupResult = result as Awaited<ReturnType<typeof advWorktreeCleanup>>;
+  const cleanupResult = result as Awaited<
+    ReturnType<typeof advWorktreeCleanup>
+  >;
   return formatMaybeTargetOutput(
     formatToolOutput({
       success: true,
@@ -277,7 +280,9 @@ async function executeWorktreeCleanup(
       retained: cleanupResult.retained,
       effectiveTimeoutMs,
       ...(wasClamped
-        ? { timeoutNote: `Requested ${args.timeoutMs}ms clamped to safe budget ${effectiveTimeoutMs}ms` }
+        ? {
+            timeoutNote: `Requested ${args.timeoutMs}ms clamped to safe budget ${effectiveTimeoutMs}ms`,
+          }
         : {}),
       ...(cleanupResult.dryRun ? { dryRun: true } : {}),
     }),

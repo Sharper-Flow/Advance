@@ -235,7 +235,7 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
   "adv-prep": {
     name: "adv-prep",
     description:
-      "Analyze gaps and synthesize tasks from validated research findings",
+      "Analyze gaps and synthesize tasks from approved agreement plus validated design",
     phase: "pre-implementation",
     gate: "planning",
     requiresChangeId: true,

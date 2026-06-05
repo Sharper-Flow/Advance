@@ -461,9 +461,7 @@
         {
           "id": "rq-worktreeBoundedCleanup02.2",
           "title": "Oversize timeout is clamped with effectiveTimeoutMs",
-          "given": [
-            "adv_worktree_cleanup is called with timeoutMs > 8000"
-          ],
+          "given": ["adv_worktree_cleanup is called with timeoutMs > 8000"],
           "when": "The tool processes the request",
           "then": [
             "The effective timeout is clamped to 8000ms",
@@ -497,7 +495,9 @@
         {
           "id": "rq-worktreeBoundedCleanup02.5",
           "title": "Workspace operations are bounded",
-          "given": ["Workspace find or delete operations are called during worktree cleanup"],
+          "given": [
+            "Workspace find or delete operations are called during worktree cleanup"
+          ],
           "when": "The HTTP request hangs",
           "then": [
             "The operation is aborted after 3s (AbortSignal.timeout)",
@@ -508,6 +508,7 @@
       ]
     },
     {
+      "id": "rq-worktreeTargetCleanup01",
       "title": "Target-Project Worktree Cleanup Routing",
       "body": "Worktree cleanup mutation tools that support target-project operation MUST route target_path calls through the target project's store and Temporal queue, require explicit confirmation for untrusted target mutation, and preserve existing delete/cleanup safety gates. Worktree triage recommendations for a target project MUST be actionable from the current session by including target-aware remediation instead of bare current-project cleanup commands.",
       "priority": "must",

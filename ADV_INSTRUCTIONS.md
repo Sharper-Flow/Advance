@@ -116,17 +116,17 @@ Each workflow command has a defined phase goal. Canonical in `manifest.ts` (`pha
 
 ### Core Workflow
 
-| Command                     | Purpose                                                                             |
-| --------------------------- | ----------------------------------------------------------------------------------- |
-| `/adv-idea`                 | Explore rough ideas before drafting a proposal                                      |
-| `/adv-problem`              | Triage issues before fixing or drafting a proposal                                  |
-| `/adv-status`               | Show fast ADV status table                                                          |
-| `/adv-roadmap`              | Show prioritized backlog with active-change cross-reference                         |
-| `/adv-proposal <summary>`   | Extract problem statement, success criteria, and constraints without creating tasks |
-| `/adv-validate <change-id>` | Validate change compliance against specs; block archive on failure                  |
-| `/adv-apply <change-id>`    | Implement change with TDD, retry on failure, and final verification                 |
-| `/adv-archive <change-id>`  | Archive completed change: apply spec deltas and finalize git                        |
-| `/adv-reflect <change-id>`  | Produce a structured two-plane reflection report for an archived change             |
+| Command                     | Purpose                                                                          |
+| --------------------------- | -------------------------------------------------------------------------------- |
+| `/adv-idea`                 | Explore rough ideas before drafting a proposal                                   |
+| `/adv-problem`              | Triage issues before fixing or drafting a proposal                               |
+| `/adv-status`               | Show fast ADV status table                                                       |
+| `/adv-roadmap`              | Show prioritized backlog with active-change cross-reference                      |
+| `/adv-proposal <summary>`   | Extract problem statement, user outcomes, and constraints without creating tasks |
+| `/adv-validate <change-id>` | Validate change compliance against specs; block archive on failure               |
+| `/adv-apply <change-id>`    | Implement change with TDD, retry on failure, and final verification              |
+| `/adv-archive <change-id>`  | Archive completed change: apply spec deltas and finalize git                     |
+| `/adv-reflect <change-id>`  | Produce a structured two-plane reflection report for an archived change          |
 
 ### Pre-Implementation
 
@@ -136,18 +136,18 @@ Each workflow command has a defined phase goal. Canonical in `manifest.ts` (`pha
 | `/adv-research <target>`    | Produce a defined, fully-researched proposed plan ready for user approval                            |
 | `/adv-discover <change-id>` | Gather context, analyze current state, identify objectives, and obtain user agreement                |
 | `/adv-design <change-id>`   | Validate architecture decisions, produce implementation strategy, and present design for user review |
-| `/adv-prep <change-id>`     | Analyze gaps and synthesize tasks from validated research findings                                   |
+| `/adv-prep <change-id>`     | Analyze gaps and synthesize tasks from approved agreement plus validated design                      |
 
 ### Post-Implementation
 
-| Command                   | Purpose                                                                                              |
-| ------------------------- | ---------------------------------------------------------------------------------------------------- |
-| `/adv-review <change-id>` | Review code for correctness, security, and architecture; emit REVIEW_FINDINGS                        |
-| `/adv-harden <change-id>` | Detect low-quality code, verify test coverage, clean up; block archive on open findings              |
-| `/adv-audit [capability]` | Detect drift between specs and current implementation                                                |
-| `/adv-slop-scan [path]`   | Scan slop, deletion safety, and detector coverage                                                    |
-| `/adv-arch-scan [path]`   | Scan architecture stack packs, coverage, and heuristic fallbacks                                      |
-| `/adv-comp-scan <target>` | Scan competitor capabilities against this project for competitive intelligence                       |
+| Command                   | Purpose                                                                                 |
+| ------------------------- | --------------------------------------------------------------------------------------- |
+| `/adv-review <change-id>` | Review code for correctness, security, and architecture; emit REVIEW_FINDINGS           |
+| `/adv-harden <change-id>` | Detect low-quality code, verify test coverage, clean up; block archive on open findings |
+| `/adv-audit [capability]` | Detect drift between specs and current implementation                                   |
+| `/adv-slop-scan [path]`   | Scan slop, deletion safety, and detector coverage                                       |
+| `/adv-arch-scan [path]`   | Scan architecture stack packs, coverage, and heuristic fallbacks                        |
+| `/adv-comp-scan <target>` | Scan competitor capabilities against this project for competitive intelligence          |
 
 ### Fast-Track / Advanced
 
@@ -163,17 +163,17 @@ Each workflow command has a defined phase goal. Canonical in `manifest.ts` (`pha
 
 ## Command Boundaries
 
-| Command  | Produces                                                                        | × MUST NOT                                                               | Gate                 |
-| -------- | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------ | -------------------- |
-| proposal | Problem statement, criteria, constraints                                        | Create tasks, complete gates, impl decisions                             | None                 |
-| discover | Current-state evidence, objectives, agreement, acceptance criteria              | Create tasks, complete non-discovery gates                               | discovery            |
-| design   | Validated implementation strategy                                               | Create tasks, bypass validator                                           | design               |
-| prep     | Task graph, gap analysis, sequencing                                            | Complete non-planning gates, architecture decisions                      | planning             |
+| Command  | Produces                                                                                                                             | × MUST NOT                                                               | Gate                                     |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------ | ---------------------------------------- |
+| proposal | Problem statement, criteria, constraints                                                                                             | Create tasks, complete gates, impl decisions                             | None                                     |
+| discover | Current-state evidence, objectives, agreement, acceptance criteria                                                                   | Create tasks, complete non-discovery gates                               | discovery                                |
+| design   | Validated implementation strategy                                                                                                    | Create tasks, bypass validator                                           | design                                   |
+| prep     | Task graph, gap analysis, sequencing                                                                                                 | Complete non-planning gates, architecture decisions                      | planning                                 |
 | task     | Change + tasks + gates (tracked fast path; includes spec-law impact assessment and crash recovery through durable change/task state) | Skip spec-law Add/Modify/Remove/No update/Uncertain assessment           | proposal + discovery + design + planning |
-| apply    | Implementation via TDD                                                          | Auto-complete discovery/planning gates                                   | execution            |
-| review   | Review findings and acceptance evidence                                         | Archive, release, or expand scope silently                               | acceptance           |
-| archive  | Spec promotion, release readiness, cleanup                                      | Skip validation, conformance, or sign-off                                | release              |
-| reflect  | Reflection report (JSON + Markdown), friction analysis, improvement suggestions | Mutate change state, tasks, or gates; block archive when invoked from it | None                 |
+| apply    | Implementation via TDD                                                                                                               | Auto-complete discovery/planning gates                                   | execution                                |
+| review   | Review findings and acceptance evidence                                                                                              | Archive, release, or expand scope silently                               | acceptance                               |
+| archive  | Spec promotion, release readiness, cleanup                                                                                           | Skip validation, conformance, or sign-off                                | release                                  |
+| reflect  | Reflection report (JSON + Markdown), friction analysis, improvement suggestions                                                      | Mutate change state, tasks, or gates; block archive when invoked from it | None                                     |
 
 - Only `/adv-prep` (and exempt `/adv-task`) may call `adv_task_add`
 - `/adv-apply` stops if discovery or planning gates pending
@@ -360,15 +360,15 @@ Every `/adv-apply` task with file changes in its workdir MUST produce a git comm
 
 **Apply-loop ordering:**
 
-| Step | Action                                                                                                                          |
-| ---- | ------------------------------------------------------------------------------------------------------------------------------- |
-| 3a   | Start — `adv_task_update status: "in_progress"`                                                                                 |
-| 3a.6 | Clean Baseline Capture — verify clean tree, record HEAD/branch                                                                  |
-| 3b   | Red Phase — write failing test                                                                                                  |
-| 3c   | Green Phase — implement, tests pass                                                                                             |
-| 3c.4 | **Incremental Verification** — build/tests/lint pass                                                                            |
+| Step | Action                                                                                                                                       |
+| ---- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| 3a   | Start — `adv_task_update status: "in_progress"`                                                                                              |
+| 3a.6 | Clean Baseline Capture — verify clean tree, record HEAD/branch                                                                               |
+| 3b   | Red Phase — write failing test                                                                                                               |
+| 3c   | Green Phase — implement, tests pass                                                                                                          |
+| 3c.4 | **Incremental Verification** — build/tests/lint pass                                                                                         |
 | 3c.5 | **Checkpoint** — `adv_task_checkpoint` with change/branch/HEAD/verification fires and verifies `taskCompletedSignal` to mark the task `done` |
-| 3d   | Complete — verify checkpoint output (`checkpointRecorded:true`); do not call `adv_task_update status: "done"` in normal apply flow            |
+| 3d   | Complete — verify checkpoint output (`checkpointRecorded:true`); do not call `adv_task_update status: "done"` in normal apply flow           |
 
 **Failure classification:**
 
@@ -710,9 +710,9 @@ Design gate requires mandatory independent `adv-researcher` validator before com
 
 Utility commands keep their own delegation rules in command files, not the workflow-step matrix. Examples of utility fan-out:
 
-| Command | Pattern | Worker |
-|---|---|---|
-| slop-scan | Sequential categories | explore × 9 (single-level only) |
+| Command   | Pattern                         | Worker                                          |
+| --------- | ------------------------------- | ----------------------------------------------- |
+| slop-scan | Sequential categories           | explore × 9 (single-level only)                 |
 | arch-scan | Stack packs + research fallback | none; run stack tools, Context7, and Exa inline |
 
 For `/adv-slop-scan`, all `explore` scanner workers must do the scan inline and must not delegate to additional sub-agents or invoke `/adv-*` slash commands.
@@ -769,15 +769,15 @@ Primary agents: `adv`, `plan`, `build`, `adv-atc` (not spawnable). Spawnable: gl
 
 ### Agent Roster
 
-| Agent | Use |
-| --- | --- |
-| `explore` | Code navigation, scoped read-only scans |
-| `adv-researcher` | Docs/API/examples research + architecture validation; independent validator |
-| `adv-engineer` | Delegated ADV code-writing (backend/state/API/business logic); must use packet `workdir`; submits typed `ENGINEER_REPORT` |
-| `adv-designer` | Apply-phase frontend/component specialist (HTML/CSS/JS/TSX, a11y, responsive, polish, site-design match); write-only, never review/harden owner; submits typed `DESIGNER_REPORT` per `.opencode/agents/adv-designer.md` |
-| `adv-reviewer` | `/adv-review` and `/adv-harden` analysis/remediation; submits typed report. Reviewer packet carries `FRONTEND DESIGN REVIEW SKILL` anchor for design-inclusive changes |
-| `general` | Verify bursts + generic multi-step work |
-| `adv-tron` | Recon + hotspots (repo-local) |
+| Agent            | Use                                                                                                                                                                                                                     |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `explore`        | Code navigation, scoped read-only scans                                                                                                                                                                                 |
+| `adv-researcher` | Docs/API/examples research + architecture validation; independent validator                                                                                                                                             |
+| `adv-engineer`   | Delegated ADV code-writing (backend/state/API/business logic); must use packet `workdir`; submits typed `ENGINEER_REPORT`                                                                                               |
+| `adv-designer`   | Apply-phase frontend/component specialist (HTML/CSS/JS/TSX, a11y, responsive, polish, site-design match); write-only, never review/harden owner; submits typed `DESIGNER_REPORT` per `.opencode/agents/adv-designer.md` |
+| `adv-reviewer`   | `/adv-review` and `/adv-harden` analysis/remediation; submits typed report. Reviewer packet carries `FRONTEND DESIGN REVIEW SKILL` anchor for design-inclusive changes                                                  |
+| `general`        | Verify bursts + generic multi-step work                                                                                                                                                                                 |
+| `adv-tron`       | Recon + hotspots (repo-local)                                                                                                                                                                                           |
 
 `adv-tron` repo-local. `adv-researcher` / `adv-engineer` / `adv-reviewer` / `adv-designer` bundled global via `scripts/deploy-local.sh`. Research pattern: `adv-researcher` covers docs/API/examples + architecture in a single spawn. Apply routing: `metadata.frontend == "true"` → `adv-designer` (Priority 1.5 in `/adv-apply` delegation routing table; `metadata.delegation_hint` at Priority 1 remains explicit user override).
 
@@ -864,31 +864,32 @@ Commands own workflow/state, user-facing invocation, mutation, gate completion. 
 
 ### Load-site taxonomy
 
-| Load site | Meaning / fallback |
-| --------- | ------------------ |
-| `orchestrator-only` | Main command loads skill for checkpoints/routing/gates; command embeds fallback. |
-| `worker-only` | Worker loads methodology for self-contained work; orchestrator defines degraded/inconclusive handling before spawn. |
-| `split` | Orchestrator owns schema/routing/fallback/adoption/mutation; worker gets methodology detail; no auto-adopt beyond routing. |
-| `inlined-agent-methodology` | Agent prompt carries methodology; skill mirrors/documents sync; command fallback remains and no extra worker delegation. |
+| Load site                   | Meaning / fallback                                                                                                         |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `orchestrator-only`         | Main command loads skill for checkpoints/routing/gates; command embeds fallback.                                           |
+| `worker-only`               | Worker loads methodology for self-contained work; orchestrator defines degraded/inconclusive handling before spawn.        |
+| `split`                     | Orchestrator owns schema/routing/fallback/adoption/mutation; worker gets methodology detail; no auto-adopt beyond routing. |
+| `inlined-agent-methodology` | Agent prompt carries methodology; skill mirrors/documents sync; command fallback remains and no extra worker delegation.   |
 
 Worker skill-load availability is permissive: guard explicit `skill: false`, not missing `skill: true`; missing exposure degrades via command fallback.
 
 ### Reference Pattern
+
 `adv-tron` pattern: command owns orchestration/state/user interaction; skill owns protocol/search/report schema; command embeds fallback. Fan-out commands load skill before spawning and keep inline fallback is required.
 
 ### Classification
 
-| Class | Commands | Load site |
-| ----- | -------- | --------- |
-| Command-only | `adv-idea`, `adv-problem`, `adv-proposal`, `adv-research`, `adv-task`, `adv-validate`, `adv-archive`, `adv-status` | — |
-| Dedicated skill | `adv-triage` → `adv-triage`; `adv-reflect` → `adv-reflect`; `adv-cleanup` → `adv-cleanup`; `adv-improve` → `adv-improve`; `adv-clarify` → `adv-clarify`; `adv-arch-scan` → `adv-arch-detection` | `orchestrator-only` |
-| Dedicated skill with worker execution | `adv-audit` → `adv-audit`; `adv-refactor` → `adv-refactor` | `split` |
-| Scout skill | `adv-discover`, `adv-design` → `adv-opportunity-scout` | `split` |
-| User comparison skill | `adv-design` → `adv-user-intuit` | `orchestrator-only` |
-| Shared skill | `adv-harden`, `adv-slop-scan` → `adv-slop-detection` | `split` |
-| Dedicated agent + skill | `adv-tron` → `adv-tron` | `inlined-agent-methodology` |
-| Embedded methodology | `adv-discover`, `adv-prep`, `adv-apply`, `adv-review`; `adv-harden` keeps embedded harden guidance alongside shared `adv-slop-detection` scanner methodology | — |
-| Dynamic discovery | `adv-discover`, `adv-research` (`skill("agent-{domain}")` placeholder only) | `orchestrator-only` |
+| Class                                 | Commands                                                                                                                                                                                        | Load site                   |
+| ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- |
+| Command-only                          | `adv-idea`, `adv-problem`, `adv-proposal`, `adv-research`, `adv-task`, `adv-validate`, `adv-archive`, `adv-status`                                                                              | —                           |
+| Dedicated skill                       | `adv-triage` → `adv-triage`; `adv-reflect` → `adv-reflect`; `adv-cleanup` → `adv-cleanup`; `adv-improve` → `adv-improve`; `adv-clarify` → `adv-clarify`; `adv-arch-scan` → `adv-arch-detection` | `orchestrator-only`         |
+| Dedicated skill with worker execution | `adv-audit` → `adv-audit`; `adv-refactor` → `adv-refactor`                                                                                                                                      | `split`                     |
+| Scout skill                           | `adv-discover`, `adv-design` → `adv-opportunity-scout`                                                                                                                                          | `split`                     |
+| User comparison skill                 | `adv-design` → `adv-user-intuit`                                                                                                                                                                | `orchestrator-only`         |
+| Shared skill                          | `adv-harden`, `adv-slop-scan` → `adv-slop-detection`                                                                                                                                            | `split`                     |
+| Dedicated agent + skill               | `adv-tron` → `adv-tron`                                                                                                                                                                         | `inlined-agent-methodology` |
+| Embedded methodology                  | `adv-discover`, `adv-prep`, `adv-apply`, `adv-review`; `adv-harden` keeps embedded harden guidance alongside shared `adv-slop-detection` scanner methodology                                    | —                           |
+| Dynamic discovery                     | `adv-discover`, `adv-research` (`skill("agent-{domain}")` placeholder only)                                                                                                                     | `orchestrator-only`         |
 
 > **Stale-reference note:** `adv-review-methodology`, `adv-harden-methodology`, and `global-verify` are not shipped command skills. Calls to `skill("adv-review-methodology")`, `skill("adv-apply-methodology")`, or `skill("global-verify")` are stale/hallucinated command references — use the command's embedded protocol instead. `prioritizer` remains an optional inline skill/protocol outside command skill loading; command files use the embedded Tradeoff Prioritizer Protocol instead of a command-level `skill("prioritizer")` reference.
 
