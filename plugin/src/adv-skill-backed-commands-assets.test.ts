@@ -348,6 +348,21 @@ describe("ambiguity taxonomy spec assets", () => {
     expect(discover).toContain("AMBIGUITY ANALYSIS");
     expect(discover).toContain("## Success Criteria");
     expect(discover).toContain("advisory implementation-free guard");
+    const design = readFileSync(
+      join(REPO_ROOT, ".opencode/command/adv-design.md"),
+      "utf8",
+    );
+    const prep = readFileSync(
+      join(REPO_ROOT, ".opencode/command/adv-prep.md"),
+      "utf8",
+    );
+    expect(design).toContain("## Design-Derived Criteria");
+    expect(design).toContain(
+      "MUST NOT invent new user-facing acceptance criteria",
+    );
+    expect(design).toContain("adv_change_reenter");
+    expect(prep).toContain("does not firm criteria");
+    expect(prep).toContain("rq-stagePrepNoCriteriaFirming01");
     expect(clarify).toContain("## Findings-Driven Mode");
     expect(proposalChecklist).toContain("## Ambiguity Scan (B/F/S)");
     expect(discoverChecklist).toContain("## Ambiguity Analysis Protocol");
