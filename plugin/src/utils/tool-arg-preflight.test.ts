@@ -41,28 +41,30 @@ const AUDITED_PREFLIGHT_POLICY_REQUIREMENTS: ExpectedFieldPolicy[] = [
     action: "omit",
   },
   {
+    // rq-toolPlaceholderPolicy01.6: contextually-validated audit fields
+    // flipped from reject to omit to prevent strict-mode deadlock.
     toolName: "adv_change_update",
     field: "confirmationEvidence",
     policy: "blank",
-    action: "reject",
+    action: "omit",
   },
   {
     toolName: "adv_change_update",
     field: "recoveryEvidence",
     policy: "blank",
-    action: "reject",
+    action: "omit",
   },
   {
     toolName: "adv_change_update",
     field: "recoveryReason",
     policy: "blank",
-    action: "reject",
+    action: "omit",
   },
   {
     toolName: "adv_change_update",
     field: "priorApprovalEvidence",
     policy: "blank",
-    action: "reject",
+    action: "omit",
   },
   {
     toolName: "adv_change_archive",
@@ -74,7 +76,7 @@ const AUDITED_PREFLIGHT_POLICY_REQUIREMENTS: ExpectedFieldPolicy[] = [
     toolName: "adv_change_archive",
     field: "recoveryEvidence",
     policy: "blank",
-    action: "reject",
+    action: "omit",
   },
   {
     toolName: "adv_snapshot_health",
@@ -92,19 +94,19 @@ const AUDITED_PREFLIGHT_POLICY_REQUIREMENTS: ExpectedFieldPolicy[] = [
     toolName: "adv_task_update",
     field: "recoveryEvidence",
     policy: "blank",
-    action: "reject",
+    action: "omit",
   },
   {
     toolName: "adv_task_add",
     field: "recoveryEvidence",
     policy: "blank",
-    action: "reject",
+    action: "omit",
   },
   {
     toolName: "adv_task_cancel",
     field: "recoveryEvidence",
     policy: "blank",
-    action: "reject",
+    action: "omit",
   },
   {
     toolName: "adv_task_cancel",
@@ -122,37 +124,37 @@ const AUDITED_PREFLIGHT_POLICY_REQUIREMENTS: ExpectedFieldPolicy[] = [
     toolName: "adv_gate_complete",
     field: "confirmationEvidence",
     policy: "blank",
-    action: "reject",
+    action: "omit",
   },
   {
     toolName: "adv_gate_complete",
     field: "recoveryEvidence",
     policy: "blank",
-    action: "reject",
+    action: "omit",
   },
   {
     toolName: "adv_gate_complete",
     field: "recoveryReason",
     policy: "blank",
-    action: "reject",
+    action: "omit",
   },
   {
     toolName: "adv_gate_complete",
     field: "priorApprovalEvidence",
     policy: "blank",
-    action: "reject",
+    action: "omit",
   },
   {
     toolName: "adv_contract_mint",
     field: "recoveryEvidence",
     policy: "blank",
-    action: "reject",
+    action: "omit",
   },
   {
     toolName: "adv_contract_review_matrix_set",
     field: "recoveryEvidence",
     policy: "blank",
-    action: "reject",
+    action: "omit",
   },
 ];
 
@@ -361,11 +363,14 @@ const PLACEHOLDER_POLICY_REGRESSION_MATRIX: RegressionMatrixCase[] = [
     normalizedArgs: { taskId: "tk-1", command: "pnpm test" },
   },
   {
-    label: "blank gate actor rejected",
+    // rq-toolPlaceholderPolicy01.6: completedBy blank normalizes to omitted
+    // (handler defaults to "agent") so strict-mode providers can complete
+    // non-recovery gates without deadlock.
+    label: "blank gate actor normalizes to omitted",
     toolName: "adv_gate_complete",
-    rawArgs: { completedBy: " " },
-    ok: false,
-    fields: ["completedBy"],
+    rawArgs: { changeId: "c", gateId: "design", completedBy: " " },
+    ok: true,
+    normalizedArgs: { changeId: "c", gateId: "design" },
   },
   {
     // T2: gate notes are optional-descriptive — blank normalizes to omitted.
@@ -425,11 +430,14 @@ const PLACEHOLDER_POLICY_REGRESSION_MATRIX: RegressionMatrixCase[] = [
     fields: ["reason"],
   },
   {
-    label: "blank contract recovery evidence rejected",
+    // rq-toolPlaceholderPolicy01.6: recoveryEvidence is contextually validated
+    // by the handler (only when recoveryMode=poisoned_history), so blank
+    // normalizes to omitted at preflight.
+    label: "blank contract recovery evidence normalizes to omitted",
     toolName: "adv_contract_mint",
-    rawArgs: { recoveryEvidence: " " },
-    ok: false,
-    fields: ["recoveryEvidence"],
+    rawArgs: { changeId: "c", recoveryEvidence: " " },
+    ok: true,
+    normalizedArgs: { changeId: "c" },
   },
   {
     // T2: target_path is optional on read tools — blank normalizes to omitted.
@@ -448,11 +456,13 @@ const PLACEHOLDER_POLICY_REGRESSION_MATRIX: RegressionMatrixCase[] = [
     normalizedArgs: { taskId: "tk-1", status: "done" },
   },
   {
-    label: "blank target confirmation evidence rejected",
+    // rq-toolPlaceholderPolicy01.6: confirmationEvidence is contextually
+    // validated (only when target_path present), blank normalizes to omitted.
+    label: "blank target confirmation evidence normalizes to omitted",
     toolName: "adv_change_update",
     rawArgs: { changeId: "c", proposal: "real", confirmationEvidence: " " },
-    ok: false,
-    fields: ["confirmationEvidence"],
+    ok: true,
+    normalizedArgs: { changeId: "c", proposal: "real" },
   },
 ];
 
@@ -631,13 +641,11 @@ describe("tool arg preflight", () => {
       { taskId: "tk-1", toIntent: "inline", reason: " " },
       "reason",
     ],
-    [
-      "adv_gate_complete",
-      { changeId: "c", gateId: "design", completedBy: " " },
-      "completedBy",
-    ],
     // T2: adv_gate_complete.target_path, adv_gate_complete.notes,
     // adv_gate_complete.compatibilityReason flipped to blank: "omit".
+    // rq-toolPlaceholderPolicy01.6: adv_gate_complete.completedBy,
+    // recoveryEvidence, recoveryReason, priorApprovalEvidence,
+    // confirmationEvidence also flipped to blank: "omit".
     // adv_run_test.target_path, adv_status.target_path,
     // adv_temporal_reconnect.target_path, adv_contract_mint.{approvedAt,target_path}
     // similarly flipped. Coverage of the omit semantics for these fields
@@ -683,6 +691,118 @@ describe("tool arg preflight", () => {
       "adv_gate_complete",
       { changeId: "c", gateId: "design", compatibilityReason: " " },
       "compatibilityReason",
+    ],
+    // rq-toolPlaceholderPolicy01.6: contextually-validated audit fields
+    // now normalize to omitted so strict-mode providers don't deadlock.
+    [
+      "adv_gate_complete",
+      { changeId: "c", gateId: "design", completedBy: " " },
+      "completedBy",
+    ],
+    [
+      "adv_gate_complete",
+      { changeId: "c", gateId: "design", recoveryEvidence: " " },
+      "recoveryEvidence",
+    ],
+    [
+      "adv_gate_complete",
+      { changeId: "c", gateId: "design", recoveryReason: " " },
+      "recoveryReason",
+    ],
+    [
+      "adv_gate_complete",
+      { changeId: "c", gateId: "design", priorApprovalEvidence: " " },
+      "priorApprovalEvidence",
+    ],
+    [
+      "adv_gate_complete",
+      { changeId: "c", gateId: "design", confirmationEvidence: " " },
+      "confirmationEvidence",
+    ],
+    [
+      "adv_change_update",
+      { changeId: "c", proposal: "real", confirmationEvidence: " " },
+      "confirmationEvidence",
+    ],
+    [
+      "adv_change_update",
+      { changeId: "c", proposal: "real", recoveryEvidence: " " },
+      "recoveryEvidence",
+    ],
+    [
+      "adv_change_update",
+      { changeId: "c", proposal: "real", recoveryReason: " " },
+      "recoveryReason",
+    ],
+    [
+      "adv_change_update",
+      { changeId: "c", proposal: "real", priorApprovalEvidence: " " },
+      "priorApprovalEvidence",
+    ],
+    [
+      "adv_change_archive",
+      { changeId: "c", recoveryEvidence: " " },
+      "recoveryEvidence",
+    ],
+    [
+      "adv_run_test",
+      { taskId: "tk-1", command: "test", confirmationEvidence: " " },
+      "confirmationEvidence",
+    ],
+    [
+      "adv_task_update",
+      { taskId: "tk-1", status: "done", confirmationEvidence: " " },
+      "confirmationEvidence",
+    ],
+    [
+      "adv_task_update",
+      { taskId: "tk-1", status: "done", recoveryEvidence: " " },
+      "recoveryEvidence",
+    ],
+    [
+      "adv_task_add",
+      { changeId: "c", content: "do thing", confirmationEvidence: " " },
+      "confirmationEvidence",
+    ],
+    [
+      "adv_task_add",
+      { changeId: "c", content: "do thing", recoveryEvidence: " " },
+      "recoveryEvidence",
+    ],
+    [
+      "adv_task_cancel",
+      { taskIds: ["t"], approvedByUser: true, approvalEvidence: "ok", confirmationEvidence: " " },
+      "confirmationEvidence",
+    ],
+    [
+      "adv_task_cancel",
+      { taskIds: ["t"], approvedByUser: true, approvalEvidence: "ok", recoveryEvidence: " " },
+      "recoveryEvidence",
+    ],
+    [
+      "adv_task_reclassify_tdd",
+      { taskId: "t", toIntent: "inline", approvalEvidence: "ok", confirmationEvidence: " " },
+      "confirmationEvidence",
+    ],
+    [
+      "adv_contract_mint",
+      { changeId: "c", recoveryEvidence: " " },
+      "recoveryEvidence",
+    ],
+    [
+      "adv_contract_mint",
+      { changeId: "c", confirmationEvidence: " " },
+      "confirmationEvidence",
+    ],
+    [
+      "adv_contract_review_matrix_set",
+      { changeId: "c", recoveryEvidence: " " },
+      "recoveryEvidence",
+    ],
+    [
+      "adv_temporal_reconnect",
+      { confirmationEvidence: " " },
+      "confirmationEvidence",
     ],
     ["adv_contract_mint", { changeId: "c", approvedAt: " " }, "approvedAt"],
     ["adv_contract_mint", { changeId: "c", target_path: " " }, "target_path"],
@@ -1132,6 +1252,35 @@ describe("tool arg preflight", () => {
         ).toBeDefined();
       }
     });
+
+    // rq-toolPlaceholderPolicy01.6: GPT-5/5.5 strict-mode sends ALL optional
+    // fields as blank strings. This test reproduces the exact deadlock that
+    // GPT-5.5 hit — every optional field blank, non-recovery gate.
+    test("full strict-mode adv_gate_complete payload normalizes to minimal valid", () => {
+      const result = preflightToolArgs("adv_gate_complete", {}, {
+        changeId: "fixPcIdentityScope",
+        gateId: "execution",
+        completedBy: "",
+        userApproved: false,
+        notes: "",
+        compatibilityReason: "",
+        recoveryReason: "",
+        recoveryEvidence: "",
+        priorApprovalEvidence: "",
+        target_path: "",
+        target_confirmed: true,
+        confirmationEvidence: "",
+      });
+      expect(result.ok).toBe(true);
+      expect(result.invalid).toEqual([]);
+      // Only non-blank required fields + boolean + literal survive.
+      expect(result.normalizedArgs).toEqual({
+        changeId: "fixPcIdentityScope",
+        gateId: "execution",
+        userApproved: false,
+        target_confirmed: true,
+      });
+    });
   });
 
   // AC12: required-when-present audit/identity/content/command fields keep
@@ -1177,21 +1326,20 @@ describe("tool arg preflight", () => {
         { taskId: "t", toIntent: "inline", approvalEvidence: " " },
         "approvalEvidence",
       ],
-      [
-        "adv_gate_complete",
-        { changeId: "c", gateId: "design", completedBy: " " },
-        "completedBy",
-      ],
-      [
-        "adv_gate_complete",
-        { changeId: "c", gateId: "design", confirmationEvidence: " " },
-        "confirmationEvidence",
-      ],
-      [
-        "adv_change_update",
-        { changeId: "c", proposal: "real", confirmationEvidence: " " },
-        "confirmationEvidence",
-      ],
+      // rq-toolPlaceholderPolicy01.6: adv_gate_complete.completedBy,
+      // confirmationEvidence, recoveryEvidence, recoveryReason,
+      // priorApprovalEvidence moved from reject to omit — no longer here.
+      // adv_change_update.confirmationEvidence, recoveryEvidence,
+      // recoveryReason, priorApprovalEvidence also moved.
+      // adv_contract_mint.recoveryEvidence, confirmationEvidence moved.
+      // adv_contract_review_matrix_set.recoveryEvidence moved.
+      // adv_temporal_reconnect.confirmationEvidence moved.
+      // adv_run_test.confirmationEvidence moved.
+      // adv_task_update confirmationEvidence, recoveryEvidence moved.
+      // adv_task_add confirmationEvidence, recoveryEvidence moved.
+      // adv_task_cancel confirmationEvidence, recoveryEvidence moved.
+      // adv_task_reclassify_tdd confirmationEvidence moved.
+      // adv_change_archive recoveryEvidence moved.
       ["adv_worktree_create", { branch: " " }, "branch"],
       ["adv_worktree_create", { branch: "x", base: " " }, "base"],
       ["adv_worktree_resume", { changeId: " " }, "changeId"],
@@ -1202,29 +1350,9 @@ describe("tool arg preflight", () => {
       ["adv_agenda_add", { title: " " }, "title"],
       ["adv_agenda_cancel", { itemId: "a", reason: " " }, "reason"],
       [
-        "adv_contract_mint",
-        { changeId: "c", recoveryEvidence: " " },
-        "recoveryEvidence",
-      ],
-      [
-        "adv_contract_mint",
-        { changeId: "c", confirmationEvidence: " " },
-        "confirmationEvidence",
-      ],
-      [
-        "adv_contract_review_matrix_set",
-        { changeId: "c", recoveryEvidence: " " },
-        "recoveryEvidence",
-      ],
-      [
         "adv_temporal_register_search_attributes",
         { approvedByUser: true, approvalEvidence: " " },
         "approvalEvidence",
-      ],
-      [
-        "adv_temporal_reconnect",
-        { confirmationEvidence: " " },
-        "confirmationEvidence",
       ],
       [
         "adv_temporal_worker_restart",
