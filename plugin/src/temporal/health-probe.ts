@@ -2,7 +2,10 @@ import {
   getRegisteredTemporalWorkerQueues,
   getTemporalWorkerAliveness,
 } from "../plugin-init";
-import { getTemporalAddress } from "./client";
+import {
+  getTemporalAddress,
+  buildProjectTaskQueue,
+} from "./client";
 import {
   getTemporalOpTelemetry,
   getTemporalRetryTelemetry,
@@ -10,6 +13,8 @@ import {
   type OpTelemetry,
 } from "./retry-wrapper";
 import { canReachTemporalAddress } from "./runtime-manager";
+import { probeTaskQueuePollers, type ServerPollerProbe } from "./queue-serviceability";
+import { getService } from "./service";
 
 export interface StaleQueue {
   queue: string;
@@ -38,6 +43,7 @@ export interface TemporalHealth {
     message: string;
     at: string;
   } | null;
+  server_poller_probe?: ServerPollerProbe | null;
 }
 
 let overrideTelemetry: {
@@ -54,11 +60,15 @@ export function setTemporalHealthProbeState(input: {
 
 export function resetTemporalHealthProbeState(): void {
   overrideTelemetry = null;
+  pollerProbeCache = null;
 }
 
 export async function probeStaleQueues(): Promise<StaleQueue[]> {
   return [];
 }
+
+let pollerProbeCache: { result: ServerPollerProbe; cachedAt: number } | null = null;
+const POLLER_PROBE_TTL_MS = 30_000;
 
 export async function getTemporalHealth(
   _projectId?: string,
@@ -71,9 +81,29 @@ export async function getTemporalHealth(
   const worker_process_alive = getTemporalWorkerAliveness();
   const telemetry = overrideTelemetry ?? getTemporalRetryTelemetry();
 
+  let serverPollerProbe: ServerPollerProbe | null = null;
+  const bundle = getService();
+  if (bundle && _projectId) {
+    const now = Date.now();
+    if (pollerProbeCache && now - pollerProbeCache.cachedAt < POLLER_PROBE_TTL_MS) {
+      serverPollerProbe = pollerProbeCache.result;
+    } else {
+      try {
+        serverPollerProbe = await probeTaskQueuePollers({
+          connection: bundle.connection as unknown as Parameters<typeof probeTaskQueuePollers>[0]["connection"],
+          namespace: bundle.namespace,
+          taskQueue: buildProjectTaskQueue(_projectId),
+        });
+        pollerProbeCache = { result: serverPollerProbe, cachedAt: now };
+      } catch {
+        serverPollerProbe = null;
+      }
+    }
+  }
+
   return {
     server_alive,
-    worker_alive: worker_process_alive || registered_queues.length > 0,
+    worker_alive: worker_process_alive || registered_queues.length > 0 || serverPollerProbe?.status === "fresh",
     worker_process_alive,
     registered_queues,
     last_op_at: telemetry.lastOpAt,
@@ -84,5 +114,6 @@ export async function getTemporalHealth(
     op_counters: getTemporalOpTelemetry(),
     worker_lock: null,
     last_worker_run_error: getLastWorkerRunError(),
+    server_poller_probe: serverPollerProbe,
   };
 }
