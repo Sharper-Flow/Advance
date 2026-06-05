@@ -168,7 +168,7 @@ export type ReentryHistoryEntry = z.infer<typeof ReentryHistoryEntrySchema>;
  * Findings are append-only; resolved status is set when the finding is addressed.
  */
 export const ClarifyFindingSnapshotSchema = z.object({
-  /** Finding code (e.g., CLARIFY_MISSING_SUCCESS_CRITERIA) */
+  /** Finding code (e.g., CLARIFY_UNCLEAR_SCOPE) */
   code: z.string(),
   /** Severity of the finding */
   severity: z.enum(["error", "warning", "info"]),

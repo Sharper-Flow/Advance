@@ -266,7 +266,6 @@ const VALIDATION_FIX_SUGGESTIONS: Record<string, string> = {
   PROPOSAL_TASK_DRIFT: "Add tasks for proposal sections or verify coverage",
   CROSS_REPO_MISSING_METADATA:
     "Set target_repo and target_path on cross-repo task",
-  CLARIFY_MISSING_SUCCESS_CRITERIA: "Define measurable success criteria",
 };
 
 function getFixSuggestion(code: string): string {
