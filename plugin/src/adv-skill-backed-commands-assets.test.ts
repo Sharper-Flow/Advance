@@ -683,6 +683,9 @@ describe("thin-command shape enforcement", () => {
     expect(gatesDoc).toContain(
       "workflow validates proposal.md, agreement.md, design.md, and generated acceptance.md",
     );
+    expect(gatesDoc).toContain("User Outcomes");
+    expect(gatesDoc).toContain("Design-Derived Criteria");
+    expect(gatesDoc).toContain("Prep maps criteria/design into tasks");
     expect(gatesDoc).toContain("readiness_blockers");
     expect(prep).toContain("Artifact Excerpts");
     expect(prep).toContain("problem-statement.md excerpt");
