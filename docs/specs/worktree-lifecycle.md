@@ -488,7 +488,7 @@ ADV mutating tools that advance gates or change task execution state must struct
 
 **ID:** `rq-worktreeBoundedCleanup01` | **Priority:** **[MUST]**
 
-Worktree cleanup operations must be bounded to prevent runaway deletion. After each worktree deletion, a post-delete notification must be emitted within the default 10s timeout. Per-item cleanup must proceed sequentially with bounded retries; batch or parallel unbounded cleanup is prohibited. The cleanup tool must classify worktrees into drift groups (safe, blocked, dirty/in-use, needs-investigation) and remain report-only for worktree drift even under `--execute`. Actual worktree deletion remains owned by `adv_worktree_delete` and `adv_worktree_cleanup`.
+Worktree cleanup operations must be bounded to prevent runaway deletion. After each worktree deletion, a post-delete notification must be emitted within the 5s signal timeout; notification failure returns ok:true + warning. Per-item cleanup must proceed sequentially with bounded retries; batch or parallel unbounded cleanup is prohibited. The cleanup tool must classify worktrees into drift groups (safe, blocked, dirty/in-use, needs-investigation) and remain report-only for worktree drift even under `--execute`. Actual worktree deletion remains owned by `adv_worktree_delete` and `adv_worktree_cleanup`.
 
 **Tags:** `worktree`, `cleanup`, `bounded`, `safety`
 
@@ -504,7 +504,8 @@ Worktree cleanup operations must be bounded to prevent runaway deletion. After e
 
 **Then:**
 
-- A post-delete notification is emitted within the default 10s timeout
+- A post-delete notification is emitted within the 5s signal timeout
+- Notification failure returns ok:true + warning (non-blocking)
 - No unbounded wait blocks subsequent operations
 
 **Per-item sequential cleanup with bounded retries** (`rq-worktreeBoundedCleanup01.2`)
@@ -520,6 +521,85 @@ Worktree cleanup operations must be bounded to prevent runaway deletion. After e
 - Worktrees are processed sequentially, one at a time
 - Each item has a bounded retry count (max 5)
 - Batch or parallel unbounded deletion is not performed
+
+---
+
+### Tool-Facing Timeout Safety Budget
+
+**ID:** `rq-worktreeBoundedCleanup02` | **Priority:** **[MUST]**
+
+Worktree tool wrappers (`adv_worktree_delete`, `adv_worktree_cleanup`) must enforce a safe timeout budget strictly below the SDK's 10s tool-execution ceiling. The safe budget is 8s (`WORKTREE_TOOL_SAFE_TIMEOUT_MS`). Caller-supplied `timeoutMs` values exceeding the safe budget are clamped automatically. On timeout, the tool must return a typed timeout response (no late background mutation). Internal operations (git remove, workspace fetch/delete, workflow signal) must each be bounded below the tool budget. The effective timeout must be reported in the response as `effectiveTimeoutMs`.
+
+**Tags:** `worktree`, `timeout`, `safety`, `bounded`, `tool-wrapper`
+
+#### Scenarios
+
+**Safe budget constant is 8s** (`rq-worktreeBoundedCleanup02.1`)
+
+**Given:**
+
+- The worktree tool wrappers are loaded
+
+**When:** `WORKTREE_TOOL_SAFE_TIMEOUT_MS` is queried
+
+**Then:**
+
+- The value is 8000ms
+
+**Oversize timeout is clamped with effectiveTimeoutMs** (`rq-worktreeBoundedCleanup02.2`)
+
+**Given:**
+
+- `adv_worktree_cleanup` is called with `timeoutMs > 8000`
+
+**When:** The tool processes the request
+
+**Then:**
+
+- The effective timeout is clamped to 8000ms
+- The response includes `effectiveTimeoutMs: 8000`
+- The response includes a `timeoutNote` explaining the clamping
+
+**Timeout returns typed response with no late mutation** (`rq-worktreeBoundedCleanup02.3`)
+
+**Given:**
+
+- `adv_worktree_delete` or `adv_worktree_cleanup` times out during execution
+
+**When:** The timeout fires
+
+**Then:**
+
+- The tool returns a response with `timedOut: true`
+- No late background mutation modifies state after the timeout response
+- `drainPendingDeletes` does not attach late-success handlers to timed-out delete promises
+
+**Git remove is bounded** (`rq-worktreeBoundedCleanup02.4`)
+
+**Given:**
+
+- A worktree deletion calls `git worktree remove`
+
+**When:** The git operation hangs
+
+**Then:**
+
+- The operation is killed after the git remove timeout (5s)
+- The tool returns a `REMOVE_FAILED` error
+
+**Workspace operations are bounded** (`rq-worktreeBoundedCleanup02.5`)
+
+**Given:**
+
+- Workspace find or delete operations are called during worktree cleanup
+
+**When:** The HTTP request hangs
+
+**Then:**
+
+- The operation is aborted after 3s (`AbortSignal.timeout`)
+- Workspace lookup returns null gracefully
+- Workspace delete failure produces a warning but does not block deletion
 
 ---
 

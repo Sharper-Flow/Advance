@@ -426,7 +426,8 @@
           ],
           "when": "The deletion completes",
           "then": [
-            "A post-delete notification is emitted within the default 10s timeout",
+            "A post-delete notification is emitted within the signal timeout (5s default)",
+            "Notification failure returns ok:true + warning (non-blocking)",
             "No unbounded wait blocks subsequent operations"
           ]
         },
@@ -444,7 +445,69 @@
       ]
     },
     {
-      "id": "rq-worktreeTargetCleanup01",
+      "id": "rq-worktreeBoundedCleanup02",
+      "title": "Tool-Facing Timeout Safety Budget",
+      "body": "Worktree tool wrappers (adv_worktree_delete, adv_worktree_cleanup) must enforce a safe timeout budget strictly below the SDK's 10s tool-execution ceiling. The safe budget is 8s (WORKTREE_TOOL_SAFE_TIMEOUT_MS). Caller-supplied timeoutMs values exceeding the safe budget are clamped automatically. On timeout, the tool must return a typed timeout response (no late background mutation). Internal operations (git remove, workspace fetch/delete, workflow signal) must each be bounded below the tool budget. The effective timeout must be reported in the response as effectiveTimeoutMs.",
+      "priority": "must",
+      "tags": ["worktree", "timeout", "safety", "bounded", "tool-wrapper"],
+      "scenarios": [
+        {
+          "id": "rq-worktreeBoundedCleanup02.1",
+          "title": "Safe budget constant is 8s",
+          "given": ["The worktree tool wrappers are loaded"],
+          "when": "WORKTREE_TOOL_SAFE_TIMEOUT_MS is queried",
+          "then": ["The value is 8000ms"]
+        },
+        {
+          "id": "rq-worktreeBoundedCleanup02.2",
+          "title": "Oversize timeout is clamped with effectiveTimeoutMs",
+          "given": [
+            "adv_worktree_cleanup is called with timeoutMs > 8000"
+          ],
+          "when": "The tool processes the request",
+          "then": [
+            "The effective timeout is clamped to 8000ms",
+            "The response includes effectiveTimeoutMs: 8000",
+            "The response includes a timeoutNote explaining the clamping"
+          ]
+        },
+        {
+          "id": "rq-worktreeBoundedCleanup02.3",
+          "title": "Timeout returns typed response with no late mutation",
+          "given": [
+            "adv_worktree_delete or adv_worktree_cleanup times out during execution"
+          ],
+          "when": "The timeout fires",
+          "then": [
+            "The tool returns a response with timedOut: true",
+            "No late background mutation modifies state after the timeout response",
+            "drainPendingDeletes does not attach late-success handlers to timed-out delete promises"
+          ]
+        },
+        {
+          "id": "rq-worktreeBoundedCleanup02.4",
+          "title": "Git remove is bounded",
+          "given": ["A worktree deletion calls git worktree remove"],
+          "when": "The git operation hangs",
+          "then": [
+            "The operation is killed after the git remove timeout (5s)",
+            "The tool returns a REMOVE_FAILED error"
+          ]
+        },
+        {
+          "id": "rq-worktreeBoundedCleanup02.5",
+          "title": "Workspace operations are bounded",
+          "given": ["Workspace find or delete operations are called during worktree cleanup"],
+          "when": "The HTTP request hangs",
+          "then": [
+            "The operation is aborted after 3s (AbortSignal.timeout)",
+            "Workspace lookup returns null gracefully",
+            "Workspace delete failure produces a warning but does not block deletion"
+          ]
+        }
+      ]
+    },
+    {
       "title": "Target-Project Worktree Cleanup Routing",
       "body": "Worktree cleanup mutation tools that support target-project operation MUST route target_path calls through the target project's store and Temporal queue, require explicit confirmation for untrusted target mutation, and preserve existing delete/cleanup safety gates. Worktree triage recommendations for a target project MUST be actionable from the current session by including target-aware remediation instead of bare current-project cleanup commands.",
       "priority": "must",
