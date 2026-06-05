@@ -342,8 +342,12 @@ describe("ambiguity taxonomy spec assets", () => {
     );
 
     expect(proposal).toContain("Phase 2.6: Run B/F/S Ambiguity Scan");
+    expect(proposal).toContain("User Outcomes");
+    expect(proposal).toContain("does NOT require testable success criteria");
     expect(discover).toContain("## Phase 2.5: Trigger Evaluation");
     expect(discover).toContain("AMBIGUITY ANALYSIS");
+    expect(discover).toContain("## Success Criteria");
+    expect(discover).toContain("advisory implementation-free guard");
     expect(clarify).toContain("## Findings-Driven Mode");
     expect(proposalChecklist).toContain("## Ambiguity Scan (B/F/S)");
     expect(discoverChecklist).toContain("## Ambiguity Analysis Protocol");
