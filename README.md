@@ -155,7 +155,7 @@ Maintenance remains offline by design. External tools should close/refuse active
 ## Core workflow
 
 ```text
-/adv-proposal -> define problem, success criteria, constraints
+/adv-proposal -> define problem, user outcomes, constraints
 /adv-discover -> gather evidence, agree objectives and acceptance criteria
 /adv-design   -> design implementation strategy and validate architecture
 /adv-prep     -> synthesize task graph and close gaps
@@ -171,7 +171,7 @@ The command count is not the point. The point is that every phase produces artif
 
 | Gate       | Purpose                                           | Human role                                                        |
 | ---------- | ------------------------------------------------- | ----------------------------------------------------------------- |
-| Proposal   | Clarify problem, scope, success criteria          | Confirm problem statement                                         |
+| Proposal   | Clarify problem, scope, user outcomes             | Confirm problem statement                                         |
 | Discovery  | Gather evidence and define agreement              | Approve objectives and acceptance criteria                        |
 | Design     | Validate architecture and implementation strategy | Approve only when tradeoffs need judgment or validation conflicts |
 | Planning   | Build task graph and flight-check readiness       | Explicit prep approval                                            |

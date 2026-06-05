@@ -339,7 +339,7 @@ When /adv-discover absorbs the user-facing agreement flow, the command MUST pres
 
 **ID:** `rq-disc12` | **Priority:** **[MUST]**
 
-/adv-discover MUST present draft acceptance criteria as a dedicated checkpoint before agreement.md persistence and before adv_gate_complete gateId: discovery. The checkpoint MUST offer explicit user outcomes for approval, /adv-clarify handoff, or write-in edits, and MUST NOT complete discovery until acceptance criteria are approved.
+/adv-discover MUST present draft acceptance criteria and success criteria as a dedicated checkpoint before agreement.md persistence and before adv_gate_complete gateId: discovery. The checkpoint MUST offer explicit user choices for approval, /adv-clarify handoff, or write-in edits, and MUST NOT complete discovery until acceptance criteria and success criteria are approved.
 
 **Tags:** `discover`, `acceptance-criteria`, `checkpoint`, `agreement`
 
@@ -348,14 +348,14 @@ When /adv-discover absorbs the user-facing agreement flow, the command MUST pres
 **Acceptance criteria checkpoint precedes agreement persistence and gate completion** (`rq-disc12.1`)
 
 **Given:**
-- /adv-discover has resolved all user-facing open questions and produced draft acceptance criteria
+- /adv-discover has resolved all user-facing open questions and produced draft acceptance criteria and success criteria
 
 **When:** The command reaches the agreement sign-off flow
 
 **Then:**
-- The command presents Acceptance Criteria as a focused checkpoint
+- The command presents Acceptance Criteria and Success Criteria as a focused checkpoint
 - The inline handoff offers approve, start /adv-clarify, and add/clarify outcomes per docs/command-voice-standard.md § Inline Approval Voice
-- agreement.md is persisted only after acceptance criteria are approved
+- agreement.md is persisted only after acceptance criteria and success criteria are approved
 - adv_gate_complete gateId: discovery occurs only after approval
 
 **/adv-clarify branch stops discovery cleanly** (`rq-disc12.2`)

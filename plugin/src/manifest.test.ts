@@ -465,7 +465,7 @@ describe("Command Manifest", () => {
     test("phaseGoal values match the user-approved phase goals", () => {
       const expectedGoals: Record<string, string> = {
         "adv-proposal":
-          "Clarify the problem, user needs, and acceptance criteria scope. Establish what and why — no how.",
+          "Clarify the problem, user needs, and high-level user outcomes. Establish what and why — no how.",
         "adv-research":
           "Produce a defined, fully-researched proposed plan ready for user approval. Validate the how.",
         "adv-discover":

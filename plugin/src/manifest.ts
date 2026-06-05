@@ -109,7 +109,7 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
       gates: ["proposal"],
     },
     phaseGoal:
-      "Clarify the problem, user needs, and acceptance criteria scope. Establish what and why \u2014 no how.",
+      "Clarify the problem, user needs, and high-level user outcomes. Establish what and why \u2014 no how.",
   },
   "adv-validate": {
     name: "adv-validate",

@@ -126,7 +126,7 @@ When a change has zero tasks and design gate is complete, /adv-prep must synthes
 
 **ID:** `rq-prep-neg1` | **Priority:** **[MUST]**
 
-/adv-prep MUST NOT complete non-planning gates, make architectural decisions (that is discover/design's job), or modify the problem statement or success criteria in proposal.md.
+/adv-prep MUST NOT complete non-planning gates, make architectural decisions (that is discover/design's job), or modify the problem statement, agreement acceptance criteria, agreement success criteria, or design intent.
 
 **Tags:** `prep`, `boundary`, `negative`
 

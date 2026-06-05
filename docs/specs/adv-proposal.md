@@ -1,11 +1,11 @@
 # ADV Proposal Command
 
-> **Version:** 1.2.0
-> **Updated:** 2026-03-14
+> **Version:** 1.3.0
+> **Updated:** 2026-06-05
 
 ## Purpose
 
-Defines the responsibilities and boundaries of /adv-proposal. The proposal command establishes WHAT and WHY — problem statement, objectives, success criteria, and constraints. It produces alignment artifacts, not implementation artifacts.
+Defines the responsibilities and boundaries of /adv-proposal. The proposal command establishes WHAT and WHY — problem statement, vision/direction, high-level user outcomes (implementation-free), and constraints. Engineering acceptance criteria and success criteria are firmed downstream in /adv-discover. It produces alignment artifacts, not implementation artifacts.
 
 ## Requirements
 
@@ -13,7 +13,7 @@ Defines the responsibilities and boundaries of /adv-proposal. The proposal comma
 
 **ID:** `rq-prop-out1` | **Priority:** **[MUST]**
 
-/adv-proposal must produce a confirmed problem statement, success criteria, constraints, and affected specs. It must NOT create tasks, complete gates, or make implementation decisions.
+/adv-proposal must produce a confirmed problem statement, high-level user outcomes (implementation-free), constraints, and affected specs. It must NOT create tasks, complete gates, or make implementation decisions.
 
 **Tags:** `proposal`, `boundary`, `alignment`
 
@@ -30,7 +30,7 @@ Defines the responsibilities and boundaries of /adv-proposal. The proposal comma
 **Then:**
 
 - A change is created via adv_change_create
-- proposal.md contains problem statement, success criteria, and constraints
+- proposal.md contains problem statement, user outcomes, and constraints
 - Zero calls to adv_task_add are made
 - The change has an empty task list
 
@@ -53,7 +53,7 @@ Defines the responsibilities and boundaries of /adv-proposal. The proposal comma
 
 **ID:** `rq-prop-scope1` | **Priority:** **[MUST]**
 
-/adv-proposal must use a two-phase workflow: Phase 1 establishes shared understanding of the problem via inline approval voice, Phase 2 builds the full proposal with INVEST-quality success criteria. The command must not proceed to Phase 2 without user confirmation of the problem statement.
+/adv-proposal must use a two-phase workflow: Phase 1 establishes shared understanding of the problem via inline approval voice, Phase 2 builds the full proposal with high-level, implementation-free user outcomes. Testable success criteria and engineering acceptance criteria are deferred to /adv-discover. The command must not proceed to Phase 2 without user confirmation of the problem statement.
 
 **Tags:** `proposal`, `boundary`, `context-agreement`
 
@@ -73,19 +73,19 @@ Defines the responsibilities and boundaries of /adv-proposal. The proposal comma
 - The user is asked to confirm via inline approval voice per docs/command-voice-standard.md § Inline Approval Voice (Tier A)
 - No change artifacts are created until confirmation
 
-**Success criteria pass INVEST quality check** (`rq-prop-scope1.2`)
+**User outcomes are implementation-free** (`rq-prop-scope1.2`)
 
 **Given:**
 
 - Phase 2 is reached after problem statement confirmation
 
-**When:** Success criteria are defined
+**When:** User outcomes are defined
 
 **Then:**
 
-- Each criterion is testable and measurable
-- No subjective or ambiguous language remains
-- Requirements smell detection is applied
+- Each outcome is stated as a user-facing need, not a mechanism or solution
+- No testable or INVEST success-criteria rigor is required at the proposal stage
+- Testable acceptance criteria are deferred to /adv-discover
 
 ---
 
@@ -177,25 +177,25 @@ Defines the responsibilities and boundaries of /adv-proposal. The proposal comma
 
 **ID:** `rq-prop-tax2` | **Priority:** **[MUST]**
 
-/adv-proposal MUST run a 3-category ambiguity scan (B=Boundaries, F=Functional Scope, S=Completion Signals) against the proposal during Phase 2.6. CRITICAL findings MUST block proposal gate completion under clarify_enforcement: strict.
+/adv-proposal MUST run a 3-category ambiguity scan (B=Boundaries, F=Functional Scope, S=Completion Signals) against the proposal during Phase 2.6. F=Functional Scope checks that high-level user outcomes are present and implementation-free; it does NOT require testable success criteria. CRITICAL findings MUST block proposal gate completion under clarify_enforcement: strict.
 
 **Tags:** `proposal`, `ambiguity-scan`, `boundaries`, `functional`, `completion-signals`
 
 #### Scenarios
 
-**Vague success criteria produce S1 HIGH finding** (`rq-prop-tax2.1`)
+**Implementation-encoding user outcome produces F finding** (`rq-prop-tax2.1`)
 
 **Given:**
 
-- A proposal with success criteria containing 'fast response'
+- A proposal whose ## User Outcomes encodes a mechanism, e.g. 'store sessions in Redis'
 
 **When:** The B/F/S scan runs during Phase 2.6
 
 **Then:**
 
-- An S1 HIGH finding is emitted
-- Evidence field cites exact phrase 'fast response' verbatim
-- Reason field states why the criterion is vague
+- An F-category HIGH finding is emitted
+- Evidence field cites the exact mechanism phrase verbatim
+- Reason field states the outcome is implementation detail deferred to /adv-design
 
 **Missing Out of Scope blocks proposal gate** (`rq-prop-tax2.2`)
 
@@ -277,7 +277,7 @@ After Quick Contract confirmation, /adv-task must always persist contract contex
 **Then:**
 
 - proposal.md is written in the change directory
-- The file includes intent, scope, and success criteria
+- The file includes intent, scope, and user outcomes
 
 **Legacy missing proposal is non-blocking** (`rq-prop-context1.2`)
 
