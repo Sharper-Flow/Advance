@@ -22,15 +22,14 @@ import {
   countTasks,
   isDashboardActiveStatus,
 } from "./lib/changes";
-import { resolveProjectId, resolveExternalRoot } from "./lib/project";
 import {
-  shouldUseColor,
-  formatTable,
-  BOLD,
-  DIM,
-  RESET,
-} from "./lib/render";
+  resolveProjectId,
+  resolveExternalRoot,
+  resolveRepoRoot,
+} from "./lib/project";
+import { shouldUseColor, formatTable, BOLD, DIM, RESET } from "./lib/render";
 import type { ChangeSummary } from "./lib/types";
+import { readSnapshotFile, renderRoadmap, roadmapJson } from "./lib/roadmap";
 
 // =============================================================================
 // Constants
@@ -46,9 +45,7 @@ async function runStatus(noColor: boolean): Promise<number> {
   const cwd = process.cwd();
   const projectId = await resolveProjectId(cwd);
   if (!projectId) {
-    process.stderr.write(
-      "error: not in a git repo (or git unavailable)\n",
-    );
+    process.stderr.write("error: not in a git repo (or git unavailable)\n");
     return 1;
   }
 
@@ -133,6 +130,38 @@ async function runStatus(noColor: boolean): Promise<number> {
   return 0;
 }
 
+async function runRoadmap(
+  noColor: boolean,
+  json: boolean,
+  kind: "bug" | "feature" | "all",
+  top: number | undefined,
+  priority: "critical" | "high" | "medium" | "low" | undefined,
+): Promise<number> {
+  const cwd = process.cwd();
+  const repoRoot = await resolveRepoRoot(cwd);
+
+  const result = await readSnapshotFile(repoRoot);
+  if (!result.ok) {
+    process.stderr.write(`error: ${result.error}\n`);
+    process.stderr.write(`hint: ${result.hint}\n`);
+    return 2;
+  }
+
+  const useColor = shouldUseColor(noColor);
+  const now = new Date();
+
+  if (json) {
+    process.stdout.write(
+      roadmapJson(result.snapshot, { kind, top, priority }, now) + "\n",
+    );
+  } else {
+    process.stdout.write(
+      renderRoadmap(result.snapshot, { kind, top, priority }, useColor, now),
+    );
+  }
+  return 0;
+}
+
 function runHelp(): number {
   process.stdout.write(
     `adv — ADV (Advance) status CLI
@@ -142,16 +171,26 @@ USAGE:
 
 SUBCOMMANDS:
   status      (default)  Show active changes table
+  roadmap              Show prioritized backlog from file snapshot
 
-FLAGS:
+FLAGS (global):
   -h, --help              Show this help
   -v, --version           Print version
       --no-color          Disable ANSI colors (also: NO_COLOR=1)
 
+FLAGS (roadmap only):
+      --json              Output JSON instead of rendered tables
+      --kind {bug|feature|all}
+                          Filter by item kind (default: all)
+      --top <N>           Limit features to top N by WSJF
+      --priority {critical|high|medium|low}
+                          Filter bugs to a single priority tier
+
 EXIT CODES:
   0  Success
   1  Not in a git repo, git failure, or unknown command
-  2  No ADV state directory for this project
+  2  No ADV state directory for this project (status)
+     Roadmap snapshot missing (roadmap)
 
 DOCS:
   https://github.com/Sharper-Flow/Advance
@@ -170,6 +209,7 @@ function runVersion(): number {
 // =============================================================================
 
 async function main(argv: string[]): Promise<number> {
+  // Global parse to catch --help, --version, --no-color before subcommand dispatch
   const { values, positionals } = parseArgs({
     args: argv,
     options: {
@@ -184,15 +224,87 @@ async function main(argv: string[]): Promise<number> {
   if (values.help) return runHelp();
   if (values.version) return runVersion();
 
-  const subcommand = positionals[0];
-  if (subcommand && subcommand !== "status") {
-    process.stderr.write(
-      `unknown command: ${subcommand}. See adv --help\n`,
-    );
-    return 1;
+  const subcommand = positionals[0] ?? "status";
+
+  if (subcommand === "status") {
+    return runStatus(values["no-color"] ?? false);
   }
 
-  return runStatus(values["no-color"] ?? false);
+  if (subcommand === "roadmap") {
+    // Strict parse for roadmap flags only
+    const roadmapArgv = argv.slice(1); // drop "roadmap" positional
+    let rValues: Record<string, unknown>;
+    try {
+      const parsed = parseArgs({
+        args: roadmapArgv,
+        options: {
+          "no-color": { type: "boolean" },
+          json: { type: "boolean" },
+          kind: { type: "string" },
+          top: { type: "string" },
+          priority: { type: "string" },
+        },
+        allowPositionals: false,
+        strict: true,
+      });
+      rValues = parsed.values as Record<string, unknown>;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      process.stderr.write(`roadmap: ${msg}\n`);
+      return 2;
+    }
+
+    const kindVal = rValues.kind;
+    const validKind = ["bug", "feature", "all"] as const;
+    const kind: "bug" | "feature" | "all" = validKind.includes(kindVal as any)
+      ? (kindVal as any)
+      : "all";
+    if (kindVal !== undefined && !validKind.includes(kindVal as any)) {
+      process.stderr.write(
+        `roadmap: invalid --kind "${kindVal}". Use bug, feature, or all.\n`,
+      );
+      return 2;
+    }
+
+    const priorityVal = rValues.priority;
+    const validPriority = ["critical", "high", "medium", "low"] as const;
+    const priority: "critical" | "high" | "medium" | "low" | undefined =
+      validPriority.includes(priorityVal as any)
+        ? (priorityVal as any)
+        : undefined;
+    if (
+      priorityVal !== undefined &&
+      !validPriority.includes(priorityVal as any)
+    ) {
+      process.stderr.write(
+        `roadmap: invalid --priority "${priorityVal}". Use critical, high, medium, or low.\n`,
+      );
+      return 2;
+    }
+
+    let top: number | undefined;
+    if (rValues.top !== undefined) {
+      const n = Number(rValues.top);
+      if (!Number.isFinite(n) || n < 1 || !Number.isInteger(n)) {
+        process.stderr.write(
+          `roadmap: invalid --top "${rValues.top}". Use a positive integer.\n`,
+        );
+        return 2;
+      }
+      top = n;
+    }
+
+    return runRoadmap(
+      (rValues["no-color"] as boolean) ?? false,
+      (rValues.json as boolean) ?? false,
+      kind,
+      top,
+      priority,
+    );
+  }
+
+  process.stderr.write(`unknown command: ${subcommand}. See adv --help\n`);
+  return 1;
 }
 
 main(process.argv.slice(2)).then((code) => {
