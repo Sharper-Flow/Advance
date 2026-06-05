@@ -15,6 +15,7 @@
  * |-----------------------------|--------------------------------------------------------|
  * | `stale_head`                | `detectStaleBranchHead` returns stale                  |
  * | `missing_from_temporal`     | Disk has worktree, registry doesn't                    |
+ * | `missing_from_temporal_unmerged` | Disk has unregistered worktree with unmerged commits |
  * | `missing_from_disk`         | Registry has, disk doesn't                             |
  * | `registry_missing_change_id`| Registry has change branch without owner metadata      |
  * | `archived_not_cleaned`      | Registry has worktree for archived change              |
@@ -33,6 +34,7 @@ import {
 } from "./state";
 import { detectStaleBranchHead } from "../../utils/stale-head";
 import { execFileGitAsync } from "../../utils/git-binary";
+import { getDefaultBranch } from "../../utils/git";
 import { resolve } from "path";
 
 // =============================================================================
@@ -42,6 +44,7 @@ import { resolve } from "path";
 export type OrphanClass =
   | "stale_head"
   | "missing_from_temporal"
+  | "missing_from_temporal_unmerged"
   | "missing_from_disk"
   | "registry_missing_change_id"
   | "archived_not_cleaned"
@@ -101,6 +104,43 @@ function deleteFix(
 
 function cleanupFix(repoRoot: string, targetProject: boolean): string {
   return `adv_worktree_cleanup${targetArgsSuffix(repoRoot, targetProject)}`;
+}
+
+interface BranchReachability {
+  unmerged: boolean;
+  defaultBranch?: string;
+  aheadCount?: number;
+}
+
+async function detectUnmergedBranch(
+  repoRoot: string,
+  branch: string,
+): Promise<BranchReachability> {
+  try {
+    const defaultBranch = await getDefaultBranch(repoRoot);
+
+    // Prove both refs exist before interpreting rev-list output. Unknown
+    // reachability must preserve the legacy `missing_from_temporal` class
+    // rather than over-classifying.
+    await execFileGitAsync(["rev-parse", "--verify", `${defaultBranch}^{commit}`], {
+      cwd: repoRoot,
+    });
+    await execFileGitAsync(["rev-parse", "--verify", `${branch}^{commit}`], {
+      cwd: repoRoot,
+    });
+
+    const { stdout } = await execFileGitAsync(
+      ["rev-list", "--count", `${defaultBranch}..${branch}`],
+      { cwd: repoRoot },
+    );
+    const aheadCount = Number.parseInt(stdout.trim(), 10);
+    if (!Number.isFinite(aheadCount) || aheadCount <= 0) {
+      return { unmerged: false, defaultBranch, aheadCount: 0 };
+    }
+    return { unmerged: true, defaultBranch, aheadCount };
+  } catch {
+    return { unmerged: false };
+  }
 }
 
 /**
@@ -207,6 +247,21 @@ export async function triageWorktrees(
     if (!dw.branch) continue;
     if (!dw.branch.startsWith("change/")) continue;
     if (registryByBranch.has(dw.branch)) continue;
+    const reachability = await detectUnmergedBranch(repoRoot, dw.branch);
+    if (reachability.unmerged) {
+      orphans.push({
+        class: "missing_from_temporal_unmerged",
+        branch: dw.branch,
+        path: dw.path,
+        reason:
+          `Disk worktree at ${dw.path} (branch ${dw.branch}) has no entry in worktree_registry ` +
+          `and has ${reachability.aheadCount ?? 1} unmerged commits ahead of ${reachability.defaultBranch ?? "the default branch"}`,
+        recommendedFix:
+          `Resume/materialize the owning ADV worktree with adv_worktree_resume for ${dw.branch}; ` +
+          `review and merge/archive the branch before cleanup`,
+      });
+      continue;
+    }
     orphans.push({
       class: "missing_from_temporal",
       branch: dw.branch,
