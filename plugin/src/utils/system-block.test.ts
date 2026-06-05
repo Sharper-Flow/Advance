@@ -7,11 +7,14 @@
  * and JC-3 (strict regex internal-call detection).
  */
 
+import { readFileSync } from "node:fs";
+
 import { describe, expect, it } from "vitest";
 
 import {
   FALLBACK_CHAIN,
   INTERNAL_CALL_PATTERNS,
+  PROVIDER_HINTS,
   VOLATILE_SENTINEL,
   applyAdvSystemBlock,
   assembleSystemBlock,
@@ -43,6 +46,26 @@ const cleanInput = (
   existingSystem: null,
   ...overrides,
 });
+
+const GPT_REQUIREMENTS_RIGOR_DIRECTIVES = [
+  "Requirements artifacts (problem statements, clarifying questions, acceptance criteria, agreements) are exempt from brevity/compression when detail is required; keep them complete, specific, and testable, not verbose.",
+  "Acceptance criteria must be pass/fail, name an observable signal, and be bounded by a number, threshold, or explicit state. Rewrite subjective terms like fast/easy/robust/clean before presenting.",
+  'During idea/problem/proposal/discovery, ask narrow clarifying questions when missing information would materially change outcome, acceptance boundary, or risk. This is required work, not "shall I continue?", so no-pause/auto-continue rules do not suppress it.',
+] as const;
+
+const normalizeTrailingNewline = (content: string): string =>
+  content.replace(/\n$/, "");
+
+const readProviderHintSource = (provider: string): string =>
+  normalizeTrailingNewline(
+    readFileSync(
+      new URL(
+        `../../../.opencode/agent-parts/providers/${provider}.md`,
+        import.meta.url,
+      ),
+      "utf8",
+    ),
+  );
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -303,6 +326,26 @@ describe("assembleSystemBlock", () => {
       );
       expect(block).toContain("[ADV:PROVIDER_HINT:gpt]");
       expect(block).toContain("<!-- PROVIDER_HINT:gpt -->");
+      for (const directive of GPT_REQUIREMENTS_RIGOR_DIRECTIVES) {
+        expect(block).toContain(directive);
+      }
+      expect(PROVIDER_HINTS.gpt).toContain(
+        "If user asked to continue/ship, keep going after interim findings unless a stop condition above is met",
+      );
+      expect(PROVIDER_HINTS.gpt).toContain(
+        GPT_REQUIREMENTS_RIGOR_DIRECTIVES[2],
+      );
+      expect(
+        PROVIDER_HINTS.gpt.indexOf(GPT_REQUIREMENTS_RIGOR_DIRECTIVES[2]),
+      ).toBeGreaterThan(
+        PROVIDER_HINTS.gpt.indexOf(
+          "If user asked to continue/ship, keep going after interim findings unless a stop condition above is met",
+        ),
+      );
+    });
+
+    it("keeps GPT runtime hint aligned with source markdown", () => {
+      expect(PROVIDER_HINTS.gpt).toBe(readProviderHintSource("gpt"));
     });
 
     it("emits no provider hint for unknown provider IDs", () => {
@@ -317,6 +360,65 @@ describe("assembleSystemBlock", () => {
         cleanInput({ currentProviderID: null }),
       );
       expect(block).toBeNull();
+    });
+
+    it("keeps requirements-rigor directives GPT-only", () => {
+      const blocks = [
+        assembleSystemBlock(cleanInput({ currentProviderID: "anthropic" })),
+        assembleSystemBlock(
+          cleanInput({ currentProviderID: "unknown-provider" }),
+        ),
+        assembleSystemBlock(cleanInput({ currentProviderID: null })),
+      ].map((block) => block ?? "");
+      for (const directive of GPT_REQUIREMENTS_RIGOR_DIRECTIVES) {
+        for (const block of blocks) {
+          expect(block).not.toContain(directive);
+        }
+      }
+    });
+
+    it("keeps non-GPT provider hints byte-pinned", () => {
+      const expectedClaude = [
+        "<!-- PROVIDER_HINT:claude -->",
+        "",
+        "## Provider Hint",
+        "",
+        "- Default model family: Claude",
+        "- When a user or workflow implies execution, act directly via tools — do not suggest or describe what you would do",
+        "- For ADV apply tasks, when delegation routing marks work `delegate_allowed` or `delegate_preferred`, prefer spawning `adv-engineer`; execute inline only when context-bound",
+      ].join("\n");
+      const expectedGlm = [
+        "<!-- PROVIDER_HINT:glm -->",
+        "",
+        "## Provider Hint",
+        "",
+        "- Default model family: GLM",
+        "- Do not generalize rules beyond their stated scope — if a rule applies to a specific gate or tool, do not silently extend it",
+        "- Keep all instructions and tool args in English even when context contains Chinese; validate tool args against schema before calling",
+        "- For ADV apply tasks, when delegation routing marks work `delegate_allowed` or `delegate_preferred`, prefer spawning `adv-engineer`; execute inline only when context-bound",
+        "- For local code exploration, use lgrep tools (lgrep_search_semantic, lgrep_search_symbols) as the FIRST choice — do not start with glob or grep for concept or symbol queries",
+        "- When a tool choice exists, pick the most specific one; prefer lgrep over grep, prefer read over cat, prefer ADV MCP tools over direct file access",
+        "- Before calling any tool, verify that every required parameter is present and matches the schema — do not guess or invent parameter values",
+      ].join("\n");
+      const expectedKimi = [
+        "<!-- PROVIDER_HINT:kimi -->",
+        "",
+        "## Provider Hint",
+        "",
+        "- Default model family: Kimi",
+        "- Critical instructions (gate rules, state access policy, NEVER/ONLY constraints) are non-negotiable even in long contexts — re-verify before every gate transition",
+        "- If you notice repeated phrases or looping output, stop and summarize current state before continuing",
+        "- For local code exploration, use lgrep tools (lgrep_search_semantic, lgrep_search_symbols) as the FIRST choice — do not start with glob or grep for concept or symbol queries",
+        "- When multiple constraints apply, check each one individually before acting — do not collapse or merge distinct rules",
+        "- Sequential tool dependencies must be executed one at a time in order — never parallelize dependent calls",
+      ].join("\n");
+
+      expect(PROVIDER_HINTS.claude).toBe(expectedClaude);
+      expect(PROVIDER_HINTS.glm).toBe(expectedGlm);
+      expect(PROVIDER_HINTS.kimi).toBe(expectedKimi);
+      expect(readProviderHintSource("claude")).toBe(expectedClaude);
+      expect(readProviderHintSource("glm")).toBe(expectedGlm);
+      expect(readProviderHintSource("kimi")).toBe(expectedKimi);
     });
 
     it("does not duplicate provider hints when switch and hint sections both emit", () => {
