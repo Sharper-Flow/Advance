@@ -1,0 +1,797 @@
+{
+  "id": "addGptRequirementsRigorHint",
+  "title": "Add GPT requirements rigor hint",
+  "status": "archived",
+  "created_at": "2026-06-05T00:15:37.828Z",
+  "tasks": [
+    {
+      "id": "tk-a31c5952eeb7",
+      "title": "Add GPT provider-hint directives with regression tests",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-06-05T02:16:14.693Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed",
+        "frontend": "false"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "SC4",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "C1",
+          "C2",
+          "C3",
+          "C5"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C5",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-05T02:20:46.792Z",
+      "verification": "RED: bin/oc-test targeted -- src/utils/system-block.test.ts src/deploy-local.test.ts failed on missing GPT requirements directive after harness fix. GREEN: same command passed (2 files, 128 tests). VERIFY: pnpm run format:check passed after formatting. git diff --check passed. Changed only gpt provider hint source/runtime and system-block tests.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".opencode/agent-parts/providers/gpt.md",
+        "plugin/src/utils/system-block.test.ts",
+        "plugin/src/utils/system-block.ts"
+      ],
+      "touched_files": [
+        ".opencode/agent-parts/providers/gpt.md",
+        "plugin/src/utils/system-block.test.ts",
+        "plugin/src/utils/system-block.ts"
+      ],
+      "checkpointSha": "6357ed7d6a4a5c0ff4cc0b26ee0ad84bbe9be881",
+      "completedAt": "2026-06-05T02:24:23.356Z",
+      "completed_at": "2026-06-05T02:24:23.356Z"
+    },
+    {
+      "id": "tk-ee1153ff81b1",
+      "title": "Verify build, provider metrics, deploy, and restart notice",
+      "type": "code",
+      "section": "Verification",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-06-05T02:16:36.465Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-a31c5952eeb7"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "inline_required",
+        "frontend": "false"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC5",
+          "C4",
+          "C6"
+        ],
+        "verifies": [
+          "AC3",
+          "AC5",
+          "AC6",
+          "SC5"
+        ],
+        "respects": [
+          "C4",
+          "C6",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-05T02:24:54.930Z",
+      "verification": "VERIFY: bin/oc-test targeted -- src/utils/system-block.test.ts src/deploy-local.test.ts passed (2 files, 128 tests). VERIFY: pnpm run build passed. VERIFY: scripts/deploy-local.sh --fix passed and output says restart OpenCode sessions to pick up changes. git status clean after deploy; no additional worktree files to commit.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "6357ed7d6a4a5c0ff4cc0b26ee0ad84bbe9be881",
+      "completedAt": "2026-06-05T02:26:06.464Z",
+      "completed_at": "2026-06-05T02:26:06.464Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "addGptRequirementsRigorHint",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "design validation",
+      "sources": [
+        {
+          "label": "system-block.ts (runtime PROVIDER_HINTS.gpt)",
+          "locator": "/home/jon/dev/advance/plugin/src/utils/system-block.ts:121-134",
+          "summary": "GPT hint is an 8-bullet array joined with newlines; providerHintSection maps structured openai->gpt; unknown/null emits no hint. Design KD1/KD3 mechanics are accurate."
+        },
+        {
+          "label": "gpt.md source markdown",
+          "locator": "/home/jon/dev/advance/.opencode/agent-parts/providers/gpt.md:1-12",
+          "summary": "Mirrors PROVIDER_HINTS.gpt today. No existing test enforces runtime<->markdown byte alignment, so design AC2 alignment assertion is a NEW invariant, not a re-check — strengthens correctness."
+        },
+        {
+          "label": "advance-meta spec rq-providerAdvSkinny01.2 / rq-providerAdvMetrics01",
+          "locator": "/home/jon/dev/advance/.adv/specs/advance-meta/spec.json:430-468",
+          "summary": "Law: structured provider identity emits exactly one matching hint via output.system[0]; no additional system entry; metrics must NOT impose a hard prompt-size cap. Design conforms; adding 3 bullets violates no law."
+        },
+        {
+          "label": "deploy-local.test.ts provider metrics test",
+          "locator": "/home/jon/dev/advance/plugin/src/deploy-local.test.ts:463-489",
+          "summary": "provider_hint lines:2 assertion uses an inline fixture ('<!-- PROVIDER_HINT:gpt -->\\nHint'), NOT the real gpt.md. Adding bullets to gpt.md does NOT regress this test. AC5 'no size cap' is structurally true."
+        },
+        {
+          "label": "scripts/provider-eval.ts",
+          "locator": "/home/jon/dev/advance/scripts/provider-eval.ts:158-163",
+          "summary": "gpt hint_file is read from disk at eval time; no hardcoded byte/line cap on gpt.md. Confirms AC5 / DONT4."
+        },
+        {
+          "label": "OpenAI GPT-5.5 prompting guide",
+          "locator": "https://developers.openai.com/api/docs/guides/prompt-guidance",
+          "summary": "Authoritative: 'Ask for clarification only when the missing information would materially change the answer or create meaningful risk, and keep any question narrow.' 'Use ALWAYS/NEVER only for true invariants; for judgment calls prefer decision rules.' 'Define success criteria / what must be true.' Design KD2 wording matches this near-verbatim."
+        },
+        {
+          "label": "OpenAI GPT-5 / Codex prompting guides",
+          "locator": "https://developers.openai.com/cookbook/examples/gpt-5/gpt-5_prompting_guide",
+          "summary": "GPT-5 family is biased toward action and AWAY from clarifying questions ('Bias to action... do not end your turn with clarifications unless truly blocked'). The carve-out is exactly: 'when key information is missing, pause and ask 1-3 brief clarifying questions.' Validates the need for KD2 bullet 3's explicit auto-continue override."
+        }
+      ],
+      "architecture_assessment": "Design is a narrow, reversible provider-hint DATA change inside the existing single-system-entry architecture. Mechanics (providerHintSection mapping, structured openai->gpt, single output.system[0] append) are described accurately and match source. No spec law is contradicted: advance-meta rq-providerAdvSkinny01.2 permits exactly-one-hint emission and rq-providerAdvMetrics01 explicitly forbids a hard size cap (so adding 3 bullets is in-bounds). The AC2 runtime<->markdown alignment test is a genuinely NEW invariant that closes a real current gap (no such test exists today). External OpenAI GPT-5.5 guidance validates KD2 wording: outcome/success-criteria emphasis, decision-rule (not absolute) clarify trigger, and measurable-acceptance rewrite of subjective terms all match official best practice near-verbatim.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "CAUTION-level, non-blocking: (1) Existing GPT bullet 'If user asked to continue/ship, keep going... unless a stop condition above is met' (system-block.ts:133) is a broad auto-continue rule living in the same flat bullet list as the new KD2 clarify directive. KD2 bullet 3 intentionally reconciles them ('no-pause/auto-continue rules do not suppress it'), so this is a designed carve-out, not a contradiction — but a reader must connect two non-adjacent bullets in a now-11-bullet list. Recommend placing the new clarify bullet so the auto-continue override reads cleanly, and confirm ordering in implementation. (2) GPT hint grows 8->11 bullets; OpenAI GPT-5.5 guidance warns against process-heavy prompt stacks and unnecessary absolute rules. The 3 new bullets are decision-rules (good), but verify none use absolute ALWAYS/NEVER framing for judgment calls. (3) AC1 says 'exactly 3 new directives'; ensure the alignment test asserts presence of all 3 substrings AND that non-GPT/null paths exclude them (design already specifies this) so AC1+AC4 are both pinned."
+      },
+      "recommendation": "VALIDATED with minor cautions. Proceed with the design as written. During implementation: (a) order the new clarify bullet near or after the existing continue/ship bullet so the auto-continue override is locally legible; (b) keep all 3 new bullets as decision-rules, avoiding absolute ALWAYS/NEVER for the judgment-call clarify trigger, per OpenAI GPT-5.5 guidance; (c) ensure the new AC2 alignment test normalizes a single trailing newline (design already notes this) since gpt.md ends with a newline and the TS array join does not; (d) keep the pinned non-GPT expectations to satisfy AC3/DONT3 byte-identity.",
+      "follow_ups": [
+        "Consider (separate, optional) collapsing the GPT hint's flat bullet list into a tiny 'when to continue vs ask' decision block if it grows further, per OpenAI guidance against process-heavy stacks — out of scope for this change."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addGptRequirementsRigorHint",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addGptRequirementsRigorHint",
+      "scope": {
+        "kind": "change",
+        "scope_key": "scanner-bundle:review"
+      },
+      "agent": "adv-scanner-bundle",
+      "phase": "review",
+      "scanner_count": 1,
+      "dimensions": [
+        "contract-traceability",
+        "correctness-edge-cases",
+        "security",
+        "tests-tdd-evidence",
+        "scope-conformance",
+        "architecture-quality"
+      ],
+      "summary": "Inline acceptance review. Diff limited to GPT provider hint source/runtime and regression tests. Contract traceability, correctness/edge cases, security surface, tests/TDD evidence, scope conformance, and architecture quality checked; no blockers or issues found.",
+      "findings": [],
+      "follow_ups": [
+        "Restart OpenCode sessions to pick up deployed host-loaded plugin runtime changes before evaluating live provider-hint behavior."
+      ],
+      "consumer_warnings": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addGptRequirementsRigorHint",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addGptRequirementsRigorHint",
+      "scope": {
+        "kind": "change",
+        "scope_key": "scanner-bundle:harden"
+      },
+      "agent": "adv-scanner-bundle",
+      "phase": "harden",
+      "scanner_count": 3,
+      "dimensions": [
+        "test-coverage",
+        "documentation-hygiene",
+        "cleanup-readiness",
+        "production-readiness",
+        "deployment-readiness",
+        "residual-slop-maintainability"
+      ],
+      "summary": "Release hardening complete. Merge dry-run clean, smoke verification passed, contract proof passed, review findings have no actionable unresolved blockers/issues. Test coverage, documentation/cleanup, production/deployment, and residual slop dimensions passed. One LOW non-blocking test-hardening suggestion remains: direct GPT-only exclusion test could also include GLM/Kimi provider IDs, but existing byte-pin tests already protect those hints.",
+      "findings": [
+        {
+          "scanner": "documentation-hygiene-cleanup",
+          "severity": "suggestion",
+          "summary": "GPT-only exclusion test directly checks anthropic, unknown provider, and null, while GLM/Kimi exclusion is covered indirectly by byte-pinned provider hint tests. Optional direct coverage could add zai-coding-plan and moonshot to the exclusion array.",
+          "evidence": [
+            {
+              "label": "Dedicated GPT-only exclusion test",
+              "locator": "plugin/src/utils/system-block.test.ts:365",
+              "summary": "Direct exclusion test checks anthropic, unknown-provider, and null."
+            },
+            {
+              "label": "Non-GPT byte-pin coverage",
+              "locator": "plugin/src/utils/system-block.test.ts:380-421",
+              "summary": "Claude, GLM, and Kimi provider hints are exact-string pinned for runtime and source markdown, so accidental directive leakage would fail tests."
+            }
+          ]
+        }
+      ],
+      "follow_ups": [],
+      "consumer_warnings": []
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-06-05T01:52:43.378Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved proposal checkpoint by replying `continue`; proposal artifact already persisted with problem statement, scope, success criteria, constraints, affected code, impact, and discovery agenda.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "non_whitespace_chars": 4261,
+        "checked_at": "2026-06-05T01:49:23.139Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-06-05T02:09:26.883Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery agreement persisted and contract minted. User approved AC with `approve`; user-requested online validation completed and incorporated. Validation errors from `CONTRACT_AC_UNCOVERED` are expected after contract mint and before planning tasks exist; planning will attach task coverage.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addGptRequirementsRigorHint/agreement.md",
+        "content_hash": "7e351d7980e2970d36c70c8253c4f4ad55aa13351633bd2f933312a672e80a15",
+        "non_whitespace_chars": 4026,
+        "checked_at": "2026-06-05T01:49:23.140Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-06-05T02:14:23.684Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design artifact persisted. Independent validator returned CAUTION with non-blocking implementation cautions; no unresolved conflict, no user-value tradeoff, no contract-compromise risk. Proceeding to planning.",
+      "artifact_evidence": {
+        "kind": "design",
+        "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addGptRequirementsRigorHint/design.md",
+        "content_hash": "7f8e52fcc8172464851f05f044c3bf4c1be4131b437d77b3782aed6990dc2e2a",
+        "non_whitespace_chars": 7588,
+        "checked_at": "2026-06-05T01:49:23.141Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-06-05T02:19:41.956Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved prep vision by replying `approve`. Task graph contains implementation task tk-a31c5952eeb7 and verification/deploy task tk-ee1153ff81b1 with contract refs covering all AC items. `adv_change_validate strict:true` passed with only NO_DELTAS warning, expected because no spec delta is required."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-06-05T02:30:08.340Z",
+      "completed_by": "agent",
+      "approval_evidence": "All planned tasks completed. Task tk-a31c5952eeb7 committed provider-hint source/runtime/test changes at 6357ed7d6a4a5c0ff4cc0b26ee0ad84bbe9be881. Task tk-ee1153ff81b1 recorded build/deploy verification. Final validation passed with only expected NO_DELTAS warning. Smoke/check passed, build passed, deploy-local --fix passed, failed full-suite integration test passed on direct rerun and full suite passed on rerun."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-06-05T02:39:41.058Z",
+      "completed_by": "user:acceptance-checkpoint",
+      "approval_evidence": "User accepted delivered work by replying `accept`. Acceptance proof persisted before prompt: contract.reviewMatrix has 22 passed/respected rows with 0 failing rows; executive-summary artifact exists with content hash 33b2b8c449182b19cfe23d0ae6235f8a9fe81695d42ad6a218c33400ea06f2ff; preview URL not_applicable for non-visual provider-hint/test change; review verdict APPROVED with 0 blockers/issues.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "checked_at": "1970-01-01T00:00:00.000Z",
+        "compatibility_reason": "Normal acceptance completion; no legacy/replay compatibility recovery requested."
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "7e351d7980e2970d36c70c8253c4f4ad55aa13351633bd2f933312a672e80a15",
+      "approvedAt": "2026-06-05T02:09:05.512Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "Add GPT-only requirements-rigor guidance that overrides brevity/compression only for requirements text.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7e351d7980e2970d36c70c8253c4f4ad55aa13351633bd2f933312a672e80a15",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "Keep runtime provider hint constants and provider hint source markdown aligned.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7e351d7980e2970d36c70c8253c4f4ad55aa13351633bd2f933312a672e80a15",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "Preserve Claude, GLM, and Kimi provider hints exactly.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7e351d7980e2970d36c70c8253c4f4ad55aa13351633bd2f933312a672e80a15",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC4",
+        "kind": "success_criterion",
+        "text": "Preserve the single-system-entry provider-hint architecture and metrics reporting.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7e351d7980e2970d36c70c8253c4f4ad55aa13351633bd2f933312a672e80a15",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC5",
+        "kind": "success_criterion",
+        "text": "Build and deploy the plugin update, then surface OpenCode restart requirement.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7e351d7980e2970d36c70c8253c4f4ad55aa13351633bd2f933312a672e80a15",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "`PROVIDER_HINTS.gpt` contains exactly 3 new requirements-rigor directives.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7e351d7980e2970d36c70c8253c4f4ad55aa13351633bd2f933312a672e80a15",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "`.opencode/agent-parts/providers/gpt.md` contains the same 3 directives as `PROVIDER_HINTS.gpt`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7e351d7980e2970d36c70c8253c4f4ad55aa13351633bd2f933312a672e80a15",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Claude, GLM, and Kimi provider hints remain byte-identical to their pre-change contents.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7e351d7980e2970d36c70c8253c4f4ad55aa13351633bd2f933312a672e80a15",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "`assembleSystemBlock({ currentProviderID: \"openai\" })` includes all 3 new directives; `anthropic`, unknown provider IDs, and `null` do not include them.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7e351d7980e2970d36c70c8253c4f4ad55aa13351633bd2f933312a672e80a15",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Provider metrics still report `provider_hint` bytes/lines, and no prompt-size hard cap is added.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7e351d7980e2970d36c70c8253c4f4ad55aa13351633bd2f933312a672e80a15",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "`plugin/src/utils/system-block.test.ts`, provider metrics tests, `pnpm run build`, and `scripts/deploy-local.sh --fix` pass.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7e351d7980e2970d36c70c8253c4f4ad55aa13351633bd2f933312a672e80a15",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Scope is provider family `gpt` via structured `openai` provider identity; do not target model version only.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7e351d7980e2970d36c70c8253c4f4ad55aa13351633bd2f933312a672e80a15",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Requirements correctness outranks prompt byte minimization, but added directives stay lean and complete-not-verbose.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7e351d7980e2970d36c70c8253c4f4ad55aa13351633bd2f933312a672e80a15",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Existing `advance-meta` laws remain authoritative: exactly one matching hint, no hint for unknown/missing provider identity, provider metrics reporting only.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7e351d7980e2970d36c70c8253c4f4ad55aa13351633bd2f933312a672e80a15",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Live tool behavior in the current OpenCode session cannot be validated after source edits until rebuild/deploy and OpenCode restart because host-loaded plugin modules are cached.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7e351d7980e2970d36c70c8253c4f4ad55aa13351633bd2f933312a672e80a15",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Directive wording must remain aligned with GPT-5.5 best practice: outcome-first, success criteria, validation, narrow material clarification, and no long process-heavy prompt stack.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7e351d7980e2970d36c70c8253c4f4ad55aa13351633bd2f933312a672e80a15",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C6",
+        "kind": "constraint",
+        "text": "If tests/build/deploy fail, inspect and remediate in scope, rerun verification, and do not mark acceptance complete until green evidence exists or a real blocker is surfaced.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7e351d7980e2970d36c70c8253c4f4ad55aa13351633bd2f933312a672e80a15",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not change the caveman compression overlay.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7e351d7980e2970d36c70c8253c4f4ad55aa13351633bd2f933312a672e80a15",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not change shared command files or global ADV runtime behavior for all providers.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7e351d7980e2970d36c70c8253c4f4ad55aa13351633bd2f933312a672e80a15",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not modify Claude, GLM, or Kimi provider hints.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7e351d7980e2970d36c70c8253c4f4ad55aa13351633bd2f933312a672e80a15",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not introduce a hard prompt-size cap as correctness proof.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7e351d7980e2970d36c70c8253c4f4ad55aa13351633bd2f933312a672e80a15",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "Do not recreate generated provider runtime agents or retired provider variants.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7e351d7980e2970d36c70c8253c4f4ad55aa13351633bd2f933312a672e80a15",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-06-05T02:34:30.000Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "system-block.ts:134-136 and gpt.md:13-15 add GPT-only requirements-rigor directives covering requirements completeness, measurable AC, and material clarification.",
+          "notes": "Requirements carve-out is limited to requirements artifacts."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "system-block.test.ts:347-349 asserts PROVIDER_HINTS.gpt equals readProviderHintSource('gpt'); targeted test passed 128/128.",
+          "notes": "Runtime/source alignment structurally tested."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "system-block.test.ts:380-421 byte-pins Claude, GLM, and Kimi runtime/source hints; targeted test passed 128/128.",
+          "notes": "Non-GPT hints preserved."
+        },
+        {
+          "contractId": "SC4",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Provider mapping and hint emission remain unchanged at system-block.ts:169-180 and 259-264; deploy-local.test.ts:431-489 keeps provider_hint metrics coverage.",
+          "notes": "Single-system-entry architecture preserved."
+        },
+        {
+          "contractId": "SC5",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Task tk-ee1153ff81b1 records pnpm run build passed and scripts/deploy-local.sh --fix passed with restart notice; targeted test rerun passed 128/128.",
+          "notes": "Restart remains required for host-loaded runtime."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Diff adds exactly three PROVIDER_HINTS.gpt directives at system-block.ts:134-136; system-block.test.ts:50-54 defines the expected 3-directive set; targeted test passed 128/128.",
+          "notes": "No extra runtime directives added."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "gpt.md:13-15 contains the same three directives; system-block.test.ts:347-349 enforces source/runtime equality; targeted test passed 128/128.",
+          "notes": "Trailing newline normalized by test helper."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "system-block.test.ts:380-421 byte-pins Claude/GLM/Kimi hints and source markdown; diff touches only gpt.md, system-block.ts, system-block.test.ts; targeted test passed 128/128.",
+          "notes": "Non-GPT byte identity protected."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "system-block.test.ts:323-345 verifies openai includes all three directives; 365-377 verifies anthropic, unknown, and null exclude them; targeted test passed 128/128.",
+          "notes": "GPT-only runtime behavior covered."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "deploy-local.test.ts:463-488 covers provider_hint metrics; provider-eval.ts:351-353 reports provider_hint without hard cap; diff adds no prompt-size cap; targeted test passed 128/128.",
+          "notes": "Metrics reporting remains informational."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "adv_run_test rerun: bin/oc-test targeted -- src/utils/system-block.test.ts src/deploy-local.test.ts passed 128/128. Task evidence records pnpm run build and scripts/deploy-local.sh --fix passed; smoke and full suite passed after rerun.",
+          "notes": "Initial full-suite timeout was classified by direct rerun plus full rerun pass."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "system-block.ts:169-180 maps structured provider ID openai to gpt; no model-version logic introduced; diff only changes gpt provider hint content/tests.",
+          "notes": "Provider-family scope preserved."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Only three lean directives added; wording requires complete/specific/testable, not verbose; no global prompt expansion beyond GPT hint.",
+          "notes": "Requirements correctness prioritized without broad verbosity."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "system-block.ts:259-264 still emits one matching hint and none for unknown/missing IDs; tests at 351-377 cover null/unknown/non-GPT exclusion; provider_hint metrics remain covered.",
+          "notes": "advance-meta laws honored."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Task tk-ee1153ff81b1 records deploy-local --fix passed and output says restart OpenCode sessions; acceptance caveat preserves cached host-loaded runtime limitation.",
+          "notes": "Live behavior not overclaimed in current session."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Directives use outcome-first, measurable acceptance, validation, and narrow material clarification language; design validator cited OpenAI GPT-5.5 guidance and returned pass with non-blocking cautions.",
+          "notes": "No absolute ALWAYS/NEVER framing for clarification judgment."
+        },
+        {
+          "contractId": "C6",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Failed full-suite integration timeout was inspected: affected test passed directly and full suite passed on rerun. adv_change_validate strict passed with only expected NO_DELTAS warning; targeted rerun passed 128/128.",
+          "notes": "Green evidence exists before acceptance."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "git diff trunk...HEAD touches only gpt.md, system-block.ts, and system-block.test.ts; no caveman overlay files changed.",
+          "notes": "Caveman compression untouched."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No shared command files changed. Preview URL not_applicable: agreement visual_surface:false and implementation touches prompt/provider-hint/test files only, no browser-visible output.",
+          "notes": "Global behavior outside GPT provider hint untouched."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Claude, GLM, and Kimi provider hints not in diff; byte-pinned source/runtime tests pass.",
+          "notes": "Non-GPT providers untouched."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No hard prompt-size cap added; provider-eval.ts continues reporting provider_hint metrics only; deploy-local metrics tests pass.",
+          "notes": "No cap-as-correctness shortcut."
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No generated provider runtime agents or retired provider variants changed; diff is limited to provider hint source/runtime and tests.",
+          "notes": "Provider variant retirement preserved."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "`PROVIDER_HINTS.gpt` contains exactly 3 new requirements-rigor directives.",
+    "`.opencode/agent-parts/providers/gpt.md` contains the same 3 directives as `PROVIDER_HINTS.gpt`.",
+    "Claude, GLM, and Kimi provider hints remain byte-identical to their pre-change contents.",
+    "`assembleSystemBlock({ currentProviderID: \"openai\" })` includes all 3 new directives; `anthropic`, unknown provider IDs, and `null` do not include them.",
+    "Provider metrics still report `provider_hint` bytes/lines, and no prompt-size hard cap is added.",
+    "`plugin/src/utils/system-block.test.ts`, provider metrics tests, `pnpm run build`, and `scripts/deploy-local.sh --fix` pass."
+  ],
+  "documents": {
+    "proposal": "## Cross-Project Origin\n\nThis change was created as a follow-up from **toolbox**.\n\n| Field | Value |\n|-------|-------|\n| Source project | toolbox |\n| Source path | `/home/jon/toolbox` |\n\n> **Note:** The originating project should be consulted for context on why this change is needed.\n\n## Why\n\nGPT-family ADV sessions under-specify acceptance criteria and skip clarification during idea/problem/proposal/discovery. Root cause: GPT-5.5 reads prompts literally; the global caveman `full` overlay + ADV terse voice contract compress/drop \"detail,\" while AC drafting and Socratic clarification are requirements detail. The AC-quality bar and clarification license sit far from the drafting instruction and are outweighed by emphatic no-pause/auto-continue rules. Desired outcome: GPT-family sessions reliably draft measurable, testable acceptance criteria and run required clarification — with zero behavior change for Claude/GLM/Kimi.\n\n## What Changes\n\nAdd 3 directives to GPT-only provider hints:\n\n1. Requirements text (`problem statements`, `clarifying questions`, `acceptance criteria`, `agreements`) is exempt from brevity/voice/compression rules for required details; keep requirements complete, not verbose.\n2. Each acceptance criterion must be binary pass/fail, name an observable signal, and be bounded by a number, threshold, or explicit state; reject subjective terms (`fast`, `easy`, `robust`, `clean`) and rewrite before presenting.\n3. Clarifying questions during idea/problem/proposal/discovery are required work when missing information would materially change the outcome or create risk; they are not \"shall I continue?\" prompts, and no-pause/auto-continue rules never suppress them.\n\nRuntime isolation remains provider-family `gpt` through `currentProviderID === \"openai\"` → `PROVIDER_HINT_BY_PROVIDER_ID.openai = \"gpt\"`.\n\n## Success Criteria\n\n- SC1: `PROVIDER_HINTS.gpt` carries the 3 new requirements-rigor directives.\n- SC2: `.opencode/agent-parts/providers/gpt.md` carries the same 3 directives so repo hint source and runtime constant stay aligned.\n- SC3: `PROVIDER_HINTS.claude`, `.glm`, `.kimi` and `.opencode/agent-parts/providers/{claude,glm,kimi}.md` remain byte-identical to pre-change.\n- SC4: For `currentProviderID: \"openai\"`, assembled system block contains each new directive; for `\"anthropic\"`, `\"unknown\"`, and `null`, behavior is unchanged.\n- SC5: Provider-hint metrics keep reporting `provider_hint` bytes/lines and no hard prompt-size cap is introduced.\n- SC6: `plugin/src/utils/system-block.test.ts`, provider-hint metrics asset tests, `pnpm run build`, and `scripts/deploy-local.sh --fix` complete clean.\n\n## Scope\n\n### In Scope\n\n- Edit `PROVIDER_HINTS.gpt` in `plugin/src/utils/system-block.ts`.\n- Edit `.opencode/agent-parts/providers/gpt.md` to keep provider hint source markdown aligned with runtime constants.\n- Add/extend assertions in `plugin/src/utils/system-block.test.ts` for GPT directives, source/runtime alignment, and non-GPT non-regression.\n- Preserve provider-eval metrics behavior in `plugin/src/deploy-local.test.ts` / `scripts/provider-eval.ts`.\n- Build + deploy.\n\n### Out of Scope\n\n- Caveman overlay base (`caveman-config.cjs`) — global, affects all models.\n- Shared command files (`adv-discover.md`, `adv-proposal.md`, `adv.md`) — affect all models.\n- Other provider families (Claude/GLM/Kimi).\n- Per-model-version (`gpt-5.5` only) targeting — no structural hook exists; family scope is the boundary.\n- The general locality problem (AC bar far from drafting point) in shared files.\n\n### Must Not\n\n- Regress Claude/GLM/Kimi provider-hint bytes or behavior.\n- Touch the caveman compression overlay.\n- Introduce a hard prompt-size cap as correctness proof (forbidden by advance-meta spec).\n- Create generated provider runtime agents or restore retired provider variants.\n\n## Affected Code\n\n- `plugin/src/utils/system-block.ts` — `PROVIDER_HINTS.gpt`, `PROVIDER_HINT_BY_PROVIDER_ID` behavior remains unchanged.\n- `.opencode/agent-parts/providers/gpt.md` — repo source markdown used by provider eval and documented as mirror source.\n- `plugin/src/utils/system-block.test.ts` — provider-hint assertions.\n- `plugin/src/deploy-local.test.ts` / `scripts/provider-eval.ts` — should remain behavior-compatible; metrics tests should pass without pinning exact bytes.\n\n## Discovery Findings\n\n### Discovery Checklist\n\n| Step | Status | Reason |\n|---|---|---|\n| Skill Discovery | PASS | `customize-opencode` loaded for plugin/provider-hint source behavior; `adv-agent-tool-contracts` considered for schema/tool-contract risk; no pending-review skill frontmatter found. |\n| Prior Research Extension | PASS | No `temp/*.md`; `docs/*-prep.md` not relevant to provider-hint prompt behavior. New finding: provider hint source markdown must be updated with runtime constant. |\n| Conflict Scan | PASS | Active changes do not overlap; validation passes with expected pre-prep warnings (`NO_TASKS`, `NO_DELTAS`); agenda has unrelated follow-ups only. |\n| Edge Case Investigation | PASS | Edge cases documented below. |\n| Design Question Depth | PASS | User-facing questions resolved; technical questions resolved from code/spec/docs and online research. |\n| Draft Spec Deltas | PASS | No spec deltas required; existing `advance-meta` law covers runtime provider hints and metrics. |\n| Related Pattern Scan | PASS | Related patterns are provider hint source markdown, runtime constants, system-block tests, deploy/provider-eval metrics, and provider docs. |\n| LBP Check | PASS | GPT-only runtime provider hint is the least-blast-radius fix; official OpenAI GPT-5.5 guidance and public user reports support explicit success criteria, bounded AC, and narrow clarification rules. |\n\n### Current State\n\n- Runtime hints live in `plugin/src/utils/system-block.ts` and are emitted only from structured provider IDs.\n- `openai` maps to `gpt`; unknown/missing provider ID emits no hint.\n- `.opencode/agent-parts/providers/gpt.md` is documented as provider-hint source markdown and is read by `scripts/provider-eval.ts`.\n- `docs/provider-agent-assembly.md` states runtime constants in `system-block.ts` mirror `.opencode/agent-parts/providers/{provider}.md`.\n- `advance-meta` requires exactly one matching provider hint, no hint for unknown/missing identity, and provider-hint bytes/lines metrics without hard cap.\n\n### External Research Validation\n\n- OpenAI `Using GPT-5.5`: GPT-5.5 should be treated as a new model family, not a drop-in replacement; prompts should state expected outcome and success criteria; GPT-5.5 interprets prompts literally and thoroughly; coding agents should be explicit about test expectations, acceptance criteria, and when to continue versus ask for help. Source: https://developers.openai.com/api/docs/guides/latest-model\n- OpenAI `Prompt guidance`: GPT-5.5 is strongest when prompts define target outcome, success criteria, constraints, and context; avoid unnecessary absolute rules except true invariants; ask for clarification only when missing information materially changes the answer or creates meaningful risk; validation rules and concrete validation commands improve agentic UX. Source: https://developers.openai.com/api/docs/guides/prompt-guidance\n- OpenAI `Reasoning models`: `reasoning.effort` is a tuning knob, not the primary way to recover quality; agentic/research-heavy workflows need definitions of done and verification. Source: https://developers.openai.com/api/docs/guides/reasoning\n- OpenAI Developer Community thread (May 2026): practical consensus favors interactive clarification/natural language upstream, then structured artifacts downstream for consistency, constraints, compatibility, testing, and repeatable output. This matches ADV idea/problem/proposal/discovery clarification followed by strict agreement/AC. Source: https://community.openai.com/t/natural-language-requests-vs-long-structured-prompts-what-actually-improves-performance/1381299\n- DEV Community user report (Jun 2026): AI agents stopped building the wrong thing when AC moved from vague wishes to checkable pass/fail statements; advice: replace adjectives with numbers or concrete behaviors and include unhappy paths. Source: https://dev.to/kunalsharda/i-changed-how-i-write-acceptance-criteria-and-my-ai-agent-stopped-building-the-wrong-thing-3j7c\n- Secondary summaries (Artem Daniliants, Simi Studio) independently echo official guidance: outcome-first, explicit success criteria/stop rules, verification loops, and careful clarification decision rules. These are corroborative, not primary authority.\n\nResearch conclusion: proposed GPT-only provider hint is aligned with best practice. One wording refinement is required: keep the carve-out requirements-only and complete-not-verbose, so it does not contradict OpenAI guidance to avoid long process-heavy prompts.\n\n### Edge Cases\n\n1. Source/runtime drift: updating only `system-block.ts` leaves provider eval and docs source stale. Fix: update `gpt.md` and add alignment assertion.\n2. Cross-family bleed: directive accidentally appears in Claude/GLM/Kimi hint. Fix: assert other providers do not contain GPT directives and remain unchanged.\n3. Over-broad carve-out: GPT may ignore terse voice for all prose. Fix: wording limits carve-out to requirements text and says complete, not verbose.\n4. AC directive too subjective: vague terms remain allowed. Fix: wording requires observable signal + bounded value/state and rejects listed subjective terms.\n5. Clarification vs auto-continue conflict: GPT treats required clarifying questions as forbidden pause. Fix: wording explicitly classifies material clarification as required work, not \"shall I continue?\" prompts.\n6. Verification failure path: tests/build/deploy may fail. Fix: inspect first failure, remediate in scope, rerun; if deploy is blocked by unavailable external system or permissions, surface exact blocker and do not mark acceptance complete.\n\n### Open Design Questions\n\n- Q1 (user-facing, resolved): Carve-out breadth. Decision: requirements only.\n- Q2 (user-facing, resolved): AC strictness. Decision: strict measurable.\n- Q3 (user-facing, resolved): Rollout proof. Decision: tests + build + deploy-local --fix; restart note required.\n- Q4 (technical, agent-resolved): Update runtime constant only or source markdown too? Decision: both, because docs/provider-eval treat source markdown as provider-hint source.\n- Q5 (technical, agent-resolved): Spec delta needed? Decision: no; existing `rq-providerAdvSkinny01` and `rq-providerAdvMetrics01` already govern this behavior.\n- Q6 (user-requested online validation, resolved): Is this best practice for GPT-5.5 and aligned with public user reports? Decision: yes, with requirements-only/complete-not-verbose wording refinement.\n\n### Draft Spec Deltas\n\nNo spec deltas required. Existing laws apply:\n\n- `rq-providerAdvSkinny01.2`: known provider emits exactly one matching hint; unknown/missing emits none; one system entry; no heuristic guessing.\n- `rq-providerAdvMetrics01.1`: provider eval reports `provider_hint` bytes/lines and does not impose a hard prompt-size cap.\n\n### Related Pattern Scan\n\nRelated patterns found:\n\n- `plugin/src/utils/system-block.ts` — runtime provider hint constants and structured provider mapping.\n- `.opencode/agent-parts/providers/{provider}.md` — source markdown for provider hints.\n- `plugin/src/utils/system-block.test.ts` — emission/unknown/missing/duplicate tests.\n- `plugin/src/deploy-local.test.ts` — provider hint asset existence and metrics behavior tests.\n- `scripts/provider-eval.ts` — reads provider hint markdown and reports `provider_hint` metrics.\n- `docs/provider-agent-assembly.md` + `docs/specs/advance-meta.md` — architecture/spec law.\n\n### LBP Check\n\nBest direction: GPT-only provider hint. It preserves single ADV runtime agent architecture, uses structured provider identity, avoids global caveman/shared command changes, and keeps provider-family isolation. Official OpenAI GPT-5.5 guidance says GPT-5.5 interprets prompts literally and benefits from explicit outcome, success criteria, acceptance criteria, stop rules, and verification guidance. Public user reports match the same pattern: interactive clarification upstream, structured/checkable criteria downstream. Therefore prompt conflict resolution via a narrow provider hint is better than changing reasoning effort or weakening global terse voice.\n\n### Discovery Opportunity Scout\n\nScout skipped — narrow provider-hint data change, no product tradeoff, no viable external implementation alternative after code/spec/online inspection.\n\n### AMBIGUITY ANALYSIS\n\n`### AMBIGUITY ANALYSIS — no ambiguity findings. Coverage: B:C F:C S:C M:C`\n\n## Recommended Objectives\n\n1. Add GPT-only requirements-rigor directives that override compression only for requirements text.\n2. Keep runtime hint and source markdown aligned.\n3. Prove OpenAI/GPT receives the directives while non-GPT providers do not.\n4. Preserve provider-hint metrics and single-system-entry architecture.\n5. Build, deploy, and surface restart requirement.\n\n## Constraints\n\n- Isolation granularity is provider family `gpt` (`openai`), not model version.\n- Keep added lines lean, but requirements correctness outranks prompt byte minimization.\n- Stay within `advance-meta`: exactly one matching hint, none for unknown/missing, metrics reporting only, no hard cap.\n- If verification fails, inspect, remediate in scope, and rerun; do not call failure a flake or mark acceptance complete without green evidence.\n\n## Impact\n\nLow blast radius: one provider-specific hint constant, matching source markdown, and tests. No spec delta. Requires build + deploy; current OpenCode session will not see live tool behavior until restart because host-loaded plugin modules are cached.\n",
+    "problemStatement": "GPT-family sessions running the ADV agent under-specify acceptance criteria and skip clarifying questions during idea/problem/proposal/discovery. Investigated root cause: GPT-5.5 interprets prompts literally (per OpenAI GPT-5.5 guidance); the global caveman `full` compression overlay plus ADV's terse voice contract compress/drop requirements detail, while the AC-quality bar and clarification license sit far from the drafting point and are drowned by emphatic anti-pause rules. Desired outcome: GPT-family sessions reliably draft measurable, testable acceptance criteria and run required clarification — with zero behavior change for Claude/GLM/Kimi.",
+    "agreement": "# Agreement\n\n## Objectives\n\n- SC1: Add GPT-only requirements-rigor guidance that overrides brevity/compression only for requirements text.\n- SC2: Keep runtime provider hint constants and provider hint source markdown aligned.\n- SC3: Preserve Claude, GLM, and Kimi provider hints exactly.\n- SC4: Preserve the single-system-entry provider-hint architecture and metrics reporting.\n- SC5: Build and deploy the plugin update, then surface OpenCode restart requirement.\n\n## Acceptance Criteria\n\n- AC1: `PROVIDER_HINTS.gpt` contains exactly 3 new requirements-rigor directives.\n- AC2: `.opencode/agent-parts/providers/gpt.md` contains the same 3 directives as `PROVIDER_HINTS.gpt`.\n- AC3: Claude, GLM, and Kimi provider hints remain byte-identical to their pre-change contents.\n- AC4: `assembleSystemBlock({ currentProviderID: \"openai\" })` includes all 3 new directives; `anthropic`, unknown provider IDs, and `null` do not include them.\n- AC5: Provider metrics still report `provider_hint` bytes/lines, and no prompt-size hard cap is added.\n- AC6: `plugin/src/utils/system-block.test.ts`, provider metrics tests, `pnpm run build`, and `scripts/deploy-local.sh --fix` pass.\n\n## Constraints\n\n- C1: Scope is provider family `gpt` via structured `openai` provider identity; do not target model version only.\n- C2: Requirements correctness outranks prompt byte minimization, but added directives stay lean and complete-not-verbose.\n- C3: Existing `advance-meta` laws remain authoritative: exactly one matching hint, no hint for unknown/missing provider identity, provider metrics reporting only.\n- C4: Live tool behavior in the current OpenCode session cannot be validated after source edits until rebuild/deploy and OpenCode restart because host-loaded plugin modules are cached.\n- C5: Directive wording must remain aligned with GPT-5.5 best practice: outcome-first, success criteria, validation, narrow material clarification, and no long process-heavy prompt stack.\n- C6: If tests/build/deploy fail, inspect and remediate in scope, rerun verification, and do not mark acceptance complete until green evidence exists or a real blocker is surfaced.\n\n## Avoidances\n\n- DONT1: Do not change the caveman compression overlay.\n- DONT2: Do not change shared command files or global ADV runtime behavior for all providers.\n- DONT3: Do not modify Claude, GLM, or Kimi provider hints.\n- DONT4: Do not introduce a hard prompt-size cap as correctness proof.\n- DONT5: Do not recreate generated provider runtime agents or retired provider variants.\n\n## Preview Applicability\n\nvisual_surface: false\n\nRationale: This change affects runtime prompt/provider-hint text and tests only. It has no browser-visible UI, visual output, or frontend rendering surface.\n\n## Decisions\n\n### User Decisions\n\n- Carve-out breadth: requirements only. Problem statements, clarifying questions, acceptance criteria, and agreements are exempt from brevity/compression for required details; normal terse voice remains elsewhere.\n- AC strictness: strict measurable. Acceptance criteria must be binary pass/fail, observable, and bounded; subjective terms are rejected and rewritten.\n- Rollout proof: build + deploy. Acceptance expects tests/build plus `scripts/deploy-local.sh --fix`, followed by OpenCode restart note.\n- Acceptance criteria approved at discovery checkpoint by user reply: `approve`.\n- User-requested online validation: research online and confirm best practice / public user success before implementation.\n\n### Agent Decisions (LBP)\n\n- Update both `plugin/src/utils/system-block.ts` and `.opencode/agent-parts/providers/gpt.md` because docs/provider-eval treat source markdown as provider-hint source and runtime constants mirror it.\n- No spec delta required because `rq-providerAdvSkinny01.2` and `rq-providerAdvMetrics01.1` already govern the affected behavior.\n- GPT-only provider hint is the least-blast-radius fix: it resolves literal prompt conflict for GPT without global caveman/shared-command changes.\n- Official OpenAI GPT-5.5 docs support the direction: define outcomes/success criteria/acceptance criteria, clarify only when missing information materially changes outcome or risk, validate outputs, and do not rely on higher reasoning effort to fix conflicting instructions.\n- Public user reports support the same shape: natural conversation/clarification upstream, structured/checkable artifacts downstream, and pass/fail AC with numbers/concrete behavior instead of adjectives.\n\n## Deferred Questions\n\nNone.\n\n## Sign-Off\n\nAcceptance criteria approved by user reply `approve`. Online research requested by user was completed and incorporated without changing approved AC.\n",
+    "design": "# Design\n\n## Architecture Overview\n\nThis is a provider-hint data change inside the existing single ADV runtime agent architecture.\n\nRuntime path:\n\n1. OpenCode/plugin system transform receives `currentProviderID`.\n2. `providerHintSection()` maps structured provider ID through `PROVIDER_HINT_BY_PROVIDER_ID`.\n3. `openai` maps to `gpt`; unknown or missing provider identity returns no provider hint.\n4. The selected hint string is appended through the existing `output.system[0]` system-block path.\n\nChange shape:\n\n- Update only the GPT provider hint payload in `plugin/src/utils/system-block.ts`.\n- Update the mirrored GPT source markdown in `.opencode/agent-parts/providers/gpt.md`.\n- Keep Claude/GLM/Kimi hint payloads and source files unchanged.\n- Extend tests to prove OpenAI/GPT receives the new requirements-rigor guidance and non-GPT providers do not.\n\n## Key Decisions\n\n### KD1 — Provider-hint injection, not global ADV/caveman changes\n\nUse the existing GPT-only provider hint because the failure is GPT-family literal prompt conflict. This avoids changing all providers, shared command files, or the global caveman compression overlay.\n\nRationale:\n\n- OpenAI GPT-5.5 docs recommend outcome-first prompts with explicit success criteria, constraints, stopping/clarification rules, and validation.\n- The current failure is not lack of model intelligence; it is conflicting instructions around terse voice vs requirements detail.\n- `PROVIDER_HINT_BY_PROVIDER_ID.openai = \"gpt\"` gives the required family-level isolation.\n\n### KD2 — Requirements-only, complete-not-verbose carve-out\n\nDirective wording must not grant broad permission to ignore terse voice. It should say requirements artifacts are exempt from compression only when required details would otherwise be dropped.\n\nFinal design wording:\n\n1. `Requirements artifacts (problem statements, clarifying questions, acceptance criteria, agreements) are exempt from brevity/compression when detail is required; keep them complete, specific, and testable, not verbose.`\n2. `Acceptance criteria must be pass/fail, name an observable signal, and be bounded by a number, threshold, or explicit state. Rewrite subjective terms like fast/easy/robust/clean before presenting.`\n3. `During idea/problem/proposal/discovery, ask narrow clarifying questions when missing information would materially change outcome, acceptance boundary, or risk. This is required work, not \"shall I continue?\", so no-pause/auto-continue rules do not suppress it.`\n\nRationale:\n\n- Matches OpenAI guidance: clarify only when missing information materially changes outcome or risk.\n- Preserves caveman/terse voice for non-requirements prose.\n- Makes AC quality structural enough for tests/review: pass/fail, observable, bounded.\n\n### KD3 — Runtime constant and source markdown stay aligned\n\nUpdate both:\n\n- `plugin/src/utils/system-block.ts` → runtime `PROVIDER_HINTS.gpt`\n- `.opencode/agent-parts/providers/gpt.md` → source markdown used by provider eval/docs\n\nRationale:\n\n- `docs/provider-agent-assembly.md` says runtime constants mirror provider markdown.\n- `scripts/provider-eval.ts` reads `.opencode/agent-parts/providers/gpt.md` for provider hint metrics/evaluation.\n- Updating only runtime would pass live behavior but leave evaluation/documentation stale.\n\n### KD4 — No ADR\n\nNo ADR draft. The change is reversible, narrow, and already governed by `advance-meta` provider-hint architecture requirements.\n\n## Implementation Strategy\n\n1. Add the 3 GPT-only directive strings after the existing GPT completion-discipline lines in `PROVIDER_HINTS.gpt`.\n2. Add identical 3 bullets to `.opencode/agent-parts/providers/gpt.md`.\n3. Extend `plugin/src/utils/system-block.test.ts`:\n   - import `PROVIDER_HINTS` if needed;\n   - assert `openai` assembled system block contains all 3 directive substrings;\n   - assert `anthropic`, unknown provider, and `null` do not contain the new directive substrings;\n   - assert `PROVIDER_HINTS.gpt` matches `.opencode/agent-parts/providers/gpt.md` exactly after normalizing one optional trailing newline;\n   - pin Claude/GLM/Kimi provider hint strings or source files to their existing exact values so accidental edits fail fast.\n4. Leave `scripts/provider-eval.ts` behavior unchanged. Existing deploy/provider-eval asset tests prove `provider_hint` metrics remain present and no hard size cap exists.\n5. Verification order:\n   - targeted: `bin/oc-test targeted -- src/utils/system-block.test.ts src/deploy-local.test.ts`\n   - build: `pnpm run build` from `plugin/`\n   - deploy: `scripts/deploy-local.sh --fix` from repo root\n6. If any verification fails, inspect first failure, remediate in scope, and rerun. Do not call failures flaky without rerun/log proof.\n\n## LBP Analysis\n\nThis design follows current GPT-5.5 prompting best practice:\n\n- define outcomes and success criteria rather than adding process-heavy global prompt rules;\n- clarify only when missing context materially changes outcome/risk;\n- keep directives concise but explicit where product contract requires it;\n- validate with executable tests and build/deploy evidence;\n- keep provider-specific behavior behind structured provider identity rather than heuristic model-name guessing.\n\nIt also matches public practitioner reports: use conversation/clarification upstream to discover the right requirement, then structured checkable acceptance criteria downstream for repeatability and testability.\n\n## Affected Components\n\n- `plugin/src/utils/system-block.ts`\n  - `PROVIDER_HINTS.gpt` only.\n  - `PROVIDER_HINT_BY_PROVIDER_ID` unchanged.\n  - `providerHintSection()` unchanged.\n- `.opencode/agent-parts/providers/gpt.md`\n  - source markdown mirror for GPT provider hint.\n- `plugin/src/utils/system-block.test.ts`\n  - provider-hint assertions and source/runtime alignment test.\n- Existing tests to keep green:\n  - `plugin/src/deploy-local.test.ts` provider hint assets / metrics.\n  - Any system-block ordering/unknown-provider tests.\n\n## Contract Coverage Plan\n\n- AC1 / AC4: `system-block.test.ts` asserts GPT runtime string contains directives and non-GPT/missing provider paths do not.\n- AC2: source/runtime alignment assertion compares `PROVIDER_HINTS.gpt` to `.opencode/agent-parts/providers/gpt.md`.\n- AC3: pinned non-GPT expectations and/or git diff review prove Claude/GLM/Kimi unchanged.\n- AC5: existing provider metrics tests remain green; no prompt-size cap introduced.\n- AC6: targeted tests, build, and deploy command outputs provide evidence.\n- C4 / SC5: final acceptance notes must remind user to restart OpenCode after deploy because host-loaded plugin modules are cached.\n\n## Risks / Mitigations\n\n| Risk | Mitigation |\n|---|---|\n| GPT hint becomes too verbose and conflicts with OpenAI best practice | Use exactly 3 short bullets; requirements-only carve-out; complete-not-verbose wording. |\n| Non-GPT behavior changes accidentally | Do not edit non-GPT source files; add test/pinned expectations; review git diff. |\n| Runtime/source drift | Alignment test between `PROVIDER_HINTS.gpt` and `.opencode/agent-parts/providers/gpt.md`. |\n| Metrics regress due hint length | Keep provider-eval behavior unchanged; run provider metrics asset tests. |\n| Live session does not reflect source change | Build + deploy, then tell user to restart OpenCode. |\n| Deploy/test failure | Inspect, remediate, rerun; surface true blockers only. |\n\n## Design Leverage Scout\n\nScout: skipped — trivially scoped provider-hint data/test change. Opportunity surface is limited to source/runtime alignment and test hardening, both already adopted in design. No user-value tradeoff or broader architecture alternative remains after discovery research.\n\n## Validator Result\n\nVerdict: CAUTION — proceed.\n\nIndependent validator assessment:\n\n- Mechanics accurate: structured `openai` → `gpt`, unknown/null provider emits no hint, single-system-entry path preserved.\n- Source/runtime alignment test is a real new guard; no existing test enforces `PROVIDER_HINTS.gpt` equals `.opencode/agent-parts/providers/gpt.md`.\n- No spec-law contradiction: `rq-providerAdvSkinny01.2` and `rq-providerAdvMetrics01.1` allow this and forbid hard size caps.\n- Provider metrics behavior remains structurally safe because provider-eval reads `gpt.md` without byte/line caps.\n- KD2 wording matches OpenAI GPT-5.5 prompt guidance.\n\nNon-blocking cautions adopted for implementation:\n\n1. Keep the clarify directive as a decision-rule; avoid absolute ALWAYS/NEVER wording for the judgment-call trigger.\n2. Order the clarify/auto-continue override near the existing GPT auto-continue bullet so precedence reads cleanly.\n3. Pin AC1 and AC4 in the same provider-hint test, and normalize one optional trailing newline for source/runtime comparison.\n\nRecommendation: proceed as written.\n",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\n\nAdded GPT-only requirements-rigor guidance so GPT sessions keep requirements artifacts complete, specific, and testable despite terse voice/compression rules. Acceptance review is approved with no blockers or issues; the change is non-visual and requires restarting OpenCode sessions after deploy before live host-loaded runtime behavior changes.\n\n## Verdict\n\nAPPROVED\n\n## What Was Built\n\n1. Added three requirements-rigor directives to `PROVIDER_HINTS.gpt` in `plugin/src/utils/system-block.ts`.\n2. Added the same three directives to `.opencode/agent-parts/providers/gpt.md` so runtime constants and provider hint source markdown stay aligned.\n3. Added regression coverage for GPT-only directive inclusion, source/runtime alignment, non-GPT provider byte identity, and provider metrics/no hard-cap behavior.\n4. Verified build/deploy path and preserved the OpenCode restart notice for cached host-loaded plugin modules.\n\n## What Was Verified\n\n- Verdict: APPROVED with 0 blockers, 0 issues, 0 suggestions, 0 nits.\n- Tests: `bin/oc-test targeted -- src/utils/system-block.test.ts src/deploy-local.test.ts` passed 128/128 during review; task evidence also records `pnpm run build`, `scripts/deploy-local.sh --fix`, smoke, and full suite passed after rerun.\n- Static checks: `git diff --check trunk...HEAD` passed; `adv_change_validate strict:true` passed with only expected `NO_DELTAS` warning.\n- Preview URL: not_applicable — agreement declares `visual_surface: false`, and implementation touches provider-hint source/runtime/tests only, with no browser-visible output.\n- Contract matrix: 22 required rows passed/respected; 0 failed, violated, unknown, or missing evidence rows.\n\n## Remaining Concerns\n\nOpenCode sessions must restart to pick up deployed host-loaded plugin runtime changes."
+  },
+  "artifacts": {
+    "proposal": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addGptRequirementsRigorHint/proposal.md",
+      "updatedAt": "2026-06-05T02:08:40.057Z",
+      "contentHash": "477ad5f14e776dc3def2e80c7e07dd3225414b33795d2389572426ab7072ac98"
+    },
+    "agreement": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addGptRequirementsRigorHint/agreement.md",
+      "updatedAt": "2026-06-05T02:08:40.057Z",
+      "contentHash": "7e351d7980e2970d36c70c8253c4f4ad55aa13351633bd2f933312a672e80a15"
+    },
+    "design": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addGptRequirementsRigorHint/design.md",
+      "updatedAt": "2026-06-05T02:14:03.275Z",
+      "contentHash": "7f8e52fcc8172464851f05f044c3bf4c1be4131b437d77b3782aed6990dc2e2a"
+    },
+    "executiveSummary": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addGptRequirementsRigorHint/executive-summary.md",
+      "updatedAt": "2026-06-05T02:36:30.971Z",
+      "contentHash": "33b2b8c449182b19cfe23d0ae6235f8a9fe81695d42ad6a218c33400ea06f2ff"
+    }
+  },
+  "lastSignalAt": "2026-06-05T02:46:58.425Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_MISSING_ERROR_HANDLING",
+      "severity": "warning",
+      "message": "Proposal describes behavior that could fail but doesn't mention error handling or rollback. What happens when things go wrong?",
+      "recorded_at": "2026-06-05T02:06:55.871Z",
+      "resolved": true,
+      "resolved_at": "2026-06-05T02:09:12.680Z"
+    },
+    {
+      "code": "CLARIFY_ASSUMPTION_HEAVY",
+      "severity": "warning",
+      "message": "Proposal references authentication/authorization without specifying the model. What auth mechanism will be used?",
+      "recorded_at": "2026-06-05T02:09:12.680Z"
+    }
+  ]
+}
