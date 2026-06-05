@@ -582,16 +582,16 @@ export async function loadProposalWithFallback(
 ## Intent
 
 <!-- Auto-generated scaffold: proposal.md was missing or empty. -->
-<!-- Update this file with the actual intent, scope, and success criteria. -->
+<!-- Update this file with the actual intent, scope, and user outcomes. -->
 
 ## Scope
 
 - (unknown — proposal.md not found)
 
-## Success Criteria
+## User Outcomes
 
-- [ ] All tasks completed
-- [ ] All tests pass
+- [ ] Users can see what outcome this change is meant to deliver
+- [ ] Discovery firms acceptance criteria and success criteria downstream
 `;
 
   return {
@@ -658,13 +658,13 @@ export async function createChangeScaffold(
 
 <!-- Describe the specific modifications: new files, modified APIs, changed behavior -->
 
-## Success Criteria
+## User Outcomes
 
-<!-- How will we know this is done? Measurable outcomes. -->
+<!-- What user-perspective outcomes should this change deliver? Keep these implementation-free; discovery firms AC/SC. -->
 
-- [ ] Criterion 1
-- [ ] Criterion 2
-- [ ] All tests pass
+- [ ] User outcome 1
+- [ ] User outcome 2
+- [ ] Discovery will firm acceptance criteria and success criteria
 
 ## Affected Code
 

@@ -96,7 +96,7 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
   "adv-proposal": {
     name: "adv-proposal",
     description:
-      "Extract problem statement, success criteria, and constraints without creating tasks",
+      "Extract problem statement, user outcomes, and constraints without creating tasks",
     phase: "core",
     gate: "proposal",
     requiresChangeId: false,

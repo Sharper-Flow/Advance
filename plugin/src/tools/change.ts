@@ -163,16 +163,16 @@ async function loadProposalForContext(
 ## Intent
 
 <!-- Auto-generated scaffold: proposal.md was missing or empty. -->
-<!-- Update this file with the actual intent, scope, and success criteria. -->
+<!-- Update this file with the actual intent, scope, and user outcomes. -->
 
 ## Scope
 
 - (unknown — proposal.md not found)
 
-## Success Criteria
+## User Outcomes
 
-- [ ] All tasks completed
-- [ ] All tests pass
+- [ ] Users can see what outcome this change is meant to deliver
+- [ ] Discovery firms acceptance criteria and success criteria downstream
 `;
   return {
     content: scaffold,

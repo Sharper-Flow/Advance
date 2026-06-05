@@ -21,7 +21,7 @@ export interface GateInfo {
 export interface ContextSnapshotInput {
   changeId: string;
   title: string;
-  successCriteriaCount?: number;
+  userOutcomeCount?: number;
   gates?: Record<string, GateInfo>;
   taskCounts: {
     done: number;
@@ -76,19 +76,17 @@ type SnapshotChangeLike = {
   wisdom?: SnapshotWisdomLike[];
 };
 
-export function countSuccessCriteria(
-  proposalText?: string,
-): number | undefined {
+export function countUserOutcomes(proposalText?: string): number | undefined {
   if (proposalText === undefined) return undefined;
 
-  const criteriaMatch =
+  const outcomesMatch =
     proposalText.match(
-      /##\s*success\s+criteria\s*\n([\s\S]*?)(?=\n##\s|\n---)/i,
-    ) ?? proposalText.match(/##\s*success\s+criteria\s*\n([\s\S]*)/i);
+      /##\s*user\s+outcomes\s*\n([\s\S]*?)(?=\n##\s|\n---)/i,
+    ) ?? proposalText.match(/##\s*user\s+outcomes\s*\n([\s\S]*)/i);
 
-  if (!criteriaMatch) return 0;
+  if (!outcomesMatch) return 0;
 
-  return criteriaMatch[1]
+  return outcomesMatch[1]
     .split("\n")
     .map((line) => line.trim())
     .filter((line) => line.startsWith("- ")).length;
@@ -172,7 +170,7 @@ export function buildChangeContextSnapshot({
   return formatContextSnapshot({
     changeId: change.id,
     title: change.title,
-    successCriteriaCount: countSuccessCriteria(proposalText),
+    userOutcomeCount: countUserOutcomes(proposalText),
     gates,
     taskCounts,
     workdir,
@@ -274,7 +272,7 @@ export function formatContextSnapshot(input: ContextSnapshotInput): string {
   const {
     changeId,
     title,
-    successCriteriaCount,
+    userOutcomeCount,
     taskCounts,
     workdir,
     currentTask,
@@ -329,20 +327,20 @@ export function formatContextSnapshot(input: ContextSnapshotInput): string {
   lines.push(
     "",
     `Gates: ${gateProgress}`,
-    errorBudgetProximity ?? `Success: ${successCriteriaCount ?? "?"} criteria`,
+    errorBudgetProximity ?? `Outcomes: ${userOutcomeCount ?? "?"} items`,
     taskLine,
   );
 
   // Budget: we have 3 remaining line slots (10 total - 2 box borders - 5 fixed lines above)
-  // Priority: wisdom line > success criteria (already included) > current task
+  // Priority: wisdom line > user outcomes (already included) > current task
   // When both currentTask AND wisdom are present, we still fit (9 content lines = 11 total with borders)
   // which is close enough — but let's drop the Success/Budget line if we need to save space
   const hasCurrentTask = !!currentTask;
   const needBudgetTrim = hasCurrentTask && hasWisdom;
   if (needBudgetTrim) {
-    // Remove Success/Budget line to make room for both Current and Wisdom
+    // Remove Outcomes/Budget line to make room for both Current and Wisdom
     const budgetLineIndex = lines.findIndex(
-      (line) => line.startsWith("Success:") || line.startsWith("⚠ "),
+      (line) => line.startsWith("Outcomes:") || line.startsWith("⚠ "),
     );
     if (budgetLineIndex >= 0) lines.splice(budgetLineIndex, 1);
   }
