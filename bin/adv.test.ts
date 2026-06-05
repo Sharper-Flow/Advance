@@ -11,6 +11,12 @@ import { tmpdir } from "os";
 import { join } from "path";
 
 const ADV_PATH = join(import.meta.dir, "adv");
+const GIT_TEST_IDENTITY = [
+  "-c",
+  "user.name=ADV Test",
+  "-c",
+  "user.email=adv-test@example.invalid",
+];
 
 function makeSnapshot() {
   return {
@@ -140,10 +146,13 @@ describe("adv status live default", () => {
   test("status does not require a disk ADV state directory", async () => {
     const tmp = mkdtempSync(join(tmpdir(), "adv-dispatch-"));
     // Initialize a git repo so resolveProjectId works
-    const initProc = Bun.spawn(["git", "init"], { cwd: tmp });
+    const initProc = Bun.spawn(
+      ["git", "-c", "init.defaultBranch=trunk", "init", "--quiet"],
+      { cwd: tmp },
+    );
     await initProc.exited;
     const commitProc = Bun.spawn(
-      ["git", "commit", "--allow-empty", "-m", "init"],
+      ["git", ...GIT_TEST_IDENTITY, "commit", "--allow-empty", "-m", "init"],
       { cwd: tmp },
     );
     await commitProc.exited;
@@ -153,10 +162,13 @@ describe("adv status live default", () => {
 
   test("status --json failure reports live Temporal error without disk fallback", async () => {
     const tmp = mkdtempSync(join(tmpdir(), "adv-dispatch-"));
-    const initProc = Bun.spawn(["git", "init"], { cwd: tmp });
+    const initProc = Bun.spawn(
+      ["git", "-c", "init.defaultBranch=trunk", "init", "--quiet"],
+      { cwd: tmp },
+    );
     await initProc.exited;
     const commitProc = Bun.spawn(
-      ["git", "commit", "--allow-empty", "-m", "init"],
+      ["git", ...GIT_TEST_IDENTITY, "commit", "--allow-empty", "-m", "init"],
       { cwd: tmp },
     );
     await commitProc.exited;
