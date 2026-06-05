@@ -40,7 +40,11 @@ export type GateId = (typeof GATE_ORDER)[number];
 
 export const RECENCY_HOT_THRESHOLD_MIN = 60;
 export const RECENCY_STALE_THRESHOLD_MIN = 180;
-export const DASHBOARD_ACTIVE_STATUSES = new Set(["draft", "pending", "active"]);
+export const DASHBOARD_ACTIVE_STATUSES = new Set([
+  "draft",
+  "pending",
+  "active",
+]);
 
 // =============================================================================
 // State Loading
@@ -127,9 +131,9 @@ export function classifyRecency(minutes: number): "hot" | "warm" | "stale" {
 
 export function buildGateProgress(gates?: Record<string, GateState>): string {
   if (!gates) return "○ ○ ○ ○ ○ ○ ○";
-  return GATE_ORDER.map((g) =>
-    gates[g]?.status === "done" ? "✓" : "○",
-  ).join(" ");
+  return GATE_ORDER.map((g) => (gates[g]?.status === "done" ? "✓" : "○")).join(
+    " ",
+  );
 }
 
 export function firstIncompleteGate(
@@ -143,7 +147,10 @@ export function firstIncompleteGate(
   return null;
 }
 
-export function countTasks(tasks: TaskRecord[]): { done: number; total: number } {
+export function countTasks(tasks: TaskRecord[]): {
+  done: number;
+  total: number;
+} {
   let done = 0;
   for (const t of tasks) {
     if (t.status === "done" || t.status === "cancelled") done++;

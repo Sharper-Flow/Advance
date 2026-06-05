@@ -61,7 +61,10 @@ function normalizeWorkflowState(raw: any): ChangeRecord {
     title: String(raw.title ?? raw.id ?? raw.changeId ?? "(untitled)"),
     status: String(raw.status ?? "draft"),
     created_at: String(
-      raw.created_at ?? raw.createdAt ?? raw.initializedAt ?? new Date(0).toISOString(),
+      raw.created_at ??
+        raw.createdAt ??
+        raw.initializedAt ??
+        new Date(0).toISOString(),
     ),
     tasks: Array.isArray(raw.tasks) ? raw.tasks : [],
     gates: raw.gates && typeof raw.gates === "object" ? raw.gates : {},
@@ -87,7 +90,9 @@ export async function listLiveChangeStates(
   for (const id of ids) {
     const workflowId = buildChangeWorkflowId(options.projectId, id);
     const raw = await withTimeout(
-      client.workflow.getHandle(workflowId).query(CHANGE_WORKFLOW_QUERY_NAMES.getState),
+      client.workflow
+        .getHandle(workflowId)
+        .query(CHANGE_WORKFLOW_QUERY_NAMES.getState),
       timeoutMs,
       `Temporal query ${id}`,
     );

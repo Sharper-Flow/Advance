@@ -37,15 +37,20 @@ const liveState = {
   status: "draft",
   createdAt: "2026-06-05T10:00:00.000Z",
   tasks: [{ id: "t1", title: "Task", status: "done" }],
-  gates: { proposal: { status: "done", completed_at: "2026-06-05T10:01:00.000Z" } },
+  gates: {
+    proposal: { status: "done", completed_at: "2026-06-05T10:01:00.000Z" },
+  },
   wisdom: [],
 };
 
 describe("live status reader", () => {
   test("lists and queries live Temporal workflow states by string query name", async () => {
-    const states = await listLiveChangeStates(fakeClient({ liveChange: liveState }), {
-      projectId: "project123",
-    });
+    const states = await listLiveChangeStates(
+      fakeClient({ liveChange: liveState }),
+      {
+        projectId: "project123",
+      },
+    );
 
     expect(states.map((state) => state.id)).toEqual(["liveChange"]);
     expect(states[0]?.created_at).toBe("2026-06-05T10:00:00.000Z");
@@ -75,15 +80,20 @@ describe("live status reader", () => {
     expect(payload.live).toBe(true);
     expect(payload.stale).toBe(false);
     expect(payload.changes.map((change) => change.id)).toEqual(["liveChange"]);
-    expect(payload.changes.map((change) => change.id)).not.toContain("diskOnly");
+    expect(payload.changes.map((change) => change.id)).not.toContain(
+      "diskOnly",
+    );
     expect(payload.counts).toEqual({ active: 1, archived: 2, closed: 1 });
   });
 
   test("fails closed when visibility listing fails", async () => {
     await expect(
-      listLiveChangeStates(fakeClient({}, new Error("visibility unavailable")), {
-        projectId: "project123",
-      }),
+      listLiveChangeStates(
+        fakeClient({}, new Error("visibility unavailable")),
+        {
+          projectId: "project123",
+        },
+      ),
     ).rejects.toThrow("visibility unavailable");
   });
 

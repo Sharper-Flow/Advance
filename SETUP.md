@@ -1063,7 +1063,7 @@ pnpm dlx tsx scripts/migrate-openspec.ts /path/to/your-project/openspec ./specs
 
 ## ADV CLI (`bin/adv`)
 
-Standalone terminal client for viewing ADV status without an OpenCode session. Reads state directly from disk.
+Standalone terminal client for viewing ADV status without an OpenCode session. `adv status` reads live Temporal-backed ADV state for active changes and fails closed with remediation when live state is unavailable; `adv roadmap` reads the generated roadmap snapshot file.
 
 **Requirements:** Bun 1.3+ must be installed (`bun --version` to check).
 
@@ -1074,7 +1074,7 @@ adv --version                              # verify: "adv v0.1.0"
 adv                                        # show status for current repo
 ```
 
-Flags: `--no-color` (or `NO_COLOR=1`) to disable ANSI colors. See `adv --help` for details.
+Flags: `--no-color` (or `NO_COLOR=1`) to disable ANSI colors; `--json` for status/roadmap automation. See `adv --help` for details.
 
 ---
 

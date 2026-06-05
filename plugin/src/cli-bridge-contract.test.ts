@@ -112,7 +112,9 @@ describe("CLI bridge command contracts", () => {
     expect(lawText).toMatch(/fail(?:s)? closed/i);
     expect(lawText).toMatch(/no silent stale|silently render stale/i);
     expect(lawText).toMatch(/disk projections? .*not .*active/i);
-    expect(lawText).not.toMatch(/Detailed operational diagnostics remain available only/i);
+    expect(lawText).not.toMatch(
+      /Detailed operational diagnostics remain available only/i,
+    );
   });
 });
 

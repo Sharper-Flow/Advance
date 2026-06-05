@@ -2,25 +2,30 @@
 /**
  * adv — ADV (Advance) status CLI
  *
- * Read-only terminal client that reads ADV state from disk and prints
- * a formatted status table. No OpenCode session required.
+ * Read-only terminal client. Status reads live Temporal state for active
+ * changes; roadmap reads the generated file snapshot.
  *
  * Runtime: Bun 1.3+
- * Dependencies: none (Bun built-ins + Node stdlib only)
+ * Dependencies: Bun built-ins + plugin Temporal client dependencies.
  */
 
 import { join } from "path";
 import { parseArgs } from "node:util";
 
-import {
-  listChanges,
-} from "./lib/changes";
+import { listChanges } from "./lib/changes";
 import {
   resolveProjectId,
   resolveExternalRoot,
   resolveRepoRoot,
 } from "./lib/project";
-import { shouldUseColor, formatTable, BOLD, DIM, RESET, emitJson } from "./lib/render";
+import {
+  shouldUseColor,
+  formatTable,
+  BOLD,
+  DIM,
+  RESET,
+  emitJson,
+} from "./lib/render";
 import { readSnapshotFile, renderRoadmap, roadmapJson } from "./lib/roadmap";
 import {
   buildLiveStatusFailure,
@@ -82,9 +87,10 @@ async function runStatus(noColor: boolean, json: boolean): Promise<number> {
   const useColor = shouldUseColor(noColor);
   const now = new Date();
   const rawTimeout = Number(process.env.ADV_STATUS_TIMEOUT_MS);
-  const timeoutMs = Number.isFinite(rawTimeout) && rawTimeout > 0
-    ? rawTimeout
-    : QUERY_TIMEOUT_MS;
+  const timeoutMs =
+    Number.isFinite(rawTimeout) && rawTimeout > 0
+      ? rawTimeout
+      : QUERY_TIMEOUT_MS;
 
   try {
     const [changes, terminalCounts] = await Promise.all([
