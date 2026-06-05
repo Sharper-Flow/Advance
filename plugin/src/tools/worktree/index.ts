@@ -129,7 +129,14 @@ const MAX_SESSION_CHAIN_DEPTH = 10;
 
 type WorktreeSignalResult = { ok: true } | { ok: false; warning: string };
 
-const DEFAULT_WORKTREE_SIGNAL_TIMEOUT_MS = 10_000;
+/**
+ * Default timeout for the post-delete workflow notification signal.
+ * Must be below the tool safe budget (8s) so the signal resolves
+ * before the tool-level timeout fires.
+ *
+ * rq-worktreeBoundedCleanup02 AC5.
+ */
+const DEFAULT_WORKTREE_SIGNAL_TIMEOUT_MS = 5_000;
 
 async function fireWorktreeSignal(
   projectDir: string,
@@ -378,6 +385,14 @@ export async function detectUncommittedState(
   });
 }
 
+/**
+ * Default timeout for `git worktree remove` operations. Must be below
+ * the tool safe budget (8s).
+ *
+ * rq-worktreeBoundedCleanup02 AC5.
+ */
+const GIT_WORKTREE_REMOVE_TIMEOUT_MS = 5_000;
+
 async function gitWorktreeRemove(
   repoRoot: string,
   worktreePath: string,
@@ -386,13 +401,21 @@ async function gitWorktreeRemove(
   return new Promise((resolve) => {
     const args = ["worktree", "remove", worktreePath];
     if (force) args.push("--force");
-    execFileGitCb(args, { cwd: repoRoot }, (error, _stdout, stderr) => {
-      if (error) {
-        resolve(Result.err(stderr.trim() || error.message));
-      } else {
-        resolve(Result.ok(undefined));
-      }
-    });
+    execFileGitCb(
+      args,
+      {
+        cwd: repoRoot,
+        timeout: GIT_WORKTREE_REMOVE_TIMEOUT_MS,
+        killSignal: "SIGKILL",
+      },
+      (error, _stdout, stderr) => {
+        if (error) {
+          resolve(Result.err(stderr.trim() || error.message));
+        } else {
+          resolve(Result.ok(undefined));
+        }
+      },
+    );
   });
 }
 

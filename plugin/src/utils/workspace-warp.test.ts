@@ -638,4 +638,71 @@ describe("workspace-warp", () => {
       expect(headers["x-opencode-directory"]).toBe(expectedHeader);
     });
   });
+
+  // rq-worktreeBoundedCleanup02 AC6: workspace operations bounded by
+  // AbortSignal.timeout so they don't hang the delete tool beyond the
+  // safe budget.
+  describe("bounded workspace operations", () => {
+    const originalEnv = process.env;
+
+    beforeEach(() => {
+      process.env = {
+        ...originalEnv,
+        OPENCODE_EXPERIMENTAL_WORKSPACES: "true",
+      };
+    });
+
+    afterEach(() => {
+      process.env = originalEnv;
+    });
+
+    it("findWorkspaceByDirectory aborts on timeout when fetch hangs", async () => {
+      // fetchImpl respects AbortSignal — simulates a hung HTTP request
+      const fetchImpl = vi.fn((_url: string, init: RequestInit) =>
+        new Promise<Response>((_resolve, reject) => {
+          const signal = init.signal as AbortSignal | undefined;
+          if (signal?.aborted) {
+            reject(new DOMException("The operation was aborted", "AbortError"));
+            return;
+          }
+          const onAbort = () => {
+            reject(new DOMException("The operation was aborted", "AbortError"));
+          };
+          signal?.addEventListener("abort", onAbort, { once: true });
+        }),
+      );
+
+      const result = await findWorkspaceByDirectory(
+        baseDeps({ fetchImpl }),
+        "/tmp/wt",
+        "change/test",
+      );
+
+      // Should return null (graceful degradation) instead of hanging
+      expect(result).toBeNull();
+    });
+
+    it("deleteAdvWorkspace aborts on timeout when fetch hangs", async () => {
+      // fetchImpl respects AbortSignal — simulates a hung DELETE that
+      // gets aborted when the signal fires
+      const fetchImpl = vi.fn((_url: string, init: RequestInit) =>
+        new Promise<Response>((_resolve, reject) => {
+          const signal = init.signal as AbortSignal | undefined;
+          if (signal?.aborted) {
+            reject(new DOMException("The operation was aborted", "AbortError"));
+            return;
+          }
+          const onAbort = () => {
+            reject(new DOMException("The operation was aborted", "AbortError"));
+          };
+          signal?.addEventListener("abort", onAbort, { once: true });
+        }),
+      );
+
+      // Should throw AbortError instead of hanging
+      await expect(
+        deleteAdvWorkspace(baseDeps({ fetchImpl }), "ws-hung"),
+      ).rejects.toThrow();
+    });
+  });
 });

@@ -38,6 +38,15 @@ export interface WorkspaceHandle {
 
 const fetchWith = (deps: WarpDeps): typeof fetch => deps.fetchImpl ?? fetch;
 
+/**
+ * Default timeout for workspace HTTP operations (find, delete).
+ * Must be well below the tool safe budget (8s) so these operations
+ * complete or abort before the tool-level timeout fires.
+ *
+ * rq-worktreeBoundedCleanup02 AC6.
+ */
+const WORKSPACE_OP_TIMEOUT_MS = 3_000;
+
 const MAX_ERROR_RESPONSE_CHARS = 1000;
 
 const responseText = async (response: Response): Promise<string> => {
@@ -233,7 +242,11 @@ export async function deleteAdvWorkspace(
 ): Promise<void> {
   const response = await fetchWith(deps)(
     workspaceUrl(deps, `/${encodeURIComponent(workspaceID)}`),
-    { method: "DELETE", headers: directoryHeaders(deps) },
+    {
+      method: "DELETE",
+      headers: directoryHeaders(deps),
+      signal: AbortSignal.timeout(WORKSPACE_OP_TIMEOUT_MS),
+    },
   );
 
   if (response.ok || response.status === 404) return;
@@ -275,6 +288,7 @@ export async function findWorkspaceByDirectory(
   try {
     const response = await fetchWith(deps)(workspaceUrl(deps), {
       headers: directoryHeaders(deps),
+      signal: AbortSignal.timeout(WORKSPACE_OP_TIMEOUT_MS),
     });
     if (!response.ok) return null;
 
