@@ -747,6 +747,48 @@ Restart OpenCode after editing.
 
 ---
 
+## Docs-Before-Code-Change Rule (P36)
+
+ADV recommends a priority-9 documentation-evidence rule that counters the
+agent failure mode of editing code from memory before checking the relevant
+docs. It turns the docs-first stance into an explicit pre-edit requirement.
+
+Like P29-P33, `rules.yaml` is **user-managed** so this change must be
+applied manually.
+
+Add the following entry in the `rules:` map (P36 recommended):
+
+```yaml
+P36:
+  name: docs-before-code-change
+  rule: Never make a code change before first referencing the relevant
+    documentation. Use Context7 for library, framework, API, language, and
+    dependency docs. Use internal repo docs for repo-owned behavior. If
+    Context7 has no matching library or the surface is undocumented, use
+    official docs, source code, or another authoritative source and state
+    that fallback before editing. Documentation evidence precedes code
+    edits; it is not optional because the change seems small or familiar.
+  tags: [docs, context7, code-change, verification, anti-hallucination]
+  hint: docs_before_code_change
+  priority: 9
+```
+
+**Rationale for priority 9:** parity with `P05 ship-complete`, `P24
+tdd-first`, `P27 due-diligence`, `P31 thoroughness`, and `P33
+structural-correctness`. This rule governs the evidence boundary before code
+mutation, but leaves priority-10 for absolute constraints.
+
+**Why this rule exists:** agents can comply with broad docs-first guidance in
+principle while still making a code edit from memory because the change seems
+small, familiar, or obvious. P36 removes that escape hatch: before changing
+code, cite relevant docs first. Context7 is the default for dependency and API
+surfaces; repo docs cover repo-owned behavior; authoritative fallbacks cover
+undocumented surfaces.
+
+Restart OpenCode after editing.
+
+---
+
 ## Project Initialization
 
 ### Option A: New Project
