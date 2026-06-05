@@ -1004,9 +1004,27 @@ async function loadValidationContext(
     .map((c) => ({ id: c.id, title: c.title, capabilities: [] as string[] }));
 
   for (const activeChange of activeChanges) {
-    const fullChangeResult = await store.changes.get(activeChange.id);
-    if (fullChangeResult.success && fullChangeResult.data) {
-      activeChange.capabilities = Object.keys(fullChangeResult.data.deltas);
+    // Fix 5 (rq fixMultiSessionTemporalState / AC7): a peer change whose
+    // Temporal workflow was evicted/terminated (its disk projection may
+    // still exist) makes store.changes.get throw WorkflowNotFoundError when
+    // disk re-seed also fails. A dangling peer must NOT block a healthy
+    // change's validate/archive — listResolvedChanges already tolerates this
+    // in the list path; this is the matching guard for the validation-context
+    // read path. Skip the unrecoverable peer: it contributes no known
+    // capabilities to conflict detection. This guard intentionally only
+    // tolerates per-peer hydration failures and never suppresses validation
+    // errors for the target change (constraint C5).
+    try {
+      const fullChangeResult = await store.changes.get(activeChange.id);
+      if (fullChangeResult.success && fullChangeResult.data) {
+        activeChange.capabilities = Object.keys(fullChangeResult.data.deltas);
+      }
+    } catch (err) {
+      logger.warn(
+        `Validation context: skipping peer change ${activeChange.id} (workflow unavailable): ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
     }
   }
 
