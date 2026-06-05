@@ -143,6 +143,30 @@ describe("getTemporalHealth — server poller probe integration", () => {
     expect(mockProbeTaskQueuePollers).toHaveBeenCalledTimes(1);
   });
 
+  it("keys poller probe cache by project task queue", async () => {
+    mockProbeTaskQueuePollers
+      .mockResolvedValueOnce({ status: "fresh", lastAccessMs: 1000 })
+      .mockResolvedValueOnce({ status: "unavailable", lastAccessMs: null });
+
+    const now = Date.now();
+    vi.setSystemTime(now);
+
+    const projectA = await getTemporalHealth("proj-a");
+    const projectB = await getTemporalHealth("proj-b");
+
+    expect(mockProbeTaskQueuePollers).toHaveBeenCalledTimes(2);
+    expect(mockProbeTaskQueuePollers).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({ taskQueue: "adv-proj-a" }),
+    );
+    expect(mockProbeTaskQueuePollers).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ taskQueue: "adv-proj-b" }),
+    );
+    expect(projectA.worker_alive).toBe(true);
+    expect(projectB.worker_alive).toBe(false);
+  });
+
   it("refreshes poller probe cache after TTL expiry (30s)", async () => {
     mockProbeTaskQueuePollers
       .mockResolvedValueOnce({ status: "fresh", lastAccessMs: 1000 })

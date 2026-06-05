@@ -60,15 +60,17 @@ export function setTemporalHealthProbeState(input: {
 
 export function resetTemporalHealthProbeState(): void {
   overrideTelemetry = null;
-  pollerProbeCache = null;
+  pollerProbeCache.clear();
 }
 
 export async function probeStaleQueues(): Promise<StaleQueue[]> {
   return [];
 }
 
-let pollerProbeCache: { result: ServerPollerProbe; cachedAt: number } | null =
-  null;
+const pollerProbeCache = new Map<
+  string,
+  { result: ServerPollerProbe; cachedAt: number }
+>();
 const POLLER_PROBE_TTL_MS = 30_000;
 
 export async function getTemporalHealth(
@@ -85,12 +87,11 @@ export async function getTemporalHealth(
   let serverPollerProbe: ServerPollerProbe | null = null;
   const bundle = getService();
   if (bundle && _projectId) {
+    const taskQueue = buildProjectTaskQueue(_projectId);
     const now = Date.now();
-    if (
-      pollerProbeCache &&
-      now - pollerProbeCache.cachedAt < POLLER_PROBE_TTL_MS
-    ) {
-      serverPollerProbe = pollerProbeCache.result;
+    const cached = pollerProbeCache.get(taskQueue);
+    if (cached && now - cached.cachedAt < POLLER_PROBE_TTL_MS) {
+      serverPollerProbe = cached.result;
     } else {
       try {
         serverPollerProbe = await probeTaskQueuePollers({
@@ -98,9 +99,12 @@ export async function getTemporalHealth(
             typeof probeTaskQueuePollers
           >[0]["connection"],
           namespace: bundle.namespace,
-          taskQueue: buildProjectTaskQueue(_projectId),
+          taskQueue,
         });
-        pollerProbeCache = { result: serverPollerProbe, cachedAt: now };
+        pollerProbeCache.set(taskQueue, {
+          result: serverPollerProbe,
+          cachedAt: now,
+        });
       } catch {
         serverPollerProbe = null;
       }
