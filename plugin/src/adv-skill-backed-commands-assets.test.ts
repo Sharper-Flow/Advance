@@ -281,7 +281,7 @@ describe("ambiguity taxonomy spec assets", () => {
       ),
     ) as { version: string; requirements: Array<{ id: string }> };
 
-    expect(spec.version).toBe("1.2.0");
+    expect(spec.version).toBe("1.3.0");
     expect(spec.requirements.map((rq) => rq.id)).toEqual(
       expect.arrayContaining([
         "rq-disc-tax1",
@@ -289,6 +289,32 @@ describe("ambiguity taxonomy spec assets", () => {
         "rq-disc-tax3",
         "rq-discOpportunityScout01",
         "rq-discOpportunityScout02",
+        "rq-stageDiscoveryFirmCriteria01",
+        "rq-stageDiscoveryImplFreeGuard01",
+      ]),
+    );
+  });
+
+  test("stage-boundary specs include criteria ownership requirements", () => {
+    const prepSpec = JSON.parse(
+      readFileSync(join(REPO_ROOT, ".adv/specs/adv-prep/spec.json"), "utf8"),
+    ) as { version: string; requirements: Array<{ id: string }> };
+    const workflowSpec = JSON.parse(
+      readFileSync(
+        join(REPO_ROOT, ".adv/specs/advance-workflow/spec.json"),
+        "utf8",
+      ),
+    ) as { version: string; requirements: Array<{ id: string }> };
+
+    expect(prepSpec.version).toBe("1.3.0");
+    expect(prepSpec.requirements.map((rq) => rq.id)).toEqual(
+      expect.arrayContaining(["rq-stagePrepNoCriteriaFirming01"]),
+    );
+    expect(workflowSpec.version).toBe("1.15.0");
+    expect(workflowSpec.requirements.map((rq) => rq.id)).toEqual(
+      expect.arrayContaining([
+        "rq-stageDesignCriteriaBoundary01",
+        "rq-stageCriteriaEnforcementRetarget01",
       ]),
     );
   });
