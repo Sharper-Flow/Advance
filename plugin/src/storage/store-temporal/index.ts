@@ -682,6 +682,15 @@ export function createTemporalStoreBackend(
       return exists;
     };
 
+    // Pre-scan memo for stale terminal-state entries (rq-crossSessionCacheConsistency01)
+    for (const summary of memo.getAll()) {
+      if (summary.status === "archived" || summary.status === "closed") continue;
+      if (await checkArchiveBundle(summary.id)) {
+        memo.invalidate(summary.id);
+        invalidateChange(summary.id);
+      }
+    }
+
     for (let i = 0; i < changeIds.length; i += CHANGE_LIST_BATCH_SIZE) {
       const batch = changeIds.slice(i, i + CHANGE_LIST_BATCH_SIZE);
       const loaded = await Promise.all(
