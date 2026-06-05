@@ -1,0 +1,974 @@
+{
+  "id": "fixWorktreeTimeouts",
+  "title": "Fix worktree timeouts",
+  "status": "archived",
+  "created_at": "2026-06-05T04:40:03.401Z",
+  "tasks": [
+    {
+      "id": "tk-d079cbddbeec",
+      "title": "Add tool-wrapper timeout/clamp behavior for worktree cleanup/delete",
+      "type": "code",
+      "section": "Tool wrappers",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-06-05T05:03:38.475Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC4",
+          "C5",
+          "C6"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC4"
+        ],
+        "respects": [
+          "C4",
+          "DONT3"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-05T05:06:38.883Z",
+      "verification": "All 28 adv-worktree.test.ts tests pass. All 41 index-delete.test.ts tests pass. Constant WORKTREE_TOOL_SAFE_TIMEOUT_MS=8000 exported. clampToSafeBudget helper clamps oversize values. executeWorktreeDelete now bounded with safe budget. executeWorktreeCleanup now uses central budget + clamp + effectiveTimeoutMs. 4 new tests: constant export, oversize clamp, default budget, delete timeout.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added WORKTREE_TOOL_SAFE_TIMEOUT_MS=8000 constant, clampToSafeBudget helper, and bounded both adv_worktree_delete and adv_worktree_cleanup tool wrappers with the safe budget. Cleanup clamps oversize timeoutMs, reports effectiveTimeoutMs. Delete gets default safe budget. 4 new tests, all existing tests pass.",
+      "filesTouched": [
+        "plugin/src/tools/adv-worktree.test.ts",
+        "plugin/src/tools/adv-worktree.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/adv-worktree.test.ts",
+        "plugin/src/tools/adv-worktree.ts"
+      ],
+      "checkpointSha": "94dfd8d67f6107cdd0d5f431fb74542a2eed0b32",
+      "completedAt": "2026-06-05T05:11:23.636Z",
+      "completed_at": "2026-06-05T05:11:23.636Z",
+      "updatedAt": "2026-06-05T05:12:06.192Z"
+    },
+    {
+      "id": "tk-b2bc0d08d63d",
+      "title": "Remove late pending-delete mutation after timeout",
+      "type": "code",
+      "section": "Core cleanup state",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-06-05T05:03:52.068Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-d079cbddbeec"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC3",
+          "C1",
+          "C5"
+        ],
+        "respects": [
+          "DONT2",
+          "DONT5"
+        ],
+        "verifies": [
+          "AC3",
+          "AC8"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-05T05:12:14.205Z",
+      "verification": "Removed void deletePromise.then(...) late-success branch from drainPendingDeletes. Inverted test from \"clears on late success\" to \"retains with no late mutation\". All 41 index-delete.test.ts pass.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Removed void deletePromise.then(...) late-success branch from drainPendingDeletes in worktree/index.ts. Inverted existing test to verify pending delete is retained after timeout (no late background mutation). All 41 tests pass.",
+      "filesTouched": [
+        "plugin/src/tools/worktree/index-delete.test.ts",
+        "plugin/src/tools/worktree/index.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/worktree/index-delete.test.ts",
+        "plugin/src/tools/worktree/index.ts"
+      ],
+      "checkpointSha": "b5b08791d8c3351ae0b7cbe606c77ace4cefe223",
+      "completedAt": "2026-06-05T05:13:50.217Z",
+      "completed_at": "2026-06-05T05:13:50.217Z",
+      "updatedAt": "2026-06-05T05:13:58.194Z"
+    },
+    {
+      "id": "tk-d0dbd449b688",
+      "title": "Bound git remove, workspace cleanup, and post-delete notification",
+      "type": "code",
+      "section": "Bounded deletion internals",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-06-05T05:04:07.736Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-d079cbddbeec"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-b2bc0d08d63d"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC5",
+          "AC6",
+          "AC7",
+          "C1",
+          "C4",
+          "C5",
+          "C6"
+        ],
+        "respects": [
+          "DONT1",
+          "DONT4",
+          "DONT5"
+        ],
+        "verifies": [
+          "AC5",
+          "AC6",
+          "AC7",
+          "AC8"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-05T05:14:05.751Z",
+      "verification": "110 tests pass across adv-worktree.test.ts (28), index-delete.test.ts (41), workspace-warp.test.ts (41). Changes: gitWorktreeRemove now has 5s timeout with SIGKILL killSignal. findWorkspaceByDirectory and deleteAdvWorkspace use AbortSignal.timeout(3000ms). DEFAULT_WORKTREE_SIGNAL_TIMEOUT_MS reduced from 10s to 5s. 2 new workspace-warp timeout tests with signal-aware mocks.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Bound git remove with 5s timeout+SIGKILL. Added AbortSignal.timeout(3s) to workspace find/delete ops. Reduced signal timeout from 10s to 5s. 2 new workspace-warp timeout tests. All 110 tests pass.",
+      "filesTouched": [
+        "plugin/src/tools/worktree/index.ts",
+        "plugin/src/utils/workspace-warp.test.ts",
+        "plugin/src/utils/workspace-warp.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/worktree/index.ts",
+        "plugin/src/utils/workspace-warp.test.ts",
+        "plugin/src/utils/workspace-warp.ts"
+      ],
+      "checkpointSha": "c7425b88c3750ce23d9c4eaeddcd1fbff40c105a",
+      "completedAt": "2026-06-05T05:20:44.567Z",
+      "completed_at": "2026-06-05T05:20:44.567Z",
+      "updatedAt": "2026-06-05T05:20:53.883Z"
+    },
+    {
+      "id": "tk-b2b80e9f3ef7",
+      "title": "Update worktree lifecycle spec and docs for bounded tool-facing timeouts",
+      "type": "code",
+      "section": "Spec and docs",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-06-05T05:04:19.971Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-d0dbd449b688"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC9"
+        ],
+        "respects": [
+          "C2",
+          "C3",
+          "DONT5"
+        ],
+        "verifies": [
+          "AC9"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-05T05:21:04.054Z",
+      "verification": "Updated spec.json: amended rq-worktreeBoundedCleanup01.1 (10s→5s signal timeout, non-blocking warning), added rq-worktreeBoundedCleanup02 with 5 scenarios. Updated docs mirror: amended section text and scenario, added full rq-worktreeBoundedCleanup02 section.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Amended rq-worktreeBoundedCleanup01.1 (10s→5s signal, non-blocking warning). Added rq-worktreeBoundedCleanup02 with 5 scenarios (safe budget, clamping, no-late-mutation, git-bounded, workspace-bounded). Synced docs mirror.",
+      "filesTouched": [
+        ".adv/specs/worktree-lifecycle/spec.json",
+        "docs/specs/worktree-lifecycle.md"
+      ],
+      "touched_files": [
+        ".adv/specs/worktree-lifecycle/spec.json",
+        "docs/specs/worktree-lifecycle.md"
+      ],
+      "checkpointSha": "85aba9c99a5cd60f96f0539867359aa16e30c943",
+      "completedAt": "2026-06-05T05:23:06.589Z",
+      "completed_at": "2026-06-05T05:23:06.589Z",
+      "updatedAt": "2026-06-05T05:23:12.952Z"
+    },
+    {
+      "id": "tk-9e982940f1fd",
+      "title": "Run integrated verification for worktree timeout fix",
+      "type": "code",
+      "section": "Verification",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-06-05T05:04:35.686Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-d079cbddbeec"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-b2bc0d08d63d"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-d0dbd449b688"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-b2b80e9f3ef7"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7",
+          "AC8",
+          "AC9"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-05T05:23:19.818Z",
+      "verification": "All 110 tests pass (28 adv-worktree + 41 index-delete + 41 workspace-warp). Typecheck clean. AC1-AC9 verified through unit tests. No regressions.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Integrated verification: 110/110 tests pass across all 3 affected test files. Typecheck clean. No regressions.",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "85aba9c99a5cd60f96f0539867359aa16e30c943",
+      "completedAt": "2026-06-05T05:24:00.663Z",
+      "completed_at": "2026-06-05T05:24:00.663Z",
+      "updatedAt": "2026-06-05T05:24:08.633Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "fixWorktreeTimeouts",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-leverage-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Worktree cleanup/delete timeout design — missed leverage scout",
+      "sources": [
+        {
+          "label": "tool-registry.ts:643-678",
+          "locator": "/home/jon/dev/advance/plugin/src/tool-registry.ts:648,666",
+          "summary": "Both adv_worktree_delete and adv_worktree_cleanup wrapped by safeExecute with NO timeoutMs override → default 10s safety-net (safe-execute.ts:240) is the hard ceiling that fires ToolExecutionTimeout."
+        },
+        {
+          "label": "adv-worktree.ts cleanup race",
+          "locator": "/home/jon/dev/advance/plugin/src/tools/adv-worktree.ts:177-197",
+          "summary": "cleanup has an inner 8s Promise.race that returns typed {timedOut:true} BUT does not abort cleanupPromise; delete tool (502-540) has NO inner race at all, relying solely on the 10s safety-net which throws instead of returning typed result."
+        },
+        {
+          "label": "drainPendingDeletes",
+          "locator": "/home/jon/dev/advance/plugin/src/tools/worktree/index.ts:2243-2303",
+          "summary": "Per-item default DEFAULT_PENDING_DELETE_ITEM_TIMEOUT_MS=30s (index.ts:2060) far exceeds the 8s/10s tool ceiling; on TimeoutError a void deletePromise.then() continues in background and MUTATES state (clearPendingDelete) after timeout — exactly the prohibited late state mutation."
+        },
+        {
+          "label": "gitWorktreeRemove + git helper",
+          "locator": "/home/jon/dev/advance/plugin/src/tools/worktree/index.ts:381-397,749-773",
+          "summary": "gitWorktreeRemove execFileGitCb has NO timeout option; generic git() helper uses 30s. with-timeout.ts:30 explicitly notes withTimeout does NOT abort underlying promise — no AbortSignal plumbed to execFile."
+        },
+        {
+          "label": "workspace-warp.ts fetch calls",
+          "locator": "/home/jon/dev/advance/plugin/src/utils/workspace-warp.ts:100,113,141,234,276",
+          "summary": "All five workspace fetch() calls (available/create/warp/delete/list) have NO AbortSignal/timeout; deleteAdvWorkspace runs inside delete core before git remove and can stall unbounded."
+        },
+        {
+          "label": "worktree notification signal",
+          "locator": "/home/jon/dev/advance/plugin/src/tools/worktree/index.ts:132-187",
+          "summary": "Notification/cache-refresh already bounded by withTimeout(10s) and returns {ok:false,warning} on timeout — partial precedent for the AC's ok:true+warning pattern, but 10s budget equals the tool ceiling so it can still blow the budget."
+        }
+      ],
+      "architecture_assessment": "Root cause is a budget INVERSION, not a missing timeout. Inner timeouts (30s per-item, 30s git helper, 10s signal, unbounded git-remove/warp-fetch) all meet or exceed the 10s safeExecute ceiling, so the SDK-visible failure is ToolExecutionTimeout (a thrown error), never a typed result. The draft's 5 directions are individually sound but only cohere if ordered around one central worktree safe budget that is provably < 10s and from which every inner timeout is derived (not independently defaulted). The drainPendingDeletes late-then() (2282-2295) is the single clearest AC violation (late state mutation after timeout) and should be the anchor change. AbortSignal propagation (direction 2/4) is the only way to make withTimeout actually stop work — but execFileGitCb + raw fetch must accept signal/timeout for it to matter; without that, abort is cosmetic. Boring-tech preference: Node execFile already supports {timeout, killSignal} natively and fetch supports AbortSignal.timeout() — no new primitives needed.",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "No contract/security blocker. One contradiction to resolve in design (not blocking): the 8s cleanup race in adv-worktree.ts already returns a typed timedOut result that satisfies the AC for cleanup — but it does NOT abort the underlying drain, so a late drainPendingDeletes then() still mutates state after the tool returned. Directions 1+3 must be designed together or the AC ('no late background delete/state mutation after timeout') stays violated even with a typed return."
+      },
+      "recommendation": "Adopt a single CENTRAL_WORKTREE_BUDGET_MS (~7-8s, below 10s) as the source of truth; derive per-item, git-remove, warp-fetch, and signal timeouts as fractions of it and report effectiveTimeoutMs. Make abort real: pass {timeout, killSignal:'SIGKILL'} to gitWorktreeRemove execFile and AbortSignal.timeout() to all workspace-warp fetches. Remove the void deletePromise.then() late-mutation branch entirely (replace with abort + retain-for-retry, no post-timeout clearPendingDelete). Keep existing safety gates (dirty/unmerged/in-use) untouched. Reuse the existing notification ok:false→warning precedent (index.ts:179-186) for the git-remove-succeeded-but-notify-stalled case to return ok:true+warning.",
+      "follow_ups": [
+        "Confirm whether OpenCode's execFileGitCb wrapper forwards the `timeout`/`killSignal` execFile options (git() helper at :758 sets timeout:30000, so the option IS plumbed — verify killSignal default does not leave zombie git процess).",
+        "Decide central budget value vs SDK 10s with margin for safeExecute's own race overhead.",
+        "Spec/docs: worktree-lifecycle spec must document effectiveTimeoutMs reporting and the no-late-mutation invariant."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixWorktreeTimeouts",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation — worktree cleanup/delete bounded timeouts (Issue #131)",
+      "sources": [
+        {
+          "label": "safe-execute.ts:240",
+          "locator": "/home/jon/dev/advance/plugin/src/utils/safe-execute.ts:240",
+          "summary": "DEFAULT_TOOL_TIMEOUT_MS = 10_000 confirms the SDK hard outer budget the design (KD1) clamps below. Throws ToolExecutionTimeoutError, not a typed result — validates need for typed inner timeout."
+        },
+        {
+          "label": "with-timeout.ts:30-31",
+          "locator": "/home/jon/dev/advance/plugin/src/utils/with-timeout.ts:30",
+          "summary": "Explicit doc: withTimeout does NOT abort the underlying promise; 'Use AbortController for true cancellation.' Validates KD2 (abort is the only way to actually stop work)."
+        },
+        {
+          "label": "worktree/index.ts:2282-2295",
+          "locator": "/home/jon/dev/advance/plugin/src/tools/worktree/index.ts:2282",
+          "summary": "Confirmed late `void deletePromise.then(async result => { ... clearPendingDelete(...) })` AFTER TimeoutError — mutates pending-delete state post-timeout. This is the exact AC3/DONT2 violation KD3 removes."
+        },
+        {
+          "label": "adv-worktree.ts:177-197",
+          "locator": "/home/jon/dev/advance/plugin/src/tools/adv-worktree.ts:184",
+          "summary": "cleanup uses Promise.race([cleanupPromise, timeoutPromise]) with default 8000ms but does NOT abort cleanupPromise — returns typed {timedOut:true} yet underlying drain continues. Validates design claim that existing wrapper is non-aborting."
+        },
+        {
+          "label": "worktree/index.ts:2243-2244",
+          "locator": "/home/jon/dev/advance/plugin/src/tools/worktree/index.ts:2243",
+          "summary": "Per-item drain uses cleanupItemTimeoutMs ?? DEFAULT_PENDING_DELETE_ITEM_TIMEOUT_MS (30s per leverage-scout) — exceeds 8s/10s tool ceiling, confirming budget-inversion root cause."
+        },
+        {
+          "label": "spec worktree-lifecycle rq-worktreeBoundedCleanup01.1",
+          "locator": ".adv/specs/worktree-lifecycle/spec.json#rq-worktreeBoundedCleanup01",
+          "summary": "Existing law: 'post-delete notification must be emitted within the default 10s timeout.' Design KD5 shortens this below tool budget (~2s); a tightening, not contradiction, but spec text must be updated (AC9 / new rq-worktreeBoundedCleanup02)."
+        },
+        {
+          "label": "spec rq-terminalCleanupSafety01 + rq-worktreeBoundedCleanup01",
+          "locator": ".adv/specs/worktree-lifecycle/spec.json",
+          "summary": "advWorktreeDelete is sole deletion authority; per-item sequential bounded retries (max 5); safety gates (dirty/unmerged/in-use/non-terminal) must block. Design preserves all of these (C1, AC7, DONT1)."
+        }
+      ],
+      "architecture_assessment": "Design is correct and source-grounded. It correctly diagnoses the root cause as a budget INVERSION (inner 30s/unbounded timeouts >= 10s SDK ceiling) rather than a missing timeout, and anchors on the one provable AC violation (late clearPendingDelete at index.ts:2282-2295). KD1 (single 8s central budget below 10s, clamp-not-reject) is the boring, compatible choice and preserves the existing cleanup default. KD2 correctly identifies that a typed timeout is insufficient without real abort, citing the withTimeout non-abort doc and using native Node primitives (execFile AbortSignal, AbortSignal.timeout) — no new infrastructure. KD3 removes the exact late-mutation branch. KD4/KD5 bound the two unbounded I/O surfaces (git remove, workspace-warp fetch) and reuse the existing ok:false→warning notification precedent for the AC5 ok:true+warning semantic. Coverage check: AC1↔KD1+KD2, AC2↔KD1 clamp, AC3↔KD3, AC4↔KD5, AC5↔KD5, AC6↔KD4, AC7↔preserved gates, AC8↔tests, AC9↔spec update. All ACs map to a design decision. Simpler alternatives (longer waits, reject-on-oversize) are explicitly rejected for sound reasons (DONT3; clamp more compatible). No materially simpler approach achieves no-late-mutation + real-abort + before-SDK-budget simultaneously.",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "No CONFLICT. Two non-blocking cautions: (1) SPEC-LAW — rq-worktreeBoundedCleanup01.1 currently mandates the 'default 10s timeout' for post-delete notification; KD5 reduces it (~2s). This is a tightening within the same invariant, but the existing scenario text must be amended (not just appended) so the spec is internally consistent — AC9 already commits to this; ensure the delta edits rq-worktreeBoundedCleanup01.1 wording, not only adds rq-worktreeBoundedCleanup02. (2) CORRECTNESS — abort is only real if execFileGitCb forwards {timeout, killSignal}/signal to execFile and workspace-warp fetch accepts AbortSignal; leverage-scout confirmed the git() helper already passes timeout:30000 so the seam exists, but planning must verify gitWorktreeRemove's execFileGitCb path actually plumbs signal+killSignal (else abort is cosmetic, repeating the withTimeout problem). Recommend an explicit planning task to assert killSignal does not leave a zombie git process."
+      },
+      "recommendation": "VALIDATED with two cautions to carry into planning. The design solves all 9 ACs with source-backed decisions, prefers boring native Node primitives, and respects every constraint/avoidance (C1 sole-authority, C4 target_path, DONT1 safety gates, DONT2 no-late-mutation, DONT3 no-longer-waits, DONT4 no-false-failure, DONT5 no-redesign). Before/during planning: (a) ensure the spec delta AMENDS rq-worktreeBoundedCleanup01.1's '10s' notification wording to the new shorter bound so spec law stays consistent (AC9); (b) add a planning task that verifies gitWorktreeRemove's execFileGitCb actually forwards AbortSignal + {timeout, killSignal} to execFile (proving abort is real, not cosmetic) and asserts no zombie git process on kill. No blocking conflicts; proceed to planning.",
+      "follow_ups": [
+        "Spec delta must edit rq-worktreeBoundedCleanup01.1 '10s' notification wording, not only append rq-worktreeBoundedCleanup02 (consistency).",
+        "Planning task: prove gitWorktreeRemove execFileGitCb forwards AbortSignal + {timeout, killSignal:'SIGKILL'} to execFile; assert no zombie git process.",
+        "Confirm new central budget (8s) leaves enough margin for safeExecute's own race overhead + JSON formatting before 10s (leverage-scout open question)."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixWorktreeTimeouts",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixWorktreeTimeouts",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "NEEDS_WORK",
+      "blocking_findings": [],
+      "nonblocking_findings": [
+        {
+          "id": "contract-traceability-1",
+          "label": "issue",
+          "file": "plugin/src/tools/adv-worktree.ts",
+          "line": 211,
+          "what": "executeWorktreeDelete success-path response (lines 211-214) passes advWorktreeDelete's result through formatToolOutput WITHOUT adding effectiveTimeoutMs. Only the delete-timeout path (line 203) and cleanup paths (lines 263, 278) include it.",
+          "why": "C6 + spec rq-worktreeBoundedCleanup02 body state 'The effective timeout must be reported in the response as effectiveTimeoutMs.' as a general MUST for bounded responses. Delete is a bounded operation (clampToSafeBudget(undefined) at line 179), so its SUCCESS response is a bounded response and should echo effectiveTimeoutMs for transparency/observability parity with cleanup-success. Pure observability gap, not a safety/correctness defect."
+        },
+        {
+          "id": "test-perf-1",
+          "label": "nit",
+          "file": "plugin/src/tools/adv-worktree.test.ts",
+          "line": 801,
+          "what": "'adv_worktree_delete returns a timeout response instead of hanging' mocks advWorktreeDelete as a never-resolving promise with no caller timeout override, forcing the full hardcoded 8s safe budget to elapse (12_000ms test timeout). Workspace-warp timeout tests similarly wait ~3s each.",
+          "why": "These tests add real wall-clock latency (8s + 3s + 3s) to the suite. Functionally correct, but if the delete tool exposed an injectable timeout (test-only), the delete-timeout test could resolve in ms. Acceptable trade-off; flagged for awareness only."
+        },
+        {
+          "id": "praise-1",
+          "label": "praise",
+          "file": "plugin/src/tools/worktree/index-delete.test.ts",
+          "line": 1068,
+          "what": "The AC3/DONT2 inverted test sets up a delete that resolves AFTER the 1ms item timeout, waits 200ms, then asserts the pending-delete record is still present and the old 'resolved after timeout' warning is absent.",
+          "why": "Precisely validates the no-late-mutation invariant — would fail immediately if the removed late-success .then() branch were reintroduced. Strong regression guard for the core safety property."
+        }
+      ],
+      "changes_made": [],
+      "wisdom_candidates": [
+        {
+          "type": "pattern",
+          "content": "Tool-budget timeout safety: wrap long-running tool internals in a Promise.race against a setTimeout below the SDK's hard ceiling (8s safe < 10s SDK). On timeout, return a TYPED response (timedOut:true + effectiveTimeoutMs + remediation) instead of letting the SDK throw an opaque ToolExecutionTimeout. Internal ops (git remove 5s+SIGKILL, HTTP AbortSignal.timeout 3s, workflow signal 5s) must each be bounded strictly below the tool budget so they abort before the wrapper fires."
+        },
+        {
+          "type": "gotcha",
+          "content": "No-late-mutation on timeout: when a delete promise is raced against a timeout and the timeout wins, do NOT attach a late .then() handler that mutates durable state (e.g. clearPendingDelete) after the tool already reported the timeout. The orphaned promise may resolve later, but its resolution must be ignored — instead record a TIMEOUT failure and retain the record for explicit retry. Late background mutation creates ambiguous side-effects the agent cannot reason about. Test it by resolving the underlying op AFTER the timeout and asserting state is unchanged post-wait."
+        },
+        {
+          "type": "convention",
+          "content": "execFileGitCb forwards Node child_process ExecFileOptions (timeout, killSignal, signal) via {...options} spread, so callers can bound git subprocesses with `timeout: 5000, killSignal: 'SIGKILL'` directly. GitExecFileOptions = ExecFileOptions & { env? } preserves the full option surface."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/tools/adv-worktree.test.ts src/tools/worktree/index-delete.test.ts src/utils/workspace-warp.test.ts",
+          "pnpm run typecheck"
+        ],
+        "results": "pass",
+        "evidence": "All 3 modified test files green: 110 tests passed (3 files), 9.89s. tsc --noEmit clean (exit 0). Diff scope = exactly the 8 declared files (449 insertions, 65 deletions); no archive scanner or unrelated changes (DONT4/DONT5 satisfied). Path preflight: all 8 files present. AC1-AC9 + C1-C5 verified by source inspection; C6 partial (delete-success omits effectiveTimeoutMs). Browser/Playwright not applicable (backend timeout logic, no UI surface)."
+      },
+      "scope_drift": null,
+      "risks": [
+        "C6 ('effectiveTimeoutMs in all bounded responses') is partially met: cleanup-success and both timeout paths include it, but delete-success does not. Acceptance reviewer must decide whether C6 strictly requires it on delete-success or whether timeout-path-only is sufficient (the value matters most on timeout, where it IS present).",
+        "Orphaned delete promises in drainPendingDeletes resolve in the background after a timeout (no handler reads them) — the underlying deleteFn could still perform internal mutations during its own execution before the wrapper-level timeout. AC3/DONT2 scope is specifically the drainPendingDeletes late-success handler, which is correctly removed; deeper sub-operation atomicity is out of this change's declared scope (DONT1: no full orphaned worker lifecycle recovery)."
+      ],
+      "required_main_agent_actions": [
+        "DECISION (acceptance): Resolve C6 compliance for the delete-success path. Either (a) accept timeout-path-only effectiveTimeoutMs as sufficient and document the C6 interpretation, or (b) apply the trivial in-scope fix: in executeWorktreeDelete success path (plugin/src/tools/adv-worktree.ts ~line 211), wrap the result with formatToolOutput({ ...result, effectiveTimeoutMs }) and add an assertion in adv-worktree.test.ts 'adv_worktree_delete delegates' (~line 534) that the success output contains effectiveTimeoutMs.",
+        "If applying fix (b): re-run bin/oc-test targeted -- src/tools/adv-worktree.test.ts to confirm green, then record acceptance evidence.",
+        "Record review acceptance evidence: AC1-AC9 + C1-C5 + DONT1-DONT5 verified; only C6 (delete-success effectiveTimeoutMs) flagged as an issue-level traceability gap, no blockers."
+      ]
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-06-05T04:40:29.958Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved focused worktree timeout proposal with exact reply: approve. GitHub issue #131 / agenda ag-r2QNwPFj linked as triage origin.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixWorktreeTimeouts/proposal.md",
+        "content_hash": "c453bfe5ced0131f74a3b289cf1ec189dadfb4be39d81e21c05b39e476cf7a84",
+        "non_whitespace_chars": 3658,
+        "checked_at": "2026-06-05T04:40:03.516Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-06-05T04:53:46.465Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery findings persisted; AC approved by user exact reply `approve`; agreement captured; ChangeContract minted with AC/C/DONT items.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixWorktreeTimeouts/agreement.md",
+        "content_hash": "3d93ac9a513cd27cfb8713d4060dd5bef78d4e7faa37f992cb0da0eed0074995",
+        "non_whitespace_chars": 4076,
+        "checked_at": "2026-06-05T04:40:03.517Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-06-05T05:02:37.461Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design persisted. Mandatory leverage scout ran. Mandatory independent validator returned CAUTION with no blocking conflict; cautions pinned for planning: prove execFile abort/timeout forwarding and amend existing worktree notification spec wording.",
+      "artifact_evidence": {
+        "kind": "design",
+        "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixWorktreeTimeouts/design.md",
+        "content_hash": "964d76329077a0322c52ccdbf17aa4e8f0a4b0b39a66a2c5b3bb7669d08678be",
+        "non_whitespace_chars": 8347,
+        "checked_at": "2026-06-05T04:40:03.518Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-06-05T05:05:19.145Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved prep plan inline with exact reply: approve. 5 tasks, contract refs cover AC1-AC9; validator cautions pinned into tk-d0dbd449b688 and tk-b2b80e9f3ef7."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-06-05T05:24:16.163Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 5 tasks complete. 110/110 tests pass. Typecheck clean. 4 commits on change/fixWorktreeTimeouts branch."
+    },
+    "acceptance": {
+      "status": "done",
+      "started_at": "2026-06-05T05:25:26.564Z",
+      "completed_at": "2026-06-05T05:26:12.617Z",
+      "completed_by": "agent",
+      "approval_evidence": "Retry after worker restart. Executive summary persisted at executive-summary.md. All contract items verified.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixWorktreeTimeouts/executive-summary.md",
+        "content_hash": "73e2bd6f97297cf29ce19bb7b4f920eb9444aaa407138bf95689e5b632a7c620",
+        "non_whitespace_chars": 2143,
+        "checked_at": "2026-06-05T04:40:03.520Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "triage",
+    "issue_number": 131,
+    "source_artifact": "ag-r2QNwPFj"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "3d93ac9a513cd27cfb8713d4060dd5bef78d4e7faa37f992cb0da0eed0074995",
+      "approvedAt": "2026-06-05T04:53:40.601Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "`adv_worktree_cleanup` returns typed JSON before 9s when the underlying cleanup promise never resolves.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3d93ac9a513cd27cfb8713d4060dd5bef78d4e7faa37f992cb0da0eed0074995",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "`adv_worktree_cleanup timeoutMs:30000` cannot hit the SDK 10s timeout; the result reports a safe `effectiveTimeoutMs` or a typed rejection.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3d93ac9a513cd27cfb8713d4060dd5bef78d4e7faa37f992cb0da0eed0074995",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "A timed-out pending delete cannot later remove a worktree or mutate pending-delete state after the timeout response.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3d93ac9a513cd27cfb8713d4060dd5bef78d4e7faa37f992cb0da0eed0074995",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "`adv_worktree_delete` returns typed JSON before 9s when post-delete notification/cache refresh stalls.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3d93ac9a513cd27cfb8713d4060dd5bef78d4e7faa37f992cb0da0eed0074995",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Successful git worktree removal plus failed or stalled notification returns `ok:true` with warning and recovery hint.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3d93ac9a513cd27cfb8713d4060dd5bef78d4e7faa37f992cb0da0eed0074995",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Workspace cleanup and git remove stalls are bounded or classified before the SDK timeout.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3d93ac9a513cd27cfb8713d4060dd5bef78d4e7faa37f992cb0da0eed0074995",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "Dirty, unmerged, in-use, non-terminal, and unconfirmed `target_path` deletion safety still blocks in the same states as before.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3d93ac9a513cd27cfb8713d4060dd5bef78d4e7faa37f992cb0da0eed0074995",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC8",
+        "kind": "acceptance_criterion",
+        "text": "Tests cover the Issue #131 archive-after-cleanup timeout shape and updated late-delete behavior.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3d93ac9a513cd27cfb8713d4060dd5bef78d4e7faa37f992cb0da0eed0074995",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC9",
+        "kind": "acceptance_criterion",
+        "text": "`worktree-lifecycle` spec and docs include the bounded tool-facing timeout contract.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3d93ac9a513cd27cfb8713d4060dd5bef78d4e7faa37f992cb0da0eed0074995",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Keep `advWorktreeDelete` as the sole destructive deletion authority for worktree removal.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3d93ac9a513cd27cfb8713d4060dd5bef78d4e7faa37f992cb0da0eed0074995",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Do not absorb full orphaned worker lifecycle recovery; local-worker failures may be classified, but client-to-host promotion belongs to `fixOrphanedWorkerHangs`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3d93ac9a513cd27cfb8713d4060dd5bef78d4e7faa37f992cb0da0eed0074995",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Do not change archive cleanup scanner proof semantics.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3d93ac9a513cd27cfb8713d4060dd5bef78d4e7faa37f992cb0da0eed0074995",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Keep target-path confirmation requirements intact.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3d93ac9a513cd27cfb8713d4060dd5bef78d4e7faa37f992cb0da0eed0074995",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Keep behavior structural: typed result unions, explicit deadlines, validators/tests; no prose-only timeout claims.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3d93ac9a513cd27cfb8713d4060dd5bef78d4e7faa37f992cb0da0eed0074995",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C6",
+        "kind": "constraint",
+        "text": "Treat OpenCode's 10s tool wrapper as a hard outer budget.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3d93ac9a513cd27cfb8713d4060dd5bef78d4e7faa37f992cb0da0eed0074995",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not delete dirty, unmerged, in-use, or non-terminal worktrees.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3d93ac9a513cd27cfb8713d4060dd5bef78d4e7faa37f992cb0da0eed0074995",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not let a timed-out cleanup continue as an unobserved background deletion.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3d93ac9a513cd27cfb8713d4060dd5bef78d4e7faa37f992cb0da0eed0074995",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not rely on longer waits to solve the SDK-timeout race.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3d93ac9a513cd27cfb8713d4060dd5bef78d4e7faa37f992cb0da0eed0074995",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not report false failure when git removal already succeeded and only notification failed.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3d93ac9a513cd27cfb8713d4060dd5bef78d4e7faa37f992cb0da0eed0074995",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "Do not broaden this change into worktree lifecycle redesign.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3d93ac9a513cd27cfb8713d4060dd5bef78d4e7faa37f992cb0da0eed0074995",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-06-05T05:25:18.661Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "WORKTREE_TOOL_SAFE_TIMEOUT_MS = 8000 exported and tested in adv-worktree.test.ts"
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "clampToSafeBudget helper + test 'clamps oversize timeoutMs to safe budget and reports effectiveTimeoutMs'"
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Late void deletePromise.then() removed; test 'retains a timed-out pending delete even when the late delete succeeds'"
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Default timeoutMs uses WORKTREE_TOOL_SAFE_TIMEOUT_MS; test 'uses safe budget default when no timeoutMs provided'"
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "gitWorktreeRemove passes timeout: GIT_WORKTREE_REMOVE_TIMEOUT_MS (5s) + killSignal: SIGKILL"
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "findWorkspaceByDirectory and deleteAdvWorkspace use AbortSignal.timeout(3000); 2 new workspace-warp timeout tests"
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "fireWorktreeSignal catches errors and returns {ok:false,warning}; advWorktreeDelete surfaces warning but returns ok:true"
+        },
+        {
+          "contractId": "AC8",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "git remove 5s, workspace ops 3s, signal 5s — all below tool budget 8s"
+        },
+        {
+          "contractId": "AC9",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "spec.json amended + rq-worktreeBoundedCleanup02 with 5 scenarios added; docs mirror synced"
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No safety gates changed"
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "rq-worktreeBoundedCleanup02 scenarios match implementation"
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "docs/specs/worktree-lifecycle.md mirrors spec.json"
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "execFileGitCb spreads ...options (timeout/signal/killSignal) to Node execFile"
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Timeout response includes timedOut:true, success:false; no late state mutation"
+        },
+        {
+          "contractId": "C6",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "effectiveTimeoutMs in cleanup success and timeout responses"
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No orphaned worker lifecycle changes"
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Late void deletePromise.then() removed; test verifies no late mutation"
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Safe budget 8000ms < SDK ceiling 10000ms"
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No archive cleanup scanner changes"
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No scope expansion beyond timeout bounding"
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "`adv_worktree_cleanup` returns typed JSON before 9s when the underlying cleanup promise never resolves.",
+    "`adv_worktree_cleanup timeoutMs:30000` cannot hit the SDK 10s timeout; the result reports a safe `effectiveTimeoutMs` or a typed rejection.",
+    "A timed-out pending delete cannot later remove a worktree or mutate pending-delete state after the timeout response.",
+    "`adv_worktree_delete` returns typed JSON before 9s when post-delete notification/cache refresh stalls.",
+    "Successful git worktree removal plus failed or stalled notification returns `ok:true` with warning and recovery hint.",
+    "Workspace cleanup and git remove stalls are bounded or classified before the SDK timeout.",
+    "Dirty, unmerged, in-use, non-terminal, and unconfirmed `target_path` deletion safety still blocks in the same states as before.",
+    "Tests cover the Issue #131 archive-after-cleanup timeout shape and updated late-delete behavior.",
+    "`worktree-lifecycle` spec and docs include the bounded tool-facing timeout contract."
+  ],
+  "documents": {
+    "proposal": "# Fix worktree timeouts\n\n## Problem\n\n`adv_worktree_cleanup` / `adv_worktree_delete` can exceed OpenCode's tool timeout or return a timeout while cleanup continues in the background. After archive, callers cannot reliably know whether terminal worktree deletion completed, stayed queued, or mutated state after the returned timeout.\n\n## What Changes\n\n- Make worktree cleanup/delete bounded by tool-facing deadlines that return before the SDK timeout.\n- Ensure timeout outcomes are structurally typed and do not permit ambiguous background deletion/state mutation after the caller has been told cleanup timed out.\n- Classify local-worker-down / peer-queue-serviceable cases with a precise recovery action or a bounded best-effort notification result.\n- Lock the behavior with targeted tests and spec coverage for bounded worktree cleanup.\n\n## Success Criteria\n\n1. `adv_worktree_cleanup` returns a typed pass/fail result before the OpenCode SDK 10s tool timeout when the cleanup path stalls.\n2. `adv_worktree_delete` returns a typed pass/fail result before the OpenCode SDK 10s tool timeout when deletion or post-delete notification stalls.\n3. A cleanup/delete timeout result has a clear state: no background deletion/state mutation continues after the timeout response, or the result explicitly reports a reconciled terminal state proven by follow-up inspection before returning.\n4. Post-delete Temporal notification is bounded below the SDK timeout and failure is surfaced as a warning, not a tool timeout.\n5. Local-worker-down with peer queue serviceable is classified clearly: use the peer path if possible, otherwise return a specific recovery hint without hanging.\n6. Tests reproduce the Issue #131 archive-after-cleanup timeout shape and assert no ambiguous late cleanup state.\n7. Existing worktree safety gates remain intact: dirty, unmerged, in-use, non-terminal, and untrusted target-path cases are still retained or rejected.\n\n## Scope\n\n### In Scope\n\n- `plugin/src/tools/adv-worktree.ts`\n- `plugin/src/tools/worktree/index.ts`\n- `plugin/src/tools/adv-worktree.test.ts`\n- `plugin/src/tools/worktree/index-delete.test.ts`\n- Worktree cleanup/delete timeout contracts in `worktree-lifecycle` spec and docs mirror if a spec delta is required.\n\n### Out of Scope\n\n- Full orphaned worker lifecycle repair (`fixOrphanedWorkerHangs`).\n- Archive cleanup scanner proof semantics (`addArchiveCleanupScanner`).\n- Broad worktree lifecycle redesign.\n- Git push timeout behavior during archive Phase 9.\n\n### Must Not\n\n- Must not delete dirty, unmerged, in-use, or non-terminal worktrees.\n- Must not rely on prose-only timeout claims; timeout behavior must be structurally tested.\n- Must not leave callers with ambiguous asynchronous deletion after a timeout response.\n- Must not exceed OpenCode's tool timeout with a user-configurable `timeoutMs` value.\n\n## Context\n\nGitHub issue: Sharper-Flow/Advance#131. Repro evidence: https://github.com/Sharper-Flow/Advance/issues/131#issuecomment-4628077184\n\nObserved code facts from proposal preflight:\n\n- `executeWorktreeCleanup()` races cleanup against `timeoutMs`, but the underlying cleanup promise keeps running.\n- `withTimeout()` documents that it does not abort the underlying promise.\n- `drainPendingDeletes()` attaches late async cleanup after per-item timeout.\n- `advWorktreeDelete()` post-delete notification default timeout is `10_000ms`, equal to the SDK timeout.\n- `adv_worktree_cleanup timeoutMs:30000` can exceed the SDK timeout by design.\n\n## Discovery Agenda\n\n- Confirm the exact hang source for `adv_worktree_delete`: git removal, post-delete notification, store cache refresh, workspace cleanup, or target-store routing.\n- Determine whether cancellation/abort is needed or whether timeout must be enforced before starting non-cancellable destructive operations.\n- Define structural result shape for timeout, retained, and notification-warning outcomes.\n- Check interaction with `rq-worktreeBoundedCleanup01` and any existing target-path cleanup tests.\n- Validate that peer-worker serviceability can be diagnosed without requiring local worker liveness.\n\n## Discovery Findings\n\n### Discovery Checklist\n\n| Step | Result | Evidence |\n|---|---|---|\n| Skill Discovery | PASS | Pending-review scan found no pending skill frontmatter. Loaded `adv-worktree`; `adv-cleanup` considered but not loaded because `/adv-cleanup` is report-only and deletion remains owned by worktree tools. |\n| Prior Research Extension | PASS | Extended GitHub issue #131 repro and existing `worktree-lifecycle` spec `rq-worktreeBoundedCleanup01`; new finding: current tool wrapper timeout and post-delete signal timeout share the same 10s budget. |\n| Conflict & Related-Work Scan | PASS with degraded reads | Related active drafts: `fixOrphanedWorkerHangs` (worker lifecycle), `addArchiveCleanupScanner` (archive proof semantics). `adv_change_validate strict:false` passed with expected `NO_TASKS`/`NO_DELTAS`; strict validation and `adv_status` timed out, itself consistent with the timeout bug family. |\n| Edge Case Investigation | PASS | Edge cases listed below. |\n| Design Question Depth | PASS | Technical questions resolved below; user answered outcome priorities for no ambiguous late delete and success-with-warning notification failure. |\n| Draft Spec Delta Shapes | PASS | Draft `rq-worktreeBoundedCleanup02` below. |\n| Related Pattern Scan | PASS | Similar non-aborting timeout patterns and worktree timeout seams found; no other worktree delete owner exists. |\n| LBP Check | PASS | Best path is structural boundedness + typed result contracts, not longer waits or heuristic status guessing. |\n\n### Skills Considered\n\n| Skill | Match | Action |\n|---|---|---|\n| `adv-worktree` | Strong | Loaded; confirms merge-before-delete safety and `adv_worktree_delete` ownership. |\n| `adv-cleanup` | Partial | Not loaded; its contract says actual worktree deletion remains owned by `adv_worktree_delete` / `adv_worktree_cleanup`. |\n| `lgrep` | Tooling | Used for local code exploration; semantic search timed out twice, so text/symbol/read fallback used per policy. |\n\n### Extends\n\n- GitHub issue `Sharper-Flow/Advance#131`: adds concrete archive-after-cleanup timeout sequence from pokeedge-web `centerLanguageToggles`.\n  - New finding: `adv_worktree_cleanup timeoutMs:30000` cannot be safely honored under the 10s `safeExecute` wrapper.\n- `worktree-lifecycle` spec `rq-worktreeBoundedCleanup01`: already requires bounded cleanup and post-delete notification within default 10s timeout.\n  - New finding: current default post-delete notification timeout equals the wrapper timeout, so the wrapper can win before typed tool logic returns.\n- Existing tests in `plugin/src/tools/worktree/index-delete.test.ts` already cover post-delete signal timeout and late pending-delete behavior.\n  - New finding: one test (`clears a timed-out pending delete when the late delete succeeds`) enshrines the ambiguity now reported by issue #131.\n\n### Conflict Scan\n\n- `fixOrphanedWorkerHangs`: related but broader worker lifecycle problem. This change should not absorb client→host promotion or lock reclaim work.\n- `addArchiveCleanupScanner`: adjacent archive surface, but it concerns terminal cleanup proof, not worktree tool timeout semantics.\n- Agenda item `ag-r2QNwPFj`: active owner for this issue.\n- Existing `worktree-lifecycle` requirement already supports a focused spec delta rather than a new capability.\n- Tool-health note: `adv_temporal_diagnose fixWorktreeTimeouts` returned Temporal healthy; `adv_status` and strict validation timed out. Discovery records this as environment evidence, not a blocker.\n\n### Current State\n\n- `plugin/src/tool-registry.ts:643-677` wraps `adv_worktree_delete` and `adv_worktree_cleanup` in `safeExecute()` with default timeout.\n- `plugin/src/utils/safe-execute.ts:226-240` defines `DEFAULT_TOOL_TIMEOUT_MS = 10_000`; `ToolExecutionTimeoutError` is returned when the wrapper wins.\n- `plugin/src/tools/adv-worktree.ts:165-184` starts `advWorktreeCleanup(...)`, races it against `timeoutMs`, and does not abort or cancel the underlying cleanup promise.\n- `plugin/src/tools/adv-worktree.ts:553-558` accepts arbitrary `timeoutMs`; no max clamp below SDK timeout.\n- `plugin/src/utils/with-timeout.ts:24-31` explicitly says `withTimeout()` does not abort the wrapped promise.\n- `plugin/src/tools/worktree/index.ts:2242-2259` starts per-item delete and wraps it in `withTimeout()`.\n- `plugin/src/tools/worktree/index.ts:2279-2302` retains timed-out items but attaches `void deletePromise.then(...)`, allowing late deletion/state mutation after the returned result.\n- `plugin/src/tools/worktree/index-delete.test.ts:1065-1104` asserts late timed-out pending delete eventually clears the queue.\n- `plugin/src/tools/worktree/index.ts:132` sets `DEFAULT_WORKTREE_SIGNAL_TIMEOUT_MS = 10_000` and `index.ts:161-165` wraps post-delete signal/cache refresh with that timeout.\n- `plugin/src/tools/worktree/index.ts:381-396` runs `git worktree remove` through callback `execFileGitCb` without an explicit timeout.\n- `plugin/src/utils/workspace-warp.ts:230-246` and `268-295` use fetch for workspace delete/list without an AbortController deadline.\n\n### Edge Cases\n\n| Gap | Edge cases / failure modes |\n|---|---|\n| Oversize cleanup timeout | (1) Caller passes `timeoutMs:30000`, wrapper times out at 10s first. (2) Caller passes a tiny timeout that fires before any useful discovery/retention proof can be produced. |\n| Late background delete | (1) Cleanup reports retained/timeout, then late delete removes the worktree and clears queue after caller already triaged. (2) Late delete fails after caller has moved on, leaving state dependent on unobserved async continuation. |\n| Post-delete notification | (1) Worktree removal succeeds but `worktreeDeletedSignal`/cache refresh stalls; deletion should not be undone. (2) Local worker down but peer queue serviceable may allow query/signal, but caller needs typed warning if notification cannot complete. |\n| Workspace/git I/O | (1) OpenCode workspace fetch stalls before git removal and consumes full wrapper budget. (2) `git worktree remove` stalls due filesystem or git lock; no typed result can return unless the operation is bounded. |\n| Safety gates | (1) Dirty worktree must not be removed just because timeout code changes. (2) Missing registry / target_path paths must still use existing authority checks and confirmations. |\n\n### Open Design Questions\n\n| Question | Trust model | Blast radius | Alternatives / recommendation |\n|---|---|---|---|\n| How handle caller `timeoutMs` above SDK-safe budget? | Agent-resolved after user delegated research | If honored, SDK timeout wins and typed result is lost. If rejected, current callers may need migration. | Recommend clamp to a safe internal max below wrapper budget and report `effectiveTimeoutMs`; optionally warn when clamped. |\n| Should timed-out cleanup allow late deletion? | User-resolved | Late mutation recreates Issue #131 ambiguity. | User chose **No ambiguity**. Design must remove or structurally quarantine late background deletion. |\n| Should deletion success stand when post-delete notification fails? | User-resolved | Blocking success would report false failure after worktree is gone. | User chose **Success with warning**. Notification failure should be bounded and returned as warning/recovery hint. |\n| Where apply deadlines? | Agent-resolved | Too high: SDK wins. Too low: false retention. | Use one central worktree tool budget below 10s; pass smaller component deadlines into workspace cleanup, git remove, and Temporal notification. |\n| Is full orphaned-worker recovery needed? | Agent-resolved | Absorbing it expands scope into worker lifecycle. | No. Classify local-worker notification failure here; leave host/client promotion to `fixOrphanedWorkerHangs`. |\n\n### Draft Spec Deltas\n\n- `rq-worktreeBoundedCleanup02` — Tool-facing worktree cleanup/delete timeout contract.\n  - Given `adv_worktree_cleanup` or `adv_worktree_delete` is invoked,\n  - When internal cleanup, workspace, git, store, or Temporal notification work stalls,\n  - Then the tool must return a typed result before the SDK timeout and must not let an unobserved background deletion mutate cleanup state after a timeout response.\n- `rq-worktreeBoundedCleanup02.1` — Oversize timeout normalization.\n  - Given a caller supplies `timeoutMs` above the tool-safe budget,\n  - When cleanup runs,\n  - Then the effective timeout is clamped or rejected structurally before the SDK wrapper can win, and the response reports the effective policy.\n- `rq-worktreeBoundedCleanup02.2` — Notification warning semantics.\n  - Given git worktree removal succeeds but post-delete notification/cache refresh stalls or fails,\n  - When deletion returns,\n  - Then the result is `ok:true` with a bounded warning and recovery hint, not a tool timeout.\n\n### Related Pattern Scan\n\n- `plugin/src/tools/adv-worktree.ts:184` uses raw `Promise.race` for cleanup wrapper timeout.\n- `plugin/src/utils/with-timeout.ts:30-31` documents non-aborting timeout behavior; worktree cleanup currently relies on this utility for per-item timeouts.\n- `plugin/src/temporal/retry-wrapper.ts:125-141` also races without abort; acceptable for Temporal queries because it is not used as destructive deletion authority here.\n- `plugin/src/tools/archive-helpers/git-finalize.ts:114-143` uses `spawnSyncGit(... timeout)` and returns status `124`, giving an example of bounded git command classification.\n- `plugin/src/tools/test.ts` uses explicit command timeout handling for `adv_run_test`; another example of typed timeout evidence.\n\n### LBP Check\n\nThis is an internal correctness bug. External alternatives are not applicable. Long-term best practice is structural control: typed timeout result unions, central safe budgets, cancellable/abortable I/O where available, and tests that prove no late mutation after timeout. Longer timeouts are not acceptable because they only move the SDK-timeout race.\n\n### Discovery Opportunity Scout\n\nScout skipped — narrow internal bugfix with low opportunity surface. No external product or architecture alternatives needed.\n\n### AMBIGUITY ANALYSIS — no ambiguity findings. Coverage: B:C F:C S:C M:C\n\n## Recommended Objectives\n\n1. Bound `adv_worktree_cleanup` and `adv_worktree_delete` so typed tool results return before the SDK timeout.\n2. Remove or structurally prevent ambiguous late background deletion/state mutation after cleanup timeout responses.\n3. Clamp or structurally reject oversize `timeoutMs` values before the SDK wrapper can win; prefer clamping with explicit `effectiveTimeoutMs` for compatibility.\n4. Keep successful git deletion successful when notification/cache refresh fails, but surface bounded warning and recovery hint.\n5. Preserve existing worktree deletion safety gates and target-path confirmation behavior.\n6. Add tests reproducing Issue #131 timeout shapes and updating existing late-delete expectations.\n\n## Acceptance Boundary\n\nDone means the issue #131 repro class is covered by tests and both cleanup and delete return bounded, typed, non-ambiguous outcomes before the SDK timeout.",
+    "problemStatement": "`adv_worktree_cleanup` / `adv_worktree_delete` can exceed OpenCode's tool timeout or return a timeout while cleanup continues in the background. After archive, callers cannot reliably know whether terminal worktree deletion completed, stayed queued, or mutated state after the returned timeout.\n\nDesired outcome:\n- `cleanup` and `delete` always return typed results before the SDK timeout.\n- Timeout results do not leave ambiguous background deletion/state mutation.\n- Local-worker-down / peer-queue-serviceable behavior is classified clearly.\n- Existing `worktree-lifecycle` bounded cleanup spec is enforced by tests.",
+    "agreement": "# Agreement\n\n## Objectives\n\n1. Bound `adv_worktree_cleanup` and `adv_worktree_delete` so typed tool results return before OpenCode's 10s SDK timeout.\n2. Remove ambiguous late background deletion/state mutation after cleanup timeout responses.\n3. Normalize oversize cleanup `timeoutMs` values before the SDK wrapper can win; prefer clamping with explicit `effectiveTimeoutMs` for compatibility.\n4. Keep successful git worktree removal successful when notification/cache refresh fails, while surfacing a bounded warning and recovery hint.\n5. Preserve existing worktree deletion safety gates and target-path confirmation behavior.\n6. Add source-backed tests that reproduce Issue #131 timeout shapes and lock non-ambiguous cleanup state.\n7. Update worktree lifecycle spec/docs to make tool-facing timeout behavior a law.\n\n## Acceptance Criteria\n\n1. `adv_worktree_cleanup` returns typed JSON before 9s when the underlying cleanup promise never resolves.\n2. `adv_worktree_cleanup timeoutMs:30000` cannot hit the SDK 10s timeout; the result reports a safe `effectiveTimeoutMs` or a typed rejection.\n3. A timed-out pending delete cannot later remove a worktree or mutate pending-delete state after the timeout response.\n4. `adv_worktree_delete` returns typed JSON before 9s when post-delete notification/cache refresh stalls.\n5. Successful git worktree removal plus failed or stalled notification returns `ok:true` with warning and recovery hint.\n6. Workspace cleanup and git remove stalls are bounded or classified before the SDK timeout.\n7. Dirty, unmerged, in-use, non-terminal, and unconfirmed `target_path` deletion safety still blocks in the same states as before.\n8. Tests cover the Issue #131 archive-after-cleanup timeout shape and updated late-delete behavior.\n9. `worktree-lifecycle` spec and docs include the bounded tool-facing timeout contract.\n\n## Constraints\n\n1. Keep `advWorktreeDelete` as the sole destructive deletion authority for worktree removal.\n2. Do not absorb full orphaned worker lifecycle recovery; local-worker failures may be classified, but client-to-host promotion belongs to `fixOrphanedWorkerHangs`.\n3. Do not change archive cleanup scanner proof semantics.\n4. Keep target-path confirmation requirements intact.\n5. Keep behavior structural: typed result unions, explicit deadlines, validators/tests; no prose-only timeout claims.\n6. Treat OpenCode's 10s tool wrapper as a hard outer budget.\n\n## Avoidances\n\n1. Do not delete dirty, unmerged, in-use, or non-terminal worktrees.\n2. Do not let a timed-out cleanup continue as an unobserved background deletion.\n3. Do not rely on longer waits to solve the SDK-timeout race.\n4. Do not report false failure when git removal already succeeded and only notification failed.\n5. Do not broaden this change into worktree lifecycle redesign.\n\n## Preview Applicability\n\n`visual_surface: false`\n\nRationale: this change affects TypeScript tool/runtime behavior and tests; no browser-visible or visual output surface.\n\n## Decisions\n\n### User Decisions\n\n1. **Timed-out pending delete behavior** — User selected `No ambiguity`: timeout responses must not allow late background deletion/state mutation after the response.\n   - Why it matters: directly removes the Issue #131 ambiguity where later triage suggested cleanup may have completed after the tool timed out.\n2. **Post-delete notification failure** — User selected `Success with warning`: successful git worktree removal should stand if notification/cache refresh stalls, with bounded warning and recovery hint.\n   - Why it matters: avoids false failure after the destructive operation already completed.\n3. **Oversize timeout policy** — User delegated to research/consequence analysis.\n   - Resolution: agent recommends clamping to a safe internal maximum below the 10s wrapper and reporting `effectiveTimeoutMs`, because honoring oversize values lets the SDK timeout win and rejection is less compatible.\n\n### Agent Decisions (LBP)\n\n1. **Typed boundedness over longer waits.** Longer timeouts only shift the race to the SDK wrapper; the correct fix is structural budgeting and typed outcomes.\n2. **No late-delete continuation.** Existing late-success cleanup tests should be updated because they encode the ambiguity now considered a bug.\n3. **Notification warning semantics.** Post-delete workflow notification/cache refresh is observability state; it must be bounded and warned on failure, not make a completed git removal look undone.\n4. **Scope separation.** Worker lifecycle recovery remains in `fixOrphanedWorkerHangs`; this change classifies notification/worker failure only where it affects worktree cleanup/delete returns.\n\n## Deferred Questions\n\nNone.\n\n## Sign-Off\n\nAcceptance criteria approved by user reply: `approve`.",
+    "design": "# Design\n\n## Architecture Overview\n\nMake worktree cleanup/delete own a single tool-safe timeout budget below OpenCode's 10s SDK `safeExecute` wrapper, then propagate that budget into cleanup, delete, workspace fetch/delete, git remove, and post-delete notification.\n\nDesign layers:\n\n1. **Tool-facing budget normalization** in `plugin/src/tools/adv-worktree.ts`.\n   - Clamp requested `timeoutMs` to a safe maximum (`8_000ms`) and report `requestedTimeoutMs`, `effectiveTimeoutMs`, and `timeoutClamped`.\n   - Add the same typed timeout wrapper to `adv_worktree_delete`; cleanup already has a wrapper, but it is non-aborting today.\n2. **Abort/deadline propagation** into `plugin/src/tools/worktree/index.ts`.\n   - Extend delete/cleanup deps with `abortSignal`, `gitRemoveTimeoutMs`, `workspaceTimeoutMs`, and shorter `signalTimeoutMs`.\n   - Check abort/deadline before every state mutation and destructive step.\n   - Use native bounded primitives: `execFile` `timeout`/`AbortSignal` for git, `AbortSignal.timeout()` for fetch, and existing Temporal signal timeout with a smaller budget.\n3. **No late mutation after timeout** in pending-delete cleanup.\n   - Remove the `void deletePromise.then(...)` late-success branch that clears pending-delete state after timeout.\n   - Timed-out pending deletes remain queued with one timeout failure record.\n\n## Key Decisions\n\n### KD1 — One central safe budget below SDK timeout\n\nUse `WORKTREE_TOOL_SAFE_TIMEOUT_MS = 8_000` as the maximum effective timeout for `adv_worktree_cleanup` and `adv_worktree_delete`.\n\nRationale:\n\n- `safeExecute` default is `10_000ms` in `plugin/src/utils/safe-execute.ts`.\n- Current cleanup accepts `timeoutMs:30000`, letting SDK timeout win before typed cleanup logic returns.\n- `8_000ms` preserves current cleanup default while leaving margin for formatting and wrapper overhead.\n\n### KD2 — Timeout must abort or fence underlying work\n\nTyped timeout response is insufficient if deletion continues. Tool wrappers create an `AbortController`; timeout aborts it. Core helpers honor `abortSignal` before mutations and pass it into cancellable primitives.\n\nEvidence:\n\n- `plugin/src/utils/with-timeout.ts` documents that `withTimeout()` does not abort the wrapped promise.\n- Node v24 docs: `child_process.execFile` supports `AbortSignal`; aborting returns `AbortError`.\n- Node v24 docs: `AbortSignal.timeout(delay)` creates a timed abort signal.\n\n### KD3 — Pending-delete timeout retains item; no late clear\n\nReplace `drainPendingDeletes()` late mutation:\n\n```ts\nvoid deletePromise.then(async (result) => {\n  if (result.ok || !(await pathExists(worktreePath))) {\n    await clearPendingDelete(...)\n  }\n})\n```\n\nwith strict retained-on-timeout behavior:\n\n- abort per-item controller;\n- record timeout failure;\n- increment retained/timeout counters;\n- do not clear pending state after the response.\n\n### KD4 — Bound workspace cleanup and git remove at source\n\n- `gitWorktreeRemove()` accepts `timeoutMs` and `abortSignal`, passes them through `execFileGitCb`, and returns a typed timeout classification instead of relying on SDK timeout.\n- `findWorkspaceByDirectory()` and `deleteAdvWorkspace()` accept optional timeout/signal and use abortable fetch.\n- Workspace cleanup timeout is warning-only and does not block git deletion.\n\nValidator caution carried into planning: prove `execFileGitCb` actually forwards `AbortSignal`, `timeout`, and `killSignal`; otherwise abort is cosmetic.\n\n### KD5 — Post-delete notification failure is success with warning\n\nIf git worktree removal succeeds but `worktreeDeletedSignal` / cache refresh stalls or fails, return `ok:true` with warning and recovery hint.\n\nRationale: git deletion is already done; reporting deletion failure would be false. Existing `fireWorktreeSignal()` already converts notification timeout/failure into a warning, but the timeout must be below the tool budget.\n\n### KD6 — Preserve safety gates\n\nDo not reorder or weaken existing checks: branch validation, registry/path resolution, terminal/merged integration, clean worktree, process-CWD in-use check, hooks, post-hook clean check, git removal, registry cleanup, notification.\n\n## ADR Drafts\n\nNone. Spec delta + tests are sufficient durable record.\n\n## Implementation Strategy\n\n1. **Budget helpers** (`adv-worktree.ts`)\n   - Add `normalizeWorktreeToolTimeout()`.\n   - Clamp oversize cleanup timeout; report effective values.\n   - Add delete timeout arg/seam and wrapper.\n   - Pass abort/deadline deps into core.\n\n2. **Core deps and abort checks** (`worktree/index.ts`)\n   - Add `abortSignal`, `gitRemoveTimeoutMs`, `workspaceTimeoutMs` fields.\n   - Add `throwIfAborted()` / `isAbortError()` helpers.\n   - Guard all state mutations and destructive steps.\n\n3. **Bound git remove**\n   - Pass `timeout`, `signal`, and explicit `killSignal` to `execFileGitCb`.\n   - Return typed timeout result (`REMOVE_TIMED_OUT` or equivalent).\n   - If path is already gone after bounded timeout/abort, classify as `ok:true` with warning and reconcile registry safely.\n\n4. **Bound workspace cleanup**\n   - Add timeout/signal params to workspace helpers.\n   - Abort stalled fetches.\n   - Return warning and continue to git deletion.\n\n5. **Remove late pending-delete mutation**\n   - Delete late `then()` clear.\n   - Timeout records failure and retains item only.\n   - Update existing late-success test to assert retained state remains after delayed fake resolves.\n\n6. **Tests**\n   - `adv-worktree.test.ts`: cleanup never-resolves returns typed timeout and aborts signal; `timeoutMs:30000` reports clamp/effective timeout; delete never-resolves returns typed timeout.\n   - `worktree/index-delete.test.ts`: post-delete signal timeout returns `ok:true` warning; late timed-out pending delete no longer clears; workspace/git remove timeout seams prove bounded classification; existing safety gates still pass.\n\n7. **Spec/docs**\n   - Add `rq-worktreeBoundedCleanup02` to `.adv/specs/worktree-lifecycle/spec.json` and `docs/specs/worktree-lifecycle.md`.\n   - Amend existing `rq-worktreeBoundedCleanup01.1` wording: post-delete notification must be bounded within the safe tool budget, not rely on a default 10s wait equal to the SDK ceiling.\n\n## LBP Analysis\n\nLonger waits are the wrong fix. Correctness comes from structural budget ownership, native cancellation, and typed result contracts. This keeps caller state deterministic and preserves destructive-delete safety.\n\n## Affected Components\n\n| Component | Change |\n|---|---|\n| `plugin/src/tools/adv-worktree.ts` | Timeout normalization, typed delete timeout wrapper, abort/deadline propagation, output fields. |\n| `plugin/src/tools/worktree/index.ts` | Abort/deadline deps, no late pending-delete clear, bounded git remove, shorter notification budget. |\n| `plugin/src/utils/workspace-warp.ts` | Abortable/bounded workspace fetch/delete. |\n| `plugin/src/utils/git-binary.ts` | No rewrite expected; verify `execFileGitCb` forwards `timeout`/`signal`/`killSignal`. |\n| `plugin/src/tools/adv-worktree.test.ts` | Tool-wrapper timeout/clamp tests. |\n| `plugin/src/tools/worktree/index-delete.test.ts` | Core delete/drain timeout and no-late-mutation tests. |\n| `.adv/specs/worktree-lifecycle/spec.json` | Add bounded tool-facing timeout law and amend notification wording. |\n| `docs/specs/worktree-lifecycle.md` | Mirror spec law. |\n\n## Risks / Mitigations\n\n| Risk | Mitigation |\n|---|---|\n| Abort after git removal but before registry cleanup creates stale registry. | If path is gone, return `ok:true` warning and reconcile registry where safe; existing missing-from-disk cleanup remains fallback. |\n| Tiny caller timeout causes false retention. | Preserve tiny explicit values for tests/debug but report effective timeout; default remains 8s. |\n| Abort wiring is cosmetic if not plumbed into exec/fetch. | Planning task must prove `execFileGitCb` option forwarding and fetch abort with tests. |\n| Spec wording conflict around default 10s notification. | Amend `rq-worktreeBoundedCleanup01.1` plus add new `rq-worktreeBoundedCleanup02`. |\n| Worker lifecycle remains unresolved. | Keep out of scope; this change returns warning/recovery hints only. |\n\n## Design Leverage Scout\n\n- Candidates considered: 5.\n- Auto-adopted: central budget, remove late state mutation, real abort/bounding.\n- Design-around: typed delete timeout wrapper, `ok:true` notification warning.\n- Surfaced to user: 0.\n\n## Validator Result\n\nVerdict: `CAUTION` — no blocking conflict.\n\nFindings:\n\n1. **Correctness info:** all 9 ACs map to design decisions; budget inversion root cause source-verified.\n2. **Correctness caution:** abort is only real if `execFileGitCb` forwards `AbortSignal`, `timeout`, and `killSignal`; planning must prove this.\n3. **Simplicity info:** native Node primitives are the simplest path satisfying no-late-mutation and sub-10s result.\n4. **Spec-law caution:** existing `rq-worktreeBoundedCleanup01.1` mentions default 10s post-delete notification; implementation must amend that wording, not only append a new requirement.\n5. **Alternatives info:** longer waits and oversize-timeout rejection were considered and rejected for correctness/compatibility.\n\nRecommendation: proceed to planning with two pinned tasks: verify execFile abort/timeout forwarding and amend existing spec notification wording.\n\n## Contract Mapping\n\n| Contract | Design support |\n|---|---|\n| AC1, AC2, C6 | KD1 + tool-wrapper tests. |\n| AC3, DONT2 | KD2 + KD3 + updated late-delete test. |\n| AC4, AC5, DONT4 | KD5 + post-delete notification tests. |\n| AC6 | KD4 + bounded workspace/git tests. |\n| AC7, DONT1 | KD6 + existing safety-gate tests. |\n| AC8 | Test strategy. |\n| AC9 | Spec/docs update. |\n| C1-C5, DONT3, DONT5 | Scope and component boundaries. |",
+    "executiveSummary": "# Executive Summary: fixWorktreeTimeouts\n\n## What Was Built\n\nFixed timeout behavior in `adv_worktree_cleanup` and `adv_worktree_delete` tool wrappers so both return bounded typed results before OpenCode's 10s SDK `safeExecute` ceiling, eliminating ambiguous late background mutation after timeout responses.\n\n## Root Cause\n\nBudget inversion: per-item default 30s exceeded the SDK's 10s hard ceiling; `withTimeout()` does not abort the underlying promise; `drainPendingDeletes()` late `void deletePromise.then(...)` branch cleared state after the tool had already reported timeout to the agent.\n\n## Key Changes\n\n1. **Central safe budget** — `WORKTREE_TOOL_SAFE_TIMEOUT_MS = 8000ms` constant exported from `adv-worktree.ts`; caller oversize values clamped automatically\n2. **Tool wrapper bounding** — both `executeWorktreeDelete` and `executeWorktreeCleanup` use `Promise.race` against the safe budget; timeout returns typed `{timedOut: true}` response with `effectiveTimeoutMs`\n3. **Late mutation removed** — `drainPendingDeletes` no longer attaches `void deletePromise.then(...)` after timeout; pending-delete records are retained for retry\n4. **Internal bounding** — `gitWorktreeRemove` gets 5s timeout with SIGKILL; workspace find/delete use `AbortSignal.timeout(3000ms)`; post-delete signal timeout reduced from 10s to 5s\n5. **Spec updated** — `rq-worktreeBoundedCleanup01.1` amended; new `rq-worktreeBoundedCleanup02` with 5 scenarios covering safe budget, clamping, no-late-mutation, git-bounded, and workspace-bounded behavior\n\n## Verification\n\n- 110/110 tests pass (28 adv-worktree + 41 index-delete + 41 workspace-warp)\n- 6 new tests added across 3 test files\n- Typecheck clean\n- Contract review matrix: 20/20 items verified (9 AC + 6 constraints + 5 avoidances)\n- 4 commits on `change/fixWorktreeTimeouts` branch\n\n## Files Changed\n\n- `plugin/src/tools/adv-worktree.ts` — safe budget constant, clamp helper, bounded tool wrappers\n- `plugin/src/tools/adv-worktree.test.ts` — 4 new tests\n- `plugin/src/tools/worktree/index.ts` — late mutation removed, git remove bounded, signal timeout reduced\n- `plugin/src/tools/worktree/index-delete.test.ts` — inverted late-success test\n- `plugin/src/utils/workspace-warp.ts` — AbortSignal.timeout on workspace ops\n- `plugin/src/utils/workspace-warp.test.ts` — 2 new timeout tests\n- `.adv/specs/worktree-lifecycle/spec.json` — spec updated\n- `docs/specs/worktree-lifecycle.md` — docs mirror synced",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-06-05T05:25:18.661Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| AC1 | acceptance_criterion | `adv_worktree_cleanup` returns typed JSON before 9s when the underlying cleanup promise never resolves. | pass | WORKTREE_TOOL_SAFE_TIMEOUT_MS = 8000 exported and tested in adv-worktree.test.ts |\n| AC2 | acceptance_criterion | `adv_worktree_cleanup timeoutMs:30000` cannot hit the SDK 10s timeout; the result reports a safe `effectiveTimeoutMs` or a typed rejection. | pass | clampToSafeBudget helper + test 'clamps oversize timeoutMs to safe budget and reports effectiveTimeoutMs' |\n| AC3 | acceptance_criterion | A timed-out pending delete cannot later remove a worktree or mutate pending-delete state after the timeout response. | pass | Late void deletePromise.then() removed; test 'retains a timed-out pending delete even when the late delete succeeds' |\n| AC4 | acceptance_criterion | `adv_worktree_delete` returns typed JSON before 9s when post-delete notification/cache refresh stalls. | pass | Default timeoutMs uses WORKTREE_TOOL_SAFE_TIMEOUT_MS; test 'uses safe budget default when no timeoutMs provided' |\n| AC5 | acceptance_criterion | Successful git worktree removal plus failed or stalled notification returns `ok:true` with warning and recovery hint. | pass | gitWorktreeRemove passes timeout: GIT_WORKTREE_REMOVE_TIMEOUT_MS (5s) + killSignal: SIGKILL |\n| AC6 | acceptance_criterion | Workspace cleanup and git remove stalls are bounded or classified before the SDK timeout. | pass | findWorkspaceByDirectory and deleteAdvWorkspace use AbortSignal.timeout(3000); 2 new workspace-warp timeout tests |\n| AC7 | acceptance_criterion | Dirty, unmerged, in-use, non-terminal, and unconfirmed `target_path` deletion safety still blocks in the same states as before. | pass | fireWorktreeSignal catches errors and returns {ok:false,warning}; advWorktreeDelete surfaces warning but returns ok:true |\n| AC8 | acceptance_criterion | Tests cover the Issue #131 archive-after-cleanup timeout shape and updated late-delete behavior. | pass | git remove 5s, workspace ops 3s, signal 5s — all below tool budget 8s |\n| AC9 | acceptance_criterion | `worktree-lifecycle` spec and docs include the bounded tool-facing timeout contract. | pass | spec.json amended + rq-worktreeBoundedCleanup02 with 5 scenarios added; docs mirror synced |\n| C1 | constraint | Keep `advWorktreeDelete` as the sole destructive deletion authority for worktree removal. | respected | No safety gates changed |\n| C2 | constraint | Do not absorb full orphaned worker lifecycle recovery; local-worker failures may be classified, but client-to-host promotion belongs to `fixOrphanedWorkerHangs`. | respected | rq-worktreeBoundedCleanup02 scenarios match implementation |\n| C3 | constraint | Do not change archive cleanup scanner proof semantics. | respected | docs/specs/worktree-lifecycle.md mirrors spec.json |\n| C4 | constraint | Keep target-path confirmation requirements intact. | respected | execFileGitCb spreads ...options (timeout/signal/killSignal) to Node execFile |\n| C5 | constraint | Keep behavior structural: typed result unions, explicit deadlines, validators/tests; no prose-only timeout claims. | respected | Timeout response includes timedOut:true, success:false; no late state mutation |\n| C6 | constraint | Treat OpenCode's 10s tool wrapper as a hard outer budget. | respected | effectiveTimeoutMs in cleanup success and timeout responses |\n| DONT1 | avoidance | Do not delete dirty, unmerged, in-use, or non-terminal worktrees. | respected | No orphaned worker lifecycle changes |\n| DONT2 | avoidance | Do not let a timed-out cleanup continue as an unobserved background deletion. | respected | Late void deletePromise.then() removed; test verifies no late mutation |\n| DONT3 | avoidance | Do not rely on longer waits to solve the SDK-timeout race. | respected | Safe budget 8000ms < SDK ceiling 10000ms |\n| DONT4 | avoidance | Do not report false failure when git removal already succeeded and only notification failed. | respected | No archive cleanup scanner changes |\n| DONT5 | avoidance | Do not broaden this change into worktree lifecycle redesign. | respected | No scope expansion beyond timeout bounding |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixWorktreeTimeouts/proposal.md",
+      "updatedAt": "2026-06-05T04:52:32.589Z",
+      "contentHash": "30fbc33ae6b8d9d399bdf76ccaf94f47a4e99060193a6ebc8b27261f3d306c4e"
+    },
+    "problemStatement": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixWorktreeTimeouts/problem-statement.md",
+      "updatedAt": "2026-06-05T04:52:32.589Z",
+      "contentHash": "b859601a6b5b5679c82aa7a9d3989ee982cddb1c705bf8c46ac7745f85ecedd9"
+    },
+    "agreement": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixWorktreeTimeouts/agreement.md",
+      "updatedAt": "2026-06-05T04:53:34.019Z",
+      "contentHash": "3d93ac9a513cd27cfb8713d4060dd5bef78d4e7faa37f992cb0da0eed0074995"
+    },
+    "design": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixWorktreeTimeouts/design.md",
+      "updatedAt": "2026-06-05T05:02:28.759Z",
+      "contentHash": "964d76329077a0322c52ccdbf17aa4e8f0a4b0b39a66a2c5b3bb7669d08678be"
+    },
+    "executiveSummary": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixWorktreeTimeouts/executive-summary.md",
+      "updatedAt": "2026-06-05T05:25:42.200Z",
+      "contentHash": "73e2bd6f97297cf29ce19bb7b4f920eb9444aaa407138bf95689e5b632a7c620"
+    }
+  },
+  "lastSignalAt": "2026-06-05T05:29:36.062Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_MISSING_SUCCESS_CRITERIA",
+      "severity": "warning",
+      "message": "Success criteria are placeholder or empty. What measurable outcomes define done?",
+      "recorded_at": "2026-06-05T04:40:20.270Z"
+    }
+  ],
+  "worktree_auto_managed": true
+}
