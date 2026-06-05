@@ -2276,23 +2276,14 @@ export async function drainPendingDeletes(
     } catch (err) {
       if (!(err instanceof TimeoutError)) throw err;
 
+      // rq-worktreeBoundedCleanup02 AC3/DONT2: on timeout, retain the
+      // pending-delete record. Do NOT attach a late-success handler that
+      // mutates state after the tool has already reported the timeout to
+      // the agent — that creates ambiguous late side-effects the agent
+      // cannot reason about.
       deps.log.warn(
         `[worktree] Pending delete for ${branch} timed out after ${timeoutMs}ms — retaining for retry`,
       );
-      void deletePromise
-        .then(async (result) => {
-          if (result.ok || !(await pathExists(worktreePath))) {
-            await clearPendingDelete(deps.database, branch);
-            deps.log.warn(
-              `[worktree] Late pending delete for ${branch} resolved after timeout — cleared queued record`,
-            );
-          }
-        })
-        .catch((lateErr: unknown) => {
-          deps.log.warn(
-            `[worktree] Late pending delete for ${branch} failed after timeout: ${String(lateErr)}`,
-          );
-        });
       await recordPendingDeleteFailure(
         deps.database,
         branch,

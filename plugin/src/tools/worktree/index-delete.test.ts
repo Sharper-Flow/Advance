@@ -1062,7 +1062,10 @@ describe.skipIf(!isLinux)("shared pending-delete drain", () => {
     ]);
   });
 
-  it("clears a timed-out pending delete when the late delete succeeds", async () => {
+  // rq-worktreeBoundedCleanup02 AC3/DONT2: after timeout, the pending
+  // delete must be retained — no late background mutation clearing state
+  // after the tool has already reported the timeout to the agent.
+  it("retains a timed-out pending delete even when the late delete succeeds (no late mutation)", async () => {
     const branch = "change/late";
     const pendingPath = join(repoRoot, "worktrees", "change", "late");
     mkdirSync(pendingPath, { recursive: true });
@@ -1086,19 +1089,16 @@ describe.skipIf(!isLinux)("shared pending-delete drain", () => {
     });
 
     expect(result).toEqual({ removed: 0, retained: 1 });
-    expect(await getPendingDeletes(deps.database)).toHaveLength(1);
 
-    // Poll up to 1s for the late-delete to resolve. Fixed sleeps flake under
-    // full-suite load (rq-fix-gate-tools-recovery: hardening uncovered flake).
-    const deadline = Date.now() + 1000;
-    let remaining = await getPendingDeletes(deps.database);
-    while (remaining.length > 0 && Date.now() < deadline) {
-      await new Promise((resolve) => setTimeout(resolve, 10));
-      remaining = await getPendingDeletes(deps.database);
-    }
+    // Wait a bit for any late-resolution to occur (it should NOT)
+    await new Promise((resolve) => setTimeout(resolve, 200));
 
-    expect(remaining).toEqual([]);
-    expect(deps.log.warn).toHaveBeenCalledWith(
+    // Pending delete must still be present — no late mutation
+    const remaining = await getPendingDeletes(deps.database);
+    expect(remaining).toHaveLength(1);
+
+    // The old "resolved after timeout" warning must NOT appear
+    expect(deps.log.warn).not.toHaveBeenCalledWith(
       expect.stringContaining("resolved after timeout"),
     );
   });
