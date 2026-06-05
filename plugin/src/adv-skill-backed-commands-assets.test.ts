@@ -262,9 +262,14 @@ describe("ambiguity taxonomy spec assets", () => {
       ),
     ) as { version: string; requirements: Array<{ id: string }> };
 
-    expect(spec.version).toBe("1.2.0");
+    expect(spec.version).toBe("1.3.0");
     expect(spec.requirements.map((rq) => rq.id)).toEqual(
-      expect.arrayContaining(["rq-prop-tax1", "rq-prop-tax2", "rq-prop-tax3"]),
+      expect.arrayContaining([
+        "rq-prop-tax1",
+        "rq-prop-tax2",
+        "rq-prop-tax3",
+        "rq-stageProposalUserOutcomes01",
+      ]),
     );
   });
 
