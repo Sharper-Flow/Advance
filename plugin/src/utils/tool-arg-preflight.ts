@@ -361,7 +361,29 @@ function applyFieldPolicies(
   return { invalid, normalizedArgs };
 }
 
+function validatePoisonedRecoveryEvidence(
+  args: Record<string, unknown>,
+): ToolArgPreflightIssue[] {
+  if (args.recoveryMode !== "poisoned_history") return [];
+  if (
+    typeof args.recoveryEvidence === "string" &&
+    args.recoveryEvidence.trim()
+  ) {
+    return [];
+  }
+  return [
+    {
+      field: "recoveryEvidence",
+      message:
+        "recoveryEvidence is required when recoveryMode='poisoned_history'.",
+    },
+  ];
+}
+
 const CROSS_FIELD_VALIDATORS: Record<string, CrossFieldValidator> = {
+  adv_task_update: (args) => validatePoisonedRecoveryEvidence(args),
+  adv_task_add: (args) => validatePoisonedRecoveryEvidence(args),
+  adv_task_cancel: (args) => validatePoisonedRecoveryEvidence(args),
   adv_change_create: (args) => {
     const invalid: ToolArgPreflightIssue[] = [];
 

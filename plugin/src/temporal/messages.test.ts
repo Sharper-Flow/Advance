@@ -30,6 +30,7 @@ import {
   GateInProgressSignalPayloadSchema,
   GateReenteredSignalPayloadSchema,
   GateStuckSignalPayloadSchema,
+  Phase9StatusUpdatedSignalPayloadSchema,
   ProblemStatementUpdatedSignalPayloadSchema,
   ProposalUpdatedSignalPayloadSchema,
   ReflectionRecordedSignalPayloadSchema,
@@ -82,6 +83,7 @@ const designSignalKeys = [
   "conformanceVerdict",
   "conformanceOverridden",
   "archiveRequested",
+  "phase9StatusUpdated",
   "changeCancelled",
   "updateArtifactMetadata",
   "archiveChange",
@@ -97,11 +99,11 @@ const designQueryKeys = [
 ] as const;
 
 describe("change workflow message contract", () => {
-  it("defines the 37 signal surface", () => {
+  it("defines the 38 signal surface", () => {
     const surfacedKeys = Object.keys(CHANGE_WORKFLOW_SIGNAL_NAMES);
 
     expect(surfacedKeys).toEqual([...designSignalKeys]);
-    expect(surfacedKeys).toHaveLength(37);
+    expect(surfacedKeys).toHaveLength(38);
 
     for (const key of designSignalKeys) {
       expect(CHANGE_WORKFLOW_SIGNAL_NAMES[key]).toBe(`adv.change.${key}`);
@@ -362,6 +364,13 @@ describe("change workflow message contract", () => {
           approvalEvidence: "ship it",
           requestedBy: "user",
           requestedAt: timestamp,
+        },
+      ],
+      [
+        Phase9StatusUpdatedSignalPayloadSchema,
+        {
+          phase9_status: { status: "pending", startedAt: timestamp },
+          updatedAt: timestamp,
         },
       ],
       [

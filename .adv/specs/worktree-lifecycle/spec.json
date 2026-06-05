@@ -508,6 +508,7 @@
       ]
     },
     {
+      "id": "rq-worktreeTargetCleanup01",
       "title": "Target-Project Worktree Cleanup Routing",
       "body": "Worktree cleanup mutation tools that support target-project operation MUST route target_path calls through the target project's store and Temporal queue, require explicit confirmation for untrusted target mutation, and preserve existing delete/cleanup safety gates. Worktree triage recommendations for a target project MUST be actionable from the current session by including target-aware remediation instead of bare current-project cleanup commands.",
       "priority": "must",
