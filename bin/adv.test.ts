@@ -136,8 +136,8 @@ describe("adv roadmap dispatcher", () => {
   });
 });
 
-describe("adv status still works", () => {
-  test("status shows help when no ADV state", async () => {
+describe("adv status live default", () => {
+  test("status does not require a disk ADV state directory", async () => {
     const tmp = mkdtempSync(join(tmpdir(), "adv-dispatch-"));
     // Initialize a git repo so resolveProjectId works
     const initProc = Bun.spawn(["git", "init"], { cwd: tmp });
@@ -148,7 +148,39 @@ describe("adv status still works", () => {
     );
     await commitProc.exited;
     const { exitCode } = await runAdv(["status", "--no-color"], tmp);
-    // No ADV state → exit 2
+    expect(exitCode).toBe(0);
+  });
+
+  test("status --json failure reports live Temporal error without disk fallback", async () => {
+    const tmp = mkdtempSync(join(tmpdir(), "adv-dispatch-"));
+    const initProc = Bun.spawn(["git", "init"], { cwd: tmp });
+    await initProc.exited;
+    const commitProc = Bun.spawn(
+      ["git", "commit", "--allow-empty", "-m", "init"],
+      { cwd: tmp },
+    );
+    await commitProc.exited;
+
+    const proc = Bun.spawn(["bun", ADV_PATH, "status", "--json"], {
+      cwd: tmp,
+      stdout: "pipe",
+      stderr: "pipe",
+      env: {
+        ...process.env,
+        NO_COLOR: "1",
+        ADV_TEMPORAL_ADDRESS: "127.0.0.1:1",
+        ADV_STATUS_TIMEOUT_MS: "250",
+      },
+    });
+    const stdout = await new Response(proc.stdout).text();
+    const exitCode = await proc.exited;
+
     expect(exitCode).toBe(2);
+    const parsed = JSON.parse(stdout);
+    expect(parsed.source).toBe("temporal");
+    expect(parsed.live).toBe(false);
+    expect(parsed.stale).toBe(false);
+    expect(parsed.remediation).toContain("Temporal");
+    expect(parsed.changes).toEqual([]);
   });
 });

@@ -9,27 +9,25 @@
  * Dependencies: none (Bun built-ins + Node stdlib only)
  */
 
-import { readdir } from "fs/promises";
 import { join } from "path";
 import { parseArgs } from "node:util";
 
 import {
   listChanges,
-  computeLastActivity,
-  classifyRecency,
-  buildGateProgress,
-  firstIncompleteGate,
-  countTasks,
-  isDashboardActiveStatus,
 } from "./lib/changes";
 import {
   resolveProjectId,
   resolveExternalRoot,
   resolveRepoRoot,
 } from "./lib/project";
-import { shouldUseColor, formatTable, BOLD, DIM, RESET } from "./lib/render";
-import type { ChangeSummary } from "./lib/types";
+import { shouldUseColor, formatTable, BOLD, DIM, RESET, emitJson } from "./lib/render";
 import { readSnapshotFile, renderRoadmap, roadmapJson } from "./lib/roadmap";
+import {
+  buildLiveStatusFailure,
+  buildLiveStatusPayload,
+  QUERY_TIMEOUT_MS,
+  loadLiveStatus,
+} from "./lib/live-status";
 
 // =============================================================================
 // Constants
@@ -41,93 +39,95 @@ const VERSION = "0.1.0";
 // Subcommands
 // =============================================================================
 
-async function runStatus(noColor: boolean): Promise<number> {
-  const cwd = process.cwd();
-  const projectId = await resolveProjectId(cwd);
-  if (!projectId) {
-    process.stderr.write("error: not in a git repo (or git unavailable)\n");
-    return 1;
-  }
-
-  const root = resolveExternalRoot(projectId);
-
-  // Check state directory exists
-  try {
-    await readdir(root);
-  } catch {
-    process.stderr.write(
-      `error: no ADV state for project ${projectId.slice(0, 8)}…\n`,
-    );
-    process.stderr.write(
-      "       run /adv-status in an OpenCode session first.\n",
-    );
-    return 2;
-  }
-
-  const useColor = shouldUseColor(noColor);
-  const now = new Date();
-
-  // Collect active changes
-  const summaries: ChangeSummary[] = [];
+async function countTerminalChanges(root: string): Promise<{
+  archivedCount: number;
+  closedCount: number;
+}> {
   let archivedCount = 0;
   let closedCount = 0;
-  const activeDir = join(root, "changes");
-
-  for await (const change of listChanges(activeDir)) {
-    if (change.status === "archived") archivedCount++;
-    else if (change.status === "closed") closedCount++;
-    if (!isDashboardActiveStatus(change.status)) continue;
-
-    const lastActivityAt = computeLastActivity(change);
-    const activityDate = new Date(lastActivityAt);
-    const minutesSinceActivity = Math.max(
-      0,
-      Math.floor((now.getTime() - activityDate.getTime()) / 60000),
-    );
-    const { done, total } = countTasks(change.tasks);
-
-    summaries.push({
-      id: change.id,
-      title: change.title,
-      status: change.status,
-      recency: classifyRecency(minutesSinceActivity),
-      lastActivityAt,
-      minutesSinceActivity,
-      tasksDone: done,
-      tasksTotal: total,
-      firstIncompleteGate: firstIncompleteGate(change.gates),
-      gateProgressStr: buildGateProgress(change.gates),
-      parentChangeId: change.fast_follow_of?.parent_change_id,
-    });
-  }
-
-  // Sort by lastActivityAt descending
-  summaries.sort((a, b) => b.lastActivityAt.localeCompare(a.lastActivityAt));
-
-  // Count statuses for footer
   const archiveDir = join(root, "archive");
   for await (const change of listChanges(archiveDir)) {
     if (change.status === "archived") archivedCount++;
     else if (change.status === "closed") closedCount++;
   }
+  return { archivedCount, closedCount };
+}
 
-  // Header
-  const shortId = projectId.slice(0, 8);
-  const headerLine = useColor
-    ? `${BOLD}ADV — ${shortId}…${RESET}`
-    : `ADV — ${shortId}…`;
+async function runStatus(noColor: boolean, json: boolean): Promise<number> {
+  const cwd = process.cwd();
+  const projectId = await resolveProjectId(cwd);
+  if (!projectId) {
+    const error = "not in a git repo (or git unavailable)";
+    if (json) {
+      process.stdout.write(
+        emitJson({
+          source: "temporal",
+          live: false,
+          stale: false,
+          generated_at: new Date().toISOString(),
+          project_id: null,
+          counts: { active: 0, archived: 0, closed: 0 },
+          changes: [],
+          error,
+          remediation: "Run adv status from inside a git repository.",
+        }) + "\n",
+      );
+    } else {
+      process.stderr.write(`error: ${error}\n`);
+    }
+    return 1;
+  }
 
-  const output: string[] = [];
-  output.push(headerLine);
-  output.push("");
-  output.push(formatTable(summaries, useColor, now));
-  output.push("");
-  output.push(
-    `${summaries.length} active · ${archivedCount} archived · ${closedCount} closed`,
-  );
+  const root = resolveExternalRoot(projectId);
+  const useColor = shouldUseColor(noColor);
+  const now = new Date();
+  const rawTimeout = Number(process.env.ADV_STATUS_TIMEOUT_MS);
+  const timeoutMs = Number.isFinite(rawTimeout) && rawTimeout > 0
+    ? rawTimeout
+    : QUERY_TIMEOUT_MS;
 
-  process.stdout.write(output.join("\n") + "\n");
-  return 0;
+  try {
+    const [changes, terminalCounts] = await Promise.all([
+      loadLiveStatus(projectId, timeoutMs),
+      countTerminalChanges(root),
+    ]);
+    const payload = buildLiveStatusPayload(changes, {
+      projectId,
+      now,
+      ...terminalCounts,
+    });
+
+    if (json) {
+      process.stdout.write(emitJson(payload) + "\n");
+      return 0;
+    }
+
+    const shortId = projectId.slice(0, 8);
+    const headerLine = useColor
+      ? `${BOLD}ADV — ${shortId}…${RESET}`
+      : `ADV — ${shortId}…`;
+
+    const output: string[] = [];
+    output.push(headerLine);
+    output.push("");
+    output.push(formatTable(payload.changes, useColor, now));
+    output.push("");
+    output.push(
+      `${payload.counts.active} active · ${payload.counts.archived} archived · ${payload.counts.closed} closed`,
+    );
+
+    process.stdout.write(output.join("\n") + "\n");
+    return 0;
+  } catch (err) {
+    const failure = buildLiveStatusFailure(projectId, err, now);
+    if (json) {
+      process.stdout.write(emitJson(failure) + "\n");
+    } else {
+      process.stderr.write(`error: ${failure.error}\n`);
+      process.stderr.write(`hint: ${failure.remediation}\n`);
+    }
+    return 2;
+  }
 }
 
 async function runRoadmap(
@@ -177,6 +177,7 @@ FLAGS (global):
   -h, --help              Show this help
   -v, --version           Print version
       --no-color          Disable ANSI colors (also: NO_COLOR=1)
+      --json              Output JSON for status or roadmap
 
 FLAGS (roadmap only):
       --json              Output JSON instead of rendered tables
@@ -189,7 +190,7 @@ FLAGS (roadmap only):
 EXIT CODES:
   0  Success
   1  Not in a git repo, git failure, or unknown command
-  2  No ADV state directory for this project (status)
+  2  Live Temporal status unavailable (status)
      Roadmap snapshot missing (roadmap)
 
 DOCS:
@@ -227,7 +228,28 @@ async function main(argv: string[]): Promise<number> {
   const subcommand = positionals[0] ?? "status";
 
   if (subcommand === "status") {
-    return runStatus(values["no-color"] ?? false);
+    const statusArgv = positionals[0] === "status" ? argv.slice(1) : argv;
+    let sValues: Record<string, unknown>;
+    try {
+      const parsed = parseArgs({
+        args: statusArgv,
+        options: {
+          "no-color": { type: "boolean" },
+          json: { type: "boolean" },
+        },
+        allowPositionals: false,
+        strict: true,
+      });
+      sValues = parsed.values as Record<string, unknown>;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      process.stderr.write(`status: ${msg}\n`);
+      return 2;
+    }
+    return runStatus(
+      (sValues["no-color"] as boolean) ?? false,
+      (sValues.json as boolean) ?? false,
+    );
   }
 
   if (subcommand === "roadmap") {

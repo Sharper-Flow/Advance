@@ -35,6 +35,7 @@ export interface ChangeRecord {
   wisdom?: WisdomEntry[];
   validation?: { validated_at?: string };
   fast_follow_of?: { parent_change_id?: string };
+  lastSignalAt?: string;
 }
 
 export interface ChangeSummary {
@@ -49,4 +50,20 @@ export interface ChangeSummary {
   firstIncompleteGate: string | null;
   gateProgressStr: string;
   parentChangeId?: string;
+}
+
+export interface LiveStatusPayload {
+  source: "temporal";
+  live: boolean;
+  stale: false;
+  generated_at: string;
+  project_id: string;
+  counts: {
+    active: number;
+    archived: number;
+    closed: number;
+  };
+  changes: ChangeSummary[];
+  error?: string;
+  remediation?: string;
 }

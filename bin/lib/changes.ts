@@ -111,6 +111,7 @@ export function computeLastActivity(change: ChangeRecord): string {
   }
 
   consider(change.validation?.validated_at);
+  consider(change.lastSignalAt);
   if (change.wisdom) {
     for (const entry of change.wisdom) consider(entry.recorded_at);
   }
