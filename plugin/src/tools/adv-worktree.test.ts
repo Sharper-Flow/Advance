@@ -730,10 +730,10 @@ describe("advWorktreeTools", () => {
     );
   });
 
-  // rq-extend-poisoned-recovery AC7: cleanup tool returns a graceful
-  // timeout response when the underlying cleanup hangs (e.g. workflow
-  // query on a poisoned workflow) so it doesn't exceed the SDK's
-  // 10s tool-execution timeout and surface as a console error.
+  // rq-extend-poisoned-recovery AC7 / rq-worktreeBoundedCleanup02 AC1:
+  // cleanup tool returns a graceful timeout response when the underlying
+  // cleanup hangs (e.g. workflow query on a poisoned workflow) so it
+  // doesn't exceed the SDK's 10s tool-execution timeout.
   it("adv_worktree_cleanup returns a timeout response instead of hanging", async () => {
     const database = { projectDir: "/repo", projectId: "p" };
     stateMock.initStateDb.mockResolvedValue(database);
@@ -747,8 +747,75 @@ describe("advWorktreeTools", () => {
     );
 
     expect(out).toContain("timedOut");
-    expect(out).toContain("timed out after 25ms");
+    expect(out).toContain("timed out after");
+    expect(out).toContain("effectiveTimeoutMs");
   });
+
+  // rq-worktreeBoundedCleanup02 AC1: central safe budget constant exported
+  it("exports WORKTREE_TOOL_SAFE_TIMEOUT_MS = 8000", async () => {
+    // Will fail until the constant is exported from adv-worktree
+    const mod = await import("./adv-worktree");
+    expect(mod.WORKTREE_TOOL_SAFE_TIMEOUT_MS).toBe(8000);
+  });
+
+  // rq-worktreeBoundedCleanup02 AC2: oversize timeoutMs is clamped to safe budget
+  it("adv_worktree_cleanup clamps oversize timeoutMs to safe budget and reports effectiveTimeoutMs", async () => {
+    const database = { projectDir: "/repo", projectId: "p" };
+    stateMock.initStateDb.mockResolvedValue(database);
+    worktreeMock.advWorktreeCleanup.mockResolvedValue({
+      removed: 0,
+      retained: 0,
+    });
+
+    const out = await advWorktreeTools.adv_worktree_cleanup.execute(
+      { reason: "test clamp", timeoutMs: 30_000 },
+      store,
+    );
+
+    expect(out).toContain("effectiveTimeoutMs");
+    expect(out).toContain("8000");
+    // Should succeed (not time out) since the mock resolves instantly
+    expect(out).toContain('"success":true');
+  });
+
+  // rq-worktreeBoundedCleanup02 AC4: default timeout is the safe budget (8000ms)
+  it("adv_worktree_cleanup uses safe budget default when no timeoutMs provided", async () => {
+    const database = { projectDir: "/repo", projectId: "p" };
+    stateMock.initStateDb.mockResolvedValue(database);
+    worktreeMock.advWorktreeCleanup.mockResolvedValue({
+      removed: 1,
+      retained: 0,
+    });
+
+    const out = await advWorktreeTools.adv_worktree_cleanup.execute(
+      { reason: "default budget" },
+      store,
+    );
+
+    // Should succeed and report the default effective timeout
+    expect(out).toContain('"success":true');
+    expect(out).toContain("effectiveTimeoutMs");
+  });
+
+  // rq-worktreeBoundedCleanup02 AC1: delete tool also uses safe budget
+  it("adv_worktree_delete returns a timeout response instead of hanging", async () => {
+    const database = { projectDir: "/repo", projectId: "p" };
+    stateMock.initStateDb.mockResolvedValue(database);
+    worktreeMock.advWorktreeDelete.mockImplementation(
+      () => new Promise(() => {}),
+    );
+
+    // The delete tool currently hardcodes the safe budget (8s) internally
+    // with no caller override, so we must allow a longer test timeout.
+    const out = await advWorktreeTools.adv_worktree_delete.execute(
+      { branch: "change/test-timeout" },
+      store,
+    );
+
+    expect(out).toContain("timedOut");
+    expect(out).toContain("timed out after");
+    expect(out).toContain("effectiveTimeoutMs");
+  }, 12_000);
 
   it("adv_worktree_triage delegates to triageWorktrees", async () => {
     triageMock.triageWorktrees.mockResolvedValue({

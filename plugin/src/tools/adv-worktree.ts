@@ -36,6 +36,39 @@ import {
   type TargetProjectContext,
 } from "./target-project";
 
+/**
+ * Safe timeout budget for worktree tool wrappers (cleanup and delete).
+ *
+ * Must be strictly below the SDK's `DEFAULT_TOOL_TIMEOUT_MS` (10 000 ms)
+ * so that the tool-level `Promise.race` resolves *before* the SDK's
+ * `safeExecute` wrapper rejects — giving the agent a typed, actionable
+ * timeout response instead of an opaque `ToolExecutionTimeout` error.
+ *
+ * rq-worktreeBoundedCleanup02 AC1.
+ */
+export const WORKTREE_TOOL_SAFE_TIMEOUT_MS = 8_000;
+
+/**
+ * Clamp a caller-supplied timeout to the safe tool budget.
+ *
+ * Returns the clamped value and the effective timeout actually used, so
+ * callers can surface `effectiveTimeoutMs` in tool output for transparency.
+ *
+ * rq-worktreeBoundedCleanup02 AC2.
+ */
+function clampToSafeBudget(
+  requestedMs: number | undefined,
+): { effectiveTimeoutMs: number; wasClamped: boolean } {
+  const requested = requestedMs ?? WORKTREE_TOOL_SAFE_TIMEOUT_MS;
+  if (requested > WORKTREE_TOOL_SAFE_TIMEOUT_MS) {
+    return {
+      effectiveTimeoutMs: WORKTREE_TOOL_SAFE_TIMEOUT_MS,
+      wasClamped: true,
+    };
+  }
+  return { effectiveTimeoutMs: requested, wasClamped: false };
+}
+
 /** Simple no-op-ish logger for ADV worktree tools. */
 function createLogger(): {
   debug: (msg: string) => void;
@@ -140,12 +173,45 @@ async function executeWorktreeDelete(
     serverUrl: options.serverUrl,
     client: options.client,
   });
-  const result = await advWorktreeDelete(
+
+  // rq-worktreeBoundedCleanup02 AC1: bound delete with safe budget so the
+  // tool never exceeds the SDK's 10s hard ceiling.
+  const { effectiveTimeoutMs } = clampToSafeBudget(undefined);
+  const deletePromise = advWorktreeDelete(
     args.branch,
     { force: args.force, dryRun: args.dryRun },
     { projectRoot, database, log, store, warpDeps },
   );
-  return formatMaybeTargetOutput(formatToolOutput(result), context);
+
+  let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
+  const timeoutRace = new Promise<{ _timedOut: true }>((resolve) => {
+    timeoutHandle = setTimeout(
+      () => resolve({ _timedOut: true }),
+      effectiveTimeoutMs,
+    );
+  });
+
+  const result = await Promise.race([deletePromise, timeoutRace]);
+  if (timeoutHandle) clearTimeout(timeoutHandle);
+
+  if ("_timedOut" in result && result._timedOut) {
+    return formatMaybeTargetOutput(
+      formatToolOutput({
+        ok: false,
+        timedOut: true,
+        error: `adv_worktree_delete timed out after ${effectiveTimeoutMs}ms. Delete likely blocked on a stuck git operation or poisoned workflow signal.`,
+        effectiveTimeoutMs,
+        remediation:
+          "Retry the deletion after the underlying operation resolves. Use adv_temporal_diagnose to check workflow health.",
+      }),
+      context,
+    );
+  }
+
+  return formatMaybeTargetOutput(
+    formatToolOutput(result as Awaited<ReturnType<typeof advWorktreeDelete>>),
+    context,
+  );
 }
 
 async function executeWorktreeCleanup(
@@ -162,6 +228,10 @@ async function executeWorktreeCleanup(
     serverUrl: options.serverUrl,
     client: options.client,
   });
+
+  // rq-worktreeBoundedCleanup02 AC2: clamp caller timeout to safe budget
+  const { effectiveTimeoutMs, wasClamped } = clampToSafeBudget(args.timeoutMs);
+
   const cleanupPromise = advWorktreeCleanup(args.reason, {
     projectRoot,
     database,
@@ -170,37 +240,46 @@ async function executeWorktreeCleanup(
     store,
     warpDeps,
   });
-  // rq-extend-poisoned-recovery AC7: bound the cleanup tool with a
-  // wall-clock timeout so cleanup hangs (e.g. inside discovery's
-  // workflow queries on poisoned workflows) don't exceed the SDK's
-  // tool-execution timeout and surface as console errors.
-  const timeoutMs = args.timeoutMs ?? 8000;
-  let timeoutHandle: NodeJS.Timeout | undefined;
-  const timeoutPromise = new Promise<{
-    timedOut: true;
-  }>((resolve) => {
-    timeoutHandle = setTimeout(() => resolve({ timedOut: true }), timeoutMs);
+
+  let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
+  const timeoutRace = new Promise<{ _timedOut: true }>((resolve) => {
+    timeoutHandle = setTimeout(
+      () => resolve({ _timedOut: true }),
+      effectiveTimeoutMs,
+    );
   });
-  const result = await Promise.race([cleanupPromise, timeoutPromise]);
+
+  const result = await Promise.race([cleanupPromise, timeoutRace]);
   if (timeoutHandle) clearTimeout(timeoutHandle);
-  if ("timedOut" in result) {
+
+  if ("_timedOut" in result && result._timedOut) {
+    const clampedNote = wasClamped
+      ? ` (requested ${args.timeoutMs}ms was clamped to safe budget ${effectiveTimeoutMs}ms)`
+      : "";
     return formatMaybeTargetOutput(
       formatToolOutput({
         success: false,
         timedOut: true,
-        error: `adv_worktree_cleanup timed out after ${timeoutMs}ms. Cleanup likely blocked on a poisoned workflow or stuck I/O. Retry after the underlying workflow is resolved (see adv_temporal_diagnose).`,
+        effectiveTimeoutMs,
+        error: `adv_worktree_cleanup timed out after ${effectiveTimeoutMs}ms${clampedNote}. Cleanup likely blocked on a poisoned workflow or stuck I/O. Retry after the underlying workflow is resolved (see adv_temporal_diagnose).`,
         remediation:
-          "Pass a larger timeoutMs to retry, or fix the poisoned workflow via adv_change_archive recoveryMode=poisoned_history first.",
+          "Pass a larger timeoutMs (clamped to the safe budget) to retry, or fix the poisoned workflow via adv_change_archive recoveryMode=poisoned_history first.",
       }),
       context,
     );
   }
+
+  const cleanupResult = result as Awaited<ReturnType<typeof advWorktreeCleanup>>;
   return formatMaybeTargetOutput(
     formatToolOutput({
       success: true,
-      removed: result.removed,
-      retained: result.retained,
-      ...(result.dryRun ? { dryRun: true } : {}),
+      removed: cleanupResult.removed,
+      retained: cleanupResult.retained,
+      effectiveTimeoutMs,
+      ...(wasClamped
+        ? { timeoutNote: `Requested ${args.timeoutMs}ms clamped to safe budget ${effectiveTimeoutMs}ms` }
+        : {}),
+      ...(cleanupResult.dryRun ? { dryRun: true } : {}),
     }),
     context,
   );
@@ -554,7 +633,7 @@ export const advWorktreeTools = {
         .number()
         .optional()
         .describe(
-          "Optional wall-clock timeout for the cleanup pass. Defaults to 8000ms so the tool returns before the 10s SDK timeout when cleanup hangs on poisoned workflows or stuck I/O.",
+          `Optional wall-clock timeout for the cleanup pass. Defaults to ${WORKTREE_TOOL_SAFE_TIMEOUT_MS}ms (the safe tool budget below the SDK's 10s ceiling). Values exceeding the safe budget are clamped automatically. The effective timeout is reported in the response as effectiveTimeoutMs.`,
         ),
       ...targetWorktreeMutationArgSchemas,
     },
