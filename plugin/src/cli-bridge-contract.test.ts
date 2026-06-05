@@ -6,6 +6,9 @@ import { ADV_TOOL_NAMES } from "./tool-registry";
 const REPO_ROOT = resolve(__dirname, "../..");
 const ADVANCE_META_SPEC = join(REPO_ROOT, ".adv/specs/advance-meta/spec.json");
 const ADV_CLI = join(REPO_ROOT, "bin/adv");
+const ADV_STATUS_LIVE = join(REPO_ROOT, "bin/lib/live-status.ts");
+const ADV_ROADMAP = join(REPO_ROOT, "bin/lib/roadmap.ts");
+const TEMPORAL_CONTRACTS = join(REPO_ROOT, "plugin/src/temporal/contracts.ts");
 
 function readAdvanceMetaSpec(): {
   requirements?: Array<{
@@ -216,5 +219,67 @@ describe("NO-CLI-MUTATION GUARD (AC9/DONT3)", () => {
       found,
       "bin/adv must not contain mutation subcommand dispatch",
     ).toEqual([]);
+  });
+});
+
+describe("STATUS LIVE DEFAULT GUARDS (AC8/AC9/AC10)", () => {
+  test("status live client does not import workflow sandbox modules", () => {
+    const content = readFileSync(ADV_STATUS_LIVE, "utf8");
+    const forbidden = [
+      "@temporalio/workflow",
+      "temporal/messages",
+      "temporal/workflows",
+      "./messages",
+      "./workflows",
+    ];
+
+    expect(forbidden.filter((token) => content.includes(token))).toEqual([]);
+  });
+
+  test("status live client uses canonical getState query name", () => {
+    const contracts = readFileSync(TEMPORAL_CONTRACTS, "utf8");
+    const liveStatus = readFileSync(ADV_STATUS_LIVE, "utf8");
+
+    expect(contracts).toContain('getState: "adv.change.getState"');
+    expect(liveStatus).toContain("CHANGE_WORKFLOW_QUERY_NAMES.getState");
+  });
+
+  test("default status active rows are not loaded from disk changes directory", () => {
+    const content = readFileSync(ADV_CLI, "utf8");
+
+    expect(content).not.toContain('join(root, "changes")');
+    expect(content).not.toContain("isDashboardActiveStatus");
+  });
+
+  test("roadmap file-snapshot bridge behavior remains unchanged", () => {
+    const roadmapCommand = readFileSync(
+      join(REPO_ROOT, ".opencode/command/adv-roadmap.md"),
+      "utf8",
+    );
+    const roadmapCli = readFileSync(ADV_ROADMAP, "utf8");
+
+    expect(roadmapCommand).toContain("!`adv roadmap --no-color`");
+    expect(roadmapCli).toContain("unavailable_cli_file_mode");
+  });
+
+  test("status live implementation has no mutation authority", () => {
+    const content = `${readFileSync(ADV_CLI, "utf8")}\n${readFileSync(
+      ADV_STATUS_LIVE,
+      "utf8",
+    )}`;
+    const forbidden = [
+      ".signal(",
+      ".start(",
+      "executeUpdate",
+      "taskAdded",
+      "taskUpdated",
+      "gateCompleted",
+      '=== "archive"',
+      '=== "cancel"',
+      "temporal_worker_restart",
+      "worker_restart",
+    ];
+
+    expect(forbidden.filter((token) => content.includes(token))).toEqual([]);
   });
 });
