@@ -11,6 +11,7 @@ function readAdvanceMetaSpec(): {
   requirements?: Array<{
     id?: string;
     priority?: string;
+    body?: string;
     scenarios?: Array<{ id?: string }>;
   }>;
 } {
@@ -94,6 +95,22 @@ describe("CLI bridge command contracts", () => {
       });
     });
   }
+
+  test("status bridge law requires live-default status with no silent stale fallback", () => {
+    const spec = readAdvanceMetaSpec();
+    const requirement = spec.requirements?.find(
+      (item) => item.id === "rq-statusCliBridge01",
+    );
+    const body = requirement?.body ?? "";
+    const scenarioText = JSON.stringify(requirement?.scenarios ?? []);
+    const lawText = `${body}\n${scenarioText}`;
+
+    expect(lawText).toMatch(/live Temporal-backed/i);
+    expect(lawText).toMatch(/fail(?:s)? closed/i);
+    expect(lawText).toMatch(/no silent stale|silently render stale/i);
+    expect(lawText).toMatch(/disk projections? .*not .*active/i);
+    expect(lawText).not.toMatch(/Detailed operational diagnostics remain available only/i);
+  });
 });
 
 describe("REGISTRY NO-REMOVAL GUARD (AC6/DONT1)", () => {

@@ -92,8 +92,8 @@
     },
     {
       "id": "rq-statusCliBridge01",
-      "title": "Fast Status Slash Command Uses CLI Bridge",
-      "body": "The default /adv-status slash command must be a thin OpenCode shell-output bridge over `adv status --no-color`. It must return the CLI status table output without instructing the agent to call ADV MCP status/list/show/spec tools, synthesize cross-change health, read roadmap freshness, or add recommendations. Detailed operational diagnostics remain available only through explicit diagnostic tooling such as `adv_status` health views.",
+      "title": "Live Status Slash Command Uses CLI Bridge",
+      "body": "The default /adv-status slash command must remain a thin OpenCode shell-output bridge over `adv status --no-color`. The CLI status command is live Temporal-backed by default for active change rows: it must query live ADV state before rendering, must fail closed when live state is unavailable, and must not silently render stale disk projections as current active changes. The command file must not instruct the agent to call ADV MCP status/list/show/spec tools, synthesize cross-change health, read roadmap freshness, or add recommendations. Remediation for Temporal/server/worker failures belongs in CLI stdout/stderr or JSON output, not in the slash-command prompt.",
       "priority": "must",
       "tags": [
         "status",
@@ -104,7 +104,7 @@
       "scenarios": [
         {
           "id": "rq-statusCliBridge01.1",
-          "title": "Default slash command runs CLI table",
+          "title": "Default slash command runs live CLI table",
           "given": [
             "A user invokes /adv-status",
             "The installed `adv` CLI is available on PATH"
@@ -112,7 +112,7 @@
           "when": "The OpenCode command template is processed",
           "then": [
             "The command template injects shell output from `adv status --no-color`",
-            "The default output is the CLI status table plus active/archived/closed counts",
+            "The default output is the live Temporal-backed CLI status table plus active/archived/closed counts",
             "ANSI color/control output is disabled for stable command-template rendering"
           ]
         },
@@ -131,14 +131,16 @@
         },
         {
           "id": "rq-statusCliBridge01.3",
-          "title": "CLI failure does not fallback to ADV tools",
+          "title": "Live CLI failure fails closed without stale active fallback",
           "given": [
             "The /adv-status command template runs `adv status --no-color`",
-            "The CLI is missing, exits non-zero, or writes an error"
+            "Temporal connection, Visibility listing, or workflow query is unavailable or times out"
           ],
           "when": "The default /adv-status path handles that result",
           "then": [
-            "The shell command error or stderr is surfaced to the user",
+            "The CLI exits non-zero and surfaces remediation in stdout/stderr or JSON",
+            "Disk projections are not used as a substitute source for active rows",
+            "The failure is not silently rendered as a current status table",
             "No fallback path instructs the agent to call ADV MCP status/list/show/spec tools",
             "Detailed health diagnostics remain an explicit opt-in action"
           ]
