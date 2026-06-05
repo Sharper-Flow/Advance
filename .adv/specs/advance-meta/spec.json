@@ -3,7 +3,7 @@
   "name": "advance-meta",
   "title": "Advance Meta",
   "purpose": "Capability: Cross-cutting ADV concerns \u2014 config diagnostics, metadata filters, shutdown lifecycle, due-diligence routing, and synthetic-state guards. Split from `advance` capability.",
-  "version": "1.13.0",
+  "version": "1.14.0",
   "updated_at": "2026-06-02T00:00:00.000Z",
   "requirements": [
     {
@@ -39,7 +39,9 @@
         {
           "id": "rq-synthstate01.3",
           "title": "Draft and status surfaces stay clear after validation activity",
-          "given": ["Supported internal validation activity has run"],
+          "given": [
+            "Supported internal validation activity has run"
+          ],
           "when": "adv_change_list with status draft or adv_status is executed on the live project",
           "then": [
             "Stale synthetic parity-validation drafts are absent from live draft results",
@@ -60,7 +62,9 @@
         {
           "id": "rq-advcfg01.1",
           "title": "Invalid project config is surfaced",
-          "given": ["project.json is malformed or schema-invalid"],
+          "given": [
+            "project.json is malformed or schema-invalid"
+          ],
           "when": "adv_status is executed",
           "then": [
             "Output includes a config error or warning recommendation",
@@ -70,7 +74,9 @@
         {
           "id": "rq-advcfg01.2",
           "title": "Feature flags are visible in status output",
-          "given": ["project.json parses successfully"],
+          "given": [
+            "project.json parses successfully"
+          ],
           "when": "adv_status is executed",
           "then": [
             "Output includes feature_flags values",
@@ -89,7 +95,12 @@
       "title": "Fast Status Slash Command Uses CLI Bridge",
       "body": "The default /adv-status slash command must be a thin OpenCode shell-output bridge over `adv status --no-color`. It must return the CLI status table output without instructing the agent to call ADV MCP status/list/show/spec tools, synthesize cross-change health, read roadmap freshness, or add recommendations. Detailed operational diagnostics remain available only through explicit diagnostic tooling such as `adv_status` health views.",
       "priority": "must",
-      "tags": ["status", "command", "cli", "no-fanout"],
+      "tags": [
+        "status",
+        "command",
+        "cli",
+        "no-fanout"
+      ],
       "scenarios": [
         {
           "id": "rq-statusCliBridge01.1",
@@ -108,7 +119,9 @@
         {
           "id": "rq-statusCliBridge01.2",
           "title": "Default slash command forbids agent fanout",
-          "given": ["The /adv-status command file is inspected"],
+          "given": [
+            "The /adv-status command file is inspected"
+          ],
           "when": "Its default body is evaluated for status work instructions",
           "then": [
             "It does not instruct the agent to call adv_status, adv_change_list, adv_change_show, adv_gate_status, or adv_spec",
@@ -137,7 +150,12 @@
       "title": "Bounded Cached Health Probes",
       "body": "ADV health and recovery diagnostics that probe Temporal, task queues, worker diagnostics, search-attribute health, or worktree census must use bounded cached probes. Cached probe responses must surface _freshness metadata with cached_at, stale, and optional error. Stale probe data may inform recommendations but must not authorize safety-critical mutations such as worker-lock reclaim, restart success, override, unlock, or archive decisions.",
       "priority": "must",
-      "tags": ["diagnostics", "temporal", "cache", "health"],
+      "tags": [
+        "diagnostics",
+        "temporal",
+        "cache",
+        "health"
+      ],
       "scenarios": [
         {
           "id": "rq-statusProbeCache01.1",
@@ -173,7 +191,12 @@
       "title": "OpenCode Session Debt Diagnostics",
       "body": "ADV diagnostics must safely detect stale blank assistant messages and stale `running`/`pending` tool parts in the shared OpenCode session database, distinguish live in-flight rows, idle active-session rows, and orphan-ghost repair candidates, and require dry-run plus backup before any repair deletes rows or marks tool parts interrupted.",
       "priority": "must",
-      "tags": ["diagnostics", "opencode", "session-debt", "doctor"],
+      "tags": [
+        "diagnostics",
+        "opencode",
+        "session-debt",
+        "doctor"
+      ],
       "scenarios": [
         {
           "id": "rq-opencodeDebt01.1",
@@ -243,16 +266,24 @@
         {
           "id": "rq-advmeta01.1",
           "title": "Filter by metadata key",
-          "given": ["A change with tasks containing metadata keys"],
+          "given": [
+            "A change with tasks containing metadata keys"
+          ],
           "when": "adv_task_list is called with filter has_metadata_key:<key>",
-          "then": ["Only tasks containing that metadata key are returned"]
+          "then": [
+            "Only tasks containing that metadata key are returned"
+          ]
         },
         {
           "id": "rq-advmeta01.2",
           "title": "Filter by metadata key/value",
-          "given": ["A change with tasks containing metadata key/value pairs"],
+          "given": [
+            "A change with tasks containing metadata key/value pairs"
+          ],
           "when": "adv_task_list is called with filter metadata:<key>=<value>",
-          "then": ["Only tasks matching both key and value are returned"]
+          "then": [
+            "Only tasks matching both key and value are returned"
+          ]
         }
       ],
       "meta": {
@@ -268,7 +299,9 @@
         {
           "id": "rq-advshut1.1",
           "title": "Signal performs bounded flush",
-          "given": ["The process receives SIGINT or SIGTERM"],
+          "given": [
+            "The process receives SIGINT or SIGTERM"
+          ],
           "when": "Shutdown handling begins",
           "then": [
             "store.flush is attempted before store.close",
@@ -278,7 +311,9 @@
         {
           "id": "rq-advshut1.2",
           "title": "Duplicate signals are idempotent",
-          "given": ["A shutdown flush is already in progress"],
+          "given": [
+            "A shutdown flush is already in progress"
+          ],
           "when": "A second SIGINT/SIGTERM is received",
           "then": [
             "No second flush path starts",
@@ -295,7 +330,12 @@
       "title": "Source-Appropriate Due Diligence for Unknown Capability Questions",
       "body": "ADV-managed guidance (orchestrator agent text, synced overlays, and accompanying drift tests) must require source-appropriate due diligence before answering, recommending, or deciding on unknown platform, architecture, or capability questions. Diligence may use any appropriate mix of evidence sources (local code via lgrep/read, repo history or repo examples, GitHub examples, official docs, web research, or similar); the evidence bar is not a fixed source stack. Requests like \"quick answer\", \"from your knowledge\", or \"don't research\" may change response brevity only and must not lower the evidence bar. If required diligence cannot be completed, the response must stop and surface the blockage instead of presenting an unverified recommendation as settled.",
       "priority": "must",
-      "tags": ["research", "due-diligence", "routing", "guidance"],
+      "tags": [
+        "research",
+        "due-diligence",
+        "routing",
+        "guidance"
+      ],
       "scenarios": [
         {
           "id": "rq-dueDiligence01.1",
@@ -359,7 +399,11 @@
       "title": "Code-Enforced Prose Deduplication",
       "body": "ADV instruction surfaces (ADV_INSTRUCTIONS.md, docs/command-voice-standard.md, .opencode/agents/adv.md, .opencode/command/adv-*.md) MUST classify each section by enforcement class (fully-enforced, partially-enforced, inherently-prose) and apply the matching compression template defined in docs/command-voice-standard.md \u00a7 Prose-Load Reduction Rules. Sections whose behavior is fully or partially enforced by code MUST NOT contain paragraph explanations duplicating the enforced behavior; they MUST use a pointer line + constraint table format.",
       "priority": "must",
-      "tags": ["prose-reduction", "instruction-surfaces", "compression"],
+      "tags": [
+        "prose-reduction",
+        "instruction-surfaces",
+        "compression"
+      ],
       "scenarios": [
         {
           "id": "rq-proseReduction01.1",
@@ -393,7 +437,11 @@
       "title": "Single ADV Runtime Agent with Provider Hints",
       "body": "ADV must expose one canonical lean ADV runtime prompt while preserving provider-specific guidance through runtime system-block hint injection. deploy-local.sh must not append the full ADV_INSTRUCTIONS.md protocol reference into global adv.md, require generated adv-{provider}.md runtime agents, or create concatenated provider prompt files. Provider hints must be selected from structured provider/model context and emitted through the existing single-system-entry system block path.",
       "priority": "must",
-      "tags": ["provider-adv", "prompt-parts", "sync"],
+      "tags": [
+        "provider-adv",
+        "prompt-parts",
+        "sync"
+      ],
       "scenarios": [
         {
           "id": "rq-providerAdvSkinny01.1",
@@ -446,7 +494,11 @@
       "title": "Provider ADV Prompt Size Metrics",
       "body": "Provider ADV evaluation must report prompt-size planes for the single-agent architecture: lean ADV runtime prompt size, ADV reference protocol size, provider hint size, dynamic ADV system-block estimate, caveman voice-contract allowance, selected runtime prompt size, and removed or avoided provider-variant duplication. Metrics must be coverage-first reporting and must not require generated adv-{provider}.md files as canonical inputs or impose a hard prompt-size cap as correctness proof.",
       "priority": "must",
-      "tags": ["provider-adv", "metrics", "prompt-size"],
+      "tags": [
+        "provider-adv",
+        "metrics",
+        "prompt-size"
+      ],
       "scenarios": [
         {
           "id": "rq-providerAdvMetrics01.1",
@@ -473,12 +525,18 @@
       "title": "Drift Test Coverage for Compressed Prose",
       "body": "plugin/src/manifest-doc-drift.test.ts MUST contain structural assertions that verify compressed sections in ADV instruction surfaces conform to the enforcement-class templates. Assertions MUST be structural (line caps per class, presence of code-path reference in pointer line) and MUST NOT assert specific wording.",
       "priority": "must",
-      "tags": ["prose-reduction", "drift-test", "structural"],
+      "tags": [
+        "prose-reduction",
+        "drift-test",
+        "structural"
+      ],
       "scenarios": [
         {
           "id": "rq-proseReduction02.1",
           "title": "Drift test enforces line caps per class",
-          "given": ["manifest-doc-drift.test.ts is inspected"],
+          "given": [
+            "manifest-doc-drift.test.ts is inspected"
+          ],
           "when": "The structural-assertions block is read",
           "then": [
             "An assertion verifies fully-enforced sections do not exceed the documented line cap",
@@ -505,12 +563,18 @@
       "title": "Category Classification Source of Truth",
       "body": "Prose-load reduction work MUST classify instruction sections by enforcement class using this spec and docs/command-voice-standard.md as the source of truth. Long-lived inventory or audit-trail documents are not required; durable invariants live in specs, tests, command contracts, and the voice standard.",
       "priority": "must",
-      "tags": ["prose-reduction", "source-of-truth", "classification"],
+      "tags": [
+        "prose-reduction",
+        "source-of-truth",
+        "classification"
+      ],
       "scenarios": [
         {
           "id": "rq-proseReduction03.1",
           "title": "Classification uses canonical framework",
-          "given": ["A change executes prose-load reduction work"],
+          "given": [
+            "A change executes prose-load reduction work"
+          ],
           "when": "The edited instruction surface is inspected",
           "then": [
             "Every edited section follows the full, partial, or inherent enforcement-class framework",
@@ -521,7 +585,9 @@
         {
           "id": "rq-proseReduction03.2",
           "title": "No standing audit inventory required",
-          "given": ["A prose-reduction change has completed"],
+          "given": [
+            "A prose-reduction change has completed"
+          ],
           "when": "The repository documentation is inspected",
           "then": [
             "No repository doc is required solely to preserve the change's audit trail",
@@ -535,12 +601,18 @@
       "title": "Inherently-Prose Constraint Templates",
       "body": "Sections classified inherently-prose (agent-side judgment, narration, or domain context that cannot be structurally enforced) MUST use a structured template (table, checklist, or trigger/action grid) and MUST NOT use paragraph prose. The structured template is the canonical scannable form for inherently-prose categories.",
       "priority": "must",
-      "tags": ["prose-reduction", "inherently-prose", "structured-template"],
+      "tags": [
+        "prose-reduction",
+        "inherently-prose",
+        "structured-template"
+      ],
       "scenarios": [
         {
           "id": "rq-proseReduction04.1",
           "title": "Inherently-prose section uses structured template",
-          "given": ["A section is classified inherently-prose"],
+          "given": [
+            "A section is classified inherently-prose"
+          ],
           "when": "The section is inspected",
           "then": [
             "The section opens with a one-line purpose statement",
@@ -567,12 +639,18 @@
       "title": "Skill File Prose Compression",
       "body": "Skill files under skills/*/SKILL.md MUST use the same enforcement-class compression framework as command files. New or modified skills must follow the full, partial, or inherent class rules in docs/command-voice-standard.md and keep durable invariants in specs, tests, or command contracts rather than standing audit inventories.",
       "priority": "must",
-      "tags": ["prose-reduction", "skills", "compression"],
+      "tags": [
+        "prose-reduction",
+        "skills",
+        "compression"
+      ],
       "scenarios": [
         {
           "id": "rq-skillProseCompression01.1",
           "title": "Modified skill follows enforcement-class compression",
-          "given": ["A skill file in skills/*/SKILL.md is created or modified"],
+          "given": [
+            "A skill file in skills/*/SKILL.md is created or modified"
+          ],
           "when": "The skill file is prepared for archive",
           "then": [
             "The skill is compressed per the same enforcement-class framework as command files",
@@ -585,9 +663,13 @@
     {
       "id": "rq-skillClassification01",
       "title": "Command Skill Classification Tracking",
-      "body": "Commands backed by dedicated or shared skills MUST be listed in ADV_INSTRUCTIONS.md § Command vs Skill Boundaries so command/skill ownership stays explicit and drift is reviewable.",
+      "body": "Commands backed by dedicated or shared skills MUST be listed in ADV_INSTRUCTIONS.md \u00a7 Command vs Skill Boundaries so command/skill ownership stays explicit and drift is reviewable.",
       "priority": "must",
-      "tags": ["skills", "classification", "instructions"],
+      "tags": [
+        "skills",
+        "classification",
+        "instructions"
+      ],
       "scenarios": [
         {
           "id": "rq-skillClassification01.1",
@@ -597,7 +679,7 @@
           ],
           "when": "Extraction is complete",
           "then": [
-            "ADV_INSTRUCTIONS.md § Command vs Skill Boundaries lists the command under Dedicated skill or Shared skill",
+            "ADV_INSTRUCTIONS.md \u00a7 Command vs Skill Boundaries lists the command under Dedicated skill or Shared skill",
             "The row includes the skill identifier",
             "The command is not listed as Command-only"
           ]
@@ -609,7 +691,12 @@
       "title": "Runtime Commands Avoid Source Checklist Reads",
       "body": "ADV runtime command guidance MUST NOT require agents to read Advance source or install-tree checklist files for reusable methodology. Runtime methodology must be available through embedded command guidance or loaded trusted skills, while docs/checklists/* remains maintainer/reference documentation only.",
       "priority": "must",
-      "tags": ["commands", "skills", "runtime-guidance", "checklists"],
+      "tags": [
+        "commands",
+        "skills",
+        "runtime-guidance",
+        "checklists"
+      ],
       "scenarios": [
         {
           "id": "rq-noSourceChecklistReads01.1",
@@ -644,7 +731,12 @@
       "title": "Context-Shed Delegation Heuristic for Routing Tables",
       "body": "Delegation routing tables in ADV_INSTRUCTIONS.md and adv-apply.md MUST include step 4.5 (Context-Shed Test) between risk-signal check (step 4) and default fallback (step 5). The test is a 4-question AND-conjunctive heuristic: (1) orchestrator already made design/architectural decisions for this task, (2) task's HOW does not feed into a downstream task's decisions, (3) acceptance criteria are fully defined before delegation, (4) task is mechanical implementation of a decided plan. All four must pass for delegate_allowed. Gated by floor: ~5 files touched OR ~50 lines changed. Conservative bias: when uncertain, default to inline_required. Step 4.5 MUST NOT override step 1 (human delegation_hint) or step 4 (risk signals).",
       "priority": "must",
-      "tags": ["delegation", "routing", "context-shed", "orchestrator"],
+      "tags": [
+        "delegation",
+        "routing",
+        "context-shed",
+        "orchestrator"
+      ],
       "scenarios": [
         {
           "id": "rq-contextShed01.1",
@@ -706,7 +798,12 @@
       "title": "Context-Shed Prose in Orchestrator Agent and Post-Delegation P23 Scan",
       "body": "The adv.md orchestrator agent's Context-Optimal Execution section MUST include context-shed delegation criteria as prose bullets (NOT a routing table). Wording must reference the 4-question AND test and floor threshold. Additionally, adv-apply.md Task Flow MUST include a post-delegation P23 campsite-rule diff-scan step that checks same-pattern local subsystem issues after a delegated task returns, applying small/safe/local fixes inline and documenting scope-expanding findings as follow-ups without auto-fixing.",
       "priority": "must",
-      "tags": ["delegation", "orchestrator", "campsite-rule", "context-shed"],
+      "tags": [
+        "delegation",
+        "orchestrator",
+        "campsite-rule",
+        "context-shed"
+      ],
       "scenarios": [
         {
           "id": "rq-contextShed02.1",
@@ -724,7 +821,9 @@
         {
           "id": "rq-contextShed02.2",
           "title": "adv-apply.md contains post-delegation P23 diff-scan step",
-          "given": ["The adv-apply.md Task Flow is inspected"],
+          "given": [
+            "The adv-apply.md Task Flow is inspected"
+          ],
           "when": "Post-delegation steps are checked",
           "then": [
             "A step after delegation spawn and before task completion performs a P23 campsite-rule diff-scan",
@@ -736,7 +835,9 @@
         {
           "id": "rq-contextShed02.3",
           "title": "Drift tests enforce prose-only on adv.md and table on other surfaces",
-          "given": ["The drift test suite runs"],
+          "given": [
+            "The drift test suite runs"
+          ],
           "when": "Context-shed assertions are evaluated",
           "then": [
             "ADV_INSTRUCTIONS.md and adv-apply.md delegation tables contain step 4.5 with matching wording",
@@ -892,7 +993,9 @@
         {
           "id": "rq-testFixtureProjectId01.3",
           "title": "Hard-fail guardrail asserts override is active during test runs",
-          "given": ["The vitest test suite runs in the plugin checkout"],
+          "given": [
+            "The vitest test suite runs in the plugin checkout"
+          ],
           "when": "The project-id guardrail test executes",
           "then": [
             "process.env.VITEST is 'true'",
@@ -951,7 +1054,9 @@
         {
           "id": "rq-workerSingleton01.4",
           "title": "ADV_FORCE_IN_PROCESS_WORKER bypasses singleton lock",
-          "given": ["process.env.ADV_FORCE_IN_PROCESS_WORKER === '1'"],
+          "given": [
+            "process.env.ADV_FORCE_IN_PROCESS_WORKER === '1'"
+          ],
           "when": "The plugin initializes",
           "then": [
             "The lock-acquisition step is skipped",
@@ -1098,7 +1203,12 @@
       "title": "Multi-Session-Safe ADV State Writes via Temporal Workflow Signals",
       "body": "Multi-session is the supported design center for ADV. State writes from concurrent OpenCode sessions sharing the same project must be serialized by Temporal workflow signals on the per-change workflow, not by client-side locks. Replay-determinism must be preserved across sessions, and no ADV-mutating tool may rely on a client-side soft-lock for cross-session coordination. Sessions are process-fact based and are not durably tracked in workflow state.",
       "priority": "must",
-      "tags": ["multi-session", "temporal", "coordination", "state-authority"],
+      "tags": [
+        "multi-session",
+        "temporal",
+        "coordination",
+        "state-authority"
+      ],
       "scenarios": [
         {
           "id": "rq-multiSessionCoordination01.1",
@@ -1149,12 +1259,19 @@
       "title": "Worktree State Authority Lives in Change Workflow State",
       "body": "Worktree state for ADV-managed worktrees must live inside the change workflow state, with cross-change visibility via the AdvWorktreeBranches and AdvWorktreePaths Temporal search attributes. Sidecar SQLite databases or JSONL files must not be the authoritative source for worktree state. Cross-session reads must observe the same registry contents.",
       "priority": "must",
-      "tags": ["worktree", "registry", "state-authority", "temporal"],
+      "tags": [
+        "worktree",
+        "registry",
+        "state-authority",
+        "temporal"
+      ],
       "scenarios": [
         {
           "id": "rq-worktreeRegistry01.1",
           "title": "Worktree create persists state into change workflow worktree state",
-          "given": ["A session invokes adv_worktree_create with a branch name"],
+          "given": [
+            "A session invokes adv_worktree_create with a branch name"
+          ],
           "when": "The create flow completes successfully",
           "then": [
             "A worktree record is added to change-workflow worktree state via the worktreeCreatedSignal",
@@ -1197,7 +1314,12 @@
       "title": "adv_worktree_create reuses existing change worktree before create",
       "body": "When adv_worktree_create is invoked for a branch that already has a registered git worktree (canonically `change/<change-id>`), the tool MUST detect and reuse the existing worktree before invoking `git worktree add`. If the branch record exists in git but the on-disk path is missing, the tool MUST prune the stale git worktree metadata before creating a fresh worktree. The tool MUST NOT recommend in-place edits as a fallback path; missing workflow access surfaces as a structured failure with a recommended next action.",
       "priority": "must",
-      "tags": ["worktree", "reuse", "preflight", "recovery"],
+      "tags": [
+        "worktree",
+        "reuse",
+        "preflight",
+        "recovery"
+      ],
       "scenarios": [
         {
           "id": "rq-worktreeReuse01.1",
@@ -1258,7 +1380,9 @@
         {
           "id": "rq-multiSessionFraming01.2",
           "title": "ADV_INSTRUCTIONS contains Multi-Session Coordination, not Concurrent Session Hazard",
-          "given": ["ADV_INSTRUCTIONS.md is inspected"],
+          "given": [
+            "ADV_INSTRUCTIONS.md is inspected"
+          ],
           "when": "The relevant section is read",
           "then": [
             "A section titled Multi-Session Coordination is present",
@@ -1399,7 +1523,13 @@
       "title": "Trunk Write Firewall",
       "body": "When features.worktree_guard_enforce is true (default) or omitted, the plugin MUST intercept direct file-write tool calls and known destructive bash write patterns via the tool.execute.before hook and block writes into the trunk checkout when HEAD is the default branch. When features.worktree_guard_enforce is explicitly false, the trunk write firewall MUST allow direct file-write tools and known destructive bash write patterns in the trunk checkout (legacy escape hatch). In strict mode, the firewall MUST allow writes inside ADV worktrees, outside git checkouts, and during explicit git recovery states (merge, rebase, cherry-pick, revert). Git commands MUST NOT be classified or blocked by this firewall; P32 is enforced by where files are edited, not by restricting git operations. Shell indirection and script-internal writes are accepted residual risk documented in ADV instructions.",
       "priority": "must",
-      "tags": ["git", "worktree", "firewall", "trunk", "safety"],
+      "tags": [
+        "git",
+        "worktree",
+        "firewall",
+        "trunk",
+        "safety"
+      ],
       "scenarios": [
         {
           "id": "rq-twf01.1",
@@ -1489,7 +1619,9 @@
         {
           "id": "rq-twf01.6",
           "title": "Outside-repo paths allowed",
-          "given": ["A tool call targets a path outside any git checkout"],
+          "given": [
+            "A tool call targets a path outside any git checkout"
+          ],
           "when": "The trunk write firewall cannot resolve a git root for the target path",
           "then": [
             "The tool execution is allowed",
@@ -1516,7 +1648,12 @@
       "title": "clarify_enforcement flag extends to /adv-audit ambiguity detection",
       "body": "The clarify_enforcement configuration flag (off | advisory | strict) MUST extend to /adv-audit ambiguity detection. When off, ambiguity detection is skipped. When advisory, findings are informational only and do not affect quality gates. When strict, ambiguity findings participate in quality gate evaluation and health status promotion. Cross-reference: advance-workflow rq-ambiguityScan01..rq-ambiguityScan05.",
       "priority": "must",
-      "tags": ["audit", "ambiguity", "clarify", "configuration"],
+      "tags": [
+        "audit",
+        "ambiguity",
+        "clarify",
+        "configuration"
+      ],
       "scenarios": [
         {
           "id": "rq-clarifyEnforcementAudit01.1",
@@ -1534,7 +1671,9 @@
         {
           "id": "rq-clarifyEnforcementAudit01.2",
           "title": "advisory mode includes findings without gate enforcement",
-          "given": ["clarify_enforcement is set to 'advisory'"],
+          "given": [
+            "clarify_enforcement is set to 'advisory'"
+          ],
           "when": "/adv-audit completes and applies quality gates",
           "then": [
             "Ambiguity findings appear in the report's ambiguity section",
@@ -1545,10 +1684,12 @@
         {
           "id": "rq-clarifyEnforcementAudit01.3",
           "title": "strict mode enforces ambiguity gates",
-          "given": ["clarify_enforcement is set to 'strict'"],
+          "given": [
+            "clarify_enforcement is set to 'strict'"
+          ],
           "when": "/adv-audit applies quality gates",
           "then": [
-            "CRITICAL ambiguity ≥ 1 promotes health to MAJOR_DRIFT",
+            "CRITICAL ambiguity \u2265 1 promotes health to MAJOR_DRIFT",
             "HIGH ambiguity > 3 (standard) or any HIGH (strict) promotes to DRIFT_DETECTED",
             "Ambiguity thresholds appear in the quality gate table with pass/fail status"
           ]
@@ -1560,12 +1701,17 @@
       "title": "adv_status lazy view planning",
       "body": "`adv_status` MUST execute only the provider groups required by the selected `view`. `view: \"summary\"` MUST NOT invoke detailed-only providers (queue serviceability, search-attribute probe, worktree cleanup, worktree census, OpenCode session-debt scan, snapshot-health scan, plugin-runtime provenance, project-metadata read, external-state hygiene), and the formatted output for `view: \"summary\"` MUST NOT carry health/worktree/session-debt/peer detail sections. Detailed views remain free to invoke their providers. Required `_contextSnapshot` emission (chat-output-display `rq-ctxsnap2`, `rq-ctxticker2.5`) MUST be preserved across all views.",
       "priority": "must",
-      "tags": ["adv_status", "latency"],
+      "tags": [
+        "adv_status",
+        "latency"
+      ],
       "scenarios": [
         {
           "id": "rq-advStatusLazyView01.1",
           "title": "Summary skips detailed providers",
-          "given": ["adv_status is called with view: \"summary\""],
+          "given": [
+            "adv_status is called with view: \"summary\""
+          ],
           "when": "The tool builds output",
           "then": [
             "Detailed-only providers are not invoked",
@@ -1592,7 +1738,12 @@
       "title": "Correctness-safe summary read model for default list/status",
       "body": "Default `adv_change_list` and warm `adv_status` read paths MUST avoid per-change full hydration when summary data already satisfies the response contract. The Temporal store MUST expose a summary listing surface (`Store.changes.listSummary`) that serves rows from `ChangeSummaryMemo` or `changeCache` when available, hydrates only IDs missing summary proof, and falls back to the authoritative `listResolvedChanges`/`changes.get` path for archived/closed callers, content filters, and any path whose correctness requires full state. Summary/cache data MUST NOT authorize gates, archive, worker-lock recovery, claims, task completion, or contract evidence.",
       "priority": "must",
-      "tags": ["adv_change_list", "adv_status", "latency", "cache"],
+      "tags": [
+        "adv_change_list",
+        "adv_status",
+        "latency",
+        "cache"
+      ],
       "scenarios": [
         {
           "id": "rq-changeSummaryReadModel01.1",
@@ -1627,12 +1778,18 @@
       "title": "Always-on ADV latency telemetry",
       "body": "ADV tool execution MUST record duration telemetry to an in-memory rollup surfaced via `adv_status view: \"health\"`. Per-tool aggregates MUST include count, total_ms, last_ms, max_ms, and error_count. Named phase/substep durations (e.g. `adv_status` providers, `adv_run_test` substeps) MUST be retained in a bounded recent-phase ring so operators can diagnose substep overhead without enabling `ADV_PROFILE` file logging. Error paths MUST preserve their error class and still record duration.",
       "priority": "must",
-      "tags": ["telemetry", "metrics", "latency"],
+      "tags": [
+        "telemetry",
+        "metrics",
+        "latency"
+      ],
       "scenarios": [
         {
           "id": "rq-advLatencyTelemetry01.1",
           "title": "Per-tool duration rollup is always recorded",
-          "given": ["safeExecute wraps an adv_* tool invocation"],
+          "given": [
+            "safeExecute wraps an adv_* tool invocation"
+          ],
           "when": "The tool succeeds or fails",
           "then": [
             "adv_tool_durations records count, total_ms, last_ms, max_ms for the tool name",
@@ -1659,12 +1816,17 @@
       "title": "Documented latency benchmark harness",
       "body": "`plugin/scripts/bench-adv-latency.ts` MUST initialize under the Temporal-only store contract. Default mode (`--mode disk`) MUST use a documented isolated substitute backed by `createDiskStore` so the harness runs without a live Temporal worker; samples MUST include `adv_status view: \"summary\"`, `adv_status view: \"health\"`, `adv_change_list`, `adv_change_show`, a disk-store task list fallback, and `adv_run_test` echo/no-op. `--mode temporal` MUST refuse to fabricate a TemporalClientBundle so manual operators cannot silently confuse substitute and authoritative numbers. The bench MUST document command, fixture shape, and output location.",
       "priority": "must",
-      "tags": ["benchmark", "latency"],
+      "tags": [
+        "benchmark",
+        "latency"
+      ],
       "scenarios": [
         {
           "id": "rq-advLatencyBench01.1",
           "title": "Default disk substitute initializes and reports",
-          "given": ["No Temporal worker is running"],
+          "given": [
+            "No Temporal worker is running"
+          ],
           "when": "Operator runs the bench in default mode against an existing change",
           "then": [
             "The harness initializes via createDiskStore",
@@ -1679,7 +1841,9 @@
             "Operator passes --mode temporal without providing a TemporalClientBundle"
           ],
           "when": "The bench attempts to build the store",
-          "then": ["The script exits non-zero with an explicit refusal message"]
+          "then": [
+            "The script exits non-zero with an explicit refusal message"
+          ]
         }
       ]
     },
@@ -1688,12 +1852,18 @@
       "title": "Visibility project-scope query convergence",
       "body": "Project-scope Visibility queries used by ADV listing paths MUST filter on a registered search attribute. `list-change-workflows.buildVisibilityQuery` and the backlog claim queries (`visibility-claim-queries`) MUST scope by the registered `AdvAffectedProjects` KeywordList so list/claim reads share one Visibility contract. Legacy unregistered attributes (e.g. `AdvProjectId`) MUST NOT drive Visibility filters unless explicitly registered and documented.",
       "priority": "must",
-      "tags": ["temporal", "visibility", "search-attributes"],
+      "tags": [
+        "temporal",
+        "visibility",
+        "search-attributes"
+      ],
       "scenarios": [
         {
           "id": "rq-visibilityProjectScope01.1",
           "title": "Change list query uses registered AdvAffectedProjects",
-          "given": ["buildVisibilityQuery is invoked with a project id"],
+          "given": [
+            "buildVisibilityQuery is invoked with a project id"
+          ],
           "when": "The query string is constructed",
           "then": [
             "The query filters on `AdvAffectedProjects = \"<projectId>\"`",
@@ -1718,7 +1888,11 @@
       "title": "adv_run_test hot-path latency preserves correctness",
       "body": "`adv_run_test` latency improvements MUST preserve the existing tool contract: task validation, shell-command execution semantics, timeout/max-buffer classification, exit-code reporting, and output shaping. Every invocation MUST execute the supplied command fresh; the tool MUST NOT cache, skip, or fabricate command results. The public result contract MUST include typed fields `passed`, `classification`, `durationMs`, `outputBytesSeen`, `outputBytesRetained`, `outputTruncated`, `executionMode`, and compact `evidence.schema_version='adv_run_test.v1'` while legacy fields remain available. Telemetry MUST record duration for substeps `targetRouting`, `taskLookup`, `commandExecution`, and `outputShaping` so operators can diagnose hot-path overhead without changing the tool contract. Subprocess implementation changes are allowed only when compatibility tests cover shell metacharacters/pipelines/redirects, timeout/kill classification, max-buffer classification, stdout/stderr capture, non-zero exit reporting, and output shaping.",
       "priority": "must",
-      "tags": ["adv_run_test", "latency", "tdd"],
+      "tags": [
+        "adv_run_test",
+        "latency",
+        "tdd"
+      ],
       "scenarios": [
         {
           "id": "rq-advRunTestLatency01.1",
@@ -1756,6 +1930,61 @@
             "Typed fields include `passed`, `classification`, `durationMs`, `outputBytesSeen`, `outputBytesRetained`, `outputTruncated`, and `executionMode`",
             "The compact evidence block uses schema_version `adv_run_test.v1`",
             "The legacy fields remain available: `success`, `exitCode`, `output`, `command`, `timedOut`, `maxBufferExceeded`, and `timeoutMs` when applicable"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-toolPlaceholderPolicy01.6",
+      "title": "Contextually-Validated Audit Fields Must Use blank: omit in Preflight",
+      "body": "Optional audit and recovery fields that are only required in specific contextual paths (recovery mode, cross-project mutation, or specific gate types) must use blank: 'omit' in the FIELD_POLICIES preflight table. The handler layer validates these fields contextually \u2014 preflight rejection of blank values creates a deadlock for strict-mode API providers (e.g., OpenAI Responses API with strict:true) that auto-fill every optional field with empty strings. Fields in this class include: confirmationEvidence (required only when target_path is present for cross-project mutations), recoveryEvidence/recoveryReason/priorApprovalEvidence (required only when recoveryMode is poisoned_history), and completedBy on adv_gate_complete (handler defaults to 'agent'). Always-required semantic fields (approvalEvidence, reason, command, content, title, branch) retain blank: 'reject'.",
+      "priority": "must",
+      "tags": [
+        "preflight",
+        "strict-mode",
+        "tool-args",
+        "placeholder-normalization"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-toolPlaceholderPolicy01.6.1",
+          "title": "Strict-mode provider can complete non-recovery gate without deadlock",
+          "given": [
+            "A strict-mode API provider sends adv_gate_complete with all optional fields filled with blank strings",
+            "The gate is a non-recovery gate (not acceptance or release recovery)"
+          ],
+          "when": "The preflight layer processes the tool arguments",
+          "then": [
+            "Blank recoveryEvidence, recoveryReason, priorApprovalEvidence, completedBy, and confirmationEvidence are normalized to omitted",
+            "The call is not rejected at the preflight layer",
+            "The handler processes the gate completion normally with default values"
+          ]
+        },
+        {
+          "id": "rq-toolPlaceholderPolicy01.6.2",
+          "title": "Recovery path still validates audit fields",
+          "given": [
+            "adv_gate_complete is called with recoveryMode or a poisoned workflow is detected",
+            "Blank recovery fields were normalized to omitted by preflight"
+          ],
+          "when": "The handler executes the recovery path",
+          "then": [
+            "The handler rejects the call because required recovery fields are missing",
+            "The error message identifies the specific missing fields",
+            "No silent data loss or unverified recovery occurs"
+          ]
+        },
+        {
+          "id": "rq-toolPlaceholderPolicy01.6.3",
+          "title": "Contextually-validated fields across all tools use omit policy",
+          "given": [
+            "The FIELD_POLICIES table in tool-arg-preflight.ts"
+          ],
+          "when": "Entries for confirmationEvidence, recoveryEvidence, recoveryReason, priorApprovalEvidence, and completedBy on adv_gate_complete are inspected",
+          "then": [
+            "All such entries use blank: 'omit'",
+            "The handler layer for each tool still validates these fields when contextually required",
+            "Always-required fields (approvalEvidence, reason, command, content) retain blank: 'reject'"
           ]
         }
       ]

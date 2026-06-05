@@ -89,21 +89,28 @@ const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
     design: { blank: "omit" },
     executiveSummary: { blank: "omit" },
     target_path: { blank: "omit" },
-    // Audit field — blank assertion is a semantic violation, stay strict.
-    confirmationEvidence: { blank: "reject" },
-    recoveryEvidence: { blank: "reject" },
-    recoveryReason: { blank: "reject" },
-    priorApprovalEvidence: { blank: "reject" },
+    // Contextually-validated audit fields. Strict-mode providers fill all
+    // optional fields with "". These are only required when target_path is
+    // present (confirmationEvidence) or recoveryMode is poisoned_history
+    // (recoveryEvidence/recoveryReason/priorApprovalEvidence). The handler
+    // validates them contextually, so blank → omit at preflight is safe and
+    // necessary to avoid strict-mode deadlock (rq-toolPlaceholderPolicy01.6).
+    confirmationEvidence: { blank: "omit" },
+    recoveryEvidence: { blank: "omit" },
+    recoveryReason: { blank: "omit" },
+    priorApprovalEvidence: { blank: "omit" },
   },
   adv_change_archive: {
     worktreePath: { blank: "omit" },
-    recoveryEvidence: { blank: "reject" },
+    // Contextually-validated: handler checks only when recoveryMode=poisoned_history.
+    recoveryEvidence: { blank: "omit" },
   },
   adv_run_test: {
     command: { blank: "reject" }, // required-when-present
     phase: { blank: "omit" }, // optional descriptive metadata
     target_path: { blank: "omit" },
-    confirmationEvidence: { blank: "reject" }, // audit
+    // Contextually-validated: handler checks only when target_path present.
+    confirmationEvidence: { blank: "omit" },
   },
   adv_task_show: {
     target_path: { blank: "omit" },
@@ -116,14 +123,17 @@ const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
   },
   adv_task_update: {
     target_path: { blank: "omit" },
-    confirmationEvidence: { blank: "reject" }, // audit
-    recoveryEvidence: { blank: "reject" }, // poisoned-history audit
+    // Contextually-validated: handler checks only when target_path present or
+    // recoveryMode=poisoned_history (rq-toolPlaceholderPolicy01.6).
+    confirmationEvidence: { blank: "omit" },
+    recoveryEvidence: { blank: "omit" },
   },
   adv_task_add: {
     content: { blank: "reject" }, // required-when-present
     target_path: { blank: "omit" },
-    confirmationEvidence: { blank: "reject" }, // audit
-    recoveryEvidence: { blank: "reject" }, // poisoned-history audit
+    // Contextually-validated (rq-toolPlaceholderPolicy01.6).
+    confirmationEvidence: { blank: "omit" },
+    recoveryEvidence: { blank: "omit" },
   },
   adv_wisdom_add: {
     content: { blank: "reject" }, // required-when-present
@@ -139,8 +149,9 @@ const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
   adv_task_cancel: {
     approvalEvidence: { blank: "reject" }, // audit
     target_path: { blank: "omit" },
-    confirmationEvidence: { blank: "reject" }, // audit
-    recoveryEvidence: { blank: "reject" }, // poisoned-history audit
+    // Contextually-validated (rq-toolPlaceholderPolicy01.6).
+    confirmationEvidence: { blank: "omit" },
+    recoveryEvidence: { blank: "omit" },
     reasons: { recordValuesBlank: "reject" }, // per-task audit
     supersededBy: { recordValuesBlank: "reject" }, // required-when-present
   },
@@ -148,20 +159,26 @@ const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
     reason: { blank: "reject" }, // audit
     approvalEvidence: { blank: "reject" }, // audit
     target_path: { blank: "omit" },
-    confirmationEvidence: { blank: "reject" }, // audit
+    // Contextually-validated (rq-toolPlaceholderPolicy01.6).
+    confirmationEvidence: { blank: "omit" },
   },
   adv_gate_status: {
     target_path: { blank: "omit" },
   },
   adv_gate_complete: {
-    completedBy: { blank: "reject" }, // audit identity
+    // Strict-mode providers (OpenAI Responses API strict:true) auto-fill
+    // every optional field with "". These fields are contextually validated
+    // by the handler (gate type, recovery mode, cross-project), so blank →
+    // omit at preflight is safe and necessary for non-recovery gate
+    // completions (rq-toolPlaceholderPolicy01.6).
+    completedBy: { blank: "omit" }, // handler defaults to "agent"
     notes: { blank: "omit" }, // optional descriptive
     compatibilityReason: { blank: "omit" }, // optional descriptive
-    recoveryEvidence: { blank: "reject" }, // recovery audit
-    recoveryReason: { blank: "reject" }, // recovery audit
-    priorApprovalEvidence: { blank: "reject" }, // user acceptance audit
+    recoveryEvidence: { blank: "omit" }, // handler validates in recovery path
+    recoveryReason: { blank: "omit" }, // handler validates in recovery path
+    priorApprovalEvidence: { blank: "omit" }, // handler validates in recovery path
     target_path: { blank: "omit" },
-    confirmationEvidence: { blank: "reject" }, // audit
+    confirmationEvidence: { blank: "omit" }, // handler validates when target_path present
   },
   adv_worktree_create: {
     branch: { blank: "reject" }, // required-when-present
@@ -197,22 +214,25 @@ const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
   },
   adv_contract_mint: {
     approvedAt: { blank: "omit" }, // optional ISO timestamp
-    recoveryEvidence: { blank: "reject" }, // audit
+    // Contextually-validated (rq-toolPlaceholderPolicy01.6).
+    recoveryEvidence: { blank: "omit" },
     target_path: { blank: "omit" },
-    confirmationEvidence: { blank: "reject" }, // audit
+    confirmationEvidence: { blank: "omit" },
   },
   adv_contract_review_matrix_set: {
     reviewedAt: { blank: "omit" }, // optional ISO timestamp
-    recoveryEvidence: { blank: "reject" }, // audit
+    // Contextually-validated (rq-toolPlaceholderPolicy01.6).
+    recoveryEvidence: { blank: "omit" },
     target_path: { blank: "omit" },
-    confirmationEvidence: { blank: "reject" }, // audit
+    confirmationEvidence: { blank: "omit" },
   },
   adv_temporal_register_search_attributes: {
     approvalEvidence: { blank: "reject" }, // audit
   },
   adv_temporal_reconnect: {
     target_path: { blank: "omit" },
-    confirmationEvidence: { blank: "reject" }, // audit
+    // Contextually-validated (rq-toolPlaceholderPolicy01.6).
+    confirmationEvidence: { blank: "omit" },
   },
   adv_temporal_worker_restart: {
     approvalEvidence: { blank: "reject" }, // audit
@@ -223,6 +243,18 @@ const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
   },
   adv_status: {
     target_path: { blank: "omit" },
+  },
+  // Consistency entries: these tools accept target_path/confirmationEvidence
+  // or approvalEvidence but use falsy checks in handlers, so strict-mode
+  // blanks are not a deadlock risk. Entries ensure consistent normalization
+  // (rq-toolPlaceholderPolicy01.6).
+  adv_subagent_report_submit: {
+    target_path: { blank: "omit" },
+    confirmationEvidence: { blank: "omit" },
+  },
+  adv_change_reenter: {
+    scopeDelta: { blank: "omit" },
+    approvalEvidence: { blank: "omit" },
   },
 };
 
