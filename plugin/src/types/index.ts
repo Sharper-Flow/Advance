@@ -208,6 +208,8 @@ export {
   type ChangeOriginKind,
   ChangeOriginSchema,
   type ChangeOrigin,
+  Phase9FinalizationStatusSchema,
+  type Phase9FinalizationStatus,
   ContractRigorSchema,
   type ContractRigor,
   ContractItemKindSchema,

@@ -658,18 +658,23 @@ describe("workspace-warp", () => {
 
     it("findWorkspaceByDirectory aborts on timeout when fetch hangs", async () => {
       // fetchImpl respects AbortSignal — simulates a hung HTTP request
-      const fetchImpl = vi.fn((_url: string, init: RequestInit) =>
-        new Promise<Response>((_resolve, reject) => {
-          const signal = init.signal as AbortSignal | undefined;
-          if (signal?.aborted) {
-            reject(new DOMException("The operation was aborted", "AbortError"));
-            return;
-          }
-          const onAbort = () => {
-            reject(new DOMException("The operation was aborted", "AbortError"));
-          };
-          signal?.addEventListener("abort", onAbort, { once: true });
-        }),
+      const fetchImpl = vi.fn(
+        (_url: string, init: RequestInit) =>
+          new Promise<Response>((_resolve, reject) => {
+            const signal = init.signal as AbortSignal | undefined;
+            if (signal?.aborted) {
+              reject(
+                new DOMException("The operation was aborted", "AbortError"),
+              );
+              return;
+            }
+            const onAbort = () => {
+              reject(
+                new DOMException("The operation was aborted", "AbortError"),
+              );
+            };
+            signal?.addEventListener("abort", onAbort, { once: true });
+          }),
       );
 
       const result = await findWorkspaceByDirectory(
@@ -685,18 +690,23 @@ describe("workspace-warp", () => {
     it("deleteAdvWorkspace aborts on timeout when fetch hangs", async () => {
       // fetchImpl respects AbortSignal — simulates a hung DELETE that
       // gets aborted when the signal fires
-      const fetchImpl = vi.fn((_url: string, init: RequestInit) =>
-        new Promise<Response>((_resolve, reject) => {
-          const signal = init.signal as AbortSignal | undefined;
-          if (signal?.aborted) {
-            reject(new DOMException("The operation was aborted", "AbortError"));
-            return;
-          }
-          const onAbort = () => {
-            reject(new DOMException("The operation was aborted", "AbortError"));
-          };
-          signal?.addEventListener("abort", onAbort, { once: true });
-        }),
+      const fetchImpl = vi.fn(
+        (_url: string, init: RequestInit) =>
+          new Promise<Response>((_resolve, reject) => {
+            const signal = init.signal as AbortSignal | undefined;
+            if (signal?.aborted) {
+              reject(
+                new DOMException("The operation was aborted", "AbortError"),
+              );
+              return;
+            }
+            const onAbort = () => {
+              reject(
+                new DOMException("The operation was aborted", "AbortError"),
+              );
+            };
+            signal?.addEventListener("abort", onAbort, { once: true });
+          }),
       );
 
       // Should throw AbortError instead of hanging

@@ -684,7 +684,8 @@ export function createTemporalStoreBackend(
 
     // Pre-scan memo for stale terminal-state entries (rq-crossSessionCacheConsistency01)
     for (const summary of memo.getAll()) {
-      if (summary.status === "archived" || summary.status === "closed") continue;
+      if (summary.status === "archived" || summary.status === "closed")
+        continue;
       if (await checkArchiveBundle(summary.id)) {
         memo.invalidate(summary.id);
         invalidateChange(summary.id);

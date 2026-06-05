@@ -27,17 +27,21 @@ vi.mock("./runtime-manager", () => ({
 
 vi.mock("../plugin-init", () => ({
   getTemporalWorkerAliveness: () => mockGetTemporalWorkerAliveness(),
-  getRegisteredTemporalWorkerQueues: () => mockGetRegisteredTemporalWorkerQueues(),
+  getRegisteredTemporalWorkerQueues: () =>
+    mockGetRegisteredTemporalWorkerQueues(),
 }));
 
 vi.mock("./client", () => ({
   getTemporalAddress: (...args: unknown[]) => mockGetTemporalAddress(...args),
-  getTemporalNamespace: (...args: unknown[]) => mockGetTemporalNamespace(...args),
-  buildProjectTaskQueue: (...args: unknown[]) => mockBuildProjectTaskQueue(...args),
+  getTemporalNamespace: (...args: unknown[]) =>
+    mockGetTemporalNamespace(...args),
+  buildProjectTaskQueue: (...args: unknown[]) =>
+    mockBuildProjectTaskQueue(...args),
 }));
 
 vi.mock("./queue-serviceability", () => ({
-  probeTaskQueuePollers: (...args: unknown[]) => mockProbeTaskQueuePollers(...args),
+  probeTaskQueuePollers: (...args: unknown[]) =>
+    mockProbeTaskQueuePollers(...args),
 }));
 
 vi.mock("./service", () => ({
@@ -53,8 +57,6 @@ vi.mock("./retry-wrapper", () => ({
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-
 
 // ---------------------------------------------------------------------------
 // Tests

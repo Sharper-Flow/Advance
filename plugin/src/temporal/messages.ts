@@ -38,6 +38,7 @@ import type {
   GateStuckSignalPayload,
   ProblemStatementUpdatedSignalPayload,
   ProposalUpdatedSignalPayload,
+  Phase9StatusUpdatedSignalPayload,
   ReflectionRecordedSignalPayload,
   SubagentReportSubmittedSignalPayload,
   TaskAddedSignalPayload,
@@ -219,6 +220,9 @@ export const conformanceOverriddenSignal = wf.defineSignal<
 export const archiveRequestedSignal = wf.defineSignal<
   [ArchiveRequestedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.archiveRequested);
+export const phase9StatusUpdatedSignal = wf.defineSignal<
+  [Phase9StatusUpdatedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.phase9StatusUpdated);
 export const changeCancelledSignal = wf.defineSignal<
   [ChangeCancelledSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.changeCancelled);

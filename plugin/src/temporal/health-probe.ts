@@ -2,10 +2,7 @@ import {
   getRegisteredTemporalWorkerQueues,
   getTemporalWorkerAliveness,
 } from "../plugin-init";
-import {
-  getTemporalAddress,
-  buildProjectTaskQueue,
-} from "./client";
+import { getTemporalAddress, buildProjectTaskQueue } from "./client";
 import {
   getTemporalOpTelemetry,
   getTemporalRetryTelemetry,
@@ -13,7 +10,10 @@ import {
   type OpTelemetry,
 } from "./retry-wrapper";
 import { canReachTemporalAddress } from "./runtime-manager";
-import { probeTaskQueuePollers, type ServerPollerProbe } from "./queue-serviceability";
+import {
+  probeTaskQueuePollers,
+  type ServerPollerProbe,
+} from "./queue-serviceability";
 import { getService } from "./service";
 
 export interface StaleQueue {
@@ -67,7 +67,8 @@ export async function probeStaleQueues(): Promise<StaleQueue[]> {
   return [];
 }
 
-let pollerProbeCache: { result: ServerPollerProbe; cachedAt: number } | null = null;
+let pollerProbeCache: { result: ServerPollerProbe; cachedAt: number } | null =
+  null;
 const POLLER_PROBE_TTL_MS = 30_000;
 
 export async function getTemporalHealth(
@@ -85,12 +86,17 @@ export async function getTemporalHealth(
   const bundle = getService();
   if (bundle && _projectId) {
     const now = Date.now();
-    if (pollerProbeCache && now - pollerProbeCache.cachedAt < POLLER_PROBE_TTL_MS) {
+    if (
+      pollerProbeCache &&
+      now - pollerProbeCache.cachedAt < POLLER_PROBE_TTL_MS
+    ) {
       serverPollerProbe = pollerProbeCache.result;
     } else {
       try {
         serverPollerProbe = await probeTaskQueuePollers({
-          connection: bundle.connection as unknown as Parameters<typeof probeTaskQueuePollers>[0]["connection"],
+          connection: bundle.connection as unknown as Parameters<
+            typeof probeTaskQueuePollers
+          >[0]["connection"],
           namespace: bundle.namespace,
           taskQueue: buildProjectTaskQueue(_projectId),
         });
@@ -103,7 +109,10 @@ export async function getTemporalHealth(
 
   return {
     server_alive,
-    worker_alive: worker_process_alive || registered_queues.length > 0 || serverPollerProbe?.status === "fresh",
+    worker_alive:
+      worker_process_alive ||
+      registered_queues.length > 0 ||
+      serverPollerProbe?.status === "fresh",
     worker_process_alive,
     registered_queues,
     last_op_at: telemetry.lastOpAt,

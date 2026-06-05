@@ -122,9 +122,12 @@ async function detectUnmergedBranch(
     // Prove both refs exist before interpreting rev-list output. Unknown
     // reachability must preserve the legacy `missing_from_temporal` class
     // rather than over-classifying.
-    await execFileGitAsync(["rev-parse", "--verify", `${defaultBranch}^{commit}`], {
-      cwd: repoRoot,
-    });
+    await execFileGitAsync(
+      ["rev-parse", "--verify", `${defaultBranch}^{commit}`],
+      {
+        cwd: repoRoot,
+      },
+    );
     await execFileGitAsync(["rev-parse", "--verify", `${branch}^{commit}`], {
       cwd: repoRoot,
     });

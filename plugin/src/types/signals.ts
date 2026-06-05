@@ -20,6 +20,7 @@ import {
   ChangeContractSchema,
   ContractAmendmentSchema,
   ContractReviewMatrixSchema,
+  Phase9FinalizationStatusSchema,
 } from "./changes";
 
 const IsoTimestampSchema = z.string();
@@ -343,6 +344,14 @@ export const ArchiveRequestedSignalPayloadSchema = z.object({
 });
 export type ArchiveRequestedSignalPayload = z.infer<
   typeof ArchiveRequestedSignalPayloadSchema
+>;
+
+export const Phase9StatusUpdatedSignalPayloadSchema = z.object({
+  phase9_status: Phase9FinalizationStatusSchema,
+  updatedAt: IsoTimestampSchema,
+});
+export type Phase9StatusUpdatedSignalPayload = z.infer<
+  typeof Phase9StatusUpdatedSignalPayloadSchema
 >;
 
 export const ChangeCancelledSignalPayloadSchema = z.object({
