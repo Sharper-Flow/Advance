@@ -57,6 +57,27 @@ async function runAdv(
   return { exitCode, stdout, stderr };
 }
 
+describe("adv dispatcher metadata", () => {
+  test("--help exits 0 and lists --json once", async () => {
+    const { exitCode, stdout } = await runAdv(["--help"]);
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain("USAGE:");
+    expect(stdout.match(/--json/g)).toHaveLength(1);
+  });
+
+  test("--version exits 0", async () => {
+    const { exitCode, stdout } = await runAdv(["--version"]);
+    expect(exitCode).toBe(0);
+    expect(stdout).toMatch(/^adv v\d+\.\d+\.\d+\n$/);
+  });
+
+  test("unknown command exits 1", async () => {
+    const { exitCode, stderr } = await runAdv(["nonsense"]);
+    expect(exitCode).toBe(1);
+    expect(stderr).toContain("unknown command");
+  });
+});
+
 describe("adv roadmap dispatcher", () => {
   test("exit 0 with valid snapshot", async () => {
     const tmp = mkdtempSync(join(tmpdir(), "adv-dispatch-"));

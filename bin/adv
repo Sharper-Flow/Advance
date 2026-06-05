@@ -22,7 +22,6 @@ import {
   shouldUseColor,
   formatTable,
   BOLD,
-  DIM,
   RESET,
   emitJson,
 } from "./lib/render";
@@ -186,7 +185,6 @@ FLAGS (global):
       --json              Output JSON for status or roadmap
 
 FLAGS (roadmap only):
-      --json              Output JSON instead of rendered tables
       --kind {bug|feature|all}
                           Filter by item kind (default: all)
       --top <N>           Limit features to top N by WSJF
