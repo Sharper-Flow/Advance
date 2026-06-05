@@ -1,0 +1,33 @@
+{
+  "entries": [
+    {
+      "id": "ws--2WV58",
+      "type": "gotcha",
+      "content": "For file-scoped Vitest verification in this repo, `pnpm test -- <file>` can run broader suite under current pnpm/script routing. Use `pnpm exec vitest run <file>` for precise targeted evidence.",
+      "source_task": "tk-3adfb0cdf9d0",
+      "recorded_at": "2026-06-05T17:30:06.913Z"
+    },
+    {
+      "id": "ws-9G-24Y",
+      "type": "pattern",
+      "content": "For worktree orphan subclasses, prove stronger states structurally and preserve legacy classification on unknowns. Here `rev-parse` both refs + `rev-list default..branch` gives positive evidence for unmerged commits; any failure falls back to `missing_from_temporal` instead of guessing.",
+      "source_task": "tk-39aa04165358",
+      "recorded_at": "2026-06-05T17:34:26.359Z"
+    },
+    {
+      "id": "ws-YRsYRf",
+      "type": "gotcha",
+      "content": "Workflow-backed ADV fields must be updated through workflow signals, not `store.changes.save` on active changes. In Temporal store, non-archived `changes.save` writes legacy projection only; `adv_change_show` reads workflow state via `mapTemporalChangeStateToChange`.",
+      "source_task": "tk-34590084665f",
+      "recorded_at": "2026-06-05T18:17:49.291Z"
+    },
+    {
+      "id": "ws-cFHiFT",
+      "type": "gotcha",
+      "content": "Multi-session orphan blast radius: in the Temporal store, `store.changes.get` (getTemporalChange) THROWS WorkflowNotFoundError when a change's workflow is evicted/terminated and disk re-seed fails. `listResolvedChanges` wraps per-change loads in try/catch, but secondary per-peer hydration loops (e.g. `loadValidationContext` reading each active peer's deltas for conflict detection) were unguarded — so one dangling peer crashed adv_change_validate AND adv_change_archive for every healthy change. Lesson: any loop that calls `store.changes.get` across the active-change set must tolerate a throwing peer (skip + log), not just the list path. A dangling peer has no recoverable deltas, so skipping it is correct for conflict detection.",
+      "source_task": "tk-c347050e63a2",
+      "recorded_at": "2026-06-05T19:31:00.980Z"
+    }
+  ],
+  "count": 4
+}
