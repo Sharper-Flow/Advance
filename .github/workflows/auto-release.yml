@@ -211,6 +211,7 @@ jobs:
             project.md \
             project.json \
             install.sh \
+            bin \
             scripts \
             .opencode/command \
             .opencode/agents \
@@ -230,6 +231,8 @@ jobs:
             "${ARCHIVE_ROOT}/plugin/package.json" \
             "${ARCHIVE_ROOT}/plugin/pnpm-lock.yaml" \
             "${ARCHIVE_ROOT}/scripts/deploy-local.sh" \
+            "${ARCHIVE_ROOT}/bin/adv" \
+            "${ARCHIVE_ROOT}/bin/lib/live-status.ts" \
             "${ARCHIVE_ROOT}/install.sh" \
             "${ARCHIVE_ROOT}/.opencode/command/" \
             "${ARCHIVE_ROOT}/.opencode/agents/" \

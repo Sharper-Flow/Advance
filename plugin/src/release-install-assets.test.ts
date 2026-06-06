@@ -25,6 +25,9 @@ describe("GitHub release installer artifact", () => {
       "plugin/package.json",
       "plugin/pnpm-lock.yaml",
       "scripts/deploy-local.sh",
+      "bin",
+      "bin/adv",
+      "bin/lib/live-status.ts",
       "install.sh",
       ".opencode/command",
       ".opencode/agents",
@@ -82,6 +85,7 @@ describe("latest-release installer", () => {
       "Malformed checksum",
       "Checksum verification failed for ${ASSET}",
       "plugin/dist/index.js",
+      "bin/adv",
       "scripts/deploy-local.sh",
       "--fix",
       "mktemp -d",
@@ -129,6 +133,9 @@ describe("release installation docs", () => {
       "sha256sum not found",
       "chmod +x install.sh",
       "Release artifact is incomplete",
+      "~/.local/share/Advance/bin/",
+      "PATH shadowing",
+      "unrelated `~/.local/bin/adv`",
     ]) {
       expect(setup).toContain(requiredSnippet);
     }

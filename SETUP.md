@@ -1110,11 +1110,21 @@ Standalone terminal client for viewing ADV status without an OpenCode session. `
 **Requirements:** Bun 1.3+ must be installed (`bun --version` to check).
 
 ```bash
-# Install (one-time symlink)
-ln -s "$(pwd)/bin/adv" ~/.local/bin/adv   # ensure ~/.local/bin is in PATH
+# Install / repair the managed local CLI
+./scripts/deploy-local.sh --fix             # ensures ~/.local/bin/adv is managed
 adv --version                              # verify: "adv v0.1.0"
 adv                                        # show status for current repo
 ```
+
+`deploy-local.sh --fix` syncs the whole CLI payload to
+`~/.local/share/Advance/bin/` and points `~/.local/bin/adv` at that stable
+entrypoint. This avoids symlinks into temporary release extraction directories
+and keeps `bin/adv` sibling imports intact. `scripts/deploy-local.sh --check`
+reports missing installs, stale managed files, wrong symlink targets, unsafe
+unrelated files, and PATH shadowing. If an unrelated `~/.local/bin/adv` already
+exists, move it aside manually and rerun `--fix`; deploy-local will not overwrite
+unrecognized content. If PATH resolves a different `adv`, put `~/.local/bin`
+before the shadowing directory.
 
 Flags: `--no-color` (or `NO_COLOR=1`) to disable ANSI colors; `--json` for status/roadmap automation. See `adv --help` for details.
 

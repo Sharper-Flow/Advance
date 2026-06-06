@@ -165,6 +165,9 @@ fi
 LOCAL_DEPLOY_ROOT="${ADV_LOCAL_DEPLOY_ROOT:-$HOME/.local/share/Advance}"
 ADV_SOURCE_PLUGIN_PATH="$ASSET_ROOT/plugin"
 ADV_RUNTIME_PLUGIN_PATH="$LOCAL_DEPLOY_ROOT/plugin"
+ADV_SOURCE_BIN_PATH="$ASSET_ROOT/bin"
+ADV_RUNTIME_BIN_PATH="$LOCAL_DEPLOY_ROOT/bin"
+ADV_CLI_TARGET="${ADV_BIN_LINK:-$HOME/.local/bin/adv}"
 ADV_PLUGIN_PATH="$ADV_RUNTIME_PLUGIN_PATH"
 ADV_PLUGIN_DIST="$ADV_SOURCE_PLUGIN_PATH/dist/index.js"
 ADV_INSTRUCTION_PATH="$REPO_ROOT/ADV_INSTRUCTIONS.md"
@@ -182,6 +185,7 @@ fi
 # Config check/fix functions
 # ---------------------------------------------------------------------------
 config_issues=0
+cli_issues=0
 
 plugin_build_input_newer_than() {
 	local output="$1"
@@ -769,6 +773,193 @@ check_config() {
 	fi
 }
 
+is_recognized_adv_cli_target() {
+	local target="$1" resolved=""
+
+	[ -e "$target" ] || [ -L "$target" ] || return 1
+
+	if [ -L "$target" ]; then
+		resolved="$(readlink -f "$target" 2>/dev/null || true)"
+		case "$resolved" in
+		"$ADV_RUNTIME_BIN_PATH/adv" | "$REPO_ROOT"/bin/adv | *Advance*/bin/adv | *advance*/bin/adv)
+			return 0
+			;;
+		esac
+		return 1
+	fi
+
+	if [ -f "$target" ]; then
+		if grep -Eq 'adv — ADV|ADV \(Advance\)|Sharper-Flow/Advance|schema_version|Live Status|Temporal-backed' "$target" 2>/dev/null; then
+			return 0
+		fi
+	fi
+
+	return 1
+}
+
+adv_cli_target_state() {
+	if [ ! -e "$ADV_CLI_TARGET" ] && [ ! -L "$ADV_CLI_TARGET" ]; then
+		printf '%s\n' "missing"
+		return 0
+	fi
+
+	if [ -L "$ADV_CLI_TARGET" ]; then
+		local resolved
+		resolved="$(readlink -f "$ADV_CLI_TARGET" 2>/dev/null || true)"
+		if [ "$resolved" = "$ADV_RUNTIME_BIN_PATH/adv" ]; then
+			printf '%s\n' "managed"
+		else
+			printf '%s\n' "wrong-target:$resolved"
+		fi
+		return 0
+	fi
+
+	if is_recognized_adv_cli_target "$ADV_CLI_TARGET"; then
+		printf '%s\n' "stale-regular-file"
+	else
+		printf '%s\n' "unsafe-existing-file"
+	fi
+}
+
+verify_adv_cli_live_json() {
+	[ -x "$ADV_CLI_TARGET" ] || return 1
+
+	local output status
+	set +e
+	output="$(cd "$REPO_ROOT" && ADV_STATUS_TIMEOUT_MS="${ADV_STATUS_TIMEOUT_MS:-1000}" "$ADV_CLI_TARGET" status --json 2>/dev/null)"
+	status=$?
+	set -e
+
+	case "$status" in
+	0 | 1 | 2) ;;
+	*) return 1 ;;
+	esac
+
+	printf '%s' "$output" | grep -q '"source"[[:space:]]*:[[:space:]]*"temporal"' || return 1
+	if printf '%s' "$output" | grep -q '"schema_version"[[:space:]]*:[[:space:]]*1'; then
+		return 1
+	fi
+	return 0
+}
+
+verify_adv_cli_runtime_imports() {
+	[ -f "$ADV_RUNTIME_PLUGIN_PATH/src/temporal/client.ts" ] || return 1
+	[ -f "$ADV_RUNTIME_PLUGIN_PATH/src/temporal/list-change-workflows.ts" ] || return 1
+	[ -f "$ADV_RUNTIME_PLUGIN_PATH/src/temporal/contracts.ts" ] || return 1
+	return 0
+}
+
+check_adv_cli_install() {
+	echo ""
+	echo "--- ADV CLI Install ---"
+
+	if [ ! -f "$ADV_SOURCE_BIN_PATH/adv" ]; then
+		echo "    ✗  source CLI missing: $ADV_SOURCE_BIN_PATH/adv"
+		((cli_issues++)) || true
+		return
+	fi
+
+	local state
+	state="$(adv_cli_target_state)"
+	case "$state" in
+	managed)
+		echo "    ✓  target: $ADV_CLI_TARGET -> $ADV_RUNTIME_BIN_PATH/adv"
+		;;
+	missing)
+		echo "    ✗  target missing: $ADV_CLI_TARGET"
+		echo "       Run scripts/deploy-local.sh --fix to install the managed ADV CLI"
+		((cli_issues++)) || true
+		;;
+	stale-regular-file)
+		echo "    ✗  target is stale regular ADV CLI file: $ADV_CLI_TARGET"
+		echo "       Run scripts/deploy-local.sh --fix to replace it with managed symlink"
+		((cli_issues++)) || true
+		;;
+	wrong-target:*)
+		echo "    ✗  target points at wrong location: ${state#wrong-target:}"
+		echo "       Expected: $ADV_RUNTIME_BIN_PATH/adv"
+		((cli_issues++)) || true
+		;;
+	unsafe-existing-file)
+		echo "    ✗  unsafe existing file at $ADV_CLI_TARGET"
+		echo "       Refusing to manage unrelated content. Move it aside manually, then rerun --fix."
+		((cli_issues++)) || true
+		;;
+	esac
+
+	if verify_adv_cli_runtime_imports; then
+		echo "    ✓  runtime imports: Temporal client sources available"
+	else
+		echo "    ✗  runtime imports: missing Temporal client sources under $ADV_RUNTIME_PLUGIN_PATH/src/temporal"
+		echo "       Run scripts/deploy-local.sh --fix to sync the runtime plugin before the CLI"
+		((cli_issues++)) || true
+	fi
+
+	local resolved_adv=""
+	resolved_adv="$(command -v adv 2>/dev/null || true)"
+	if [ -z "$resolved_adv" ]; then
+		echo "    ✗  PATH: adv not found"
+		echo "       Add $HOME/.local/bin before other adv locations in PATH"
+		((cli_issues++)) || true
+	elif [ "$(readlink -f "$resolved_adv" 2>/dev/null || printf '%s' "$resolved_adv")" != "$(readlink -f "$ADV_CLI_TARGET" 2>/dev/null || printf '%s' "$ADV_CLI_TARGET")" ]; then
+		if [ "$MODE" = "fix" ]; then
+			echo "    ⚠  PATH shadow: command -v adv -> $resolved_adv"
+			echo "       Managed target repaired at $ADV_CLI_TARGET; put $(dirname "$ADV_CLI_TARGET") first in PATH"
+		else
+			echo "    ✗  PATH shadow: command -v adv -> $resolved_adv"
+			echo "       Expected: $ADV_CLI_TARGET; put $(dirname "$ADV_CLI_TARGET") first in PATH"
+			((cli_issues++)) || true
+		fi
+	else
+		echo "    ✓  PATH: adv resolves to managed target"
+	fi
+
+	if [ -e "$ADV_CLI_TARGET" ] || [ -L "$ADV_CLI_TARGET" ]; then
+		if verify_adv_cli_live_json; then
+			echo "    ✓  status JSON: live Temporal metadata"
+		else
+			echo "    ✗  status JSON: installed adv did not emit live Temporal metadata"
+			echo "       Expected source:\"temporal\" and no disk-only schema_version:1 readiness"
+			((cli_issues++)) || true
+		fi
+	fi
+}
+
+fix_adv_cli_install() {
+	echo ""
+	echo "==> Deploying ADV CLI"
+
+	if [ ! -f "$ADV_SOURCE_BIN_PATH/adv" ]; then
+		echo "    ✗  Source CLI missing: $ADV_SOURCE_BIN_PATH/adv"
+		return 1
+	fi
+
+	if [ "$DRY_RUN" = true ]; then
+		echo "    dry-run sync: $ADV_SOURCE_BIN_PATH/ -> $ADV_RUNTIME_BIN_PATH/"
+		echo "    dry-run link: $ADV_CLI_TARGET -> $ADV_RUNTIME_BIN_PATH/adv"
+		return 0
+	fi
+
+	check_rsync || return 1
+	mkdir -p "$ADV_RUNTIME_BIN_PATH" "$HOME/.local/bin"
+	rsync -a --delete "$ADV_SOURCE_BIN_PATH/" "$ADV_RUNTIME_BIN_PATH/"
+	chmod +x "$ADV_RUNTIME_BIN_PATH/adv"
+
+	if [ -e "$ADV_CLI_TARGET" ] || [ -L "$ADV_CLI_TARGET" ]; then
+		if ! is_recognized_adv_cli_target "$ADV_CLI_TARGET"; then
+			echo "    ✗  Refusing to overwrite unrelated file: $ADV_CLI_TARGET"
+			echo "       Move it aside manually, then rerun scripts/deploy-local.sh --fix"
+			return 1
+		fi
+		rm -f "$ADV_CLI_TARGET"
+	fi
+
+	ln -s "$ADV_RUNTIME_BIN_PATH/adv" "$ADV_CLI_TARGET"
+	echo "    synced CLI: $ADV_RUNTIME_BIN_PATH"
+	echo "    linked: $ADV_CLI_TARGET -> $ADV_RUNTIME_BIN_PATH/adv"
+	return 0
+}
+
 fix_config() {
 	echo ""
 	echo "--- Config Patching ---"
@@ -943,7 +1134,8 @@ fix_config() {
 # ===========================================================================
 if [ "$MODE" = "check" ]; then
 	check_config
-	if [ "$config_issues" -gt 0 ]; then
+	check_adv_cli_install
+	if [ "$config_issues" -gt 0 ] || [ "$cli_issues" -gt 0 ]; then
 		exit 1
 	fi
 	exit 0
@@ -971,6 +1163,12 @@ else
 	rsync -a --delete "$ADV_SOURCE_PLUGIN_PATH/" "$ADV_RUNTIME_PLUGIN_PATH/"
 	echo "    synced runtime plugin: $ADV_RUNTIME_PLUGIN_PATH"
 fi
+
+# ---------------------------------------------------------------------------
+# 0b. Deploy ADV CLI payload to stable local-share path
+# ---------------------------------------------------------------------------
+fix_adv_cli_exit=0
+fix_adv_cli_install || fix_adv_cli_exit=$?
 
 # ---------------------------------------------------------------------------
 # 1. Ensure global command dir exists
@@ -1264,6 +1462,13 @@ if [ "$MODE" = "fix" ]; then
 else
 	check_config
 fi
+if [ "$DRY_RUN" = true ]; then
+	echo ""
+	echo "--- ADV CLI Install ---"
+	echo "    dry-run: skipped live installed-CLI validation"
+else
+	check_adv_cli_install
+fi
 
 # ===========================================================================
 # Archived local binaries
@@ -1283,7 +1488,15 @@ echo ""
 echo "    Commands in global: $(ls "$GLOBAL_COMMANDS"/adv-*.md 2>/dev/null | wc -l | tr -d ' ')"
 echo "    Agents in global:  $(ls "$GLOBAL_AGENTS"/*.md 2>/dev/null | wc -l | tr -d ' ')"
 echo "    Skills in global:  $(ls -d "$GLOBAL_SKILLS"/adv-*/ 2>/dev/null | wc -l | tr -d ' ')"
-echo "    Local bins:        acp-mux archived/skipped"
+echo "    Local bins:        adv managed at $ADV_CLI_TARGET; acp-mux archived/skipped"
+
+if [ "$fix_adv_cli_exit" -ne 0 ]; then
+	echo "    ADV CLI: ❌ install failed — see message above (exit $fix_adv_cli_exit)"
+elif [ "$cli_issues" -gt 0 ]; then
+	echo "    ADV CLI: ❌ $cli_issues issue(s) — repair PATH or rerun --fix after manual remediation"
+else
+	echo "    ADV CLI: OK"
+fi
 
 if [ "$MODE" = "fix" ]; then
 	if [ "$fix_config_exit" -ne 0 ]; then
@@ -1302,6 +1515,9 @@ fi
 echo "    Restart OpenCode sessions to pick up changes."
 
 # Propagate fix_config exit code so JSONC drift fails the script run.
+if [ "$fix_adv_cli_exit" -ne 0 ]; then
+	exit "$fix_adv_cli_exit"
+fi
 if [ "$MODE" = "fix" ] && [ "$fix_config_exit" -ne 0 ]; then
 	exit "$fix_config_exit"
 fi

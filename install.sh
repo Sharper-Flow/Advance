@@ -117,6 +117,7 @@ tar -xzf "${ASSET}"
 RELEASE_ROOT="${TMP_DIR}/advance-${ADV_VERSION}"
 for required_path in \
 	scripts/deploy-local.sh \
+	bin/adv \
 	plugin/dist/index.js \
 	plugin/package.json \
 	SETUP.md; do

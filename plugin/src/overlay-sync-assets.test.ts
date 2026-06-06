@@ -209,6 +209,14 @@ touch "$PWD/dist/temporal/workflows.js"
         join(fakeBin, "rsync"),
         `#!/usr/bin/env bash
 printf '%s\n' "$*" >> "$FAKE_RSYNC_LOG"
+src=""
+dest=""
+for arg in "$@"; do
+  src="$dest"
+  dest="$arg"
+done
+mkdir -p "$dest"
+cp -a "$src/." "$dest/"
 exit 0
 `,
         { mode: 0o755 },
