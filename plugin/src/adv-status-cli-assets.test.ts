@@ -98,7 +98,7 @@ describe("adv-status CLI bridge command contract", () => {
     expect(requirement?.body).toContain("deploy-local.sh");
     expect(requirement?.body).toContain("$HOME/.local/share/Advance/bin");
     expect(requirement?.body).toContain("$HOME/.local/bin/adv");
-    expect(requirement?.body).toContain("source: \"temporal\"");
+    expect(requirement?.body).toContain('source: "temporal"');
     expect(requirement?.scenarios?.map((scenario) => scenario.id)).toEqual([
       "rq-advCliLocalInstall01.1",
       "rq-advCliLocalInstall01.2",

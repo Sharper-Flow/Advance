@@ -117,10 +117,18 @@ describe("deploy-local.sh", () => {
 
     test("manages local adv CLI install through stable deployed bin tree", () => {
       expect(content).toContain('ADV_SOURCE_BIN_PATH="$ASSET_ROOT/bin"');
-      expect(content).toContain('ADV_RUNTIME_BIN_PATH="$LOCAL_DEPLOY_ROOT/bin"');
-      expect(content).toContain('ADV_CLI_TARGET="${ADV_BIN_LINK:-$HOME/.local/bin/adv}"');
-      expect(content).toContain('rsync -a --delete "$ADV_SOURCE_BIN_PATH/" "$ADV_RUNTIME_BIN_PATH/"');
-      expect(content).toContain('ln -s "$ADV_RUNTIME_BIN_PATH/adv" "$ADV_CLI_TARGET"');
+      expect(content).toContain(
+        'ADV_RUNTIME_BIN_PATH="$LOCAL_DEPLOY_ROOT/bin"',
+      );
+      expect(content).toContain(
+        'ADV_CLI_TARGET="${ADV_BIN_LINK:-$HOME/.local/bin/adv}"',
+      );
+      expect(content).toContain(
+        'rsync -a --delete "$ADV_SOURCE_BIN_PATH/" "$ADV_RUNTIME_BIN_PATH/"',
+      );
+      expect(content).toContain(
+        'ln -s "$ADV_RUNTIME_BIN_PATH/adv" "$ADV_CLI_TARGET"',
+      );
       expect(content).toContain("is_recognized_adv_cli_target");
       expect(content).toContain("PATH shadow");
       expect(content).toContain('"source"[[:space:]]*:[[:space:]]*"temporal"');
