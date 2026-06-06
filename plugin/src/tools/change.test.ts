@@ -34,6 +34,10 @@ const mocks = vi.hoisted(() => {
     querySignal: vi.fn(),
     getChangeHandle: vi.fn(() => handleMock),
     removeChangeDir: vi.fn(async () => {}),
+    saveRecoveredChangeStatus: vi.fn(async ({ change, status }) => ({
+      ...change,
+      status,
+    })),
     sweepClosedChangesFromDisk: vi.fn(async () => ({
       removed: [] as string[],
       failed: [] as Array<{ id: string; error: string }>,
@@ -77,6 +81,16 @@ vi.mock("../storage/json", async () => {
 vi.mock("../storage/disk-sweep", () => ({
   sweepClosedChangesFromDisk: mocks.sweepClosedChangesFromDisk,
 }));
+
+vi.mock("./_recovery-writers", async () => {
+  const actual = await vi.importActual<typeof import("./_recovery-writers")>(
+    "./_recovery-writers",
+  );
+  return {
+    ...actual,
+    saveRecoveredChangeStatus: mocks.saveRecoveredChangeStatus,
+  };
+});
 
 vi.mock("../integrations/gh-cli", () => ({
   execGh: mocks.execGh,
@@ -932,6 +946,96 @@ describe("change tools — signal-driven lifecycle", () => {
       expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
       expect(mocks.removeChangeDir).not.toHaveBeenCalled();
     });
+
+    test("rejects close recovery without precise evidence", async () => {
+      const store = createMockStore();
+
+      const result = await changeTools.adv_change_close.execute(
+        {
+          changeId: "test-change",
+          reason: "not_planned",
+          approvedByUser: true,
+          approvalEvidence: "user confirmed",
+          recoveryMode: "poisoned_history",
+          recoveryEvidence: "something went wrong",
+        } as Parameters<typeof changeTools.adv_change_close.execute>[0],
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.error).toContain("recoveryEvidence");
+      expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+      expect(mocks.saveRecoveredChangeStatus).not.toHaveBeenCalled();
+    });
+
+    test("does not recover completed-workflow close failure without recoveryMode", async () => {
+      const store = createMockStore();
+      mocks.fireSignalAndRefresh.mockRejectedValueOnce(
+        Object.assign(new Error("workflow execution already completed"), {
+          name: "WorkflowExecutionAlreadyCompleted",
+        }),
+      );
+
+      const result = await changeTools.adv_change_close.execute(
+        {
+          changeId: "test-change",
+          reason: "not_planned",
+          approvedByUser: true,
+          approvalEvidence: "user confirmed",
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.error).toContain("workflow execution already completed");
+      expect(mocks.saveRecoveredChangeStatus).not.toHaveBeenCalled();
+    });
+
+    test("recovers completed-workflow close failure with audited disk projection", async () => {
+      const store = createMockStore();
+      mocks.fireSignalAndRefresh.mockRejectedValueOnce(
+        Object.assign(new Error("workflow execution already completed"), {
+          name: "WorkflowExecutionAlreadyCompleted",
+        }),
+      );
+
+      const result = await changeTools.adv_change_close.execute(
+        {
+          changeId: "test-change",
+          reason: "not_planned",
+          approvedByUser: true,
+          approvalEvidence: "user confirmed stale close",
+          recoveryMode: "poisoned_history",
+          recoveryEvidence:
+            "WorkflowExecutionAlreadyCompleted: workflow execution already completed",
+        } as Parameters<typeof changeTools.adv_change_close.execute>[0],
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.success).toBe(true);
+      expect(parsed._recoveryMutation).toBe(true);
+      expect(mocks.saveRecoveredChangeStatus).toHaveBeenCalledWith(
+        expect.objectContaining({
+          store,
+          change: expect.objectContaining({ id: "test-change" }),
+          status: "closed",
+          closure: expect.objectContaining({
+            reason: "not_planned",
+            approval_evidence: "user confirmed stale close",
+          }),
+          authorization: expect.objectContaining({
+            reason: "completed_workflow_close_recovery",
+            evidence:
+              "WorkflowExecutionAlreadyCompleted: workflow execution already completed",
+          }),
+        }),
+      );
+      expect(mocks.removeChangeDir).toHaveBeenCalledWith(
+        store.paths.changes,
+        "test-change",
+      );
+    });
   });
 
   describe("adv_change_bulk_close", () => {
@@ -1121,6 +1225,65 @@ describe("change tools — signal-driven lifecycle", () => {
       expect(parsed.wouldClose).toEqual(["chg-1", "chg-2"]);
       expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
       expect(mocks.sweepClosedChangesFromDisk).not.toHaveBeenCalled();
+    });
+
+    test("recovers completed-workflow failures per id during bulk close", async () => {
+      const store = createMockStore();
+      store.changes.list = vi.fn(async () => ({
+        changes: [
+          { id: "chg-1", title: "Change 1", status: "draft" },
+          { id: "chg-2", title: "Change 2", status: "draft" },
+        ],
+      }));
+      store.changes.get = vi.fn(async (id: string) => ({
+        success: true,
+        data: {
+          id,
+          title: `Change ${id}`,
+          status: "draft",
+          created_at: "2026-01-01T00:00:00Z",
+          created_by: "test",
+          tasks: [],
+          deltas: {},
+          wisdom: [],
+        } as import("../types").Change,
+      }));
+      mocks.fireSignalAndRefresh.mockRejectedValueOnce(
+        Object.assign(new Error("workflow execution already completed"), {
+          name: "WorkflowExecutionAlreadyCompleted",
+        }),
+      );
+
+      const result = await changeTools.adv_change_bulk_close.execute(
+        {
+          selector: { kind: "explicit", changeIds: ["chg-1", "chg-2"] },
+          reason: "not_planned",
+          approvedByUser: true,
+          approvalEvidence: "user approved bulk close",
+          recoveryMode: "poisoned_history",
+          recoveryEvidence:
+            "WorkflowExecutionAlreadyCompleted: workflow execution already completed",
+        } as Parameters<typeof changeTools.adv_change_bulk_close.execute>[0],
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.success).toBe(true);
+      expect(parsed.closed).toBe(2);
+      expect(parsed.results[0]).toMatchObject({
+        changeId: "chg-1",
+        success: true,
+        recovered: true,
+      });
+      expect(parsed.results[1]).toMatchObject({
+        changeId: "chg-2",
+        success: true,
+      });
+      expect(mocks.saveRecoveredChangeStatus).toHaveBeenCalledTimes(1);
+      expect(mocks.sweepClosedChangesFromDisk).toHaveBeenCalledWith(
+        ["chg-1", "chg-2"],
+        store.paths.changes,
+      );
     });
   });
 

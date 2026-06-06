@@ -841,6 +841,39 @@ describe("tool arg preflight", () => {
       },
       "supersededBy",
     ],
+    [
+      "adv_change_close",
+      {
+        changeId: "c",
+        reason: "cancelled",
+        approvedByUser: true,
+        approvalEvidence: "ok",
+        recoveryEvidence: " ",
+      },
+      "recoveryEvidence",
+    ],
+    [
+      "adv_change_close",
+      {
+        changeId: "c",
+        reason: "cancelled",
+        approvedByUser: true,
+        approvalEvidence: "ok",
+        recoveryMode: " ",
+      },
+      "recoveryMode",
+    ],
+    [
+      "adv_change_bulk_close",
+      {
+        selector: { kind: "explicit", changeIds: ["c"] },
+        reason: "cancelled",
+        approvedByUser: true,
+        approvalEvidence: "ok",
+        recoveryEvidence: " ",
+      },
+      "recoveryEvidence",
+    ],
   ])(
     "normalizes blank placeholder to omitted for %s.%s",
     (toolName, rawArgs, field) => {

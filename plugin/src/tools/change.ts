@@ -1816,6 +1816,103 @@ export async function closeLinkedIssue(options: {
   return { close_eligible: true, issue_closed: [issueNumber] };
 }
 
+type ChangeCloseRecoveryMode = "normal" | "poisoned_history";
+
+interface ChangeClosePayloadInput {
+  approvalEvidence: string;
+  reason: "cancelled" | "superseded" | "not_planned";
+  supersededBy?: string;
+  cancelledAt: string;
+}
+
+function buildChangeClosePayload(input: ChangeClosePayloadInput) {
+  return {
+    approvalEvidence: input.approvalEvidence,
+    reason: input.reason,
+    supersededBy: input.supersededBy,
+    cancelledBy: "agent",
+    cancelledAt: input.cancelledAt,
+  };
+}
+
+function buildChangeClosure(input: ChangeClosePayloadInput): Change["closure"] {
+  return {
+    reason: input.reason,
+    approved_by_user: true,
+    approval_evidence: input.approvalEvidence,
+    approved_at: input.cancelledAt,
+    superseded_by: input.supersededBy,
+  };
+}
+
+async function validateChangeCloseRecoveryArgs(input: {
+  changeId?: string;
+  recoveryMode?: ChangeCloseRecoveryMode;
+  recoveryEvidence?: string;
+}): Promise<Record<string, unknown> | null> {
+  if (input.recoveryMode !== "poisoned_history") return null;
+  const { isPreciseWorkflowRecoveryEvidence } =
+    await import("../temporal/recovery-classification");
+  if (!input.recoveryEvidence?.trim()) {
+    return {
+      error:
+        "change close recovery requires non-empty recoveryEvidence when recoveryMode='poisoned_history'",
+      ...(input.changeId ? { changeId: input.changeId } : {}),
+    };
+  }
+  if (!isPreciseWorkflowRecoveryEvidence(input.recoveryEvidence)) {
+    return {
+      error:
+        "change close recoveryEvidence must cite precise poisoned-history or completed-workflow evidence",
+      ...(input.changeId ? { changeId: input.changeId } : {}),
+    };
+  }
+  return null;
+}
+
+async function recoverCompletedWorkflowClose(input: {
+  store: Store;
+  change: Change;
+  closeInput: ChangeClosePayloadInput;
+  recoveryMode?: ChangeCloseRecoveryMode;
+  recoveryEvidence?: string;
+  signalError: unknown;
+}): Promise<{ recovered: boolean; error?: string }> {
+  if (input.recoveryMode !== "poisoned_history") {
+    return {
+      recovered: false,
+      error:
+        input.signalError instanceof Error
+          ? input.signalError.message
+          : String(input.signalError),
+    };
+  }
+  const { isWorkflowCompletedError } =
+    await import("../temporal/recovery-classification");
+  if (!isWorkflowCompletedError(input.signalError)) {
+    return {
+      recovered: false,
+      error:
+        input.signalError instanceof Error
+          ? input.signalError.message
+          : String(input.signalError),
+    };
+  }
+
+  const { saveRecoveredChangeStatus } = await import("./_recovery-writers");
+  await saveRecoveredChangeStatus({
+    store: input.store,
+    change: input.change,
+    authorization: {
+      reason: "completed_workflow_close_recovery",
+      evidence: input.recoveryEvidence ?? String(input.signalError),
+    },
+    status: "closed",
+    closure: buildChangeClosure(input.closeInput),
+  });
+  return { recovered: true };
+}
+
 // =============================================================================
 // Tool Definitions
 // =============================================================================
@@ -2981,6 +3078,18 @@ export const changeTools = {
         .boolean()
         .optional()
         .describe("Preview close without firing signals or removing files."),
+      recoveryMode: z
+        .enum(["normal", "poisoned_history"])
+        .optional()
+        .describe(
+          "Optional completed-workflow recovery mode. Default 'normal'. 'poisoned_history' authorizes an audited disk-projection close only after the normal signal path fails with completed-workflow evidence; requires recoveryEvidence.",
+        ),
+      recoveryEvidence: z
+        .string()
+        .optional()
+        .describe(
+          "Required when recoveryMode='poisoned_history'. Must cite precise completed-workflow evidence such as WorkflowExecutionAlreadyCompleted, WorkflowNotFoundError, or `workflow execution already completed`.",
+        ),
     },
     execute: async (
       {
@@ -2990,6 +3099,8 @@ export const changeTools = {
         approvalEvidence,
         supersededBy,
         dryRun,
+        recoveryMode,
+        recoveryEvidence,
       }: {
         changeId: string;
         reason: "cancelled" | "superseded" | "not_planned";
@@ -2997,6 +3108,8 @@ export const changeTools = {
         approvalEvidence: string;
         supersededBy?: string;
         dryRun?: boolean;
+        recoveryMode?: ChangeCloseRecoveryMode;
+        recoveryEvidence?: string;
       },
       store: Store,
     ) => {
@@ -3021,6 +3134,15 @@ export const changeTools = {
           changeId,
           hint: "Obtain user approval via question tool, then call adv_change_close with approvalEvidence.",
         });
+      }
+
+      const recoveryValidation = await validateChangeCloseRecoveryArgs({
+        changeId,
+        recoveryMode,
+        recoveryEvidence,
+      });
+      if (recoveryValidation) {
+        return formatToolOutput(recoveryValidation);
       }
 
       if (dryRun) {
@@ -3050,6 +3172,12 @@ export const changeTools = {
           });
         }
         const handle = getChangeHandle(bundle.client, projectId, changeId);
+        const closeInput = {
+          approvalEvidence,
+          reason,
+          supersededBy,
+          cancelledAt: new Date().toISOString(),
+        };
         // rq-cacheRefresh01: refresh AFTER cancel so subsequent reads
         // see the closed/cancelled state, not the stale active state.
         await fireSignalAndRefresh(
@@ -3057,13 +3185,7 @@ export const changeTools = {
           store,
           changeId,
           changeCancelledSignal,
-          {
-            approvalEvidence,
-            reason,
-            supersededBy,
-            cancelledBy: "agent",
-            cancelledAt: new Date().toISOString(),
-          },
+          buildChangeClosePayload(closeInput),
         );
 
         // Remove source `changes/<id>/` directory after successful close.
@@ -3085,6 +3207,39 @@ export const changeTools = {
             : `Closed change ${changeId} as ${reason}.`,
         });
       } catch (error) {
+        const closeInput = {
+          approvalEvidence,
+          reason,
+          supersededBy,
+          cancelledAt: new Date().toISOString(),
+        };
+        const recovery = await recoverCompletedWorkflowClose({
+          store,
+          change: result.data,
+          closeInput,
+          recoveryMode,
+          recoveryEvidence,
+          signalError: error,
+        });
+        if (recovery.recovered) {
+          let cleanupWarning: string | undefined;
+          if (store.paths?.changes) {
+            try {
+              await removeChangeDir(store.paths.changes, changeId);
+            } catch (err) {
+              cleanupWarning = `Source cleanup warning: failed to remove changes/${changeId}: ${err instanceof Error ? err.message : String(err)}`;
+            }
+          }
+          return formatToolOutput({
+            success: true,
+            _recoveryMutation: true,
+            changeId,
+            reason,
+            message: cleanupWarning
+              ? `Closed change ${changeId} as ${reason} via completed-workflow recovery. ${cleanupWarning}`
+              : `Closed change ${changeId} as ${reason} via completed-workflow recovery.`,
+          });
+        }
         const contextMismatch = extractContextMismatch(error);
         return formatToolOutput({
           error: error instanceof Error ? error.message : String(error),
@@ -3121,6 +3276,18 @@ export const changeTools = {
         .describe(
           "Preview bulk close without firing signals or removing files.",
         ),
+      recoveryMode: z
+        .enum(["normal", "poisoned_history"])
+        .optional()
+        .describe(
+          "Optional completed-workflow recovery mode. Default 'normal'. 'poisoned_history' authorizes audited disk-projection close for each selected change only after its normal signal path fails with completed-workflow evidence; requires recoveryEvidence.",
+        ),
+      recoveryEvidence: z
+        .string()
+        .optional()
+        .describe(
+          "Required when recoveryMode='poisoned_history'. Must cite precise completed-workflow evidence such as WorkflowExecutionAlreadyCompleted, WorkflowNotFoundError, or `workflow execution already completed`.",
+        ),
     },
     execute: async (
       {
@@ -3130,6 +3297,8 @@ export const changeTools = {
         approvalEvidence,
         supersededBy,
         dryRun,
+        recoveryMode,
+        recoveryEvidence,
       }: {
         selector: import("../types").BulkCloseSelector;
         reason: "cancelled" | "superseded" | "not_planned";
@@ -3137,6 +3306,8 @@ export const changeTools = {
         approvalEvidence: string;
         supersededBy?: string;
         dryRun?: boolean;
+        recoveryMode?: ChangeCloseRecoveryMode;
+        recoveryEvidence?: string;
       },
       store: Store,
     ) => {
@@ -3161,6 +3332,14 @@ export const changeTools = {
 
       if (!selection.ok) {
         return formatToolOutput({ error: selection.error });
+      }
+
+      const recoveryValidation = await validateChangeCloseRecoveryArgs({
+        recoveryMode,
+        recoveryEvidence,
+      });
+      if (recoveryValidation) {
+        return formatToolOutput(recoveryValidation);
       }
 
       if (selection.changeIds.length === 0) {
@@ -3204,12 +3383,19 @@ export const changeTools = {
           changeId: string;
           success: boolean;
           error?: string;
+          recovered?: boolean;
         }[] = [];
         let closed = 0;
 
         for (const id of selection.changeIds) {
           try {
             const handle = getChangeHandle(bundle.client, projectId, id);
+            const closeInput = {
+              approvalEvidence,
+              reason,
+              supersededBy,
+              cancelledAt: new Date().toISOString(),
+            };
             // rq-cacheRefresh01: refresh per-change after each cancel
             // so subsequent reads of any cancelled change see closed state.
             await fireSignalAndRefresh(
@@ -3217,17 +3403,33 @@ export const changeTools = {
               store,
               id,
               changeCancelledSignal,
-              {
-                approvalEvidence,
-                reason,
-                supersededBy,
-                cancelledBy: "agent",
-                cancelledAt: new Date().toISOString(),
-              },
+              buildChangeClosePayload(closeInput),
             );
             results.push({ changeId: id, success: true });
             closed++;
           } catch (err) {
+            const existing = await store.changes.get(id);
+            if (existing.success && existing.data) {
+              const closeInput = {
+                approvalEvidence,
+                reason,
+                supersededBy,
+                cancelledAt: new Date().toISOString(),
+              };
+              const recovery = await recoverCompletedWorkflowClose({
+                store,
+                change: existing.data,
+                closeInput,
+                recoveryMode,
+                recoveryEvidence,
+                signalError: err,
+              });
+              if (recovery.recovered) {
+                results.push({ changeId: id, success: true, recovered: true });
+                closed++;
+                continue;
+              }
+            }
             results.push({
               changeId: id,
               success: false,

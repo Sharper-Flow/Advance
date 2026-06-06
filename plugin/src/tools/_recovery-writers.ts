@@ -165,9 +165,14 @@ export async function saveRecoveredChangeStatus(input: {
   change: Change;
   authorization: RecoveryWriteAuthorization;
   status: Change["status"];
+  closure?: Change["closure"];
 }): Promise<Change> {
   assertRecoveryAuthorization(input.authorization);
-  const updated = { ...input.change, status: input.status } as Change;
+  const updated = {
+    ...input.change,
+    status: input.status,
+    ...(input.closure ? { closure: input.closure } : {}),
+  } as Change;
   await saveChange(input.store.paths.changes, updated);
   return updated;
 }

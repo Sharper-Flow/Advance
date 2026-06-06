@@ -141,10 +141,16 @@ const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
   adv_change_bulk_close: {
     approvalEvidence: { blank: "reject" }, // audit
     supersededBy: { blank: "omit" }, // optional reference
+    // Contextually-validated: handler checks only when recoveryMode=poisoned_history.
+    recoveryMode: { blank: "omit" },
+    recoveryEvidence: { blank: "omit" },
   },
   adv_change_close: {
     approvalEvidence: { blank: "reject" }, // audit
     supersededBy: { blank: "omit" }, // optional reference
+    // Contextually-validated: handler checks only when recoveryMode=poisoned_history.
+    recoveryMode: { blank: "omit" },
+    recoveryEvidence: { blank: "omit" },
   },
   adv_task_cancel: {
     approvalEvidence: { blank: "reject" }, // audit
