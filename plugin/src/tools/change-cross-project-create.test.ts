@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
+import { tmpdir } from "node:os";
 
 import { changeTools } from "./change";
 import { parseToolOutput } from "../__tests__/setup";
@@ -8,6 +9,9 @@ import type { Store } from "../storage/store";
 const mocks = vi.hoisted(() => ({
   withTargetPathStore: vi.fn(),
 }));
+
+const SOURCE_ROOT = `${tmpdir()}/adv-cross-project-create-source`;
+const TARGET_ROOT = `${tmpdir()}/adv-cross-project-create-target`;
 
 vi.mock("./target-project", async () => {
   const actual =
@@ -32,7 +36,7 @@ function makeSourceStore(): Store {
   };
 
   return {
-    paths: { root: "/repo/source", changes: "/state/source/changes" },
+    paths: { root: SOURCE_ROOT, changes: "/state/source/changes" },
     config: { name: "source-project" } as never,
     init: vi.fn(),
     sync: vi.fn(),
@@ -73,7 +77,7 @@ describe("adv_change_create cross-project Temporal routing", () => {
     mocks.withTargetPathStore.mockImplementationOnce(async (_input, fn) =>
       fn({
         context: {
-          root: "/repo/target",
+          root: TARGET_ROOT,
           projectId: "target-project-id",
           externalRoot: "/state/target",
           trusted: false,
@@ -90,7 +94,7 @@ describe("adv_change_create cross-project Temporal routing", () => {
         summary: "Add target followup",
         capability: "advance-meta",
         proposal: "Implement target work.",
-        target_path: "/repo/target",
+        target_path: TARGET_ROOT,
         target_confirmed: true,
         confirmationEvidence: "user approved target mutation",
         source_change_id: "sourceChange",
@@ -101,8 +105,8 @@ describe("adv_change_create cross-project Temporal routing", () => {
 
     expect(mocks.withTargetPathStore).toHaveBeenCalledWith(
       expect.objectContaining({
-        currentProjectPath: "/repo/source",
-        target_path: "/repo/target",
+        currentProjectPath: SOURCE_ROOT,
+        target_path: TARGET_ROOT,
         stateRequirement: "temporal-required",
         target_confirmed: true,
         confirmationEvidence: "user approved target mutation",
@@ -116,7 +120,7 @@ describe("adv_change_create cross-project Temporal routing", () => {
         initialMetadata: {
           cross_project_origin: expect.objectContaining({
             source_project: "source-project",
-            source_path: "/repo/source",
+            source_path: SOURCE_ROOT,
             source_change_id: "sourceChange",
           }),
         },
@@ -136,7 +140,7 @@ describe("adv_change_create cross-project Temporal routing", () => {
     );
     expect(parsed).toMatchObject({
       changeId: "addTargetFollowup",
-      target_path: "/repo/target",
+      target_path: TARGET_ROOT,
       _projectContext: { stateMode: "temporal" },
     });
   });
@@ -151,7 +155,7 @@ describe("adv_change_create cross-project Temporal routing", () => {
     mocks.withTargetPathStore.mockImplementationOnce(async (_input, fn) =>
       fn({
         context: {
-          root: "/repo/target",
+          root: TARGET_ROOT,
           projectId: "target-project-id",
           externalRoot: "/state/target",
           trusted: false,
@@ -167,7 +171,7 @@ describe("adv_change_create cross-project Temporal routing", () => {
       {
         summary: "Add failing target",
         capability: "advance-meta",
-        target_path: "/repo/target",
+        target_path: TARGET_ROOT,
         target_confirmed: true,
         confirmationEvidence: "user approved target mutation",
         source_change_id: "sourceChange",
