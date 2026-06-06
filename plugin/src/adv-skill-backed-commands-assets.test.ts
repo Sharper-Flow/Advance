@@ -786,8 +786,10 @@ describe("advisory line ceiling baselines", () => {
     // Invocation. The paragraph documents provider-asymmetric preflight
     // normalization behavior that future maintainers need to see; it cites
     // Vercel AI SDK #12200 inline.
+    // 2026-06-06: bumped 960 → 980 after release/worktree protocol docs grew
+    // with structural archive finalization and worktree isolation guidance.
     // Ratchet up only when adding intentional documented content.
-    const failThreshold = 960;
+    const failThreshold = 980;
 
     if (lines > warnThreshold) {
       console.warn(
