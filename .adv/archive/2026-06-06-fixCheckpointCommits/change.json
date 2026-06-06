@@ -1,0 +1,1000 @@
+{
+  "id": "fixCheckpointCommits",
+  "title": "Fix checkpoint commits",
+  "status": "archived",
+  "created_at": "2026-06-06T22:34:37.695Z",
+  "tasks": [
+    {
+      "id": "tk-17d313e1402e",
+      "title": "Implement Conventional Commit checkpoint message generation",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-06-06T22:49:19.264Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7",
+          "SC1",
+          "SC2",
+          "SC3"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT5",
+          "OOS1",
+          "OOS2",
+          "OOS3"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-06T23:00:55.789Z",
+      "verification": "RED: pnpm exec vitest run src/tools/checkpoint.test.ts failed against old task(...) subjects. GREEN: pnpm exec vitest run src/tools/checkpoint.test.ts passed (19 tests). Implemented chore(adv) checkpoint subjects, Reason body field, and deterministic invalid/overlength task ID rejection.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/checkpoint.test.ts",
+        "plugin/src/tools/checkpoint.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/checkpoint.test.ts",
+        "plugin/src/tools/checkpoint.ts"
+      ],
+      "checkpointSha": "263dcdfebbecd535391dbc874304f9aa3cfac100",
+      "completedAt": "2026-06-06T23:05:33.873Z",
+      "completed_at": "2026-06-06T23:05:33.873Z"
+    },
+    {
+      "id": "tk-35c47729db58",
+      "title": "Update checkpoint subject specs and documentation",
+      "type": "code",
+      "section": "Specs and docs",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-06-06T22:49:35.110Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-17d313e1402e"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC8",
+          "AC9"
+        ],
+        "verifies": [
+          "AC8",
+          "AC9"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "OOS1",
+          "OOS2",
+          "OOS3",
+          "OOS4"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-06T23:05:49.139Z",
+      "verification": "Updated ADV checkpoint docs/spec law from task(...) subjects to chore(adv) complete/cancel subjects. Added cancel Reason body requirement. Repaired advance-delivery spec metadata for requirements[18-22] with merged_from. Verified worktree SpecSchema parse via pnpm exec tsx and lgrep scans found no stale generated subject examples `task(tk-xxxx): ...` or `task({taskId}): {mode}` in active docs/spec/source comments. Note: live adv_spec show reads canonical session root, not isolated worktree, so it still reflects trunk until branch integration/deploy.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".adv/specs/advance-delivery/spec.json",
+        "ADV_INSTRUCTIONS.md",
+        "docs/specs/advance-delivery.md"
+      ],
+      "touched_files": [
+        ".adv/specs/advance-delivery/spec.json",
+        "ADV_INSTRUCTIONS.md",
+        "docs/specs/advance-delivery.md"
+      ],
+      "checkpointSha": "fbd36ff080c810df5a8ce8755f8144972dca85cc",
+      "completedAt": "2026-06-06T23:08:28.184Z",
+      "completed_at": "2026-06-06T23:08:28.184Z"
+    },
+    {
+      "id": "tk-2a1266b3a013",
+      "title": "Verify checkpoint commit contract end to end",
+      "type": "code",
+      "section": "Verification",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-06-06T22:49:48.021Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-17d313e1402e"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-35c47729db58"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [],
+        "verifies": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7",
+          "AC8",
+          "AC9",
+          "AC10"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "OOS1",
+          "OOS2",
+          "OOS3",
+          "OOS4"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-06T23:08:46.992Z",
+      "verification": "End-to-end verification passed: pnpm exec vitest run src/tools/checkpoint.test.ts (19 tests) passed; worktree SpecSchema parse for .adv/specs/advance-delivery/spec.json passed (advance-delivery 23 requirements); stale subject scan found no task(tk-xxxx), task({taskId}): {mode}, or task(${taskId}) generated subject forms; bin/oc-test smoke passed including format, schemas:check, typecheck, lockfile/isolation checks, lint, format:check, and 2 smoke test files / 39 tests.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "fbd36ff080c810df5a8ce8755f8144972dca85cc",
+      "completedAt": "2026-06-06T23:10:20.092Z",
+      "completed_at": "2026-06-06T23:10:20.092Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "fixCheckpointCommits",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation for Conventional Commit checkpoint subjects",
+      "sources": [
+        {
+          "label": "Conventional Commits 1.0.0 spec",
+          "locator": "https://www.conventionalcommits.org/en/v1.0.0/",
+          "summary": "Format <type>[optional scope]: <description>. Types beyond feat/fix (e.g. chore) allowed (item 14) and have no implicit SemVer effect unless BREAKING CHANGE (FAQ/SemVer). Footer tokens follow git-trailer convention (items 6-9); token MUST use '-' for whitespace except BREAKING CHANGE."
+        },
+        {
+          "label": "Live spec law rq-cc03.1 (advance-delivery/spec.json L454-467)",
+          "locator": "/home/jon/dev/advance/.adv/specs/advance-delivery/spec.json",
+          "summary": "Current law mandates subject 'task({taskId}): {mode}' and body Change/Task/Mode/Verification with multiple -m args. KD1/KD4 must overwrite the subject clause; body fields already match objective 2."
+        },
+        {
+          "label": "Current implementation buildCommitMessage (checkpoint.ts)",
+          "locator": "/home/jon/dev/advance/plugin/src/tools/checkpoint.ts",
+          "summary": "Emits subject 'task(${taskId}): cancel — ${reason}' / 'task(${taskId}): completed' with SUBJECT_MAX_LEN=72, CANCEL_REASON_MAX_LEN=64; truncates reason into subject. Body fields Change/Task/Mode/Verification already present. Confirms the bug and the truncation pattern KD2/KD3 target."
+        },
+        {
+          "label": "adv_spec show advance-delivery parse failure",
+          "locator": "adv_spec action=show capability=advance-delivery",
+          "summary": "Tool returned Zod parse error: requirements[18-22].meta.merged_from expected string received undefined. Confirms AC9/KD4 spec parse drift is live and blocks adv_spec show validation."
+        }
+      ],
+      "architecture_assessment": "Design is correct, minimal, and spec-aware. KD1 (fixed chore(adv) prefix) is directly supported by Conventional Commits 1.0.0: chore is a valid non-feat/fix type with no SemVer effect absent BREAKING CHANGE, satisfying objective 4 (release-neutral) without repo-policy heuristics (DDC4/avoidance respected). KD2 (Reason in body) aligns with the git-trailer footer convention and removes the current subject truncation (verified in buildCommitMessage). Body audit fields already exist in the implementation, so objective 2 is preserved with no metadata loss. KD4 spec drift is real: adv_spec show advance-delivery currently fails to parse due to missing meta.merged_from strings on requirements[18-22], so AC9 repair is genuinely required, not speculative. rq-cc03.1's existing subject clause ('task({taskId}): {mode}') directly contradicts the new contract and MUST be rewritten — this is the one hard spec touch, correctly scoped in KD4.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "No conflicts. Two cautions: (1) verify 'Reason:' stays a single-word footer token (CC spec item 9 requires '-' for whitespace in tokens; 'Reason' is fine, but if any multi-word body label is added it must hyphenate). (2) KD3/DDC3 length guard: with fixed prefix 'chore(adv): checkpoint ' (~23 chars) + task ID, normal ADV task IDs (tk-XXXXXXXX, ~11 chars) yield ~34-char subjects, far under 72 — so deterministic rejection is effectively a guard for pathological/overlength IDs only; ensure the guard rejects rather than truncates to satisfy AC3 and avoid misleading audit refs."
+      },
+      "recommendation": "VALIDATED — proceed with the design as written. All four KDs are evidence-backed: chore(adv) is canonical and release-neutral per Conventional Commits 1.0.0, the Reason-in-body move follows the git-trailer footer convention, and the rq-cc03.1 subject rewrite plus the meta.merged_from parse-repair (AC9) are both confirmed necessary against the live spec. No materially simpler alternative exists that still satisfies objective 1 (CC-compatible subjects) — keeping the old 'task(...)' form is the only simpler path and it is precisely the bug. Minor follow-ups: keep body footer tokens single-word/hyphenated per CC item 9, and ensure KD3 rejects overlength subjects deterministically rather than truncating task IDs (AC3/DDC3). Bound the spec edit to the rq-cc03.1 subject clause and the malformed meta.merged_from fields only, per the design's stated scope.",
+      "follow_ups": [
+        "Confirm KD3 guard path rejects (not truncates) overlength subject inputs to satisfy AC3/DDC3.",
+        "When rewriting rq-cc03.1, update both complete and cancel subject regex examples and ensure no other advance-delivery scenario references the old 'task({taskId})' subject form (AC8)."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixCheckpointCommits",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixCheckpointCommits",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [
+        {
+          "file": "plugin/src/tools/checkpoint.ts",
+          "summary": "Fixed AC5 edge case: dirty-tree commit message generation now passes effectiveChangeId into buildCommitMessage, so explicit caller-provided changeId is included in the `Change:` body field when task lookup cannot derive one.",
+          "verification": "pnpm --dir plugin exec vitest run src/tools/checkpoint.test.ts passed: 20 tests."
+        },
+        {
+          "file": "plugin/src/tools/checkpoint.test.ts",
+          "summary": "Added regression coverage for explicit changeId fallback in cancel checkpoint commits when task lookup is unavailable, asserting `Change: explicit-change` appears in the commit body.",
+          "verification": "pnpm --dir plugin exec vitest run src/tools/checkpoint.test.ts passed: 20 tests; bin/oc-test smoke passed."
+        }
+      ],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "pnpm --dir plugin exec vitest run src/tools/checkpoint.test.ts (first run failed on new test setup: mocked branch did not match explicit changeId guard)",
+          "pnpm --dir plugin exec vitest run src/tools/checkpoint.test.ts (rerun passed: 20 tests)",
+          "bin/oc-test smoke (passed: schemas:check, typecheck, isolation/lockfile checks, lint, format:check, 2 smoke test files / 39 tests)",
+          "pnpm --dir plugin exec tsx -e \"import { readFileSync } from 'node:fs'; import { SpecSchema } from './src/types'; const spec=SpecSchema.parse(JSON.parse(readFileSync('../.adv/specs/advance-delivery/spec.json','utf8'))); console.log(spec.id + ' ' + spec.requirements.length + ' requirements');\" (passed: parsed 23 requirements)",
+          "lgrep_search_text stale subject scans for `task(tk-` and `task({taskId}): {mode}` (passed: 0 results)"
+        ],
+        "results": "pass",
+        "evidence": "Contract traceability: AC1/AC2 implemented at plugin/src/tools/checkpoint.ts:276-279 and tested at plugin/src/tools/checkpoint.test.ts:241-279, 289-323, 510-539. AC3 implemented at checkpoint.ts:270-285 and tested at checkpoint.test.ts:281-285. AC4-AC7 body fields implemented at checkpoint.ts:287-292; AC5 edge fallback fixed at checkpoint.ts:755-760 and covered at checkpoint.test.ts:541-572. Docs/spec consistency verified at docs/specs/advance-delivery.md:441-455, .adv/specs/advance-delivery/spec.json:454-468, ADV_INSTRUCTIONS.md:381-384. Security review: git uses argv execFile path and hardened env at checkpoint.ts:100-137; no shell interpolation added. Scope conformance: only scoped files modified, no agreement drift."
+      },
+      "scope_drift": null,
+      "risks": [
+        "`adv_run_test` evidence recording was attempted but failed because Context Packet TASK `review-change` is not a durable ADV task id; verification was run with bash in the provided workdir instead.",
+        "Full-suite failure from task evidence remains caveated as out-of-scope baseline failures (deploy-local prompt/spec-doc drift; temporal/messages signal-surface drift).",
+        "Live `adv_spec show` in root may still reflect trunk until branch integration/deploy, per task evidence."
+      ],
+      "required_main_agent_actions": [
+        "Include reviewer-applied AC5 edge-case fix in acceptance evidence before completing review.",
+        "Do not revisit unrelated baseline full-suite failures for this change unless orchestrator expands scope."
+      ],
+      "consumer_warnings": [
+        {
+          "kind": "verification_mismatch",
+          "message": "Task-scoped submit with TASK review-change was rejected as INVALID_TASK_ANCHOR; submitted as change-scoped review:acceptance per tool guidance. Shell verification commands passed in scoped workdir."
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixCheckpointCommits",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixCheckpointCommits",
+      "scope": {
+        "kind": "change",
+        "scope_key": "harden:release"
+      },
+      "agent": "adv-reviewer",
+      "phase": "harden",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "test -e plugin/src/tools/checkpoint.ts plugin/src/tools/checkpoint.test.ts ADV_INSTRUCTIONS.md docs/specs/advance-delivery.md .adv/specs/advance-delivery/spec.json",
+          "pnpm --dir plugin exec vitest run src/tools/checkpoint.test.ts",
+          "rg -n \"task\\(tk-|task\\(\\{taskId\\}\\): \\{mode\\}\" plugin/src ADV_INSTRUCTIONS.md docs/specs/advance-delivery.md .adv/specs/advance-delivery/spec.json",
+          "node --input-type=module -e \"...parse .adv/specs/advance-delivery/spec.json...\"",
+          "git diff --check",
+          "bin/oc-test smoke",
+          "git status --short"
+        ],
+        "results": "pass",
+        "evidence": "Path preflight OK. Targeted checkpoint suite passed: 1 file, 20 tests. Stale subject scan returned 0 matches. Spec JSON parsed with 23 requirements. git diff --check clean. Smoke passed: schemas:check, typecheck, isolation/lockfile checks, lint, format:check, and 2 test files / 39 tests. Final dirty status limited to plugin/src/tools/checkpoint.ts and plugin/src/tools/checkpoint.test.ts reviewer remediation. Initial task-scoped submit failed INVALID_TASK_ANCHOR because packet TASK harden-change is not an existing ADV task, so this persisted as independent harden:release summary per tool guidance."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Full suite not rerun in this harden pass because known deploy-local.test and temporal/messages.test failures were reproduced on main checkout and explicitly marked out-of-scope.",
+        "Live deployed plugin behavior not revalidated in-session; ADV source-vs-dist reload gotcha still requires build/deploy/restart before runtime tool behavior can reflect source edits.",
+        "Context packet used synthetic TASK harden-change; tool rejected task-scoped report with valid anchors tk-17d313e1402e, tk-35c47729db58, tk-2a1266b3a013. Report persisted as change-scoped harden summary."
+      ],
+      "required_main_agent_actions": [
+        "Proceed with release packaging/merge steps for fixCheckpointCommits if no newer review findings appear.",
+        "Before live ADV runtime validation, build/deploy plugin and restart OpenCode per source-vs-dist reload guidance.",
+        "If orchestrator requires task-scoped remediation evidence, respawn with one of the valid task anchors or update packet generation to use change-scoped harden summaries for synthetic release lanes."
+      ],
+      "consumer_warnings": [
+        {
+          "kind": "consumer_failure",
+          "message": "Initial task-scoped submit failed INVALID_TASK_ANCHOR for synthetic TASK harden-change; retried as change-scoped harden:release summary per tool guidance."
+        }
+      ]
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-06-06T22:37:48.875Z",
+      "completed_by": "adv-proposal",
+      "approval_evidence": "Problem statement approved by user in chat: \"approve\". Proposal updated with scope, user outcomes, context, and discovery agenda.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixCheckpointCommits/proposal.md",
+        "content_hash": "2ba958fcf7a83ab95c9001f1aee30da6aab255a9e98928648d5a45edb6773ff2",
+        "non_whitespace_chars": 3796,
+        "checked_at": "2026-06-06T22:34:37.737Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-06-06T22:43:39.950Z",
+      "completed_by": "adv-discover",
+      "approval_evidence": "Discovery completed. User approved success and acceptance criteria in chat: \"approve\". Agreement persisted and contract minted with 27 items.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixCheckpointCommits/agreement.md",
+        "content_hash": "b774da72d7a492d1f1cdb430909af4a7f675df715123e67bb69dc6723a3d168f",
+        "non_whitespace_chars": 3542,
+        "checked_at": "2026-06-06T22:34:37.738Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-06-06T22:46:52.975Z",
+      "completed_by": "adv-design",
+      "approval_evidence": "Design recorded. Validator verdict VALIDATED with caution: update rq-cc03.1 and repair advance-delivery meta.merged_from parse drift. No user-value tradeoff or contract-compromise risk; proceed to planning.",
+      "artifact_evidence": {
+        "kind": "design",
+        "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixCheckpointCommits/design.md",
+        "content_hash": "bb20b9f77a3fabbb8a937e7c36c5a0f62b8e6900bc520c949909640f7911223a",
+        "non_whitespace_chars": 6623,
+        "checked_at": "2026-06-06T22:34:37.739Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-06-06T23:00:17.862Z",
+      "completed_by": "adv-prep",
+      "approval_evidence": "Prep approved by user in chat: \"approve\". Task graph created with 3 tasks: implementation, specs/docs, verification; contract refs assigned; worktree resumed for implementation."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-06-06T23:13:35.729Z",
+      "completed_by": "adv-apply",
+      "approval_evidence": "Execution complete: 3/3 tasks done. Targeted checkpoint tests passed; spec schema parse passed in worktree; stale subject scan passed; bin/oc-test smoke passed; pnpm --dir plugin run build passed. Full suite run failed only on pre-existing baseline failures also reproduced on main checkout: deploy-local.test prompt/spec-doc drift and temporal/messages signal-surface drift."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-06-06T23:26:48.595Z",
+      "completed_by": "adv-review",
+      "approval_evidence": "User accepted delivered work in chat: `accept`. Review verdict READY/APPROVED with 0 blockers/issues. Contract review matrix persisted with 27 rows passed/respected, 0 failed/unknown. Executive summary persisted and workflow-visible. Preview URL not_applicable: visual_surface false; backend/tooling docs/spec/test work only. Caveat: unrelated full-suite baseline failures reproduced on main checkout remain outside scope.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixCheckpointCommits/executive-summary.md",
+        "content_hash": "f8939938c4e3417f53c0e94e8a4778c59220275d5526e561cdb4ecef7174143b",
+        "non_whitespace_chars": 1787,
+        "checked_at": "2026-06-06T22:34:37.740Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "cross_project_origin": {
+    "source_project": "sharperflow-security-gates",
+    "source_path": "/home/jon/dev/sharperflow-security-gates",
+    "linked_at": "2026-06-06T22:34:36.288Z"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "b774da72d7a492d1f1cdb430909af4a7f675df715123e67bb69dc6723a3d168f",
+      "approvedAt": "2026-06-06T22:43:34.886Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "ADV-generated checkpoint commits pass standard Conventional Commit header checks without repo-specific exceptions.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b774da72d7a492d1f1cdb430909af4a7f675df715123e67bb69dc6723a3d168f",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "Checkpoint commits remain release-neutral by default: `chore(adv)` subject, no semver bump intent.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b774da72d7a492d1f1cdb430909af4a7f675df715123e67bb69dc6723a3d168f",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "Audit trace remains visible in commit body: change ID when available, task ID, mode, verification, and cancel reason when present.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b774da72d7a492d1f1cdb430909af4a7f675df715123e67bb69dc6723a3d168f",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "Complete checkpoint dirty-tree commit subject matches `^chore\\(adv\\): checkpoint tk-[A-Za-z0-9]+$`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b774da72d7a492d1f1cdb430909af4a7f675df715123e67bb69dc6723a3d168f",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Cancel checkpoint dirty-tree commit subject matches `^chore\\(adv\\): cancel checkpoint tk-[A-Za-z0-9]+$`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b774da72d7a492d1f1cdb430909af4a7f675df715123e67bb69dc6723a3d168f",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Complete and cancel checkpoint subjects are ≤72 chars for valid ADV task IDs, or invalid/overlength input fails deterministically before malformed commit output.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b774da72d7a492d1f1cdb430909af4a7f675df715123e67bb69dc6723a3d168f",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Commit body includes `Task: <task-id>` and `Mode: complete|cancel`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b774da72d7a492d1f1cdb430909af4a7f675df715123e67bb69dc6723a3d168f",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Commit body includes `Change: <change-id>` when available.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b774da72d7a492d1f1cdb430909af4a7f675df715123e67bb69dc6723a3d168f",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Commit body includes `Verification: <summary>` when verification supplied.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b774da72d7a492d1f1cdb430909af4a7f675df715123e67bb69dc6723a3d168f",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "Cancel commit body includes `Reason: <reason>` when reason supplied; cancel reason is not embedded in subject.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b774da72d7a492d1f1cdb430909af4a7f675df715123e67bb69dc6723a3d168f",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC8",
+        "kind": "acceptance_criterion",
+        "text": "ADV checkpoint docs/specs no longer require or cite `task(tk-xxxx): ...` generated subjects.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b774da72d7a492d1f1cdb430909af4a7f675df715123e67bb69dc6723a3d168f",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC9",
+        "kind": "acceptance_criterion",
+        "text": "If `advance-delivery` spec parse drift blocks spec update, malformed metadata is repaired only enough to make `adv_spec show advance-delivery` parse.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b774da72d7a492d1f1cdb430909af4a7f675df715123e67bb69dc6723a3d168f",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC10",
+        "kind": "acceptance_criterion",
+        "text": "Targeted checkpoint tests pass, and repo smoke/check path reports success.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b774da72d7a492d1f1cdb430909af4a7f675df715123e67bb69dc6723a3d168f",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Preserve checkpoint commits; do not remove or bypass checkpointing.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b774da72d7a492d1f1cdb430909af4a7f675df715123e67bb69dc6723a3d168f",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Preserve task completion/cancellation semantics and Temporal signal behavior.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b774da72d7a492d1f1cdb430909af4a7f675df715123e67bb69dc6723a3d168f",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Keep audit metadata machine-readable in commit body text.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b774da72d7a492d1f1cdb430909af4a7f675df715123e67bb69dc6723a3d168f",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Avoid repo-specific commit-policy detection or allowlist heuristics.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b774da72d7a492d1f1cdb430909af4a7f675df715123e67bb69dc6723a3d168f",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Keep generated subject deterministic for valid ADV task IDs.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b774da72d7a492d1f1cdb430909af4a7f675df715123e67bb69dc6723a3d168f",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not drop checkpoint audit metadata.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b774da72d7a492d1f1cdb430909af4a7f675df715123e67bb69dc6723a3d168f",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not require agents to manually squash or rewrite ADV checkpoint commits.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b774da72d7a492d1f1cdb430909af4a7f675df715123e67bb69dc6723a3d168f",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not make correctness depend on heuristic detection of repository commit policy.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b774da72d7a492d1f1cdb430909af4a7f675df715123e67bb69dc6723a3d168f",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not modify `sharperflow-security-gates` in this change.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b774da72d7a492d1f1cdb430909af4a7f675df715123e67bb69dc6723a3d168f",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "Do not rewrite existing branch history or existing checkpoint commits.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b774da72d7a492d1f1cdb430909af4a7f675df715123e67bb69dc6723a3d168f",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "Changing task lifecycle semantics.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b774da72d7a492d1f1cdb430909af4a7f675df715123e67bb69dc6723a3d168f",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "Changing git checkpoint timing or when checkpoints are required.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b774da72d7a492d1f1cdb430909af4a7f675df715123e67bb69dc6723a3d168f",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "Adding repo-specific Conventional Commit policy integration.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b774da72d7a492d1f1cdb430909af4a7f675df715123e67bb69dc6723a3d168f",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS4",
+        "kind": "out_of_scope",
+        "text": "Modifying the originating repository.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b774da72d7a492d1f1cdb430909af4a7f675df715123e67bb69dc6723a3d168f",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-06-06T23:22:18.409Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Targeted checkpoint tests pass: `pnpm --dir plugin exec vitest run src/tools/checkpoint.test.ts` => 20 passed. Subjects asserted as `chore(adv)` complete/cancel.",
+          "notes": "ADV-generated dirty-tree checkpoint subjects conform to Conventional Commit header shape."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Subjects use fixed `chore(adv)` prefix; no BREAKING CHANGE footer or feat/fix type introduced. Reviewer verdict READY.",
+          "notes": "Release-neutral by default."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`buildCommitMessage` body tests assert `Change`, `Task`, `Mode`, `Verification`, and cancel `Reason`; reviewer added explicit changeId fallback regression.",
+          "notes": "Audit trace preserved in body fields."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`checkpoint.test.ts` complete-mode assertions expect `chore(adv): checkpoint tk-AbC123` and regex `^chore\\(adv\\): checkpoint tk-[A-Za-z0-9]+$`; targeted test run passed 20/20.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`checkpoint.test.ts` cancel-mode assertions expect `chore(adv): cancel checkpoint tk-AbC123` and regex `^chore\\(adv\\): cancel checkpoint tk-[A-Za-z0-9]+$`; targeted test run passed 20/20.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`buildCommitMessage` rejects invalid task IDs and overlength subjects before commit; test `rejects task IDs that would produce overlength checkpoint subjects` passed.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Body construction pushes `Task: <task-id>` and `Mode: <mode>`; complete/cancel body tests passed.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Reviewer fix passes `effectiveChangeId` into `buildCommitMessage`; regression `uses explicit changeId in commit body when task lookup cannot derive one` passed.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Complete-mode test asserts `Verification: Tests passed`; targeted test run passed 20/20.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Cancel-mode test asserts `Reason: No longer needed` in body and subject excludes reason; targeted test run passed 20/20.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC8",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "`lgrep_search_text` in worktree found 0 results for stale generated-subject strings `task(tk-` and `task({taskId}): {mode}` after docs/spec updates.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC9",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "Worktree spec parse succeeded with `SpecSchema.parse` for `.adv/specs/advance-delivery/spec.json` and 23 requirements.",
+          "notes": "Live root `adv_spec show` remains trunk-bound until branch integration."
+        },
+        {
+          "contractId": "AC10",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Targeted checkpoint tests passed 20/20. Reviewer-reported `bin/oc-test smoke` passed after remediation; prior execution smoke also passed.",
+          "notes": "Full suite has unrelated baseline failures reproduced on main and excluded by agreement scope."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Checkpoint commits preserved; change only alters commit-message subject/body construction and tests/specs.",
+          "notes": ""
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Temporal/task completion signal behavior unchanged; review diff limited to message construction input and regression test.",
+          "notes": ""
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Audit metadata remains machine-readable body text: Change/Task/Mode/Verification/Reason.",
+          "notes": ""
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No repo-specific commit policy detection added; subject is deterministic fixed `chore(adv)` format.",
+          "notes": ""
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Valid ADV task IDs remain in deterministic subjects; invalid/overlength values fail before commit.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No audit metadata dropped; cancel reason moved to body and explicit changeId fallback fixed.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Generated subjects now satisfy Conventional Commit shape, avoiding manual squash/rewrite for this checkpoint-policy issue.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Correctness is structural via fixed formatter, validation guards, and tests; no heuristic repo-policy detection.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Only Advance worktree files modified; originating `sharperflow-security-gates` repo untouched.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Existing branch history/checkpoint commits were not rewritten; new behavior applies forward.",
+          "notes": ""
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No task lifecycle semantics changed; signal calls remain in existing flow.",
+          "notes": ""
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No checkpoint timing or requirement changes made; only message construction changed.",
+          "notes": ""
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No repo-specific Conventional Commit policy integration added.",
+          "notes": ""
+        },
+        {
+          "contractId": "OOS4",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No files changed in originating repository; work confined to Advance worktree.",
+          "notes": ""
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "Complete checkpoint dirty-tree commit subject matches `^chore\\(adv\\): checkpoint tk-[A-Za-z0-9]+$`.",
+    "Cancel checkpoint dirty-tree commit subject matches `^chore\\(adv\\): cancel checkpoint tk-[A-Za-z0-9]+$`.",
+    "Complete and cancel checkpoint subjects are ≤72 chars for valid ADV task IDs, or invalid/overlength input fails deterministically before malformed commit output.",
+    "Commit body includes `Task: <task-id>` and `Mode: complete|cancel`.",
+    "Commit body includes `Change: <change-id>` when available.",
+    "Commit body includes `Verification: <summary>` when verification supplied.",
+    "Cancel commit body includes `Reason: <reason>` when reason supplied; cancel reason is not embedded in subject.",
+    "ADV checkpoint docs/specs no longer require or cite `task(tk-xxxx): ...` generated subjects.",
+    "If `advance-delivery` spec parse drift blocks spec update, malformed metadata is repaired only enough to make `adv_spec show advance-delivery` parse.",
+    "Targeted checkpoint tests pass, and repo smoke/check path reports success."
+  ],
+  "documents": {
+    "proposal": "## Cross-Project Origin\n\nThis change was created as a follow-up from **sharperflow-security-gates**.\n\n| Field | Value |\n|-------|-------|\n| Source project | sharperflow-security-gates |\n| Source path | `/home/jon/dev/sharperflow-security-gates` |\n\n> **Note:** The originating project should be consulted during discovery for the Conventional Commit gate failure context.\n\n# Proposal: Fix checkpoint commits\n\n## Why\nADV checkpoint commits use `task(...)` subjects that can fail Conventional Commit PR gates. This forces agents/users to squash or rewrite branch history after normal ADV apply work, even though checkpointing is required by ADV workflow policy.\n\n## What Changes\n- Make ADV checkpoint commit subjects compatible with standard Conventional Commit gates.\n- Preserve task/change audit metadata in durable checkpoint commit bodies and task completion state.\n- Update ADV docs and tests so documented checkpoint commit examples match generated output.\n\n## User Outcomes\n- ADV users can complete task checkpointing without repository commit-policy failures caused by ADV-generated subjects.\n- Repository owners keep Conventional Commit enforcement without custom exceptions for ADV checkpoints.\n- Reviewers can still trace checkpoint commits to the ADV change, task, mode, verification summary, and cancel reason when present.\n\n## Affected Code\n- `plugin/src/tools/checkpoint.ts` — checkpoint commit message generation and related inline documentation.\n- `plugin/src/tools/checkpoint.test.ts` or adjacent checkpoint tests — subject/body assertions.\n- `ADV_INSTRUCTIONS.md` — generated checkpoint commit examples.\n- `docs/specs/advance-delivery.md` and `.adv/specs/advance-delivery/spec.json` — checkpoint commit subject law.\n- Any other repo docs found during discovery that cite `task(tk-xxxx): ...` checkpoint subjects.\n\n## Related Repositories\n- Current repo: `advance`.\n- Originating repo: `sharperflow-security-gates`, which surfaced the release friction.\n- No code changes expected in the originating repo for this change.\n\n## Constraints\n- Preserve checkpoint commits; do not remove or bypass checkpointing.\n- Preserve task completion/cancellation semantics and Temporal signal behavior.\n- Keep audit metadata machine-readable in commit body text.\n- Avoid repo-specific commit-policy detection or allowlist heuristics.\n- Keep generated subject deterministic for valid ADV task IDs.\n\n## Scope\n\n### In Scope\n- Change ADV checkpoint commit subject generation.\n- Keep checkpoint commit body metadata for change ID, task ID, mode, verification summary, and cancel reason.\n- Update local tests, docs, and specs that describe generated checkpoint subjects.\n- Verify relevant checkpoint tests and repo smoke/full test path as appropriate.\n\n### Out of Scope\n- Changing task lifecycle semantics.\n- Changing git checkpoint timing or when checkpoints are required.\n- Rewriting existing branch history or existing checkpoint commits.\n- Adding repo-specific Conventional Commit policy integration.\n- Modifying `sharperflow-security-gates`.\n\n### Must Not\n- Do not drop checkpoint audit metadata.\n- Do not require agents to manually squash or rewrite ADV checkpoint commits.\n- Do not make correctness depend on heuristic detection of repository commit policy.\n\n## Impact\n- Reduces release friction for ADV-managed changes in Conventional Commit-gated repositories.\n- Keeps ADV checkpoint behavior deterministic and auditable.\n- Requires test/doc/spec updates near checkpoint commit generation.\n\n## Context\nVerified quick checks:\n- `buildCommitMessage` exists at `plugin/src/tools/checkpoint.ts` and currently emits `task(${taskId}): completed` or `task(${taskId}): cancel — <reason>`.\n- Current `task(tk-...)` examples appear in `plugin/src/tools/checkpoint.ts` and `ADV_INSTRUCTIONS.md`.\n- Checkpoint commit law exists in `docs/specs/advance-delivery.md` under `rq-cc03.1`: `task({taskId}): {mode}`.\n- `adv_spec show advance-delivery` currently fails because several `meta.merged_from` fields are malformed; implementation must still update the tracked spec artifact and may need to repair parse drift.\n- Conventional Commits 1.0.0 uses `<type>[optional scope]: <description>`; `chore(adv): checkpoint tk-abc` fits that structure.\n\n## Discovery Agenda\n- Confirm exact current `buildCommitMessage` behavior and existing test coverage.\n- Confirm valid ADV task ID length/shape and choose structural handling for overlength subjects.\n- Confirm all docs/tests/specs that cite checkpoint subject format.\n- Confirm verification scope: targeted checkpoint tests plus repo smoke/check path needed before acceptance.\n\n## Ambiguity Scan\n- Boundaries: clear. Scope includes in-scope, out-of-scope, and must-not items.\n- Functional scope: clear. User outcomes state desired externally observable effects without engineering acceptance criteria.\n- Completion signals: clear enough for discovery; engineering AC belong in discovery/agreement.\n\n# Discovery Findings\n\n## Discovery Checklist\n\n| Step | Status | Result |\n|---|---:|---|\n| Skill Discovery | PASS | Loaded `adv-agent-tool-contracts` and `adv-ci-release`; both relevant. |\n| Prior Research Extension | PASS | `docs/adv-run-test-prep.md` found but not directly applicable; no checkpoint-specific prior research pack found. |\n| Conflict & Related-Work Scan | PASS | No overlapping active change found. Own-change warnings `NO_TASKS` and `NO_DELTAS` expected pre-prep. Agenda has many unrelated follow-ups; no checkpoint-subject blocker found. |\n| Edge Case Investigation | PASS | Edge cases listed below. |\n| Design Question Depth | PASS | Open questions annotated below. |\n| Draft Spec Delta Shapes | PASS | `rq-cc03.1` needs update; possible parse-drift repair for `advance-delivery` spec. |\n| Related Pattern Scan | PASS | Same-pattern references found in code, docs, and spec mirror. |\n| LBP Check | PASS | Standard Conventional Commit header is best fit; external-solution check skipped because no external tool/library alternative is viable. |\n\n## Skills Considered\n\n| Skill | Match | Action |\n|---|---|---|\n| `adv-agent-tool-contracts` | Relevant: agent-callable `adv_task_checkpoint` behavior and tests | Loaded; apply schema/tool/test/spec checklist. |\n| `adv-ci-release` | Relevant: Conventional Commit gates and release-neutral checkpoint commits | Loaded; prefer conventional subject that does not depend on repo exceptions. |\n| `adv-clarify` | Not needed yet | Discovery questions are concrete and bounded. |\n\n## Extends\n\n- No checkpoint-specific prior research found.\n- `docs/adv-run-test-prep.md` is adjacent only; new finding: this change should use repo-local verification routing and avoid broad `adv_run_test` scope.\n\n## Conflict Scan\n\n- Active changes: no direct checkpoint commit subject overlap found in active ADV changes.\n- Validation: passed with expected pre-prep warnings `NO_TASKS` and `NO_DELTAS`.\n- Agenda: no direct checkpoint subject item identified in visible agenda slice.\n- Lineage: source path `/home/jon/dev/sharperflow-security-gates` exists and matches source project name; user must confirm origin context before agreement persistence.\n\n## Current State\n\n- `plugin/src/tools/checkpoint.ts` generates commit messages in `buildCommitMessage`.\n- Complete subject today: `task(${taskId}): completed` truncated to 72 chars.\n- Cancel subject today: `task(${taskId}): cancel — <reason>`, with reason truncated by subject budget.\n- Commit body today includes `Change`, `Task`, `Mode`, and `Verification` when present.\n- Cancel reason currently lives in subject, not body.\n- Checkpoint tests exercise signal/clean/dirty/error behavior but do not directly assert Conventional Commit subject/body format.\n- Spec mirror `docs/specs/advance-delivery.md` still requires `task({taskId}): {mode}`.\n\n## Edge Cases\n\n1. Overlength task ID or unexpected task ID shape.\n   - Risk: subject exceeds 72 chars or malformed conventional header.\n   - Handling target: deterministic validation/failure or bounded subject construction; no partial malformed header.\n2. Long cancel reason.\n   - Risk: previous reason-in-subject truncation hid full reason.\n   - Handling target: subject excludes reason; body includes `Reason: <reason>` for cancel.\n3. Missing `changeId`.\n   - Risk: body lacks `Change` if derivation fails.\n   - Handling target: preserve current optional behavior unless existing guards require change ID.\n4. Clean tree checkpoint.\n   - Risk: no commit created, so subject logic not exercised.\n   - Handling target: behavior unchanged; tests cover dirty tree commit path for subject/body.\n\n## Open Design Questions\n\n| Question | Trust model | Blast radius | Alternatives | Recommended answer |\n|---|---|---|---|---|\n| Should checkpoint subjects be release-neutral? | Joint: release policy affects users | Wrong answer can suppress or trigger auto-release behavior | `chore(adv)` vs `fix(adv)`/`docs(adv)` | `chore(adv)` so checkpoint commits satisfy gates without causing semver release. |\n| Should cancel reason move to body? | Agent-resolved | Wrong answer can leak long/freeform text into subject | Keep reason in subject vs body | Move to body as `Reason: ...`; subject remains deterministic. |\n| How handle `advance-delivery` spec parse drift? | Agent-resolved, scope-visible | Ignoring law drift can leave `adv_spec` broken | Repair alongside delta vs agenda follow-up | Repair if required to update spec cleanly; keep focused to malformed `meta.merged_from`. |\n| Is origin context expected? | User-only | Wrong context can solve wrong repo pain | Confirm origin vs detach from origin | Ask user before agreement. |\n\n## Draft Spec Deltas\n\n### `rq-cc03.1` — Structured commit message subject compatibility\n\nGiven:\n- A dirty-tree checkpoint succeeds for `complete` or `cancel` mode.\n\nWhen:\n- The commit is created.\n\nThen:\n- The commit subject MUST be a Conventional Commit header with `chore(adv)` type/scope.\n- Complete mode subject MUST match `chore(adv): checkpoint {taskId}` for valid ADV task IDs.\n- Cancel mode subject MUST match `chore(adv): cancel checkpoint {taskId}` for valid ADV task IDs.\n- The body MUST include `Change: {changeId}` when available.\n- The body MUST include `Task: {taskId}`.\n- The body MUST include `Mode: {mode}`.\n- The body MUST include `Reason: {reason}` for cancel mode when a reason is supplied.\n- The body MUST include `Verification: {verification}` when verification is supplied.\n- The message MUST be created with multiple `-m` args for subject + body/trailers.\n\n## Related Pattern Scan\n\nSame-pattern references found:\n- `plugin/src/tools/checkpoint.ts` docstring and `buildCommitMessage` implementation.\n- `ADV_INSTRUCTIONS.md` checkpoint subject documentation.\n- `docs/specs/advance-delivery.md` and `.adv/specs/advance-delivery/spec.json` requirement `rq-cc03.1`.\n- `README.md` discusses checkpoint commits but does not cite the bad subject form.\n\n## LBP Check\n\n- Best fit: fixed Conventional Commit-compatible header `chore(adv): ...` plus structured body metadata.\n- Why: Conventional Commits 1.0.0 supports `<type>[optional scope]: <description>` and optional body. `chore` is a recognized release-neutral type in common auto-release setups.\n- Rejected: repo-specific allowlist detection; it makes correctness heuristic and still leaks policy into ADV checkpointing.\n- External-solution check: skipped; no external tool/library choice is involved.\n\n## Recommended Objectives\n\n1. Emit Conventional Commit-compatible checkpoint subjects for complete and cancel modes.\n2. Preserve machine-readable audit body fields for change ID, task ID, mode, verification, and cancel reason.\n3. Update spec/docs/tests so the generated subject contract is enforced structurally.\n4. Keep checkpoint commits local/auditable and release-neutral by default.\n\n## AMBIGUITY ANALYSIS\n\nCoverage: B:C F:C S:C M:P\n\n| ID | Severity | Category | Evidence | Resolution |\n|---|---|---|---|---|\n| M1 | HIGH | Missing Information | `This change was created as a follow-up from **sharperflow-security-gates**.` | Ask user to confirm origin context. Single HIGH; continue to clarification round. |",
+    "problemStatement": "ADV checkpoint commits use `task(...)` subjects that can fail Conventional Commit PR gates. This forces agents/users to squash or rewrite branch history after normal ADV apply work, even though checkpointing is required by ADV workflow policy.",
+    "agreement": "# Agreement: Fix checkpoint commits\n\n## Objectives\n\n1. Emit Conventional Commit-compatible checkpoint subjects for complete and cancel modes.\n2. Preserve machine-readable audit body fields for change ID, task ID, mode, verification, and cancel reason.\n3. Update spec/docs/tests so generated checkpoint subject contract is enforced structurally.\n4. Keep checkpoint commits local/auditable and release-neutral by default.\n\n## Success Criteria\n\n- ADV-generated checkpoint commits pass standard Conventional Commit header checks without repo-specific exceptions.\n- Checkpoint commits remain release-neutral by default: `chore(adv)` subject, no semver bump intent.\n- Audit trace remains visible in commit body: change ID when available, task ID, mode, verification, and cancel reason when present.\n\n## Acceptance Criteria\n\n- AC1: Complete checkpoint dirty-tree commit subject matches `^chore\\(adv\\): checkpoint tk-[A-Za-z0-9]+$`.\n- AC2: Cancel checkpoint dirty-tree commit subject matches `^chore\\(adv\\): cancel checkpoint tk-[A-Za-z0-9]+$`.\n- AC3: Complete and cancel checkpoint subjects are ≤72 chars for valid ADV task IDs, or invalid/overlength input fails deterministically before malformed commit output.\n- AC4: Commit body includes `Task: <task-id>` and `Mode: complete|cancel`.\n- AC5: Commit body includes `Change: <change-id>` when available.\n- AC6: Commit body includes `Verification: <summary>` when verification supplied.\n- AC7: Cancel commit body includes `Reason: <reason>` when reason supplied; cancel reason is not embedded in subject.\n- AC8: ADV checkpoint docs/specs no longer require or cite `task(tk-xxxx): ...` generated subjects.\n- AC9: If `advance-delivery` spec parse drift blocks spec update, malformed metadata is repaired only enough to make `adv_spec show advance-delivery` parse.\n- AC10: Targeted checkpoint tests pass, and repo smoke/check path reports success.\n\n## Constraints\n\n- Preserve checkpoint commits; do not remove or bypass checkpointing.\n- Preserve task completion/cancellation semantics and Temporal signal behavior.\n- Keep audit metadata machine-readable in commit body text.\n- Avoid repo-specific commit-policy detection or allowlist heuristics.\n- Keep generated subject deterministic for valid ADV task IDs.\n\n## Avoidances\n\n- Do not drop checkpoint audit metadata.\n- Do not require agents to manually squash or rewrite ADV checkpoint commits.\n- Do not make correctness depend on heuristic detection of repository commit policy.\n- Do not modify `sharperflow-security-gates` in this change.\n- Do not rewrite existing branch history or existing checkpoint commits.\n\n## Out of Scope\n\n- Changing task lifecycle semantics.\n- Changing git checkpoint timing or when checkpoints are required.\n- Adding repo-specific Conventional Commit policy integration.\n- Modifying the originating repository.\n\n## Preview Applicability\n\n`visual_surface: false`\n\nRationale: change affects TypeScript tool behavior, specs, tests, and documentation. No browser-visible UI or visual output surface.\n\n## Decisions\n\n### User Decisions\n\n- Origin context: use `sharperflow-security-gates` as source context for the checkpoint-commit friction; make no changes there.\n- Release behavior: no preference; ADV chooses release-neutral behavior from evidence.\n- Spec repair: repair malformed `advance-delivery` spec metadata only if needed to update checkpoint subject law.\n- Criteria: user approved the listed success and acceptance criteria.\n\n### Agent Decisions (LBP)\n\n- Use `chore(adv)` as fixed Conventional Commit type/scope. Conventional Commits 1.0.0 supports `<type>[optional scope]: <description>`, and `chore` is common release-neutral commit type.\n- Move cancel reason out of subject into body as `Reason: ...` to keep header deterministic and ≤72 chars.\n- Update checkpoint subject law in `advance-delivery` spec because existing `rq-cc03.1` currently requires the old `task({taskId}): {mode}` subject.\n- Keep clean-tree checkpoint behavior unchanged because no commit subject is created for clean tree.\n\n## Deferred Questions\n\nNone.\n\n## Sign-Off\n\nAcceptance criteria approved by user in chat: `approve`.",
+    "design": "# Design: Fix checkpoint commits\n\n## Architecture Overview\n\n`adv_task_checkpoint` keeps its current lifecycle: validate repo/branch/HEAD, detect clean vs dirty tree, stage dirty changes, create a local checkpoint commit, then record completion/cancellation state through existing Temporal signals. The change is limited to deterministic commit-message construction and the laws/docs/tests that describe it.\n\nCore mechanism:\n\n- Generate release-neutral Conventional Commit subjects in `buildCommitMessage`.\n- Keep audit metadata in commit body fields.\n- Add structural tests around subject/body output and git commit arguments.\n- Update `advance-delivery` checkpoint law and docs so old `task(...)` subjects disappear.\n\n## Key Decisions\n\n### KD1 — Fixed `chore(adv)` subject prefix\n\nUse fixed type/scope `chore(adv)` for all checkpoint commit subjects.\n\n- Complete: `chore(adv): checkpoint <task-id>`\n- Cancel: `chore(adv): cancel checkpoint <task-id>`\n\nRationale:\n\n- Conventional Commits 1.0.0 supports `<type>[optional scope]: <description>`.\n- `chore` is release-neutral in common release workflows.\n- Fixed prefix avoids repo-specific policy detection and keeps correctness deterministic.\n\n### KD2 — Cancel reason in body, not subject\n\nMove cancel reason from subject to body as `Reason: <reason>` when supplied.\n\nRationale:\n\n- Keeps subject short and stable.\n- Preserves full audit context better than subject truncation.\n- Reduces freeform text in commit header.\n\n### KD3 — Reject malformed or overlength subject inputs before commit\n\nKeep normal ADV task IDs in the subject. Add a structural guard so malformed or overlength task IDs fail before `git commit` rather than truncating task IDs.\n\nRationale:\n\n- AC3 allows deterministic rejection for overlength input.\n- Rejection preserves audit correctness better than silently truncating a task ID into a misleading reference.\n\n### KD4 — Update checkpoint law and repair parse drift only if needed\n\nUpdate `rq-cc03.1` in `advance-delivery` to require Conventional Commit subjects and body `Reason` for cancel. Repair only malformed `meta.merged_from` fields needed for `adv_spec show advance-delivery` to parse.\n\nRationale:\n\n- Existing spec law currently requires old subject form.\n- Validator confirmed `adv_spec show advance-delivery` currently fails on malformed `requirements[18-22].meta.merged_from`, so AC9 is live.\n- Repair scope stays bounded to making the targeted spec law readable and valid.\n\n## ADR Drafts\n\nNone. Decisions are local, low-reversal-cost, and directly explained by tests/spec law.\n\n## Implementation Strategy\n\n1. **RED tests**\n   - Add focused `buildCommitMessage` tests for complete and cancel subjects.\n   - Assert subject regexes and ≤72-character budget.\n   - Assert body fields: `Change`, `Task`, `Mode`, `Verification`, `Reason`.\n   - Add or adjust commit-path test to assert `git commit -m <subject> -m <body>` receives new subject/body.\n   - Add deterministic rejection test for task ID input that would exceed subject budget.\n\n2. **Message generation**\n   - Change `buildCommitMessage` subject construction to `chore(adv): checkpoint ${taskId}` and `chore(adv): cancel checkpoint ${taskId}`.\n   - Add deterministic guard for malformed/overlength task IDs before commit message use.\n   - Preserve existing optional `Change` and `Verification` body behavior.\n   - Add `Reason` body line for cancel when `reason` is non-empty.\n\n3. **Spec/docs update**\n   - Update `docs/specs/advance-delivery.md` and `.adv/specs/advance-delivery/spec.json` for `rq-cc03.1`.\n   - Repair malformed `meta.merged_from` fields in `advance-delivery` only enough for `adv_spec show advance-delivery` to parse.\n   - Update `ADV_INSTRUCTIONS.md` and `plugin/src/tools/checkpoint.ts` comments.\n   - Scan for remaining generated-subject references to `task(tk-xxxx): ...`.\n\n4. **Verification**\n   - Run targeted checkpoint tests.\n   - Run `adv_spec show advance-delivery` after spec update.\n   - Run repo smoke/check path for final confidence.\n\n## LBP Analysis\n\nChosen approach is the long-term best practice because the commit-message contract is a deterministic tool function with tests and spec law. It avoids policy guessing, avoids repository-specific allowlists, and uses a standard Conventional Commit header while preserving ADV-specific audit data in the body.\n\nRejected alternatives:\n\n- **Keep `task(...)` and ask agents to squash** — preserves friction and makes checkpoint behavior leak into PR policy.\n- **Detect repo commit policy** — heuristic, brittle, and violates structural correctness.\n- **Use `fix(adv)`** — passes many gates but can incorrectly trigger release automation if checkpoint commits reach trunk.\n- **Remove checkpoint commits** — violates checkpoint/audit objectives and existing ADV workflow law.\n\n## Affected Components\n\n- `plugin/src/tools/checkpoint.ts`\n  - `buildCommitMessage`\n  - inline checkpoint subject docs\n  - pre-commit subject validation helper\n- `plugin/src/tools/checkpoint.test.ts`\n  - direct message tests\n  - dirty-tree commit argument tests\n  - deterministic rejection test\n- `docs/specs/advance-delivery.md`\n  - `rq-cc03.1` structured commit message scenario\n- `.adv/specs/advance-delivery/spec.json`\n  - mirrored law and bounded `meta.merged_from` repair\n- `ADV_INSTRUCTIONS.md`\n  - Task Checkpoint Commits subject examples\n\n## Design-Derived Criteria\n\n- DDC1: `buildCommitMessage` remains a pure deterministic function with direct unit coverage.\n- DDC2: `git commit` still uses multiple `-m` args: one subject and one body.\n- DDC3: Subject construction must not truncate task IDs into misleading audit references; reject invalid/overlength subject inputs instead.\n- DDC4: No runtime inspection of repository commit-policy config is introduced.\n- DDC5: Clean-tree checkpoint behavior remains unchanged because no commit is created.\n- DDC6: `advance-delivery` spec repair is limited to malformed metadata needed for parse success and the `rq-cc03.1` subject/body law update.\n\n## Risks / Mitigations\n\n| Risk | Mitigation |\n|---|---|\n| Spec JSON parse drift expands scope | Repair only malformed fields blocking `advance-delivery`; add no unrelated spec changes. |\n| Existing tests only assert signal behavior, not commit message | Add direct `buildCommitMessage` and git commit argument assertions. |\n| Long task IDs exceed subject budget | Use pre-commit deterministic rejection or validation, not silent truncation. |\n| Checkpoint commits could still be pushed by humans | Existing checkpoint publication boundary remains unchanged; this change does not grant push/archive authority. |\n| Release tooling differs by repo | Use broadly valid Conventional Commit format and release-neutral `chore`; no repo-specific detection. |\n\n## Design Leverage Scout\n\nScout: skipped — narrow deterministic tool-contract change. Opportunity surface is limited to replacing one commit-message function and aligned docs/spec/tests. No external implementation alternatives or user-value tradeoffs remain after discovery.\n\n## Validator Result\n\nVerdict: VALIDATED with one caution.\n\nFindings:\n\n- Correctness: design solves all objectives; body audit fields preserve existing metadata and add cancel `Reason`.\n- Simplicity: fixed `chore(adv)` prefix is the simplest deterministic viable approach.\n- Spec-law compliance: caution — live `rq-cc03.1` contradicts the new contract and must be rewritten; `adv_spec show advance-delivery` parse repair is confirmed necessary for `requirements[18-22].meta.merged_from`.\n- Alternatives: no significant viable alternative overlooked.\n\nValidator recommendation: proceed. Keep the spec edit bounded to `rq-cc03.1` and malformed `meta.merged_from` fields. Ensure overlength task ID handling rejects rather than truncates.",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\n\nADV checkpoint commits now generate release-neutral Conventional Commit-compatible subjects while preserving machine-readable audit metadata in the commit body. Acceptance review found no remaining blockers or issues after one scoped reviewer fix for explicit `changeId` fallback evidence.\n\n## Verdict\n\nAPPROVED\n\n## What Was Built\n\n1. Implemented checkpoint commit message generation with `chore(adv): checkpoint <task-id>` and `chore(adv): cancel checkpoint <task-id>` subjects, cancel `Reason:` body field, and deterministic invalid/overlength task ID rejection.\n2. Updated ADV checkpoint documentation and `advance-delivery` spec law from old `task(...)` subjects to the new `chore(adv)` contract, including bounded metadata repair for spec parsing.\n3. Verified the checkpoint contract end to end with targeted tests, spec parse, stale-subject scans, smoke checks, and acceptance review.\n4. Review remediation fixed the AC5 edge case so explicit caller-provided `changeId` is used in the commit body when task lookup cannot derive one.\n\n## What Was Verified\n\n- Verdict: APPROVED with 0 blockers, 0 issues, 0 suggestions, 0 nits.\n- Tests: `pnpm --dir plugin exec vitest run src/tools/checkpoint.test.ts` passed, 20 tests; `bin/oc-test smoke` passed per reviewer report and prior execution evidence.\n- Static/spec checks: worktree `SpecSchema.parse` passed for `.adv/specs/advance-delivery/spec.json` with 23 requirements; stale subject scans for `task(tk-` and `task({taskId}): {mode}` returned 0 results.\n- Preview URL: not_applicable — agreement declares `visual_surface: false`, and implementation touched backend/tooling docs/spec/test files only; no browser-visible or visual output surface.\n- Contract matrix: 27 required rows passed/respected; 0 failed, 0 violated, 0 unknown.\n\n## Remaining Concerns\n\nFull suite still has unrelated baseline failures reproduced on main checkout (`deploy-local.test` prompt/spec-doc drift and `temporal/messages.test` signal-surface drift). These are outside this change's accepted scope.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-06-06T23:22:18.409Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | ADV-generated checkpoint commits pass standard Conventional Commit header checks without repo-specific exceptions. | pass | Targeted checkpoint tests pass: `pnpm --dir plugin exec vitest run src/tools/checkpoint.test.ts` => 20 passed. Subjects asserted as `chore(adv)` complete/cancel. |\n| SC2 | success_criterion | Checkpoint commits remain release-neutral by default: `chore(adv)` subject, no semver bump intent. | pass | Subjects use fixed `chore(adv)` prefix; no BREAKING CHANGE footer or feat/fix type introduced. Reviewer verdict READY. |\n| SC3 | success_criterion | Audit trace remains visible in commit body: change ID when available, task ID, mode, verification, and cancel reason when present. | pass | `buildCommitMessage` body tests assert `Change`, `Task`, `Mode`, `Verification`, and cancel `Reason`; reviewer added explicit changeId fallback regression. |\n| AC1 | acceptance_criterion | Complete checkpoint dirty-tree commit subject matches `^chore\\(adv\\): checkpoint tk-[A-Za-z0-9]+$`. | pass | `checkpoint.test.ts` complete-mode assertions expect `chore(adv): checkpoint tk-AbC123` and regex `^chore\\(adv\\): checkpoint tk-[A-Za-z0-9]+$`; targeted test run passed 20/20. |\n| AC2 | acceptance_criterion | Cancel checkpoint dirty-tree commit subject matches `^chore\\(adv\\): cancel checkpoint tk-[A-Za-z0-9]+$`. | pass | `checkpoint.test.ts` cancel-mode assertions expect `chore(adv): cancel checkpoint tk-AbC123` and regex `^chore\\(adv\\): cancel checkpoint tk-[A-Za-z0-9]+$`; targeted test run passed 20/20. |\n| AC3 | acceptance_criterion | Complete and cancel checkpoint subjects are ≤72 chars for valid ADV task IDs, or invalid/overlength input fails deterministically before malformed commit output. | pass | `buildCommitMessage` rejects invalid task IDs and overlength subjects before commit; test `rejects task IDs that would produce overlength checkpoint subjects` passed. |\n| AC4 | acceptance_criterion | Commit body includes `Task: <task-id>` and `Mode: complete|cancel`. | pass | Body construction pushes `Task: <task-id>` and `Mode: <mode>`; complete/cancel body tests passed. |\n| AC5 | acceptance_criterion | Commit body includes `Change: <change-id>` when available. | pass | Reviewer fix passes `effectiveChangeId` into `buildCommitMessage`; regression `uses explicit changeId in commit body when task lookup cannot derive one` passed. |\n| AC6 | acceptance_criterion | Commit body includes `Verification: <summary>` when verification supplied. | pass | Complete-mode test asserts `Verification: Tests passed`; targeted test run passed 20/20. |\n| AC7 | acceptance_criterion | Cancel commit body includes `Reason: <reason>` when reason supplied; cancel reason is not embedded in subject. | pass | Cancel-mode test asserts `Reason: No longer needed` in body and subject excludes reason; targeted test run passed 20/20. |\n| AC8 | acceptance_criterion | ADV checkpoint docs/specs no longer require or cite `task(tk-xxxx): ...` generated subjects. | pass | `lgrep_search_text` in worktree found 0 results for stale generated-subject strings `task(tk-` and `task({taskId}): {mode}` after docs/spec updates. |\n| AC9 | acceptance_criterion | If `advance-delivery` spec parse drift blocks spec update, malformed metadata is repaired only enough to make `adv_spec show advance-delivery` parse. | pass | Worktree spec parse succeeded with `SpecSchema.parse` for `.adv/specs/advance-delivery/spec.json` and 23 requirements. |\n| AC10 | acceptance_criterion | Targeted checkpoint tests pass, and repo smoke/check path reports success. | pass | Targeted checkpoint tests passed 20/20. Reviewer-reported `bin/oc-test smoke` passed after remediation; prior execution smoke also passed. |\n| C1 | constraint | Preserve checkpoint commits; do not remove or bypass checkpointing. | respected | Checkpoint commits preserved; change only alters commit-message subject/body construction and tests/specs. |\n| C2 | constraint | Preserve task completion/cancellation semantics and Temporal signal behavior. | respected | Temporal/task completion signal behavior unchanged; review diff limited to message construction input and regression test. |\n| C3 | constraint | Keep audit metadata machine-readable in commit body text. | respected | Audit metadata remains machine-readable body text: Change/Task/Mode/Verification/Reason. |\n| C4 | constraint | Avoid repo-specific commit-policy detection or allowlist heuristics. | respected | No repo-specific commit policy detection added; subject is deterministic fixed `chore(adv)` format. |\n| C5 | constraint | Keep generated subject deterministic for valid ADV task IDs. | respected | Valid ADV task IDs remain in deterministic subjects; invalid/overlength values fail before commit. |\n| DONT1 | avoidance | Do not drop checkpoint audit metadata. | respected | No audit metadata dropped; cancel reason moved to body and explicit changeId fallback fixed. |\n| DONT2 | avoidance | Do not require agents to manually squash or rewrite ADV checkpoint commits. | respected | Generated subjects now satisfy Conventional Commit shape, avoiding manual squash/rewrite for this checkpoint-policy issue. |\n| DONT3 | avoidance | Do not make correctness depend on heuristic detection of repository commit policy. | respected | Correctness is structural via fixed formatter, validation guards, and tests; no heuristic repo-policy detection. |\n| DONT4 | avoidance | Do not modify `sharperflow-security-gates` in this change. | respected | Only Advance worktree files modified; originating `sharperflow-security-gates` repo untouched. |\n| DONT5 | avoidance | Do not rewrite existing branch history or existing checkpoint commits. | respected | Existing branch history/checkpoint commits were not rewritten; new behavior applies forward. |\n| OOS1 | out_of_scope | Changing task lifecycle semantics. | respected | No task lifecycle semantics changed; signal calls remain in existing flow. |\n| OOS2 | out_of_scope | Changing git checkpoint timing or when checkpoints are required. | respected | No checkpoint timing or requirement changes made; only message construction changed. |\n| OOS3 | out_of_scope | Adding repo-specific Conventional Commit policy integration. | respected | No repo-specific Conventional Commit policy integration added. |\n| OOS4 | out_of_scope | Modifying the originating repository. | respected | No files changed in originating repository; work confined to Advance worktree. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixCheckpointCommits/proposal.md",
+      "updatedAt": "2026-06-06T22:40:41.605Z",
+      "contentHash": "72784c3ae83d7eb42a9e490ea6097ecc9d7838e0dff6a092d635b289c366be0c"
+    },
+    "problemStatement": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixCheckpointCommits/problem-statement.md",
+      "updatedAt": "2026-06-06T22:37:43.574Z",
+      "contentHash": "73e9091308a0a15f674267c6574f0058edb3a5d0e92677459dd705c67e65c326"
+    },
+    "agreement": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixCheckpointCommits/agreement.md",
+      "updatedAt": "2026-06-06T22:43:26.562Z",
+      "contentHash": "b774da72d7a492d1f1cdb430909af4a7f675df715123e67bb69dc6723a3d168f"
+    },
+    "design": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixCheckpointCommits/design.md",
+      "updatedAt": "2026-06-06T22:46:45.975Z",
+      "contentHash": "bb20b9f77a3fabbb8a937e7c36c5a0f62b8e6900bc520c949909640f7911223a"
+    },
+    "executiveSummary": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixCheckpointCommits/executive-summary.md",
+      "updatedAt": "2026-06-06T23:23:07.377Z",
+      "contentHash": "f8939938c4e3417f53c0e94e8a4778c59220275d5526e561cdb4ecef7174143b"
+    }
+  },
+  "lastSignalAt": "2026-06-06T23:30:14.483Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_UNCLEAR_SCOPE",
+      "severity": "warning",
+      "message": "Proposal has no Scope section. What files and modules will be affected?",
+      "recorded_at": "2026-06-06T22:36:10.754Z",
+      "resolved": true,
+      "resolved_at": "2026-06-06T22:38:17.331Z"
+    }
+  ]
+}
