@@ -84,4 +84,26 @@ describe("adv-status CLI bridge command contract", () => {
       "rq-statusCliBridge01.3",
     ]);
   });
+
+  test("advance-meta spec pins managed local adv CLI install law", () => {
+    const spec = readAdvanceMetaSpec();
+    const requirement = spec.requirements?.find(
+      (item) => item.id === "rq-advCliLocalInstall01",
+    );
+
+    expect(requirement).toMatchObject({
+      id: "rq-advCliLocalInstall01",
+      priority: "must",
+    });
+    expect(requirement?.body).toContain("deploy-local.sh");
+    expect(requirement?.body).toContain("$HOME/.local/share/Advance/bin");
+    expect(requirement?.body).toContain("$HOME/.local/bin/adv");
+    expect(requirement?.body).toContain("source: \"temporal\"");
+    expect(requirement?.scenarios?.map((scenario) => scenario.id)).toEqual([
+      "rq-advCliLocalInstall01.1",
+      "rq-advCliLocalInstall01.2",
+      "rq-advCliLocalInstall01.3",
+      "rq-advCliLocalInstall01.4",
+    ]);
+  });
 });

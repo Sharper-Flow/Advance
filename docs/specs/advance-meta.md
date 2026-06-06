@@ -137,6 +137,75 @@ ADV health and recovery diagnostics that probe Temporal, task queues, worker dia
 
 ---
 
+### Managed Local ADV CLI Install
+
+**ID:** `rq-advCliLocalInstall01` | **Priority:** **[MUST]**
+
+`scripts/deploy-local.sh` must own the local `adv` CLI install. It must deploy the whole CLI payload to `$HOME/.local/share/Advance/bin`, expose it via `$HOME/.local/bin/adv`, detect missing, stale, wrong-target, unsafe, or PATH-shadowed installs, and verify installed status JSON is live-status metadata (`source: "temporal"` on success or fail-closed live error metadata) rather than stale disk-only `schema_version: 1` output. The installer must not add CLI mutation authority or silently overwrite unrelated user files.
+
+**Tags:** `install`, `cli`, `deploy-local`, `status`
+
+#### Scenarios
+
+**Deploy-local owns stable CLI payload and entrypoint** (`rq-advCliLocalInstall01.1`)
+
+**Given:**
+
+- A user runs `scripts/deploy-local.sh --fix` from a source checkout or release artifact
+
+**When:** The local CLI install is repaired
+
+**Then:**
+
+- The whole `bin/` tree is deployed to `$HOME/.local/share/Advance/bin`
+- `$HOME/.local/bin/adv` points at the stable deployed `bin/adv` entrypoint
+- The entrypoint does not point at a temporary release extraction directory
+- The install preserves `bin/adv` sibling module imports and deployed plugin-relative imports
+
+**Check reports install drift and PATH shadowing** (`rq-advCliLocalInstall01.2`)
+
+**Given:**
+
+- The local `adv` target is missing, stale, points at the wrong target, or PATH resolves another `adv` first
+
+**When:** `scripts/deploy-local.sh --check` runs
+
+**Then:**
+
+- The check exits non-zero
+- The output identifies the exact missing, stale, wrong-target, or shadowed condition
+- PATH shadowing includes remediation for putting `$HOME/.local/bin/adv` first
+
+**Fix repairs only recognized ADV CLI artifacts** (`rq-advCliLocalInstall01.3`)
+
+**Given:**
+
+- `$HOME/.local/bin/adv` already exists
+
+**When:** `scripts/deploy-local.sh --fix` decides whether to replace it
+
+**Then:**
+
+- Recognized Advance CLI symlinks or regular files may be replaced
+- Unrelated file content is refused with manual remediation
+- No unrelated local executable is overwritten silently
+
+**Installed status JSON proves live source-current behavior** (`rq-advCliLocalInstall01.4`)
+
+**Given:**
+
+- The local CLI install has been repaired
+
+**When:** The installed `adv status --json` command is verified
+
+**Then:**
+
+- The JSON contains live-status metadata such as `source: "temporal"` on success or fail-closed live error metadata
+- The JSON does not use stale disk-only `schema_version: 1` as readiness proof
+- The installed CLI exposes no mutation subcommands
+
+---
+
 ### OpenCode Session Debt Diagnostics
 
 **ID:** `rq-opencodeDebt01` | **Priority:** **[MUST]**

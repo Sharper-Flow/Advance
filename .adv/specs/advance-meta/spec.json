@@ -148,6 +148,73 @@
       ]
     },
     {
+      "id": "rq-advCliLocalInstall01",
+      "title": "Managed Local ADV CLI Install",
+      "body": "`scripts/deploy-local.sh` must own the local `adv` CLI install. It must deploy the whole CLI payload to `$HOME/.local/share/Advance/bin`, expose it via `$HOME/.local/bin/adv`, detect missing, stale, wrong-target, unsafe, or PATH-shadowed installs, and verify installed status JSON is live-status metadata (`source: \"temporal\"` on success or fail-closed live error metadata) rather than stale disk-only `schema_version: 1` output. The installer must not add CLI mutation authority or silently overwrite unrelated user files.",
+      "priority": "must",
+      "tags": [
+        "install",
+        "cli",
+        "deploy-local",
+        "status"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-advCliLocalInstall01.1",
+          "title": "Deploy-local owns stable CLI payload and entrypoint",
+          "given": [
+            "A user runs `scripts/deploy-local.sh --fix` from a source checkout or release artifact"
+          ],
+          "when": "The local CLI install is repaired",
+          "then": [
+            "The whole `bin/` tree is deployed to `$HOME/.local/share/Advance/bin`",
+            "`$HOME/.local/bin/adv` points at the stable deployed `bin/adv` entrypoint",
+            "The entrypoint does not point at a temporary release extraction directory",
+            "The install preserves `bin/adv` sibling module imports and deployed plugin-relative imports"
+          ]
+        },
+        {
+          "id": "rq-advCliLocalInstall01.2",
+          "title": "Check reports install drift and PATH shadowing",
+          "given": [
+            "The local `adv` target is missing, stale, points at the wrong target, or PATH resolves another `adv` first"
+          ],
+          "when": "`scripts/deploy-local.sh --check` runs",
+          "then": [
+            "The check exits non-zero",
+            "The output identifies the exact missing, stale, wrong-target, or shadowed condition",
+            "PATH shadowing includes remediation for putting `$HOME/.local/bin/adv` first"
+          ]
+        },
+        {
+          "id": "rq-advCliLocalInstall01.3",
+          "title": "Fix repairs only recognized ADV CLI artifacts",
+          "given": [
+            "`$HOME/.local/bin/adv` already exists"
+          ],
+          "when": "`scripts/deploy-local.sh --fix` decides whether to replace it",
+          "then": [
+            "Recognized Advance CLI symlinks or regular files may be replaced",
+            "Unrelated file content is refused with manual remediation",
+            "No unrelated local executable is overwritten silently"
+          ]
+        },
+        {
+          "id": "rq-advCliLocalInstall01.4",
+          "title": "Installed status JSON proves live source-current behavior",
+          "given": [
+            "The local CLI install has been repaired"
+          ],
+          "when": "The installed `adv status --json` command is verified",
+          "then": [
+            "The JSON contains live-status metadata such as `source: \"temporal\"` on success or fail-closed live error metadata",
+            "The JSON does not use stale disk-only `schema_version: 1` as readiness proof",
+            "The installed CLI exposes no mutation subcommands"
+          ]
+        }
+      ]
+    },
+    {
       "id": "rq-roadmapCliBridge01",
       "title": "Roadmap Slash Command Uses CLI Bridge",
       "body": "The default /adv-roadmap slash command must be a thin OpenCode shell-output bridge over `adv roadmap --no-color`. It must return the CLI roadmap table output without instructing the agent to call adv_roadmap, adv_backlog_state, adv_change_list, adv_change_show, adv_gate_status, adv_spec, synthesize recommendations, or read freshness metadata. Active-change annotation is explicitly out of CLI file mode and available only via explicit MCP backlog tooling; the CLI MUST NOT fabricate annotation from disk.",

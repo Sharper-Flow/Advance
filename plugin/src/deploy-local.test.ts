@@ -553,6 +553,8 @@ describe("deploy-local.sh", () => {
       expect(specDoc).toContain("**ID:** `rq-scopedAdvInstructions01`");
       expect(specDoc).toContain("**ID:** `rq-clarifyEnforcementAudit01`");
       expect(specDoc).toContain("**ID:** `rq-noSourceChecklistReads01`");
+      expect(specDoc).toContain("**ID:** `rq-advCliLocalInstall01`");
+      expect(specDoc).toContain("$HOME/.local/share/Advance/bin");
     });
 
     test("advance-meta spec no longer requires full ADV_INSTRUCTIONS runtime append", () => {
