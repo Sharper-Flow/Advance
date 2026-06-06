@@ -513,6 +513,8 @@ describe("deploy-local.sh", () => {
     const assemblyDoc = readFileSync(PROVIDER_ASSEMBLY_DOC_PATH, "utf8");
     const smokeDoc = readFileSync(PROVIDER_SMOKE_DOC_PATH, "utf8");
     const spec = JSON.parse(readFileSync(ADVANCE_META_SPEC_PATH, "utf8")) as {
+      version: string;
+      updated_at: string;
       requirements: Array<{ id: string; scenarios?: Array<{ id: string }> }>;
     };
     const requirementIds = spec.requirements.map((r) => r.id);
@@ -566,8 +568,10 @@ describe("deploy-local.sh", () => {
     test("advance-meta markdown mirror is synced to spec metadata and new laws", () => {
       const specDoc = readFileSync(ADVANCE_META_SPEC_DOC_PATH, "utf8");
 
-      expect(specDoc).toContain("> **Version:** 1.11.0");
-      expect(specDoc).toContain("> **Updated:** 2026-05-22");
+      expect(specDoc).toContain(`> **Version:** ${spec.version}`);
+      expect(specDoc).toContain(
+        `> **Updated:** ${spec.updated_at.slice(0, 10)}`,
+      );
       expect(specDoc).toContain("**ID:** `rq-providerAdvSkinny01`");
       expect(specDoc).toContain("**ID:** `rq-providerAdvMetrics01`");
       expect(specDoc).toContain("**ID:** `rq-scopedAdvInstructions01`");
@@ -797,13 +801,15 @@ describe("deploy-local.sh", () => {
 
     test("canonical ADV prompt stays under the safe compression ceiling", () => {
       const lines = advAgent.split(/\r?\n/).length;
+      // Ceiling raised from 362 → 363 after adding the release-stage
+      // adv-reviewer phase mapping needed for typed worker packets.
       // Ceiling raised from 361 → 362 after adding explicit typed worker
       // packet phase mapping for adv-reviewer acceptance/release use.
       // Ceiling raised from 360 → 361 after the signal-driven workflow
       // refactor exposed `adv_worktree_resume` and we added it to the
       // canonical allowlist to clear deploy-local tool-drift checks.
       // Re-ratchet here once the prompt has been audited for excess.
-      expect(lines).toBeLessThanOrEqual(362);
+      expect(lines).toBeLessThanOrEqual(363);
     });
 
     test("canonical ADV prompt keeps safety-critical markers", () => {
