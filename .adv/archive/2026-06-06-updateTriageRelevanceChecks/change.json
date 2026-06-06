@@ -1,0 +1,454 @@
+{
+  "id": "updateTriageRelevanceChecks",
+  "title": "Update triage relevance checks",
+  "status": "archived",
+  "created_at": "2026-06-06T19:54:07.005Z",
+  "tasks": [
+    {
+      "id": "tk-f3034cd018e4",
+      "title": "Update triage relevance-check protocol and tests",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-06-06T19:54:29.883Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-06T19:56:43.666Z",
+      "verification": "Reviewer remediation verified: bin/oc-test targeted -- src/adv-triage-relevance-assets.test.ts passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".opencode/command/adv-triage.md",
+        "plugin/src/adv-triage-relevance-assets.test.ts"
+      ],
+      "touched_files": [
+        ".opencode/command/adv-triage.md",
+        "plugin/src/adv-triage-relevance-assets.test.ts"
+      ],
+      "checkpointSha": "0cad1260f3e076883c3a315fbbf15108b76a0d46",
+      "completedAt": "2026-06-06T20:02:35.830Z",
+      "completed_at": "2026-06-06T20:02:35.830Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "updateTriageRelevanceChecks",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/updateTriageRelevanceChecks",
+          "task_id": "tk-f3034cd018e4",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-f3034cd018e4"
+          },
+          "agent": "adv-reviewer",
+          "phase": "review",
+          "verdict": "READY",
+          "blocking_findings": [],
+          "nonblocking_findings": [],
+          "changes_made": [
+            {
+              "file": ".opencode/command/adv-triage.md",
+              "summary": "Aligned stale post-insertion references from Phase 4b assignments to Phase 4c field assignments so command constraints/key-tools do not point users at relevance-validation phase for scoring prompts.",
+              "verification": "Related text scan found no remaining 'Phase 4b assignments' or 'Phase 4b field prompts' references; targeted test passed."
+            },
+            {
+              "file": "plugin/src/adv-triage-relevance-assets.test.ts",
+              "summary": "Strengthened regression coverage to assert relevance validation appears before field assignment/scoring content and to require all documented relevance outcomes (`relevant`, stale/already-addressed, duplicate/superseded, `unclear`).",
+              "verification": "bin/oc-test targeted -- src/adv-triage-relevance-assets.test.ts exited 0; 1 test file passed, 3 tests passed."
+            }
+          ],
+          "wisdom_candidates": [],
+          "verification": {
+            "tests_run": [
+              "bin/oc-test targeted -- src/adv-triage-relevance-assets.test.ts"
+            ],
+            "results": "pass",
+            "evidence": "Exit code 0 via adv_run_test. Vitest reported 1 test file passed and 3 tests passed in plugin."
+          },
+          "scope_drift": null,
+          "risks": [],
+          "required_main_agent_actions": [
+            "Review and accept scoped remediation diff in .opencode/command/adv-triage.md and plugin/src/adv-triage-relevance-assets.test.ts.",
+            "Do not revisit skills/adv-triage/PROMPTS.md or skills/adv-triage/ANTI-PATTERNS.md for this acceptance scope; inspected and left unchanged because relevance outcomes and user-owned Priority/Value rules are intact."
+          ],
+          "consumer_warnings": []
+        }
+      ]
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "updateTriageRelevanceChecks",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Validate adding a required relevance-validation step before /adv-triage Phase 4b field-assignment prompts",
+      "sources": [
+        {
+          "label": ".opencode/command/adv-triage.md",
+          "locator": "/home/jon/dev/advance/.opencode/command/adv-triage.md",
+          "summary": "Phase 3 Match+Identify Gaps builds represented[]/unrepresented[]; Phase 4b builds field-assignment matrix (bug priority labels, feature Value) and prompts directly via question tool. No relevance/staleness check exists; matrix gate is only 'matrix non-empty'. Confirms the design's premise: stale/already-addressed open issues flow straight into Phase 4b scoring prompts."
+        },
+        {
+          "label": "skills/adv-triage/WSJF.md",
+          "locator": "/home/jon/dev/advance/skills/adv-triage/WSJF.md",
+          "summary": "Match algorithm = stable-ref/body-excerpt/title-similarity for DEDUP against open issues, not relevance. User field-assignment matrix table (lines 52-59) keys on 'issue has bug, no priority label' / 'issue has feature, Value null' — purely field-presence, no obsolescence/already-fixed filter."
+        },
+        {
+          "label": "skills/adv-triage/PROMPTS.md",
+          "locator": "/home/jon/dev/advance/skills/adv-triage/PROMPTS.md",
+          "summary": "User-only field assignments section (lines 50-86): Stage 1 batch control options are One-by-one/Autofill/Defer-all/Stop; Stage 2 bug priority + feature Value options. 'Defer' exists per-item but no upstream prompt asks whether item is still relevant/already-addressed before scoring."
+        },
+        {
+          "label": "skills/adv-triage/ANTI-PATTERNS.md + SKILL.md",
+          "locator": "/home/jon/dev/advance/skills/adv-triage/ANTI-PATTERNS.md",
+          "summary": "grep for relevance|stale|already.address|still relevant|obsolete across skills/adv-triage returned zero matches. SKILL.md Core Flow step 5 (User fields) and Structural Rules confirm no relevance gate. Confirms feature is genuinely net-new, not a duplication of existing behavior."
+        },
+        {
+          "label": "plugin/src/adv-improve-assets.test.ts",
+          "locator": "/home/jon/dev/advance/plugin/src/adv-improve-assets.test.ts",
+          "summary": "Canonical asset-test pattern: REPO_ROOT=resolve(__dirname,'../..'), join COMMAND_PATH/skill path, readFileSync + content.toContain/.toMatch assertions on command + skill markdown. This is the by-the-book template for the proposed plugin/src asset test; ~37 *-assets.test.ts files follow it."
+        }
+      ],
+      "architecture_assessment": "Existing pattern: /adv-triage Phase 3 deduplicates inventory against open issues (structural ref/body/title match) but never validates whether a matched/open item is still RELEVANT (not stale, not already-fixed) before Phase 4b drives it into user scoring prompts. The reported bug (#133/#141/#145 scored despite being addressed) is a real gap, not user error. Reference pattern: backlog hygiene best practice separates (a) dedup, (b) relevance/triage-out of obsolete items, (c) prioritization scoring — relevance gating precedes scoring so users never spend judgment on dead items. The proposed insertion of a required relevance-validation step BEFORE Phase 4b prompts aligns with that ordering and is the boring/correct fix. Deviation: MINOR — additive gate, no structural rework. Design choices are sound: (1) command owns orchestration/gate, skill owns rubric/prompt template (matches SKILL.md line 15 canonical-source contract); (2) asset test under plugin/src matches the established *-assets.test.ts convention. Note: PROMPTS.md is the better skill home than WSJF.md for a new relevance PROMPT (PROMPTS.md owns question-tool prompt templates; WSJF.md owns scoring math) — recommend prompt template in PROMPTS.md, any relevance rubric/criteria in WSJF.md or SKILL.md Structural Rules.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "Design is VALIDATED with non-blocking refinements. Premise verified against source: no existing relevance gate; #133/#141/#145 class of problem is real. Risks are scope/placement, not feasibility."
+      },
+      "recommendation": "VALIDATED. Implement as: (1) Insert Phase 4-relevance step in adv-triage.md BEFORE 4b field-assignment matrix — gate each candidate (matched-open + unrepresented bound for scoring) through relevance check; outcomes = relevant / stale-close / already-addressed-close / defer. Use structural signals first (P33): linked-change archived/closed, issue already closed, referenced file/symbol gone, superseding issue. AI relevance judgment is advisory only and must route to a user question, never auto-close. (2) Add relevance PROMPT template to PROMPTS.md (question tool, not plain chat — consistent with existing 4b rule); put relevance criteria/rubric in WSJF.md or SKILL.md Structural Rules. (3) Add a Constraint line ('MUST NOT prompt for Priority/Value before relevance validation') and an ANTI-PATTERNS row. (4) Asset test plugin/src/adv-triage-relevance-assets.test.ts modeled on adv-improve-assets.test.ts.",
+      "follow_ups": [
+        "Decide exact close semantics: does relevance-validation actually `gh issue close` obsolete items, or only exclude-from-scoring + surface for user close? Closing is a mutation → must be Tier B approval-gated like issue creation. Design should state this explicitly.",
+        "Confirm whether relevance check applies only to feature-Value/bug-priority candidates or to ALL open issues in scope (broader scan = more value but more API/budget cost; ties into existing GraphQL budget gate).",
+        "TASK_SCOPE/IN_SCOPE/DONE_WHEN/STOP_WHEN/VERIFICATION packet anchors were present in prompt; SCOPE KEY/ATTEMPT were inferred from defaults — orchestrator should confirm scope_key/attempt if exact provenance matters."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "updateTriageRelevanceChecks",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/updateTriageRelevanceChecks",
+      "task_id": "tk-f3034cd018e4",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-f3034cd018e4"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [
+        {
+          "file": ".opencode/command/adv-triage.md",
+          "summary": "Aligned stale post-insertion references from Phase 4b assignments to Phase 4c field assignments so command constraints/key-tools do not point users at relevance-validation phase for scoring prompts.",
+          "verification": "Related text scan found no remaining 'Phase 4b assignments' or 'Phase 4b field prompts' references; targeted test passed."
+        },
+        {
+          "file": "plugin/src/adv-triage-relevance-assets.test.ts",
+          "summary": "Strengthened regression coverage to assert relevance validation appears before field assignment/scoring content and to require all documented relevance outcomes (`relevant`, stale/already-addressed, duplicate/superseded, `unclear`).",
+          "verification": "bin/oc-test targeted -- src/adv-triage-relevance-assets.test.ts exited 0; 1 test file passed, 3 tests passed."
+        }
+      ],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/adv-triage-relevance-assets.test.ts"
+        ],
+        "results": "pass",
+        "evidence": "Exit code 0 via adv_run_test. Vitest reported 1 test file passed and 3 tests passed in plugin."
+      },
+      "scope_drift": null,
+      "risks": [],
+      "required_main_agent_actions": [
+        "Review and accept scoped remediation diff in .opencode/command/adv-triage.md and plugin/src/adv-triage-relevance-assets.test.ts.",
+        "Do not revisit skills/adv-triage/PROMPTS.md or skills/adv-triage/ANTI-PATTERNS.md for this acceptance scope; inspected and left unchanged because relevance outcomes and user-owned Priority/Value rules are intact."
+      ],
+      "consumer_warnings": []
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-06-06T19:54:35.905Z",
+      "completed_by": "agent",
+      "approval_evidence": "User requested both triage followups now. Proposal/problem/agreement/design persisted for small tracked change.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/updateTriageRelevanceChecks/proposal.md",
+        "content_hash": "24864c0a9bea19e99e0a09351d58b32671659bca24dae0676073ec44fb9c44a1",
+        "non_whitespace_chars": 1274,
+        "checked_at": "2026-06-06T19:54:07.026Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "started_at": "2026-06-06T19:54:45.131Z",
+      "completed_at": "2026-06-06T19:54:58.341Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery evidence: live triage run exposed stale #133/#141/#145 during field prompts; current command/skill files show Phase 4b builds matrix and prompts without relevance-validation pre-step. Contract minted from approved agreement.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "non_whitespace_chars": 914,
+        "checked_at": "2026-06-06T19:54:07.027Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-06-06T19:56:22.834Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design validator verdict VALIDATED. Minor additive gate: dedup → relevance triage-out → score. Use PROMPTS.md for question template, asset tests for anchors, advisory-only relevance under P33 with Tier B approval for closing.",
+      "artifact_evidence": {
+        "kind": "design",
+        "non_whitespace_chars": 552,
+        "checked_at": "2026-06-06T19:54:07.028Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-06-06T19:56:28.929Z",
+      "completed_by": "agent",
+      "approval_evidence": "User requested: \"do both followups now\". Task graph contains one scoped implementation/test task for triage relevance-check protocol."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-06-06T19:59:54.667Z",
+      "completed_by": "agent",
+      "approval_evidence": "Task tk-f3034cd018e4 complete. Commit f8b4901360827b368b12d6247aa434d38c92af87. Verification: RED/green targeted asset test; final green `bin/oc-test targeted -- src/adv-triage-relevance-assets.test.ts`."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-06-06T20:04:33.714Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved acceptance via chat: `approve`. Contract review matrix has 7 passing rows, reviewer verdict READY, targeted verification passed. Executive summary persisted.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/updateTriageRelevanceChecks/executive-summary.md",
+        "content_hash": "ae055c34d73e316b05d477a5469c0a1374f5232d7ff3f9dedcb191574a40a03f",
+        "non_whitespace_chars": 578,
+        "checked_at": "2026-06-06T19:54:07.029Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "triage",
+    "source_artifact": "ag-SpFcKlgW"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "35de21ff0f8d81b78f36e2786ded69de1b909e2ebe37bf2e735a4e0f6b6914fd",
+      "approvedAt": "2026-06-06T19:54:52.660Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "`.opencode/command/adv-triage.md` states Phase 4b must relevance-check field-gap candidates before `question` prompts.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "35de21ff0f8d81b78f36e2786ded69de1b909e2ebe37bf2e735a4e0f6b6914fd",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "`skills/adv-triage/PROMPTS.md` or `WSJF.md` defines evidence sources and outcomes for relevance validation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "35de21ff0f8d81b78f36e2786ded69de1b909e2ebe37bf2e735a4e0f6b6914fd",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "A repo test fails if the command/skill no longer contain the relevance-check-before-prioritization requirement.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "35de21ff0f8d81b78f36e2786ded69de1b909e2ebe37bf2e735a4e0f6b6914fd",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "`bin/oc-test targeted -- <test file>` or equivalent targeted verification passes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "35de21ff0f8d81b78f36e2786ded69de1b909e2ebe37bf2e735a4e0f6b6914fd",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Do not let heuristics close or suppress items without user approval where destructive action is involved.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "35de21ff0f8d81b78f36e2786ded69de1b909e2ebe37bf2e735a4e0f6b6914fd",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Do not auto-assign bug Priority.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "35de21ff0f8d81b78f36e2786ded69de1b909e2ebe37bf2e735a4e0f6b6914fd",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Do not auto-assign feature Value unless user explicitly selects autofill.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "35de21ff0f8d81b78f36e2786ded69de1b909e2ebe37bf2e735a4e0f6b6914fd",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-06-06T20:03:15.994Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": ".opencode/command/adv-triage.md contains `### 4b. Relevance validation` before `### 4c. Field assignments` and MUST NOT prompt Priority/Value before relevance validation.",
+          "notes": "Verified by asset test."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "skills/adv-triage/PROMPTS.md contains Relevance validation with evidence sources and outcomes: relevant, stale/already-addressed, duplicate/superseded, unclear.",
+          "notes": "Verified by asset test."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`bin/oc-test targeted -- src/adv-triage-relevance-assets.test.ts` passed after reviewer remediation.",
+          "notes": "3 tests passed."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Asset test asserts command and skill anchors; command constraints still forbid autofill bug priority and autonomous feature Value unless user chooses autofill.",
+          "notes": "User-owned scoring rules preserved."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Command and PROMPTS state relevance heuristics are advisory only and require explicit user approval before close/remove/defer/suppress.",
+          "notes": ""
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Command constraints retain `MUST NOT autofill bug priority` and bugs use priority labels only.",
+          "notes": ""
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "PROMPTS preserves Value as user-owned unless user explicitly selects autofill.",
+          "notes": ""
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "`.opencode/command/adv-triage.md` states Phase 4b must relevance-check field-gap candidates before `question` prompts.",
+    "`skills/adv-triage/PROMPTS.md` or `WSJF.md` defines evidence sources and outcomes for relevance validation.",
+    "A repo test fails if the command/skill no longer contain the relevance-check-before-prioritization requirement.",
+    "`bin/oc-test targeted -- <test file>` or equivalent targeted verification passes."
+  ],
+  "documents": {
+    "proposal": "# Update triage relevance checks\n\n## Problem\n\n`/adv-triage` currently builds the bug Priority / feature Value assignment matrix directly from open issues and project field gaps. During the latest triage run, user prioritization prompts exposed stale/already-addressed items (#133, #141, #145) that should have been relevance-checked before asking for user-owned scores.\n\n## Direction\n\nMake relevance validation a required step before Phase 4b field prompts. The agent must inspect available evidence for each missing-field item — issue state/body/comments, linked ADV change state, current source/docs when the item claims an implementation gap — and remove/close/defer stale or already-satisfied items before prompting for Priority/Value.\n\n## Success Criteria\n\n- `/adv-triage` command contract requires relevance validation before Phase 4b `question` prompts.\n- `adv-triage` skill prompt/scoring guidance says stale/already-addressed items must be investigated and resolved before asking user to score.\n- Existing hard rules remain intact: bug priority and feature Value are user-owned; no autonomous scoring of those fields for active relevant items.\n- Asset/contract tests cover the new relevance-check requirement so it cannot silently regress.\n\n## Scope\n\n- `.opencode/command/adv-triage.md`\n- `skills/adv-triage/*.md`\n- Relevant asset tests under `plugin/src/`\n\n## Out of Scope\n\n- Rebuilding triage implementation as a separate tool.\n- Changing GH Project schema or WSJF formula.\n",
+    "problemStatement": "Triage asked the user to prioritize/value stale or already-addressed backlog items. The workflow should relevance-check field-gap candidates before user scoring prompts, so the user is not forced to classify items that should be cancelled, removed, or deferred after evidence review.",
+    "agreement": "# Agreement\n\n## Objectives\n\n1. Add an explicit relevance-validation step before `/adv-triage` asks for bug Priority or feature Value.\n2. Preserve user ownership of bug Priority and feature Value for relevant active items.\n3. Ensure stale/already-addressed items can be closed, removed, or deferred before user scoring.\n4. Lock the behavior with asset/contract tests.\n\n## Acceptance Criteria\n\n1. `.opencode/command/adv-triage.md` states Phase 4b must relevance-check field-gap candidates before `question` prompts.\n2. `skills/adv-triage/PROMPTS.md` or `WSJF.md` defines evidence sources and outcomes for relevance validation.\n3. A repo test fails if the command/skill no longer contain the relevance-check-before-prioritization requirement.\n4. `bin/oc-test targeted -- <test file>` or equivalent targeted verification passes.\n\n## Constraints\n\n- Do not let heuristics close or suppress items without user approval where destructive action is involved.\n- Do not auto-assign bug Priority.\n- Do not auto-assign feature Value unless user explicitly selects autofill.\n",
+    "design": "# Design\n\n- Treat relevance validation as a Phase 4b pre-step, after issue creation/project addition and before the user field assignment matrix is prompted.\n- Evidence hierarchy: open issue body/comments/labels/project status, linked ADV change state, current source/docs/tests for implementation-gap claims, and user-provided context.\n- Outcomes: include in scoring prompt, close/remove with user approval, defer with reason, or update/link to represented work.\n- Add a concise asset test near existing command/skill asset coverage that asserts command and skill text contain the required relevance-check-before-field-prompt anchors.",
+    "executiveSummary": "# Executive Summary\n\n`/adv-triage` now requires relevance validation before asking the user for bug Priority or feature Value. Field-gap candidates must be checked against issue evidence, linked ADV change state, and current source/docs/tests when applicable; stale, already-addressed, duplicate, or unclear items are resolved before scoring prompts.\n\nThe command contract, triage skill prompts, and anti-pattern guidance were updated. A new asset test locks the relevance-validation-before-field-assignment requirement and verifies the documented outcomes. Targeted verification passed via `bin/oc-test targeted -- src/adv-triage-relevance-assets.test.ts`.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-06-06T20:03:15.994Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| AC1 | acceptance_criterion | `.opencode/command/adv-triage.md` states Phase 4b must relevance-check field-gap candidates before `question` prompts. | pass | .opencode/command/adv-triage.md contains `### 4b. Relevance validation` before `### 4c. Field assignments` and MUST NOT prompt Priority/Value before relevance validation. |\n| AC2 | acceptance_criterion | `skills/adv-triage/PROMPTS.md` or `WSJF.md` defines evidence sources and outcomes for relevance validation. | pass | skills/adv-triage/PROMPTS.md contains Relevance validation with evidence sources and outcomes: relevant, stale/already-addressed, duplicate/superseded, unclear. |\n| AC3 | acceptance_criterion | A repo test fails if the command/skill no longer contain the relevance-check-before-prioritization requirement. | pass | `bin/oc-test targeted -- src/adv-triage-relevance-assets.test.ts` passed after reviewer remediation. |\n| AC4 | acceptance_criterion | `bin/oc-test targeted -- <test file>` or equivalent targeted verification passes. | pass | Asset test asserts command and skill anchors; command constraints still forbid autofill bug priority and autonomous feature Value unless user chooses autofill. |\n| C1 | constraint | Do not let heuristics close or suppress items without user approval where destructive action is involved. | respected | Command and PROMPTS state relevance heuristics are advisory only and require explicit user approval before close/remove/defer/suppress. |\n| C2 | constraint | Do not auto-assign bug Priority. | respected | Command constraints retain `MUST NOT autofill bug priority` and bugs use priority labels only. |\n| C3 | constraint | Do not auto-assign feature Value unless user explicitly selects autofill. | respected | PROMPTS preserves Value as user-owned unless user explicitly selects autofill. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/updateTriageRelevanceChecks/proposal.md",
+      "updatedAt": "2026-06-06T19:54:07.052Z",
+      "contentHash": "24864c0a9bea19e99e0a09351d58b32671659bca24dae0676073ec44fb9c44a1"
+    },
+    "problemStatement": {
+      "path": "",
+      "updatedAt": "2026-06-06T19:54:07.052Z"
+    },
+    "agreement": {
+      "path": "",
+      "updatedAt": "2026-06-06T19:54:07.052Z"
+    },
+    "design": {
+      "path": "",
+      "updatedAt": "2026-06-06T19:54:07.052Z"
+    },
+    "executiveSummary": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/updateTriageRelevanceChecks/executive-summary.md",
+      "updatedAt": "2026-06-06T20:04:27.102Z",
+      "contentHash": "ae055c34d73e316b05d477a5469c0a1374f5232d7ff3f9dedcb191574a40a03f"
+    }
+  },
+  "lastSignalAt": "2026-06-06T20:04:33.714Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true
+}
