@@ -195,6 +195,7 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
             gates: created.data.gates,
             reentry_history: created.data.reentry_history,
             fast_follow_of: created.data.fast_follow_of,
+            cross_project_origin: created.data.cross_project_origin,
             origin: created.data.origin,
             // rq-autoManageAdvWorktrees AC3 — new changes are auto-managed
             // by default. Seed the workflow state with the marker so the

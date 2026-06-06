@@ -206,6 +206,7 @@ export interface ChangeWorkflowInput {
       | "archiveRequest"
       | "phase9_status"
       | "origin"
+      | "cross_project_origin"
       | "worktree_auto_managed"
       | "target_worktree_path"
       | "scope_worktrees"
@@ -330,6 +331,8 @@ export interface ChangeWorkflowState extends ChangeWorkflowInput {
    * search attribute (rq-backlogCoord01).
    */
   origin?: ChangeOrigin;
+  /** Cross-project provenance for target follow-up changes. */
+  cross_project_origin?: import("../types").Change["cross_project_origin"];
   /** Deterministic idempotency keys for submitted sub-agent reports. */
   seenReportIds?: string[];
 

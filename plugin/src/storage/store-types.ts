@@ -40,6 +40,7 @@ export interface ProductOriginTags {
 export interface ChangeCreateInitialMetadata {
   origin?: Change["origin"];
   fast_follow_of?: Change["fast_follow_of"];
+  cross_project_origin?: Change["cross_project_origin"];
   scope_repos?: Change["scope_repos"];
 }
 

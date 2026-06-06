@@ -211,6 +211,34 @@ describe("change-state pure mutation helpers", () => {
     });
   });
 
+  it("carries cross-project origin metadata when seeding workflow state", () => {
+    const crossProjectOrigin = {
+      source_project: "toolbox",
+      source_path: "/home/jon/toolbox",
+      source_change_id: "sourceChange",
+      linked_at: "2026-06-06T20:00:00.000Z",
+    };
+
+    const seed = changeSeedStateFromChange({
+      id: "target-followup",
+      title: "Target followup",
+      status: "draft",
+      created_at: "2026-06-06T20:00:00.000Z",
+      tasks: [],
+      deltas: {},
+      wisdom: [],
+      gates: createChangeWorkflowState({
+        changeId: "target-followup",
+        title: "Target followup",
+        createdAt: "2026-06-06T20:00:00.000Z",
+      }).gates,
+      reentry_history: [],
+      cross_project_origin: crossProjectOrigin,
+    } as unknown as Change);
+
+    expect(seed.cross_project_origin).toEqual(crossProjectOrigin);
+  });
+
   it("records task lifecycle mutations without task-run ledger state", () => {
     const state = createChangeWorkflowState({
       changeId: "change-state-test",

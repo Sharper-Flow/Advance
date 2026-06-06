@@ -76,6 +76,7 @@ export function mapTemporalChangeStateToChange(
     gates: safeState.gates,
     reentry_history: safeState.reentry_history,
     fast_follow_of: safeState.fast_follow_of,
+    cross_project_origin: safeState.cross_project_origin,
     origin: safeState.origin,
     contract: safeState.contract,
     acceptanceCriteria: safeState.acceptanceCriteria,

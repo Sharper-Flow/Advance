@@ -134,6 +134,7 @@ export function changeSeedStateFromChange(
     contract: safeChange.contract,
     documents: safeChange.documents,
     origin: safeChange.origin,
+    cross_project_origin: safeChange.cross_project_origin,
     worktree_auto_managed: safeChange.worktree_auto_managed,
     target_worktree_path: safeChange.target_worktree_path,
     scope_worktrees: safeChange.scope_worktrees,

@@ -496,6 +496,9 @@ export async function changeWorkflow(
     if (input.seedState.origin) {
       state.origin = input.seedState.origin;
     }
+    if (input.seedState.cross_project_origin) {
+      state.cross_project_origin = input.seedState.cross_project_origin;
+    }
     if (typeof input.seedState.worktree_auto_managed === "boolean") {
       state.worktree_auto_managed = input.seedState.worktree_auto_managed;
     }
@@ -1460,6 +1463,7 @@ export async function changeWorkflow(
       archiveRequest: state.archiveRequest,
       phase9_status: state.phase9_status,
       origin: state.origin,
+      cross_project_origin: state.cross_project_origin,
       worktree_auto_managed: state.worktree_auto_managed,
       target_worktree_path: state.target_worktree_path,
       scope_worktrees: state.scope_worktrees,

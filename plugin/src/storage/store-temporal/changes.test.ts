@@ -152,6 +152,85 @@ describe("createChangeOps", () => {
     );
   });
 
+  test("seeds cross_project_origin into new change workflow at start", async () => {
+    ensureChangeWorkflowStarted.mockResolvedValue(undefined);
+
+    const crossProjectOrigin = {
+      source_project: "toolbox",
+      source_path: "/home/jon/toolbox",
+      source_change_id: "sourceChange",
+      linked_at: "2026-06-06T20:00:00.000Z",
+    };
+    let createdChange = {
+      id: "targetFollowup",
+      title: "Target followup",
+      status: "draft",
+      created_at: "2026-06-06T20:00:00.000Z",
+      tasks: [],
+      deltas: {},
+      wisdom: [],
+      gates: {},
+      reentry_history: [],
+    };
+
+    const legacy = {
+      paths: { changes: "/tmp/changes", root: "/tmp/project" },
+      changes: {
+        create: vi.fn().mockImplementation(async (...args: unknown[]) => {
+          const options = args[1] as
+            | {
+                initialMetadata?: {
+                  cross_project_origin?: typeof crossProjectOrigin;
+                };
+              }
+            | undefined;
+          createdChange = {
+            ...createdChange,
+            ...options?.initialMetadata,
+          };
+          return { changeId: createdChange.id };
+        }),
+        get: vi.fn().mockImplementation(async () => ({
+          success: true,
+          data: createdChange,
+        })),
+        save: vi.fn().mockResolvedValue(undefined),
+      },
+    };
+    const workflowClient = { workflow: { start: vi.fn(), getHandle: vi.fn() } };
+    const ops = createChangeOps({
+      input: {
+        legacy,
+        temporal: { client: workflowClient },
+        projectId: "pid-target",
+      },
+      legacy,
+      invalidateChange: vi.fn(),
+      updateOverlay: vi.fn(),
+      emitChangeSummarySignal: vi.fn(),
+      indexTasksFromState: vi.fn(),
+      setCachedChange: vi.fn(),
+      getTemporalChange: vi.fn(),
+      listResolvedChanges: vi.fn(),
+      getTemporalWorkflowClient: () => workflowClient,
+      dualWriteAfterMutation: vi.fn(),
+    } as never);
+
+    await ops.create("Target followup", {
+      capability: "advance-meta",
+      initialMetadata: { cross_project_origin: crossProjectOrigin } as never,
+    });
+
+    expect(ensureChangeWorkflowStarted).toHaveBeenCalledWith(
+      workflowClient,
+      expect.objectContaining({
+        seedState: expect.objectContaining({
+          cross_project_origin: crossProjectOrigin,
+        }),
+      }),
+    );
+  });
+
   /**
    * rq-autoManageAdvWorktrees AC3 — stamping on create.
    *
