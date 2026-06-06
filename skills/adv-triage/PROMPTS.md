@@ -49,6 +49,28 @@ For each approved item: `gh issue create`, add source trailer, add to project, s
 
 ## User-only field assignments
 
+### Relevance validation
+
+Before any Priority/Value question, relevance-check each field-gap candidate.
+
+Evidence sources:
+
+- Issue body, labels, comments, state, and Project status.
+- Linked ADV change state, gates, tasks, and proposal/agreement/design artifacts.
+- Current source/docs/tests when the issue claims an implementation gap.
+- User-provided context from the current triage run.
+
+Outcomes:
+
+| Outcome | Action |
+|---|---|
+| `relevant` | Continue to the bug Priority or feature Value question. |
+| `stale/already-addressed` | Present evidence; close/remove/defer only after explicit user approval. |
+| `duplicate/superseded` | Present candidate survivor; close/supersede only after explicit user approval. |
+| `unclear` | Ask a focused relevance question before asking for Priority/Value. |
+
+Use the `question` tool for unclear relevance choices and for any user-owned scoring prompt. Relevance heuristics are advisory only; they MUST NOT auto-close, auto-suppress, or auto-score an item.
+
 Build matrix from open issues:
 
 | Need | Condition |

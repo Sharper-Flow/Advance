@@ -64,7 +64,17 @@ If `unrepresented[]` empty AND represented have required fields → skip to Phas
 
 When `unrepresented[]` non-empty: emit Tier B inline approval (skill § Phase 3a). On approval: `gh issue create`, add to project, set `ADV Type`. Triage-origin tagging (rq-issueChangeLinkage01): subsequent `/adv-proposal` for promoted issue MUST pass `origin_kind: 'triage'`, `origin_source_artifact`, `origin_issue_number`.
 
-### 4b. Field assignments
+### 4b. Relevance validation
+
+Before asking for bug Priority or feature Value, relevance-check every field-gap candidate. Evidence sources: issue body/comments/labels/project status, linked ADV change state, current source/docs/tests for implementation-gap claims, and user-provided context from the run. Classify each item as `relevant`, `stale/already-addressed`, `duplicate/superseded`, or `unclear`.
+
+- `relevant` → include in the Phase 4c field assignment matrix.
+- `stale/already-addressed` or `duplicate/superseded` → surface evidence and get explicit user approval before closing/removing/deprioritizing.
+- `unclear` → ask a focused relevance question before any scoring question.
+
+MUST NOT prompt for bug Priority or feature Value before relevance validation completes for that item. Relevance heuristics are advisory only (P33): they may rank or flag, never close or suppress without the required user approval path. See skill § Phase 3b.
+
+### 4c. Field assignments
 
 Build matrix (bug priority labels, feature Value). If non-empty: `question` tool — **never plain-text chat**. Stage 1 batch control → Stage 2 per-item loop (bugs first, features after). Apply via `gh issue edit --add-label` or `gh api graphql`. GraphQL budget gate before writes. See skill § Phase 3b.
 

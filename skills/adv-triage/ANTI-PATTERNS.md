@@ -18,6 +18,7 @@
 | `git add -A` before roadmap commit | `git add ROADMAP.md .adv/roadmap-snapshot.json` only |
 | Commit ROADMAP.md from feature branch | Commit only on default branch; abort otherwise |
 | Assign Value to feature autonomously | Value is user-only unless user chooses autofill |
+| Ask users to assign Priority/Value to stale or already-addressed items | Relevance-check field-gap candidates first; resolve stale/duplicate items with explicit approval |
 | Skip evidence trailer on agent-scored fields | Append `<!-- adv-triage:scoring v1 ... -->` |
 | Write WSJF for bugs | Bugs use `priority:*` labels only |
 | Recompute WSJF every run for already-scored features | Fill missing fields unless `--rescore` |
