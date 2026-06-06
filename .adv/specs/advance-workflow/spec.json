@@ -1431,7 +1431,7 @@
     {
       "id": "rq-crossProjectCoordination01",
       "title": "Target-Path Cross-Project Coordination",
-      "body": "ADV tools that support cross-project coordination must use explicit `target_path` routing, persist structured cross_project_links and advisory external_dependencies on changes, require explicit confirmation before mutating untrusted target projects, and present dependency status as summary by default with drilldown available on request. External dependencies are advisory warnings only and must not block gates or archive by default.",
+      "body": "ADV tools that support cross-project coordination must use explicit `target_path` routing, persist structured cross_project_links and advisory external_dependencies on changes, require explicit confirmation before mutating untrusted target projects, and present dependency status as summary by default with drilldown available on request. `adv_change_create` with `target_path` is a target mutation: it must route creation through the target project's Temporal-backed store, seed `cross_project_origin` before workflow start, avoid synchronous target workflow `getState` queries from the source process, and fail without leaving active disk-only target state when target workflow start fails. Active disk-only target records must be recoverable through the normal list/read reseed path; archived and closed records must not be recreated. External dependencies are advisory warnings only and must not block gates or archive by default.",
       "priority": "must",
       "tags": [
         "workflow",
@@ -1466,6 +1466,35 @@
           "then": [
             "The tool requires explicit target confirmation evidence before changing target state",
             "Without confirmation, the tool fails before any target state mutation"
+          ]
+        },
+        {
+          "id": "rq-crossProjectCoordination01.5",
+          "title": "Cross-project create starts target workflow state",
+          "given": [
+            "adv_change_create is called with target_path for another ADV project",
+            "The target mutation is trusted or explicitly confirmed"
+          ],
+          "when": "The target change is created",
+          "then": [
+            "Creation is routed through the target project's Temporal-backed store or equivalent workflow-start path",
+            "cross_project_origin is seeded before target workflow start",
+            "The source process does not issue a target workflow getState query after creation",
+            "If target workflow start fails, the tool returns an error and does not leave a new active disk-only target change"
+          ]
+        },
+        {
+          "id": "rq-crossProjectCoordination01.6",
+          "title": "Active disk-only target changes reconcile through list/read",
+          "given": [
+            "A target project has non-terminal change.json records whose workflows are missing",
+            "The target project also has archived or closed disk records"
+          ],
+          "when": "A Temporal-backed change read or list loads target project changes",
+          "then": [
+            "Each non-terminal disk-only change is reseeded into workflow state through the normal read/list path",
+            "Archived and closed disk records are returned only as terminal projections when requested and are not recreated as active workflows",
+            "No startup scanner or one-off repair path is required"
           ]
         },
         {
