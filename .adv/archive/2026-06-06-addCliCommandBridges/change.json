@@ -1,0 +1,2372 @@
+{
+  "id": "addCliCommandBridges",
+  "title": "Add CLI command bridges",
+  "status": "archived",
+  "created_at": "2026-06-05T14:43:37.008Z",
+  "tasks": [
+    {
+      "id": "tk-4781868e7a81",
+      "title": "Extract shared bin/lib helpers + refactor `adv status` to use them",
+      "type": "code",
+      "section": "Foundations",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-06-05T16:15:40.124Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC3",
+          "C4"
+        ],
+        "respects": [
+          "C1"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-05T16:19:52.064Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "addCliCommandBridges",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addCliCommandBridges",
+          "task_id": "tk-4781868e7a81",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-4781868e7a81"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "bin/lib/types.ts",
+            "bin/lib/changes.ts",
+            "bin/lib/project.ts",
+            "bin/lib/render.ts",
+            "bin/lib/changes.test.ts",
+            "bin/lib/render.test.ts",
+            "bin/adv",
+            "plugin/src/cli-gate-order-parity.test.ts",
+            ".github/workflows/ci.yml"
+          ],
+          "verification": [
+            {
+              "command": "bun test bin/lib/changes.test.ts bin/lib/render.test.ts",
+              "exit_code": 0,
+              "summary": "31 Bun tests pass (0 fail) covering computeLastActivity, classifyRecency, buildGateProgress, firstIncompleteGate, countTasks, relativeTime, formatTable, shouldUseColor, emitJson"
+            },
+            {
+              "command": "diff /tmp/adv-status-orig2.txt /tmp/adv-status-refactor2.txt",
+              "exit_code": 0,
+              "summary": "Byte-identical output: original bin/adv and refactored bin/adv produce identical `status --no-color` output when run back-to-back"
+            },
+            {
+              "command": "pnpm exec vitest run src/cli-gate-order-parity.test.ts",
+              "exit_code": 0,
+              "summary": "1 vitest pass: bin/lib/changes.ts GATE_ORDER literal matches plugin/src/types/gates.ts GATE_ORDER"
+            },
+            {
+              "command": "bun bin/adv --help && bun bin/adv --version",
+              "exit_code": 0,
+              "summary": "Help and version subcommands still work correctly after refactor"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Extracted bin/adv internals into four bin/lib modules (types, changes, project, render)",
+              "why": "Enables future subcommands to reuse helpers without duplication; satisfies AC3/C4"
+            },
+            {
+              "what": "Used globalThis.Bun?.spawn typed-loose access in bin/lib/project.ts",
+              "why": "bin/ is not covered by plugin tsc; avoids needing Bun type declarations while staying clean TS"
+            },
+            {
+              "what": "Implemented Bun tests in bin/lib/*.test.ts rather than vitest",
+              "why": "Cross-boundary constraint: plugin tsconfig rootDir rejects imports from bin/; Bun test runner is native to the bin/ runtime"
+            },
+            {
+              "what": "Created plugin/src/cli-gate-order-parity.test.ts as text-read-only vitest",
+              "why": "Verifies AC3/C4 parity without violating rootDir boundary; reads bin/lib/changes.ts via readFileSync + regex, never imports it"
+            },
+            {
+              "what": "Added CI step 'Test bin CLI (Bun)' after plugin Test step",
+              "why": "Bun is already installed in CI; ensures bin/ tests run on every PR"
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "None — this was a clean extraction refactor with no bug patterns to fix.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "T01 extraction complete. bin/adv now imports from ./lib/* helpers. T02 parity test verifies bin GATE_ORDER matches plugin GATE_ORDER. Both test suites green. `pnpm run check` passes all checks on touched files; 3 pre-existing prettier warnings in untouched plugin/src files (adv-worktree.ts, tool-arg-preflight.test.ts, workspace-warp.test.ts) — confirmed by stashing and re-running check on clean branch.",
+            "suggested_next_action": "Proceed to next task in the addCliCommandBridges change, or run `bin/oc-test full` for a complete regression sweep if desired."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bun test bin/lib/changes.test.ts bin/lib/render.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: diff /tmp/adv-status-orig2.txt /tmp/adv-status-refactor2.txt"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/cli-gate-order-parity.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bun bin/adv --help && bun bin/adv --version"
+            }
+          ]
+        }
+      ],
+      "verification": "bun test bin/ 31/31 pass; tsc --noEmit clean; eslint clean; adv status --no-color byte-identical to pre-refactor; GATE_ORDER parity vitest passes.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".github/workflows/ci.yml",
+        "bin/adv",
+        "bin/lib/changes.test.ts",
+        "bin/lib/changes.ts",
+        "bin/lib/project.ts",
+        "bin/lib/render.test.ts",
+        "bin/lib/render.ts",
+        "bin/lib/types.ts",
+        "plugin/src/cli-gate-order-parity.test.ts"
+      ],
+      "touched_files": [
+        ".github/workflows/ci.yml",
+        "bin/adv",
+        "bin/lib/changes.test.ts",
+        "bin/lib/changes.ts",
+        "bin/lib/project.ts",
+        "bin/lib/render.test.ts",
+        "bin/lib/render.ts",
+        "bin/lib/types.ts",
+        "plugin/src/cli-gate-order-parity.test.ts"
+      ],
+      "checkpointSha": "4ff921db0d55867080d7e8089ac7ea3765d24ada",
+      "completedAt": "2026-06-05T16:35:28.530Z",
+      "completed_at": "2026-06-05T16:35:28.530Z"
+    },
+    {
+      "id": "tk-01449062f500",
+      "title": "Add advance-meta spec law: rq-roadmapCliBridge01",
+      "type": "code",
+      "section": "Spec",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-06-05T16:15:53.142Z",
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC7"
+        ],
+        "respects": [
+          "DONT4"
+        ]
+      },
+      "verification": "advance-meta spec rq-roadmapCliBridge01 added (priority must, scenarios .1/.2/.3) cloned from rq-statusCliBridge01; JSON parses; bridge-contract test asserts the spec anchor.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "3b449b9bf111e9869807b8343cf5ed5e7e502fe8",
+      "completedAt": "2026-06-05T17:19:36.131Z",
+      "completed_at": "2026-06-05T17:19:36.131Z"
+    },
+    {
+      "id": "tk-8270800d8017",
+      "title": "Create git-tracked CLI surface matrix doc + coverage test (AC1/AC2)",
+      "type": "code",
+      "section": "Matrix",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-06-05T16:16:06.398Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC8"
+        ],
+        "respects": [
+          "DONT2"
+        ]
+      },
+      "verification": "docs/cli-surface-matrix.md (git-tracked) enumerates every ADV_TOOL_NAMES tool + every adv-* command with disposition; plugin/src/cli-surface-matrix.test.ts (2 pass) enforces coverage so a new tool/command without a disposition row fails CI. AC1/AC2/AC8.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "3b449b9bf111e9869807b8343cf5ed5e7e502fe8",
+      "completedAt": "2026-06-05T17:19:41.842Z",
+      "completed_at": "2026-06-05T17:19:41.842Z"
+    },
+    {
+      "id": "tk-3b37128036bd",
+      "title": "GATE_ORDER cross-boundary parity test",
+      "type": "code",
+      "section": "Foundations",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-06-05T16:16:17.357Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-4781868e7a81"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "verifies": [
+          "AC3",
+          "C4"
+        ]
+      },
+      "verification": "GATE_ORDER cross-boundary parity test (plugin/src/cli-gate-order-parity.test.ts) passes via vitest (exit 0); text-reads bin/lib/changes.ts and asserts deep-equality with plugin GATE_ORDER. adv_run_test evidence recorded.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "4ff921db0d55867080d7e8089ac7ea3765d24ada",
+      "completedAt": "2026-06-05T16:36:12.351Z",
+      "completed_at": "2026-06-05T16:36:12.351Z"
+    },
+    {
+      "id": "tk-286991856559",
+      "title": "Implement bin/lib/roadmap.ts core (snapshot read + freshness + filter/sort + render)",
+      "type": "code",
+      "section": "Roadmap CLI",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-06-05T16:16:28.919Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-4781868e7a81"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC4",
+          "C2",
+          "C3"
+        ],
+        "respects": [
+          "DONT4"
+        ]
+      },
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "addCliCommandBridges",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addCliCommandBridges",
+          "task_id": "tk-286991856559",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-286991856559"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "bin/lib/roadmap.ts",
+            "bin/lib/roadmap.test.ts",
+            "bin/lib/project.ts",
+            "bin/adv",
+            "bin/adv.test.ts",
+            "plugin/src/cli-roadmap-parity.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "bun test bin/",
+              "exit_code": 0,
+              "summary": "60 pass, 0 fail across 4 test files (changes, render, roadmap, adv dispatcher)"
+            },
+            {
+              "command": "bun bin/adv roadmap --no-color (temp repo with snapshot)",
+              "exit_code": 0,
+              "summary": "Rendered roadmap table correctly, exit 0"
+            },
+            {
+              "command": "bun bin/adv roadmap --json (temp repo with snapshot)",
+              "exit_code": 0,
+              "summary": "Emitted JSON with active_change_annotation: unavailable_cli_file_mode, exit 0"
+            },
+            {
+              "command": "bun bin/adv roadmap --no-color (missing snapshot)",
+              "exit_code": 2,
+              "summary": "Actionable error to stderr + hint to run /adv-triage, exit 2"
+            },
+            {
+              "command": "pnpm run typecheck",
+              "exit_code": 0,
+              "summary": "tsc --noEmit passes with no errors"
+            },
+            {
+              "command": "pnpm exec eslint src/cli-roadmap-parity.test.ts",
+              "exit_code": 0,
+              "summary": "No lint errors"
+            },
+            {
+              "command": "pnpm exec vitest run src/cli-roadmap-parity.test.ts",
+              "exit_code": 0,
+              "summary": "4 pass (freshness threshold parity, 2h literal, bug field parity, feature field parity)"
+            },
+            {
+              "command": "bun bin/adv status --no-color",
+              "exit_code": 0,
+              "summary": "Status subcommand renders active changes table correctly, no regression"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Implemented T03, T04, and T05 together in one execution unit",
+              "why": "Tasks are tightly coupled: T04 depends on T03 exports, T05 depends on both. All three are part of the same scoped objective (build adv roadmap CLI)."
+            },
+            {
+              "what": "Used inline fixture snapshot in tests instead of external JSON file",
+              "why": "Keeps test self-contained; Bun tests run without external fixture directory dependencies."
+            },
+            {
+              "what": "Text-read parity test mirrors existing cli-gate-order-parity.test.ts pattern",
+              "why": "Maintains consistency with cluster-1 cross-boundary testing approach; avoids rootDir violation."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Fixed same Bun.spawn await pattern in bin/adv.test.ts (await proc.exited instead of await proc) to match existing test robustness. No other same-pattern issues found.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "adv roadmap CLI is complete and verified. T03 (bin/lib/roadmap.ts), T04 (bin/adv wiring), and T05 (vitest parity test) are all implemented, tested, and passing. The CLI reads .adv/roadmap-snapshot.json, mirrors plugin filter/sort/freshness logic, emits the explicit active-change annotation unavailable line, and respects all contract constraints (DONT4, C1, C3).",
+            "suggested_next_action": "Proceed to task completion for tk-eaecc5ed31ba and tk-88a2828020ea (already done as part of this execution), then move to acceptance/review gate."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bun test bin/"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bun bin/adv roadmap --no-color (temp repo with snapshot)"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bun bin/adv roadmap --json (temp repo with snapshot)"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bun bin/adv roadmap --no-color (missing snapshot)"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run typecheck"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec eslint src/cli-roadmap-parity.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/cli-roadmap-parity.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bun bin/adv status --no-color"
+            }
+          ]
+        }
+      ],
+      "verification": "bin/lib/roadmap.ts: 22 Bun unit tests pass (filter/sort/freshness/missing-file/json/annotation-line). Functional: roadmap table + --json verified against fixture; annotation-unavailable line present; no active_change column (DONT4).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "bin/adv",
+        "bin/adv.test.ts",
+        "bin/lib/project.ts",
+        "bin/lib/roadmap.test.ts",
+        "bin/lib/roadmap.ts",
+        "plugin/src/cli-roadmap-parity.test.ts"
+      ],
+      "touched_files": [
+        "bin/adv",
+        "bin/adv.test.ts",
+        "bin/lib/project.ts",
+        "bin/lib/roadmap.test.ts",
+        "bin/lib/roadmap.ts",
+        "plugin/src/cli-roadmap-parity.test.ts"
+      ],
+      "checkpointSha": "6553fa581a81352f08a007988fbf556ac18eec9e",
+      "completedAt": "2026-06-05T16:52:36.173Z",
+      "completed_at": "2026-06-05T16:52:36.173Z"
+    },
+    {
+      "id": "tk-eaecc5ed31ba",
+      "title": "Wire `adv roadmap` subcommand into bin/adv dispatcher",
+      "type": "code",
+      "section": "Roadmap CLI",
+      "status": "done",
+      "priority": 5,
+      "created_at": "2026-06-05T16:16:40.058Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-286991856559"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC4",
+          "C2"
+        ],
+        "respects": [
+          "C1",
+          "C3",
+          "DONT3",
+          "DONT4"
+        ]
+      },
+      "verification": "`adv roadmap` subcommand wired (flags --no-color/--json/--kind/--top/--priority, strict reject→exit2). Functional: table+json exit 0; missing snapshot exit 2; resolveRepoRoot added. Dispatcher Bun tests pass. status no-regression.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "6553fa581a81352f08a007988fbf556ac18eec9e",
+      "completedAt": "2026-06-05T16:52:41.680Z",
+      "completed_at": "2026-06-05T16:52:41.680Z"
+    },
+    {
+      "id": "tk-88a2828020ea",
+      "title": "Roadmap snapshot-shape + freshness parity test",
+      "type": "code",
+      "section": "Roadmap CLI",
+      "status": "done",
+      "priority": 6,
+      "created_at": "2026-06-05T16:16:48.349Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-286991856559"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "verifies": [
+          "AC4"
+        ]
+      },
+      "verification": "plugin/src/cli-roadmap-parity.test.ts: 4 vitest pass — imports plugin assessRoadmapFreshness (stale_after_hours===2), text-reads bin/lib/roadmap.ts for 2h threshold + RoadmapBug/Feature field-name parity. adv_run_test evidence recorded.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "6553fa581a81352f08a007988fbf556ac18eec9e",
+      "completedAt": "2026-06-05T16:52:43.861Z",
+      "completed_at": "2026-06-05T16:52:43.861Z"
+    },
+    {
+      "id": "tk-375810084ef4",
+      "title": "Parameterized bridge-contract asset-test harness + registry no-removal guard (RED)",
+      "type": "code",
+      "section": "Bridge contract",
+      "status": "done",
+      "priority": 7,
+      "created_at": "2026-06-05T16:17:03.608Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-eaecc5ed31ba"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-01449062f500"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC6"
+        ],
+        "verifies": [
+          "AC5",
+          "AC7",
+          "AC9"
+        ],
+        "respects": [
+          "DONT1",
+          "DONT3"
+        ]
+      },
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "addCliCommandBridges",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addCliCommandBridges",
+          "task_id": "tk-375810084ef4",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-375810084ef4"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            ".adv/specs/advance-meta/spec.json",
+            ".opencode/command/adv-roadmap.md",
+            "plugin/src/manifest.ts",
+            "plugin/src/cli-bridge-contract.test.ts",
+            "plugin/src/cli-surface-matrix.test.ts",
+            "docs/cli-surface-matrix.md",
+            "README.md",
+            "ADV_INSTRUCTIONS.md"
+          ],
+          "verification": [
+            {
+              "command": "node -e \"require('./.adv/specs/advance-meta/spec.json')\"",
+              "exit_code": 0,
+              "summary": "Spec parses; rq-roadmapCliBridge01 present with priority must and 3 scenarios"
+            },
+            {
+              "command": "cd plugin && pnpm run typecheck",
+              "exit_code": 0,
+              "summary": "tsc --noEmit clean"
+            },
+            {
+              "command": "cd plugin && pnpm exec vitest run src/cli-bridge-contract.test.ts src/cli-surface-matrix.test.ts",
+              "exit_code": 0,
+              "summary": "12 tests pass (2 files): bridge tokens, verbatim/no-analysis, forbidden fanout, spec anchors, registry snapshot guard, CLI mutation guard, matrix coverage"
+            },
+            {
+              "command": "cd plugin && pnpm exec eslint src/cli-bridge-contract.test.ts src/cli-surface-matrix.test.ts",
+              "exit_code": 0,
+              "summary": "ESLint clean on new files"
+            },
+            {
+              "command": "bun test bin/",
+              "exit_code": 0,
+              "summary": "60 Bun tests pass (0 fail)"
+            },
+            {
+              "command": "bun bin/adv roadmap --no-color && bun bin/adv status --no-color",
+              "exit_code": 0,
+              "summary": "Both CLI subcommands produce stable no-color output"
+            },
+            {
+              "command": "cd plugin && pnpm test",
+              "exit_code": 1,
+              "summary": "3515 pass, 4 fail, 2 skip. All 4 failures are pre-existing on this branch (worktree-lifecycle spec missing requirement id crashes spec-citation-invariant and deploy-local tests; 2 tool-registry.test.ts malformed-arg blockers). No regressions introduced."
+            },
+            {
+              "command": "cd plugin && pnpm run check",
+              "exit_code": 1,
+              "summary": "schemas:check, typecheck, lint all pass. format:check shows only 3 known pre-existing prettier warnings (adv-worktree.ts, tool-arg-preflight.test.ts, workspace-warp.test.ts) as expected."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Co-executed T06 (spec law), T08 (bridge rewrite), and T09 (matrix doc) alongside T07 (harness/guards)",
+              "why": "Tasks are tightly coupled: T07 tests require T06 spec anchor and T08 bridge file to exist; T09 matrix enumerates tools verified by T07 guard. Executing together avoids intermediate broken states."
+            },
+            {
+              "what": "Updated README.md and ADV_INSTRUCTIONS.md adv-roadmap descriptions to match manifest.ts",
+              "why": "Manifest-doc drift test enforces description parity between manifest and docs. Changing manifest description without updating docs causes CI failure."
+            },
+            {
+              "what": "Used === \"verb\" dispatch pattern match in NO-CLI-MUTATION GUARD instead of raw quoted string search",
+              "why": "bin/adv contains variable names like archiveDir that falsely match \"archive\"; the === \"verb\" pattern correctly isolates subcommand dispatch strings."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Fixed manifest/doc drift in README.md and ADV_INSTRUCTIONS.md to match new adv-roadmap description. Pre-existing worktree-lifecycle spec has 2 requirements missing id fields, causing deploy-local.test.ts and spec-citation-invariant.test.ts to fail — not in scope.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "All 4 tasks (T06 spec law, T07 harness+guards, T08 bridge rewrite, T09 matrix doc+test) are complete and verified. New files: plugin/src/cli-bridge-contract.test.ts, plugin/src/cli-surface-matrix.test.ts, docs/cli-surface-matrix.md. Modified files: .adv/specs/advance-meta/spec.json, .opencode/command/adv-roadmap.md, plugin/src/manifest.ts, README.md, ADV_INSTRUCTIONS.md. Full suite: 3515 pass, 4 pre-existing failures unrelated to this change. pnpm run check clean except 3 known pre-existing prettier warnings.",
+            "suggested_next_action": "Proceed to acceptance gate review. The 4 pre-existing test failures on this branch (worktree-lifecycle spec missing ids + tool-registry malformed-arg blockers) should be tracked separately if not already."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: node -e \"require('./.adv/specs/advance-meta/spec.json')\""
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: cd plugin && pnpm run typecheck"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: cd plugin && pnpm exec vitest run src/cli-bridge-contract.test.ts src/cli-surface-matrix.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: cd plugin && pnpm exec eslint src/cli-bridge-contract.test.ts src/cli-surface-matrix.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bun test bin/"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bun bin/adv roadmap --no-color && bun bin/adv status --no-color"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: cd plugin && pnpm test"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: cd plugin && pnpm run check"
+            }
+          ]
+        }
+      ],
+      "verification": "plugin/src/cli-bridge-contract.test.ts: 10 vitest pass — parameterized status+roadmap bridge contract (token, verbatim/no-analysis, forbidden-fanout tokens incl active_change, spec anchor) + registry no-removal guard (frozen ADV_TOOL_NAMES) + no-CLI-mutation guard. Full-suite delta vs base = 0 (4 failures pre-existing on 3bba58f, proven).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".adv/specs/advance-meta/spec.json",
+        ".opencode/command/adv-roadmap.md",
+        "ADV_INSTRUCTIONS.md",
+        "README.md",
+        "docs/cli-surface-matrix.md",
+        "plugin/src/cli-bridge-contract.test.ts",
+        "plugin/src/cli-surface-matrix.test.ts",
+        "plugin/src/manifest.ts"
+      ],
+      "touched_files": [
+        ".adv/specs/advance-meta/spec.json",
+        ".opencode/command/adv-roadmap.md",
+        "ADV_INSTRUCTIONS.md",
+        "README.md",
+        "docs/cli-surface-matrix.md",
+        "plugin/src/cli-bridge-contract.test.ts",
+        "plugin/src/cli-surface-matrix.test.ts",
+        "plugin/src/manifest.ts"
+      ],
+      "checkpointSha": "3b449b9bf111e9869807b8343cf5ed5e7e502fe8",
+      "completedAt": "2026-06-05T17:19:30.141Z",
+      "completed_at": "2026-06-05T17:19:30.141Z"
+    },
+    {
+      "id": "tk-9c7fdd49c4d2",
+      "title": "Convert /adv-roadmap default path to a thin CLI bridge (GREEN)",
+      "type": "code",
+      "section": "Bridge contract",
+      "status": "done",
+      "priority": 8,
+      "created_at": "2026-06-05T16:17:16.365Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-375810084ef4"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC5"
+        ],
+        "respects": [
+          "DONT3",
+          "DONT4"
+        ]
+      },
+      "verification": ".opencode/command/adv-roadmap.md rewritten as thin bridge (!`adv roadmap --no-color`, verbatim/no-analysis, no adv_* tokens, no active_change). manifest/README/ADV_INSTRUCTIONS descriptions synced. bridge-contract test green; full suite no new failures.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "3b449b9bf111e9869807b8343cf5ed5e7e502fe8",
+      "completedAt": "2026-06-05T17:19:39.430Z",
+      "completed_at": "2026-06-05T17:19:39.430Z"
+    },
+    {
+      "id": "tk-e353a4f26924",
+      "title": "Update status bridge spec law + asset tests for live-default status",
+      "type": "code",
+      "section": "Live Status Re-entry",
+      "status": "done",
+      "priority": 9,
+      "created_at": "2026-06-05T19:14:50.080Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC2",
+          "AC7",
+          "AC10"
+        ],
+        "verifies": [
+          "AC2",
+          "AC7"
+        ],
+        "respects": [
+          "C5",
+          "DONT5"
+        ]
+      },
+      "verification": "RED: bin/oc-test targeted -- src/cli-bridge-contract.test.ts failed on missing live Temporal-backed law. GREEN: same command passed 11 tests after updating rq-statusCliBridge01 and bridge contract test.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".adv/specs/advance-meta/spec.json",
+        "plugin/src/cli-bridge-contract.test.ts"
+      ],
+      "touched_files": [
+        ".adv/specs/advance-meta/spec.json",
+        "plugin/src/cli-bridge-contract.test.ts"
+      ],
+      "checkpointSha": "f67765f0794bae90fd73bef07b84e5bedc39f7ab",
+      "completedAt": "2026-06-05T19:23:12.683Z",
+      "completed_at": "2026-06-05T19:23:12.683Z"
+    },
+    {
+      "id": "tk-9d123b9021d0",
+      "title": "Implement live Temporal-backed `adv status` default",
+      "type": "code",
+      "section": "Live Status Re-entry",
+      "status": "done",
+      "priority": 10,
+      "created_at": "2026-06-05T19:15:18.048Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6"
+        ],
+        "verifies": [
+          "AC1",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "DONT3",
+          "DONT4",
+          "DONT6"
+        ]
+      },
+      "verification": "RED: bun test bin/lib/live-status.test.ts failed because live-status module did not exist. GREEN: bun test bin/lib/live-status.test.ts passed 5 tests. VERIFY: bun test bin/ passed 66 tests. Manual live command `bun bin/adv status --json` returned fail-closed JSON due current Temporal query failure, proving remediation/no disk fallback path; final end-to-end live success remains in blocked verification task after guards/docs.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "bin/adv",
+        "bin/adv.test.ts",
+        "bin/lib/changes.ts",
+        "bin/lib/live-status.test.ts",
+        "bin/lib/live-status.ts",
+        "bin/lib/types.ts"
+      ],
+      "touched_files": [
+        "bin/adv",
+        "bin/adv.test.ts",
+        "bin/lib/changes.ts",
+        "bin/lib/live-status.test.ts",
+        "bin/lib/live-status.ts",
+        "bin/lib/types.ts"
+      ],
+      "checkpointSha": "f2e78b93b44a6cdf5a5b59ae89a3e8368696f50f",
+      "completedAt": "2026-06-05T19:29:18.383Z",
+      "completed_at": "2026-06-05T19:29:18.383Z"
+    },
+    {
+      "id": "tk-134186ff8104",
+      "title": "Verify live status end-to-end and update release-facing docs/comments",
+      "type": "code",
+      "section": "Live Status Re-entry",
+      "status": "cancelled",
+      "priority": 11,
+      "created_at": "2026-06-05T19:15:18.151Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "verifies": [
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC10"
+        ],
+        "respects": [
+          "AC8",
+          "AC9",
+          "C6",
+          "DONT6"
+        ]
+      },
+      "cancelApproval": "User approved via question tool: selected \"Approve cancellation\" for cancelling tk-134186ff8104 and replacing it with a dependency-blocked final verification task.",
+      "cancelledAt": "2026-06-05T19:16:23.455Z",
+      "completed_at": "2026-06-05T19:16:23.455Z",
+      "cancellation": {
+        "reason": "Sequencing correction during prep: final verification/docs task must be dependency-blocked by live implementation and guard/regression tasks; replacing with dependency-blocked task.",
+        "approved_by_user": true,
+        "approval_evidence": "User approved via question tool: selected \"Approve cancellation\" for cancelling tk-134186ff8104 and replacing it with a dependency-blocked final verification task.",
+        "approved_at": "2026-06-05T19:16:23.455Z"
+      }
+    },
+    {
+      "id": "tk-fcd4811c8a63",
+      "title": "Add status-live guard/parity regression tests",
+      "type": "code",
+      "section": "Live Status Re-entry",
+      "status": "done",
+      "priority": 11,
+      "created_at": "2026-06-05T19:15:18.153Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC8",
+          "AC9",
+          "AC10"
+        ],
+        "verifies": [
+          "AC8",
+          "AC9",
+          "AC10"
+        ],
+        "respects": [
+          "C5",
+          "C6",
+          "DONT2",
+          "DONT3",
+          "DONT5"
+        ]
+      },
+      "verification": "GREEN: bin/oc-test targeted -- src/cli-bridge-contract.test.ts passed 16 tests. Added guards for sandbox imports, canonical query name, no disk active source, roadmap unchanged, and no status mutation authority. Initial guard run failed on over-broad archive/restart token matching, then refined to mutation-specific patterns.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/cli-bridge-contract.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/cli-bridge-contract.test.ts"
+      ],
+      "checkpointSha": "3aa6b3ff57d092ddf6235b020e0def99c25926ec",
+      "completedAt": "2026-06-05T19:30:39.731Z",
+      "completed_at": "2026-06-05T19:30:39.731Z"
+    },
+    {
+      "id": "tk-f774167c1343",
+      "title": "Verify live status end-to-end and update release-facing docs/comments",
+      "type": "code",
+      "section": "Live Status Re-entry",
+      "status": "done",
+      "priority": 12,
+      "created_at": "2026-06-05T19:16:40.922Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-e353a4f26924"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-9d123b9021d0"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-fcd4811c8a63"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "verifies": [
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC10"
+        ],
+        "respects": [
+          "AC8",
+          "AC9",
+          "C6",
+          "DONT6"
+        ]
+      },
+      "verification": "Review remediation: adv-reviewer found and fixed test hermeticity in bin/adv.test.ts by adding local Git identity and quiet deterministic temp repo init. Reviewer verification: clean-HOME repro 8 pass; bun test bin/ 66 pass; CLI bridge/parity/matrix targeted suite 23 pass; runtime fail-closed JSON exit 2 with live:false/stale:false/remediation; prettier check and git diff --check pass.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "bin/adv.test.ts"
+      ],
+      "touched_files": [
+        "bin/adv.test.ts"
+      ],
+      "checkpointSha": "8bae2f148ba388fdfcd9ffa3a979a51f502b4160",
+      "completedAt": "2026-06-05T19:40:09.056Z",
+      "completed_at": "2026-06-05T19:40:09.056Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "addCliCommandBridges",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:cli-command-bridges"
+      },
+      "agent": "adv-researcher",
+      "topic": "CLI command bridge architecture, conversion candidate tiers, and OpenCode shell-output bridge semantics for addCliCommandBridges",
+      "sources": [
+        {
+          "label": "OpenCode Commands docs (official)",
+          "locator": "https://opencode.ai/docs/commands/",
+          "summary": "Confirms !`command` injects bash command OUTPUT into the prompt; commands run in project root; output becomes part of the prompt sent to the LLM. Framework injects output — it does NOT enforce verbatim/no-analysis. That discipline is an agent-prompt convention, which is why adv-status.md carries explicit 'return verbatim / do not analyze' instructions plus an asset test."
+        },
+        {
+          "label": "OpenCode commands.mdx source (anomalyco/opencode dev)",
+          "locator": "https://github.com/anomalyco/opencode/blob/dev/packages/web/src/content/docs/commands.mdx",
+          "summary": "Authoritative source for template processing: shell execution via !`command`, $ARGUMENTS placeholder, custom command can override built-in. Confirms bridge mechanism is stable and documented."
+        },
+        {
+          "label": "Bun parseArgs guide (official, oven-sh/bun)",
+          "locator": "https://github.com/oven-sh/bun/blob/main/docs/guides/process/argv.mdx",
+          "summary": "Idiomatic zero-dependency CLI parsing is node:util parseArgs with options + strict + allowPositionals. bin/adv already follows this exact pattern. Boring-tech baseline; commander is the heavier escalation only when multi-subcommand dispatch outgrows parseArgs."
+        },
+        {
+          "label": "Local: bin/adv (current CLI)",
+          "locator": "/home/jon/dev/advance/bin/adv",
+          "summary": "Standalone Bun script, single `status` subcommand. Resolves projectId from git root-commit SHA, reads external JSON projections under $XDG_DATA_HOME/opencode/plugins/advance/{projectId}, pure compute helpers (computeLastActivity, classifyRecency, gate progress), no-color stable rendering, explicit exit codes (0 ok / 1 git-or-unknown / 2 no-state). Duplicates gate order + lastActivity algorithm from plugin/src (cited inline as source-of-truth references)."
+        },
+        {
+          "label": "Local: advance-meta spec rq-statusCliBridge01",
+          "locator": "/home/jon/dev/advance/.adv/specs/advance-meta/spec.json:94-147",
+          "summary": "MUST-priority law. .1 CLI table injection no-color; .2 forbids agent fanout (adv_status/list/show/gate_status/spec) and synthesized health/freshness/recommendations; .3 CLI failure surfaces stderr and MUST NOT fall back to ADV MCP tools. Governing precedent for every new bridge."
+        },
+        {
+          "label": "Local: adv-status-cli-assets.test.ts",
+          "locator": "/home/jon/dev/advance/plugin/src/adv-status-cli-assets.test.ts",
+          "summary": "Pins command body: contains !`adv status --no-color`, requires verbatim/do-not-analyze/no-recommendations, forbidden-token list (adv_status, adv_change_list, ...), spec anchoring. Reusable regression-guard template for any new bridge command."
+        },
+        {
+          "label": "Local: plugin/src/tools/roadmap.ts + backlog.ts",
+          "locator": "/home/jon/dev/advance/plugin/src/tools/roadmap.ts, /home/jon/dev/advance/plugin/src/tools/backlog.ts",
+          "summary": "roadmap.ts exposes pure helpers: readSnapshotFile, assessAnnotationFreshness, filter/sort/group, live gh project read. backlog.ts adv_backlog_state composes them with TTL freshness + O(1) Visibility annotation. Active-change annotation REQUIRES Temporal Visibility (queryActiveChangesByIssueNumbers) — a disk-only CLI bridge cannot reproduce it without a store-list fallback (buildActiveChangeIndexFromStore is the O(n*m) fallback)."
+        },
+        {
+          "label": "Local: command bodies inspected",
+          "locator": "/home/jon/dev/advance/.opencode/command/{adv-roadmap,adv-validate,adv-cleanup,adv-slop-scan,adv-arch-scan}.md",
+          "summary": "adv-validate is thin (single adv_change_validate call + display tables). adv-roadmap is prompt-heavy render + active-change cross-ref + recommendations. adv-cleanup/slop-scan/arch-scan are dry-run/Phase-1-deterministic but interleave Tier B HITL approval, sub-agent fanout, judgment — only their deterministic pre-flight/enumeration slices are bridge-safe."
+        }
+      ],
+      "architecture_assessment": "EXISTING PATTERN: One proven CLI bridge (/adv-status -> `adv status --no-color`) backed by a standalone disk-reading Bun script, a MUST spec (rq-statusCliBridge01), and an asset test. Bridge reads on-disk JSON projections only; no Temporal, no MCP, no network. REFERENCE PATTERN (by-the-book): OpenCode docs confirm !`command` shell-output injection is the canonical deterministic-output mechanism; node:util parseArgs is the canonical zero-dependency Bun CLI parser. ADV is squarely on the boring/proven path. DEVIATION: NONE for existing bridge. EXPANSION RISKS: (1) State-reader duplication — bin/adv hand-reimplements gate order + lastActivity from plugin/src; each new disk-reading subcommand widens drift + grows a monolithic file. (2) Projection staleness — on-disk change.json is a DOWNSTREAM projection updated only on terminal/gate transitions (AGENTS.md 'Signal-driven change workflows'); per-change Temporal workflow state is source of truth. Pure-disk CLI cannot serve data needing live Temporal/Visibility (active-change annotation, worktree/session/WIP, in-flight gate granularity). (3) HITL erosion — converting any slice owning Tier B approval, gate ownership, cancellation, archive, acceptance into an autonomous CLI breaches rq-statusCliBridge01-class no-fanout AND human-authority invariants. (4) Failure-fallback regression — rq-statusCliBridge01.3 forbids MCP fallback on CLI error; new bridges must replicate 'surface stderr, do not re-enter agent fanout' or they silently re-introduce fanout.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "Bridge mechanism, CLI parser choice, and no-fallback failure contract are VALIDATED against official OpenCode docs, Bun docs, and the existing MUST spec. CONCERNS (non-blocking) are scoping/guardrails, not feasibility: keep Temporal-dependent reads agent-owned or behind explicit opt-in tools; do not let bin/adv re-derive plugin algorithms without a shared source-of-truth. Conversion of HITL/gate/archive/acceptance/judgment work is an ANTI-PATTERN and stays agent-owned."
+      },
+      "recommendation": "RECOMMENDED FIRST STEP (lowest risk): add `adv roadmap` as a disk-only read of `.adv/roadmap-snapshot.json` reusing existing network/Temporal-free helpers (readSnapshotFile + assessAnnotationFreshness + pure filter/sort) WITHOUT active-change annotation; bridge /adv-roadmap's non-annotated read path to it. Keep active-change cross-reference + recommendations agent-owned (they need Temporal Visibility). ALTERNATIVE: /adv-validate is thin but adv_change_validate likely needs live workflow/spec state — if so, make it a thin single-MCP-call command (one adv_change_validate + deterministic table, no fanout, no recommendations) mirroring status discipline, NOT a pure-disk CLI. MANDATORY GUARDRAILS (mirror rq-statusCliBridge01): (a) New spec rq-<cmd>CliBridge01 with .1 output injection, .2 forbids agent fanout/synthesis, .3 CLI failure surfaces stderr with NO MCP fallback. (b) New *-cli-assets.test.ts cloned from adv-status-cli-assets.test.ts asserting the !`adv <subcmd>` token, verbatim/no-analysis instructions, forbidden-token list, spec anchoring. (c) Refactor bin/adv BEFORE adding subcommand #2: extract shared disk-read + projection-shape helpers (or codegen shape from plugin/src/types.ts) so gate order / lastActivity / snapshot schema have ONE source of truth. (d) Mark each disk-read subcommand's known-staleness boundary in --help + command body. (e) Do NOT convert any slice owning Tier B approval, gates, cancellation, archive, acceptance, sub-agent dispatch, or judgment.",
+      "follow_ups": [
+        "Confirm whether adv_change_validate can execute purely from on-disk change.json + .adv/specs without Temporal/Visibility; decides CLI-bridge vs thin single-MCP-call for /adv-validate.",
+        "Decide source-of-truth strategy for bin/adv projection shapes (shared helper module vs codegen from plugin/src/types.ts) BEFORE adding subcommand #2 to prevent gate-order/lastActivity drift.",
+        "Catalog Temporal-dependent command slices (active-change annotation, WIP/worktree/session, live gate granularity) so they are explicitly excluded from disk-only CLI bridges.",
+        "Author reusable spec + asset-test templates so each future bridge inherits the no-fanout + no-fallback contract by construction (structural-correctness over prose)."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addCliCommandBridges",
+      "attempt": 2,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:all-command-tool-cli-candidates"
+      },
+      "agent": "adv-researcher",
+      "topic": "CLI bridge candidacy inventory across all ADV slash commands and MCP tools",
+      "sources": [
+        {
+          "label": "Existing CLI reference (bin/adv)",
+          "locator": "/home/jon/dev/advance/bin/adv:1-507",
+          "summary": "Pure disk-projection read CLI: resolves projectId via git root SHA, reads change.json from XDG external root, no Temporal, no mutation, stable --no-color/NO_COLOR output, exit codes 0/1/2."
+        },
+        {
+          "label": "Status CLI bridge contract test",
+          "locator": "/home/jon/dev/advance/plugin/src/adv-status-cli-assets.test.ts:28-86",
+          "summary": "rq-statusCliBridge01 law: slash command runs adv status --no-color verbatim, forbids ADV MCP fanout in the command, health diagnostics stay on adv_status view:health."
+        },
+        {
+          "label": "Tool registry canonical tool list",
+          "locator": "/home/jon/dev/advance/plugin/src/tool-registry.ts:704-759",
+          "summary": "55 registered adv_* tools enumerated; basis for tool matrix."
+        },
+        {
+          "label": "Command manifest headers",
+          "locator": "/home/jon/dev/advance/.opencode/command/*.md manifest lines",
+          "summary": "Gate ownership + scope[modifies] per command; gate-owning commands (proposal/discover/design/prep/apply/review/harden/archive) modify proposal/tasks/codebase/specs — agent-owned."
+        },
+        {
+          "label": "change.ts read path",
+          "locator": "/home/jon/dev/advance/plugin/src/tools/change.ts:106-237,3422-3500",
+          "summary": "adv_change_show/validate read Temporal-first via store.changes.get() with disk/archive fallback; NOT pure disk. Mutations fire signals via fireSignalAndRefresh."
+        },
+        {
+          "label": "roadmap.ts tool",
+          "locator": "/home/jon/dev/advance/plugin/src/tools/roadmap.ts:647-678",
+          "summary": "adv_roadmap reads .adv/roadmap-snapshot.json (file, default) or gh project (live); pure read with freshness warnings — strong CLI candidate."
+        },
+        {
+          "label": "conformance.ts",
+          "locator": "/home/jon/dev/advance/plugin/src/tools/conformance.ts:9-23,455-540",
+          "summary": "status=read-only; init/lock/unlock/override mutate state; run reads CI verdict artifact. Mixed surface — only status+run are CLI/CI-safe."
+        },
+        {
+          "label": "temporal-ops.ts",
+          "locator": "/home/jon/dev/advance/plugin/src/tools/temporal-ops.ts:331,409,557",
+          "summary": "adv_temporal_diagnose explicitly read-only; register_search_attributes/reconnect/worker_restart mutate live runtime — diagnose is CLI-doctor-safe, others not."
+        },
+        {
+          "label": "snapshot.ts",
+          "locator": "/home/jon/dev/advance/plugin/src/tools/snapshot.ts:41-48,71,155-158",
+          "summary": "action=scan read-only by default; repair approval-gated. dryRun preview supported — scan is CLI-doctor-safe."
+        },
+        {
+          "label": "spec.ts",
+          "locator": "/home/jon/dev/advance/plugin/src/tools/spec.ts:45-87",
+          "summary": "adv_spec list/show/search read via store.specs.*; specs are in-repo git-tracked .adv/specs/ — CLI could read files directly."
+        }
+      ],
+      "architecture_assessment": "bin/adv establishes the canonical CLI-bridge shape: pure disk-projection reads of change.json under the XDG external root, git-root-SHA project resolution, zero Temporal, zero mutation, stable no-color output, numbered exit codes. rq-statusCliBridge01 (verified by adv-status-cli-assets.test.ts) is the reference contract: the slash command becomes a thin verbatim bridge with MCP fanout forbidden, while richer/diagnostic reads stay on the MCP tool. CLI-safe boundary: deterministic reads of disk projections (changes, roadmap snapshot, in-repo specs, reflections, agenda, wisdom, project metadata), dry-run/read-only scans (snapshot scan, conformance status), read-only diagnostics (temporal diagnose). Dangerous boundary: anything that fires a Temporal signal, completes a gate, mutates tasks, archives/git-finalizes, or requires HITL — must stay agent-owned because state lives in Temporal workflows (signal/query-only surface) and disk change.json is only a downstream projection updated on terminal/gate transitions. Critical nuance: adv_change_validate/show read Temporal-first (store.changes.get), so a CLI port needs either a shared disk-projection read helper extracted from bin/adv's listChanges/loadChangeJson, or explicit disk-only semantics with a freshness disclaimer, to avoid duplicating state logic and silent divergence from live workflow state.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "No anti-pattern. Boring/proven path matches the already-shipped bin/adv + rq-statusCliBridge01 reference exactly. Sequencing roadmap next is correct: pure file-snapshot read with existing freshness contract and no Temporal dependency, lowest-risk after status."
+      },
+      "recommendation": "Ship CLI bridges only for pure disk-projection reads and read-only diagnostics, in order: (1) adv roadmap (reads .adv/roadmap-snapshot.json; --json for CI), (2) adv validate --json as CI gate (disk-projection-only, freshness-disclaimed), (3) adv doctor (temporal diagnose + snapshot scan, read-only), (4) adv spec list/show (read in-repo .adv/specs directly). Extract a shared read helper module (project resolution + change.json/spec loaders) from bin/adv so status/roadmap/validate/doctor do not each reimplement state logic. Keep all gate-owning workflow commands and all signal-firing/HITL/destructive tools (gate_complete, task add/update/cancel/checkpoint, change create/close/archive/reenter, contract_mint, worktree create/delete, temporal worker_restart/reconnect/register, snapshot repair, conformance init/lock/unlock/override) strictly agent-owned with NO CLI mutation authority. Conformance status/run and snapshot scan may expose CLI read/CI-JSON only.",
+      "follow_ups": [
+        "adv_change_validate CLI port requires a decision: extract disk-projection read helper vs. disk-only-with-freshness-disclaimer, since the MCP tool reads Temporal-first.",
+        "Add a CI JSON mode (--json) to validate/roadmap/doctor so CI consumes structured verdicts without ANSI parsing; gate with an assets test mirroring rq-statusCliBridge01.",
+        "Conformance run already reads a CI artifact — a thin adv conformance status --json could surface last_verdict in CI without granting lock/override authority."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addCliCommandBridges",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:discovery-opportunity-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Discovery Opportunity Scout: missed opportunities + leverage points for ADV CLI command bridges within approved proposal scope",
+      "sources": [
+        {
+          "label": "bin/adv current CLI (standalone, no plugin imports)",
+          "locator": "/home/jon/dev/advance/bin/adv:23-32,114-236",
+          "summary": "507-line standalone Bun script. GATE_ORDER (23-32) and computeLastActivity (187-212) are hand-duplicated from plugin/src/types.ts + storage/store-types.ts:229-254 with inline 'source of truth' comments. resolveProjectId/resolveExternalRoot/listChanges/loadChangeJson (114-175) are the reusable disk-read core. grep confirms ZERO imports from plugin/src — full standalone duplication."
+        },
+        {
+          "label": "roadmap.ts exports reusable disk-read helpers",
+          "locator": "/home/jon/dev/advance/plugin/src/tools/roadmap.ts:99,181,257,693",
+          "summary": "readSnapshotFile(repoRoot) (257) and assessAnnotationFreshness (181) are EXPORTED and Temporal-free; adv_roadmap source:'file' path (693) reads .adv/roadmap-snapshot.json with no network/Temporal. But they live in plugin/src — not importable by standalone bin/adv without a build/bundle boundary decision."
+        },
+        {
+          "label": "adv-status-cli-assets.test.ts contract template",
+          "locator": "/home/jon/dev/advance/plugin/src/adv-status-cli-assets.test.ts:28-86",
+          "summary": "Reusable regression-guard: asserts !`adv status --no-color` token, verbatim/do-not-analyze/no-recommendations language, forbidden-fanout-token list, and spec anchoring of rq-statusCliBridge01 with .1/.2/.3 scenarios. Clonable per new bridge — but currently hand-cloned, not parameterized."
+        },
+        {
+          "label": "rq-statusCliBridge01 spec law",
+          "locator": "/home/jon/dev/advance/.adv/specs/advance-meta/spec.json:94-147",
+          "summary": "MUST law: .1 CLI no-color injection, .2 forbids agent fanout + synthesized health/freshness/recommendations, .3 CLI failure surfaces stderr with NO MCP fallback. Governing precedent; each new bridge needs its own rq-<cmd>CliBridge01 mirror."
+        },
+        {
+          "label": "OpenCode commands shell-output bridge semantics",
+          "locator": "https://opencode.ai/docs/commands/",
+          "summary": "!`command` injects bash OUTPUT into prompt; framework does NOT enforce verbatim/no-analysis — that discipline is an agent-prompt convention, which is why no-fanout must be pinned by spec+asset-test, not assumed from the mechanism."
+        },
+        {
+          "label": "Prior researcher attempts 1 & 2 (already persisted)",
+          "locator": "adv_change_show subagent_reports for addCliCommandBridges",
+          "summary": "Attempt 1 recommends roadmap bridge first + extract shared bin/adv helpers BEFORE subcommand #2. Attempt 2 sequences roadmap > validate --json > doctor > spec and flags adv_change_validate/show read Temporal-FIRST (store.changes.get), so a disk-only port diverges from live state. Both flag bin/adv state-reader duplication as the top expansion risk."
+        }
+      ],
+      "architecture_assessment": "Approved scope is on the boring/proven path: one shipped bridge (/adv-status -> `adv status --no-color`) backed by a MUST spec + asset test. The discovery surface has ALREADY been researched twice; this scout's job is to surface what those passes under-weighted as actionable opportunities, not re-litigate feasibility. Central architectural tension confirmed by direct evidence: bin/adv is fully standalone (zero plugin/src imports) and hand-duplicates GATE_ORDER + lastActivity, while the exact reusable helpers for the recommended-first roadmap bridge (readSnapshotFile, assessAnnotationFreshness) live in plugin/src and are Temporal-free but not importable across the build boundary. That boundary decision (codegen shapes vs. shared bundled module vs. re-duplicate) is the highest-leverage unmade decision and gates whether subcommand #2 compounds drift or amortizes it. Two opportunities the prior passes mentioned only as follow-ups deserve elevation to contract items: (a) a parameterized/shared bridge-contract asset-test harness so each new bridge inherits no-fanout+no-fallback BY CONSTRUCTION (structural-correctness P33) instead of hand-cloning prose; (b) the --json/CI-JSON mode as a FIRST-CLASS acceptance surface (proposal Success Criteria already names ci-json as a classification but no AC pins a structured-verdict contract). One missed edge case: rq-statusCliBridge01.3's no-MCP-fallback invariant must be replicated per bridge or new bridges silently re-introduce fanout on CLI error — this is a failure-mode AC gap, not just a guardrail.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "No anti-pattern. Candidates are contract-tied opportunities/leverage points within approved scope; none expand objectives or touch constraints/avoidances. All HITL/gate/destructive/signal work stays agent-owned per scope guardrail."
+      },
+      "recommendation": "Adopt the bin/adv shared-helper extraction (C1) and the parameterized bridge-contract harness (C2) now — both are contract-tied, low-risk, and prevent compounding drift before the first new (roadmap) bridge lands. Design around C3 (ci-json verdict contract) by adding a --json acceptance criterion. Defer C4 (doctor/diagnostics bridge) to follow-up; surface C5 (validate disk-only-vs-Temporal-first divergence) to the orchestrator/user because it carries a freshness/correctness tradeoff that is a user-value decision, not auto-adoptable.",
+      "follow_ups": [
+        "TASK_SCOPE anchors present in packet; no packet defects. Proposal still carries CLARIFY_MISSING_SUCCESS_CRITERIA — C3 (ci-json verdict contract) directly answers the missing measurable-outcome gap.",
+        "Orchestrator must decide bin/adv cross-boundary strategy (codegen from plugin/src/types.ts vs. bundled shared module vs. continued duplication) BEFORE roadmap subcommand lands — this is the keystone leverage point."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addCliCommandBridges",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-leverage-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design Leverage Scout — addCliCommandBridges draft design",
+      "sources": [
+        {
+          "label": "bin/adv current CLI",
+          "locator": "bin/adv:23-32,479-503",
+          "summary": "Single-subcommand CLI; GATE_ORDER inline const; parseArgs(strict:false) with explicit 'status'-only positional guard. Comment line 23 mis-cites 'plugin/src/types.ts GATE_DEFS' but canonical is plugin/src/types/gates.ts."
+        },
+        {
+          "label": "gates canonical source",
+          "locator": "plugin/src/types/gates.ts:32-63,144",
+          "summary": "GATE_DEFS is single source; GATE_ORDER derived. Importing pulls in zod (line 8) — not zero-dep, confirms parity-test (not import) approach for CLI standalone."
+        },
+        {
+          "label": "roadmap snapshot reader",
+          "locator": "plugin/src/tools/roadmap.ts:99-160,257-321",
+          "summary": "readSnapshotFile(repoRoot) + assessRoadmapFreshness are pure, repoRoot-parameterized, file-snapshot-only logic. But module imports zod + temporal/store — cannot be imported by zero-dep CLI; logic must be re-expressed in bin/lib/roadmap.ts."
+        },
+        {
+          "label": "roadmap render location",
+          "locator": "plugin/src/tools/roadmap.ts (no render fn) + .opencode/command/adv-roadmap.md:49-79",
+          "summary": "No rendering function exists in roadmap.ts; table rendering currently lives in the /adv-roadmap command markdown Phase 2. CLI needs a NEW renderer — no reusable render component exists."
+        },
+        {
+          "label": "status CLI bridge prior art",
+          "locator": "plugin/src/adv-status-cli-assets.test.ts:28-86, .adv/specs/advance-meta/spec.json:94 (rq-statusCliBridge01)",
+          "summary": "Existing rq-statusCliBridge01 + asset-test enforces verbatim-output / no-MCP-fanout / no-fallback for /adv-status. Directly reusable harness + spec template for the new roadmap bridge."
+        }
+      ],
+      "architecture_assessment": "Draft design is sound and mostly boring. Strongest leverage is reusing the proven rq-statusCliBridge01 asset-test + spec pattern for the new roadmap bridge — the parameterized harness the design proposes is exactly the right generalization of an existing, passing test. The biggest reuse misconception to correct: the plugin's roadmap snapshot logic (readSnapshotFile/assessRoadmapFreshness) is pure and repoRoot-keyed BUT lives behind zod/temporal imports, so it cannot be imported into the zero-dep CLI — the design's GATE_ORDER parity-test (not runtime import) discipline must extend to ALL plugin↔CLI shared logic (snapshot reader, freshness). No render component exists to reuse; the CLI renderer is net-new (render currently lives in command markdown). A free drive-by: bin/adv:23 comment mis-cites types.ts instead of types/gates.ts — fix while touching for parseArgs/lib extraction.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "No scope-exceeding or contract/security/release blockers. All candidates fall within approved scope (lib extraction, parameterized harness, roadmap CLI file-snapshot mode, thin bridge, advance-meta law). Active-change annotation correctly deferred (Temporal Visibility dependency, roadmap.ts:434+ live path needs gh/temporal)."
+      },
+      "recommendation": "Adopt the parameterized asset-harness generalization + advance-meta spec-clone now (lowest risk, highest payoff, proven prior art); design the new bin/lib/roadmap.ts renderer + snapshot reader as a CLI-local re-expression guarded by parity tests against plugin source — do NOT attempt to import plugin roadmap.ts into the zero-dep CLI.",
+      "follow_ups": [
+        "Drive-by: correct bin/adv:23 comment to cite plugin/src/types/gates.ts (canonical), not plugin/src/types.ts."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addCliCommandBridges",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation for CLI command bridges (adv roadmap + /adv-roadmap thin bridge)",
+      "sources": [
+        {
+          "label": "advance-meta spec rq-statusCliBridge01",
+          "locator": "adv_spec show advance-meta → rq-statusCliBridge01 (.1/.2/.3)",
+          "summary": "Canonical bridge law: default slash command is thin shell-output bridge over `adv status --no-color`; no MCP fanout; CLI failure does NOT fall back to MCP tools. The design clones this exact contract for roadmap (AC5/AC7), which is spec-consistent."
+        },
+        {
+          "label": "plugin/src/tools/roadmap.ts imports",
+          "locator": "/home/jon/dev/advance/plugin/src/tools/roadmap.ts:19-31",
+          "summary": "Confirms dependency-poisoning: imports zod, ../storage/store, ../temporal/service, ../temporal/visibility-claim-queries. Cannot be imported into a zero-dep standalone CLI — validates Decision 3 (parity tests, not runtime imports)."
+        },
+        {
+          "label": "RoadmapSnapshot schema + assessRoadmapFreshness",
+          "locator": "/home/jon/dev/advance/plugin/src/tools/roadmap.ts:61-160",
+          "summary": "Concrete parity targets exist: RoadmapSnapshot (version/generated_at/counts/bugs/features/deferred) and assessRoadmapFreshness (2h FILE_SNAPSHOT_STALE_AFTER_MS). Design AC4 file-mode + freshness parity is anchored to real exported shapes."
+        },
+        {
+          "label": "adv-status-cli-assets.test.ts",
+          "locator": "/home/jon/dev/advance/plugin/src/adv-status-cli-assets.test.ts:28-86",
+          "summary": "Proven asset test: bridge-token present, verbatim/no-analysis, forbidden MCP-fanout token list, spec-anchor scenario-ID check. Directly parameterizable per AC6; design's harness generalization is grounded in existing code."
+        },
+        {
+          "label": "plugin/src/types/gates.ts GATE_ORDER",
+          "locator": "/home/jon/dev/advance/plugin/src/types/gates.ts:142-144",
+          "summary": "GATE_ORDER is derived from GATE_DEFS and exported — the authoritative parity target named in design.md. Current bin/adv hardcodes the same 7-gate order (bin/adv:24-32), so a parity test is the correct enforcement (AC3)."
+        },
+        {
+          "label": "bin/adv current CLI",
+          "locator": "/home/jon/dev/advance/bin/adv:15,479-503",
+          "summary": "Already uses node:util parseArgs with allowPositionals + subcommand dispatch and a zero-dependency contract. Design's multi-subcommand extension is incremental, not novel — boring/proven."
+        },
+        {
+          "label": ".opencode/command/adv-roadmap.md (current heavy command)",
+          "locator": "/home/jon/dev/advance/.opencode/command/adv-roadmap.md:27-104",
+          "summary": "Current default path is full MCP fanout (Phase 1 adv_roadmap, Phase 2 render, Phase 3 recommendations) WITH live active-change annotation. Confirms the real user-value tradeoff the design surfaces: default bridge loses live annotation."
+        }
+      ],
+      "architecture_assessment": "The design is a faithful, lower-risk clone of the already-shipped /adv-status CLI bridge pattern (rq-statusCliBridge01). All four load-bearing claims are independently verified against source: (1) plugin roadmap.ts is dependency-poisoned by zod/temporal/store, so runtime import into a zero-dep CLI is impossible — parity tests are the correct mechanism; (2) GATE_ORDER and RoadmapSnapshot/assessRoadmapFreshness are real exported parity targets; (3) the existing asset test is structured for parameterization per AC6; (4) bin/adv already uses node:util parseArgs with subcommand dispatch. The design correctly omits/labels active-change annotation (Temporal Visibility dependency) rather than faking it from disk (DONT4). The one genuine user-value cost — default /adv-roadmap losing live active-change cross-reference — is explicitly surfaced in Decision 5, not hidden.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "No spec conflicts, no security/release blockers, no contract compromise. Three non-blocking cautions recorded (annotation-loss UX tradeoff already surfaced; pre-existing bin/adv doc-comment drift; parity-test scope must cover both freshness functions). Verdict: VALIDATED."
+      },
+      "recommendation": "Proceed. The design satisfies AC1-AC9 and respects all four DONT constraints with verified evidence. Recommend two prep-task refinements: (a) ensure the GATE_ORDER parity test imports from plugin/src/types/gates.ts (authoritative) and, as a campsite fix, correct the stale bin/adv:23 comment that says 'plugin/src/types.ts GATE_DEFS' to name gates.ts; (b) scope the roadmap snapshot parity test to cover BOTH RoadmapSnapshot shape AND assessRoadmapFreshness 2h threshold so freshness-text drift fails CI, since AC4 ties file-mode staleness wording to that constant. The default-path annotation-loss tradeoff is real but was correctly surfaced at the design checkpoint; no change required beyond the one-line MCP opt-in pointer already in the design.",
+      "follow_ups": [
+        "Confirm the parameterized asset harness asserts a forbidden-token list for roadmap that includes adv_roadmap, adv_backlog_state, adv_change_list (mirroring the status forbidden list) so the bridge cannot regress into fanout.",
+        "The deferred adv validate disk-vs-Temporal research (AC8) is correctly out of scope here; ensure the design's recorded validateChange purity finding (validator.ts:104 pure function) is carried into the follow-up change."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addCliCommandBridges",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addCliCommandBridges",
+      "task_id": "tk-4781868e7a81",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-4781868e7a81"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "bin/lib/types.ts",
+        "bin/lib/changes.ts",
+        "bin/lib/project.ts",
+        "bin/lib/render.ts",
+        "bin/lib/changes.test.ts",
+        "bin/lib/render.test.ts",
+        "bin/adv",
+        "plugin/src/cli-gate-order-parity.test.ts",
+        ".github/workflows/ci.yml"
+      ],
+      "verification": [
+        {
+          "command": "bun test bin/lib/changes.test.ts bin/lib/render.test.ts",
+          "exit_code": 0,
+          "summary": "31 Bun tests pass (0 fail) covering computeLastActivity, classifyRecency, buildGateProgress, firstIncompleteGate, countTasks, relativeTime, formatTable, shouldUseColor, emitJson"
+        },
+        {
+          "command": "diff /tmp/adv-status-orig2.txt /tmp/adv-status-refactor2.txt",
+          "exit_code": 0,
+          "summary": "Byte-identical output: original bin/adv and refactored bin/adv produce identical `status --no-color` output when run back-to-back"
+        },
+        {
+          "command": "pnpm exec vitest run src/cli-gate-order-parity.test.ts",
+          "exit_code": 0,
+          "summary": "1 vitest pass: bin/lib/changes.ts GATE_ORDER literal matches plugin/src/types/gates.ts GATE_ORDER"
+        },
+        {
+          "command": "bun bin/adv --help && bun bin/adv --version",
+          "exit_code": 0,
+          "summary": "Help and version subcommands still work correctly after refactor"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Extracted bin/adv internals into four bin/lib modules (types, changes, project, render)",
+          "why": "Enables future subcommands to reuse helpers without duplication; satisfies AC3/C4"
+        },
+        {
+          "what": "Used globalThis.Bun?.spawn typed-loose access in bin/lib/project.ts",
+          "why": "bin/ is not covered by plugin tsc; avoids needing Bun type declarations while staying clean TS"
+        },
+        {
+          "what": "Implemented Bun tests in bin/lib/*.test.ts rather than vitest",
+          "why": "Cross-boundary constraint: plugin tsconfig rootDir rejects imports from bin/; Bun test runner is native to the bin/ runtime"
+        },
+        {
+          "what": "Created plugin/src/cli-gate-order-parity.test.ts as text-read-only vitest",
+          "why": "Verifies AC3/C4 parity without violating rootDir boundary; reads bin/lib/changes.ts via readFileSync + regex, never imports it"
+        },
+        {
+          "what": "Added CI step 'Test bin CLI (Bun)' after plugin Test step",
+          "why": "Bun is already installed in CI; ensures bin/ tests run on every PR"
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "None — this was a clean extraction refactor with no bug patterns to fix.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "T01 extraction complete. bin/adv now imports from ./lib/* helpers. T02 parity test verifies bin GATE_ORDER matches plugin GATE_ORDER. Both test suites green. `pnpm run check` passes all checks on touched files; 3 pre-existing prettier warnings in untouched plugin/src files (adv-worktree.ts, tool-arg-preflight.test.ts, workspace-warp.test.ts) — confirmed by stashing and re-running check on clean branch.",
+        "suggested_next_action": "Proceed to next task in the addCliCommandBridges change, or run `bin/oc-test full` for a complete regression sweep if desired."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bun test bin/lib/changes.test.ts bin/lib/render.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: diff /tmp/adv-status-orig2.txt /tmp/adv-status-refactor2.txt"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/cli-gate-order-parity.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bun bin/adv --help && bun bin/adv --version"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addCliCommandBridges",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addCliCommandBridges",
+      "task_id": "tk-286991856559",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-286991856559"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "bin/lib/roadmap.ts",
+        "bin/lib/roadmap.test.ts",
+        "bin/lib/project.ts",
+        "bin/adv",
+        "bin/adv.test.ts",
+        "plugin/src/cli-roadmap-parity.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "bun test bin/",
+          "exit_code": 0,
+          "summary": "60 pass, 0 fail across 4 test files (changes, render, roadmap, adv dispatcher)"
+        },
+        {
+          "command": "bun bin/adv roadmap --no-color (temp repo with snapshot)",
+          "exit_code": 0,
+          "summary": "Rendered roadmap table correctly, exit 0"
+        },
+        {
+          "command": "bun bin/adv roadmap --json (temp repo with snapshot)",
+          "exit_code": 0,
+          "summary": "Emitted JSON with active_change_annotation: unavailable_cli_file_mode, exit 0"
+        },
+        {
+          "command": "bun bin/adv roadmap --no-color (missing snapshot)",
+          "exit_code": 2,
+          "summary": "Actionable error to stderr + hint to run /adv-triage, exit 2"
+        },
+        {
+          "command": "pnpm run typecheck",
+          "exit_code": 0,
+          "summary": "tsc --noEmit passes with no errors"
+        },
+        {
+          "command": "pnpm exec eslint src/cli-roadmap-parity.test.ts",
+          "exit_code": 0,
+          "summary": "No lint errors"
+        },
+        {
+          "command": "pnpm exec vitest run src/cli-roadmap-parity.test.ts",
+          "exit_code": 0,
+          "summary": "4 pass (freshness threshold parity, 2h literal, bug field parity, feature field parity)"
+        },
+        {
+          "command": "bun bin/adv status --no-color",
+          "exit_code": 0,
+          "summary": "Status subcommand renders active changes table correctly, no regression"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Implemented T03, T04, and T05 together in one execution unit",
+          "why": "Tasks are tightly coupled: T04 depends on T03 exports, T05 depends on both. All three are part of the same scoped objective (build adv roadmap CLI)."
+        },
+        {
+          "what": "Used inline fixture snapshot in tests instead of external JSON file",
+          "why": "Keeps test self-contained; Bun tests run without external fixture directory dependencies."
+        },
+        {
+          "what": "Text-read parity test mirrors existing cli-gate-order-parity.test.ts pattern",
+          "why": "Maintains consistency with cluster-1 cross-boundary testing approach; avoids rootDir violation."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Fixed same Bun.spawn await pattern in bin/adv.test.ts (await proc.exited instead of await proc) to match existing test robustness. No other same-pattern issues found.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "adv roadmap CLI is complete and verified. T03 (bin/lib/roadmap.ts), T04 (bin/adv wiring), and T05 (vitest parity test) are all implemented, tested, and passing. The CLI reads .adv/roadmap-snapshot.json, mirrors plugin filter/sort/freshness logic, emits the explicit active-change annotation unavailable line, and respects all contract constraints (DONT4, C1, C3).",
+        "suggested_next_action": "Proceed to task completion for tk-eaecc5ed31ba and tk-88a2828020ea (already done as part of this execution), then move to acceptance/review gate."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bun test bin/"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bun bin/adv roadmap --no-color (temp repo with snapshot)"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bun bin/adv roadmap --json (temp repo with snapshot)"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bun bin/adv roadmap --no-color (missing snapshot)"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run typecheck"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec eslint src/cli-roadmap-parity.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/cli-roadmap-parity.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bun bin/adv status --no-color"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addCliCommandBridges",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addCliCommandBridges",
+      "task_id": "tk-375810084ef4",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-375810084ef4"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        ".adv/specs/advance-meta/spec.json",
+        ".opencode/command/adv-roadmap.md",
+        "plugin/src/manifest.ts",
+        "plugin/src/cli-bridge-contract.test.ts",
+        "plugin/src/cli-surface-matrix.test.ts",
+        "docs/cli-surface-matrix.md",
+        "README.md",
+        "ADV_INSTRUCTIONS.md"
+      ],
+      "verification": [
+        {
+          "command": "node -e \"require('./.adv/specs/advance-meta/spec.json')\"",
+          "exit_code": 0,
+          "summary": "Spec parses; rq-roadmapCliBridge01 present with priority must and 3 scenarios"
+        },
+        {
+          "command": "cd plugin && pnpm run typecheck",
+          "exit_code": 0,
+          "summary": "tsc --noEmit clean"
+        },
+        {
+          "command": "cd plugin && pnpm exec vitest run src/cli-bridge-contract.test.ts src/cli-surface-matrix.test.ts",
+          "exit_code": 0,
+          "summary": "12 tests pass (2 files): bridge tokens, verbatim/no-analysis, forbidden fanout, spec anchors, registry snapshot guard, CLI mutation guard, matrix coverage"
+        },
+        {
+          "command": "cd plugin && pnpm exec eslint src/cli-bridge-contract.test.ts src/cli-surface-matrix.test.ts",
+          "exit_code": 0,
+          "summary": "ESLint clean on new files"
+        },
+        {
+          "command": "bun test bin/",
+          "exit_code": 0,
+          "summary": "60 Bun tests pass (0 fail)"
+        },
+        {
+          "command": "bun bin/adv roadmap --no-color && bun bin/adv status --no-color",
+          "exit_code": 0,
+          "summary": "Both CLI subcommands produce stable no-color output"
+        },
+        {
+          "command": "cd plugin && pnpm test",
+          "exit_code": 1,
+          "summary": "3515 pass, 4 fail, 2 skip. All 4 failures are pre-existing on this branch (worktree-lifecycle spec missing requirement id crashes spec-citation-invariant and deploy-local tests; 2 tool-registry.test.ts malformed-arg blockers). No regressions introduced."
+        },
+        {
+          "command": "cd plugin && pnpm run check",
+          "exit_code": 1,
+          "summary": "schemas:check, typecheck, lint all pass. format:check shows only 3 known pre-existing prettier warnings (adv-worktree.ts, tool-arg-preflight.test.ts, workspace-warp.test.ts) as expected."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Co-executed T06 (spec law), T08 (bridge rewrite), and T09 (matrix doc) alongside T07 (harness/guards)",
+          "why": "Tasks are tightly coupled: T07 tests require T06 spec anchor and T08 bridge file to exist; T09 matrix enumerates tools verified by T07 guard. Executing together avoids intermediate broken states."
+        },
+        {
+          "what": "Updated README.md and ADV_INSTRUCTIONS.md adv-roadmap descriptions to match manifest.ts",
+          "why": "Manifest-doc drift test enforces description parity between manifest and docs. Changing manifest description without updating docs causes CI failure."
+        },
+        {
+          "what": "Used === \"verb\" dispatch pattern match in NO-CLI-MUTATION GUARD instead of raw quoted string search",
+          "why": "bin/adv contains variable names like archiveDir that falsely match \"archive\"; the === \"verb\" pattern correctly isolates subcommand dispatch strings."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Fixed manifest/doc drift in README.md and ADV_INSTRUCTIONS.md to match new adv-roadmap description. Pre-existing worktree-lifecycle spec has 2 requirements missing id fields, causing deploy-local.test.ts and spec-citation-invariant.test.ts to fail — not in scope.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "All 4 tasks (T06 spec law, T07 harness+guards, T08 bridge rewrite, T09 matrix doc+test) are complete and verified. New files: plugin/src/cli-bridge-contract.test.ts, plugin/src/cli-surface-matrix.test.ts, docs/cli-surface-matrix.md. Modified files: .adv/specs/advance-meta/spec.json, .opencode/command/adv-roadmap.md, plugin/src/manifest.ts, README.md, ADV_INSTRUCTIONS.md. Full suite: 3515 pass, 4 pre-existing failures unrelated to this change. pnpm run check clean except 3 known pre-existing prettier warnings.",
+        "suggested_next_action": "Proceed to acceptance gate review. The 4 pre-existing test failures on this branch (worktree-lifecycle spec missing ids + tool-registry malformed-arg blockers) should be tracked separately if not already."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: node -e \"require('./.adv/specs/advance-meta/spec.json')\""
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: cd plugin && pnpm run typecheck"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: cd plugin && pnpm exec vitest run src/cli-bridge-contract.test.ts src/cli-surface-matrix.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: cd plugin && pnpm exec eslint src/cli-bridge-contract.test.ts src/cli-surface-matrix.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bun test bin/"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bun bin/adv roadmap --no-color && bun bin/adv status --no-color"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: cd plugin && pnpm test"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: cd plugin && pnpm run check"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addCliCommandBridges",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-opportunity-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Validate CLI status bridge design: live Temporal-backed `adv status`, thin `/adv-status`, no silent disk fallback, no mutation",
+      "sources": [
+        {
+          "label": "Temporal TS SDK WorkflowHandle.query (official)",
+          "locator": "https://github.com/temporalio/sdk-typescript/blob/main/sdk-typescript/packages/client/src/workflow-client.ts",
+          "summary": "query<Ret,Args>(def: QueryDefinition | string, ...args) — query-by-NAME-STRING is officially supported: `await handle.query<number,[]>('getValue')`. CLI can call handle.query('adv.change.getState') WITHOUT importing the workflow definition module."
+        },
+        {
+          "label": "plugin/src/temporal/messages.ts",
+          "locator": "/home/jon/dev/advance/plugin/src/temporal/messages.ts:18,70-73",
+          "summary": "changeStateQuery=getStateQuery defined via wf.defineQuery; module imports `@temporalio/workflow` (sandbox runtime). A plain client/CLI process CANNOT import this module — confirms query-name-string is the correct boundary."
+        },
+        {
+          "label": "plugin/src/temporal/contracts.ts",
+          "locator": "/home/jon/dev/advance/plugin/src/temporal/contracts.ts:27-33,227-365",
+          "summary": "CHANGE_WORKFLOW_QUERY_NAMES.getState='adv.change.getState' (stable string constant). ChangeWorkflowState carries tasks, gates, status, title, createdAt, fast_follow_of — every field bin/adv renders is available from the live query payload."
+        },
+        {
+          "label": "plugin/src/temporal/client.ts + list-change-workflows.ts",
+          "locator": "/home/jon/dev/advance/plugin/src/temporal/client.ts:71-84; /home/jon/dev/advance/plugin/src/temporal/list-change-workflows.ts:77-142",
+          "summary": "createTemporalClientBundle (loopback guard, namespace validation) + listChangeWorkflowIds (Visibility query AdvAffectedProjects + AdvChangeStatus IN default non-terminal). Canonical live-enumeration path the CLI should mirror, not re-derive."
+        },
+        {
+          "label": "plugin/src/storage/store-temporal/changes.ts listSummary + shared.ts QUERY_TIMEOUT_MS",
+          "locator": "/home/jon/dev/advance/plugin/src/storage/store-temporal/changes.ts:788-823; /home/jon/dev/advance/plugin/src/storage/store-temporal/shared.ts:209-226",
+          "summary": "Existing warm path unions memo+Visibility+disk and falls back to disk on Visibility failure (the exact anti-pattern AC4 forbids for the CLI). 5s per-query timeout exists because a dead worker hangs queries indefinitely — CLI MUST bound its own queries."
+        }
+      ],
+      "architecture_assessment": "Design is sound and aligns with boring/proven patterns. The hard architectural law to enforce: the CLI is a Temporal CLIENT process, not a workflow-sandbox context, so it must reach live state via (1) createTemporalClientBundle conventions, (2) listChangeWorkflowIds-style Visibility query, (3) handle.query('adv.change.getState') by NAME STRING — never importing messages.ts/workflows. Temporal docs confirm string-name query is first-class API, so no plugin-source import is needed and the bin/plugin boundary stays clean. Render inputs (tasks/gates/status/title) are all present on ChangeWorkflowState. The plugin's own listSummary deliberately disk-falls-back on Visibility failure; the CLI must do the OPPOSITE per AC4 (fail non-zero, no silent disk active rows). Bounded per-query timeout is mandatory — mirror QUERY_TIMEOUT_MS (5s) or the CLI hangs on a dead worker exactly as the plugin warned.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "No anti-patterns. One must-fix to avoid regression: bound every Temporal connect/list/query with an explicit timeout (5s precedent) and treat timeout as the AC4 non-zero+remediation path, not a disk fallback."
+      },
+      "recommendation": "Adopt the draft. Enforce 3 laws in spec rq-statusCliBridge01: (1) CLI queries live state by query-name STRING 'adv.change.getState' via CHANGE_WORKFLOW_QUERY_NAMES.getState — never import messages.ts/workflows (sandbox-only, breaks the client). (2) Active rows come ONLY from live workflow queries; disk JSON permitted ONLY for archived/closed counts. (3) Connect/list/query failure or timeout => exit non-zero + remediation + JSON {source:'temporal',live:false,stale:false,error,remediation}; never substitute disk active rows. Mirror createTemporalClientBundle (loopback guard) + listChangeWorkflowIds (Visibility AdvAffectedProjects + AdvChangeStatus) + a 5s bounded timeout. Tests: Bun unit tests with mocked live client (success + connect-fail + query-timeout) and a plugin asset test asserting adv-status.md stays verbatim no-fanout. Do NOT import bin helpers into plugin tests except for text/parity.",
+      "follow_ups": [
+        "Duplicate the query-name constant ('adv.change.getState') as a bin-local literal with a comment pinning it to CHANGE_WORKFLOW_QUERY_NAMES.getState; add a plugin parity test asserting the two strings match so drift is caught without a runtime import.",
+        "Confirm the Bun CLI can resolve @temporalio/client at runtime (bin/adv currently has zero deps); adding the client dep is the one new surface — verify it does not pull the workflow sandbox transitively."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addCliCommandBridges",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addCliCommandBridges",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [
+        {
+          "id": "review-praise-1",
+          "label": "praise",
+          "file": "bin/lib/live-status.ts",
+          "line": 78,
+          "what": "Live status path enumerates Temporal Visibility and queries canonical change state before rendering active rows.",
+          "why": "This directly supports AC1, AC3, AC4, and AC9: active rows are live Temporal-backed, stale disk active rows are excluded, failures reject instead of silently falling back, and code uses queries rather than mutation signals.",
+          "fix": "n/a"
+        },
+        {
+          "id": "review-praise-2",
+          "label": "praise",
+          "file": ".opencode/command/adv-status.md",
+          "line": 8,
+          "what": "/adv-status remains a thin shell bridge with verbatim/no-analysis/no-tool-fanout instructions.",
+          "why": "This preserves AC2 and keeps status behavior in the CLI rather than prompt-driven ADV MCP fanout.",
+          "fix": "n/a"
+        },
+        {
+          "id": "review-praise-3",
+          "label": "praise",
+          "file": "plugin/src/cli-bridge-contract.test.ts",
+          "line": 183,
+          "what": "Contract tests guard no CLI mutation authority and no bridge fanout.",
+          "why": "This gives durable coverage for AC2, AC7, AC9, and AC10, including future drift detection.",
+          "fix": "n/a"
+        }
+      ],
+      "changes_made": [
+        {
+          "file": "bin/adv.test.ts",
+          "summary": "Made status CLI temp-git tests independent of global git config by using local commit identity and quiet deterministic branch initialization. Pre-fix repro with HOME set to an empty temp dir failed two tests because `git commit` lacked user.name/user.email; after fix the same environment passes.",
+          "verification": "`tmp_home=$(mktemp -d); HOME=\"$tmp_home\" bun test bin/adv.test.ts; rc=$?; rm -rf \"$tmp_home\"; exit $rc` => 8 pass, 0 fail. `bun test bin/` => 66 pass, 0 fail. `pnpm exec prettier --check ../bin/adv.test.ts` => pass."
+        }
+      ],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "Bun CLI tests that create temporary Git commits must set local `-c user.name=... -c user.email=...` in the commit command; relying on the developer's global Git identity passes locally but fails in clean CI/HOME environments."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "tmp_home=$(mktemp -d); HOME=\"$tmp_home\" bun test bin/adv.test.ts; rc=$?; rm -rf \"$tmp_home\"; exit $rc",
+          "bun test bin/",
+          "bin/oc-test targeted -- src/cli-bridge-contract.test.ts src/cli-gate-order-parity.test.ts src/cli-roadmap-parity.test.ts src/cli-surface-matrix.test.ts",
+          "ADV_STATUS_TIMEOUT_MS=1000 bun bin/adv status --json; printf 'exit_code=%s\\n' \"$?\"",
+          "pnpm exec prettier --check ../bin/adv.test.ts",
+          "git diff --check"
+        ],
+        "results": "pass",
+        "evidence": "Path preflight OK for referenced files. Clean-HOME repro after fix: 8 pass/0 fail. Full Bun CLI suite: 66 pass/0 fail. Targeted bridge/parity/matrix vitest via bin/oc-test: 4 files, 23 tests pass. Runtime failure path returns JSON source=temporal, live=false, stale=false, error=`Failed to query Workflow`, remediation text, exit_code=2. Prettier check for touched test passes. git diff --check passes."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Runtime live-success path was not revalidated against a reachable local change workflow in this session because the current `adv status --json` invocation fail-closed with `Failed to query Workflow`; live-success and stale-disk-exclusion behavior are covered by tests and code inspection.",
+        "Full `pnpm run check` was not rerun after the narrow test-harness fix; context packet states current full check failure is limited to pre-existing untouched Prettier warnings. Touched-file Prettier and targeted suites passed."
+      ],
+      "required_main_agent_actions": [
+        "Include the review fix in acceptance evidence: `bin/adv.test.ts` now avoids global Git identity dependence.",
+        "Consider promoting the Git-test-identity gotcha as project wisdom.",
+        "No remaining blocking findings from 12-dimension review: design, functionality, complexity, tests, naming, comments, style, docs, security, performance, error handling, and consistency are acceptable for this change scope."
+      ],
+      "consumer_warnings": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addCliCommandBridges",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addCliCommandBridges",
+      "scope": {
+        "kind": "change",
+        "scope_key": "scanner-bundle:harden"
+      },
+      "agent": "adv-scanner-bundle",
+      "phase": "harden",
+      "scanner_count": 3,
+      "dimensions": [
+        "test_coverage",
+        "documentation_cleanup",
+        "production_deployment_slop"
+      ],
+      "summary": "Release harden scanner bundle READY. Fixed one cleanup/doc issue in c9e9221b (removed unused DIM import, deduplicated --json help, added dispatcher metadata tests). No blocker/high findings in changed scope. Remaining red suite items are pre-existing untouched surfaces.",
+      "findings": [
+        {
+          "scanner": "test_coverage",
+          "severity": "suggestion",
+          "summary": "Add isolated unit tests for bin/lib/changes.ts disk loading helpers and bin/lib/project.ts path helpers; critical live-status path already covered.",
+          "evidence": [
+            {
+              "label": "coverage scan",
+              "locator": "bin/lib/changes.ts:56; bin/lib/project.ts:57",
+              "summary": "Scanner identified medium coverage gaps outside AC-critical live active path; bun test bin/ passes 69 tests after harden fix."
+            }
+          ]
+        },
+        {
+          "scanner": "documentation_cleanup",
+          "severity": "info",
+          "summary": "Cleanup candidate fixed: removed unused DIM import and duplicate --json help entry; added tests for help/version/unknown command.",
+          "evidence": [
+            {
+              "label": "commit",
+              "locator": "c9e9221b",
+              "summary": "harden(addCliCommandBridges): clean CLI help output"
+            },
+            {
+              "label": "verification",
+              "locator": "bun test bin/",
+              "summary": "69 pass, 0 fail"
+            }
+          ]
+        },
+        {
+          "scanner": "test_suite",
+          "severity": "info",
+          "summary": "Full suite still red only on pre-existing untouched formatting/spec/tool-registry surfaces.",
+          "evidence": [
+            {
+              "label": "smoke",
+              "locator": "bin/oc-test smoke",
+              "summary": "schemas:check, typecheck, lockfile policy, lint pass; format fails in untouched src/tools/adv-worktree.ts, src/utils/tool-arg-preflight.test.ts, src/utils/workspace-warp.test.ts."
+            },
+            {
+              "label": "full",
+              "locator": "bin/oc-test full",
+              "summary": "3523 pass, 4 fail in untouched deploy-local/spec-citation/tool-registry tests; related files unchanged vs origin/trunk."
+            }
+          ]
+        }
+      ],
+      "follow_ups": [
+        "Add targeted unit tests for bin/lib/changes.ts disk loading helpers and bin/lib/project.ts path helpers.",
+        "Fix pre-existing full-suite failures: malformed worktree-lifecycle spec requirement missing id and high-risk tool-arg preflight test regressions.",
+        "Resolve existing ag-XA6t1pWd query-name parity follow-up if still desired as separate test-only cleanup."
+      ],
+      "consumer_warnings": []
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-5Rvgoz",
+      "type": "pattern",
+      "content": "CLI-bridge testing split (Advance repo): bin/ is Bun-runtime and is NOT in plugin/tsconfig (rootDir:./src). Importing bin/lib/*.ts into a plugin/src vitest test breaks `pnpm run typecheck` (TS6059 file-not-under-rootDir). Pattern: (1) unit-test bin logic with Bun's runner — `bin/lib/*.test.ts` run via `bun test bin/`, wired as a dedicated CI step (Bun already installed in CI via oven-sh/setup-bun); (2) cross-boundary contract/parity/coverage tests live in plugin/src as vitest and read bin files as TEXT (readFileSync + regex), importing only in-tree plugin constants — exactly how plugin/src/adv-status-cli-assets.test.ts works. Never import bin/lib into plugin tests.",
+      "source_task": "tk-4781868e7a81",
+      "recorded_at": "2026-06-05T17:19:58.120Z"
+    },
+    {
+      "id": "ws-Xqwj0r",
+      "type": "convention",
+      "content": "New CLI slash-command bridges in Advance follow the rq-statusCliBridge01 template by construction: (a) command body is a pure shell-output bridge `!`adv <subcmd> --no-color`` with verbatim/no-analysis/no-recommendations instructions and ZERO adv_* MCP tool mentions; (b) any \"use the MCP tool for X\" pointer goes in the CLI's own stdout, never the command file (otherwise the no-fanout asset test flags it); (c) a cloned advance-meta spec rq-<cmd>CliBridge01 (.1 inject/.2 no-fanout/.3 no-MCP-fallback); (d) coverage added to the parameterized plugin/src/cli-bridge-contract.test.ts table; (e) a registry no-removal guard (frozen ADV_TOOL_NAMES) ensures additive CLI work never silently drops an agent tool.",
+      "source_task": "tk-375810084ef4",
+      "recorded_at": "2026-06-05T17:20:03.295Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-06-05T14:44:53.731Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved problem framing via chat reply: \"approve\". Proposal captures deeper research-phase investigation and acceptance criteria.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addCliCommandBridges/proposal.md",
+        "content_hash": "b7591d208d71531687fdedb30dedc2728458ddf048d37266958939d1643146f0",
+        "non_whitespace_chars": 5542,
+        "checked_at": "2026-06-05T14:43:37.041Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-06-05T19:06:09.238Z",
+      "completed_by": "agent",
+      "approval_evidence": "Re-entry discovery complete. Agreement updated for true live default status CLI/bridge; contract re-minted with 10 ACs, 6 constraints, 6 avoidances. User approved AC checkpoint with reply: approve.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addCliCommandBridges/agreement.md",
+        "content_hash": "7401a690b3a32ef26aea24df987d4c518a7bac62bd73bb35f46d599c02f14869",
+        "non_whitespace_chars": 4533,
+        "checked_at": "2026-06-05T14:43:37.044Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-06-05T19:13:15.391Z",
+      "completed_by": "agent",
+      "approval_evidence": "Re-entry design complete for true-live default status CLI. Independent validator verdict VALIDATED; two cautions incorporated: Visibility-current semantics and fail-closed partial-query behavior. No unresolved conflict or contract compromise.",
+      "artifact_evidence": {
+        "kind": "design",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addCliCommandBridges/design.md",
+        "content_hash": "ba261a939251a5272c37ec32e9812e4a4420a46e5306f66469e2e629f9cf51af",
+        "non_whitespace_chars": 7504,
+        "checked_at": "2026-06-05T14:43:37.045Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-06-05T19:21:17.476Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved re-entry prep plan inline with reply: approve. Task graph has 4 new live-status tasks; final verification/docs task is blocked by spec, implementation, and guard/parity tasks. Validation command blocked by unrelated stale workflow fixArchivePushTimeout, but task readiness shows graph ready."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-06-05T19:34:09.479Z",
+      "completed_by": "agent",
+      "approval_evidence": "Re-entry execution complete. Implemented true live-default status CLI: active rows now come from Temporal Visibility + workflow query, disk active rows removed; fail-closed JSON/remediation path implemented; rq-statusCliBridge01 updated; guard/parity tests added; docs/comments updated. Verification: bun test bin/ passed 66 tests; cli bridge/parity/matrix targeted suite passed 23 tests; cli-bridge-contract targeted passed 16 tests; touched prettier check passed. `pnpm run check` blocked only by 3 pre-existing format warnings outside touched scope. Runtime live status currently fail-closed with `Failed to query Workflow`, confirming no stale disk fallback under current Temporal query issue."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-06-05T19:52:40.968Z",
+      "completed_by": "agent",
+      "approval_evidence": "User accepted delivered work inline with reply: accept. Acceptance proof persisted before prompt: contract review matrix has 22 rows with 0 failing rows; executive summary persisted and verified via adv_change_show include executiveSummary; reviewer verdict READY with no blockers/issues. Caveats surfaced: full pnpm run check still fails only pre-existing untouched Prettier warnings; runtime status currently fails closed with Failed to query Workflow rather than stale disk fallback.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addCliCommandBridges/executive-summary.md",
+        "content_hash": "a15e21df05ff952f9eb0e66ccdf1d9d70d726d80be64e20cb1e748ca75901a62",
+        "non_whitespace_chars": 2480,
+        "checked_at": "2026-06-05T14:43:37.046Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [
+    {
+      "from_gate": "discovery",
+      "reason": "User selected True live default for /adv-status after observing CLI bridge stale output while live ADV state differs. This overturns the approved disk-projection-only CLI constraint and status-bridge no-live-fanout contract.",
+      "scope_delta": "Change CLI bridge/default status behavior from disk-projection-only to true live default: /adv-status and adv status should query live Temporal-backed ADV state before rendering, with explicit failure/staleness handling rather than silently showing stale disk projections. Revisit agreement, design, planning, and execution artifacts/tests/specs accordingly.",
+      "reopened_by": "agent",
+      "reopened_at": "2026-06-05T18:51:01.930Z",
+      "gates_reset": [
+        "discovery",
+        "design",
+        "planning",
+        "execution",
+        "acceptance",
+        "release"
+      ]
+    }
+  ],
+  "origin": {
+    "kind": "adhoc"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "7401a690b3a32ef26aea24df987d4c518a7bac62bd73bb35f46d599c02f14869",
+      "approvedAt": "2026-06-05T18:51:01.930Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "`adv status` default renders active changes from live Temporal-backed state, not disk projection files.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7401a690b3a32ef26aea24df987d4c518a7bac62bd73bb35f46d599c02f14869",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "`/adv-status` remains a thin shell-output bridge over `adv status --no-color`; command file contains no `adv_*` MCP fanout instructions.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7401a690b3a32ef26aea24df987d4c518a7bac62bd73bb35f46d599c02f14869",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Stale disk-only active changes are not shown as current live active changes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7401a690b3a32ef26aea24df987d4c518a7bac62bd73bb35f46d599c02f14869",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "If live Temporal status is unavailable, `adv status` exits non-zero and prints clear remediation; it does not silently fall back to a disk table.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7401a690b3a32ef26aea24df987d4c518a7bac62bd73bb35f46d599c02f14869",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Standalone `adv status` outside OpenCode uses the same live-default behavior.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7401a690b3a32ef26aea24df987d4c518a7bac62bd73bb35f46d599c02f14869",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "`adv status --json` reports source/freshness/error fields sufficient for CI to distinguish live success from failure.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7401a690b3a32ef26aea24df987d4c518a7bac62bd73bb35f46d599c02f14869",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "`rq-statusCliBridge01` is updated from disk-only/no-fallback law to live-default/no-silent-stale law.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7401a690b3a32ef26aea24df987d4c518a7bac62bd73bb35f46d599c02f14869",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC8",
+        "kind": "acceptance_criterion",
+        "text": "Existing roadmap bridge/file-snapshot behavior remains unchanged unless explicitly re-scoped later.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7401a690b3a32ef26aea24df987d4c518a7bac62bd73bb35f46d599c02f14869",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC9",
+        "kind": "acceptance_criterion",
+        "text": "No CLI mutation authority is added: no gate completion, archive, cancellation, task mutation, destructive repair, or automatic Temporal restart.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7401a690b3a32ef26aea24df987d4c518a7bac62bd73bb35f46d599c02f14869",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC10",
+        "kind": "acceptance_criterion",
+        "text": "Tests cover live success, stale disk exclusion, Temporal unavailable failure, `/adv-status` bridge no-fanout contract, and spec anchor drift.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7401a690b3a32ef26aea24df987d4c518a7bac62bd73bb35f46d599c02f14869",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Use `node:util parseArgs`; add no new heavy CLI dependencies.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7401a690b3a32ef26aea24df987d4c518a7bac62bd73bb35f46d599c02f14869",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "`--no-color` remains stable for slash-command bridge rendering.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7401a690b3a32ef26aea24df987d4c518a7bac62bd73bb35f46d599c02f14869",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "`--json` output must be CI-readable and structurally distinguish live success from live failure.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7401a690b3a32ef26aea24df987d4c518a7bac62bd73bb35f46d599c02f14869",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Live status source must not silently blend stale disk-only active changes into the current active table.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7401a690b3a32ef26aea24df987d4c518a7bac62bd73bb35f46d599c02f14869",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Remediation text belongs in CLI stdout/stderr/JSON, not in `.opencode/command/adv-status.md`, so bridge-command no-fanout tests remain meaningful.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7401a690b3a32ef26aea24df987d4c518a7bac62bd73bb35f46d599c02f14869",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C6",
+        "kind": "constraint",
+        "text": "Existing roadmap CLI/file-snapshot mode is not changed by this re-entry.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7401a690b3a32ef26aea24df987d4c518a7bac62bd73bb35f46d599c02f14869",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not remove agent-needed MCP tools without a recorded matrix justification.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7401a690b3a32ef26aea24df987d4c518a7bac62bd73bb35f46d599c02f14869",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not implement `adv validate` / `adv doctor` / `adv hygiene` in this change.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7401a690b3a32ef26aea24df987d4c518a7bac62bd73bb35f46d599c02f14869",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not add CLI gate/archive/cancellation/task/destructive mutation authority.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7401a690b3a32ef26aea24df987d4c518a7bac62bd73bb35f46d599c02f14869",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not emulate live Temporal status from stale disk projections.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7401a690b3a32ef26aea24df987d4c518a7bac62bd73bb35f46d599c02f14869",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "Do not make `/adv-status` ask the agent to call `adv_status`, `adv_change_list`, `adv_change_show`, `adv_gate_status`, or `adv_spec`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7401a690b3a32ef26aea24df987d4c518a7bac62bd73bb35f46d599c02f14869",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT6",
+        "kind": "avoidance",
+        "text": "Do not automatically restart Temporal from `adv status`; provide remediation only.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7401a690b3a32ef26aea24df987d4c518a7bac62bd73bb35f46d599c02f14869",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-06-05T19:40:00.000Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "bin/lib/live-status.test.ts verifies live Temporal workflow states are listed/query-by-name and build live payload from queried rows; `bun test bin/` passed 66 tests.",
+          "notes": "Runtime live status currently fail-closed due Temporal query failure; no disk fallback shown."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "plugin/src/cli-bridge-contract.test.ts verifies `.opencode/command/adv-status.md` contains `!`adv status --no-color`` and forbids adv_* MCP fanout tokens; targeted test passed 16 tests.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "STATUS LIVE DEFAULT GUARDS assert `bin/adv` does not contain `join(root, \"changes\")` or `isDashboardActiveStatus`; live-status payload tests exclude disk-only IDs.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`ADV_STATUS_TIMEOUT_MS=1000 bun bin/adv status --json` exited 2 with JSON `live:false`, `stale:false`, `error`, and remediation; no table/disk active fallback emitted.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "bin/adv.test.ts verifies standalone `adv status` no longer requires a disk ADV state directory; `bun test bin/` passed 66 tests.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "bin/adv.test.ts and live failure runtime evidence verify JSON fields: source, live, stale, generated_at, project_id/counts/changes, error, remediation.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": ".adv/specs/advance-meta/spec.json rq-statusCliBridge01 updated to live-default/no-silent-stale law; cli-bridge-contract test asserts live Temporal-backed/fail-closed/disk-not-active wording.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC8",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "STATUS LIVE DEFAULT GUARDS verify `/adv-roadmap` bridge remains `!`adv roadmap --no-color`` and roadmap CLI keeps `unavailable_cli_file_mode`; roadmap parity/matrix targeted suite passed 23 tests.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC9",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "NO-CLI-MUTATION GUARD and STATUS LIVE DEFAULT GUARDS scan status implementation for mutation dispatch/signal/start/update/restart patterns; targeted test passed.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC10",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Coverage commands passed: `bun test bin/` 66 tests; `bin/oc-test targeted -- src/cli-bridge-contract.test.ts` 16 tests; CLI bridge/parity/matrix suite 23 tests.",
+          "notes": "Full `pnpm run check` still fails only pre-existing unrelated prettier warnings in 3 untouched files."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "bin/adv still uses node:util parseArgs and no new package dependencies were added.",
+          "notes": ""
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "`--no-color` bridge flag preserved in `.opencode/command/adv-status.md` and tests; output remains stable for command rendering.",
+          "notes": ""
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "`adv status --json` emits structured success/failure fields; failure evidence shows CI-readable live:false/stale:false/error/remediation.",
+          "notes": ""
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Guard test prevents active rows from disk `changes` directory in default status; live-status module owns Temporal read path.",
+          "notes": ""
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Remediation text exists in bin/lib/live-status.ts failure JSON/stderr path, not in `.opencode/command/adv-status.md`; no-fanout command test passes.",
+          "notes": ""
+        },
+        {
+          "contractId": "C6",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Roadmap bridge/file-snapshot tests unchanged and passing; roadmap guard verifies `unavailable_cli_file_mode`.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "ADV_TOOL_NAMES frozen registry guard still passes; no MCP tools removed.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No adv validate/doctor/hygiene CLI implementation added; bin/adv dispatch guard allows only status and roadmap.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "No CLI gate/archive/cancel/task/destructive mutation dispatch added; mutation guard tests pass.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Default status active rows come from Temporal live reader; disk active substitution guard passes; runtime failure emitted no disk table.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "/adv-status command file still contains no adv_status, adv_change_list, adv_change_show, adv_gate_status, or adv_spec fanout instructions; bridge tests pass.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT6",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Status failure remediation instructs user to verify/restart services; code only reports remediation and contains no worker restart operation. Guard tests scan for restart mutation identifiers.",
+          "notes": ""
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "`adv status` default renders active changes from live Temporal-backed state, not disk projection files.",
+    "`/adv-status` remains a thin shell-output bridge over `adv status --no-color`; command file contains no `adv_*` MCP fanout instructions.",
+    "Stale disk-only active changes are not shown as current live active changes.",
+    "If live Temporal status is unavailable, `adv status` exits non-zero and prints clear remediation; it does not silently fall back to a disk table.",
+    "Standalone `adv status` outside OpenCode uses the same live-default behavior.",
+    "`adv status --json` reports source/freshness/error fields sufficient for CI to distinguish live success from failure.",
+    "`rq-statusCliBridge01` is updated from disk-only/no-fallback law to live-default/no-silent-stale law.",
+    "Existing roadmap bridge/file-snapshot behavior remains unchanged unless explicitly re-scoped later.",
+    "No CLI mutation authority is added: no gate completion, archive, cancellation, task mutation, destructive repair, or automatic Temporal restart.",
+    "Tests cover live success, stale disk exclusion, Temporal unavailable failure, `/adv-status` bridge no-fanout contract, and spec anchor drift."
+  ],
+  "documents": {
+    "proposal": "# Add CLI Command Bridges\n\n## Why\n\n`/adv-status` was converted to a thin CLI bridge over `adv status --no-color`, reducing agent context use and avoiding unnecessary MCP fanout. Other ADV commands/tools still ask the agent to perform deterministic reads, validation, bucketing, diagnostics, and table rendering that a CLI/CI surface could own.\n\nThe core deliverable is a **factor-driven decision matrix**: for every command and tool, evaluate (a) agent in-context need, (b) programmability / CI value, (c) human-direct value, (d) mutation / safety — and derive the ideal surface. The right form may be: keep as an MCP tool, add an additive CLI surface alongside MCP, **move the primary path to CLI and retire the MCP form when the matrix justifies it**, or remain an agent-only workflow. Gate ownership, HITL approvals, destructive actions, Temporal-signal mutations, and judgment-heavy workflows stay agent-owned.\n\nReplacement is permitted, not forbidden — but only when the matrix shows the agent does not need the tool's structured output in-context AND a CLI fully supersedes its value AND no command/workflow depends on it.\n\n## What Changes\n\n- Build a factor-driven decision matrix over every `/adv-*` command and registered ADV MCP tool.\n- Score each on: agent in-context need (ACN), programmability/CI value (PROG), human value (HUM), mutation/safety.\n- Derive a disposition per tool/command from the factors.\n- Implement selected deterministic CLI subcommands or CI JSON outputs.\n- Convert approved slash commands into short shell-output bridges where safe.\n- Retire an MCP tool only when its matrix row justifies it; otherwise retain.\n- Add specs/tests pinning bridge no-fanout contracts and pinning any MCP-tool retirement to a documented matrix justification.\n- Preserve agent workflows for gates, approvals, task/code mutation, archive, and review/harden judgment.\n\n## Decision Factor Model\n\nThe audit's primary deliverable. Each row scored, then a disposition derived.\n\n### Factors (per tool / command)\n\n| Factor | Values | Meaning |\n|---|---|---|\n| ACN (agent in-context need) | HIGH / MED / LOW | Does the agent need this tool's structured output in-context to make a workflow decision? |\n| PROG (programmability/CI) | HIGH / MED / LOW | Value as a scriptable CLI/CI output (exit codes, `--json`). |\n| HUM (human-direct value) | HIGH / MED / LOW | Value to a human running it directly in a terminal. |\n| RISK (mutation/safety) | READ / MUTATE | Read-only vs mutation/HITL/destructive/signal. |\n\n### Disposition derivation\n\n| Disposition | Rule |\n|---|---|\n| `no-cli-dangerous` | RISK = MUTATE. MCP-only forever; never a CLI surface. |\n| `keep-mcp-only` | READ, ACN = HIGH, PROG/HUM ≤ MED. Agent needs it in-context; little standalone CLI value. |\n| `mcp+cli-additive` | READ, ACN ≥ MED AND PROG/HUM ≥ MED. Keep MCP for agents; ADD CLI/CI surface. |\n| `cli-primary` | READ, ACN = LOW, PROG/HUM = HIGH. Move the default/agent-facing path to CLI; underlying MCP tool retained only for opt-in depth. |\n| `cli-replace` | READ, ACN = LOW, PROG/HUM = HIGH, AND no command/workflow needs the MCP tool. CLI supersedes; MCP tool may be retired with documented justification. |\n\n### Command dispositions\n\n| Disposition | Meaning |\n|---|---|\n| `cli-bridge-primary` | Slash command becomes a thin `!\\`adv …\\`` bridge so the agent stops rendering deterministically in-context. |\n| `mcp+cli-additive` | Command stays agent-driven; a CLI/CI subcommand (e.g. `--json`) is added for its deterministic slice. |\n| `agent-workflow-only` | Gate/HITL/judgment command; no CLI form. |\n\n## Success Criteria\n\n1. Research covers every current `/adv-*` command and every registered ADV MCP tool.\n2. Each row carries factor scores (ACN, PROG, HUM, RISK) and a derived disposition with rationale.\n3. The matrix explicitly states, per tool, whether its MCP form is kept, kept-with-additive-CLI, moved to CLI, or retired — and why.\n4. Any proposed MCP-tool retirement (`cli-replace`) cites matrix evidence (ACN=LOW, full CLI supersession, zero workflow dependency).\n5. At least one approved deterministic surface is implemented as a CLI bridge or CLI/CI subcommand.\n6. Converted bridge templates return CLI output verbatim with no normal-path MCP fanout/analysis/fallback.\n7. Tests/specs assert bridge no-fanout contracts and assert that any MCP-tool retirement is matrix-justified (no accidental removal of an agent-needed tool).\n8. Tier A/Tier B approvals, gate completion, destructive cleanup, archive/git, and code/task mutation remain agent-owned with no CLI mutation authority.\n\n## Acceptance Criteria\n\n- AC1: Discovery/design artifacts contain the full factor matrix (ACN/PROG/HUM/RISK + disposition) for all commands and tools.\n- AC2: Every row has a disposition value and rationale.\n- AC3: Each `cli-replace` row documents the supersession + zero-workflow-dependency justification; non-replace read tools document why MCP is retained.\n- AC4: Every recommended conversion cites at least one local source path.\n- AC5: Implementation changes at least one selected deterministic command or CLI subcommand.\n- AC6: Each converted bridge contains a shell-output bridge with a no-color/stable flag and no normal-path MCP fanout instructions.\n- AC7: Asset tests fail if a converted bridge reintroduces agent analysis/recommendations/MCP fanout, OR if an MCP tool is removed without a recorded matrix justification.\n- AC8: Existing gate/HITL command files retain Tier A/Tier B approval language.\n\n## Scope\n\n### In Scope\n\n- Factor matrix + disposition decisions for all commands/tools.\n- CLI bridges for deterministic/read-only command surfaces.\n- Additive CLI/CI JSON outputs for deterministic phases.\n- Read-only diagnostics: status, roadmap, spec, doctor/health, conformance status, snapshot scan, worktree/session inventory.\n- Dry-run-only CLI paths where mutation exists but preview is safe.\n- Matrix-justified MCP-tool retirement where applicable.\n- Spec/test patterns keeping bridges thin and pinning retirements.\n\n### Out of Scope\n\n- Replacing collaborative gate workflows wholesale.\n- Removing MCP tools that agents/workflows still need (un-justified removal).\n- Bypassing Tier A/Tier B approvals.\n- Auto-executing destructive cleanup, archive, issue creation, git push, gate completion, or task mutation from CLI output alone.\n- Broad CLI framework rewrite unrelated to selected conversions.\n\n### Must Not\n\n- Do not convert workflows where agent judgment owns correctness, drift, acceptance, or user-value tradeoffs.\n- Do not make heuristic/LLM output authoritative for safety-critical state or spec compliance.\n- Do not use disk projections to authorize gate/task/archive/destructive mutations.\n- Do not break existing `/adv-status` bridge contract.\n- Do not retire an MCP tool without a recorded matrix justification.\n\n## Constraints\n\n- Preserve P33 structural correctness: typed args, parsers, schemas, tests, specs own correctness.\n- Use `--no-color` or equivalent stable rendering for bridges; add `--json` for CI surfaces.\n- CLI must document when it reads lagging disk projections instead of Temporal state.\n- Prefer shared helper extraction over duplicating projection readers/rendering.\n\n## Affected Code\n\n- `bin/adv`\n- `.opencode/command/adv-*.md`\n- `plugin/src/manifest.ts`\n- `plugin/src/tool-registry.ts` (only if a matrix-justified retirement lands)\n- `plugin/src/*-assets.test.ts`\n- `.adv/specs/advance-meta/spec.json`\n- `plugin/src/tools/*` only if pure helpers are extracted/shared\n\n## Research Validation\n\n### Summary\n\nResearch validates the CLI-bridge architecture and reframes the deliverable as a factor matrix that yields per-tool dispositions, with matrix-justified replacement allowed. Safe path: ship CLI for deterministic read/diagnostic/dry-run work; keep Temporal-signal, HITL, gate, archive, and judgment work MCP/agent-owned.\n\n### External Evidence\n\n- OpenCode Commands docs (`https://opencode.ai/docs/commands/`): markdown → prompt template; `!\\`command\\`` injects bash output; verbatim/no-analysis enforced by ADV text+spec+test, not the framework.\n- Bun argv (`https://bun.sh/guides/process/argv`) + Context7 `/oven-sh/bun`: `node:util parseArgs` is the supported zero-dep Bun CLI parser; `bin/adv` already uses it.\n\n### Local Evidence\n\n- `bin/adv`: standalone Bun CLI; git-root-SHA id; reads external JSON projections; `--no-color`; exit codes; 0 plugin imports (duplicates GATE_ORDER + lastActivity).\n- `.opencode/command/adv-status.md` + `plugin/src/adv-status-cli-assets.test.ts:28-87`; `.adv/specs/advance-meta/spec.json:94-147` (`rq-statusCliBridge01`).\n- `plugin/src/tool-registry.ts:704-759` (canonical tool list).\n- `plugin/src/tools/roadmap.ts:647-729`, `backlog.ts:360-444`, `spec.ts:16-91`, `temporal-ops.ts:328-400`, `snapshot.ts:37-124`, `conformance.ts:8-24`, `change.ts` (Temporal-first reads).\n\n### Discovery Opportunity Scout\n\n- C1 (adopt-now): extract shared disk-read core from `bin/adv` before roadmap subcommand #2.\n- C2 (adopt-now): parameterized bridge-contract asset-test harness (no-fanout + no-fallback + retirement-justification by construction).\n- C3 (design-around): first-class `--json`/CI verdict AC (closes open `CLARIFY_MISSING_SUCCESS_CRITERIA`).\n- C4 (defer): `adv doctor` read-only bridge after roadmap.\n- C5 (surface-to-user): `adv validate` disk-only vs Temporal-first divergence — user decision.\n\n## Command Matrix\n\n| Command | ACN | PROG | HUM | RISK | Classification | Disposition |\n|---|---|---|---|---|---|---|\n| `/adv-status` | MED | HIGH | HIGH | READ | `cli-bridge` | `cli-bridge-primary` (shipped) |\n| `/adv-roadmap` | MED | HIGH | HIGH | READ | `cli-bridge`+`ci-json` | `cli-bridge-primary` (next) |\n| `/adv-validate` | HIGH | HIGH | MED | READ | `ci-json` | `mcp+cli-additive` (pending C5) |\n| `/adv-triage` | MED | MED | MED | MUTATE (HITL) | `cli-helper` | `agent-workflow-only` (CLI helper slices) |\n| `/adv-cleanup` | MED | MED | MED | MUTATE (HITL) | `cli-helper` | `agent-workflow-only` (dry-run helper) |\n| `/adv-audit` | MED | HIGH | MED | READ | `ci-json` | `mcp+cli-additive` (deterministic phases) |\n| `/adv-slop-scan` | LOW | HIGH | MED | READ | `ci-json` | `mcp+cli-additive` (Phase 1) |\n| `/adv-arch-scan` | LOW | HIGH | MED | READ | `ci-json` | `mcp+cli-additive` (stack-pack phase) |\n| `/adv-reflect` | MED | LOW | LOW | MUTATE | `cli-helper` | `agent-workflow-only` |\n| `/adv-tron` | MED | LOW | MED | READ | `cli-helper` | `agent-workflow-only` |\n| `/adv-improve`,`/adv-comp-scan` | HIGH | LOW | MED | READ | `agent-owned` | `agent-workflow-only` |\n| gate/HITL commands (`proposal`,`idea`,`problem`,`clarify`,`research`,`discover`,`design`,`prep`,`apply`,`review`,`harden`,`archive`,`task`,`atc`,`refactor`) | HIGH | LOW | LOW | MUTATE | `agent-owned` | `agent-workflow-only` |\n\n## Tool Matrix\n\n| Tool/group | ACN | PROG | HUM | RISK | Disposition | Why this form |\n|---|---|---|---|---|---|---|\n| `adv_status` | MED | HIGH | HIGH | READ | `cli-primary` | CLI table shipped; MCP kept for `view:\"health\"` depth |\n| `adv_roadmap`, `adv_backlog_state` | MED | HIGH | HIGH | READ | `cli-primary` | CLI file mode; MCP kept for live + Temporal annotation |\n| `adv_spec` | HIGH | MED | MED | READ | `mcp+cli-additive` | Agents query specs mid-workflow; add CLI read |\n| `adv_change_list`, `adv_change_show` | HIGH | MED | MED | READ | `mcp+cli-additive` | Agents need Temporal-first reads; CLI is human/CI snapshot w/ freshness caveat |\n| `adv_change_validate` | HIGH | HIGH | MED | READ | `mcp+cli-additive` | Gates/archive need MCP; add CLI/CI verdict (C5 path) |\n| `adv_task_list/show/ready` | HIGH | LOW | LOW | READ | `keep-mcp-only` | Agent-workflow reads; low standalone CLI value |\n| `adv_gate_status` | HIGH | LOW | LOW | READ | `keep-mcp-only` | Agent reads constantly |\n| `adv_wisdom_list`, `adv_project_wisdom_list` | HIGH | LOW | LOW | READ | `keep-mcp-only` | Agent knowledge surface |\n| `adv_agenda_list` | MED | LOW | LOW | READ | `keep-mcp-only` | Agent-facing |\n| `adv_project_context`, `adv_project_metadata` read | HIGH | LOW | LOW | READ | `keep-mcp-only` | Agent context |\n| `adv_temporal_diagnose` | LOW | HIGH | HIGH | READ | `mcp+cli-additive` | Add CLI `doctor`; MCP kept for in-recovery use |\n| `adv_snapshot_health` scan | LOW | HIGH | HIGH | READ | `mcp+cli-additive` | CLI scan additive |\n| `adv_session_list/show`, `adv_worktree_triage` | LOW | MED | HIGH | READ | `mcp+cli-additive` | Additive human inventory/report |\n| `adv_conformance` status/run | MED | HIGH | MED | READ | `mcp+cli-additive` | CLI read/CI verdict; MCP kept for archive flow |\n| `adv_wip_state` | MED | MED | MED | READ | `keep-mcp-only` | Temporal/session-dependent aggregation |\n| `adv_worktree_cleanup` dryRun, `adv_snapshot_health` repair dryRun | LOW | MED | MED | MUTATE | `keep-mcp-only` | Preview MCP-side; mutation approval-gated |\n| `adv_reflect`, `adv_run_test`, `adv_task_checkpoint`, `adv_subagent_report_submit` | HIGH | LOW | LOW | MUTATE | `keep-mcp-only` | Workflow/evidence-bound agent tools |\n| `adv_change_create/update/close/bulk_close/archive/update_issues/reenter` | HIGH | LOW | LOW | MUTATE | `no-cli-dangerous` | Mutation/approval/archive/git/spec |\n| `adv_task_add/update/cancel/reclassify_tdd`, `adv_gate_complete` | HIGH | LOW | LOW | MUTATE | `no-cli-dangerous` | Task/gate mutation + HITL |\n| `adv_contract_mint`, `adv_contract_review_matrix_set` | HIGH | LOW | LOW | MUTATE | `no-cli-dangerous` | Contract authority |\n| `adv_worktree_create/resume/delete` | MED | LOW | LOW | MUTATE | `no-cli-dangerous` | Worktree mutation |\n| `adv_temporal_register_search_attributes/reconnect/worker_restart` | LOW | LOW | LOW | MUTATE | `no-cli-dangerous` | Runtime mutation/recovery |\n| `adv_conformance` init/lock/unlock/override | MED | LOW | LOW | MUTATE | `no-cli-dangerous` | Conformance authority |\n| `adv_project_metadata` write, `adv_agenda_add/start/complete/cancel/prioritize`, `adv_wisdom_add` | MED | LOW | LOW | MUTATE | `no-cli-dangerous` | State mutation |\n\nNote: `cli-replace` (retire MCP form) is not triggered by any current read tool — all read tools retain ACN ≥ MED or have workflow dependencies. Replacement, if any, is applied at the COMMAND default-path level (`cli-bridge-primary`), not by deleting agent tools, unless a future row scores ACN=LOW with zero workflow dependency.\n\n## CLI Namespace Recommendation\n\n```text\nadv status                 # shipped\nadv roadmap [--json]       # snapshot backlog; Temporal annotation omitted/degraded\nadv validate [--json]      # CI verdict (pending C5 decision)\nadv spec list|show|search  # in-repo specs\nadv doctor [--json]        # temporal diagnose + snapshot scan (deferred)\nadv conformance status     # read-only verdict\nadv worktree triage        # read-only drift report\n```\n\nNo mutation subcommands in this change.\n\n## Recommended Implementation Order\n\n1. Extract shared CLI helper from `bin/adv` (C1): project id, external root, no-color, JSON output, disk-projection loaders, GATE_ORDER source-of-truth.\n2. Add parameterized bridge-contract asset-test harness (C2).\n3. Add `adv roadmap --no-color [--json]` (file mode only; annotation omitted/degraded).\n4. Convert `/adv-roadmap` default path to a thin bridge once unavailable-annotation representation is decided.\n5. Add spec law (`rq-roadmapCliBridge01` or general `rq-commandCliBridge01`).\n6. Decide `adv validate` disk-only vs shared-validator path (C5) before implementation.\n7. Defer `adv doctor`/`adv hygiene` to follow-up.\n\n## Guardrails\n\n- CLI disk projection is diagnostic unless a spec explicitly says it is authoritative.\n- CLI never performs gate completion, task/change mutation, archive, cancellation, worktree deletion, worker restart, search-attribute registration, conformance lock/unlock/override, or snapshot repair.\n- Every bridge gets spec + asset-test coverage for no-fanout/no-analysis/no-MCP-fallback AND matrix-justified-retirement.\n- Temporal-dependent reads stay MCP/agent-owned until CLI has tested service access.\n\nCONTRACT ACTIVE\n\n- Criteria: factor matrix + dispositions for all tools/commands; matrix-justified replacement only; first safe implementation = roadmap after helper + harness.\n\nCONTRACT FULFILLED\n\n- Evidence: three research passes + scout, subagent reports persisted, OpenCode/Bun docs verified, factor matrix recorded.\n- Status: COMPLETE\n",
+    "problemStatement": "ADV needs a factor-driven decision matrix mapping every command/tool to agent in-context need, programmability/CI value, human value, and mutation risk, then deriving the ideal surface: keep as MCP, add an additive CLI surface, move primary path to CLI, retire the MCP form when justified, or remain agent-only. Goal: reduce agent context waste and improve CI/human ergonomics without removing agent-needed tools or weakening HITL/gate boundaries.",
+    "agreement": "# Agreement\n\n## Objectives\n\n1. Keep the factor-driven command/tool surface matrix and bridge-contract test harness delivered by the existing scope.\n2. Change `adv status` from disk-projection-only to true live default: active changes must come from live Temporal-backed state before rendering.\n3. Keep `/adv-status` as a thin shell-output bridge over `adv status --no-color`; the command file must not instruct agent-side ADV MCP fanout.\n4. Fail closed on live-state unavailability: surface remediation such as fixing/restarting Temporal, and never silently render stale disk projections as current state.\n5. Preserve existing roadmap file-snapshot bridge behavior unless later explicitly re-scoped.\n6. Preserve all HITL and mutation boundaries: CLI status remains read-only and cannot complete gates, archive, cancel, mutate tasks, repair state, or restart Temporal automatically.\n\n## Acceptance Criteria\n\n- AC1: `adv status` default renders active changes from live Temporal-backed state, not disk projection files.\n- AC2: `/adv-status` remains a thin shell-output bridge over `adv status --no-color`; command file contains no `adv_*` MCP fanout instructions.\n- AC3: Stale disk-only active changes are not shown as current live active changes.\n- AC4: If live Temporal status is unavailable, `adv status` exits non-zero and prints clear remediation; it does not silently fall back to a disk table.\n- AC5: Standalone `adv status` outside OpenCode uses the same live-default behavior.\n- AC6: `adv status --json` reports source/freshness/error fields sufficient for CI to distinguish live success from failure.\n- AC7: `rq-statusCliBridge01` is updated from disk-only/no-fallback law to live-default/no-silent-stale law.\n- AC8: Existing roadmap bridge/file-snapshot behavior remains unchanged unless explicitly re-scoped later.\n- AC9: No CLI mutation authority is added: no gate completion, archive, cancellation, task mutation, destructive repair, or automatic Temporal restart.\n- AC10: Tests cover live success, stale disk exclusion, Temporal unavailable failure, `/adv-status` bridge no-fanout contract, and spec anchor drift.\n\n## Constraints\n\n- Use `node:util parseArgs`; add no new heavy CLI dependencies.\n- `--no-color` remains stable for slash-command bridge rendering.\n- `--json` output must be CI-readable and structurally distinguish live success from live failure.\n- Live status source must not silently blend stale disk-only active changes into the current active table.\n- Remediation text belongs in CLI stdout/stderr/JSON, not in `.opencode/command/adv-status.md`, so bridge-command no-fanout tests remain meaningful.\n- Existing roadmap CLI/file-snapshot mode is not changed by this re-entry.\n\n## Avoidances\n\n- Do not remove agent-needed MCP tools without a recorded matrix justification.\n- Do not implement `adv validate` / `adv doctor` / `adv hygiene` in this change.\n- Do not add CLI gate/archive/cancellation/task/destructive mutation authority.\n- Do not emulate live Temporal status from stale disk projections.\n- Do not make `/adv-status` ask the agent to call `adv_status`, `adv_change_list`, `adv_change_show`, `adv_gate_status`, or `adv_spec`.\n- Do not automatically restart Temporal from `adv status`; provide remediation only.\n\n## Preview Applicability\n\n`visual_surface: false` — change affects CLI terminal text output, specs, and tests; no browser-visible or rendered UI surface.\n\n## Decisions\n\n### User Decisions\n\n- True live default: `/adv-status` and `adv status` must pull live Temporal-backed state by default.\n- Standalone CLI: `adv status` outside OpenCode also uses live default.\n- Fresh over fast: prefer bounded live correctness over showing a fast stale table.\n- Failure handling: when live status is unavailable, surface fix/restart Temporal guidance instead of pretending disk projections are current.\n\n### Agent Decisions (LBP)\n\n- Keep `/adv-status` as shell bridge; implement liveness in `bin/adv`, not in agent prompt instructions.\n- Reuse existing Temporal client/address conventions where possible (`127.0.0.1:7233`, namespace default, env overrides guarded by existing policy).\n- Replace the prior disk-only `rq-statusCliBridge01` law with a live-default/no-silent-stale law.\n- Keep roadmap bridge scope unchanged to avoid accidental product behavior change.\n\n## Discovery Findings\n\n- Current `bin/adv` reads `change.json` projections from external state and can show stale/legacy active changes when projections diverge from live workflows.\n- Live state is reachable through existing Temporal client conventions and existing store/list machinery, but implementation must avoid falling back to disk-only active IDs in the default status table.\n- Existing spec and agreement text conflict with true-live default and have been superseded by this agreement.\n- The no-fanout bridge contract remains valuable: command file stays deterministic shell-output bridge; CLI owns live status and remediation text.\n\n## Deferred Questions\n\n- `adv validate` disk-only vs shared-validator architecture remains deferred to a follow-up design/change.\n- `adv doctor` / `adv hygiene` read-only diagnostics remain follow-up scope.\n\n## Sign-Off\n\nAcceptance criteria approved inline by user (`approve`) at the re-entry discovery AC checkpoint on 2026-06-05.",
+    "design": "# Design\n\n## Architecture Overview\n\n`/adv-status` stays a thin OpenCode shell-output bridge:\n\n```md\n!`adv status --no-color`\n```\n\nThe live-status responsibility moves into `bin/adv`. The default `adv status` path becomes a Temporal client read path, not a disk-projection reader. It resolves the ADV project ID from the git root commit, connects to Temporal using existing ADV Temporal client conventions, enumerates non-terminal change workflows through Visibility, queries each change workflow by the public query name string, and renders the existing table from queried workflow state.\n\nDisk projections are no longer an active-row source for default status. Disk may still supply archived/closed counts, or future explicit offline inspection, but stale disk-only active changes must not appear as current live active changes.\n\n`live` means Temporal Visibility-current plus workflow-query-current. Temporal Visibility can be eventually consistent for very fresh workflows/search-attribute updates; default status still must not replace missing live data with disk active rows.\n\n## Key Decisions\n\n1. **Keep command bridge thin.** `.opencode/command/adv-status.md` remains shell output + verbatim/no-analysis instructions. No `adv_*` MCP fanout appears in the command file.\n2. **Live state in CLI, not agent prompt.** `bin/adv status` owns live connection, query, rendering, JSON metadata, and remediation text.\n3. **Query by name string.** The CLI uses `client.workflow.getHandle(workflowId).query('adv.change.getState')` rather than importing workflow/sandbox declarations. This avoids pulling `@temporalio/workflow` sandbox-only code into the client CLI process.\n4. **Visibility is the active ID source.** Enumerate active change workflow IDs using the existing Visibility query shape from `plugin/src/temporal/list-change-workflows.ts`; do not union disk active IDs into the default status table.\n5. **Bound live reads.** Mirror the existing 5s query-timeout discipline from `plugin/src/storage/store-temporal/shared.ts` so a dead worker/server cannot hang `adv status` indefinitely.\n6. **Fail closed, including partial query failure.** Temporal connection/list failure, timeout, or any enumerated change query failure returns whole-command non-zero with remediation; no partial/stale table and no disk active fallback.\n7. **JSON is structurally explicit.** `adv status --json` includes fields such as `source: 'temporal'`, `live: true|false`, `stale: false`, `generated_at`, `error`, and `remediation` so CI can distinguish live success from failure.\n8. **Roadmap unchanged.** Existing `adv roadmap` file-snapshot and `/adv-roadmap` bridge behavior remains out of this re-entry scope.\n9. **No mutation authority.** Status CLI remains read-only: no gate/task/archive/cancel/destructive repair/restart operations.\n\n## ADR Drafts\n\nNo ADR drafted. Decision is important but not hard to reverse enough to warrant a repository ADR: fallback/timeout/source behavior is pinned by specs/tests and can be changed through a future ADV change.\n\n## Implementation Strategy\n\n1. **Refactor status internals if needed**\n   - Extract render/project/disk-count helpers from `bin/adv` into `bin/lib/*`.\n   - Keep Bun-runtime tests under `bin/lib/*.test.ts`.\n   - Keep plugin-side parity/asset tests as text reads, not imports from `bin/`.\n\n2. **Add live Temporal status reader**\n   - Resolve project ID with current git-root-commit logic.\n   - Import/reuse safe client conventions from `plugin/src/temporal/client.ts` or duplicate a minimal equivalent if runtime packaging requires it.\n   - Reuse/parallel `buildVisibilityQuery` + active statuses from `plugin/src/temporal/list-change-workflows.ts`.\n   - For each `adv/change/{projectId}/{changeId}` workflow ID, query `'adv.change.getState'` by string.\n   - Convert workflow state into the existing table summary shape: ID, title, task counts, gates, fast-follow parent, last activity, recency.\n\n3. **Remove default disk active source**\n   - Do not call `listChanges(root/changes)` for active rows in default `adv status`.\n   - Keep disk archive reads for archived/closed counts only if needed.\n   - If a future offline mode is desired, make it explicit (`--offline`) and label it projection-only; not part of current AC unless needed for tests.\n\n4. **Failure and remediation path**\n   - Connection failure: non-zero, message references Temporal server / `temporal-dev` / OpenCode worker health.\n   - Visibility failure: non-zero, no disk active fallback.\n   - Per-change query failure/timeout: whole-command non-zero, no partial table.\n   - JSON failure payload carries error class and remediation.\n\n5. **Spec/test updates**\n   - Update `rq-statusCliBridge01` from disk-only/no-fallback law to live-default/no-silent-stale law.\n   - Preserve bridge no-fanout asset test.\n   - Add tests for live success, stale disk exclusion, Temporal unavailable failure, JSON metadata, partial-query failure, and query-name parity.\n\n## LBP Analysis\n\nThis is the long-term best path because ADV state authority already lives in Temporal. A disk-only status CLI is fast but violates user expectations when projections diverge. Making the CLI a read-only Temporal client keeps the slash command cheap in agent context while aligning displayed active WIP with source-of-truth workflows.\n\nRejected alternatives:\n\n- **Fix projection source only:** faster and preserves offline behavior, but still allows stale state under projection failure and does not satisfy true live default.\n- **Agent-side MCP fanout in `/adv-status`:** live, but regresses the bridge goal by consuming agent context and allowing synthesis/recommendations.\n- **Silent disk fallback:** convenient during Temporal outages, but violates fresh-over-fast and hides exactly the failure users need to fix.\n\n## Affected Components\n\n- `bin/adv` — default status implementation and JSON/failure output.\n- Optional `bin/lib/*` — helpers for project resolution, rendering, live Temporal reads, disk archive counts.\n- `.opencode/command/adv-status.md` — should remain materially unchanged except comments if needed; still shell bridge.\n- `plugin/src/temporal/client.ts` — source of client/address/namespace conventions.\n- `plugin/src/temporal/list-change-workflows.ts` — source of Visibility query semantics.\n- `plugin/src/temporal/contracts.ts` — source of query-name string and workflow ID conventions.\n- `.adv/specs/advance-meta/spec.json` — update `rq-statusCliBridge01`.\n- `plugin/src/*cli*assets.test.ts` / new bin tests — bridge and live-status regression coverage.\n\n## Risks / Mitigations\n\n- **Bun dependency resolution for `@temporalio/client`:** validate with a targeted Bun test/command. If importing plugin modules is brittle, use a small bin-local live reader that imports from plugin-rooted code, or a minimal copied Temporal client convention with tests.\n- **Accidental sandbox import:** forbid importing `plugin/src/temporal/messages.ts` or workflow files from `bin/` tests; query by name string only.\n- **Visibility eventual consistency:** document live semantics as Visibility-current + workflow-query-current; do not use disk active fallback to mask lag.\n- **Visibility search-attribute drift:** add parity/asset coverage for the query name and visibility builder or literal tokens.\n- **Dead worker hangs:** wrap connection/list/query in bounded timeout; reuse 5s query-timeout rationale.\n- **Partial workflow query failures:** fail closed for default status.\n- **Archive counts still disk-backed:** acceptable because AC targets active current WIP; label JSON source if counts come from disk.\n\n## Design Leverage Scout\n\nScout considered 5 findings and auto-adopted 3:\n\n- Adopt query-by-name-string for `adv.change.getState` so CLI avoids workflow sandbox imports.\n- Adopt active rows from Visibility + workflow queries only; do not reuse store `listSummary` because it intentionally falls back to disk.\n- Adopt bounded query timeout using existing 5s query-timeout precedent.\n\nSurfaced risks handled in design:\n\n- Runtime resolution for `@temporalio/client` under Bun must be verified by tests.\n- Add query-name/visibility parity tests so string-based client boundary does not drift.\n\n## Validator Result\n\nVALIDATED with two non-blocking cautions, both incorporated:\n\n1. `live` is defined precisely as Visibility-current plus workflow-query-current; Visibility may briefly lag.\n2. Partial query failure is pinned to fail-closed: whole-command non-zero with remediation, no partial/stale table.\n\nValidator recommendation: adopt the design. It deliberately inverts the plugin `listSummary` disk fallback so CLI fails closed instead of blending stale disk rows, while preserving the thin bridge and no-mutation constraints.",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\n\nImplemented live-default ADV CLI status behavior while preserving thin slash-command bridge boundaries. `/adv-status` still returns shell output verbatim, but `adv status` now uses Temporal-backed live state for active rows and fails closed with remediation instead of silently showing stale disk projections.\n\n## Verdict\n\nAPPROVED\n\n## What Was Built\n\n1. Extracted shared `bin/lib` helpers for status/roadmap rendering, project resolution, gate order, and change summary computation.\n2. Added `adv roadmap` file-snapshot CLI and `/adv-roadmap` thin bridge with no fabricated active-change annotation.\n3. Added CLI surface matrix documentation and coverage tests for commands/tools.\n4. Updated `rq-statusCliBridge01` to require live-default status and no silent stale active fallback.\n5. Implemented `bin/lib/live-status.ts` for Temporal Visibility enumeration and `adv.change.getState` workflow queries by name string.\n6. Changed `adv status` default to use live Temporal-backed active rows; disk active rows are no longer loaded for the default status table.\n7. Added fail-closed status JSON/error path with `source`, `live`, `stale`, `error`, and `remediation` fields.\n8. Added guards for no command-file ADV MCP fanout, no workflow sandbox imports, query-name parity, roadmap unchanged behavior, and no CLI mutation authority.\n9. Updated release-facing CLI docs/comments from disk-only status to live-default status plus roadmap snapshot mode.\n10. Review remediation made `bin/adv.test.ts` hermetic by adding local Git identity and deterministic quiet temp repo init.\n\n## What Was Verified\n\n- Verdict: APPROVED with 0 blockers and 0 unresolved issues from `adv-reviewer` acceptance review.\n- Tests: `bun test bin/` passed 66 tests.\n- Tests: CLI bridge/parity/matrix targeted suite passed 23 tests.\n- Tests: `bin/oc-test targeted -- src/cli-bridge-contract.test.ts` passed 16 tests.\n- Formatting: touched `src/cli-bridge-contract.test.ts` passed Prettier check; reviewer also reported `git diff --check` pass.\n- Runtime failure path: `ADV_STATUS_TIMEOUT_MS=1000 bun bin/adv status --json` exited 2 with `live:false`, `stale:false`, `error`, and remediation; no disk table fallback was emitted.\n- Full check caveat: `pnpm run check` still fails only on pre-existing unrelated Prettier warnings in three untouched files.\n- Preview URL: not_applicable — CLI/spec/docs/tests only; no browser-visible visual surface.\n- Contract matrix: 22 required rows persisted; all AC rows pass and all constraints/avoidances are respected.\n\n## Remaining Concerns\n\nCurrent live runtime command reports `Failed to query Workflow` and fails closed under the existing Temporal state issue, which is the intended no-stale fallback behavior. Live success may require fixing/restarting Temporal or cleaning stale workflow state before archive/release validation.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-06-05T19:40:00.000Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| AC1 | acceptance_criterion | `adv status` default renders active changes from live Temporal-backed state, not disk projection files. | pass | bin/lib/live-status.test.ts verifies live Temporal workflow states are listed/query-by-name and build live payload from queried rows; `bun test bin/` passed 66 tests. |\n| AC2 | acceptance_criterion | `/adv-status` remains a thin shell-output bridge over `adv status --no-color`; command file contains no `adv_*` MCP fanout instructions. | pass | plugin/src/cli-bridge-contract.test.ts verifies `.opencode/command/adv-status.md` contains `!`adv status --no-color`` and forbids adv_* MCP fanout tokens; targeted test passed 16 tests. |\n| AC3 | acceptance_criterion | Stale disk-only active changes are not shown as current live active changes. | pass | STATUS LIVE DEFAULT GUARDS assert `bin/adv` does not contain `join(root, \"changes\")` or `isDashboardActiveStatus`; live-status payload tests exclude disk-only IDs. |\n| AC4 | acceptance_criterion | If live Temporal status is unavailable, `adv status` exits non-zero and prints clear remediation; it does not silently fall back to a disk table. | pass | `ADV_STATUS_TIMEOUT_MS=1000 bun bin/adv status --json` exited 2 with JSON `live:false`, `stale:false`, `error`, and remediation; no table/disk active fallback emitted. |\n| AC5 | acceptance_criterion | Standalone `adv status` outside OpenCode uses the same live-default behavior. | pass | bin/adv.test.ts verifies standalone `adv status` no longer requires a disk ADV state directory; `bun test bin/` passed 66 tests. |\n| AC6 | acceptance_criterion | `adv status --json` reports source/freshness/error fields sufficient for CI to distinguish live success from failure. | pass | bin/adv.test.ts and live failure runtime evidence verify JSON fields: source, live, stale, generated_at, project_id/counts/changes, error, remediation. |\n| AC7 | acceptance_criterion | `rq-statusCliBridge01` is updated from disk-only/no-fallback law to live-default/no-silent-stale law. | pass | .adv/specs/advance-meta/spec.json rq-statusCliBridge01 updated to live-default/no-silent-stale law; cli-bridge-contract test asserts live Temporal-backed/fail-closed/disk-not-active wording. |\n| AC8 | acceptance_criterion | Existing roadmap bridge/file-snapshot behavior remains unchanged unless explicitly re-scoped later. | pass | STATUS LIVE DEFAULT GUARDS verify `/adv-roadmap` bridge remains `!`adv roadmap --no-color`` and roadmap CLI keeps `unavailable_cli_file_mode`; roadmap parity/matrix targeted suite passed 23 tests. |\n| AC9 | acceptance_criterion | No CLI mutation authority is added: no gate completion, archive, cancellation, task mutation, destructive repair, or automatic Temporal restart. | pass | NO-CLI-MUTATION GUARD and STATUS LIVE DEFAULT GUARDS scan status implementation for mutation dispatch/signal/start/update/restart patterns; targeted test passed. |\n| AC10 | acceptance_criterion | Tests cover live success, stale disk exclusion, Temporal unavailable failure, `/adv-status` bridge no-fanout contract, and spec anchor drift. | pass | Coverage commands passed: `bun test bin/` 66 tests; `bin/oc-test targeted -- src/cli-bridge-contract.test.ts` 16 tests; CLI bridge/parity/matrix suite 23 tests. |\n| C1 | constraint | Use `node:util parseArgs`; add no new heavy CLI dependencies. | respected | bin/adv still uses node:util parseArgs and no new package dependencies were added. |\n| C2 | constraint | `--no-color` remains stable for slash-command bridge rendering. | respected | `--no-color` bridge flag preserved in `.opencode/command/adv-status.md` and tests; output remains stable for command rendering. |\n| C3 | constraint | `--json` output must be CI-readable and structurally distinguish live success from live failure. | respected | `adv status --json` emits structured success/failure fields; failure evidence shows CI-readable live:false/stale:false/error/remediation. |\n| C4 | constraint | Live status source must not silently blend stale disk-only active changes into the current active table. | respected | Guard test prevents active rows from disk `changes` directory in default status; live-status module owns Temporal read path. |\n| C5 | constraint | Remediation text belongs in CLI stdout/stderr/JSON, not in `.opencode/command/adv-status.md`, so bridge-command no-fanout tests remain meaningful. | respected | Remediation text exists in bin/lib/live-status.ts failure JSON/stderr path, not in `.opencode/command/adv-status.md`; no-fanout command test passes. |\n| C6 | constraint | Existing roadmap CLI/file-snapshot mode is not changed by this re-entry. | respected | Roadmap bridge/file-snapshot tests unchanged and passing; roadmap guard verifies `unavailable_cli_file_mode`. |\n| DONT1 | avoidance | Do not remove agent-needed MCP tools without a recorded matrix justification. | respected | ADV_TOOL_NAMES frozen registry guard still passes; no MCP tools removed. |\n| DONT2 | avoidance | Do not implement `adv validate` / `adv doctor` / `adv hygiene` in this change. | respected | No adv validate/doctor/hygiene CLI implementation added; bin/adv dispatch guard allows only status and roadmap. |\n| DONT3 | avoidance | Do not add CLI gate/archive/cancellation/task/destructive mutation authority. | respected | No CLI gate/archive/cancel/task/destructive mutation dispatch added; mutation guard tests pass. |\n| DONT4 | avoidance | Do not emulate live Temporal status from stale disk projections. | respected | Default status active rows come from Temporal live reader; disk active substitution guard passes; runtime failure emitted no disk table. |\n| DONT5 | avoidance | Do not make `/adv-status` ask the agent to call `adv_status`, `adv_change_list`, `adv_change_show`, `adv_gate_status`, or `adv_spec`. | respected | /adv-status command file still contains no adv_status, adv_change_list, adv_change_show, adv_gate_status, or adv_spec fanout instructions; bridge tests pass. |\n| DONT6 | avoidance | Do not automatically restart Temporal from `adv status`; provide remediation only. | respected | Status failure remediation instructs user to verify/restart services; code only reports remediation and contains no worker restart operation. Guard tests scan for restart mutation identifiers. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addCliCommandBridges/proposal.md",
+      "updatedAt": "2026-06-05T15:40:10.992Z",
+      "contentHash": "b48835d781ddce8a7d0190eb918411c4cc4cda85d48b664c9986eadbce3d9137"
+    },
+    "problemStatement": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addCliCommandBridges/problem-statement.md",
+      "updatedAt": "2026-06-05T15:40:10.992Z",
+      "contentHash": "f75eeab4e6e1f12807f8f5a74b48ad3a1cb85810777d28c2b8dde390a62c38fd"
+    },
+    "agreement": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addCliCommandBridges/agreement.md",
+      "updatedAt": "2026-06-05T19:05:59.228Z",
+      "contentHash": "7401a690b3a32ef26aea24df987d4c518a7bac62bd73bb35f46d599c02f14869"
+    },
+    "design": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addCliCommandBridges/design.md",
+      "updatedAt": "2026-06-05T19:13:10.353Z",
+      "contentHash": "ba261a939251a5272c37ec32e9812e4a4420a46e5306f66469e2e629f9cf51af"
+    },
+    "executiveSummary": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addCliCommandBridges/executive-summary.md",
+      "updatedAt": "2026-06-05T19:41:09.976Z",
+      "contentHash": "a15e21df05ff952f9eb0e66ccdf1d9d70d726d80be64e20cb1e748ca75901a62"
+    }
+  },
+  "lastSignalAt": "2026-06-05T20:04:53.350Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d"
+}
