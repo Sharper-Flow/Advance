@@ -343,31 +343,51 @@ describe("withTargetPathStore", () => {
     expect(mocks.createStore).toHaveBeenCalled();
   });
 
-  test("fails closed before opening a temporal store when target queue readiness is unproven", async () => {
-    mocks.ensureProjectTemporalQueue.mockRejectedValueOnce(
-      new Error("no local worker"),
-    );
-    mocks.probeTaskQueuePollers.mockResolvedValueOnce({
-      status: "none",
+  test.each([
+    {
+      status: "none" as const,
       lastAccessMs: null,
-    });
+      blocker: "server_poller_absent",
+    },
+    {
+      status: "stale" as const,
+      lastAccessMs: 120_000,
+      blocker: "server_poller_stale",
+    },
+    {
+      status: "unavailable" as const,
+      lastAccessMs: null,
+      error: "describeTaskQueue unavailable",
+      blocker: "server_poller_probe_unavailable",
+    },
+  ])(
+    "fails closed before opening a temporal store when target queue poller evidence is $status",
+    async ({ blocker, ...probe }) => {
+      mocks.ensureProjectTemporalQueue.mockRejectedValueOnce(
+        new Error("no local worker"),
+      );
+      mocks.probeTaskQueuePollers.mockResolvedValueOnce(probe);
 
-    await expect(
-      withTargetPathStore(
-        {
-          currentProjectPath,
-          target_path: targetPath,
-          stateRequirement: "temporal-required",
-          target_confirmed: true,
-          confirmationEvidence: "user approved target mutation",
-        },
-        async () => null,
-      ),
-    ).rejects.toThrow(
-      /Target project Temporal queue is not serviceable.*server_poller_absent.*open or restart/s,
-    );
-    expect(mocks.createStore).not.toHaveBeenCalled();
-  });
+      await expect(
+        withTargetPathStore(
+          {
+            currentProjectPath,
+            target_path: targetPath,
+            stateRequirement: "temporal-required",
+            target_confirmed: true,
+            confirmationEvidence: "user approved target mutation",
+          },
+          async () => null,
+        ),
+      ).rejects.toThrow(
+        new RegExp(
+          `Target project Temporal queue is not serviceable.*${blocker}.*open or restart`,
+          "s",
+        ),
+      );
+      expect(mocks.createStore).not.toHaveBeenCalled();
+    },
+  );
 
   test("opens temporal-required dry-run targets as Temporal stores without mutation confirmation", async () => {
     const result = await withTargetPathStore(
