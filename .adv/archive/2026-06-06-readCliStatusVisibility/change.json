@@ -1,0 +1,521 @@
+{
+  "id": "readCliStatusVisibility",
+  "title": "Read CLI status from Visibility",
+  "status": "archived",
+  "created_at": "2026-06-06T17:08:52.197Z",
+  "tasks": [
+    {
+      "id": "tk-393f978fbc1b",
+      "title": "Implement Visibility-search-attribute status read in CLI",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-06-06T17:10:28.728Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC7"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC7"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-06T18:01:54.837Z",
+      "verification": "Visibility-search-attribute read path implemented in bin/lib/live-status.ts. CLI uses new Visibility path. 12 bun tests pass. Lint fix committed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "97423c1f717654febac727d3559ea056014dc9b4",
+      "completedAt": "2026-06-06T18:07:59.108Z",
+      "completed_at": "2026-06-06T18:07:59.108Z"
+    },
+    {
+      "id": "tk-ac5e4250f5e3",
+      "title": "Update contract tests, spec law, and deploy/verify launcher",
+      "type": "code",
+      "section": "Verification",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-06-06T17:10:38.947Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-393f978fbc1b"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC6",
+          "AC8"
+        ],
+        "verifies": [
+          "AC5",
+          "AC6",
+          "AC8"
+        ],
+        "respects": [
+          "C1",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4"
+        ],
+        "not_applicable_reason": ""
+      },
+      "verification": "Updated cli-bridge-contract.test.ts to assert Visibility search-attribute read path (no getState query). Added advance-meta spec law for Visibility status read. 262 plugin test files pass.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "97423c1f717654febac727d3559ea056014dc9b4",
+      "completedAt": "2026-06-06T18:07:59.106Z",
+      "completed_at": "2026-06-06T18:07:59.106Z"
+    }
+  ],
+  "subagent_reports": [],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-06-06T17:09:11.609Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved the architectural direction via question tool: \"Persist summaries to Temporal memo/search-attrs (Recommended)\". Refined to Visibility search-attribute read (attributes already upserted by change workflows; no memo write needed).",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "non_whitespace_chars": 1936,
+        "checked_at": "2026-06-06T17:09:11.533Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-06-06T17:09:43.176Z",
+      "completed_by": "user",
+      "approval_evidence": "Agreement persisted; contract minted (17 items). Direction user-approved via question tool. Visibility search attributes verified populated for inactive change (hardenMigrationSafety: AdvCurrentGate=release, AdvChangeTitle present).",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/readCliStatusVisibility/agreement.md",
+        "content_hash": "b6d9dc4b376ed6d60588880659fa3d9cef37c78bdd8813bf2991d73857a5898f",
+        "non_whitespace_chars": 2640,
+        "checked_at": "2026-06-06T17:09:11.534Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-06-06T17:10:18.540Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design recorded. Approach validated against live Temporal: search attributes confirmed populated for inactive change. No workflow/worker change needed; CLI read path only. Self-validated (low architectural risk, single read-path swap reusing existing upserted attributes).",
+      "artifact_evidence": {
+        "kind": "design",
+        "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/readCliStatusVisibility/design.md",
+        "content_hash": "58458e244d5c8697d72d5c284cd20cfa232c1c41abe8206ad84e7274523438c4",
+        "non_whitespace_chars": 4221,
+        "checked_at": "2026-06-06T17:09:11.535Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-06-06T17:10:45.135Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved the fix direction and requested implementation. Two-task graph: CLI Visibility read implementation (TDD) + contract/spec/deploy verification."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-06-06T18:09:06.534Z",
+      "completed_by": "agent",
+      "approval_evidence": "Both tasks done. 12 bun tests + 262 plugin test files pass. pnpm run check clean. Validation passed (NO_DELTAS warning only)."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-06-06T18:10:15.065Z",
+      "completed_by": "agent",
+      "approval_evidence": "Contract review 17/17 passed. Executive summary persisted. All ACs verified via tests and static check.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/readCliStatusVisibility/executive-summary.md",
+        "content_hash": "8edfa66ca4cded98edb0a4069317f3fc219ddf3d72666d33b43b073448ec15f1",
+        "non_whitespace_chars": 1141,
+        "checked_at": "2026-06-06T17:09:11.536Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "b6d9dc4b376ed6d60588880659fa3d9cef37c78bdd8813bf2991d73857a5898f",
+      "approvedAt": "2026-06-06T17:09:36.823Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "`adv status --json` for a project with non-archived change workflows but no open session returns `source:\"temporal\"`, `live:true`, and one active row per non-terminal change built from Visibility search attributes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b6d9dc4b376ed6d60588880659fa3d9cef37c78bdd8813bf2991d73857a5898f",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Each row's `id`, `title`, `status`, `gateProgressStr`, `firstIncompleteGate`, and `lastActivityAt` are derived from `AdvChangeId`, `AdvChangeTitle`, `AdvChangeStatus`, `AdvCurrentGate`, `AdvLastSignalAt`/`AdvCreatedAt`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b6d9dc4b376ed6d60588880659fa3d9cef37c78bdd8813bf2991d73857a5898f",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Terminal-complete changes (`AdvCurrentGate` resolves to all gates done) are excluded from active rows (`firstIncompleteGate` null).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b6d9dc4b376ed6d60588880659fa3d9cef37c78bdd8813bf2991d73857a5898f",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "When the Temporal connection or Visibility list fails, `adv status --json` returns `live:false` fail-closed with remediation and zero rows; no disk-projected active rows.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b6d9dc4b376ed6d60588880659fa3d9cef37c78bdd8813bf2991d73857a5898f",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "`adv status` no longer issues a per-change `getState` workflow query for the default status table.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b6d9dc4b376ed6d60588880659fa3d9cef37c78bdd8813bf2991d73857a5898f",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "`warp-project-launcher --adv-changes <project>` renders active ADV rows for an inactive project (e.g. `/home/jon/dev/pokeedge`).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b6d9dc4b376ed6d60588880659fa3d9cef37c78bdd8813bf2991d73857a5898f",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "No CLI mutation subcommands are added; CLI remains read-only.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b6d9dc4b376ed6d60588880659fa3d9cef37c78bdd8813bf2991d73857a5898f",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC8",
+        "kind": "acceptance_criterion",
+        "text": "`advance-meta` spec and tests document the Visibility-search-attribute status read.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b6d9dc4b376ed6d60588880659fa3d9cef37c78bdd8813bf2991d73857a5898f",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Edit source-of-truth files; deploy via `scripts/deploy-local.sh --fix`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b6d9dc4b376ed6d60588880659fa3d9cef37c78bdd8813bf2991d73857a5898f",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Keep `bin/adv` read-only; no mutation authority.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b6d9dc4b376ed6d60588880659fa3d9cef37c78bdd8813bf2991d73857a5898f",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Reuse canonical `GATE_ORDER` from `bin/lib/changes.ts` for gate synthesis.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b6d9dc4b376ed6d60588880659fa3d9cef37c78bdd8813bf2991d73857a5898f",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Keep change-workflow and worker code unchanged (search attributes are already upserted); no worker/dist rebuild required for the CLI read path.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b6d9dc4b376ed6d60588880659fa3d9cef37c78bdd8813bf2991d73857a5898f",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Do not parse human `adv status --no-color` output.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b6d9dc4b376ed6d60588880659fa3d9cef37c78bdd8813bf2991d73857a5898f",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not render stale disk-projected active changes as current rows.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b6d9dc4b376ed6d60588880659fa3d9cef37c78bdd8813bf2991d73857a5898f",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not reintroduce a per-project-worker dependency for the default status table.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b6d9dc4b376ed6d60588880659fa3d9cef37c78bdd8813bf2991d73857a5898f",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not weaken fail-closed behavior when Temporal is unavailable.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b6d9dc4b376ed6d60588880659fa3d9cef37c78bdd8813bf2991d73857a5898f",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not change the MCP `adv_status` tool internal path in this change.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b6d9dc4b376ed6d60588880659fa3d9cef37c78bdd8813bf2991d73857a5898f",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-06-06T18:09:48.886Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "summariesFromVisibility builds rows from AdvChangeId/Title/Status/CurrentGate/LastSignalAt/CreatedAt; loadLiveSummaries connects + calls it; bin/adv runStatus uses loadLiveSummaries. Tests: live-status.test.ts L141-161 (summary from attrs), L255-277 (payload from summaries)."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "buildSummaryFromSearchAttributes maps AdvChangeId→id, AdvChangeTitle→title, AdvChangeStatus→status, gatesFromCurrentGate→gateProgressStr/firstIncompleteGate, AdvLastSignalAt/AdvCreatedAt→lastActivityAt. Tests: L141-161, L178-193, L195-207."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "buildSummaryFromSearchAttributes returns null when AdvCurrentGate='done'; summariesFromVisibility drops nulls. Tests: L163-176 (terminal excluded), L209-244 (doneChange dropped from results)."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "summariesFromVisibility throws on list failure → caller catches → buildLiveStatusFailure returns live:false with remediation. Tests: L246-253 (visibility failure propagates). bin/adv L126-134 catches and emits failure."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "bin/adv runStatus no longer imports or calls listLiveChangeStates/loadLiveStatus. Uses loadLiveSummaries instead. cli-bridge-contract.test.ts asserts no getState query in new read path."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "loadLiveSummaries is worker-free (Visibility search attributes only). warp-project-launcher calls adv status --json which uses loadLiveSummaries. No per-project worker dependency."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "bin/adv runStatus only reads; no mutation subcommands added. Help text lists only status and roadmap (both read-only)."
+        },
+        {
+          "contractId": "AC8",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": ".adv/specs/advance-meta/spec.json includes rq-visibilityStatusRead01. docs/specs/advance-meta.md updated. cli-bridge-contract.test.ts updated."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Source files edited in repo worktree; deploy via scripts/deploy-local.sh --fix."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "bin/adv remains read-only; no mutation authority added."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "gatesFromCurrentGate in live-status.ts imports and uses GATE_ORDER from bin/lib/changes.ts."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No changes to plugin/src/temporal/workflows.ts, worker code, or dist. Only bin/ read path changed."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No --no-color output parsing. loadLiveSummaries returns structured ChangeSummary objects."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Active rows built exclusively from live Visibility search attributes; no disk-projected active changes."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "New path uses client.workflow.list (Visibility) with no per-project worker. Old query path still exists but not called by default status."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Temporal failure → throw → buildLiveStatusFailure (live:false, zero rows). No weakening."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No changes to plugin/src/tools/status.ts or MCP adv_status tool."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "`adv status --json` for a project with non-archived change workflows but no open session returns `source:\"temporal\"`, `live:true`, and one active row per non-terminal change built from Visibility search attributes.",
+    "Each row's `id`, `title`, `status`, `gateProgressStr`, `firstIncompleteGate`, and `lastActivityAt` are derived from `AdvChangeId`, `AdvChangeTitle`, `AdvChangeStatus`, `AdvCurrentGate`, `AdvLastSignalAt`/`AdvCreatedAt`.",
+    "Terminal-complete changes (`AdvCurrentGate` resolves to all gates done) are excluded from active rows (`firstIncompleteGate` null).",
+    "When the Temporal connection or Visibility list fails, `adv status --json` returns `live:false` fail-closed with remediation and zero rows; no disk-projected active rows.",
+    "`adv status` no longer issues a per-change `getState` workflow query for the default status table.",
+    "`warp-project-launcher --adv-changes <project>` renders active ADV rows for an inactive project (e.g. `/home/jon/dev/pokeedge`).",
+    "No CLI mutation subcommands are added; CLI remains read-only.",
+    "`advance-meta` spec and tests document the Visibility-search-attribute status read."
+  ],
+  "documents": {
+    "proposal": "## Cross-Project Origin\n\nThis change was created as a follow-up from **toolbox**.\n\n| Field | Value |\n|-------|-------|\n| Source project | toolbox |\n| Source path | `/home/jon/toolbox` |\n\n> **Note:** The originating project should be consulted for context on why this change is needed.\n\n\n# Proposal: Read CLI status from Visibility search attributes\n\n## Problem\n\n`adv status` per-workflow query path requires a live worker for the selected project. Browsing projects from the launcher (no session) → query timeout → fail-closed → no ADV rows. Confirmed with ~/dev/pokeedge: `adv status --json` returns `live:false`, error `Temporal query hardenMigrationSafety timed out after 5000ms`, while the change workflows are Running and their Visibility search attributes are fully populated.\n\n## Proposal\n\nReplace the CLI live-status read with a Visibility-search-attribute read:\n\n- Enumerate the project's change workflows via `client.workflow.list` (already used by `listChangeWorkflowIds`).\n- Build each `ChangeSummary` from the workflow's Visibility search attributes (`AdvChangeId`, `AdvChangeTitle`, `AdvChangeStatus`, `AdvCurrentGate`, `AdvLastSignalAt`, `AdvCreatedAt`), synthesizing `gateProgressStr`/`firstIncompleteGate` from `AdvCurrentGate` and the canonical `GATE_ORDER`.\n- Keep `source:\"temporal\"`, `live:true` on success; fail closed (`live:false`) only when the Temporal connection or Visibility list fails.\n- No per-workflow query → no per-project worker dependency.\n\n## Scope\n\n- `bin/lib/live-status.ts` — new Visibility-summary read path; CLI uses it.\n- `bin/adv` — `runStatus` consumes the new path.\n- Tests — CLI bridge contract + new live-status unit coverage.\n- Spec/docs — note the worker-free Visibility read in advance-meta.\n\n## Success criteria\n\n- `adv status --json` for a project with no open session returns `live:true` with active change rows built from Visibility.\n- `warp-project-launcher --adv-changes <project>` renders ADV rows for inactive projects (pokeedge).\n- Temporal down still fails closed (`live:false`, no disk active rows).\n- No new CLI mutation authority.\n\n## Out of scope\n\n- Task counts in rows (search attributes do not carry counts; default 0/0 acceptable, follow-up may enrich).\n- MCP `adv_status` tool internal path.",
+    "problemStatement": "The `adv status` CLI reads active-change state by querying each change workflow (`CHANGE_WORKFLOW_QUERY_NAMES.getState`). A Temporal workflow query is only answered by a worker polling that project's task queue. The ADV worker is started per OpenCode session/project, so a project with no open session has no worker, the query times out after 5s, the CLI returns `live:false`, and the launcher (correctly fail-closed per rq-statusCliBridge01) shows only the plain row. Result: `warp-project-launcher` shows no ADV changes for any project that does not currently have an open ADV session (e.g. ~/dev/pokeedge), even though its change workflows are Running in Temporal.\n\nChange workflows already upsert rich Visibility search attributes on every signal: AdvChangeId, AdvChangeTitle, AdvChangeStatus, AdvCurrentGate, AdvLastSignalAt, AdvCreatedAt, AdvAffectedProjects. These are server-side Temporal Visibility data, readable without a worker. The CLI should build active-change rows from Visibility search attributes instead of per-workflow queries, keeping the read live-Temporal-backed and fail-closed when Temporal/Visibility is unavailable, while removing the dependency on a live per-project worker.",
+    "agreement": "# Agreement\n\n## Objectives\n\n1. Make `adv status` read active-change rows from Temporal Visibility search attributes so it works without a live per-project worker.\n2. Restore ADV change rows in `warp-project-launcher` for projects with no open session.\n3. Preserve live-Temporal-backed, fail-closed semantics (no stale disk active rows).\n\n## Acceptance Criteria\n\n1. `adv status --json` for a project with non-archived change workflows but no open session returns `source:\"temporal\"`, `live:true`, and one active row per non-terminal change built from Visibility search attributes.\n2. Each row's `id`, `title`, `status`, `gateProgressStr`, `firstIncompleteGate`, and `lastActivityAt` are derived from `AdvChangeId`, `AdvChangeTitle`, `AdvChangeStatus`, `AdvCurrentGate`, `AdvLastSignalAt`/`AdvCreatedAt`.\n3. Terminal-complete changes (`AdvCurrentGate` resolves to all gates done) are excluded from active rows (`firstIncompleteGate` null).\n4. When the Temporal connection or Visibility list fails, `adv status --json` returns `live:false` fail-closed with remediation and zero rows; no disk-projected active rows.\n5. `adv status` no longer issues a per-change `getState` workflow query for the default status table.\n6. `warp-project-launcher --adv-changes <project>` renders active ADV rows for an inactive project (e.g. `/home/jon/dev/pokeedge`).\n7. No CLI mutation subcommands are added; CLI remains read-only.\n8. `advance-meta` spec and tests document the Visibility-search-attribute status read.\n\n## Constraints\n\n- Edit source-of-truth files; deploy via `scripts/deploy-local.sh --fix`.\n- Keep `bin/adv` read-only; no mutation authority.\n- Reuse canonical `GATE_ORDER` from `bin/lib/changes.ts` for gate synthesis.\n- Keep change-workflow and worker code unchanged (search attributes are already upserted); no worker/dist rebuild required for the CLI read path.\n- Do not parse human `adv status --no-color` output.\n\n## Avoidances\n\n- Do not render stale disk-projected active changes as current rows.\n- Do not reintroduce a per-project-worker dependency for the default status table.\n- Do not weaken fail-closed behavior when Temporal is unavailable.\n- Do not change the MCP `adv_status` tool internal path in this change.\n\n## Preview Applicability\n\nvisual_surface: false\n\nRationale: terminal CLI/launcher output only; covered by unit + integration verification, not browser UI.\n\n## Decisions\n\n### User Decisions\n\n1. Direction approved via question tool: persist/read summaries from Temporal memo/search-attributes (worker-free), not disk fallback and not transient-worker spin.\n\n### Agent Decisions (LBP)\n\n1. Use existing upserted Visibility search attributes (no memo write needed) — change workflows already populate AdvCurrentGate/Title/Status/LastSignalAt.\n2. Synthesize gate progress from AdvCurrentGate + GATE_ORDER.\n3. Default task counts to 0/0 in worker-free rows (search attributes carry no counts); enrichment is an optional follow-up.\n\n## Deferred Questions\n\nNone.\n\n## Sign-Off\n\nDirection approved by user via question tool selection (option A).",
+    "design": "# Design\n\n## Architecture\n\n`adv status` default table currently calls `loadLiveStatus` → `listLiveChangeStates`, which enumerates change workflow IDs via Visibility and then issues a `getState` **workflow query** per change. Workflow queries require a worker polling the project task queue (`advance-<projectId>`); inactive projects have no worker → timeout → fail closed.\n\nChange workflows already upsert Visibility **search attributes** on every signal (`buildChangeSearchAttributes` in `plugin/src/temporal/search-attributes.ts`):\n`AdvChangeId`, `AdvChangeTitle`, `AdvChangeStatus`, `AdvCurrentGate`, `AdvLastSignalAt`, `AdvCreatedAt`, `AdvAffectedProjects`, worktree attrs.\n\nThese are server-side Visibility data, returned by `client.workflow.list` results without any worker. The CLI will build status rows directly from search attributes.\n\n## Key Decisions\n\n### KD1 — Read summaries from Visibility search attributes\n`bin/lib/live-status.ts` adds `loadLiveSummaries(projectId, timeoutMs, now)`:\n- connect via `createTemporalClientBundle`\n- iterate `client.workflow.list({ query: buildVisibilityQuery({ projectId }) })`\n- filter to `adv/change/<projectId>/` prefix\n- map each execution's search attributes → `ChangeSummary`\n\nNo `getState` query. Worker-free.\n\n### KD2 — Synthesize gate progress from AdvCurrentGate\n`AdvCurrentGate` is the first non-done gate, or \"done\" when all complete. Build a gates map over canonical `GATE_ORDER` (`bin/lib/changes.ts`): gates before currentGate = done, currentGate and after = pending; if \"done\", all done. Reuse `buildGateProgress`/`firstIncompleteGate`. Terminal-complete (`firstIncompleteGate` null) rows are dropped by the launcher and excluded from active rows here too.\n\n### KD3 — Preserve fail-closed\nConnection or list failure → `buildLiveStatusFailure` (`live:false`, remediation, zero rows). No disk active fallback. Temporal-down still fails closed.\n\n### KD4 — Search-attribute decoding is defensive\nValues arrive as arrays; Datetime may be `Date` or ISO string. A small reader normalizes: first element; `Date` → `toISOString`; missing → undefined. Unknown/blank title falls back to changeId.\n\n### KD5 — Task counts default 0/0\nSearch attributes carry no task counts. `tasksDone/tasksTotal = 0`. Launcher rows do not display counts; human table shows `0/0`. Optional future enrichment (query when a worker is available) is out of scope.\n\n### KD6 — Keep workflow/worker code unchanged\nSearch attributes are already upserted; no workflow, worker, or dist rebuild needed for the CLI read path. `scripts/deploy-local.sh --fix` syncs `bin/` and `plugin/src` so the deployed `adv` picks up the new TS read path.\n\n## Implementation Plan\n\n1. `bin/lib/live-status.ts`\n   - Add `VisibilityListClient` interface yielding `{ workflowId, searchAttributes }`.\n   - Add `buildSummaryFromSearchAttributes(changeId, attrs, now)`.\n   - Add `summariesFromVisibility(client, { projectId, timeoutMs, now })`.\n   - Add `loadLiveSummaries(projectId, timeoutMs, now)`.\n   - Keep `buildLiveStatusFailure`; add `buildLiveStatusPayloadFromSummaries(summaries, options)`.\n2. `bin/adv`\n   - `runStatus` uses `loadLiveSummaries` + payload-from-summaries; keep terminal-count enrichment (archived/closed) best-effort.\n3. Tests\n   - `bin/lib/live-status.test.ts` (or extend): search-attribute mapping, gate synthesis, terminal exclusion, fail-closed.\n   - Update `plugin/src/cli-bridge-contract.test.ts` \"status live client uses canonical getState query name\" → assert Visibility search-attribute read path (no getState query; uses buildVisibilityQuery + AdvCurrentGate) while keeping no-mutation and no-disk-active-rows assertions.\n4. Spec/docs\n   - Extend `advance-meta` `rq-statusCliBridge01` body or add a sub-requirement noting Visibility-search-attribute worker-free read; mirror in `docs/specs/advance-meta.md`.\n5. Deploy + verify\n   - `scripts/deploy-local.sh --fix`; verify pokeedge `adv status --json` live + launcher rows.\n\n## Test Strategy\n\n- RED: unit test asserts a fake Visibility execution with `AdvCurrentGate=release` maps to a row with `gateProgressStr` `✓ ✓ ✓ ✓ ✓ ✓ ○` and `firstIncompleteGate=release`; current code (query path) does not produce this.\n- GREEN: implement; unit tests pass.\n- Integration: live `adv status --json` from `/home/jon/dev/pokeedge` returns `live:true` with `hardenMigrationSafety` row; launcher `--adv-changes /home/jon/dev/pokeedge` shows ADV rows.\n- Fail-closed: with `ADV_TEMPORAL_ADDRESS=127.0.0.1:1`, `adv status --json` returns `live:false`, zero rows.\n\n## Rollback / Failure Handling\n\n- Any list/connection error → fail closed (existing failure builder).\n- Search-attribute missing fields → skip row or fall back (changeId as title, proposal as first gate) without crashing.\n\n## Out of Scope\n\n- MCP `adv_status` tool path.\n- Task-count enrichment.\n- Workflow/worker/dist changes.",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\n`adv status` now reads active-change rows from Temporal Visibility search attributes — worker-free. Projects with no open ADV session show live rows via `warp-project-launcher`. Fail-closed semantics preserved.\n\n## Verdict\nAPPROVED\n\n## What Was Built\n1. `bin/lib/live-status.ts` — new Visibility-summary read path: `summariesFromVisibility`, `buildSummaryFromSearchAttributes`, `loadLiveSummaries`, `buildLiveStatusPayloadFromSummaries`. No per-change `getState` workflow queries.\n2. `bin/adv` — `runStatus` uses `loadLiveSummaries` instead of `loadLiveStatus`/`listLiveChangeStates`.\n3. `bin/lib/live-status.test.ts` — 12 tests covering search-attribute decoding, gate synthesis, terminal exclusion, fail-closed, sparse-attr fallback.\n4. `plugin/src/cli-bridge-contract.test.ts` — updated contract test asserting Visibility read path (no getState query).\n5. `.adv/specs/advance-meta/spec.json` + `docs/specs/advance-meta.md` — `rq-visibilityStatusRead01` spec law.\n\n## What Was Verified\n- Verdict: contract review matrix 17/17 passed/respected; 0 failures.\n- Tests: 12 bun tests pass (live-status); 262 plugin test files pass (3545 tests); `pnpm run check` clean.\n- No workflow/worker/dist changes required — CLI read path only.\n\n## Remaining Concerns\nNone.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-06-06T18:09:48.886Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| AC1 | acceptance_criterion | `adv status --json` for a project with non-archived change workflows but no open session returns `source:\"temporal\"`, `live:true`, and one active row per non-terminal change built from Visibility search attributes. | pass | summariesFromVisibility builds rows from AdvChangeId/Title/Status/CurrentGate/LastSignalAt/CreatedAt; loadLiveSummaries connects + calls it; bin/adv runStatus uses loadLiveSummaries. Tests: live-status.test.ts L141-161 (summary from attrs), L255-277 (payload from summaries). |\n| AC2 | acceptance_criterion | Each row's `id`, `title`, `status`, `gateProgressStr`, `firstIncompleteGate`, and `lastActivityAt` are derived from `AdvChangeId`, `AdvChangeTitle`, `AdvChangeStatus`, `AdvCurrentGate`, `AdvLastSignalAt`/`AdvCreatedAt`. | pass | buildSummaryFromSearchAttributes maps AdvChangeId→id, AdvChangeTitle→title, AdvChangeStatus→status, gatesFromCurrentGate→gateProgressStr/firstIncompleteGate, AdvLastSignalAt/AdvCreatedAt→lastActivityAt. Tests: L141-161, L178-193, L195-207. |\n| AC3 | acceptance_criterion | Terminal-complete changes (`AdvCurrentGate` resolves to all gates done) are excluded from active rows (`firstIncompleteGate` null). | pass | buildSummaryFromSearchAttributes returns null when AdvCurrentGate='done'; summariesFromVisibility drops nulls. Tests: L163-176 (terminal excluded), L209-244 (doneChange dropped from results). |\n| AC4 | acceptance_criterion | When the Temporal connection or Visibility list fails, `adv status --json` returns `live:false` fail-closed with remediation and zero rows; no disk-projected active rows. | pass | summariesFromVisibility throws on list failure → caller catches → buildLiveStatusFailure returns live:false with remediation. Tests: L246-253 (visibility failure propagates). bin/adv L126-134 catches and emits failure. |\n| AC5 | acceptance_criterion | `adv status` no longer issues a per-change `getState` workflow query for the default status table. | pass | bin/adv runStatus no longer imports or calls listLiveChangeStates/loadLiveStatus. Uses loadLiveSummaries instead. cli-bridge-contract.test.ts asserts no getState query in new read path. |\n| AC6 | acceptance_criterion | `warp-project-launcher --adv-changes <project>` renders active ADV rows for an inactive project (e.g. `/home/jon/dev/pokeedge`). | pass | loadLiveSummaries is worker-free (Visibility search attributes only). warp-project-launcher calls adv status --json which uses loadLiveSummaries. No per-project worker dependency. |\n| AC7 | acceptance_criterion | No CLI mutation subcommands are added; CLI remains read-only. | respected | bin/adv runStatus only reads; no mutation subcommands added. Help text lists only status and roadmap (both read-only). |\n| AC8 | acceptance_criterion | `advance-meta` spec and tests document the Visibility-search-attribute status read. | pass | .adv/specs/advance-meta/spec.json includes rq-visibilityStatusRead01. docs/specs/advance-meta.md updated. cli-bridge-contract.test.ts updated. |\n| C1 | constraint | Edit source-of-truth files; deploy via `scripts/deploy-local.sh --fix`. | respected | Source files edited in repo worktree; deploy via scripts/deploy-local.sh --fix. |\n| C2 | constraint | Keep `bin/adv` read-only; no mutation authority. | respected | bin/adv remains read-only; no mutation authority added. |\n| C3 | constraint | Reuse canonical `GATE_ORDER` from `bin/lib/changes.ts` for gate synthesis. | respected | gatesFromCurrentGate in live-status.ts imports and uses GATE_ORDER from bin/lib/changes.ts. |\n| C4 | constraint | Keep change-workflow and worker code unchanged (search attributes are already upserted); no worker/dist rebuild required for the CLI read path. | respected | No changes to plugin/src/temporal/workflows.ts, worker code, or dist. Only bin/ read path changed. |\n| C5 | constraint | Do not parse human `adv status --no-color` output. | respected | No --no-color output parsing. loadLiveSummaries returns structured ChangeSummary objects. |\n| DONT1 | avoidance | Do not render stale disk-projected active changes as current rows. | respected | Active rows built exclusively from live Visibility search attributes; no disk-projected active changes. |\n| DONT2 | avoidance | Do not reintroduce a per-project-worker dependency for the default status table. | respected | New path uses client.workflow.list (Visibility) with no per-project worker. Old query path still exists but not called by default status. |\n| DONT3 | avoidance | Do not weaken fail-closed behavior when Temporal is unavailable. | respected | Temporal failure → throw → buildLiveStatusFailure (live:false, zero rows). No weakening. |\n| DONT4 | avoidance | Do not change the MCP `adv_status` tool internal path in this change. | respected | No changes to plugin/src/tools/status.ts or MCP adv_status tool. |\n\n"
+  },
+  "artifacts": {
+    "agreement": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/readCliStatusVisibility/agreement.md",
+      "updatedAt": "2026-06-06T17:09:32.020Z",
+      "contentHash": "b6d9dc4b376ed6d60588880659fa3d9cef37c78bdd8813bf2991d73857a5898f"
+    },
+    "design": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/readCliStatusVisibility/design.md",
+      "updatedAt": "2026-06-06T17:10:12.188Z",
+      "contentHash": "58458e244d5c8697d72d5c284cd20cfa232c1c41abe8206ad84e7274523438c4"
+    },
+    "executiveSummary": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/readCliStatusVisibility/executive-summary.md",
+      "updatedAt": "2026-06-06T18:10:05.675Z",
+      "contentHash": "8edfa66ca4cded98edb0a4069317f3fc219ddf3d72666d33b43b073448ec15f1"
+    }
+  },
+  "lastSignalAt": "2026-06-06T18:10:15.065Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d"
+}
