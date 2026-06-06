@@ -789,7 +789,7 @@ is_recognized_adv_cli_target() {
 	fi
 
 	if [ -f "$target" ]; then
-		if grep -Eq 'adv — ADV|ADV \(Advance\)|Sharper-Flow/Advance|schema_version|Live Status|Temporal-backed' "$target" 2>/dev/null; then
+		if grep -Eq 'adv — ADV|ADV \(Advance\)|Sharper-Flow/Advance|Live Status|Temporal-backed' "$target" 2>/dev/null; then
 			return 0
 		fi
 	fi

@@ -425,6 +425,62 @@ exit 0
     }
   });
 
+  test("refuses unsafe regular adv file with generic schema_version text", () => {
+    const tempHome = mkdtempSync(join(tmpdir(), "adv-unsafe-cli-home-"));
+    const fakeBin = join(tempHome, "fake-bin");
+
+    try {
+      const configDir = join(tempHome, ".config/opencode");
+      const localBin = join(tempHome, ".local/bin");
+      mkdirSync(configDir, { recursive: true });
+      mkdirSync(localBin, { recursive: true });
+      mkdirSync(fakeBin, { recursive: true });
+      writeFileSync(
+        join(configDir, "opencode.json"),
+        JSON.stringify({ plugin: [], instructions: [] }),
+      );
+      const unsafeAdv = join(localBin, "adv");
+      const unsafeContent = `#!/usr/bin/env bash
+# unrelated local tool that happens to mention schema_version
+schema_version=1
+`;
+      writeFileSync(unsafeAdv, unsafeContent, { mode: 0o755 });
+      writeFileSync(
+        join(fakeBin, "rsync"),
+        `#!/usr/bin/env bash
+src=""
+dest=""
+for arg in "$@"; do
+  src="$dest"
+  dest="$arg"
+done
+mkdir -p "$dest"
+cp -a "$src/." "$dest/"
+`,
+        { mode: 0o755 },
+      );
+
+      const result = spawnSync("bash", [DEPLOY_SCRIPT_PATH, "--fix"], {
+        cwd: REPO_ROOT,
+        env: {
+          ...process.env,
+          HOME: tempHome,
+          CI: "true",
+          PATH: `${fakeBin}:${process.env.PATH ?? ""}`,
+        },
+        encoding: "utf8",
+      });
+
+      expect(result.status).not.toBe(0);
+      expect(`${result.stdout}${result.stderr}`).toContain(
+        "Refusing to overwrite unrelated file",
+      );
+      expect(readFileSync(unsafeAdv, "utf8")).toBe(unsafeContent);
+    } finally {
+      rmSync(tempHome, { recursive: true, force: true });
+    }
+  });
+
   test("removes stale scout and refine agent config keys on --fix", () => {
     const tempHome = mkdtempSync(
       join(tmpdir(), "adv-scout-refine-config-cleanup-"),
