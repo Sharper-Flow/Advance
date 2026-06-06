@@ -401,7 +401,7 @@ Mid-command banner taxonomy (CONTRACT ACTIVE, CONTRACT STATUS, CONTRACT FULFILLE
 | CONTRACT ACTIVE | Trim to purpose line | `Working on: {change-id}` + reference to `_contextSnapshot` for state |
 | CONTRACT STATUS | Drop entirely | No per-task status block. State visible via `adv_task_list` and `_contextSnapshot`. TDD phase markers (`TDD_RED`/`TDD_GREEN`) were retired — TDD evidence lives in `adv_run_test` tool records |
 | CONTRACT FULFILLED | Replace with spine | Use the canonical three-section spine + footer (apply → review handoff) |
-| QUICK CONTRACT | Keep, apply caveman-full | Retain contract-confirmation shape (INTENT / SCOPE / SUCCESS CRITERIA). Tighten labels, drop filler. Not a handoff — mid-command confirmation block |
+| QUICK CONTRACT | Keep, apply caveman-full | Retain contract-confirmation shape (INTENT / SCOPE / USER OUTCOMES). Tighten labels, drop filler. Not a handoff — mid-command confirmation block |
 | READY FOR BUILD | Replace with fast-track spine | Use the fast-track variant above |
 | ARCHIVE COMPLETE | Replace with archive terminal spine | Use the archive terminal variant above |
 

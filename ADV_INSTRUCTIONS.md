@@ -165,7 +165,7 @@ Each workflow command has a defined phase goal. Canonical in `manifest.ts` (`pha
 
 | Command  | Produces                                                                                                                             | × MUST NOT                                                               | Gate                                     |
 | -------- | ------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------ | ---------------------------------------- |
-| proposal | Problem statement, criteria, constraints                                                                                             | Create tasks, complete gates, impl decisions                             | None                                     |
+| proposal | Problem statement, User Outcomes, constraints                                                                                        | Create tasks, complete gates, impl decisions                             | proposal                                 |
 | discover | Current-state evidence, objectives, agreement, acceptance criteria                                                                   | Create tasks, complete non-discovery gates                               | discovery                                |
 | design   | Validated implementation strategy                                                                                                    | Create tasks, bypass validator                                           | design                                   |
 | prep     | Task graph, gap analysis, sequencing                                                                                                 | Complete non-planning gates, architecture decisions                      | planning                                 |
@@ -624,7 +624,7 @@ Do NOT expand into implicit repo-wide refactors or untouched subsystems. Campsit
 
 | Severity | Meaning                                                                        | Example                                                                 |
 | -------- | ------------------------------------------------------------------------------ | ----------------------------------------------------------------------- |
-| CRITICAL | Structurally missing required content; cannot proceed without resolution       | Missing `### Out of Scope` subsection, no `## Success Criteria` section |
+| CRITICAL | Structurally missing required content; cannot proceed without resolution       | Missing `### Out of Scope` subsection, no `## User Outcomes` section    |
 | HIGH     | Vague or unmeasurable language that will cause ambiguity during implementation | Success criteria "fast response" without threshold                      |
 | MEDIUM   | Soft ambiguity that may cause rework but is resolvable during implementation   | Implicit ordering dependency not stated                                 |
 | LOW      | Minor clarity improvement; does not block execution                            | Inconsistent terminology across sections                                |
