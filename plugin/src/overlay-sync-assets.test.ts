@@ -7,6 +7,7 @@ import {
   utimesSync,
   writeFileSync,
   existsSync,
+  symlinkSync,
 } from "fs";
 import { spawnSync } from "child_process";
 import { tmpdir } from "os";
@@ -476,6 +477,68 @@ cp -a "$src/." "$dest/"
         "Refusing to overwrite unrelated file",
       );
       expect(readFileSync(unsafeAdv, "utf8")).toBe(unsafeContent);
+    } finally {
+      rmSync(tempHome, { recursive: true, force: true });
+    }
+  });
+
+  test("refuses unsafe symlink with advance-like path but unrelated content", () => {
+    const tempHome = mkdtempSync(
+      join(tmpdir(), "adv-unsafe-cli-symlink-home-"),
+    );
+    const fakeBin = join(tempHome, "fake-bin");
+
+    try {
+      const configDir = join(tempHome, ".config/opencode");
+      const localBin = join(tempHome, ".local/bin");
+      const unrelatedBin = join(tempHome, "advance-mal/bin");
+      mkdirSync(configDir, { recursive: true });
+      mkdirSync(localBin, { recursive: true });
+      mkdirSync(fakeBin, { recursive: true });
+      mkdirSync(unrelatedBin, { recursive: true });
+      writeFileSync(
+        join(configDir, "opencode.json"),
+        JSON.stringify({ plugin: [], instructions: [] }),
+      );
+      const unrelatedAdv = join(unrelatedBin, "adv");
+      const unrelatedContent = `#!/usr/bin/env bash
+printf 'unrelated tool\n'
+`;
+      writeFileSync(unrelatedAdv, unrelatedContent, { mode: 0o755 });
+      const unsafeLink = join(localBin, "adv");
+      symlinkSync(unrelatedAdv, unsafeLink);
+      writeFileSync(
+        join(fakeBin, "rsync"),
+        `#!/usr/bin/env bash
+src=""
+dest=""
+for arg in "$@"; do
+  src="$dest"
+  dest="$arg"
+done
+mkdir -p "$dest"
+cp -a "$src/." "$dest/"
+`,
+        { mode: 0o755 },
+      );
+
+      const result = spawnSync("bash", [DEPLOY_SCRIPT_PATH, "--fix"], {
+        cwd: REPO_ROOT,
+        env: {
+          ...process.env,
+          HOME: tempHome,
+          CI: "true",
+          PATH: `${fakeBin}:${process.env.PATH ?? ""}`,
+        },
+        encoding: "utf8",
+      });
+
+      expect(result.status).not.toBe(0);
+      expect(`${result.stdout}${result.stderr}`).toContain(
+        "Refusing to overwrite unrelated file",
+      );
+      expect(readFileSync(unrelatedAdv, "utf8")).toBe(unrelatedContent);
+      expect(readFileSync(unsafeLink, "utf8")).toBe(unrelatedContent);
     } finally {
       rmSync(tempHome, { recursive: true, force: true });
     }

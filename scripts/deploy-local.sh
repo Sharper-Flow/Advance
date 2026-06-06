@@ -781,10 +781,13 @@ is_recognized_adv_cli_target() {
 	if [ -L "$target" ]; then
 		resolved="$(readlink -f "$target" 2>/dev/null || true)"
 		case "$resolved" in
-		"$ADV_RUNTIME_BIN_PATH/adv" | "$REPO_ROOT"/bin/adv | *Advance*/bin/adv | *advance*/bin/adv)
+		"$ADV_RUNTIME_BIN_PATH/adv" | "$REPO_ROOT"/bin/adv)
 			return 0
 			;;
 		esac
+		if [ -f "$resolved" ] && grep -Eq 'adv — ADV|ADV \(Advance\)|Sharper-Flow/Advance|Live Status|Temporal-backed' "$resolved" 2>/dev/null; then
+			return 0
+		fi
 		return 1
 	fi
 
