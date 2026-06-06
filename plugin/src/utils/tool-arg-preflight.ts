@@ -65,6 +65,9 @@ const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
     target_path: { blank: "omit" },
     source_project: { blank: "omit" },
     source_change_id: { blank: "omit" },
+    // Contextually-validated by target-project helper when target_path is a
+    // mutation into an untrusted project.
+    confirmationEvidence: { blank: "omit" },
     parent_change_id: { blank: "omit", sentinels: "reject" },
     origin_source_artifact: { blank: "omit" },
     scope_repos: { emptyArray: "omit" },

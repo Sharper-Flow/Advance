@@ -1,8 +1,9 @@
-import { afterEach, beforeEach, describe, expect, test } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { execSync } from "child_process";
 import { rmSync, writeFileSync } from "fs";
 import { join } from "path";
 import { createLegacyStore, type Store } from "../storage/store";
+import type { Change } from "../types";
 import {
   getExternalRoot,
   getExternalRootForProject,
@@ -17,6 +18,21 @@ import {
 import { changeTools } from "./change";
 import { statusTools } from "./status";
 
+const targetProjectMocks = vi.hoisted(() => ({
+  withTargetPathStore: vi.fn(),
+}));
+
+vi.mock("./target-project", async () => {
+  const actual =
+    await vi.importActual<typeof import("./target-project")>(
+      "./target-project",
+    );
+  return {
+    ...actual,
+    withTargetPathStore: targetProjectMocks.withTargetPathStore,
+  };
+});
+
 function makeRealGitRepo(root: string): void {
   rmSync(join(root, ".git"), { recursive: true, force: true });
   execSync("git init -b main", { cwd: root, stdio: "ignore" });
@@ -28,6 +44,17 @@ function makeRealGitRepo(root: string): void {
   );
 }
 
+async function seedSourceChange(store: Store): Promise<void> {
+  await store.changes.save({
+    id: "addFeature",
+    title: "Add feature",
+    status: "draft",
+    created_at: "2026-05-01T00:00:00.000Z",
+    tasks: [],
+    deltas: {},
+  } as never);
+}
+
 describe("cross-project coordination metadata", () => {
   let sourceDir: string;
   let targetDir: string;
@@ -35,6 +62,7 @@ describe("cross-project coordination metadata", () => {
   let targetStore: Store;
 
   beforeEach(async () => {
+    vi.clearAllMocks();
     sourceDir = await createTempDir("adv-source-project-");
     targetDir = await createTempDir("adv-target-project-");
     await createTestProject(sourceDir);
@@ -53,11 +81,42 @@ describe("cross-project coordination metadata", () => {
   });
 
   test("cross-project create writes a source-side outbound link", async () => {
+    const sourceChange = {
+      id: "addFeature",
+      title: "Add feature",
+      status: "draft",
+      created_at: "2026-05-01T00:00:00.000Z",
+      tasks: [],
+      deltas: {},
+    } as Change;
+    const sourceSave = vi.fn(async () => {});
+    sourceStore.changes.get = vi.fn(async () => ({
+      success: true,
+      data: sourceChange,
+    }));
+    sourceStore.changes.save = sourceSave;
+    targetProjectMocks.withTargetPathStore.mockImplementationOnce(
+      async (_input, fn) =>
+        fn({
+          context: {
+            root: targetDir,
+            projectId: "target-project-id",
+            externalRoot: targetDir,
+            trusted: false,
+            trustSource: "explicit",
+            stateMode: "temporal",
+          },
+          store: targetStore,
+        }),
+    );
+
     const output = await changeTools.adv_change_create.execute(
       {
         summary: "Add target followup",
         capability: "test-capability",
         target_path: targetDir,
+        target_confirmed: true,
+        confirmationEvidence: "test approved target mutation",
         source_project: "source-project",
         source_change_id: "addFeature",
       },
@@ -66,15 +125,17 @@ describe("cross-project coordination metadata", () => {
     const parsed = parseToolOutput(output);
     expect(parsed.changeId).toBe("addTargetFollowup");
 
-    const sourceChange = await sourceStore.changes.get("addFeature");
-    expect(sourceChange.success).toBe(true);
-    expect(sourceChange.data?.cross_project_links).toEqual([
+    expect(sourceSave).toHaveBeenCalledWith(
       expect.objectContaining({
-        target_path: targetDir,
-        changeId: "addTargetFollowup",
-        relationship: "follow_up",
+        cross_project_links: [
+          expect.objectContaining({
+            target_path: targetDir,
+            changeId: "addTargetFollowup",
+            relationship: "follow_up",
+          }),
+        ],
       }),
-    ]);
+    );
   });
 
   test("cross-project create writes target change under target canonical shard", async () => {
@@ -82,6 +143,7 @@ describe("cross-project coordination metadata", () => {
     const shardRoot = await createTempDir("adv-cross-project-shards-");
     makeRealGitRepo(sourceDir);
     makeRealGitRepo(targetDir);
+    await seedSourceChange(sourceStore);
     const sourceProjectId = await getProjectId(sourceDir);
     const targetProjectId = await getProjectId(targetDir);
     expect(sourceProjectId).toBeTruthy();
@@ -89,19 +151,6 @@ describe("cross-project coordination metadata", () => {
     process.env.XDG_DATA_HOME = `${shardRoot}/opencode-projects/${sourceProjectId}`;
 
     try {
-      const output = await changeTools.adv_change_create.execute(
-        {
-          summary: "Add sharded followup",
-          capability: "test-capability",
-          target_path: targetDir,
-          source_project: "source-project",
-          source_change_id: "addFeature",
-        },
-        sourceStore,
-      );
-      const parsed = parseToolOutput(output);
-      expect(parsed.changeId).toBe("addShardedFollowup");
-
       const canonicalTargetStore = await createLegacyStore(targetDir, {
         externalRoot: getExternalRootForProject(targetProjectId!),
       });
@@ -111,6 +160,42 @@ describe("cross-project coordination metadata", () => {
       try {
         await canonicalTargetStore.init();
         await callerShardTargetStore.init();
+        targetProjectMocks.withTargetPathStore.mockImplementationOnce(
+          async (_input, fn) =>
+            fn({
+              context: {
+                root: targetDir,
+                projectId: targetProjectId!,
+                externalRoot: getExternalRootForProject(targetProjectId!),
+                trusted: false,
+                trustSource: "explicit",
+                stateMode: "temporal",
+              },
+              store: canonicalTargetStore,
+            }),
+        );
+
+        const output = await changeTools.adv_change_create.execute(
+          {
+            summary: "Add sharded followup",
+            capability: "test-capability",
+            target_path: targetDir,
+            target_confirmed: true,
+            confirmationEvidence: "test approved target mutation",
+            source_project: "source-project",
+            source_change_id: "addFeature",
+          },
+          sourceStore,
+        );
+        const parsed = parseToolOutput(output);
+        expect(parsed.changeId).toBe("addShardedFollowup");
+        expect(targetProjectMocks.withTargetPathStore).toHaveBeenCalledWith(
+          expect.objectContaining({
+            target_path: targetDir,
+            stateRequirement: "temporal-required",
+          }),
+          expect.any(Function),
+        );
 
         const canonicalChange =
           await canonicalTargetStore.changes.get("addShardedFollowup");
