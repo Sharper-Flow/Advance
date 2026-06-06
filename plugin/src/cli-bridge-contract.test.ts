@@ -8,7 +8,6 @@ const ADVANCE_META_SPEC = join(REPO_ROOT, ".adv/specs/advance-meta/spec.json");
 const ADV_CLI = join(REPO_ROOT, "bin/adv");
 const ADV_STATUS_LIVE = join(REPO_ROOT, "bin/lib/live-status.ts");
 const ADV_ROADMAP = join(REPO_ROOT, "bin/lib/roadmap.ts");
-const TEMPORAL_CONTRACTS = join(REPO_ROOT, "plugin/src/temporal/contracts.ts");
 
 function readAdvanceMetaSpec(): {
   requirements?: Array<{
