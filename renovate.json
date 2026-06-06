@@ -1,0 +1,12 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["github>Sharper-Flow/sharperflow-security-gates"],
+  "automerge": false,
+  "packageRules": [
+    {
+      "description": "Group pnpm subpackage (plugin/, acp-mux/) updates",
+      "matchManagers": ["npm"],
+      "groupName": "pnpm packages"
+    }
+  ]
+}
