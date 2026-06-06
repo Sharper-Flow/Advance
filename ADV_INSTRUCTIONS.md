@@ -380,8 +380,8 @@ Every `/adv-apply` task with file changes in its workdir MUST produce a git comm
 
 **Commit message format:**
 
-- Subject: `task(tk-xxxx): completed` or `task(tk-xxxx): cancel — <reason>`
-- Body trailers: `Change: <change-id>`, `Task: <task-id>`, `Mode: complete|cancel`, `Verification: <summary>`
+- Subject: `chore(adv): checkpoint <task-id>` or `chore(adv): cancel checkpoint <task-id>`
+- Body trailers: `Change: <change-id>`, `Task: <task-id>`, `Mode: complete|cancel`, `Reason: <reason>` for cancel, `Verification: <summary>`
 
 **Staging:** `git add -A` — `.gitignore` is the safety net.
 **Anti-patterns:**
