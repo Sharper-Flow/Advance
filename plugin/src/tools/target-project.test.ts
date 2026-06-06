@@ -17,6 +17,8 @@ const mocks = vi.hoisted(() => {
   };
   const temporalBundle = {
     client: { workflow: { getHandle: vi.fn() } },
+    connection: { workflowService: { describeTaskQueue: vi.fn() } },
+    namespace: "default",
   };
 
   return {
@@ -26,9 +28,18 @@ const mocks = vi.hoisted(() => {
     createLegacyStore: vi.fn(async () => diskStore as any),
     createStore: vi.fn(async () => temporalStore as any),
     ensureProjectTemporalQueue: vi.fn(async () => {}),
+    getRegisteredTemporalWorkerQueues: vi.fn(() => [] as string[]),
+    getTemporalWorkerAliveness: vi.fn(() => false),
+    getTemporalWorkerDiagnostics: vi.fn(() => [] as any[]),
+    getTemporalWorkerRole: vi.fn(() => "client" as const),
     getProjectId: vi.fn(async () => "a".repeat(40)),
     getService: vi.fn(() => temporalBundle as any),
     loadProjectConfig: vi.fn(async () => null),
+    probeTaskQueuePollers: vi.fn(async () => ({
+      status: "unavailable" as const,
+      lastAccessMs: null,
+      error: "mock unavailable",
+    })),
   };
 });
 
@@ -53,11 +64,25 @@ vi.mock("../storage/json", () => ({
 
 vi.mock("../plugin-init", () => ({
   ensureProjectTemporalQueue: mocks.ensureProjectTemporalQueue,
+  getRegisteredTemporalWorkerQueues: mocks.getRegisteredTemporalWorkerQueues,
+  getTemporalWorkerAliveness: mocks.getTemporalWorkerAliveness,
+  getTemporalWorkerDiagnostics: mocks.getTemporalWorkerDiagnostics,
+  getTemporalWorkerRole: mocks.getTemporalWorkerRole,
 }));
 
 vi.mock("../temporal/service", () => ({
   getService: mocks.getService,
 }));
+
+vi.mock("../temporal/queue-serviceability", async () => {
+  const actual = await vi.importActual<
+    typeof import("../temporal/queue-serviceability")
+  >("../temporal/queue-serviceability");
+  return {
+    ...actual,
+    probeTaskQueuePollers: mocks.probeTaskQueuePollers,
+  };
+});
 
 import {
   resolveTargetProject,
@@ -186,6 +211,16 @@ describe("withTargetPathStore", () => {
     await mkdir(join(currentProjectPath, ".git"), { recursive: true });
     await mkdir(join(targetPath, ".git"), { recursive: true });
     mocks.getProjectId.mockResolvedValue(TARGET_PROJECT_ID);
+    mocks.ensureProjectTemporalQueue.mockResolvedValue(undefined);
+    mocks.getRegisteredTemporalWorkerQueues.mockReturnValue([]);
+    mocks.getTemporalWorkerAliveness.mockReturnValue(false);
+    mocks.getTemporalWorkerDiagnostics.mockReturnValue([]);
+    mocks.getTemporalWorkerRole.mockReturnValue("client");
+    mocks.probeTaskQueuePollers.mockResolvedValue({
+      status: "unavailable",
+      lastAccessMs: null,
+      error: "mock unavailable",
+    });
     process.env.XDG_DATA_HOME = join(
       root,
       "opencode-projects",
@@ -275,6 +310,84 @@ describe("withTargetPathStore", () => {
     expect(mocks.temporalStore.init).toHaveBeenCalled();
     expect(mocks.temporalStore.close).toHaveBeenCalled();
   });
+
+  test("opens temporal-required targets when a client-only process sees a fresh server poller", async () => {
+    mocks.ensureProjectTemporalQueue.mockRejectedValueOnce(
+      new Error("no local worker"),
+    );
+    mocks.probeTaskQueuePollers.mockResolvedValueOnce({
+      status: "fresh",
+      lastAccessMs: 12_000,
+    });
+
+    const result = await withTargetPathStore(
+      {
+        currentProjectPath,
+        target_path: targetPath,
+        stateRequirement: "temporal-required",
+        target_confirmed: true,
+        confirmationEvidence: "user approved target mutation",
+      },
+      async ({ context, store }) => ({ context, store }),
+    );
+
+    expect(result.context.stateMode).toBe("temporal");
+    expect(result.store).toBe(mocks.temporalStore);
+    expect(mocks.probeTaskQueuePollers).toHaveBeenCalledWith(
+      expect.objectContaining({
+        namespace: "default",
+        taskQueue: `advance-${TARGET_PROJECT_ID}`,
+        freshPollerMs: 60_000,
+      }),
+    );
+    expect(mocks.createStore).toHaveBeenCalled();
+  });
+
+  test.each([
+    {
+      status: "none" as const,
+      lastAccessMs: null,
+      blocker: "server_poller_absent",
+    },
+    {
+      status: "stale" as const,
+      lastAccessMs: 120_000,
+      blocker: "server_poller_stale",
+    },
+    {
+      status: "unavailable" as const,
+      lastAccessMs: null,
+      error: "describeTaskQueue unavailable",
+      blocker: "server_poller_probe_unavailable",
+    },
+  ])(
+    "fails closed before opening a temporal store when target queue poller evidence is $status",
+    async ({ blocker, ...probe }) => {
+      mocks.ensureProjectTemporalQueue.mockRejectedValueOnce(
+        new Error("no local worker"),
+      );
+      mocks.probeTaskQueuePollers.mockResolvedValueOnce(probe);
+
+      await expect(
+        withTargetPathStore(
+          {
+            currentProjectPath,
+            target_path: targetPath,
+            stateRequirement: "temporal-required",
+            target_confirmed: true,
+            confirmationEvidence: "user approved target mutation",
+          },
+          async () => null,
+        ),
+      ).rejects.toThrow(
+        new RegExp(
+          `Target project Temporal queue is not serviceable.*${blocker}.*open or restart`,
+          "s",
+        ),
+      );
+      expect(mocks.createStore).not.toHaveBeenCalled();
+    },
+  );
 
   test("opens temporal-required dry-run targets as Temporal stores without mutation confirmation", async () => {
     const result = await withTargetPathStore(

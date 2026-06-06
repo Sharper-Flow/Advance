@@ -1,0 +1,1060 @@
+{
+  "id": "addOrchestratorOpsDelegation",
+  "title": "Add orchestrator ops delegation",
+  "status": "archived",
+  "created_at": "2026-06-06T21:57:08.687Z",
+  "tasks": [
+    {
+      "id": "tk-a6a3b112e3f6",
+      "title": "Add red asset/drift test for orchestrator operational delegation",
+      "type": "code",
+      "section": "Testing",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-06-06T22:23:11.070Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "SC1",
+          "SC2",
+          "SC3",
+          "SC4"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-06T22:25:16.621Z",
+      "verification": "RED evidence captured: `bin/oc-test targeted -- src/orchestrator-ops-delegation-assets.test.ts` exited 1 with 3 expected failures for missing adv.md ops prose, missing ADV_INSTRUCTIONS ops table, and missing rq-orchestratorOpsDelegation01. Failure is semantic, not syntax/import.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added `plugin/src/orchestrator-ops-delegation-assets.test.ts` with deterministic section extraction and assertions covering adv.md prose-only operational delegation, ADV_INSTRUCTIONS ops table, adv-apply Step 4.5 preservation/no ops duplicate, advance-meta requirement presence, and adv-atc out-of-scope. RED evidence: targeted test exits 1 with semantic missing-surface failures.",
+      "filesTouched": [
+        "plugin/src/orchestrator-ops-delegation-assets.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/orchestrator-ops-delegation-assets.test.ts"
+      ],
+      "checkpointSha": "c908f55fe1c1cddcb3abd07f2fcc8d4b4b4a9d57",
+      "completedAt": "2026-06-06T22:26:49.914Z",
+      "completed_at": "2026-06-06T22:26:49.914Z",
+      "notes": "Completed RED asset/drift test. Checkpoint c908f55fe1c1cddcb3abd07f2fcc8d4b4b4a9d57.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "Initial RED output too large due direct toContain diff on full files.",
+            "diagnosis": "Test failed semantically but output obscured failure details.",
+            "fix_tried": "Changed assertions to boolean helper messages to produce compact semantic RED output.",
+            "strategy_label": "tighten-red-output",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-06T22:26:37.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-06T22:27:01.791Z"
+    },
+    {
+      "id": "tk-cbbd31f8ee76",
+      "title": "Implement orchestrator operational delegation spec and instruction surfaces",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-06-06T22:23:29.042Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-a6a3b112e3f6"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "SC1",
+          "SC2",
+          "SC3",
+          "SC4"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-06T22:27:18.031Z",
+      "verification": "GREEN evidence: `bin/oc-test targeted -- src/orchestrator-ops-delegation-assets.test.ts` exited 0 with 5 tests passing after implementing spec, docs, adv.md prose, and ADV_INSTRUCTIONS ops table. Diff reviewed; only intended files changed and no adv-atc.md/runtime changes present.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added `rq-orchestratorOpsDelegation01` to `advance-meta` spec and mirrored docs. Added prose-only operational delegation guidance to `.opencode/agents/adv.md`. Added single `ADV_INSTRUCTIONS.md` Orchestrator-Session Operational Routing table. Preserved `adv-apply.md` Step 4.5 semantics and left `adv-atc.md` unchanged. Targeted asset test passes.",
+      "filesTouched": [
+        ".adv/specs/advance-meta/spec.json",
+        ".opencode/agents/adv.md",
+        "ADV_INSTRUCTIONS.md",
+        "docs/specs/advance-meta.md",
+        "plugin/src/orchestrator-ops-delegation-assets.test.ts"
+      ],
+      "touched_files": [
+        ".adv/specs/advance-meta/spec.json",
+        ".opencode/agents/adv.md",
+        "ADV_INSTRUCTIONS.md",
+        "docs/specs/advance-meta.md",
+        "plugin/src/orchestrator-ops-delegation-assets.test.ts"
+      ],
+      "checkpointSha": "ee1be171aee1eb161699e517ce65886ec94c1bb1",
+      "completedAt": "2026-06-06T22:30:26.076Z",
+      "completed_at": "2026-06-06T22:30:26.076Z",
+      "notes": "Completed implementation. Checkpoint ee1be171aee1eb161699e517ce65886ec94c1bb1.",
+      "error_recovery": {
+        "last_error": "First GREEN run failed because spec body lacked exact `no second` token required by the new asset test.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "`bin/oc-test targeted -- src/orchestrator-ops-delegation-assets.test.ts` exited 1; spec body missing `no second`.",
+            "diagnosis": "Implementation covered scenario but not body token required by structural test.",
+            "fix_tried": "Added explicit `no second primary-cycle rule` sentence to spec JSON body and docs mirror.",
+            "strategy_label": "align-spec-body-token",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-06T22:30:08.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-06T22:30:43.110Z"
+    },
+    {
+      "id": "tk-081a93bd3d35",
+      "title": "Run final verification for orchestrator operational delegation",
+      "type": "code",
+      "section": "Verification",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-06-06T22:23:42.928Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-cbbd31f8ee76"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7",
+          "SC1",
+          "SC2",
+          "SC3",
+          "SC4"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-06T22:31:11.369Z",
+      "verification": "Final verification passed: targeted `bin/oc-test targeted -- src/orchestrator-ops-delegation-assets.test.ts` exited 0 with 5 tests passing; `bin/oc-test smoke` exited 0 after schemas:check, typecheck, lint, format:check, and smoke tests (39 tests). Static diff check showed no adv-atc.md, adv-apply.md, runtime, or OMR/model-routing changes; only formatter cleanup remained in the new asset test.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Formatted the new asset test and ran final verification. Targeted orchestrator ops asset test passed. `bin/oc-test smoke` passed, including schemas:check, typecheck, lint, format:check, and smoke tests. Static diff review confirmed no adv-atc.md, adv-apply.md, runtime, or OMR/model-routing changes.",
+      "filesTouched": [
+        "plugin/src/orchestrator-ops-delegation-assets.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/orchestrator-ops-delegation-assets.test.ts"
+      ],
+      "checkpointSha": "65f1d16cffc6341cb0cb4643db2a18f5355559dd",
+      "completedAt": "2026-06-06T22:33:07.626Z",
+      "completed_at": "2026-06-06T22:33:07.626Z",
+      "notes": "Completed final verification. Checkpoint 65f1d16cffc6341cb0cb4643db2a18f5355559dd.",
+      "error_recovery": {
+        "last_error": "First `bin/oc-test smoke` failed format:check for `src/orchestrator-ops-delegation-assets.test.ts`.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "`bin/oc-test smoke` exit 1; Prettier warning on `src/orchestrator-ops-delegation-assets.test.ts`.",
+            "diagnosis": "Implementation was functionally correct but formatting did not satisfy repo check.",
+            "fix_tried": "Ran `pnpm --dir plugin exec prettier --write src/orchestrator-ops-delegation-assets.test.ts`, then reran smoke and targeted test.",
+            "strategy_label": "format-and-rerun",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-06T22:32:37.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-06T22:33:20.856Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "addOrchestratorOpsDelegation",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:discovery-opportunity-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Orchestrator operational-delegation: discovery prior-research extension + opportunity scout",
+      "sources": [
+        {
+          "label": "Local proposal/problem (adv_change_show)",
+          "locator": "addOrchestratorOpsDelegation proposal + problem-statement",
+          "summary": "Confirms scope: prose in adv.md, table in ADV_INSTRUCTIONS.md/adv-apply.md, mirror to adv-atc, new rq-orchestratorOpsDelegation01. 7-day audit: primary adv ~82% cost, ~10.8k reads, ~7.2k shell/test calls outside task graph."
+        },
+        {
+          "label": "Spec rq-contextShed02 (advance-meta/spec.json:962-1015)",
+          "locator": ".adv/specs/advance-meta/spec.json",
+          "summary": "Existing law: adv.md Context-Optimal Execution MUST be prose bullets (NO table / no | pipes), reference 4-question AND test + floor; tables live on ADV_INSTRUCTIONS.md/adv-apply.md. Scenario rq-contextShed02.3 says drift tests enforce this."
+        },
+        {
+          "label": "delegation-defaults spec matrix",
+          "locator": ".adv/specs/delegation-defaults/spec.json",
+          "summary": "Canonical per-step delegation matrix is task/gate-scoped only (proposal..reflect). No orchestrator-session operational-work entry. Confirms the gap the change targets."
+        },
+        {
+          "label": "Table surfaces (ADV_INSTRUCTIONS.md:722-738, adv-apply.md:409-434)",
+          "locator": "repo docs/command files",
+          "summary": "Existing per-task Delegation Routing tables (priority 1..5 incl. 4.5 context-shed). New orchestrator-ops table must be a distinct, clearly-labeled second table, not edits to these."
+        },
+        {
+          "label": "adv-atc.md (.opencode/agents/adv-atc.md)",
+          "locator": "repo agent file",
+          "summary": "adv-atc has NO Context-Optimal Execution / Sub-Agent Policy / context-shed prose section at all — it does not currently mirror adv.md's existing shed prose. 'Mirror the same prose' is net-new content, not a copy."
+        },
+        {
+          "label": "Drift-test audit (grep across plugin/src/**/*.test.ts)",
+          "locator": "plugin/src",
+          "summary": "NO existing test asserts rq-contextShed02 tokens or no-pipe on adv.md. handoff-footer-drift.test.ts checks adv.md Output Contract only. delegation-matrix.test.ts checks the spec matrix, not agent-file prose. The 'drift tests forbid table pipes there' claim in the proposal is aspirational, not currently implemented."
+        },
+        {
+          "label": "Exa: multi-agent delegation best practice 2026",
+          "locator": "workos.com/blog/ai-agent-delegation-multi-agent-security; dev.to amitkayal practical delegation pattern; agility-at-scale.com multi-agent-systems; zylos.ai 2026-03-08 delegation patterns",
+          "summary": "Canonical pattern: orchestrator = coordinator owning understanding/decisions/judgment/review; sheds retrieval/analysis/execution/verify to limited-tool limited-context specialists. Google ADK, Anthropic, AgentOrchestra, MIT Manager-Agent. Keep authority on primary; workers get less scope. Matches proposal exactly."
+        }
+      ],
+      "architecture_assessment": "Proposal shape is architecturally sound and matches both ADV's existing internal pattern (task-level context-shed split: prose in adv.md per rq-contextShed02 + table on instruction surfaces per rq-contextShed01) and external canonical multi-agent practice (coordinator owns decisions, sheds operational work to scoped workers). The boring/proven choice is exactly what is proposed: additive instruction+spec layer, no runtime enforcement, consistent with ADV's already self-enforced sub-agent policy. Two material discovery findings extend the prior research: (1) the proposal's premise that 'drift tests forbid table pipes' in adv.md is NOT currently true — no such test exists; the new requirement should ADD the missing drift assertions (prose tokens + no-pipe on adv.md, operational-trigger table token incl. GitHub-CI on the table surfaces) rather than assume they already guard the surface. (2) adv-atc.md currently lacks ANY context-optimal/shed prose, so 'mirror to adv-atc' is net-new authoring + needs its own drift coverage, and must respect adv-atc's question:false constraint. No external-solution adoption needed — this is a prompt/spec authoring task, not a build-vs-buy decision.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "No blockers. Two scope clarifications for design: codify NEW drift assertions (don't assume existing), and treat adv-atc mirror as net-new prose with its own test. Honor rq-contextShed02 prose-only invariant: new adv.md operational-delegation content must also be prose bullets (no | pipes) to avoid violating the very law it sits beside."
+      },
+      "recommendation": "Proceed. In design: (a) add rq-orchestratorOpsDelegation01 to advance-meta as additive, defining authority-KEEP set + operational SHED triggers (incl. GitHub CI/check-run investigation) + the 'no second recon/shell/test/CI cycle before delegating' rule; (b) require NEW drift tests (adv.md+adv-atc.md operational-shed prose tokens with zero table pipes in that section; ADV_INSTRUCTIONS.md+adv-apply.md operational trigger table containing the GitHub-CI token) — do not rely on non-existent existing guards; (c) keep new instruction-surface table clearly labeled as orchestrator-session operational routing, distinct from per-task Step 4.5; (d) explicitly out-of-scope: runtime enforcement, OMR model-routing config, task-level 4.5 semantics.",
+      "follow_ups": [
+        "Design must decide canonical worker mapping for ops triggers (explore vs adv-tron vs general) and keep it consistent across adv.md prose and the instruction-surface table.",
+        "Open user-facing question for design: should the operational-shed table live in BOTH ADV_INSTRUCTIONS.md and adv-apply.md, or only ADV_INSTRUCTIONS.md since ops work spans all gates not just apply? adv-apply.md is apply-phase-scoped.",
+        "Packet anchors TASK_SCOPE/IN_SCOPE/DONE_WHEN were present; STOP_WHEN/VERIFICATION present. No packet defect."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addOrchestratorOpsDelegation",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-leverage-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design leverage scout for orchestrator ops delegation",
+      "sources": [
+        {
+          "label": "adv.md Context-Optimal Execution",
+          "locator": "file:///home/jon/dev/advance/.opencode/agents/adv.md#L254-L262",
+          "summary": "Current orchestrator context section is prose-only and already includes context-shed criteria, making a small additive bullet the lowest-risk change."
+        },
+        {
+          "label": "ADV_INSTRUCTIONS.md Delegation Routing",
+          "locator": "file:///home/jon/dev/advance/ADV_INSTRUCTIONS.md#L722-L739",
+          "summary": "Current task-level routing table and context-shed marker live here; new operational routing should be placed separately to avoid changing Step 4.5 semantics."
+        },
+        {
+          "label": "adv-apply.md Delegation Routing and Verify-Burst Delegation",
+          "locator": "file:///home/jon/dev/advance/.opencode/command/adv-apply.md#L409-L480",
+          "summary": "Apply command already contains task-level routing plus verify-burst guidance; design should guard against duplicating the new ops routing table here."
+        },
+        {
+          "label": "advance-meta spec rq-contextShed02",
+          "locator": "file:///home/jon/dev/advance/.adv/specs/advance-meta/spec.json#L963-L1015",
+          "summary": "Spec requires adv.md prose-only context-shed guidance, adv-apply P23 diff-scan step, and drift tests for context-shed surfaces."
+        },
+        {
+          "label": "advance-meta docs rq-contextShed02",
+          "locator": "file:///home/jon/dev/advance/docs/specs/advance-meta.md#L869-L920",
+          "summary": "Human-readable spec mirrors rq-contextShed02 and names expected drift-test guarantees."
+        },
+        {
+          "label": "Existing asset test helper patterns",
+          "locator": "file:///home/jon/dev/advance/plugin/src/adv-designer-assets.test.ts#L369-L376",
+          "summary": "Existing tests assert command/agent markdown tokens directly; new ops drift test can reuse same lightweight asset-test style."
+        },
+        {
+          "label": "No existing rq-contextShed drift guard found in plugin tests",
+          "locator": "lgrep://search_text?path=/home/jon/dev/advance/plugin/src&query=rq-contextShed01",
+          "summary": "Search returned no plugin/src results for rq-contextShed01, supporting current finding that context-shed drift tests are missing."
+        },
+        {
+          "label": "Plugin verification scripts",
+          "locator": "file:///home/jon/dev/advance/plugin/package.json#L21-L33",
+          "summary": "check runs schemas:check, typecheck, isolation/lockfile checks, lint, and format:check; tests run through vitest."
+        }
+      ],
+      "architecture_assessment": "Draft design is directionally sound: it preserves the primary adv authority boundary, keeps task-level Step 4.5 unchanged, uses adv.md as concise prose guidance, and centralizes the operational routing table in ADV_INSTRUCTIONS.md only. Main leverage points: make test section extraction heading-bounded; encode routing-row assertions as a small data fixture; add rq-contextShed02 missing guard in the same asset test; avoid spec version/update churn beyond repo convention; add explicit negative assertions that adv-apply retains Verify-Burst guidance but does not contain the new ops table label or GitHub CI/check-run/status ops row.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "No contract compromise blocker found. Risk is drift-test brittleness or accidental semantic bleed into adv-apply task-level routing if tests only assert broad tokens instead of section-scoped positives and negatives."
+      },
+      "recommendation": "Auto-adopt test factoring and negative-assertion candidates. Surface only spec version bump as conditional: bump advance-meta version/updated_at if this repo convention requires metadata updates for new requirements; otherwise avoid churn. Keep design scope unchanged: no runtime enforcement, no OMR/model routing, no adv-atc.md edit, no Step 4.5 semantic change.",
+      "follow_ups": [
+        "TASK_SCOPE/IN_SCOPE/OUT_OF_SCOPE/DONE_WHEN/STOP_WHEN/VERIFICATION anchors were present in the packet; no identity-anchor defect.",
+        "When implementing, run targeted vitest for the new asset test and at least bin/oc-test smoke or pnpm run check per repo policy."
+      ],
+      "consumer_warnings": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addOrchestratorOpsDelegation",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation for orchestrator ops delegation instruction/spec/test contract",
+      "sources": [
+        {
+          "label": "advance-meta spec.json rq-contextShed01/02",
+          "locator": "/home/jon/dev/advance/.adv/specs/advance-meta/spec.json:896-1015",
+          "summary": "rq-contextShed01 governs task-routing Step 4.5 in ADV_INSTRUCTIONS.md+adv-apply.md; rq-contextShed02 mandates adv.md Context-Optimal Execution prose-only (no table pipes) + adv-apply P23 diff-scan. rq-contextShed02.3 already requires prose-only/no-pipe adv.md assertion. New rq-orchestratorOpsDelegation01 sits cleanly adjacent; no contradiction."
+        },
+        {
+          "label": "adv.md Context-Optimal Execution",
+          "locator": "/home/jon/dev/advance/.opencode/agents/adv.md:254-261",
+          "summary": "Section is currently prose-bullet only (inline vs delegate, due-diligence, context-shed). No markdown table. Adding prose-only ops bullets here is consistent with existing form and rq-contextShed02.1."
+        },
+        {
+          "label": "ADV_INSTRUCTIONS.md Delegation Routing table",
+          "locator": "/home/jon/dev/advance/ADV_INSTRUCTIONS.md:722-738",
+          "summary": "Existing table is task-level routing (Step 4.5 Context-Shed) with rq-contextShed01/02 anchors. A new, separately-labeled Orchestrator-Session Operational Routing table is a distinct surface; placing it only here matches the one-table-surface decision and avoids adv-apply duplication."
+        },
+        {
+          "label": "docs/specs/advance-meta.md mirror",
+          "locator": "/home/jon/dev/advance/docs/specs/advance-meta.md:800-919",
+          "summary": "Human-readable spec mirror exists and tracks contextShed requirements. Design correctly requires mirroring rq-orchestratorOpsDelegation01 here; omission would create spec/doc drift caught by manifest-doc-drift tests."
+        },
+        {
+          "label": "Established assets/drift test patterns",
+          "locator": "/home/jon/dev/advance/plugin/src/handoff-footer-drift.test.ts:167; /home/jon/dev/advance/plugin/src/delegation-matrix.test.ts:482",
+          "summary": "Deterministic readFileSync + section/token assertions and no-pipe-style structural checks are the established pattern. A new orchestrator-ops-delegation-assets.test.ts fits this convention. Note: no existing test currently asserts adv.md no-pipe for rq-contextShed02.3 in a dedicated file, so the new test also strengthens an existing thinly-covered guard."
+        }
+      ],
+      "architecture_assessment": "Design is additive and structurally sound. It cleanly separates two delegation layers: (1) existing task-level Context-Shed routing (rq-contextShed01/02, Step 4.5) left untouched, and (2) a new orchestrator-session operational routing surface (rq-orchestratorOpsDelegation01). Placement choices are verified against current source: adv.md is prose-only today so adding prose ops bullets is consistent; ADV_INSTRUCTIONS.md is the correct single table home; docs mirror exists and must be updated to avoid drift-test failures; assets/drift test conventions support the proposed deterministic-extraction test. Authority-boundary preservation (primary adv keeps gate/task/checkpoint/archive/signoff/drift/contract authority) aligns with existing Sub-Agent Policy roles in adv.md (general = verify-only, not code-writing).",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "No spec contradictions, no security/release blockers. Minor cautions below are correctness/robustness improvements, not conflicts."
+      },
+      "recommendation": "VALIDATED with minor cautions. The design correctly solves all stated objectives and contradicts no existing spec-law. Two correctness hardening points: (a) the new asset test's adv.md no-pipe assertion must scope strictly to the Context-Optimal Execution heading region (deterministic heading-to-next-heading slice) so it does not collide with the adjacent Sub-Agent Policy tables in the same file, which legitimately contain pipes; (b) since 'general not code-writing catch-all' is a stated constraint with no runtime enforcement, the spec scenario and test should assert the ops table maps research/edit rows to adv-researcher/adv-engineer/adv-designer (not general) so the prose/table cannot silently drift general into a code-writing default. Recommend keeping the new ops-routing row tokens (GitHub CI/check-run/status -> general) as exact assertable tokens. No simpler viable alternative materially reduces scope: collapsing ops guidance into the existing Step 4.5 table was correctly rejected because it blurs task-routing and session-routing semantics that rq-contextShed01/02 keep distinct.",
+      "follow_ups": [
+        "Asset test: scope adv.md no-pipe assertion to the Context-Optimal Execution heading slice only, since adjacent Sub-Agent Policy tables in the same file contain pipes (adv.md:271-306).",
+        "Strengthen spec scenario + test to assert ops table routes code-writing/edit rows away from general (constraint: general is not a code-writing catch-all; no runtime enforcement exists).",
+        "Ensure docs/specs/advance-meta.md mirror is updated in lockstep to avoid manifest-doc-drift test failures."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addOrchestratorOpsDelegation",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addOrchestratorOpsDelegation",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/orchestrator-ops-delegation-assets.test.ts",
+          "pnpm --dir plugin run schemas:check",
+          "git diff --check trunk...HEAD"
+        ],
+        "results": "pass",
+        "evidence": "Targeted asset/drift test passed: 1 file, 5 tests. schemas:check passed via `tsx scripts/generate-json-schemas.ts --check`. `git diff --check trunk...HEAD` emitted no whitespace errors. Static review confirmed scoped diff versus trunk touches only .adv/specs/advance-meta/spec.json, docs/specs/advance-meta.md, .opencode/agents/adv.md, ADV_INSTRUCTIONS.md, and plugin/src/orchestrator-ops-delegation-assets.test.ts; .opencode/agents/adv-atc.md and .opencode/command/adv-apply.md are not modified."
+      },
+      "scope_drift": null,
+      "risks": [],
+      "required_main_agent_actions": [
+        "Proceed with acceptance/release flow; no reviewer remediation required."
+      ],
+      "consumer_warnings": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addOrchestratorOpsDelegation",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addOrchestratorOpsDelegation",
+      "scope": {
+        "kind": "change",
+        "scope_key": "harden:release"
+      },
+      "agent": "adv-reviewer",
+      "phase": "harden",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/orchestrator-ops-delegation-assets.test.ts",
+          "bin/oc-test smoke",
+          "git diff --check trunk...HEAD"
+        ],
+        "results": "pass",
+        "evidence": "Path preflight OK for all affected files. Targeted asset tests passed: 1 file, 5 tests. Smoke passed: schemas:check, typecheck, test-isolation check, lockfile policy check, lint, format:check, plus 2 smoke test files / 39 tests. git diff --check produced no whitespace errors. Harden inspection covered release/deploy readiness, production readiness, documentation hygiene, cleanup readiness, and residual slop/maintainability."
+      },
+      "scope_drift": null,
+      "risks": [],
+      "required_main_agent_actions": [
+        "Proceed with release/archive sign-off flow; no hardening remediation required."
+      ],
+      "consumer_warnings": [
+        {
+          "kind": "consumer_failure",
+          "message": "Initial task-scoped submission with TASK harden-change was rejected because harden-change is not an existing ADV task anchor; resubmitted as change-scoped harden:release per tool guidance."
+        }
+      ]
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-KGIn3Q",
+      "type": "gotcha",
+      "content": "When testing prose-only agent sections, scope the no-pipe/no-table assertion to the exact Markdown heading slice. Adjacent sections like `Sub-Agent Policy` legitimately contain tables, so file-wide checks false-fail.",
+      "source_task": "tk-cbbd31f8ee76",
+      "recorded_at": "2026-06-06T22:30:52.416Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-06-06T21:59:23.327Z",
+      "completed_by": "user",
+      "approval_evidence": "Problem statement confirmed: orchestrator-session-level operational work (recon, audit, GitHub CI/check investigation, verify bursts) runs outside the task graph on primary adv premium model; existing Step 4.5 context-shed routing is task-scoped only. Direction: additive operational-delegation best-practice as prose in adv.md + table on ADV_INSTRUCTIONS.md/adv-apply.md + new spec rq-orchestratorOpsDelegation01, honoring rq-contextShed02 prose-only constraint.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "non_whitespace_chars": 2947,
+        "checked_at": "2026-06-06T21:59:23.179Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-06-06T22:17:20.447Z",
+      "completed_by": "user",
+      "approval_evidence": "Discovery findings recorded; user approved criteria/agreement. Decisions: origin confirmed; adv-atc deferred; operational routing table in ADV_INSTRUCTIONS.md only. Contract minted with 22 items.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addOrchestratorOpsDelegation/agreement.md",
+        "content_hash": "9ff962929046c38722da6685abe8b48da3ced9c7991335004cfdfa3764dce878",
+        "non_whitespace_chars": 3540,
+        "checked_at": "2026-06-06T21:59:23.180Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-06-06T22:21:56.593Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design recorded. Independent adv-researcher validator returned VALIDATED with minor cautions; cautions folded into design. No unresolved conflict, user-value tradeoff, or contract-compromise risk.",
+      "artifact_evidence": {
+        "kind": "design",
+        "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addOrchestratorOpsDelegation/design.md",
+        "content_hash": "9e1552c56653dc2268fc2cbc58e5cda44cd2bb76c7feef0586ccb6e3332a8c0b",
+        "non_whitespace_chars": 8183,
+        "checked_at": "2026-06-06T21:59:23.181Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-06-06T22:24:55.291Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved prep vision/task graph via reply: `approve`. Last human checkpoint before autonomous execution complete."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-06-06T22:33:33.367Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 3 tasks completed with checkpoints. Verification passed: targeted asset/drift test and bin/oc-test smoke. No adv-atc.md, adv-apply.md, runtime, or OMR/model-routing changes."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-06-06T22:39:09.957Z",
+      "completed_by": "user",
+      "approval_evidence": "User accepted delivered work via reply: `accept`. Acceptance proof persisted before prompt: contract matrix 22/22 pass/respected, executive summary persisted and verified, reviewer verdict READY with 0 blockers/issues, preview URL not_applicable.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addOrchestratorOpsDelegation/executive-summary.md",
+        "content_hash": "29107c575a3754c62a6550b2032179cb4cee652aa811758cc758635b24284dfb",
+        "non_whitespace_chars": 1439,
+        "checked_at": "2026-06-06T21:59:23.182Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "9ff962929046c38722da6685abe8b48da3ced9c7991335004cfdfa3764dce878",
+      "approvedAt": "2026-06-06T22:17:15.061Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "Primary `adv` guidance preserves orchestration authority while shedding operational work before repeated expensive primary cycles.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9ff962929046c38722da6685abe8b48da3ced9c7991335004cfdfa3764dce878",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "New spec law distinguishes orchestrator-session operational delegation from task-level Step 4.5 delegation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9ff962929046c38722da6685abe8b48da3ced9c7991335004cfdfa3764dce878",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "Drift tests catch prose/table placement regressions and missing GitHub CI/check-run routing.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9ff962929046c38722da6685abe8b48da3ced9c7991335004cfdfa3764dce878",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC4",
+        "kind": "success_criterion",
+        "text": "`adv-atc` remains out of scope for this change.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9ff962929046c38722da6685abe8b48da3ced9c7991335004cfdfa3764dce878",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "`advance-meta` includes `rq-orchestratorOpsDelegation01` with scenarios for authority boundary, shed triggers, no-second-cycle rule, and prose/table placement.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9ff962929046c38722da6685abe8b48da3ced9c7991335004cfdfa3764dce878",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "`.opencode/agents/adv.md` Context-Optimal Execution includes prose-only ops delegation guidance; no table pipes appear in that section.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9ff962929046c38722da6685abe8b48da3ced9c7991335004cfdfa3764dce878",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "`ADV_INSTRUCTIONS.md` includes one clearly labeled orchestrator-session operational routing table with GitHub CI/check-run/status investigation mapped to `general`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9ff962929046c38722da6685abe8b48da3ced9c7991335004cfdfa3764dce878",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "`.opencode/command/adv-apply.md` task-level Step 4.5 semantics remain unchanged and do not duplicate the ops table.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9ff962929046c38722da6685abe8b48da3ced9c7991335004cfdfa3764dce878",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Tests fail if `adv.md` ops guidance becomes table-form, if `ADV_INSTRUCTIONS.md` lacks the ops table/GitHub CI token, or if task-level Step 4.5 wording is weakened.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9ff962929046c38722da6685abe8b48da3ced9c7991335004cfdfa3764dce878",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "No `adv-atc.md` behavior/prose change ships in this change.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9ff962929046c38722da6685abe8b48da3ced9c7991335004cfdfa3764dce878",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "Verification includes targeted asset/drift tests plus relevant schema/spec checks.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9ff962929046c38722da6685abe8b48da3ced9c7991335004cfdfa3764dce878",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "`rq-contextShed02` remains intact: `adv.md` Context-Optimal Execution uses prose bullets, not routing tables.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9ff962929046c38722da6685abe8b48da3ced9c7991335004cfdfa3764dce878",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Operational delegation is instruction/spec/test-level only; no runtime enforcement is in scope.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9ff962929046c38722da6685abe8b48da3ced9c7991335004cfdfa3764dce878",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Worker mapping remains specialist-bounded; `general` is for operational audits, CI/status investigation, and verify bursts, not ADV code-writing.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9ff962929046c38722da6685abe8b48da3ced9c7991335004cfdfa3764dce878",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Primary `adv` keeps all ADV state authority and user-facing synthesis.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9ff962929046c38722da6685abe8b48da3ced9c7991335004cfdfa3764dce878",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "No changes to OMR/model-routing config.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9ff962929046c38722da6685abe8b48da3ced9c7991335004cfdfa3764dce878",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C6",
+        "kind": "constraint",
+        "text": "No changes to `adv-atc.md` in this change.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9ff962929046c38722da6685abe8b48da3ced9c7991335004cfdfa3764dce878",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not paste the operational routing table into `.opencode/agents/adv.md`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9ff962929046c38722da6685abe8b48da3ced9c7991335004cfdfa3764dce878",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not alter task-level Step 4.5 Context-Shed semantics.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9ff962929046c38722da6685abe8b48da3ced9c7991335004cfdfa3764dce878",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not make `general` the default code-writing worker.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9ff962929046c38722da6685abe8b48da3ced9c7991335004cfdfa3764dce878",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not add runtime delegation enforcement.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9ff962929046c38722da6685abe8b48da3ced9c7991335004cfdfa3764dce878",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "Do not modify `adv-atc.md`; defer ATC handling to a follow-up if needed.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9ff962929046c38722da6685abe8b48da3ced9c7991335004cfdfa3764dce878",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-06-06T18:36:48-04:00",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "adv-reviewer verdict READY; `adv.md` now says primary adv delegates authority-free ops work before noisy/repeated cycles and resumes inline for synthesis/ADV state mutation.",
+          "notes": "Primary authority preserved while operational work sheds."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "`rq-orchestratorOpsDelegation01` added separately from existing `rq-contextShed01`/`rq-contextShed02`; `adv-apply.md` Step 4.5 unchanged by diff/static review.",
+          "notes": "Session ops distinct from task routing."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "`plugin/src/orchestrator-ops-delegation-assets.test.ts` asserts prose/table placement and GitHub CI/check-run/status routing; targeted test passed 5/5.",
+          "notes": "Drift coverage present."
+        },
+        {
+          "contractId": "SC4",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Static diff and reviewer report: `.opencode/agents/adv-atc.md` unchanged; test asserts no ops-delegation content in adv-atc.",
+          "notes": "ATC out of scope honored."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`rq-orchestratorOpsDelegation01` added to `.adv/specs/advance-meta/spec.json` with scenarios .1-.6; targeted asset test passed.",
+          "notes": "Spec scenarios cover authority, triggers, no-second-cycle, placement, Step 4.5/ATC boundaries."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Targeted asset test extracts `adv.md` Context-Optimal Execution, checks operational tokens, and rejects pipe characters/table rows; test passed.",
+          "notes": "Prose-only assertion scoped to exact section."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Targeted asset test requires `ADV_INSTRUCTIONS.md` label `Orchestrator-Session Operational Routing` and `GitHub CI / check-run / status investigation | general`; test passed.",
+          "notes": "Single table surface."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Targeted asset test requires Step 4.5 text in `adv-apply.md` and rejects ops-table label/GitHub row there; reviewer static check says adv-apply unchanged.",
+          "notes": "Task routing preserved."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "RED test failed before implementation on missing adv.md ops prose, ADV_INSTRUCTIONS ops table, and spec requirement; GREEN/VERIFY passed after implementation.",
+          "notes": "Regression assertions proven by RED/GREEN."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Targeted asset test asserts `adv-atc.md` lacks ops-delegation/table tokens; static diff shows adv-atc unchanged; test passed.",
+          "notes": "No adv-atc behavior/prose change."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Verification passed: `bin/oc-test targeted -- src/orchestrator-ops-delegation-assets.test.ts` exit 0, `bin/oc-test smoke` exit 0 including schemas:check, typecheck, lint, format:check, and 39 smoke tests.",
+          "notes": "Required checks passed."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "`adv.md` ops guidance is prose bullets; asset test rejects any pipe in Context-Optimal Execution; no ops table pasted into adv.md.",
+          "notes": "rq-contextShed02 intact."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Only specs/docs/agent instruction/test files changed; no runtime enforcement code changed.",
+          "notes": "Instruction/spec/test-level only."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "`ADV_INSTRUCTIONS.md` maps audit/CI/status/verify to `general`; code-edit rows map to `adv-engineer` / `adv-designer`; asset test rejects code rows mapped to general.",
+          "notes": "general not code-writing default."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Spec and adv.md prose state primary adv retains gate/task/checkpoint/archive/signoff/drift/contract/release/user synthesis authority.",
+          "notes": "Authority boundary preserved."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Static diff contains no OMR/model-routing config files; changed files limited to advance-meta spec/docs, adv.md, ADV_INSTRUCTIONS.md, and asset test.",
+          "notes": "No OMR changes."
+        },
+        {
+          "contractId": "C6",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Static diff and test confirm `.opencode/agents/adv-atc.md` unchanged.",
+          "notes": "ATC untouched."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "`adv.md` Context-Optimal Execution contains no table pipes; operational table exists only in `ADV_INSTRUCTIONS.md`.",
+          "notes": "No table pasted into adv.md."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "`adv-apply.md` not modified in final diff; asset test checks Step 4.5 remains and no ops table duplicate appears.",
+          "notes": "Step 4.5 semantics not altered."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Asset test requires code edits route to `adv-engineer` and frontend/component edits to `adv-designer`, not `general`.",
+          "notes": "general not default code worker."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No runtime Temporal/storage/tool code changed; spec states runtime enforcement is not required.",
+          "notes": "No runtime enforcement."
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "`.opencode/agents/adv-atc.md` unchanged; asset test asserts no operational delegation tokens there.",
+          "notes": "ATC deferred."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "`advance-meta` includes `rq-orchestratorOpsDelegation01` with scenarios for authority boundary, shed triggers, no-second-cycle rule, and prose/table placement.",
+    "`.opencode/agents/adv.md` Context-Optimal Execution includes prose-only ops delegation guidance; no table pipes appear in that section.",
+    "`ADV_INSTRUCTIONS.md` includes one clearly labeled orchestrator-session operational routing table with GitHub CI/check-run/status investigation mapped to `general`.",
+    "`.opencode/command/adv-apply.md` task-level Step 4.5 semantics remain unchanged and do not duplicate the ops table.",
+    "Tests fail if `adv.md` ops guidance becomes table-form, if `ADV_INSTRUCTIONS.md` lacks the ops table/GitHub CI token, or if task-level Step 4.5 wording is weakened.",
+    "No `adv-atc.md` behavior/prose change ships in this change.",
+    "Verification includes targeted asset/drift tests plus relevant schema/spec checks."
+  ],
+  "documents": {
+    "proposal": "## Cross-Project Origin\n\nThis change was created as a follow-up from **opencode-model-routing**.\n\n| Field | Value |\n|-------|-------|\n| Source project | opencode-model-routing |\n| Source path | `/home/jon/dev/opencode-model-routing` |\n\n> **Note:** The originating project should be consulted for context on why this change is needed.\n\n\n## Proposal: Orchestrator Operational Delegation\n\nAdd a durable, spec-backed \"operational delegation\" best-practice that complements (does not replace) the existing task-level Context-Shed routing.\n\n### Scope boundary (what stays vs sheds)\n\nPrimary `adv` KEEPS inline (authority, never delegated):\n- gate transitions and `adv_gate_complete`\n- task-graph mutation (add/update/cancel/checkpoint/reclassify)\n- checkpoint / archive / sign-off authority\n- scope-drift, contract-compromise, safety, release decisions\n- user-facing synthesis at checkpoints and final reports\n\nPrimary `adv` SHEDS sooner (operational, context+cost isolation):\n| Trigger | Worker |\n|---|---|\n| >5 file reads/searches expected | `explore` |\n| repo structure / dependency map / same-pattern scan | `explore` or `adv-tron` |\n| DB/log/status/usage audit | `general` |\n| **GitHub CI / check-run / status investigation** | `general` |\n| repeated verify/test bursts | `general` |\n| code edits after task scope known | `adv-engineer` |\n| frontend/component edits | `adv-designer` |\n| docs/source research first-pass | `general`; `adv-researcher` when sourced architecture authority needed |\n\n### Surface placement (respect existing spec law)\nAdvance deliberately keeps `adv.md` Context-Optimal Execution **prose-only** (`rq-contextShed02`; drift tests forbid table pipes there) and puts routing **tables** on `ADV_INSTRUCTIONS.md` / `adv-apply.md`.\n\nThis proposal honors that split:\n1. `adv.md` — add operational-delegation criteria as **prose bullets** (no table), including the CI/check trigger and the \"don't run a second recon/shell/test/CI-check cycle on the orchestrator before delegating\" rule.\n2. `ADV_INSTRUCTIONS.md` / `adv-apply.md` — add the trigger **table** above (tables are spec-allowed there), framed as orchestrator-session operational routing, distinct from the per-task Step 4.5 table.\n3. `adv-atc.md` — mirror the same prose (shares `adv` behavior minus `question`).\n\n### Spec + tests\n- New requirement `rq-orchestratorOpsDelegation01` in `advance-meta`: defines the authority boundary + operational triggers, with scenarios and drift assertions.\n- Keep `rq-contextShed01` (task-level 4.5) and `rq-contextShed02` (prose-only + P23 diff-scan) intact; new requirement is additive and consistent.\n- Drift tests: assert `adv.md` carries operational-delegation prose tokens (still no table pipes in that section), and the table-surfaces carry the operational trigger table including the GitHub-CI token.\n\n### Explicitly out of scope\n- OMR / model-routing config (local toolbox concern; downstream of this).\n- Runtime enforcement — consistent with existing self-enforced sub-agent policy, this stays instruction/spec-level.\n- Changing the task-level 4.5 routing semantics.\n\n### Why this shape is the long-term-correct one\nThe local stopgap (a routing table pasted into `adv.md`) violates `rq-contextShed02` and the drift suite. The durable form is prose in `adv.md` + table on the table-surfaces + a governing spec requirement — exactly how Advance already models the task-level context-shed split.\n\n---\n\n## Discovery Findings\n\n### Discovery Checklist\n\n| Step | Result | Evidence / reason |\n|---|---|---|\n| Skill Discovery | PASS | Loaded `adv-agent-tool-contracts`; no pending skill frontmatter found; no new skill needed. |\n| Prior Research Extension | PASS | Cited `docs/repo-improve-prep.md` and `docs/adv-run-test-prep.md`; new finding: operational delegation is prompt/spec authoring, not a build-vs-buy/runtime change. |\n| Conflict & Related Work Scan | PASS | `adv_change_validate` passed with expected pre-prep warnings (`NO_TASKS`, `NO_DELTAS`); no active conflicting change found in active list. |\n| Edge Case Investigation | PASS | Structural edge cases captured below. |\n| Design Question Depth | PASS | Open design questions annotated below. |\n| Draft Spec Delta Shapes | PASS | Draft `rq-orchestratorOpsDelegation01` shape captured below. |\n| P25 Related-Pattern Scan | PASS | `explore` scan found existing task-level context-shed, verify-burst, and scanner delegation patterns. |\n| LBP Check | PASS | Additive prose/table/spec split matches existing ADV pattern and external coordinator/worker best practice. |\n\n### Skills Considered\n\n- `adv-agent-tool-contracts` — loaded; relevant because this change modifies ADV agent/command/spec/test contracts.\n- `adv-opportunity-scout` — applied through `adv-researcher` discovery scout packet.\n- `lgrep` — active local-code discovery policy; used exact text search for context-shed/spec surfaces.\n- No new skill created; problem is ADV instruction/spec policy, not a missing external domain methodology.\n\n### Extends\n\n- `docs/repo-improve-prep.md` — prior evidence that orchestration overhead, full-context tool work, and performance/latency visibility matter in this repo. New finding: operational delegation is a lower-risk instruction/spec lever than runtime replacement; it reduces primary-context pollution without changing Temporal/tool runtime.\n- `docs/adv-run-test-prep.md` — prior evidence that verify/test work can be noisy/resource-heavy and benefits from structured execution/worker isolation. New finding: repeated verify bursts should be treated as orchestrator-session operational work, not only per-task `adv_run_test` behavior.\n\n### Conflict Scan\n\n- Active changes: no direct active conflict with `addOrchestratorOpsDelegation`; `conformAdvanceCi` is active draft but targets CI conformance, not delegation instructions.\n- Validation: passed. Warnings `NO_TASKS` and `NO_DELTAS` are expected before planning/spec deltas are recorded.\n- Agenda: large backlog includes delegation/test/status follow-ups, but no blocker to this additive instruction/spec change.\n\n### Current State\n\n- `.opencode/agents/adv.md:254-261` has Context-Optimal Execution prose for task-level context-shed only; no operational delegation triggers.\n- `ADV_INSTRUCTIONS.md:722-738` and `.opencode/command/adv-apply.md:409-438` contain task-level delegation routing tables with Step 4.5.\n- `.opencode/command/adv-apply.md:440-480` already has verify-burst delegation to `general`; closest precedent for operational output isolation.\n- `.opencode/agents/adv-atc.md` has no Context-Optimal Execution / Sub-Agent Policy mirror section; adding ATC coverage is net-new authoring.\n- `delegation-defaults` covers workflow steps and delegated substeps, not orchestrator-session operational work.\n- New discovery finding: `rq-contextShed02.3` drift tests are not currently implemented; this change must add them rather than rely on them.\n\n### Edge Cases\n\n- `adv.md` prose-only: adding a table under Context-Optimal Execution would violate `rq-contextShed02` intent.\n- Table duplication: adding operational routing rows to task-level Step 4.5 table could blur task-level vs orchestrator-session routing.\n- Authority leakage: workers must not own gates, task mutation, checkpoint/archive/signoff, scope drift, or contract compromise.\n- Threshold confusion: `>5 reads/searches` is a tool-call/context threshold; `~5 files or ~50 lines` is task implementation scope. They must stay distinct.\n- ATC behavior: ATC has `question: false`; mirrored prose must not introduce inline-prompt behavior.\n- `general` scope creep: mapping must remain operational/verify/CI/log/status work, not a catch-all for ADV code-writing.\n\n### Open Design Questions\n\n1. **Instruction table placement**\n   - Trust model: joint; user scope/maintainer preference.\n   - Blast radius: duplicated table maintenance vs missing apply-phase discoverability.\n   - Alternatives: both `ADV_INSTRUCTIONS.md` + `adv-apply.md` (proposal default), only `ADV_INSTRUCTIONS.md` with pointer from `adv-apply.md`, or split table + reference.\n\n2. **ATC inclusion**\n   - Trust model: joint; user decides whether async ROADMAP executor should inherit same ops-shed behavior now.\n   - Blast radius: including ATC adds new section/test coverage; excluding leaves ATC doing costly ops work.\n   - Alternatives: include now (proposal default), defer follow-up, or include only a pointer to shared ADV behavior.\n\n3. **Worker mapping precision**\n   - Trust model: agent-resolved unless user wants product policy override.\n   - Blast radius: too broad `general` mapping could weaken specialist routing; too narrow mapping leaves primary doing ops work.\n   - Alternatives: keep proposal mapping; reserve `adv-tron` for codebase reconnaissance/hotspots; keep ADV code-writing on `adv-engineer`/`adv-designer`.\n\n### Draft Spec Deltas\n\n- `rq-orchestratorOpsDelegation01` — Orchestrator Operational Delegation\n  - Given primary `adv` expects broad operational work (>5 reads/searches, repo/dependency/same-pattern scan, DB/log/status/usage audit, GitHub CI/check-run/status investigation, or repeated verify/test bursts), when the work does not require gate/task/signoff/scope authority, then ADV should delegate it to the mapped worker before a second primary recon/shell/test/CI-check cycle.\n  - Given `adv.md` Context-Optimal Execution is updated, when drift tests inspect the section, then operational delegation appears as prose bullets with no table pipes.\n  - Given `ADV_INSTRUCTIONS.md` and selected command surfaces are updated, when drift tests inspect them, then they include a clearly labeled orchestrator-session operational routing table with a GitHub CI/check-run trigger.\n  - Given a worker returns findings, when the orchestrator acts, then primary `adv` retains gate completion, task mutation, checkpoint/archive/signoff, scope drift, and contract-compromise decisions.\n\n### Related Pattern Scan\n\nSimilar patterns found:\n- Task-level context-shed: `advance-meta` `rq-contextShed01` / `rq-contextShed02`, `ADV_INSTRUCTIONS.md`, and `adv-apply.md`.\n- Verify-burst delegation: `.opencode/command/adv-apply.md:440-480` isolates noisy verification in `general`.\n- Discovery scanner delegation: `adv-discover` P25 scan uses `explore` / `adv-researcher` while orchestration decisions stay inline.\n- Opportunity Scout split-load: `adv-discover` keeps schema/routing/adoption decisions with orchestrator and delegates candidate discovery.\n- Scanner fan-out (`adv-slop-scan`, `adv-harden`) reinforces single-level delegation and no nested workers.\n\n### LBP Check\n\nLikely direction is long-term best practice: deterministic primary orchestrator retains judgment/authority; limited-context workers perform retrieval, audit, CI/status investigation, and verify bursts. This matches existing ADV task-level context-shed law and external coordinator/worker patterns. Runtime enforcement is not needed for this change.\n\n### Recommended Objectives\n\n1. Add spec-law requirement for orchestrator-session operational delegation without changing task-level Step 4.5 semantics.\n2. Preserve primary `adv` authority boundaries for ADV state, gates, signoffs, drift, and release decisions.\n3. Add prose-only operational delegation guidance to `adv.md`; no table in that section.\n4. Add clearly labeled operational routing table to approved table surfaces.\n5. Add drift tests proving prose/table placement and the GitHub CI/check-run trigger.\n6. Keep worker mapping specialist-bounded (`explore`/`adv-tron`/`general`/`adv-engineer`/`adv-designer`), not a generic `general` catch-all.\n\n### AMBIGUITY ANALYSIS\n\nB1 MEDIUM Boundaries — Table surface choice needs confirmation.\n  Evidence: `ADV_INSTRUCTIONS.md` / `adv-apply.md`.\n  Reason: proposal names both, but discovery found `adv-apply.md` is apply-phase scoped while ops routing spans all gates.\n\nF1 LOW Functional Scope — ATC inclusion is explicit but net-new.\n  Evidence: `adv-atc.md — mirror the same prose`.\n  Reason: current `adv-atc.md` lacks context-shed section and forbids inline questions.\n\nS1 MEDIUM Completion Signals — Formal AC not yet approved.\n  Evidence: `(no agreement.md)`.\n  Reason: proposal has test ideas but not approved pass/fail criteria.\n\nM1 LOW Missing Information — Cross-project origin still needs user confirmation in discovery.\n  Evidence: `Cross-Project Origin ... opencode-model-routing`.\n  Reason: command lineage validation requires user confirmation before agreement.\n\nCoverage: B:P F:C S:P M:P",
+    "problemStatement": "## Problem\n\nPrimary `adv` orchestrator runs expensive reconnaissance, audit, CI-check, and verify loops *outside* the task graph, on its premium model, with full session context.\n\n### Evidence (7-day local usage audit)\n- Primary `adv` = ~82% of reported cost and dominant token volume (~4.9B tokens) vs all subagents combined.\n- Within `adv` sessions: ~10,858 read/search calls, ~7,228 shell/test calls, ~846 data/query probes, ~538 research/docs calls — much of it bulk operational work, not gate/task-graph orchestration.\n- Top sessions (`ADV operational health status`, `ADV status command output`, `Programmatic CI tool audit`, `completeFleetCutover`) were dominated by reads + shell/test + CI/status probing the orchestrator could shed.\n\n### Root cause\nAdvance's delegation routing (`rq-contextShed01`, Step 4.5 Context-Shed Test) is **task-graph-scoped** — it routes individual apply-phase tasks. It does NOT govern **orchestrator-session-level operational work** that never becomes a task:\n- broad codebase reconnaissance (>5 reads/searches, repo-structure / same-pattern scans)\n- DB/log/status/usage audits\n- **GitHub CI / check-run / status investigation**\n- repeated verify/test bursts\n\nBecause these are not tasks, the 4.5 routing never fires, and they run on the expensive primary model with no context shedding. The orchestrator keeps doing long recon + shell/test + CI-check loops before/around delegation.\n\n### Why this matters now\n- Cost: premium-model token burn on work cheaper context-isolated workers (`explore`, `general`, `adv-tron`) could do.\n- Context hygiene: long noisy operational output pollutes the orchestrator's decision context.\n- It is an instruction/spec gap, not a runtime bug — the fix belongs in Advance's durable agent prompt + spec, not a local override.",
+    "agreement": "# Agreement\n\n## Objectives\n\n1. Add an `advance-meta` spec requirement for orchestrator-session operational delegation.\n2. Preserve primary `adv` authority over gate transitions, ADV state mutation, checkpoints, archive/sign-off, scope drift, contract compromise, safety, and release decisions.\n3. Add prose-only operational delegation guidance to `.opencode/agents/adv.md`.\n4. Add one clearly labeled operational-routing table to `ADV_INSTRUCTIONS.md` only.\n5. Add drift/asset tests that structurally enforce the prose/table split and GitHub CI/check-run/status trigger.\n6. Keep task-level Step 4.5 Context-Shed semantics unchanged.\n7. Leave `adv-atc.md` unchanged in this change.\n\n## Success Criteria\n\n1. Primary `adv` guidance preserves orchestration authority while shedding operational work before repeated expensive primary cycles.\n2. New spec law distinguishes orchestrator-session operational delegation from task-level Step 4.5 delegation.\n3. Drift tests catch prose/table placement regressions and missing GitHub CI/check-run routing.\n4. `adv-atc` remains out of scope for this change.\n\n## Acceptance Criteria\n\n1. `advance-meta` includes `rq-orchestratorOpsDelegation01` with scenarios for authority boundary, shed triggers, no-second-cycle rule, and prose/table placement.\n2. `.opencode/agents/adv.md` Context-Optimal Execution includes prose-only ops delegation guidance; no table pipes appear in that section.\n3. `ADV_INSTRUCTIONS.md` includes one clearly labeled orchestrator-session operational routing table with GitHub CI/check-run/status investigation mapped to `general`.\n4. `.opencode/command/adv-apply.md` task-level Step 4.5 semantics remain unchanged and do not duplicate the ops table.\n5. Tests fail if `adv.md` ops guidance becomes table-form, if `ADV_INSTRUCTIONS.md` lacks the ops table/GitHub CI token, or if task-level Step 4.5 wording is weakened.\n6. No `adv-atc.md` behavior/prose change ships in this change.\n7. Verification includes targeted asset/drift tests plus relevant schema/spec checks.\n\n## Constraints\n\n1. `rq-contextShed02` remains intact: `adv.md` Context-Optimal Execution uses prose bullets, not routing tables.\n2. Operational delegation is instruction/spec/test-level only; no runtime enforcement is in scope.\n3. Worker mapping remains specialist-bounded; `general` is for operational audits, CI/status investigation, and verify bursts, not ADV code-writing.\n4. Primary `adv` keeps all ADV state authority and user-facing synthesis.\n5. No changes to OMR/model-routing config.\n6. No changes to `adv-atc.md` in this change.\n\n## Avoidances\n\n1. Do not paste the operational routing table into `.opencode/agents/adv.md`.\n2. Do not alter task-level Step 4.5 Context-Shed semantics.\n3. Do not make `general` the default code-writing worker.\n4. Do not add runtime delegation enforcement.\n5. Do not modify `adv-atc.md`; defer ATC handling to a follow-up if needed.\n\n## Preview Applicability\n\nvisual_surface: false\n\nRationale: this change affects agent instructions, specs, and tests; no browser-visible or UI output surface changes are expected.\n\n## Decisions\n\n### User Decisions\n\n1. Origin confirmed: `opencode-model-routing` and the 7-day local usage audit are valid discovery context.\n2. `adv-atc` operational-delegation prose is deferred; `adv-atc.md` remains unchanged.\n3. Operational routing table lives in `ADV_INSTRUCTIONS.md` only; `adv-apply.md` must not duplicate it.\n\n### Agent Decisions (LBP)\n\n1. Use existing ADV pattern: spec law + prose in `adv.md` + table on allowed instruction surface + drift tests.\n2. Treat `>5 reads/searches` as an orchestrator-session context/tool threshold, distinct from task-level `~5 files or ~50 lines` Step 4.5 threshold.\n3. Preserve deterministic orchestrator authority; delegated workers gather/verify/inspect, while primary `adv` decides and mutates ADV state.\n\n## Deferred Questions\n\n1. Whether `adv-atc` should receive comparable operational-delegation guidance in a future change.\n\n## Sign-Off\n\nApproved by user reply: `approve` after criteria checkpoint for `addOrchestratorOpsDelegation`.",
+    "design": "# Design\n\n## Architecture Overview\n\nThis change adds an instruction/spec/test contract for **orchestrator-session operational delegation**. It is additive to the existing task-level Context-Shed routing.\n\nTwo delegation layers remain distinct:\n\n1. **Task-level routing** — existing Step 4.5 Context-Shed Test in `ADV_INSTRUCTIONS.md` and `.opencode/command/adv-apply.md`; unchanged.\n2. **Orchestrator-session operational routing** — new guidance for primary `adv` to shed broad reads/searches, audits, CI/status investigation, and repeated verify bursts before repeated expensive primary cycles; new table lives only in `ADV_INSTRUCTIONS.md`.\n\nPrimary `adv` remains the authority boundary. Workers gather, inspect, verify, and report; primary `adv` owns all ADV state mutation and user-facing decisions.\n\n## Key Decisions\n\n1. **Spec-law home: `advance-meta`**\n   - Add `rq-orchestratorOpsDelegation01` near `rq-contextShed01` / `rq-contextShed02` in `.adv/specs/advance-meta/spec.json`.\n   - Mirror the requirement in `docs/specs/advance-meta.md` so human-readable spec docs stay aligned.\n   - Bump `advance-meta` version if required by existing spec-edit convention.\n\n2. **`adv.md` receives prose only**\n   - Update `.opencode/agents/adv.md` `## Context-Optimal Execution` with prose bullets.\n   - Mention operational triggers: `>5 reads/searches`, repo/dependency/same-pattern scans, DB/log/status/usage audits, GitHub CI/check-run/status investigation, repeated verify/test bursts, and known-scope code edits routed to specialist workers.\n   - Include the no-second-cycle rule: do not run a second primary recon/shell/test/CI-check cycle before delegating when the work is operational and authority-free.\n   - No Markdown table or `|` pipe characters in the extracted Context-Optimal Execution section.\n\n3. **One table surface: `ADV_INSTRUCTIONS.md`**\n   - Add a clearly labeled `### Orchestrator-Session Operational Routing` table in `ADV_INSTRUCTIONS.md` near Delegation Routing.\n   - Label it as session-level operational routing, not task-level routing.\n   - Do not duplicate this table in `.opencode/command/adv-apply.md`.\n\n4. **`adv-apply.md` remains task-routing-only**\n   - Preserve Step 4.5 wording and priority order.\n   - Do not add GitHub CI/check-run ops rows to the task-level Delegation Routing table.\n   - Existing verify-burst section can remain as a task/apply-specific precedent; no contract change needed there.\n\n5. **`adv-atc.md` out of scope**\n   - No edits to `.opencode/agents/adv-atc.md`.\n   - Future ATC mirroring can be a separate change because ATC has different HITL behavior (`question: false`) and currently lacks the whole Context-Optimal Execution section.\n\n## ADR Drafts\n\nNo ADR needed. The decision is additive prompt/spec/test policy, not hard-to-reverse infrastructure or surprising architecture.\n\n## Implementation Strategy\n\n1. Add `rq-orchestratorOpsDelegation01` to `.adv/specs/advance-meta/spec.json`.\n   - Scenarios:\n     - Authority boundary remains inline.\n     - Operational triggers delegate to mapped workers.\n     - No-second-cycle rule fires for repeated primary recon/shell/test/CI-check cycles.\n     - `adv.md` prose-only placement.\n     - `ADV_INSTRUCTIONS.md` table placement and GitHub CI/check-run/status trigger.\n     - `adv-apply.md` task-level Step 4.5 remains unchanged and no ops table duplication.\n     - `adv-atc.md` unchanged.\n\n2. Mirror the spec delta in `docs/specs/advance-meta.md`.\n\n3. Update `.opencode/agents/adv.md` `Context-Optimal Execution` with concise prose bullets.\n\n4. Update `ADV_INSTRUCTIONS.md` with one ops-routing table.\n   - Suggested rows:\n     - `>5 file reads/searches expected` → `explore`\n     - `repo structure / dependency map / same-pattern scan` → `explore` or `adv-tron`\n     - `DB/log/status/usage audit` → `general`\n     - `GitHub CI / check-run / status investigation` → `general`\n     - `repeated verify/test bursts` → `general`\n     - `code edits after task scope known` → `adv-engineer`; frontend/component edits → `adv-designer`\n     - `docs/source research first-pass` → `general`; use `adv-researcher` when sourced architecture authority is needed\n   - Add a note below the table: primary `adv` keeps gate/task/checkpoint/archive/signoff/drift/contract-compromise authority.\n   - Add a structural test assertion that code-writing rows do **not** route to `general`.\n\n5. Add focused asset/drift test, preferably `plugin/src/orchestrator-ops-delegation-assets.test.ts`.\n   - Helper extracts `## Context-Optimal Execution` from `adv.md` from heading to next `##` heading. Do not check the whole file; `Sub-Agent Policy` legitimately contains tables.\n   - Assertions:\n     - Section includes operational delegation tokens: `operational`, `GitHub CI`, `check-run`, `second`, `reads/searches`, `general`.\n     - Section does not include Markdown table rows or `|` pipe characters.\n     - `ADV_INSTRUCTIONS.md` contains `Orchestrator-Session Operational Routing` and a `GitHub CI / check-run / status investigation` row mapped to `general`.\n     - `ADV_INSTRUCTIONS.md` code-edit rows map to `adv-engineer` / `adv-designer`, not `general`.\n     - `.opencode/command/adv-apply.md` contains Step 4.5 Context-Shed Test but does not contain `Orchestrator-Session Operational Routing`.\n     - `.adv/specs/advance-meta/spec.json` contains `rq-orchestratorOpsDelegation01`.\n     - Same test should add the missing `rq-contextShed02.3` guard for existing context-shed prose/table placement where practical.\n\n6. Run targeted verification first, then broader checks:\n   - `bin/oc-test targeted -- src/orchestrator-ops-delegation-assets.test.ts` from repo root, or equivalent plugin-targeted vitest if wrapper cannot target repo-root path.\n   - `pnpm run schemas:check` if spec JSON schema output or spec docs are generated/checked by repo flow.\n   - `pnpm run check` or `bin/oc-test smoke` before acceptance.\n\n## LBP Analysis\n\nThis design follows the repo's existing durable-instruction pattern:\n\n- Spec law owns durable behavior.\n- `adv.md` carries compressed runtime prose for primary agent behavior.\n- `ADV_INSTRUCTIONS.md` carries more detailed operational tables.\n- Asset/drift tests prevent prompt/spec drift.\n- No runtime enforcement is introduced for a self-enforced delegation policy.\n\nIt is preferable to a local model-routing override because it fixes the source instruction/spec gap and preserves provider/model flexibility.\n\n## Affected Components\n\n- `.adv/specs/advance-meta/spec.json`\n- `docs/specs/advance-meta.md`\n- `.opencode/agents/adv.md`\n- `ADV_INSTRUCTIONS.md`\n- `plugin/src/orchestrator-ops-delegation-assets.test.ts` (new)\n- Existing tests may be referenced but should not require broad rewrites:\n  - `plugin/src/delegation-matrix.test.ts`\n  - `plugin/src/adv-designer-assets.test.ts`\n  - `plugin/src/handoff-footer-drift.test.ts`\n\nExplicitly unaffected:\n\n- `.opencode/agents/adv-atc.md`\n- `.opencode/command/adv-apply.md` behavior/Step 4.5 semantics, except tests assert no ops table duplication there.\n- Runtime Temporal/storage/tool code.\n- OMR/model-routing config.\n\n## Design-Derived Criteria\n\n1. Context-Optimal Execution section extraction for tests must be deterministic and bounded by Markdown heading boundaries.\n2. The `adv.md` no-table assertion must fail on any `|` pipe character inside the extracted section only.\n3. The `ADV_INSTRUCTIONS.md` ops table assertion must require both the label and the GitHub CI/check-run/status row mapped to `general`.\n4. The `ADV_INSTRUCTIONS.md` ops table assertion must require code-writing rows to route to `adv-engineer` / `adv-designer`, not `general`.\n5. The `adv-apply.md` guard must require Step 4.5 remains present and reject the ops table label.\n6. Spec delta must include at least one scenario for each approved AC class: authority boundary, trigger mapping, no-second-cycle, prose/table placement, no `adv-atc` change.\n\n## Risks / Mitigations\n\n| Risk | Mitigation |\n|---|---|\n| Ops table blurs with task-level Step 4.5 | Use a separate heading and wording: “orchestrator-session operational routing”; test `adv-apply.md` does not contain that label. |\n| `adv.md` accidentally becomes table-form | Test extracted Context-Optimal Execution section for zero `|` pipe characters; do not check whole file because later sections contain legitimate tables. |\n| `general` becomes catch-all code worker | Spec and tests say `general` is for audit/CI/status/verify operational work; code-writing rows must route to `adv-engineer` / `adv-designer`. |\n| Missing mirror in generated docs | Planning tasks must update both `.adv/specs/advance-meta/spec.json` and `docs/specs/advance-meta.md`, then verify spec checks. |\n| `adv-atc` mismatch remains | Accepted as explicit out-of-scope and deferred question; no file edit in this change. |\n\n## Design Leverage Scout\n\nScout: inconclusive — mandatory `adv-researcher` scout was attempted, but returned an empty result. No blocking issue; design proceeds per command degradation rule.\n\nAuto-adopted candidates: 0.\nSurfaced candidates: 0.\n\n## Validator Result\n\nValidator: `VALIDATED` with minor cautions.\n\nFindings folded into design:\n\n1. Scope the `adv.md` no-pipe assertion to `## Context-Optimal Execution` only; adjacent `Sub-Agent Policy` contains legitimate Markdown tables.\n2. Add structural guard that operational code-writing rows route away from `general` and toward `adv-engineer` / `adv-designer`.\n3. Mirror `advance-meta` spec delta into `docs/specs/advance-meta.md` in lockstep.\n\nNo unresolved `CONFLICT`. No contract-compromise risk identified.",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\n\nDelivered orchestrator-session operational delegation guidance for ADV. Primary `adv` now has durable instruction/spec/test coverage to shed authority-free operational work before repeated expensive primary cycles while preserving gate, task, checkpoint, archive, drift, contract, release, and user-facing decision authority.\n\n## Verdict\n\nAPPROVED\n\n## What Was Built\n\n1. Added a red/green asset test for orchestrator operational delegation placement, routing, and out-of-scope guards.\n2. Added `rq-orchestratorOpsDelegation01` to `advance-meta`, mirrored it in human-readable spec docs, and bumped spec metadata.\n3. Added prose-only operational delegation guidance to `.opencode/agents/adv.md`.\n4. Added the single `Orchestrator-Session Operational Routing` table to `ADV_INSTRUCTIONS.md`.\n5. Verified `.opencode/agents/adv-atc.md`, `.opencode/command/adv-apply.md`, runtime code, and OMR/model-routing config stayed out of scope.\n\n## What Was Verified\n\n- Verdict: READY / APPROVED with 0 blocker findings and 0 issue findings.\n- Tests: `bin/oc-test targeted -- src/orchestrator-ops-delegation-assets.test.ts` passed with 5 tests; `bin/oc-test smoke` passed after schemas:check, typecheck, lint, format:check, and 39 smoke tests.\n- Preview URL: not_applicable — `visual_surface: false`; change affects instructions, specs, and tests only.\n- Contract matrix: 22 required rows passed/respected; 0 failed, violated, or unknown.\n\n## Remaining Concerns\n\nNone for this change. Future optional follow-up: decide whether `adv-atc` should receive comparable operational-delegation guidance in a separate ATC-scoped change.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-06-06T18:36:48-04:00\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | Primary `adv` guidance preserves orchestration authority while shedding operational work before repeated expensive primary cycles. | pass | adv-reviewer verdict READY; `adv.md` now says primary adv delegates authority-free ops work before noisy/repeated cycles and resumes inline for synthesis/ADV state mutation. |\n| SC2 | success_criterion | New spec law distinguishes orchestrator-session operational delegation from task-level Step 4.5 delegation. | pass | `rq-orchestratorOpsDelegation01` added separately from existing `rq-contextShed01`/`rq-contextShed02`; `adv-apply.md` Step 4.5 unchanged by diff/static review. |\n| SC3 | success_criterion | Drift tests catch prose/table placement regressions and missing GitHub CI/check-run routing. | pass | `plugin/src/orchestrator-ops-delegation-assets.test.ts` asserts prose/table placement and GitHub CI/check-run/status routing; targeted test passed 5/5. |\n| SC4 | success_criterion | `adv-atc` remains out of scope for this change. | pass | Static diff and reviewer report: `.opencode/agents/adv-atc.md` unchanged; test asserts no ops-delegation content in adv-atc. |\n| AC1 | acceptance_criterion | `advance-meta` includes `rq-orchestratorOpsDelegation01` with scenarios for authority boundary, shed triggers, no-second-cycle rule, and prose/table placement. | pass | `rq-orchestratorOpsDelegation01` added to `.adv/specs/advance-meta/spec.json` with scenarios .1-.6; targeted asset test passed. |\n| AC2 | acceptance_criterion | `.opencode/agents/adv.md` Context-Optimal Execution includes prose-only ops delegation guidance; no table pipes appear in that section. | pass | Targeted asset test extracts `adv.md` Context-Optimal Execution, checks operational tokens, and rejects pipe characters/table rows; test passed. |\n| AC3 | acceptance_criterion | `ADV_INSTRUCTIONS.md` includes one clearly labeled orchestrator-session operational routing table with GitHub CI/check-run/status investigation mapped to `general`. | pass | Targeted asset test requires `ADV_INSTRUCTIONS.md` label `Orchestrator-Session Operational Routing` and `GitHub CI / check-run / status investigation | general`; test passed. |\n| AC4 | acceptance_criterion | `.opencode/command/adv-apply.md` task-level Step 4.5 semantics remain unchanged and do not duplicate the ops table. | pass | Targeted asset test requires Step 4.5 text in `adv-apply.md` and rejects ops-table label/GitHub row there; reviewer static check says adv-apply unchanged. |\n| AC5 | acceptance_criterion | Tests fail if `adv.md` ops guidance becomes table-form, if `ADV_INSTRUCTIONS.md` lacks the ops table/GitHub CI token, or if task-level Step 4.5 wording is weakened. | pass | RED test failed before implementation on missing adv.md ops prose, ADV_INSTRUCTIONS ops table, and spec requirement; GREEN/VERIFY passed after implementation. |\n| AC6 | acceptance_criterion | No `adv-atc.md` behavior/prose change ships in this change. | pass | Targeted asset test asserts `adv-atc.md` lacks ops-delegation/table tokens; static diff shows adv-atc unchanged; test passed. |\n| AC7 | acceptance_criterion | Verification includes targeted asset/drift tests plus relevant schema/spec checks. | pass | Verification passed: `bin/oc-test targeted -- src/orchestrator-ops-delegation-assets.test.ts` exit 0, `bin/oc-test smoke` exit 0 including schemas:check, typecheck, lint, format:check, and 39 smoke tests. |\n| C1 | constraint | `rq-contextShed02` remains intact: `adv.md` Context-Optimal Execution uses prose bullets, not routing tables. | respected | `adv.md` ops guidance is prose bullets; asset test rejects any pipe in Context-Optimal Execution; no ops table pasted into adv.md. |\n| C2 | constraint | Operational delegation is instruction/spec/test-level only; no runtime enforcement is in scope. | respected | Only specs/docs/agent instruction/test files changed; no runtime enforcement code changed. |\n| C3 | constraint | Worker mapping remains specialist-bounded; `general` is for operational audits, CI/status investigation, and verify bursts, not ADV code-writing. | respected | `ADV_INSTRUCTIONS.md` maps audit/CI/status/verify to `general`; code-edit rows map to `adv-engineer` / `adv-designer`; asset test rejects code rows mapped to general. |\n| C4 | constraint | Primary `adv` keeps all ADV state authority and user-facing synthesis. | respected | Spec and adv.md prose state primary adv retains gate/task/checkpoint/archive/signoff/drift/contract/release/user synthesis authority. |\n| C5 | constraint | No changes to OMR/model-routing config. | respected | Static diff contains no OMR/model-routing config files; changed files limited to advance-meta spec/docs, adv.md, ADV_INSTRUCTIONS.md, and asset test. |\n| C6 | constraint | No changes to `adv-atc.md` in this change. | respected | Static diff and test confirm `.opencode/agents/adv-atc.md` unchanged. |\n| DONT1 | avoidance | Do not paste the operational routing table into `.opencode/agents/adv.md`. | respected | `adv.md` Context-Optimal Execution contains no table pipes; operational table exists only in `ADV_INSTRUCTIONS.md`. |\n| DONT2 | avoidance | Do not alter task-level Step 4.5 Context-Shed semantics. | respected | `adv-apply.md` not modified in final diff; asset test checks Step 4.5 remains and no ops table duplicate appears. |\n| DONT3 | avoidance | Do not make `general` the default code-writing worker. | respected | Asset test requires code edits route to `adv-engineer` and frontend/component edits to `adv-designer`, not `general`. |\n| DONT4 | avoidance | Do not add runtime delegation enforcement. | respected | No runtime Temporal/storage/tool code changed; spec states runtime enforcement is not required. |\n| DONT5 | avoidance | Do not modify `adv-atc.md`; defer ATC handling to a follow-up if needed. | respected | `.opencode/agents/adv-atc.md` unchanged; asset test asserts no operational delegation tokens there. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addOrchestratorOpsDelegation/proposal.md",
+      "updatedAt": "2026-06-06T22:08:55.268Z",
+      "contentHash": "ee336312207b1109fa44010381cea6fd6ce3adf6b826c5362b5c280ab26be1fe"
+    },
+    "agreement": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addOrchestratorOpsDelegation/agreement.md",
+      "updatedAt": "2026-06-06T22:17:07.543Z",
+      "contentHash": "9ff962929046c38722da6685abe8b48da3ced9c7991335004cfdfa3764dce878"
+    },
+    "design": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addOrchestratorOpsDelegation/design.md",
+      "updatedAt": "2026-06-06T22:21:47.645Z",
+      "contentHash": "9e1552c56653dc2268fc2cbc58e5cda44cd2bb76c7feef0586ccb6e3332a8c0b"
+    },
+    "executiveSummary": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addOrchestratorOpsDelegation/executive-summary.md",
+      "updatedAt": "2026-06-06T22:37:37.290Z",
+      "contentHash": "29107c575a3754c62a6550b2032179cb4cee652aa811758cc758635b24284dfb"
+    }
+  },
+  "lastSignalAt": "2026-06-06T22:42:41.012Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_UNCLEAR_SCOPE",
+      "severity": "warning",
+      "message": "Proposal has no Scope section. What files and modules will be affected?",
+      "recorded_at": "2026-06-06T22:01:34.899Z"
+    },
+    {
+      "code": "CLARIFY_MISSING_ERROR_HANDLING",
+      "severity": "warning",
+      "message": "Proposal describes behavior that could fail but doesn't mention error handling or rollback. What happens when things go wrong?",
+      "recorded_at": "2026-06-06T22:01:34.899Z",
+      "resolved": true,
+      "resolved_at": "2026-06-06T22:17:27.685Z"
+    }
+  ]
+}

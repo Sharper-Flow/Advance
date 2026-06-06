@@ -1,7 +1,7 @@
 # Advance Workflow
 
-> **Version:** 1.14.0
-> **Updated:** 2026-05-25
+> **Version:** 1.15.0
+> **Updated:** 2026-06-05
 
 ## Purpose
 
@@ -1586,6 +1586,64 @@ The ChangeSchema must support an optional `fast_follow_of` field that records sa
 
 - A mutual-exclusion error is returned
 - No change is created
+
+---
+
+### Target-Path Cross-Project Coordination
+
+**ID:** `rq-crossProjectCoordination01` | **Priority:** **[MUST]**
+
+ADV tools that support cross-project coordination must use explicit `target_path` routing, persist structured cross_project_links and advisory external_dependencies on changes, require explicit confirmation before mutating untrusted target projects, and present dependency status as summary by default with drilldown available on request. `adv_change_create` with `target_path` is a target mutation: it must route creation through the target project's Temporal-backed store, seed `cross_project_origin` before workflow start, avoid synchronous target workflow `getState` queries from the source process, and fail without leaving active disk-only target state when target workflow start fails. Active disk-only target records must be recoverable through the normal list/read reseed path; archived and closed records must not be recreated. External dependencies are advisory warnings only and must not block gates or archive by default.
+
+**Tags:** `workflow`, `cross-project`, `target-path`, `advisory-dependencies`, `safety`
+
+#### Scenarios
+
+**Target mutation readiness accepts fresh server pollers** (`rq-targetMutationReadiness01`)
+
+**Given:**
+
+- A temporal-required target_path mutation is evaluated
+- The current process has no registered worker for the target project queue
+- Temporal task-queue inspection reports a fresh workflow poller for the target project queue
+
+**When:** The target mutation readiness check runs
+
+**Then:**
+
+- The readiness check treats the target queue as serviceable using the shared queue serviceability model
+- The mutation proceeds to the Temporal-backed target store path
+- The mutation does not fail solely because the current process has no local worker object
+
+**Unproven target mutation readiness fails closed** (`rq-targetMutationReadiness02`)
+
+**Given:**
+
+- A temporal-required target_path mutation is evaluated
+- The current process has no registered worker for the target project queue
+- Temporal task-queue inspection is stale, absent, unavailable, or otherwise not serviceable
+
+**When:** The target mutation readiness check runs
+
+**Then:**
+
+- The tool fails before constructing or mutating target project state
+- The failure reports the target queue name and typed serviceability blockers
+- The failure includes an actionable recovery instruction for opening or restarting the target project ADV worker
+
+**Status and mutation readiness share serviceability semantics** (`rq-targetMutationReadiness03`)
+
+**Given:**
+
+- ADV status or diagnostics report a target project queue as serviceable from fresh server poller evidence
+
+**When:** A temporal-required target_path mutation checks the same queue with a fresh mutation-boundary probe
+
+**Then:**
+
+- Mutation readiness uses the same structural queue serviceability semantics as status and diagnostics
+- Mutation readiness does not contradict status by failing solely because the current process is client-only
+- Cached status or health evidence is not the sole authority for mutation readiness
 
 ---
 

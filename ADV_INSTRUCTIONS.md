@@ -380,8 +380,8 @@ Every `/adv-apply` task with file changes in its workdir MUST produce a git comm
 
 **Commit message format:**
 
-- Subject: `task(tk-xxxx): completed` or `task(tk-xxxx): cancel — <reason>`
-- Body trailers: `Change: <change-id>`, `Task: <task-id>`, `Mode: complete|cancel`, `Verification: <summary>`
+- Subject: `chore(adv): checkpoint <task-id>` or `chore(adv): cancel checkpoint <task-id>`
+- Body trailers: `Change: <change-id>`, `Task: <task-id>`, `Mode: complete|cancel`, `Reason: <reason>` for cancel, `Verification: <summary>`
 
 **Staging:** `git add -A` — `.gitignore` is the safety net.
 **Anti-patterns:**
@@ -736,6 +736,23 @@ For `/adv-arch-scan`, run stack-pack tools, Context7, and Exa inline; do not spa
 Context-Shed Test = all four true + floor met (~5 files OR ~50 lines): decided HOW, HOW does not feed downstream decisions, AC defined, mechanical implementation. Unsure → `inline_required`. After delegation, P23 campsite scan touched scope.
 
 ADV code-writing → `adv-engineer` (not `general`). Verify-burst/non-ADV → `general`.
+
+### Orchestrator-Session Operational Routing
+
+This table is session-level operational routing, distinct from task-level Step 4.5. Use it when primary `adv` is about to do broad authority-free operational work outside a task handoff. Do not run a second primary recon/shell/test/CI-check cycle before delegating when the next step fits one of these rows.
+
+| Trigger | Worker |
+| --- | --- |
+| >5 file reads/searches expected | `explore` |
+| repo structure / dependency map / same-pattern scan | `explore` or `adv-tron` |
+| DB/log/status/usage audit | `general` |
+| GitHub CI / check-run / status investigation | `general` |
+| repeated verify/test bursts | `general` |
+| code edits after task scope known | `adv-engineer` |
+| frontend/component edits | `adv-designer` |
+| docs/source research first-pass | `general`; use `adv-researcher` when sourced architecture authority is needed |
+
+Primary `adv` still owns gate completion, task-graph mutation, checkpoint/archive/sign-off, scope drift, contract compromise, safety, release, and user-facing synthesis. Worker output is evidence, not authority.
 
 ### Context Packet Standards
 

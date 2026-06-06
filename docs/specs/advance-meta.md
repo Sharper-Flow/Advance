@@ -1,7 +1,7 @@
 # Advance Meta
 
-> **Version:** 1.11.0
-> **Updated:** 2026-05-22
+> **Version:** 1.15.0
+> **Updated:** 2026-06-06
 
 ## Purpose
 
@@ -918,6 +918,110 @@ The adv.md orchestrator agent's Context-Optimal Execution section MUST include c
 - ADV_INSTRUCTIONS.md and adv-apply.md delegation tables contain step 4.5 with matching wording
 - adv.md Context-Optimal Execution section contains context-shed tokens without table pipe characters
 - adv-apply.md contains P23 diff-scan step tokens
+
+---
+
+### Orchestrator-Session Operational Delegation
+
+**ID:** `rq-orchestratorOpsDelegation01` | **Priority:** **[MUST]**
+
+The primary adv orchestrator SHOULD delegate broad operational work before repeating expensive primary-context cycles, while retaining all ADV authority boundaries. Operational work includes expected >5 file reads/searches, repo structure/dependency/same-pattern scans, DB/log/status/usage audits, GitHub CI/check-run/status investigation, repeated verify/test bursts, and known-scope code edits. The no second primary-cycle rule applies when another recon/shell/test/CI-check cycle is needed and the next step is authority-free. Delegation guidance is instruction/spec/test-level only: adv.md Context-Optimal Execution carries prose-only guidance, ADV_INSTRUCTIONS.md carries the single orchestrator-session operational routing table, adv-apply.md task-level Step 4.5 routing remains unchanged, and adv-atc.md remains out of scope unless a future change explicitly updates it. The primary adv must keep gate completion, task-graph mutation, checkpoint/archive/sign-off, scope-drift, contract-compromise, safety, release, and user-facing synthesis authority. Operational routing must not make general the ADV code-writing default; code-edit rows route to adv-engineer or adv-designer by scope.
+
+**Tags:** `delegation`, `orchestrator`, `operations`, `context-shed`
+
+#### Scenarios
+
+**Primary orchestrator retains authority boundary** (`rq-orchestratorOpsDelegation01.1`)
+
+**Given:**
+
+- The primary adv delegates operational work to a worker
+
+**When:** The worker returns findings or verification output
+
+**Then:**
+
+- Primary adv retains gate completion authority
+- Primary adv retains task-graph mutation authority
+- Primary adv retains checkpoint, archive, sign-off, scope-drift, contract-compromise, safety, release, and user-facing synthesis authority
+- Worker output is advisory evidence, not an ADV state mutation or gate decision
+
+**Operational triggers map to bounded workers** (`rq-orchestratorOpsDelegation01.2`)
+
+**Given:**
+
+- The primary adv expects broad operational work outside a task graph item
+
+**When:** The work matches a routing trigger in ADV_INSTRUCTIONS.md
+
+**Then:**
+
+- >5 file reads/searches routes to explore
+- Repo structure, dependency map, or same-pattern scan routes to explore or adv-tron
+- DB/log/status/usage audit routes to general
+- GitHub CI / check-run / status investigation routes to general
+- Repeated verify/test bursts route to general
+- Code edits after task scope is known route to adv-engineer, or adv-designer for frontend/component scope
+
+**No second primary operational cycle before delegation** (`rq-orchestratorOpsDelegation01.3`)
+
+**Given:**
+
+- The primary adv has already run one recon, shell/test, status, or CI-check cycle for an operational question
+- More work of the same operational class is needed
+- The next step does not require ADV authority or user-facing synthesis
+
+**When:** The primary adv chooses whether to continue inline or delegate
+
+**Then:**
+
+- The primary adv delegates the next operational cycle to the mapped worker
+- The primary adv does not run a second primary recon/shell/test/CI-check cycle before delegating
+- The primary adv resumes inline for synthesis, decisions, and ADV state mutation after worker output
+
+**adv.md carries operational delegation prose only** (`rq-orchestratorOpsDelegation01.4`)
+
+**Given:**
+
+- The adv.md Context-Optimal Execution section is inspected
+
+**When:** Operational delegation guidance is checked
+
+**Then:**
+
+- The section includes operational delegation prose tokens including GitHub CI, check-run, reads/searches, second, and general
+- The section contains no markdown routing table
+- The section contains no pipe characters
+
+**ADV_INSTRUCTIONS.md owns the operational routing table** (`rq-orchestratorOpsDelegation01.5`)
+
+**Given:**
+
+- ADV_INSTRUCTIONS.md is inspected
+
+**When:** Operational delegation routing guidance is checked
+
+**Then:**
+
+- ADV_INSTRUCTIONS.md contains a clearly labeled Orchestrator-Session Operational Routing table
+- The table contains a GitHub CI / check-run / status investigation row mapped to general
+- The table routes code-edit rows to adv-engineer or adv-designer, not general
+- adv-apply.md does not duplicate the operational routing table
+
+**Task-level Step 4.5 and adv-atc remain unchanged** (`rq-orchestratorOpsDelegation01.6`)
+
+**Given:**
+
+- The operational delegation change is implemented
+
+**When:** Scope boundaries are checked
+
+**Then:**
+
+- adv-apply.md retains the existing Step 4.5 Context-Shed Test semantics and priority order
+- adv-apply.md does not contain the Orchestrator-Session Operational Routing table
+- adv-atc.md is not modified by this change
+- Runtime Temporal/storage/tool code is not required to enforce this instruction-level delegation guidance
 
 ---
 

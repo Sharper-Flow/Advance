@@ -1,0 +1,33 @@
+{
+  "entries": [
+    {
+      "id": "ws-J9y3Wy",
+      "type": "gotcha",
+      "content": "`docs/specs/advance-workflow.md` can lag `.adv/specs/advance-workflow/spec.json`; when adding spec-law scenarios, mirror the relevant section manually and update the doc header version/date if the mirror is stale.",
+      "source_task": "tk-28152fd2daa6",
+      "recorded_at": "2026-06-06T23:02:59.275Z"
+    },
+    {
+      "id": "ws-2T5FoT",
+      "type": "gotcha",
+      "content": "Advance's repo-local `bin/oc-test` wrapper is at the repository root; running `bin/oc-test ...` from `plugin/` fails with exit 127. Use repo root as workdir for wrapper-based tests, even when test paths are under `plugin/src`.",
+      "source_task": "tk-08358f278a59",
+      "recorded_at": "2026-06-06T23:06:16.538Z"
+    },
+    {
+      "id": "ws-uSroX-",
+      "type": "success",
+      "content": "`adv_change_create target_path` source-link write is already ordered after `targetStore.changes.create`; tests can prove no-partial-link behavior by making target create throw and asserting `sourceStore.changes.save` is not called.",
+      "source_task": "tk-ad71e2c8c81e",
+      "recorded_at": "2026-06-06T23:07:43.597Z"
+    },
+    {
+      "id": "ws-pa2Il7",
+      "type": "gotcha",
+      "content": "Acceptance coverage for target mutation readiness should exercise stale, absent, and unavailable server poller statuses at the target-store boundary, not only in lower-level queue serviceability helpers.",
+      "source_task": "tk-8dd953c53fc1",
+      "recorded_at": "2026-06-06T23:15:56.870Z"
+    }
+  ],
+  "count": 4
+}

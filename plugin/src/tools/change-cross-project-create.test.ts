@@ -145,7 +145,7 @@ describe("adv_change_create cross-project Temporal routing", () => {
     });
   });
 
-  test("reports target Temporal create failure without writing source link", async () => {
+  test("reports target Temporal create failure after readiness without writing source link", async () => {
     const targetCreate = vi.fn(async () => {
       throw new Error("Temporal workflow start failed");
     });
@@ -180,6 +180,24 @@ describe("adv_change_create cross-project Temporal routing", () => {
     );
     const parsed = parseToolOutput(output);
 
+    expect(mocks.withTargetPathStore).toHaveBeenCalledWith(
+      expect.objectContaining({
+        target_path: TARGET_ROOT,
+        stateRequirement: "temporal-required",
+      }),
+      expect.any(Function),
+    );
+    expect(targetCreate).toHaveBeenCalledWith(
+      "Add failing target",
+      expect.objectContaining({
+        initialMetadata: {
+          cross_project_origin: expect.objectContaining({
+            source_change_id: "sourceChange",
+          }),
+        },
+      }),
+    );
+    expect(targetStore.changes.get).not.toHaveBeenCalled();
     expect(parsed.error).toContain("Temporal workflow start failed");
     expect(sourceStore.changes.save).not.toHaveBeenCalled();
   });
