@@ -538,6 +538,41 @@ describe("checkpoint tools — signal-driven", () => {
       expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
     });
 
+    test("uses explicit changeId in commit body when task lookup cannot derive one", async () => {
+      const store = createMockStore();
+      vi.mocked(store.tasks.show).mockRejectedValueOnce(
+        new Error("task lookup unavailable"),
+      );
+      mockGitResponses({
+        "rev-parse --abbrev-ref HEAD": { stdout: "change/explicit-change" },
+        "status --porcelain": { stdout: " M src/file.ts" },
+      });
+
+      const result = await checkpointTools.adv_task_checkpoint.execute(
+        {
+          taskId: "tk-abc",
+          mode: "cancel",
+          reason: "Abandoned",
+          changeId: "explicit-change",
+        },
+        store,
+        "/tmp/test",
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.status).toBe("committed");
+      const commitCall = mocks.execFile.mock.calls.find(
+        ([, args]) => Array.isArray(args) && args[0] === "commit",
+      );
+      expect(commitCall?.[1]).toEqual([
+        "commit",
+        "-m",
+        "chore(adv): cancel checkpoint tk-abc",
+        "-m",
+        expect.stringContaining("Change: explicit-change"),
+      ]);
+    });
+
     test("returns checkpointRecorded false when Temporal service unavailable", async () => {
       mocks.getService.mockReturnValueOnce(null);
       const store = createMockStore();

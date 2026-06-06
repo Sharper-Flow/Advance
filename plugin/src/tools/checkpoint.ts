@@ -756,7 +756,7 @@ export const checkpointTools = {
           args.taskId,
           mode,
           args.reason,
-          derivedChangeId,
+          effectiveChangeId,
           args.verification,
         );
       } catch (err) {
