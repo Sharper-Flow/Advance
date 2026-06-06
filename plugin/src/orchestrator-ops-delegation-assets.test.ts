@@ -120,9 +120,7 @@ describe("orchestrator operational delegation assets", () => {
     expect(requirement?.body).toContain("GitHub CI");
     expect(requirement?.body).toContain("no second");
 
-    const scenarioIds = new Set(
-      requirement?.scenarios?.map((scenario) => scenario.id) ?? [],
-    );
+    const scenarioIds = requirement?.scenarios?.map((scenario) => scenario.id) ?? [];
     expect(scenarioIds).toEqual(
       expect.arrayContaining([
         "rq-orchestratorOpsDelegation01.1",

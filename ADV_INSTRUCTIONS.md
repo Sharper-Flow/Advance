@@ -737,6 +737,23 @@ Context-Shed Test = all four true + floor met (~5 files OR ~50 lines): decided H
 
 ADV code-writing → `adv-engineer` (not `general`). Verify-burst/non-ADV → `general`.
 
+### Orchestrator-Session Operational Routing
+
+This table is session-level operational routing, distinct from task-level Step 4.5. Use it when primary `adv` is about to do broad authority-free operational work outside a task handoff. Do not run a second primary recon/shell/test/CI-check cycle before delegating when the next step fits one of these rows.
+
+| Trigger | Worker |
+| --- | --- |
+| >5 file reads/searches expected | `explore` |
+| repo structure / dependency map / same-pattern scan | `explore` or `adv-tron` |
+| DB/log/status/usage audit | `general` |
+| GitHub CI / check-run / status investigation | `general` |
+| repeated verify/test bursts | `general` |
+| code edits after task scope known | `adv-engineer` |
+| frontend/component edits | `adv-designer` |
+| docs/source research first-pass | `general`; use `adv-researcher` when sourced architecture authority is needed |
+
+Primary `adv` still owns gate completion, task-graph mutation, checkpoint/archive/sign-off, scope drift, contract compromise, safety, release, and user-facing synthesis. Worker output is evidence, not authority.
+
 ### Context Packet Standards
 
 Apply packet includes: WORKING DIRECTORY, CHANGE, TASK, ATTEMPT, AFFECTED FILES, DESIGN EXCERPT, ACCEPTANCE CRITERIA, EXPECTED OUTPUT.
