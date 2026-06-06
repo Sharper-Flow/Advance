@@ -6,7 +6,11 @@
  */
 
 import { describe, test, expect, vi, beforeEach, afterEach } from "vitest";
-import { checkpointTools, detectRepoState } from "./checkpoint";
+import {
+  buildCommitMessage,
+  checkpointTools,
+  detectRepoState,
+} from "./checkpoint";
 import type { Store } from "../storage/store-types";
 
 const mocks = vi.hoisted(() => {
@@ -234,6 +238,53 @@ describe("checkpoint tools — signal-driven", () => {
     });
   });
 
+  describe("buildCommitMessage", () => {
+    test("builds Conventional Commit subject and audit body for complete mode", () => {
+      const { subject, body } = buildCommitMessage(
+        "tk-AbC123",
+        "complete",
+        undefined,
+        "test-change",
+        "Tests passed",
+      );
+
+      expect(subject).toBe("chore(adv): checkpoint tk-AbC123");
+      expect(subject).toMatch(/^chore\(adv\): checkpoint tk-[A-Za-z0-9]+$/);
+      expect(subject.length).toBeLessThanOrEqual(72);
+      expect(body).toContain("Change: test-change");
+      expect(body).toContain("Task: tk-AbC123");
+      expect(body).toContain("Mode: complete");
+      expect(body).toContain("Verification: Tests passed");
+      expect(body).not.toContain("Reason:");
+    });
+
+    test("builds Conventional Commit subject and cancel reason body field", () => {
+      const { subject, body } = buildCommitMessage(
+        "tk-AbC123",
+        "cancel",
+        "No longer needed",
+        "test-change",
+      );
+
+      expect(subject).toBe("chore(adv): cancel checkpoint tk-AbC123");
+      expect(subject).toMatch(
+        /^chore\(adv\): cancel checkpoint tk-[A-Za-z0-9]+$/,
+      );
+      expect(subject.length).toBeLessThanOrEqual(72);
+      expect(subject).not.toContain("No longer needed");
+      expect(body).toContain("Change: test-change");
+      expect(body).toContain("Task: tk-AbC123");
+      expect(body).toContain("Mode: cancel");
+      expect(body).toContain("Reason: No longer needed");
+    });
+
+    test("rejects task IDs that would produce overlength checkpoint subjects", () => {
+      expect(() =>
+        buildCommitMessage(`tk-${"x".repeat(80)}`, "complete"),
+      ).toThrow("Checkpoint commit subject exceeds 72 characters");
+    });
+  });
+
   describe("adv_task_checkpoint", () => {
     test("fires taskCompletedSignal after commit in complete mode", async () => {
       const store = createMockStore();
@@ -252,6 +303,16 @@ describe("checkpoint tools — signal-driven", () => {
 
       const parsed = JSON.parse(result);
       expect(parsed.status).toBe("committed");
+      const commitCall = mocks.execFile.mock.calls.find(
+        ([, args]) => Array.isArray(args) && args[0] === "commit",
+      );
+      expect(commitCall?.[1]).toEqual([
+        "commit",
+        "-m",
+        "chore(adv): checkpoint tk-abc",
+        "-m",
+        expect.stringContaining("Task: tk-abc"),
+      ]);
       expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
       const signalCall = mocks.fireSignalAndRefresh.mock.calls[0];
       expect(signalCall[4]).toMatchObject({
@@ -464,6 +525,16 @@ describe("checkpoint tools — signal-driven", () => {
 
       const parsed = JSON.parse(result);
       expect(parsed.status).toBe("committed");
+      const commitCall = mocks.execFile.mock.calls.find(
+        ([, args]) => Array.isArray(args) && args[0] === "commit",
+      );
+      expect(commitCall?.[1]).toEqual([
+        "commit",
+        "-m",
+        "chore(adv): cancel checkpoint tk-abc",
+        "-m",
+        expect.stringContaining("Reason: Abandoned"),
+      ]);
       expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
     });
 
