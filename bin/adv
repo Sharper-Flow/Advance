@@ -28,9 +28,9 @@ import {
 import { readSnapshotFile, renderRoadmap, roadmapJson } from "./lib/roadmap";
 import {
   buildLiveStatusFailure,
-  buildLiveStatusPayload,
+  buildLiveStatusPayloadFromSummaries,
   QUERY_TIMEOUT_MS,
-  loadLiveStatus,
+  loadLiveSummaries,
 } from "./lib/live-status";
 
 // =============================================================================
@@ -92,11 +92,11 @@ async function runStatus(noColor: boolean, json: boolean): Promise<number> {
       : QUERY_TIMEOUT_MS;
 
   try {
-    const [changes, terminalCounts] = await Promise.all([
-      loadLiveStatus(projectId, timeoutMs),
+    const [summaries, terminalCounts] = await Promise.all([
+      loadLiveSummaries(projectId, now, timeoutMs),
       countTerminalChanges(root),
     ]);
-    const payload = buildLiveStatusPayload(changes, {
+    const payload = buildLiveStatusPayloadFromSummaries(summaries, {
       projectId,
       now,
       ...terminalCounts,
