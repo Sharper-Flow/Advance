@@ -1498,6 +1498,49 @@
           ]
         },
         {
+          "id": "rq-targetMutationReadiness01",
+          "title": "Target mutation readiness accepts fresh server pollers",
+          "given": [
+            "A temporal-required target_path mutation is evaluated",
+            "The current process has no registered worker for the target project queue",
+            "Temporal task-queue inspection reports a fresh workflow poller for the target project queue"
+          ],
+          "when": "The target mutation readiness check runs",
+          "then": [
+            "The readiness check treats the target queue as serviceable using the shared queue serviceability model",
+            "The mutation proceeds to the Temporal-backed target store path",
+            "The mutation does not fail solely because the current process has no local worker object"
+          ]
+        },
+        {
+          "id": "rq-targetMutationReadiness02",
+          "title": "Unproven target mutation readiness fails closed",
+          "given": [
+            "A temporal-required target_path mutation is evaluated",
+            "The current process has no registered worker for the target project queue",
+            "Temporal task-queue inspection is stale, absent, unavailable, or otherwise not serviceable"
+          ],
+          "when": "The target mutation readiness check runs",
+          "then": [
+            "The tool fails before constructing or mutating target project state",
+            "The failure reports the target queue name and typed serviceability blockers",
+            "The failure includes an actionable recovery instruction for opening or restarting the target project ADV worker"
+          ]
+        },
+        {
+          "id": "rq-targetMutationReadiness03",
+          "title": "Status and mutation readiness share serviceability semantics",
+          "given": [
+            "ADV status or diagnostics report a target project queue as serviceable from fresh server poller evidence"
+          ],
+          "when": "A temporal-required target_path mutation checks the same queue with a fresh mutation-boundary probe",
+          "then": [
+            "Mutation readiness uses the same structural queue serviceability semantics as status and diagnostics",
+            "Mutation readiness does not contradict status by failing solely because the current process is client-only",
+            "Cached status or health evidence is not the sole authority for mutation readiness"
+          ]
+        },
+        {
           "id": "rq-crossProjectCoordination01.3",
           "title": "Dependencies remain advisory",
           "given": [
