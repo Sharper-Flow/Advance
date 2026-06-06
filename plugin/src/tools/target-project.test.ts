@@ -75,10 +75,9 @@ vi.mock("../temporal/service", () => ({
 }));
 
 vi.mock("../temporal/queue-serviceability", async () => {
-  const actual =
-    await vi.importActual<typeof import("../temporal/queue-serviceability")>(
-      "../temporal/queue-serviceability",
-    );
+  const actual = await vi.importActual<
+    typeof import("../temporal/queue-serviceability")
+  >("../temporal/queue-serviceability");
   return {
     ...actual,
     probeTaskQueuePollers: mocks.probeTaskQueuePollers,

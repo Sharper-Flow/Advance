@@ -251,9 +251,8 @@ export async function ensureTargetMutationQueueReady(input: {
   const serviceability = classifyQueueServiceability({
     projectId: input.projectId,
     expectedQueue,
-    localRegistered: getRegisteredTemporalWorkerQueues().includes(
-      expectedQueue,
-    ),
+    localRegistered:
+      getRegisteredTemporalWorkerQueues().includes(expectedQueue),
     localWorkerAlive: getTemporalWorkerAliveness(),
     localOwnership: targetMutationLocalOwnership(),
     workerDiagnostics: getTemporalWorkerDiagnostics(),
