@@ -108,7 +108,11 @@ describe("orchestrator operational delegation assets", () => {
 
   test("advance-meta declares orchestrator operational delegation law", () => {
     const spec = JSON.parse(readRepoFile(ADVANCE_META_SPEC_PATH)) as {
-      requirements?: { id: string; body?: string; scenarios?: { id?: string }[] }[];
+      requirements?: {
+        id: string;
+        body?: string;
+        scenarios?: { id?: string }[];
+      }[];
     };
 
     const requirement = spec.requirements?.find(
@@ -120,7 +124,8 @@ describe("orchestrator operational delegation assets", () => {
     expect(requirement?.body).toContain("GitHub CI");
     expect(requirement?.body).toContain("no second");
 
-    const scenarioIds = requirement?.scenarios?.map((scenario) => scenario.id) ?? [];
+    const scenarioIds =
+      requirement?.scenarios?.map((scenario) => scenario.id) ?? [];
     expect(scenarioIds).toEqual(
       expect.arrayContaining([
         "rq-orchestratorOpsDelegation01.1",
