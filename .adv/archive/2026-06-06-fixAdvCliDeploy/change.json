@@ -1,0 +1,1496 @@
+{
+  "id": "fixAdvCliDeploy",
+  "title": "Fix adv CLI deploy",
+  "status": "archived",
+  "created_at": "2026-06-05T21:25:53.800Z",
+  "tasks": [
+    {
+      "id": "tk-677c5fed0876",
+      "title": "Implement deploy-local managed ADV CLI install",
+      "type": "code",
+      "section": "Implementation",
+      "status": "cancelled",
+      "priority": 0,
+      "created_at": "2026-06-05T22:59:21.542Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "C7",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "cancelApproval": "User approved via question tool: selected Approve cancellations.",
+      "cancelledAt": "2026-06-06T03:59:29.741Z",
+      "completed_at": "2026-06-06T03:59:29.741Z",
+      "cancellation": {
+        "reason": "Replaced by scoped tasks tk-de6d6d8edf08, tk-20911b50c224, tk-54eae4ca32ff, and tk-ff8701595fe1 with clearer contract refs and dependencies.",
+        "approved_by_user": true,
+        "approval_evidence": "User approved via question tool: selected Approve cancellations.",
+        "approved_at": "2026-06-06T03:59:29.741Z"
+      }
+    },
+    {
+      "id": "tk-be6da32bf4e8",
+      "title": "Update release packaging, installer checks, and docs",
+      "type": "code",
+      "section": "Docs/Release",
+      "status": "cancelled",
+      "priority": 1,
+      "created_at": "2026-06-05T22:59:31.373Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC8"
+        ],
+        "verifies": [
+          "AC8"
+        ],
+        "respects": [
+          "C1",
+          "C5",
+          "C6",
+          "DONT3",
+          "DONT6"
+        ],
+        "not_applicable_reason": ""
+      },
+      "cancelApproval": "User approved via question tool: selected Approve cancellations.",
+      "cancelledAt": "2026-06-06T03:59:29.741Z",
+      "completed_at": "2026-06-06T03:59:29.741Z",
+      "cancellation": {
+        "reason": "Replaced by scoped documentation/spec tasks tk-526440595ed2 and tk-6e66b550ec40 with clearer contract refs and dependencies.",
+        "approved_by_user": true,
+        "approval_evidence": "User approved via question tool: selected Approve cancellations.",
+        "approved_at": "2026-06-06T03:59:29.741Z"
+      }
+    },
+    {
+      "id": "tk-7e258baa06de",
+      "title": "Deploy and verify installed adv restores launcher rows",
+      "type": "code",
+      "section": "Verification",
+      "status": "cancelled",
+      "priority": 2,
+      "created_at": "2026-06-05T22:59:42.569Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-677c5fed0876"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-be6da32bf4e8"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [],
+        "verifies": [
+          "AC2",
+          "AC5",
+          "AC6",
+          "AC9"
+        ],
+        "respects": [
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "cancelApproval": "User approved via question tool: selected Approve cancellations.",
+      "cancelledAt": "2026-06-06T03:59:29.741Z",
+      "completed_at": "2026-06-06T03:59:29.741Z",
+      "cancellation": {
+        "reason": "Replaced by final verification task tk-ff8701595fe1 and source-current guard task tk-54eae4ca32ff; broad launcher-row wording exceeded current repo scope.",
+        "approved_by_user": true,
+        "approval_evidence": "User approved via question tool: selected Approve cancellations.",
+        "approved_at": "2026-06-06T03:59:29.741Z"
+      }
+    },
+    {
+      "id": "tk-526440595ed2",
+      "title": "Add advance-meta spec law for ADV CLI local install",
+      "type": "code",
+      "section": "Spec law",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-06-05T22:59:53.310Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC6",
+          "AC8",
+          "AC9",
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "C7"
+        ],
+        "verifies": [
+          "AC7",
+          "AC8",
+          "AC9"
+        ],
+        "respects": [
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "DONT6"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-06T03:59:41.006Z",
+      "verification": "bin/oc-test targeted -- src/adv-status-cli-assets.test.ts src/deploy-local.test.ts src/overlay-sync-assets.test.ts src/cli-bridge-contract.test.ts (110 passed)",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added and verified ADV CLI local install law/guards and deploy-local coverage: stable local-share bin sync, managed ~/.local/bin/adv symlink, release artifact inclusion of bin payload, setup/install docs, PATH shadow handling, runtime import validation, and fake rsync test behavior for deployed CLI payload checks.",
+      "filesTouched": [
+        ".github/workflows/auto-release.yml",
+        "SETUP.md",
+        "install.sh",
+        "plugin/src/deploy-local.test.ts",
+        "plugin/src/overlay-sync-assets.test.ts",
+        "plugin/src/release-install-assets.test.ts",
+        "scripts/deploy-local.sh"
+      ],
+      "touched_files": [
+        ".github/workflows/auto-release.yml",
+        "SETUP.md",
+        "install.sh",
+        "plugin/src/deploy-local.test.ts",
+        "plugin/src/overlay-sync-assets.test.ts",
+        "plugin/src/release-install-assets.test.ts",
+        "scripts/deploy-local.sh"
+      ],
+      "checkpointSha": "88f436e8bb0c1f2e5de1eceec0cfd7cfe3affdca",
+      "completedAt": "2026-06-06T04:13:43.004Z",
+      "completed_at": "2026-06-06T04:13:43.004Z",
+      "notes": "Completed with checkpoint 88f436e8bb0c1f2e5de1eceec0cfd7cfe3affdca. Verification passed: bin/oc-test targeted -- src/adv-status-cli-assets.test.ts src/deploy-local.test.ts src/overlay-sync-assets.test.ts src/cli-bridge-contract.test.ts (110 passed).",
+      "error_recovery": {
+        "last_error": "Initial targeted verification failed on deploy-local expectation and dry-run/fresh fake-rsync behavior; follow-up failed once on TypeScript template literal parse due unescaped Bash parameter expansion in test fixture.",
+        "retry_count": 2,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "No further recovery needed; targeted suite passes.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "Targeted suite: deploy-local.test.ts expected old ADV_CLI_TARGET string; overlay-sync-assets.test.ts dry/fresh run returned status 1.",
+            "diagnosis": "Tests lagged intended deploy-local target default and fake rsync did not copy source payload, so runtime CLI validation saw missing deployed files.",
+            "fix_tried": "Updated deploy-local expectation and skipped dry-run live validation; added fake rsync copy behavior.",
+            "strategy_label": "align tests with managed CLI install contract",
+            "outcome": "failed",
+            "attempted_at": "2026-06-06T00:10:11Z"
+          },
+          {
+            "attempt_number": 2,
+            "error": "Transform parse error at overlay-sync-assets.test.ts due ${args[...]} inside TypeScript template literal fixture.",
+            "diagnosis": "Bash array parameter expansion was interpreted by TypeScript template literal parser.",
+            "fix_tried": "Rewrote fake rsync fixture to avoid Bash ${...} expansion by iterating arguments into src/dest variables.",
+            "strategy_label": "remove template-literal-sensitive Bash expansion",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-06T00:12:30Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-06T04:13:59.327Z"
+    },
+    {
+      "id": "tk-de6d6d8edf08",
+      "title": "Implement deploy-local managed CLI payload and symlink install",
+      "type": "code",
+      "section": "Deploy implementation",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-06-05T23:00:09.629Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-526440595ed2"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC2",
+          "AC5",
+          "C1",
+          "C5",
+          "C6",
+          "C7"
+        ],
+        "verifies": [
+          "AC2",
+          "AC5",
+          "AC7"
+        ],
+        "respects": [
+          "DONT1",
+          "DONT4",
+          "DONT6"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-06T04:14:17.295Z",
+      "verification": "bin/oc-test targeted -- src/deploy-local.test.ts src/overlay-sync-assets.test.ts src/release-install-assets.test.ts (96 passed)",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Managed CLI payload install is implemented in deploy-local: syncs bin/ to $ADV_LOCAL_DEPLOY_ROOT/bin, installs ~/.local/bin/adv as managed symlink to the stable deployed copy, release asset includes bin payload, install.sh requires bin/adv, and test fixtures verify sync/link behavior with fake HOME/PATH.",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "88f436e8bb0c1f2e5de1eceec0cfd7cfe3affdca",
+      "completedAt": "2026-06-06T04:15:08.728Z",
+      "completed_at": "2026-06-06T04:15:08.728Z",
+      "notes": "Completed with clean checkpoint at 88f436e8bb0c1f2e5de1eceec0cfd7cfe3affdca. Verification passed: bin/oc-test targeted -- src/deploy-local.test.ts src/overlay-sync-assets.test.ts src/release-install-assets.test.ts (96 passed).",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "No recovery needed; relevant targeted suite passes.",
+        "attempts": []
+      },
+      "updatedAt": "2026-06-06T04:15:17.418Z"
+    },
+    {
+      "id": "tk-20911b50c224",
+      "title": "Implement CLI install drift checks, safe repair, and PATH shadow handling",
+      "type": "code",
+      "section": "Deploy implementation",
+      "status": "done",
+      "priority": 5,
+      "created_at": "2026-06-05T23:00:23.017Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-de6d6d8edf08"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC3",
+          "AC4",
+          "C1",
+          "C3",
+          "C4",
+          "C7"
+        ],
+        "verifies": [
+          "AC1",
+          "AC3",
+          "AC4",
+          "AC7"
+        ],
+        "respects": [
+          "DONT1",
+          "DONT4",
+          "DONT5",
+          "DONT6"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-06T04:15:37.278Z",
+      "verification": "bin/oc-test targeted -- src/deploy-local.test.ts src/overlay-sync-assets.test.ts (88 passed)",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "CLI install drift checks, safe repair, and PATH shadow handling are implemented in deploy-local: classifies managed/missing/stale/wrong-target/unsafe existing targets, refuses unrelated files, replaces recognized stale ADV files, reports PATH shadow as blocking in --check, and treats PATH shadow as warning-only after --fix repairs the managed target.",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "88f436e8bb0c1f2e5de1eceec0cfd7cfe3affdca",
+      "completedAt": "2026-06-06T04:16:19.675Z",
+      "completed_at": "2026-06-06T04:16:19.675Z",
+      "notes": "Completed with clean checkpoint at 88f436e8bb0c1f2e5de1eceec0cfd7cfe3affdca. Verification passed: bin/oc-test targeted -- src/deploy-local.test.ts src/overlay-sync-assets.test.ts (88 passed).",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "No recovery needed; relevant targeted suite passes.",
+        "attempts": []
+      },
+      "updatedAt": "2026-06-06T04:16:29.472Z"
+    },
+    {
+      "id": "tk-54eae4ca32ff",
+      "title": "Add source-current live-status verification and no-mutation guards",
+      "type": "code",
+      "section": "Verification guards",
+      "status": "done",
+      "priority": 6,
+      "created_at": "2026-06-05T23:00:37.139Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-de6d6d8edf08"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC6",
+          "AC9",
+          "C2",
+          "C5",
+          "C6"
+        ],
+        "verifies": [
+          "AC6",
+          "AC7",
+          "AC9"
+        ],
+        "respects": [
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT5",
+          "DONT6"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-06T04:16:39.928Z",
+      "verification": "bin/oc-test targeted -- src/adv-status-cli-assets.test.ts src/cli-bridge-contract.test.ts src/deploy-local.test.ts (91 passed)",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Source-current live-status verification and no-mutation guards are in place: deploy-local validates installed adv status --json for live Temporal metadata, runtime import prerequisites are checked after sync, CLI bridge tests guard status/help-only behavior, and no CLI mutation subcommands were introduced.",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "88f436e8bb0c1f2e5de1eceec0cfd7cfe3affdca",
+      "completedAt": "2026-06-06T04:16:54.022Z",
+      "completed_at": "2026-06-06T04:16:54.022Z",
+      "notes": "Completed with clean checkpoint at 88f436e8bb0c1f2e5de1eceec0cfd7cfe3affdca. Verification passed: bin/oc-test targeted -- src/adv-status-cli-assets.test.ts src/cli-bridge-contract.test.ts src/deploy-local.test.ts (91 passed).",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "No recovery needed; relevant targeted suite passes.",
+        "attempts": []
+      },
+      "updatedAt": "2026-06-06T04:17:03.320Z"
+    },
+    {
+      "id": "tk-6e66b550ec40",
+      "title": "Update CLI install documentation and release/developer guidance",
+      "type": "code",
+      "section": "Documentation",
+      "status": "done",
+      "priority": 7,
+      "created_at": "2026-06-05T23:00:51.751Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-20911b50c224"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-54eae4ca32ff"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC5",
+          "AC6",
+          "AC8",
+          "C1",
+          "C2",
+          "C4",
+          "C5"
+        ],
+        "verifies": [
+          "AC8"
+        ],
+        "respects": [
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "DONT6"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-06T04:17:25.615Z",
+      "verification": "bin/oc-test targeted -- src/release-install-assets.test.ts src/deploy-local.test.ts (77 passed)",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "CLI install documentation and release/developer guidance are updated: SETUP now directs users to deploy-local --fix, documents stable local-share bin deployment, managed symlink behavior, --check findings, unrelated-file refusal, and PATH shadow remediation. Release asset tests require bin payload and installer completeness guidance.",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "88f436e8bb0c1f2e5de1eceec0cfd7cfe3affdca",
+      "completedAt": "2026-06-06T04:17:39.467Z",
+      "completed_at": "2026-06-06T04:17:39.467Z",
+      "notes": "Completed with clean checkpoint at 88f436e8bb0c1f2e5de1eceec0cfd7cfe3affdca. Verification passed: bin/oc-test targeted -- src/release-install-assets.test.ts src/deploy-local.test.ts (77 passed).",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "No recovery needed; relevant targeted suite passes.",
+        "attempts": []
+      },
+      "updatedAt": "2026-06-06T04:17:48.525Z"
+    },
+    {
+      "id": "tk-ff8701595fe1",
+      "title": "Run final install-contract verification and cleanup pass",
+      "type": "code",
+      "section": "Final verification",
+      "status": "done",
+      "priority": 8,
+      "created_at": "2026-06-05T23:01:03.366Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-6e66b550ec40"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7",
+          "AC8",
+          "AC9"
+        ],
+        "respects": [
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "DONT6"
+        ],
+        "not_applicable_reason": "Verification-only task; no implementation obligations."
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-06T04:18:08.813Z",
+      "verification": "Harden remediation verified: adv-reviewer READY; bin/oc-test full passed after harden fix; merge compatibility with origin/trunk passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Final verification, acceptance review, and harden remediation complete. Harden narrowed symlink recognition to exact managed/repo targets or content-marker-verified ADV CLI files, added unsafe symlink regression coverage, and full suite passed after the harden fix.",
+      "filesTouched": [
+        "plugin/src/overlay-sync-assets.test.ts",
+        "scripts/deploy-local.sh"
+      ],
+      "touched_files": [
+        "plugin/src/overlay-sync-assets.test.ts",
+        "scripts/deploy-local.sh"
+      ],
+      "checkpointSha": "bfcbe892370b6d61331a035c24d90e459fdefcce",
+      "completedAt": "2026-06-06T04:48:38.285Z",
+      "completed_at": "2026-06-06T04:48:38.285Z",
+      "notes": "Harden remediation checkpoint bfcbe892370b6d61331a035c24d90e459fdefcce. Harden reviewer verdict READY. Final verification passed: bin/oc-test full after harden fix; merge compatibility with origin/trunk passed.",
+      "error_recovery": {
+        "last_error": "Harden review found broad *advance*/bin/adv symlink recognition could accept unrelated content based on path alone.",
+        "retry_count": 2,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "No further recovery needed; harden reviewer READY and full suite passes after harden fix.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "bin/oc-test smoke failed format:check for src/adv-status-cli-assets.test.ts and src/deploy-local.test.ts.",
+            "diagnosis": "Prettier formatting drift from prior edits.",
+            "fix_tried": "Ran pnpm --dir plugin run format, then reran smoke.",
+            "strategy_label": "format cleanup",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-06T04:19:26Z"
+          },
+          {
+            "attempt_number": 2,
+            "error": "bin/oc-test full failed once in src/temporal/__tests__/concurrent-signaling.itest.ts with state predicate timeout.",
+            "diagnosis": "Failure was not reproduced by isolated file rerun; full suite rerun then passed.",
+            "fix_tried": "Reran the failing test file, then reran full suite.",
+            "strategy_label": "isolate and rerun full verification",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-06T04:20:51Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-06T04:48:52.777Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "fixAdvCliDeploy",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-opportunity-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design leverage scout for deploy-local-managed ADV CLI install",
+      "sources": [
+        {
+          "label": "Existing executable fake-HOME test harness",
+          "locator": "plugin/src/overlay-sync-assets.test.ts:89,163-171,338-340",
+          "summary": "mkdtempSync(tmpdir) + spawnSync('bash',[DEPLOY_SCRIPT_PATH,'--fix'],{env:{...process.env,HOME:tempHome,CI:'true'}}) pattern already exists and asserts result.status===0 plus filesystem effects under temp HOME. Reusable verbatim for CLI install tests; PATH override is a trivial env extension."
+        },
+        {
+          "label": "Existing rsync runtime-deploy block",
+          "locator": "scripts/deploy-local.sh:957-973",
+          "summary": "Section 0 already mkdir -p $ADV_RUNTIME_PLUGIN_PATH and rsync -a --delete from source plugin/. CLI payload (bin/adv + bin/lib) can sync via the same check_rsync + DRY_RUN guarded idiom rather than a bespoke copy mechanism."
+        },
+        {
+          "label": "Bun symlink module resolution",
+          "locator": "https://github.com/oven-sh/bun/blob/main/docs/snippets/cli/run.mdx (--preserve-symlinks-main is opt-in)",
+          "summary": "Bun defaults to Node semantics: main entry resolved to realpath before relative-import resolution. A ~/.local/bin/adv symlink to runtime bin/adv resolves ./lib/* against the runtime bin/ dir, so co-deploying bin/lib alongside bin/adv keeps relative imports intact without --preserve-symlinks. Validates symlink over wrapper script."
+        },
+        {
+          "label": "bin/adv relative-import surface",
+          "locator": "bin/adv:15-34",
+          "summary": "Entry imports ./lib/changes, ./lib/project, ./lib/render, ./lib/roadmap, ./lib/live-status. Confirms the lib payload that MUST be co-deployed and that symlink-realpath resolution is the load-bearing correctness property."
+        },
+        {
+          "label": "CLI no-mutation + live-status guard tests",
+          "locator": "plugin/src/cli-bridge-contract.test.ts:183-287",
+          "summary": "Static-content guards already assert bin/adv has no mutation dispatch and live-status has no silent stale fallback. Design's 'proof via status JSON shape' AC can extend this file's pattern rather than inventing a new guard surface."
+        },
+        {
+          "label": "install.sh release delegation + temp-dir cleanup trap",
+          "locator": "install.sh:35-40,114-130",
+          "summary": "install.sh extracts to TMP_DIR with `trap cleanup EXIT` (rm -rf) then runs `bash scripts/deploy-local.sh --fix` from RELEASE_ROOT. Confirms the temp-extraction-dir symlink risk is real: any symlink whose target is RELEASE_ROOT/TMP_DIR dies on trap. deploy-local must copy CLI payload to durable runtime root, never symlink into the extraction dir."
+        },
+        {
+          "label": "Config-backup prune idiom",
+          "locator": "scripts/deploy-local.sh:324-342",
+          "summary": "prune_config_backups shows the established check/fix/DRY_RUN/echo reporting idiom for managed artifacts. check_adv_cli_install/fix_adv_cli_install should mirror this reporting shape for consistency."
+        }
+      ],
+      "architecture_assessment": "The draft design is sound and aligns with established deploy-local idioms (Section-0 rsync runtime deploy, check/fix split, DRY_RUN reporting). The highest-leverage finding is that the executable fake-HOME test harness already exists in overlay-sync-assets.test.ts (mkdtempSync + spawnSync with HOME override) — the design's 'executable fake-HOME/PATH tests' requirement is a near-drop-in extension, not new infrastructure. Bun's default symlink-realpath main resolution structurally mitigates the design's stated 'bin/lib relative import break' risk, provided bin/lib is co-deployed beside bin/adv (which the design does). No core-architecture revision warranted.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "All five candidates are contract-tied and low/medium risk. Four are auto-adopt (design_around) leverage points that reduce implementation work by reusing existing harness/idioms; one (PATH-shadow UX detail) is surfaced to user as it carries a minor user-value tradeoff. No contradictory evidence; no security/release blocker. The temp-extraction-dir symlink risk is confirmed real and already covered by the design's copy-to-durable-root decision."
+      },
+      "recommendation": "Adopt candidates 1-4 into the design without user pause: (1) extend overlay-sync-assets.test.ts's existing mkdtempSync+spawnSync+HOME harness for CLI install tests, adding a tempBin dir on PATH for shadow cases; (2) sync the CLI payload through the existing Section-0 rsync block / check_rsync idiom; (3) co-deploy bin/lib beside bin/adv and rely on Bun default symlink-realpath resolution (no --preserve-symlinks needed) to keep ./lib/* imports intact; (4) extend cli-bridge-contract.test.ts for the status-JSON-shape proof rather than a new guard file. Surface candidate 5 (PATH-shadow fix behavior: warn-only vs offer-relink) to the user since it touches user-owned ~/.local/bin/adv. Mirror check_config / prune_config_backups reporting idiom for check_adv_cli_install / fix_adv_cli_install.",
+      "follow_ups": [
+        "SCOUT CANDIDATE 1 [adopt/design_around | payoff:high risk:low | tie:AC 'tests cover missing/valid/stale/wrong/unsafe/shadow', constraint 'temp HOME/PATH testability' | prior:new]: Reuse existing executable fake-HOME harness (overlay-sync-assets.test.ts:89,338) verbatim — mkdtempSync(tmpdir)+spawnSync('bash',[script,'--fix'],{env:{...process.env,HOME:tempHome,CI:'true'}}). Add tempBin=mkdtempSync + prepend to PATH for shadow tests. Rationale: design's 'new executable test harness' is already built; ~0 net new infra.",
+        "SCOUT CANDIDATE 2 [adopt/design_around | payoff:high risk:low | tie:objective 'deploy-local owns installed adv CLI', constraint 'durable owner is deploy-local' | prior:new]: Sync CLI payload through existing Section-0 idiom (deploy-local.sh:957-973): check_rsync || exit 1; mkdir -p $ADV_RUNTIME_CLI_DIR; rsync -a --delete source bin/ -> runtime bin/, with DRY_RUN echo branch. Rationale: reuses dependency-light rsync already required; honors 'dependency-light Bash' constraint.",
+        "SCOUT CANDIDATE 3 [adopt/design_around | payoff:high risk:low | tie:risk 'bin/lib relative import break', AC 'adv --version executes source-current behavior' | prior:new]: Rely on Bun default symlink-realpath main resolution (docs: --preserve-symlinks-main is opt-in). Co-deploy bin/lib beside runtime bin/adv; symlink ~/.local/bin/adv -> runtime bin/adv resolves ./lib/* against realpath dir. Rationale: structurally retires the stated relative-import-break risk; no wrapper script, no --preserve-symlinks flag. Verification: add a fake-HOME test that runs the linked adv --version and asserts it loads lib (exit 0, version string).",
+        "SCOUT CANDIDATE 4 [adopt/design_around | payoff:medium risk:low | tie:AC 'adv status --json emits live metadata or fail-closed live error not schema_version:1', constraint 'do not duplicate status semantics' | prior:new]: Extend cli-bridge-contract.test.ts (already guards no-mutation + live-default at :183-287) for the status-JSON-shape proof rather than a separate guard file. Rationale: keeps live-status law in one guard surface; avoids collision with addCliCommandBridges semantics which that file already pins.",
+        "SCOUT CANDIDATE 5 [surface_to_user | payoff:medium risk:medium | tie:AC 'check fails/fix warns on PATH shadow', avoidance 'protect unrelated files' | prior:new]: PATH-shadow remediation policy is a user-value tradeoff: --fix could (a) warn-only (design default) or (b) offer to relink/reorder when a non-ADV adv shadows ~/.local/bin/adv. Option (b) risks touching user-owned PATH/bins (violates 'protect unrelated files'). Recommend warn-only default; surface the choice to user before committing. Evidence: design 'check fails/fix warns on PATH shadow' is already conservative; deploy-local has no precedent for mutating user PATH entries (deploy-local.sh only manages ~/.local/share/Advance and ~/.config/opencode).",
+        "WARNING: packet did not include explicit prior_consideration archive data for these candidates; classified all as 'new' from absence of matching active/archived change evidence in repo grep. If orchestrator has Phase-1.6 conflict-scan data, reconcile before auto-adopt."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixAdvCliDeploy",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation for fixAdvCliDeploy (deploy-local owns adv CLI install)",
+      "sources": [
+        {
+          "label": "Bun runtime symlink resolution (no --preserve-symlinks in runtime; symlinks realpath-resolved by default)",
+          "locator": "https://bun.com/docs/pm/global-cache ; https://bun.com/docs/runtime",
+          "summary": "Bun's runtime does not expose a --preserve-symlinks equivalent and defaults to resolving symlinks to realpath for module resolution. Validates the design's symlink->runtime-copy mechanism: ./lib relative imports resolve against the realpathed runtime bin/ dir, so co-deploying bin/lib/** is correct."
+        },
+        {
+          "label": "Source bin/adv (Bun script, relative ./lib imports)",
+          "locator": "/home/jon/dev/advance/bin/adv:12-34",
+          "summary": "adv is a Bun shebang script importing ./lib/changes, ./lib/project, ./lib/render, ./lib/roadmap, ./lib/live-status. Confirms relative-import dependency that requires bin/lib co-deployment next to the runtime copy."
+        },
+        {
+          "label": "bin/lib/live-status.ts cross-tree import into plugin",
+          "locator": "/home/jon/dev/advance/bin/lib/live-status.ts:18-23",
+          "summary": "Live status imports ../../plugin/src/temporal/{list-change-workflows,client,contracts}. The CLI's AC6 live-status path depends on plugin/src/temporal/ source being present two dirs up from bin/lib at runtime."
+        },
+        {
+          "label": "deploy-local.sh existing rsync + path idiom",
+          "locator": "/home/jon/dev/advance/scripts/deploy-local.sh:165-171,961-972",
+          "summary": "LOCAL_DEPLOY_ROOT=$HOME/.local/share/Advance; ASSET_ROOT is source/release root; rsync -a --delete $ASSET_ROOT/plugin/ -> $LOCAL_DEPLOY_ROOT/plugin/ syncs full source tree (incl. src/temporal). Runtime $LOCAL_DEPLOY_ROOT/plugin already exists, so bin at $LOCAL_DEPLOY_ROOT/bin resolves ../../plugin correctly."
+        },
+        {
+          "label": "install.sh delegates to deploy-local from temp extraction root that is rm -rf'd",
+          "locator": "/home/jon/dev/advance/install.sh:35-40,117-130",
+          "summary": "Release installer runs `bash scripts/deploy-local.sh --fix` from RELEASE_ROOT=$TMP_DIR/advance-VER, and trap cleanup rm -rf's TMP_DIR on EXIT. Confirms C5 risk and validates design choice to stable-copy CLI into LOCAL_DEPLOY_ROOT rather than symlink to the temp release root."
+        },
+        {
+          "label": "cli-bridge-contract test (no-mutation + live-status guards) — actual contract surface; addCliCommandBridges not present",
+          "locator": "/home/jon/dev/advance/plugin/src/cli-bridge-contract.test.ts:121-287",
+          "summary": "Frozen ADV_TOOL_NAMES snapshot, NO-CLI-MUTATION guard on bin/adv dispatch, and STATUS LIVE DEFAULT guards already enforce AC9/DONT1/DONT2/DONT3/AC6 semantics. The function name addCliCommandBridges cited in agreement/design does not exist in the repo; the real protected surface is this test + rq-statusCliBridge01 spec law."
+        },
+        {
+          "label": "advance-meta spec rq-statusCliBridge01 (live default, fail closed, no stale fallback)",
+          "locator": ".adv/specs/advance-meta/spec.json rq-statusCliBridge01",
+          "summary": "Spec law already requires live Temporal-backed status, fail-closed, no silent stale disk projection. Design's 'prove via status JSON shape not version' aligns with this law and DONT3/DONT5. Design's proposed new advance-meta requirement does not conflict."
+        },
+        {
+          "label": "SETUP.md current manual install (symlink to source) + release troubleshooting",
+          "locator": "/home/jon/dev/advance/SETUP.md:1106-1140",
+          "summary": "Current docs tell users to ln -s $(pwd)/bin/adv ~/.local/bin/adv (symlink straight to source checkout). AC8 requires docs to be updated to the deploy-local-managed install path, --check/--fix, PATH-shadow remediation, unsafe-file recovery."
+        }
+      ],
+      "architecture_assessment": "Design is correct and boring: reuse the existing deploy-local stable-copy-plus-runtime-root idiom for a CLI payload (bin/adv + bin/lib) under $LOCAL_DEPLOY_ROOT/bin, with a managed PATH symlink $HOME/.local/bin/adv -> runtime bin/adv. Bun's default symlink->realpath module resolution (verified: no runtime --preserve-symlinks) makes the relative ./lib imports resolve against the co-deployed runtime bin/lib. The non-obvious coupling that MUST be named in the design: bin/lib/live-status.ts imports ../../plugin/src/temporal/* , so the live-status (AC6) path depends on $LOCAL_DEPLOY_ROOT/plugin/src/temporal/ being present — which the existing plugin rsync already provides because it syncs the full plugin/ source tree, not just dist/. Design correctly avoids symlinking into install.sh's temporary RELEASE_ROOT (rm -rf on EXIT), satisfying C5. No simpler viable alternative survives all constraints: a plain regular-file copy into ~/.local/bin/adv breaks Bun relative ./lib imports (no co-located lib) and re-creates the stale-regular-file drift class this change exists to kill; a direct symlink to the source checkout breaks for release installs and reintroduces source-coupling.",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "VALIDATED with two CAUTIONs. (1) CORRECTNESS gap: design summary names the runtime layout but does not explicitly state that bin/lib/live-status.ts reaches ../../plugin/src/temporal/*, so the recognizer/co-deploy plan must guarantee $LOCAL_DEPLOY_ROOT/plugin/src/temporal/ exists for AC6 live status to function after --fix (currently provided by the existing plugin rsync syncing full source tree, NOT just dist). If a future plugin-deploy optimization ever stops shipping plugin/src to runtime, the CLI live path silently breaks. Design should call out this dependency and the recognizer/health-check should verify the temporal client import target resolves, not just that adv --version runs. (2) SPEC/CONTRACT naming: agreement+design reference addCliCommandBridges, which does not exist in the repo; the actual protected surface is plugin/src/cli-bridge-contract.test.ts + advance-meta rq-statusCliBridge01. DONT2 ('do not duplicate/weaken addCliCommandBridges live-status implementation') should be read as 'do not weaken cli-bridge-contract.test.ts guards or the live-status.ts implementation'. No structural conflict — the existing no-mutation and live-default guards already enforce AC9/DONT1/DONT3/DONT5, so the design's choice to verify via status JSON shape is consistent. Neither caution blocks design-gate completion; both are precision asks for the design text and the planning tasks."
+      },
+      "recommendation": "Complete the design gate. Before planning, amend design.md to (a) explicitly document the bin/lib/live-status.ts -> ../../plugin/src/temporal/* runtime dependency and assert the chosen runtime root ($LOCAL_DEPLOY_ROOT/bin with sibling $LOCAL_DEPLOY_ROOT/plugin) satisfies it, ordering the CLI co-deploy after the existing plugin rsync; (b) make the --check live-status verification assert reachability of the temporal client import target (AC6 shape: source:'temporal' on success or fail-closed live error), not merely adv --version (honors DONT5); (c) rename the addCliCommandBridges references to the real surface (plugin/src/cli-bridge-contract.test.ts + rq-statusCliBridge01) so DONT2 is testable; (d) ensure the narrow regular-file ADV recognizer is structurally checkable (e.g. shebang/marker match) per C3/AC3, and the AC7 test matrix exercises the temp-HOME/PATH fixtures already proven by the fake-HOME harness. Cite Bun's default symlink-resolution behavior in the design's symlink-mechanism rationale.",
+      "follow_ups": [
+        "Design text should name the bin/lib -> ../../plugin/src/temporal cross-tree import dependency and the runtime-root invariant that satisfies it.",
+        "Rename addCliCommandBridges references in agreement/design to plugin/src/cli-bridge-contract.test.ts + advance-meta rq-statusCliBridge01 (the real protected surface).",
+        "Planning: add a test that the managed runtime CLI's temporal client import target resolves under $LOCAL_DEPLOY_ROOT, guarding AC6 against future plugin-deploy changes that might drop plugin/src from runtime."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixAdvCliDeploy",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixAdvCliDeploy",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [
+        {
+          "file": "scripts/deploy-local.sh",
+          "summary": "Narrowed regular-file ADV CLI recognition so a generic `schema_version` token no longer marks an unrelated ~/.local/bin/adv file as safe to replace. This closes unsafe overwrite false-positive risk while preserving explicit ADV CLI markers.",
+          "verification": "bin/oc-test targeted -- src/overlay-sync-assets.test.ts src/deploy-local.test.ts: 2 files passed, 89 tests passed; git diff --check passed."
+        },
+        {
+          "file": "plugin/src/overlay-sync-assets.test.ts",
+          "summary": "Added integration coverage proving deploy-local --fix refuses and preserves an unrelated executable named adv even when it contains generic `schema_version` text.",
+          "verification": "bin/oc-test targeted -- src/overlay-sync-assets.test.ts src/deploy-local.test.ts: 2 files passed, 89 tests passed."
+        }
+      ],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "Do not use generic serialization tokens such as `schema_version` as ownership markers for destructive install/repair decisions. Ownership checks for local binaries should use product-specific markers or safe symlink targets."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/overlay-sync-assets.test.ts src/deploy-local.test.ts",
+          "git diff --check"
+        ],
+        "results": "pass",
+        "evidence": "Targeted deploy-local/overlay tests passed: 2 test files, 89 tests. `git diff --check` produced no output. Prior orchestrator evidence also reported targeted suite, smoke, concurrent signaling integration, and full suite passing before this reviewer remediation."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Initial task-scoped report submission rejected because `review-scope` is a synthetic packet task and not a durable ADV task; resubmitted as change-scoped acceptance review.",
+        "Review focused on scoped files and listed contract risks; no browser/UI evidence applicable."
+      ],
+      "required_main_agent_actions": [
+        "Consider promoting wisdom candidate about ownership markers if useful.",
+        "Accept reviewer remediation or rerun `bin/oc-test smoke`/`bin/oc-test full` if a post-review full gate is desired after the two-file safety fix."
+      ],
+      "consumer_warnings": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixAdvCliDeploy",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixAdvCliDeploy",
+      "scope": {
+        "kind": "change",
+        "scope_key": "harden:release"
+      },
+      "agent": "adv-reviewer",
+      "phase": "harden",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [
+        {
+          "id": "harden-praise-1",
+          "label": "praise",
+          "file": "scripts/deploy-local.sh",
+          "line": 824,
+          "what": "Status JSON check fails closed on missing live Temporal source and disk-only schema_version:1 output.",
+          "why": "Release readiness risk for disk-only status acceptance is covered by source:\"temporal\" and schema_version rejection checks.",
+          "fix": "n/a"
+        },
+        {
+          "id": "harden-praise-2",
+          "label": "praise",
+          "file": ".github/workflows/auto-release.yml",
+          "line": 197,
+          "what": "Release workflow packages full install payload and asserts required archive contents, including bin/adv and bin/lib/live-status.ts.",
+          "why": "Deployment artifact and installer readiness risks are covered before publishing release assets.",
+          "fix": "n/a"
+        },
+        {
+          "id": "harden-praise-3",
+          "label": "praise",
+          "file": "SETUP.md",
+          "line": 1119,
+          "what": "Setup docs describe stable ~/.local/share/Advance/bin payload, managed ~/.local/bin/adv link, PATH shadowing, and unrelated-file refusal.",
+          "why": "Documentation matches implemented deploy/install behavior and release failure modes.",
+          "fix": "n/a"
+        }
+      ],
+      "changes_made": [
+        {
+          "file": "scripts/deploy-local.sh",
+          "summary": "Hardened is_recognized_adv_cli_target so symlinks are recognized by exact managed/repo target or ADV CLI content markers, not by broad *advance*/bin/adv path matching.",
+          "verification": "bin/oc-test targeted -- src/overlay-sync-assets.test.ts src/deploy-local.test.ts src/release-install-assets.test.ts src/adv-status-cli-assets.test.ts passed: 4 files, 104 tests. bin/oc-test smoke passed: schemas, typecheck, test-isolation, lockfile policy, lint, format, 2 smoke test files, 39 tests."
+        },
+        {
+          "file": "plugin/src/overlay-sync-assets.test.ts",
+          "summary": "Added regression test proving deploy-local refuses an unrelated ~/.local/bin/adv symlink whose target path looks advance-like but lacks ADV CLI content markers.",
+          "verification": "Initial targeted run passed; smoke exposed Prettier drift. After formatting, targeted and smoke both passed."
+        }
+      ],
+      "wisdom_candidates": [
+        {
+          "type": "pattern",
+          "content": "Release installers that repair executable symlinks should not use path substrings as overwrite authority. Prefer exact managed targets plus content/marker validation before deleting or replacing existing user files."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- plugin/src/overlay-sync-assets.test.ts plugin/src/deploy-local.test.ts plugin/src/release-install-assets.test.ts plugin/src/adv-status-cli-assets.test.ts",
+          "bin/oc-test targeted -- src/overlay-sync-assets.test.ts src/deploy-local.test.ts src/release-install-assets.test.ts src/adv-status-cli-assets.test.ts",
+          "pnpm exec prettier --write src/overlay-sync-assets.test.ts",
+          "bin/oc-test targeted -- src/overlay-sync-assets.test.ts src/deploy-local.test.ts src/release-install-assets.test.ts src/adv-status-cli-assets.test.ts",
+          "bin/oc-test smoke"
+        ],
+        "results": "pass",
+        "evidence": "First targeted command used repo-root-prefixed paths and failed with 'No test files found' because bin/oc-test runs from plugin/. Corrected targeted command passed 104/104. Smoke initially failed format:check on src/overlay-sync-assets.test.ts; ran Prettier, reran targeted (104/104 pass) and smoke (schemas:check, typecheck, isolation, lockfile, lint, format:check, smoke tests 39/39 pass)."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Live end-to-end install through a published GitHub Release was not rerun because this is a release artifact workflow path; source-level workflow/installer assertions and deploy-local integration fixtures passed.",
+        "No full suite rerun after this harden remediation; smoke and affected targeted suites passed."
+      ],
+      "required_main_agent_actions": [
+        "Review the two-file scoped remediation diff before release finalization.",
+        "Optional: run bin/oc-test full if release policy requires full-suite post-harden evidence."
+      ],
+      "consumer_warnings": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixAdvCliDeploy",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixAdvCliDeploy",
+      "scope": {
+        "kind": "change",
+        "scope_key": "scanner-bundle:harden"
+      },
+      "agent": "adv-scanner-bundle",
+      "phase": "harden",
+      "scanner_count": 2,
+      "dimensions": [
+        "release-deploy-readiness",
+        "production-readiness",
+        "documentation-hygiene",
+        "cleanup-readiness",
+        "residual-slop-maintainability",
+        "test-coverage"
+      ],
+      "summary": "Harden READY. Preflight passed: acceptance complete, cancellations approved, contract matrix 22/22 passed/respected, merge compatibility with origin/trunk passed. Report-created agenda audit found no current-change follow-up requiring harden action. Review findings from acceptance were fixed. Harden reviewer fixed one additional unsafe symlink-recognition issue; full suite passed after fix.",
+      "findings": [
+        {
+          "scanner": "adv-reviewer-harden",
+          "severity": "issue",
+          "summary": "Broad *advance*/bin/adv symlink recognition could accept unrelated content by path alone; fixed by requiring exact managed/repo target or ADV content markers and adding unsafe symlink regression.",
+          "evidence": [
+            {
+              "label": "code",
+              "locator": "scripts/deploy-local.sh:781",
+              "summary": "Recognition narrowed to exact target/repo paths or file content markers."
+            },
+            {
+              "label": "test",
+              "locator": "plugin/src/overlay-sync-assets.test.ts:485",
+              "summary": "Regression refuses symlink to unrelated advance-like path."
+            }
+          ]
+        },
+        {
+          "scanner": "inline-cleanup",
+          "severity": "info",
+          "summary": "Cleanup scan found no touched-scope temp/debug/dead artifacts requiring action; matches in deploy-local are intentional backup/temp handling, broader repo matches are outside touched scope docs/scripts.",
+          "evidence": [
+            {
+              "label": "grep",
+              "locator": "scripts/deploy-local.sh:335,478,1095,1114",
+              "summary": "Backup/tmp references are existing managed backup/temp-file logic, not cleanup candidates."
+            }
+          ]
+        }
+      ],
+      "follow_ups": [],
+      "consumer_warnings": []
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-nOGJLo",
+      "type": "gotcha",
+      "content": "When embedding Bash scripts in TypeScript template-literal test fixtures, Bash parameter expansion like `${args[...]}` is parsed by TypeScript unless escaped; prefer argument loops or escaped dollar sequences in fake command fixtures.",
+      "source_task": "tk-54eae4ca32ff",
+      "recorded_at": "2026-06-06T04:17:09.407Z"
+    },
+    {
+      "id": "ws-d51NH6",
+      "type": "pattern",
+      "content": "For installer/deploy changes, pair SETUP/install docs with asset tests that assert required user-facing snippets and release payload paths; this keeps release guidance and packaged artifacts from drifting independently.",
+      "source_task": "tk-6e66b550ec40",
+      "recorded_at": "2026-06-06T04:17:53.681Z"
+    },
+    {
+      "id": "ws-Gd2mgU",
+      "type": "success",
+      "content": "Final verification pattern worked well: run smoke first to catch format/type/lint drift, fix deterministic issues, then run full suite; if one integration test times out, rerun that file in isolation before rerunning full suite to classify reproducibility.",
+      "source_task": "tk-ff8701595fe1",
+      "recorded_at": "2026-06-06T04:22:27.106Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-06-05T22:40:30.658Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved proposal via inline Tier A reply: approve. Proposal includes confirmed problem statement, scope, measurable success criteria, error handling, and discovery agenda.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixAdvCliDeploy/proposal.md",
+        "content_hash": "2b17b9a99d351f6568c4c2de1d70eb1676a2a3f93a9cc0c51bf88eb2e26d7a58",
+        "non_whitespace_chars": 6711,
+        "checked_at": "2026-06-05T22:35:54.323Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-06-05T22:49:03.718Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery complete. User approved acceptance criteria via inline reply: approve. Agreement persisted with objectives, ACs, constraints, avoidances, decisions, and preview applicability. Contract minted with 22 items.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixAdvCliDeploy/agreement.md",
+        "content_hash": "cfd4d372e7718199b84659561c25c07aa1897b6cd410cd0c8f531b6d38db6463",
+        "non_whitespace_chars": 4182,
+        "checked_at": "2026-06-05T22:35:54.324Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-06-05T22:58:22.654Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design complete. Stable deployed CLI copy + managed PATH symlink chosen; leverage scout auto-adopted fake-HOME/PATH tests, rsync idiom, co-deployed bin/lib, and status JSON guard. Independent validator verdict CAUTION; cautions incorporated into design and nonblocking.",
+      "artifact_evidence": {
+        "kind": "design",
+        "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixAdvCliDeploy/design.md",
+        "content_hash": "fc814f21611ac1cf5d88fe936aaf233425deb22f88e67db8e703949ecdfbae69",
+        "non_whitespace_chars": 9674,
+        "checked_at": "2026-06-05T22:35:54.326Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-06-06T04:05:59.074Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved prep plan inline with typo reply \"appropve\", classified as approve. Six-task graph validated with contract refs; duplicate broad tasks cancelled with explicit approval."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-06-06T04:22:51.490Z",
+      "completed_by": "agent",
+      "approval_evidence": "Execution complete. All six active tasks done; three duplicate broad tasks cancelled with approval. Worktree clean. Validation passed with one nonblocking NO_DELTAS warning. Verification: targeted install-contract suites passed; smoke passed; isolated concurrent-signaling retry passed after first full-suite timeout; full suite rerun passed."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-06-06T04:40:02.516Z",
+      "completed_by": "user:jon",
+      "approval_evidence": "User accepted delivered work via inline Tier A reply: accept. Review verdict READY/APPROVED; contract matrix persisted with 22 passed/respected rows; executive-summary artifact persisted before approval; preview not_applicable.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixAdvCliDeploy/executive-summary.md",
+        "content_hash": "7d96ab77639de3b1e60a40f09f4277ea503428d2cf50e8a536de47a19bc70bff",
+        "non_whitespace_chars": 1494,
+        "checked_at": "2026-06-05T22:35:54.327Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [
+    {
+      "from_gate": "planning",
+      "reason": "Planning gate was marked complete against an obsolete three-task graph while prep task graph was still being reconciled. After user-approved cancellation of duplicate tasks, the current authoritative graph has six scoped pending tasks and must receive a fresh prep approval before execution.",
+      "scope_delta": "Replace obsolete broad three-task prep plan with six scoped tasks covering spec law, deploy-local CLI sync, drift/safe repair/PATH shadow checks, live-status/no-mutation guards, docs, and final verification.",
+      "reopened_by": "agent",
+      "reopened_at": "2026-06-06T03:59:57.221Z",
+      "gates_reset": [
+        "planning",
+        "execution",
+        "acceptance",
+        "release"
+      ]
+    }
+  ],
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "cf53551dbdef753326f1a056e8c1d2471b573a11d99f5bd1478ca61f8af7b991",
+      "approvedAt": "2026-06-05T22:49:03.718Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "`scripts/deploy-local.sh --check` fails or reports exact drift when PATH `adv` is missing, stale, wrong target, or shadowed.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cf53551dbdef753326f1a056e8c1d2471b573a11d99f5bd1478ca61f8af7b991",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "`scripts/deploy-local.sh --fix` manages the local `adv` install through deploy-local, not manual edits.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cf53551dbdef753326f1a056e8c1d2471b573a11d99f5bd1478ca61f8af7b991",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "`--fix` replaces only recognized ADV CLI artifacts; unrelated `~/.local/bin/adv` content is refused with manual remediation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cf53551dbdef753326f1a056e8c1d2471b573a11d99f5bd1478ca61f8af7b991",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "If `~/.local/bin/adv` is correct but PATH resolves another `adv`, `--check` fails and `--fix` warns with PATH remediation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cf53551dbdef753326f1a056e8c1d2471b573a11d99f5bd1478ca61f8af7b991",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "After `--fix`, PATH `adv --version` executes source-current ADV CLI behavior.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cf53551dbdef753326f1a056e8c1d2471b573a11d99f5bd1478ca61f8af7b991",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "After `--fix`, PATH `adv status --json` emits live-status metadata (`source: \"temporal\"` on success or fail-closed live error metadata), not stale disk-only `schema_version: 1` JSON.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cf53551dbdef753326f1a056e8c1d2471b573a11d99f5bd1478ca61f8af7b991",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "Tests cover missing install, valid managed install, stale regular ADV file, wrong symlink/target, unsafe non-ADV file, and PATH shadowing.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cf53551dbdef753326f1a056e8c1d2471b573a11d99f5bd1478ca61f8af7b991",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC8",
+        "kind": "acceptance_criterion",
+        "text": "Docs state supported install path, `--check`, `--fix`, PATH-shadow remediation, and unsafe-file manual recovery.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cf53551dbdef753326f1a056e8c1d2471b573a11d99f5bd1478ca61f8af7b991",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC9",
+        "kind": "acceptance_criterion",
+        "text": "No CLI mutation subcommands are added.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cf53551dbdef753326f1a056e8c1d2471b573a11d99f5bd1478ca61f8af7b991",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Use deploy-local as the durable owner. No direct durable hand-edit of `/home/jon/.local/bin/adv` outside source/deploy logic.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cf53551dbdef753326f1a056e8c1d2471b573a11d99f5bd1478ca61f8af7b991",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Keep status semantics in source `bin/adv`; this change only ensures installed PATH `adv` reaches source-current behavior.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cf53551dbdef753326f1a056e8c1d2471b573a11d99f5bd1478ca61f8af7b991",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Recognized legacy ADV CLI files may be replaced; unrecognized non-ADV files must be refused.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cf53551dbdef753326f1a056e8c1d2471b573a11d99f5bd1478ca61f8af7b991",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "PATH-shadowing remains visible: `--check` fails; `--fix` repairs managed target then reports PATH remediation if shell resolution still points elsewhere.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cf53551dbdef753326f1a056e8c1d2471b573a11d99f5bd1478ca61f8af7b991",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Release installs must not create a symlink to a temporary extraction directory.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cf53551dbdef753326f1a056e8c1d2471b573a11d99f5bd1478ca61f8af7b991",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C6",
+        "kind": "constraint",
+        "text": "Keep implementation dependency-light: Bash + existing test harness unless design proves otherwise.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cf53551dbdef753326f1a056e8c1d2471b573a11d99f5bd1478ca61f8af7b991",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C7",
+        "kind": "constraint",
+        "text": "Keep install behavior testable in temporary HOME/PATH fixtures.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cf53551dbdef753326f1a056e8c1d2471b573a11d99f5bd1478ca61f8af7b991",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not add CLI mutation authority: no gate completion, archive, cancellation, task mutation, destructive repair, or automatic Temporal restart.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cf53551dbdef753326f1a056e8c1d2471b573a11d99f5bd1478ca61f8af7b991",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not duplicate or weaken source live-status surfaces: `bin/adv`, `bin/lib/live-status.ts`, `plugin/src/cli-bridge-contract.test.ts`, or `advance-meta` `rq-statusCliBridge01`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cf53551dbdef753326f1a056e8c1d2471b573a11d99f5bd1478ca61f8af7b991",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not silently fall back to stale disk-only `schema_version: 1` status JSON.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cf53551dbdef753326f1a056e8c1d2471b573a11d99f5bd1478ca61f8af7b991",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not overwrite unrelated `~/.local/bin/adv` content.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cf53551dbdef753326f1a056e8c1d2471b573a11d99f5bd1478ca61f8af7b991",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "Do not treat matching `adv --version` output alone as proof of source-current behavior.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cf53551dbdef753326f1a056e8c1d2471b573a11d99f5bd1478ca61f8af7b991",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT6",
+        "kind": "avoidance",
+        "text": "Do not reintroduce `acp-mux` local binary deployment.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cf53551dbdef753326f1a056e8c1d2471b573a11d99f5bd1478ca61f8af7b991",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-06-06T04:29:17Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "deploy-local drift classification and PATH shadow paths covered by plugin/src/deploy-local.test.ts and plugin/src/overlay-sync-assets.test.ts; post-review targeted run passed 89 tests.",
+          "notes": "--check failures and exact remediation messaging covered."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "scripts/deploy-local.sh syncs bin payload to $ADV_LOCAL_DEPLOY_ROOT/bin and links $HOME/.local/bin/adv; deploy-local/overlay tests passed.",
+          "notes": "Install owner is deploy-local."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Review remediation added regression for unrelated adv containing schema_version=1; post-review targeted run passed 89 tests.",
+          "notes": "Recognized ADV files replaceable; unrelated content refused."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "PATH shadow handling asserted in deploy-local tests and post-review smoke/targeted verification passed.",
+          "notes": "--check blocks; --fix warns after managed target repair."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Release/deploy-local tests assert stable deployed bin tree and managed symlink; smoke and full suite passed after execution.",
+          "notes": "Source-current behavior reached through deployed bin copy."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "deploy-local tests assert live Temporal source JSON check and reject schema_version:1 disk-only readiness; cli-bridge contract test passed in targeted run.",
+          "notes": "No stale disk-only fallback accepted."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "plugin/src/overlay-sync-assets.test.ts and plugin/src/deploy-local.test.ts cover missing install, managed install, stale regular file, wrong target, unsafe file, PATH shadow; targeted run passed 89 tests.",
+          "notes": "Reviewer added unsafe schema_version regression."
+        },
+        {
+          "contractId": "AC8",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "SETUP.md guidance asserted by plugin/src/release-install-assets.test.ts; targeted docs/release tests passed 77 tests.",
+          "notes": "Docs include install path, check/fix, PATH shadow, unsafe-file recovery."
+        },
+        {
+          "contractId": "AC9",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "plugin/src/cli-bridge-contract.test.ts passed in targeted run; reviewer found no mutation subcommands.",
+          "notes": "CLI remains status/help/read-only surface."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "All durable install behavior implemented in scripts/deploy-local.sh; no direct durable hand-edit to ~/.local/bin/adv performed.",
+          "notes": "Managed symlink written only by deploy-local."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "bin/adv and bin/lib/live-status.ts semantics preserved; deploy-local only installs/syncs the source-current CLI payload.",
+          "notes": "Status logic not duplicated in deploy-local."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "is_recognized_adv_cli_target narrowed by review; unrelated files refused, recognized ADV targets replaceable.",
+          "notes": "Generic schema_version marker removed."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "check_adv_cli_install increments issue count for PATH shadow in check mode and warns without incrementing in fix mode.",
+          "notes": "Shadow remains visible."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Release package includes bin payload; install.sh requires bin/adv then invokes deploy-local --fix for stable local-share deployment.",
+          "notes": "No temp extraction symlink used."
+        },
+        {
+          "contractId": "C6",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Implementation uses Bash, rsync, readlink, grep, existing pnpm/vitest harness; no new dependency added.",
+          "notes": "Dependency-light."
+        },
+        {
+          "contractId": "C7",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "overlay-sync-assets fake HOME/PATH and fake rsync tests passed post-review.",
+          "notes": "Install behavior testable in temp fixtures."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Reviewer verdict READY; cli-bridge contract tests passed; no gate/archive/task mutation subcommands introduced.",
+          "notes": "No CLI mutation authority."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Reviewer checked live-status surface; bin/adv live-status semantics preserved and cli-bridge contract tests passed.",
+          "notes": "No weakening/duplication of live status source."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "deploy-local validation requires source:\"temporal\" and rejects disk-only schema_version:1; tests passed.",
+          "notes": "No stale disk-only fallback."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Review found and fixed broad ownership heuristic; regression verifies unrelated schema_version=1 file refused.",
+          "notes": "Unsafe overwrite risk remediated."
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Source-current proof uses adv status --json live Temporal metadata check, not adv --version alone.",
+          "notes": "Version alone not accepted."
+        },
+        {
+          "contractId": "DONT6",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Deploy summary still reports acp-mux archived/skipped; no acp-mux local binary deployment added.",
+          "notes": "acp-mux remains archived."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "`scripts/deploy-local.sh --check` fails or reports exact drift when PATH `adv` is missing, stale, wrong target, or shadowed.",
+    "`scripts/deploy-local.sh --fix` manages the local `adv` install through deploy-local, not manual edits.",
+    "`--fix` replaces only recognized ADV CLI artifacts; unrelated `~/.local/bin/adv` content is refused with manual remediation.",
+    "If `~/.local/bin/adv` is correct but PATH resolves another `adv`, `--check` fails and `--fix` warns with PATH remediation.",
+    "After `--fix`, PATH `adv --version` executes source-current ADV CLI behavior.",
+    "After `--fix`, PATH `adv status --json` emits live-status metadata (`source: \"temporal\"` on success or fail-closed live error metadata), not stale disk-only `schema_version: 1` JSON.",
+    "Tests cover missing install, valid managed install, stale regular ADV file, wrong symlink/target, unsafe non-ADV file, and PATH shadowing.",
+    "Docs state supported install path, `--check`, `--fix`, PATH-shadow remediation, and unsafe-file manual recovery.",
+    "No CLI mutation subcommands are added."
+  ],
+  "documents": {
+    "proposal": "# Proposal: Fix adv CLI deploy\n\n## Cross-Project Origin\n\nOriginating project: toolbox\nOriginating change: fixLiveAdvRows\nReason: toolbox launcher selected-project ADV rows require the installed `adv` CLI on PATH to provide the reformed live Temporal-backed `adv status --json` behavior. Discovery found `/home/jon/.local/bin/adv` is an old disk-reading file, differs from `/home/jon/dev/advance/bin/adv`, and is not a symlink.\n\n## Why\n\n`bin/adv` in the Advance source now implements live Temporal-backed `adv status` / `adv status --json` behavior. External consumers call `adv` from `PATH`, currently resolving to `/home/jon/.local/bin/adv`. That installed file can drift from source and silently keep old disk-backed behavior.\n\nEvidence gathered during proposal resume:\n\n- `SETUP.md` documents a one-time symlink install: `ln -s \"$(pwd)/bin/adv\" ~/.local/bin/adv`.\n- Source `bin/adv` describes live Temporal status and fail-closed remediation.\n- Current installed PATH binary: `/home/jon/.local/bin/adv`.\n- Current installed binary is not a symlink and differs from `/home/jon/dev/advance/bin/adv`.\n- `addCliCommandBridges` has already delivered the live-status CLI behavior and is pending release; this change owns deploy/install drift, not status semantics.\n\n## Problem Statement\n\nThe installed `adv` CLI on PATH can drift from the Advance source `bin/adv`, leaving users and launcher integrations on stale disk-backed status behavior even after `/adv-status` was reformed to be live Temporal-backed. Advance needs a source-owned deployment/check contract so `command -v adv` resolves to a live-compatible CLI or reports remediation instead of silently serving old disk state.\n\n## What Changes\n\n- Make the supported local install mechanism for `adv` explicit and source-owned.\n- Extend deploy/check behavior so `scripts/deploy-local.sh --check` detects installed CLI drift.\n- Extend deploy/fix behavior so `scripts/deploy-local.sh --fix` repairs the supported install target without hand-editing `/home/jon/.local/bin/adv`.\n- Add tests/static checks that fail when install docs, deploy logic, or source CLI drift out of contract.\n- Update docs so consumers and maintainers know how `adv` reaches `PATH` and how to remediate drift.\n\n## Scope\n\n### In Scope\n\n- `scripts/deploy-local.sh` check/fix behavior for the supported `adv` CLI install path.\n- Tests for deploy-local drift detection/remediation and source/install contract wording.\n- `SETUP.md` or adjacent installer docs for the supported CLI install path.\n- Local install target under `~/.local/bin/adv`, handled through deploy logic only.\n- Verification that PATH `adv status --json` uses source-current live behavior after deploy.\n\n### Out of Scope\n\n- Toolbox launcher implementation.\n- Changing live-status semantics already owned by `addCliCommandBridges`.\n- Adding CLI mutation authority.\n- Replacing `/adv-status` with MCP fanout.\n- Release packaging beyond local deploy/install unless discovery finds current release installer delegates to the same deploy path.\n\n### Must Not\n\n- Must not silently leave installed `adv` as an old disk-reader when deploy/check reports success.\n- Must not make stale disk projections appear as current active rows.\n- Must not hand-edit `/home/jon/.local/bin/adv` as the durable fix without source/deploy ownership.\n- Must not break users with an existing valid supported symlink/copy when no drift exists.\n- Must not introduce new CLI mutation subcommands.\n\n## Success Criteria\n\n1. `scripts/deploy-local.sh --check` exits non-zero or reports a concrete warning when `command -v adv` resolves to an unsupported, stale, or non-source-current install.\n2. `scripts/deploy-local.sh --fix` makes `command -v adv` resolve to the supported source-owned `bin/adv` install target, or exits non-zero with exact remediation if it cannot repair safely.\n3. After `scripts/deploy-local.sh --fix`, `adv --version` from PATH executes the current source `bin/adv` code path.\n4. After `scripts/deploy-local.sh --fix`, `adv status --json` from PATH reports live Temporal-backed status metadata (`source: \"temporal\"` on success or fail-closed live-status error metadata on Temporal failure), not stale disk-only JSON.\n5. Tests or static checks cover at least these install states: missing `~/.local/bin/adv`, valid source symlink, stale regular file, wrong symlink target, and repair refusal for unsafe non-ADV content.\n6. Docs state the supported install mechanism, drift check command, fix command, and manual remediation path in one visible CLI section.\n7. No new CLI mutation subcommands are introduced.\n\n## Error Handling / Rollback\n\n- Missing install target: `--check` reports missing; `--fix` creates the supported install target.\n- Stale regular file: `--check` reports drift; `--fix` replaces only when the file is recognized as an ADV-managed or legacy ADV CLI artifact.\n- Wrong symlink target: `--check` reports target mismatch; `--fix` updates only if replacement is safe.\n- Unsafe existing file: `--fix` refuses, prints exact path and manual backup/remove instructions, and does not overwrite.\n- Temporal unavailable after install: `adv status --json` keeps existing fail-closed behavior from source `bin/adv`; deploy does not fake live status.\n\n## Affected Code\n\n- `scripts/deploy-local.sh`\n- `plugin/src/deploy-local.test.ts` or adjacent deploy-local asset tests\n- `SETUP.md` and any CLI install docs\n- Potential helper/test fixtures for deploy-local home/PATH simulation\n\n## Related Repositories\n\n- Current repo: `advance` owns `bin/adv`, deploy-local, tests, and docs.\n- Origin repo: `toolbox` consumes `adv status --json` via `warp-project-launcher`; no toolbox code changes in this change.\n\n## Constraints\n\n- Preserve source-first deployment; durable fix must live in Advance source/deploy logic.\n- Prefer architecture over workaround: no direct editing of `/home/jon/.local/bin/adv` outside deploy-managed behavior.\n- Keep install behavior deterministic and testable in temporary HOME/PATH fixtures.\n- Keep `addCliCommandBridges` live-status contract intact.\n- Avoid new dependencies unless discovery proves shell-only checks are insufficient.\n\n## Impact\n\n- Maintainers get a reliable `deploy-local.sh --check/--fix` signal for CLI drift.\n- External consumers stop depending on stale installed CLI files.\n- Local PATH behavior becomes reproducible across sessions and machines.\n\n## Discovery Findings\n\n### Discovery Checklist\n\n| Step | Result | Reason |\n|---|---|---|\n| Skill Discovery | PASS | Loaded `customize-opencode`; change touches OpenCode plugin deploy/install surface. No new skill needed. |\n| Prior Research Extension | PASS | `docs/repo-improve-prep.md` and `docs/adv-run-test-prep.md` inspected; no direct CLI-install research pack found. New finding: release `install.sh` delegates to `bash scripts/deploy-local.sh --fix`, so deploy-local fix also covers release installs. |\n| Conflict & Related-Work Scan | PASS | `addCliCommandBridges` overlaps on `bin/adv` status semantics and is pending release; this change owns install/deploy drift only. `adv_change_validate` has expected pre-planning warnings only. Agenda has related CLI bridge follow-ups but none blocks install drift. |\n| Edge Case Investigation | PASS | Edge cases listed below. |\n| Design Question Depth | PASS | Open questions annotated below. |\n| Draft Spec Delta Shapes | PASS | Draft `rq-advCliInstall01` proposed for `advance-meta`. |\n| Related Pattern Scan | PASS | Similar local-bin pattern found only in archived `acp-mux`; active deploy-local explicitly skips local binaries today. |\n| LBP Check | PASS | Recommended direction: deploy-local-managed symlink with fail-loud drift checks and safe overwrite rules. |\n\n### Skills Considered\n\n- `customize-opencode`: matched. Applies because this change modifies OpenCode plugin/deploy surfaces and installed runtime behavior.\n- `adv-agent-tool-contracts`: not loaded. No agent-callable ADV tool schema/report packet changes in scope.\n- `adv-ci-release`: not loaded. Release packaging is covered only through existing `install.sh` delegation to deploy-local.\n- `adv-worktree`: not loaded yet. Applies later if implementation needs isolated worktree routing.\n\n### Extends\n\n- `docs/repo-improve-prep.md`: performance research pack, not directly about CLI install. Relevant new finding: `addCliCommandBridges` already changed status toward live Temporal reads; this change should not duplicate status-read architecture.\n- `docs/adv-run-test-prep.md`: test-harness research pack, not directly about CLI install. Relevant new finding: this repo now has `bin/oc-test`, so implementation verification should use repo-local test routing for smoke/full runs.\n- No `temp/*.md` prior notes found.\n\n### Conflict Scan\n\n- Active related change: `addCliCommandBridges` delivered live-default status CLI and is pending release. Constraint: this change must not alter status semantics except by making installed PATH `adv` resolve to the source-current CLI.\n- Active unrelated deploy/workflow changes exist, but none owns `~/.local/bin/adv` or deploy-local local-bin install.\n- `adv_change_validate fixAdvCliDeploy`: passed; warnings `NO_TASKS` and `NO_DELTAS` expected before planning.\n- Agenda overlap: CLI bridge follow-ups mention bin/adv projection strategy and bridge templates; they are advisory and do not block install drift fix.\n\n### Current State\n\n- `SETUP.md:1106-1119` documents a one-time symlink: `ln -s \"$(pwd)/bin/adv\" ~/.local/bin/adv`.\n- `scripts/deploy-local.sh:23-32` lists deploy-managed surfaces; local `adv` binary is not included.\n- `scripts/deploy-local.sh:1271-1286` explicitly skips archived `acp-mux` local binary and reports `Local bins: acp-mux archived/skipped`.\n- `scripts/deploy-local.sh --check` runs `check_config` then exits before asset sync (`scripts/deploy-local.sh:941-950`), so CLI drift check must live in check/fix phases deliberately.\n- Release `install.sh:128-130` changes into extracted release root and runs `bash scripts/deploy-local.sh --fix`; deploy-local CLI install fix covers release installs too.\n- Current PATH evidence: `command -v adv` resolves `/home/jon/.local/bin/adv`; file is not symlink and differs from source `bin/adv`.\n- Current installed `adv status --json` emits `schema_version: 1` disk-style JSON. Source `bin/adv status --json` emits live-status metadata (`source: \"temporal\"`, `live`, `stale`, `error`, `remediation`) and fail-closes when Temporal query fails.\n\n### Edge Cases\n\n1. Missing `~/.local/bin/adv`\n   - `--check` must report exact missing install target.\n   - `--fix` must create parent dir and install supported target.\n2. Stale regular file at `~/.local/bin/adv`\n   - Recognized legacy ADV CLI can be replaced.\n   - Unrecognized non-ADV file must not be overwritten.\n3. Wrong symlink target\n   - Symlink to another path must report target mismatch.\n   - Broken symlink must be repairable if at managed path.\n4. PATH precedence\n   - `~/.local/bin/adv` can be correct while `command -v adv` resolves another earlier path.\n   - Check must inspect both managed target and PATH-resolved command.\n5. Release artifact install\n   - Release root path differs from source checkout; symlink-to-release-root may point into temp extraction if not handled carefully.\n   - Deploy-local must choose durable source/installed target behavior for release artifacts.\n6. Runtime unavailable after install\n   - Source-current CLI may fail closed with Temporal error; deploy success should validate shape/source-current path, not require live Temporal success.\n\n### Open Design Questions\n\n1. Install mechanism: symlink-only, atomic copy, or wrapper.\n   - Trust model: agent-resolved by source/deploy evidence unless user wants different local workflow.\n   - Blast radius: symlink to temp release root can break release users; copy can drift unless deploy refreshes every run; wrapper can add extra path indirection.\n   - Alternatives: symlink to dev checkout, copy current source to managed bin, wrapper that locates stable runtime source.\n   - Recommendation: deploy-local-managed symlink for source checkout; design must handle release artifact durability explicitly.\n2. Safe overwrite detection.\n   - Trust model: joint for user data safety boundary; agent can implement detection but user preference controls aggressiveness.\n   - Blast radius: overwrite unrelated user file vs leave stale ADV CLI unfixed.\n   - Alternatives: refuse all regular files, replace recognized ADV CLI only, always backup and replace.\n   - Recommendation: replace only recognized ADV CLI files; refuse unrelated content with manual remediation.\n3. PATH precedence policy.\n   - Trust model: user-facing workflow decision.\n   - Blast radius: deploy appears successful while shell still runs another `adv` earlier in PATH.\n   - Alternatives: hard fail, warning, or ignore.\n   - Recommendation: hard fail `--check`; `--fix` repairs managed target then reports PATH precedence if unresolved.\n4. Spec ownership.\n   - Trust model: agent-resolved.\n   - Blast radius: deploy-local behavior remains prose-only and regresses later.\n   - Alternatives: add `advance-meta` local-bin deploy law or keep tests only.\n   - Recommendation: add `advance-meta` spec requirement because deploy-local is cross-cutting ADV runtime/install behavior.\n\n### Draft Spec Deltas\n\n- `advance-meta` add `rq-advCliInstall01` — Source-Owned ADV CLI Local Install\n  - Given `scripts/deploy-local.sh --check` runs and `command -v adv` resolves to a stale or unsupported install, When validation completes, Then the check reports CLI drift and exits non-zero.\n  - Given `scripts/deploy-local.sh --fix` runs and the managed `adv` install is missing, stale, or a safe legacy ADV artifact, When fix completes, Then PATH `adv` resolves to source-current `bin/adv` behavior or exact remediation is printed.\n  - Given `~/.local/bin/adv` contains unrecognized non-ADV content, When `--fix` runs, Then the script refuses overwrite and prints manual backup/remove instructions.\n  - Given live Temporal is unavailable after install, When `adv status --json` runs from PATH, Then output has live-status fail-closed metadata and does not emit stale disk-only JSON.\n\n### Related Pattern Scan\n\n- Active deploy-local manages runtime plugin, commands, agents, skills, and config, but no current local `adv` binary.\n- Archived `acp-mux` has local-bin install history; deploy-local now explicitly skips it, so do not reuse archived binary deploy code blindly.\n- No other active `~/.local/bin/*` deploy target found in the Advance source tree.\n\n### LBP Check\n\nLikely best practice: make deploy-local the single source of truth for all local Advance-installed surfaces, including `adv` CLI. Keep correctness structural: check/fix code plus tests plus spec law, not only docs. Avoid direct edits to `/home/jon/.local/bin/adv`. External-solution check skipped: this is an internal shell deploy/install contract; no external library/service alternative is viable.\n\n### AMBIGUITY ANALYSIS\n\nCoverage: B:C F:C S:C M:P\n\nM1 HIGH Missing Information — release artifact durability for symlink install remains undecided.\n  Evidence: `Whether supported install mechanism should be symlink-only or allow atomic copy. Current docs say symlink; discovery should confirm best durable choice.`\n  Reason: unclear because release `install.sh` runs deploy-local from an extracted release root, and a symlink to that temporary root would be unsafe.\n\nM2 HIGH Missing Information — safe overwrite aggressiveness needs user boundary.\n  Evidence: `Unsafe existing file: --fix refuses, prints exact path and manual backup/remove instructions, and does not overwrite.`\n  Reason: unclear because user may prefer automatic backup+replace for recognized old ADV files, but unrelated files must stay protected.\n\n### Discovery Opportunity Scout\n\nScout: skipped — narrow install/deploy correctness fix; opportunity surface is low and bounded by existing source-first deploy architecture.\n\n## Recommended Objectives\n\n1. Make deploy-local own the installed `adv` CLI path alongside plugin/command/agent/skill/config assets.\n2. Ensure `--check` detects stale, missing, wrong-target, or PATH-shadowed `adv` installs.\n3. Ensure `--fix` repairs safe ADV-managed/legacy installs and refuses unsafe overwrites with exact remediation.\n4. Ensure release and source-checkout installs both produce durable PATH `adv` behavior.\n5. Preserve live-status semantics from `addCliCommandBridges` without duplicating or weakening them.\n6. Add tests and spec law so CLI install drift cannot silently return.\n\n## Knowledge Gap Analysis\n\n### Codebase Unknowns\n\nResolved:\n\n- Deploy-local currently does not install `adv` CLI.\n- Release installer delegates to deploy-local.\n- Test fixtures exist for fake HOME/PATH via spawnSync in `overlay-sync-assets.test.ts`.\n\nDeferred to design:\n\n- Exact implementation shape for release artifact durability.\n- Whether tests belong in `deploy-local.test.ts` as static assertions or `overlay-sync-assets.test.ts` as executable fake-HOME integration tests.\n\n### Ecosystem Unknowns\n\nResolved enough for discovery:\n\n- No new external dependency is needed. Bash, symlink/copy, and existing test harness can cover the contract.\n\n### Domain Unknowns\n\nUser-facing install-safety preferences are being clarified before agreement.\n\n### Integration Unknowns\n\nResolved:\n\n- `addCliCommandBridges` owns live status semantics. This change owns installed CLI drift and should treat source `bin/adv` as the behavior source of truth.\n\n## Discovery Agenda\n\n1. Inspect `scripts/deploy-local.sh` structure and tests to choose the least invasive source-owned install implementation.\n2. Decide supported install mechanism: symlink-only, atomic copy, wrapper, or deploy-local-managed binary.\n3. Confirm safe overwrite detection for stale legacy ADV CLI files vs unrelated user files.\n4. Confirm release installer delegation means local deploy fix covers release installs.\n5. Confirm interaction with `addCliCommandBridges` release state before implementation.",
+    "problemStatement": "The installed `adv` CLI on PATH can drift from the Advance source `bin/adv`, leaving users and launcher integrations on stale disk-backed status behavior even after `/adv-status` was reformed to be live Temporal-backed. Advance needs a source-owned deployment/check contract so `command -v adv` resolves to a live-compatible CLI or reports remediation instead of silently serving old disk state.",
+    "agreement": "# Agreement\n\n## Objectives\n\n1. Make `scripts/deploy-local.sh` the source-owned deploy/check surface for the installed `adv` CLI on PATH.\n2. Ensure `scripts/deploy-local.sh --check` detects missing, stale, wrong-target, unsupported, or PATH-shadowed `adv` installs.\n3. Ensure `scripts/deploy-local.sh --fix` repairs safe ADV-managed or legacy ADV CLI installs without hand-editing `/home/jon/.local/bin/adv` directly.\n4. Preserve live-status semantics from the source CLI surfaces: installed PATH `adv status --json` must use source-current live Temporal-backed status behavior or fail closed with live-status error metadata.\n5. Protect unrelated user files: deploy-local must not overwrite unrecognized non-ADV content at `~/.local/bin/adv`.\n6. Cover local source-checkout and release-installer paths, since `install.sh` delegates to `bash scripts/deploy-local.sh --fix`.\n7. Add spec/test/doc coverage so CLI install drift cannot silently return.\n\n## Acceptance Criteria\n\n- AC1: `scripts/deploy-local.sh --check` fails or reports exact drift when PATH `adv` is missing, stale, wrong target, or shadowed.\n- AC2: `scripts/deploy-local.sh --fix` manages the local `adv` install through deploy-local, not manual edits.\n- AC3: `--fix` replaces only recognized ADV CLI artifacts; unrelated `~/.local/bin/adv` content is refused with manual remediation.\n- AC4: If `~/.local/bin/adv` is correct but PATH resolves another `adv`, `--check` fails and `--fix` warns with PATH remediation.\n- AC5: After `--fix`, PATH `adv --version` executes source-current ADV CLI behavior.\n- AC6: After `--fix`, PATH `adv status --json` emits live-status metadata (`source: \"temporal\"` on success or fail-closed live error metadata), not stale disk-only `schema_version: 1` JSON.\n- AC7: Tests cover missing install, valid managed install, stale regular ADV file, wrong symlink/target, unsafe non-ADV file, and PATH shadowing.\n- AC8: Docs state supported install path, `--check`, `--fix`, PATH-shadow remediation, and unsafe-file manual recovery.\n- AC9: No CLI mutation subcommands are added.\n\n## Constraints\n\n- Use deploy-local as the durable owner. No direct durable hand-edit of `/home/jon/.local/bin/adv` outside source/deploy logic.\n- Keep status semantics in source `bin/adv`; this change only ensures installed PATH `adv` reaches source-current behavior.\n- Recognized legacy ADV CLI files may be replaced; unrecognized non-ADV files must be refused.\n- PATH-shadowing remains visible: `--check` fails; `--fix` repairs managed target then reports PATH remediation if shell resolution still points elsewhere.\n- Release installs must not create a symlink to a temporary extraction directory.\n- Keep implementation dependency-light: Bash + existing test harness unless design proves otherwise.\n- Keep install behavior testable in temporary HOME/PATH fixtures.\n\n## Avoidances\n\n- Do not add CLI mutation authority: no gate completion, archive, cancellation, task mutation, destructive repair, or automatic Temporal restart.\n- Do not duplicate or weaken source live-status surfaces: `bin/adv`, `bin/lib/live-status.ts`, `plugin/src/cli-bridge-contract.test.ts`, or `advance-meta` `rq-statusCliBridge01`.\n- Do not silently fall back to stale disk-only `schema_version: 1` status JSON.\n- Do not overwrite unrelated `~/.local/bin/adv` content.\n- Do not treat matching `adv --version` output alone as proof of source-current behavior.\n- Do not reintroduce `acp-mux` local binary deployment.\n\n## Preview Applicability\n\n`visual_surface: false` — change affects shell/deploy behavior, CLI text/JSON output, docs, tests, and specs; no browser-visible or rendered UI surface.\n\n## Decisions\n\n### User Decisions\n\n- Install mechanism: user selected “use local deploy script”; deploy-local owns the local `adv` install path and repair behavior.\n- Overwrite safety: user approved “Replace recognized ADV only (Recommended)”.\n- PATH shadowing: user approved “Fail check, warn fix (Recommended)”.\n\n### Agent Decisions (LBP)\n\n- Add an `advance-meta` spec requirement for source-owned ADV CLI local install because deploy-local is cross-cutting Advance metadata/runtime behavior.\n- Treat release installer coverage as in-scope because `install.sh` delegates to deploy-local.\n- Verify source-current behavior through status JSON shape (`source: \"temporal\"` or fail-closed live error metadata), not only `adv v0.1.0`.\n- Prefer executable fake-HOME/PATH tests for safety-critical install states; static assertions may supplement but should not be the only proof.\n\n## Deferred Questions\n\n- Exact legacy ADV artifact recognizer is deferred to `/adv-design` and must be structurally testable.\n\n## Sign-Off\n\nAcceptance criteria approved inline by user (`approve`) at the discovery AC checkpoint on 2026-06-05. Post-validation wording repair re-pointed live-status avoidance from the change title to concrete source/spec/test surfaces without changing scope.",
+    "design": "# Design\n\n## Architecture Overview\n\n`deploy-local.sh` becomes the single local owner for the installed `adv` CLI, just like it already owns the runtime plugin, slash commands, agents, skills, and OpenCode config entries.\n\nThe design uses a stable deployed CLI copy plus a managed PATH symlink:\n\n```text\nAdvance source/release asset:  {ASSET_ROOT}/bin/adv + {ASSET_ROOT}/bin/lib/**\nStable deployed CLI dir:       {ADV_LOCAL_DEPLOY_ROOT:-$HOME/.local/share/Advance}/bin/\nStable deployed plugin dir:    {ADV_LOCAL_DEPLOY_ROOT:-$HOME/.local/share/Advance}/plugin/\nManaged PATH link:             {ADV_BIN_LINK:-$HOME/.local/bin/adv}\n\n~/.local/bin/adv  ->  ~/.local/share/Advance/bin/adv\n```\n\nRuntime invariant: `$LOCAL_DEPLOY_ROOT/bin` and `$LOCAL_DEPLOY_ROOT/plugin` must be siblings. `bin/lib/live-status.ts` imports Temporal helpers from `../../plugin/src/temporal/*`, so live status depends on the deployed plugin source tree being present at that sibling path. Existing deploy-local plugin rsync syncs the full `plugin/` tree; CLI sync must run after or alongside that plugin sync and `--check` must assert the import target exists.\n\nThis avoids both failure modes found in discovery:\n\n- No stale regular file stays on PATH after a successful safe `--fix`.\n- Release installer does not create a symlink to the temporary extraction root, because the CLI payload is copied into stable local deploy root first.\n\n`bin/adv` remains the behavior source of truth for status. Deploy-local only installs/syncs it and verifies the installed path reaches source-current behavior.\n\n## Key Decisions\n\n1. **Stable copy + managed symlink, not direct source symlink.**\n   - Source checkout and release artifact installs both sync `bin/adv` and `bin/lib/**` into `$LOCAL_DEPLOY_ROOT/bin/`.\n   - `~/.local/bin/adv` points at that stable deployed copy.\n   - Rationale: current docs use a source symlink, but release `install.sh` runs from a temporary extracted archive. Symlinking to that root would break after cleanup.\n\n2. **Use existing deploy-local rsync idiom.**\n   - Reuse Section-0 style `check_rsync` + `rsync -a --delete` for CLI payload sync.\n   - Rationale: one deploy mechanism, same dependency profile, no bespoke partial copy logic.\n\n3. **Deploy-local owns check/fix.**\n   - Add CLI install validation to `check_config` or adjacent `check_adv_cli_install` path used by `--check`.\n   - Add CLI sync/repair to asset sync/fix path after plugin rsync and before final summary.\n   - Summary changes from `Local bins: acp-mux archived/skipped` to include `adv` managed status and keep `acp-mux` archived/skipped.\n\n4. **Safe recognizer for regular files.**\n   - Recognized ADV CLI artifacts may be replaced by the managed symlink.\n   - Recognizer must be structural and narrow: Bun shebang plus ADV-specific CLI markers such as `adv — ADV`, `ADV (Advance) status CLI`, `schema_version`, or `live Temporal`/`roadmap` command markers.\n   - Unrecognized content is refused with exact manual remediation.\n\n5. **PATH shadowing is visible and warn-only on fix.**\n   - `--check` fails when `command -v adv` is missing or resolves somewhere other than the managed link.\n   - `--fix` repairs `$ADV_BIN_LINK`; if `command -v adv` still resolves another path, it prints a warning + PATH remediation but does not attempt to rewrite unrelated PATH locations.\n\n6. **Source-current proof uses JSON shape and runtime import resolution, not version only.**\n   - `adv --version` currently matches between stale and source (`adv v0.1.0`), so version is insufficient.\n   - Tests and docs use `adv status --json` shape: source-current live status includes `source: \"temporal\"`, `live`, `stale`, and fail-closed `error`/`remediation`; stale disk-only output has `schema_version: 1`.\n   - `--check` also verifies `$LOCAL_DEPLOY_ROOT/plugin/src/temporal` import targets required by `bin/lib/live-status.ts` exist.\n\n7. **Spec law belongs in `advance-meta`.**\n   - Add `rq-advCliInstall01` to `.adv/specs/advance-meta/spec.json` and mirrored `docs/specs/advance-meta.md` because deploy-local/local runtime install is cross-cutting Advance metadata/runtime behavior.\n\n## ADR Drafts\n\nNo ADR drafted. Decision is important but reversible through deploy-local/spec/test changes. It does not meet all three ADR criteria.\n\n## Implementation Strategy\n\n1. **Add deploy-local paths and helpers**\n   - Define:\n     - `ADV_SOURCE_CLI_DIR=\"$ASSET_ROOT/bin\"`\n     - `ADV_RUNTIME_CLI_DIR=\"$LOCAL_DEPLOY_ROOT/bin\"`\n     - `ADV_RUNTIME_CLI_PATH=\"$ADV_RUNTIME_CLI_DIR/adv\"`\n     - `ADV_BIN_LINK=\"${ADV_BIN_LINK:-$HOME/.local/bin/adv}\"`\n   - Keep `ADV_BIN_LINK` override for tests only; default remains `~/.local/bin/adv`.\n\n2. **Sync stable CLI payload**\n   - During sync/fix mode, after plugin rsync, run `rsync -a --delete \"$ADV_SOURCE_CLI_DIR/\" \"$ADV_RUNTIME_CLI_DIR/\"` after `check_rsync`.\n   - Preserve executable bit on `adv` through rsync.\n   - Do not put `bin/oc-test` on PATH as part of this change.\n   - Co-deploy `bin/lib/**` beside `bin/adv`; Bun resolves the symlinked main script to its realpath by default, so relative `./lib/*` imports resolve against stable deployed CLI dir.\n\n3. **Implement check helper**\n   - `check_adv_cli_install` validates:\n     - source CLI dir exists;\n     - runtime CLI payload exists and matches source payload or reports stale runtime copy;\n     - runtime plugin Temporal import targets exist, especially `$LOCAL_DEPLOY_ROOT/plugin/src/temporal` used by `bin/lib/live-status.ts`;\n     - managed link exists;\n     - managed link points to `$ADV_RUNTIME_CLI_PATH`;\n     - `command -v adv` resolves to `$ADV_BIN_LINK` after path canonicalization;\n     - status JSON shape from managed/runtime CLI is source-current where feasible.\n   - Increment `config_issues` or a new `install_issues` counter on check failures; ensure `--check` exits non-zero.\n\n4. **Implement safe repair helper**\n   - `fix_adv_cli_install`:\n     - ensures `$ADV_RUNTIME_CLI_DIR` and parent of `$ADV_BIN_LINK` exist;\n     - syncs source CLI payload to runtime CLI dir after plugin sync;\n     - if `$ADV_BIN_LINK` missing or broken symlink: create symlink;\n     - if symlink points elsewhere: replace symlink;\n     - if regular file recognized as ADV CLI: move aside or remove, then create symlink;\n     - if regular file unrecognized: refuse with manual backup/remove instructions and return non-zero or counted failure;\n     - after repair, run path-shadow check and warn if `command -v adv` still resolves elsewhere.\n\n5. **Test strategy**\n   - Add executable fake-HOME/PATH integration tests in `plugin/src/overlay-sync-assets.test.ts`, reusing existing `mkdtempSync` + `spawnSync` + `HOME: tempHome` harness.\n   - Add `tempBin`/PATH manipulation for shadowing cases.\n   - Extend `plugin/src/cli-bridge-contract.test.ts` for status JSON shape proof when useful, instead of creating a new guard file.\n   - Add static/asset assertions in `plugin/src/deploy-local.test.ts` for helper names, env overrides, summary text, import-target check, and spec anchors.\n   - Avoid direct writes to real `/home/jon/.local/bin/adv` in tests.\n\n6. **Docs and spec updates**\n   - Update `SETUP.md` CLI section from manual one-time symlink to deploy-local-managed install:\n     - `./scripts/deploy-local.sh --check`\n     - `./scripts/deploy-local.sh --fix`\n     - `command -v adv`\n     - `adv status --json`\n     - unsafe-file remediation.\n   - Update deploy-local summary/docs to name `adv` managed and `acp-mux` archived.\n   - Add `rq-advCliInstall01` with scenarios mirroring AC1–AC6.\n\n## LBP Analysis\n\nThe stable-copy + managed-symlink approach is the best long-term fit because deploy-local already owns local runtime deployment and release `install.sh` delegates to it. It avoids a temporary-release symlink, avoids manual user edits, keeps source-first behavior, and makes drift structurally checkable.\n\nA pure symlink to source checkout is simpler but fails release durability. A pure copy to `~/.local/bin/adv` handles release durability only if `bin/lib/**` is also colocated, and it weakens drift visibility by recreating the stale regular-file shape. A wrapper adds indirection without clear benefit over symlink-to-stable-copy.\n\n## Affected Components\n\n- `scripts/deploy-local.sh`\n  - path constants, check helper, fix helper, CLI payload sync, runtime plugin import-target check, summary output.\n- `bin/adv` and `bin/lib/**`\n  - no behavior changes expected; copied/synced by deploy-local.\n- `plugin/src/deploy-local.test.ts`\n  - static contract/anchor tests.\n- `plugin/src/overlay-sync-assets.test.ts`\n  - fake-HOME/PATH executable install tests.\n- `plugin/src/cli-bridge-contract.test.ts`\n  - status JSON shape proof if needed for source-current guard.\n- `.adv/specs/advance-meta/spec.json`\n  - new `rq-advCliInstall01` requirement.\n- `docs/specs/advance-meta.md`\n  - mirror spec docs.\n- `SETUP.md`\n  - supported CLI install/check/fix docs.\n- `install.sh`\n  - likely unchanged; already delegates to deploy-local.\n\n## Risks / Mitigations\n\n| Risk | Mitigation |\n|---|---|\n| Release install symlink points to temp extraction root | Always sync CLI payload into `$LOCAL_DEPLOY_ROOT/bin` before symlink. |\n| Live status breaks if deployed plugin source tree is absent | Preserve full plugin rsync; check `$LOCAL_DEPLOY_ROOT/plugin/src/temporal` import targets. |\n| Overwrite unrelated user file | Narrow recognizer; refuse unrecognized content with manual backup/remove instructions. |\n| Version check gives false proof | Verify JSON shape, runtime import targets, and file/link target; do not rely on `adv v0.1.0` alone. |\n| PATH shadow remains after fix | Warn with exact resolved path and remediation; `--check` stays failing until PATH resolves correctly. |\n| Tests mutate real home bin | Use temp HOME, temp PATH, and `ADV_BIN_LINK` override. |\n| `bin/adv` relative imports break | Co-deploy `bin/lib/**` with `bin/adv`; rely on Bun default realpath resolution for symlinked main. |\n| Scope collision with source live-status contract | Do not alter live-status code path; only install/sync source-current CLI. |\n\n## Design Leverage Scout\n\nValidator scout result: VALIDATED.\n\nAuto-adopted:\n\n1. Reuse existing fake-HOME harness in `overlay-sync-assets.test.ts` and add temp PATH/bin for shadow tests.\n2. Use existing deploy-local `check_rsync` + `rsync -a --delete` idiom for CLI sync.\n3. Co-deploy `bin/lib/**` and rely on Bun default symlink-realpath main resolution; no wrapper needed.\n4. Extend `cli-bridge-contract.test.ts` for status JSON shape proof where useful.\n\nSurfaced and resolved by existing agreement:\n\n- PATH-shadow remediation remains warn-only on `--fix`, matching user decision and protecting unrelated PATH entries.\n\n## Validator Result\n\nValidator: CAUTION.\n\nCautions incorporated:\n\n1. `bin/lib/live-status.ts` depends on sibling `$LOCAL_DEPLOY_ROOT/plugin/src/temporal/*`; design now names this runtime-root invariant and orders CLI sync after plugin rsync.\n2. Agreement/design now point live-status avoidance at concrete surfaces: `bin/adv`, `bin/lib/live-status.ts`, `plugin/src/cli-bridge-contract.test.ts`, and `advance-meta` `rq-statusCliBridge01`.\n\nNonblocking validator info:\n\n- Core symlink-to-runtime-bin mechanism is sound because Bun resolves symlinked main scripts to realpath by default and `bin/lib/**` is co-deployed beside `bin/adv`.\n- No simpler viable alternative satisfies release durability, relative imports, and drift prevention.",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\nADV CLI local install is now managed by `scripts/deploy-local.sh`: source checkout, local deploy, and release install converge on a stable `$HOME/.local/share/Advance/bin/adv` payload with `$HOME/.local/bin/adv` as the managed PATH entry. Review verdict: APPROVED/READY after one review-owned safety fix.\n\n## Verdict\nAPPROVED\n\n## What Was Built\n1. Added advance-meta spec/test coverage for the ADV CLI local install contract.\n2. Implemented deploy-local managed CLI payload sync and stable symlink install.\n3. Added drift checks, safe repair behavior, unrelated-file refusal, and PATH shadow handling.\n4. Added live `adv status --json` source-current validation and no-mutation guard coverage.\n5. Updated release artifact packaging, installer checks, and SETUP guidance for supported install/repair flow.\n6. Completed final cleanup and review remediation: narrowed ADV CLI ownership detection by removing generic `schema_version` matching and added regression coverage for unrelated files containing `schema_version=1`.\n\n## What Was Verified\n- Verdict: READY with 0 remaining findings after review remediation.\n- Tests: targeted install-contract suites passed; `bin/oc-test smoke` passed; `bin/oc-test full` passed on rerun after isolated concurrent-signaling retry passed.\n- Post-review remediation: `bin/oc-test targeted -- src/overlay-sync-assets.test.ts src/deploy-local.test.ts` passed 89 tests; `bin/oc-test smoke` passed.\n- Preview URL: not_applicable — change is CLI/deploy/release tooling only; no frontend, browser-visible, or visual-output surface.\n- Contract matrix: 22 required rows passed/respected; 0 failed, violated, unknown, or missing.\n\n## Remaining Concerns\nNone.\n",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-06-06T04:29:17Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| AC1 | acceptance_criterion | `scripts/deploy-local.sh --check` fails or reports exact drift when PATH `adv` is missing, stale, wrong target, or shadowed. | pass | deploy-local drift classification and PATH shadow paths covered by plugin/src/deploy-local.test.ts and plugin/src/overlay-sync-assets.test.ts; post-review targeted run passed 89 tests. |\n| AC2 | acceptance_criterion | `scripts/deploy-local.sh --fix` manages the local `adv` install through deploy-local, not manual edits. | pass | scripts/deploy-local.sh syncs bin payload to $ADV_LOCAL_DEPLOY_ROOT/bin and links $HOME/.local/bin/adv; deploy-local/overlay tests passed. |\n| AC3 | acceptance_criterion | `--fix` replaces only recognized ADV CLI artifacts; unrelated `~/.local/bin/adv` content is refused with manual remediation. | pass | Review remediation added regression for unrelated adv containing schema_version=1; post-review targeted run passed 89 tests. |\n| AC4 | acceptance_criterion | If `~/.local/bin/adv` is correct but PATH resolves another `adv`, `--check` fails and `--fix` warns with PATH remediation. | pass | PATH shadow handling asserted in deploy-local tests and post-review smoke/targeted verification passed. |\n| AC5 | acceptance_criterion | After `--fix`, PATH `adv --version` executes source-current ADV CLI behavior. | pass | Release/deploy-local tests assert stable deployed bin tree and managed symlink; smoke and full suite passed after execution. |\n| AC6 | acceptance_criterion | After `--fix`, PATH `adv status --json` emits live-status metadata (`source: \"temporal\"` on success or fail-closed live error metadata), not stale disk-only `schema_version: 1` JSON. | pass | deploy-local tests assert live Temporal source JSON check and reject schema_version:1 disk-only readiness; cli-bridge contract test passed in targeted run. |\n| AC7 | acceptance_criterion | Tests cover missing install, valid managed install, stale regular ADV file, wrong symlink/target, unsafe non-ADV file, and PATH shadowing. | pass | plugin/src/overlay-sync-assets.test.ts and plugin/src/deploy-local.test.ts cover missing install, managed install, stale regular file, wrong target, unsafe file, PATH shadow; targeted run passed 89 tests. |\n| AC8 | acceptance_criterion | Docs state supported install path, `--check`, `--fix`, PATH-shadow remediation, and unsafe-file manual recovery. | pass | SETUP.md guidance asserted by plugin/src/release-install-assets.test.ts; targeted docs/release tests passed 77 tests. |\n| AC9 | acceptance_criterion | No CLI mutation subcommands are added. | pass | plugin/src/cli-bridge-contract.test.ts passed in targeted run; reviewer found no mutation subcommands. |\n| C1 | constraint | Use deploy-local as the durable owner. No direct durable hand-edit of `/home/jon/.local/bin/adv` outside source/deploy logic. | respected | All durable install behavior implemented in scripts/deploy-local.sh; no direct durable hand-edit to ~/.local/bin/adv performed. |\n| C2 | constraint | Keep status semantics in source `bin/adv`; this change only ensures installed PATH `adv` reaches source-current behavior. | respected | bin/adv and bin/lib/live-status.ts semantics preserved; deploy-local only installs/syncs the source-current CLI payload. |\n| C3 | constraint | Recognized legacy ADV CLI files may be replaced; unrecognized non-ADV files must be refused. | respected | is_recognized_adv_cli_target narrowed by review; unrelated files refused, recognized ADV targets replaceable. |\n| C4 | constraint | PATH-shadowing remains visible: `--check` fails; `--fix` repairs managed target then reports PATH remediation if shell resolution still points elsewhere. | respected | check_adv_cli_install increments issue count for PATH shadow in check mode and warns without incrementing in fix mode. |\n| C5 | constraint | Release installs must not create a symlink to a temporary extraction directory. | respected | Release package includes bin payload; install.sh requires bin/adv then invokes deploy-local --fix for stable local-share deployment. |\n| C6 | constraint | Keep implementation dependency-light: Bash + existing test harness unless design proves otherwise. | respected | Implementation uses Bash, rsync, readlink, grep, existing pnpm/vitest harness; no new dependency added. |\n| C7 | constraint | Keep install behavior testable in temporary HOME/PATH fixtures. | respected | overlay-sync-assets fake HOME/PATH and fake rsync tests passed post-review. |\n| DONT1 | avoidance | Do not add CLI mutation authority: no gate completion, archive, cancellation, task mutation, destructive repair, or automatic Temporal restart. | respected | Reviewer verdict READY; cli-bridge contract tests passed; no gate/archive/task mutation subcommands introduced. |\n| DONT2 | avoidance | Do not duplicate or weaken source live-status surfaces: `bin/adv`, `bin/lib/live-status.ts`, `plugin/src/cli-bridge-contract.test.ts`, or `advance-meta` `rq-statusCliBridge01`. | respected | Reviewer checked live-status surface; bin/adv live-status semantics preserved and cli-bridge contract tests passed. |\n| DONT3 | avoidance | Do not silently fall back to stale disk-only `schema_version: 1` status JSON. | respected | deploy-local validation requires source:\"temporal\" and rejects disk-only schema_version:1; tests passed. |\n| DONT4 | avoidance | Do not overwrite unrelated `~/.local/bin/adv` content. | respected | Review found and fixed broad ownership heuristic; regression verifies unrelated schema_version=1 file refused. |\n| DONT5 | avoidance | Do not treat matching `adv --version` output alone as proof of source-current behavior. | respected | Source-current proof uses adv status --json live Temporal metadata check, not adv --version alone. |\n| DONT6 | avoidance | Do not reintroduce `acp-mux` local binary deployment. | respected | Deploy summary still reports acp-mux archived/skipped; no acp-mux local binary deployment added. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixAdvCliDeploy/proposal.md",
+      "updatedAt": "2026-06-05T22:44:00.379Z",
+      "contentHash": "e7c8e1f336bd5bd5458d8d2ba78907e01f6c3dba3261d77eb4bf7449303cc61e"
+    },
+    "problemStatement": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixAdvCliDeploy/problem-statement.md",
+      "updatedAt": "2026-06-05T22:44:00.379Z",
+      "contentHash": "728e8af61e767b6424298214dcebbed2ee47025764a4df97c55d60ee8b5443de"
+    },
+    "agreement": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixAdvCliDeploy/agreement.md",
+      "updatedAt": "2026-06-05T22:58:05.923Z",
+      "contentHash": "cf53551dbdef753326f1a056e8c1d2471b573a11d99f5bd1478ca61f8af7b991"
+    },
+    "design": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixAdvCliDeploy/design.md",
+      "updatedAt": "2026-06-05T22:58:05.923Z",
+      "contentHash": "fc814f21611ac1cf5d88fe936aaf233425deb22f88e67db8e703949ecdfbae69"
+    },
+    "executiveSummary": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixAdvCliDeploy/executive-summary.md",
+      "updatedAt": "2026-06-06T04:30:03.833Z",
+      "contentHash": "7d96ab77639de3b1e60a40f09f4277ea503428d2cf50e8a536de47a19bc70bff"
+    }
+  },
+  "lastSignalAt": "2026-06-06T04:49:12.098Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_MISSING_SUCCESS_CRITERIA",
+      "severity": "warning",
+      "message": "Success criteria are placeholder or empty. What measurable outcomes define done?",
+      "recorded_at": "2026-06-05T22:35:54.419Z"
+    },
+    {
+      "code": "CLARIFY_MISSING_ERROR_HANDLING",
+      "severity": "warning",
+      "message": "Proposal describes behavior that could fail but doesn't mention error handling or rollback. What happens when things go wrong?",
+      "recorded_at": "2026-06-05T22:35:54.419Z",
+      "resolved": true,
+      "resolved_at": "2026-06-05T22:37:58.207Z"
+    }
+  ]
+}

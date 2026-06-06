@@ -1,0 +1,26 @@
+{
+  "entries": [
+    {
+      "id": "ws-nOGJLo",
+      "type": "gotcha",
+      "content": "When embedding Bash scripts in TypeScript template-literal test fixtures, Bash parameter expansion like `${args[...]}` is parsed by TypeScript unless escaped; prefer argument loops or escaped dollar sequences in fake command fixtures.",
+      "source_task": "tk-54eae4ca32ff",
+      "recorded_at": "2026-06-06T04:17:09.407Z"
+    },
+    {
+      "id": "ws-d51NH6",
+      "type": "pattern",
+      "content": "For installer/deploy changes, pair SETUP/install docs with asset tests that assert required user-facing snippets and release payload paths; this keeps release guidance and packaged artifacts from drifting independently.",
+      "source_task": "tk-6e66b550ec40",
+      "recorded_at": "2026-06-06T04:17:53.681Z"
+    },
+    {
+      "id": "ws-Gd2mgU",
+      "type": "success",
+      "content": "Final verification pattern worked well: run smoke first to catch format/type/lint drift, fix deterministic issues, then run full suite; if one integration test times out, rerun that file in isolation before rerunning full suite to classify reproducibility.",
+      "source_task": "tk-ff8701595fe1",
+      "recorded_at": "2026-06-06T04:22:27.106Z"
+    }
+  ],
+  "count": 3
+}
