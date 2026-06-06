@@ -1,0 +1,561 @@
+{
+  "id": "fixChangeCloseRecovery",
+  "title": "Fix change close recovery",
+  "status": "archived",
+  "created_at": "2026-06-06T20:17:47.398Z",
+  "tasks": [
+    {
+      "id": "tk-63b1c2930c8c",
+      "title": "Implement audited completed-workflow recovery for change close",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-06-06T20:22:33.275Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-06T20:23:09.143Z",
+      "verification": "RED: change close recovery tests failed before implementation. GREEN/verify: `bin/oc-test targeted -- src/tools/change.test.ts src/utils/tool-arg-preflight.test.ts` passed (150 tests); `pnpm run typecheck` passed; `pnpm run lint` passed; `pnpm run format:check` passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/_recovery-writers.ts",
+        "plugin/src/tools/change.test.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/utils/tool-arg-preflight.test.ts",
+        "plugin/src/utils/tool-arg-preflight.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/_recovery-writers.ts",
+        "plugin/src/tools/change.test.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/utils/tool-arg-preflight.test.ts",
+        "plugin/src/utils/tool-arg-preflight.ts"
+      ],
+      "checkpointSha": "1f5a12411fd5c28a1a31b9799f51a22ebb0f9ae6",
+      "completedAt": "2026-06-06T20:30:41.682Z",
+      "completed_at": "2026-06-06T20:30:41.682Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixChangeCloseRecovery",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixChangeCloseRecovery",
+          "task_id": "tk-63b1c2930c8c",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-63b1c2930c8c"
+          },
+          "agent": "adv-reviewer",
+          "phase": "review",
+          "verdict": "READY",
+          "blocking_findings": [],
+          "nonblocking_findings": [],
+          "changes_made": [],
+          "wisdom_candidates": [],
+          "verification": {
+            "tests_run": [
+              "bin/oc-test targeted -- src/tools/change.test.ts src/utils/tool-arg-preflight.test.ts (provided prior evidence: passed, 150 tests)",
+              "pnpm run typecheck (provided prior evidence: passed)",
+              "pnpm run lint (provided prior evidence: passed)",
+              "pnpm run format:check (provided prior evidence: passed)",
+              "pnpm --dir plugin run schemas:check"
+            ],
+            "results": "pass",
+            "evidence": "Path preflight OK for all scoped files. Reviewed close/bulk-close recovery schemas, validation, signal-first execution, completed-workflow-only disk recovery, dry-run no-write branches, recovery-writer authorization, and preflight placeholder policy/tests. Additional schemas:check exited successfully."
+          },
+          "scope_drift": null,
+          "risks": [],
+          "required_main_agent_actions": [],
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/change.test.ts src/utils/tool-arg-preflight.test.ts (provided prior evidence: passed, 150 tests)"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run typecheck (provided prior evidence: passed)"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run lint (provided prior evidence: passed)"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run format:check (provided prior evidence: passed)"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm --dir plugin run schemas:check"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "fixChangeCloseRecovery",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:close-recovery-design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Audited completed-workflow recovery for adv_change_close and adv_change_bulk_close",
+      "sources": [
+        {
+          "label": "Archive recovery precedent (canonical reference pattern)",
+          "locator": "plugin/src/tools/change.ts:3920-4009",
+          "summary": "adv_change_archive already implements the exact proposed pattern: signal/save first, on failure check isWorkflowCompletedError + poisoned probe under recoveryMode='poisoned_history', then saveRecoveredChangeStatus with recovery_audit (reason+evidence) and returns _recoveryMutation:true + RECOVERY_RECONCILIATION_WARNING."
+        },
+        {
+          "label": "Disk-projection recovery writer (status transition)",
+          "locator": "plugin/src/tools/_recovery-writers.ts:163-173",
+          "summary": "saveRecoveredChangeStatus(status) exists, bypasses store.changes.save (which would re-route through workflow), writes disk via saveChange, structurally requires RecoveryWriteAuthorization{reason,evidence}. Status type is Change['status'] — supports 'closed'/'cancelled' values as defined by the Change type."
+        },
+        {
+          "label": "Recovery classification helpers",
+          "locator": "plugin/src/temporal/recovery-classification.ts:52-67",
+          "summary": "isWorkflowCompletedError (exact name set + message substring patterns, false-positive-safe) and isPreciseWorkflowRecoveryEvidence (poisoned OR completed evidence regex) both exist and are workflow-safe. RECOVERY_RECONCILIATION_WARNING constant available."
+        },
+        {
+          "label": "Current close handler — recovery gap confirmed",
+          "locator": "plugin/src/tools/change.ts:3037-3093",
+          "summary": "adv_change_close only calls fireSignalAndRefresh(changeCancelledSignal); catch block returns raw error + contextMismatch. No completed-workflow fallback. Dry-run (3026-3035) already no-write."
+        },
+        {
+          "label": "Current bulk-close handler — recovery gap confirmed",
+          "locator": "plugin/src/tools/change.ts:3210-3237",
+          "summary": "Per-id loop fires changeCancelledSignal, per-id catch records {success:false,error}. No recovery branch. Disk sweep only runs for successful ids (3245-3255) — partial-failure rollback preserved. Dry-run (3172-3187) already no-write."
+        },
+        {
+          "label": "Schema/evidence-gating precedent (contract + task tools)",
+          "locator": "plugin/src/tools/contract.ts:45-141, plugin/src/tools/task.ts:78-106",
+          "summary": "recoveryMode enum + recoveryEvidence schema with isPreciseWorkflowRecoveryEvidence validation is the established cross-tool convention; close/bulk-close should mirror it verbatim (RecoveryModeSchema)."
+        },
+        {
+          "label": "Temporal recovery doctrine",
+          "locator": "docs/temporal-recovery.md + _recovery-writers.ts:12-17 header",
+          "summary": "Recovery writes must not refresh Temporal cache (completed-but-queryable workflow projects stale state back over disk repair). Recovery is explicit/audited/last-resort only."
+        }
+      ],
+      "architecture_assessment": "Existing pattern: adv_change_archive, adv_contract_*, and task mutation tools already implement signal-first → on-failure completed/poisoned classification → authorized disk-projection write → audit + reconciliation warning. Reference pattern: identical. The proposed close/bulk-close design is a direct, faithful replication of a shipped, tested precedent (lines 3920-4009) reusing the SAME helpers (saveRecoveredChangeStatus, isWorkflowCompletedError, isPreciseWorkflowRecoveryEvidence, RECOVERY_RECONCILIATION_WARNING). Deviation from canonical ADV recovery architecture: NONE. This is the boring, proven path — no novel mechanism introduced.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "Design is VALIDATED. All four design assertions verified against source: (1) recoveryMode/recoveryEvidence schema matches contract.ts/task.ts convention; (2) precise-evidence validation helper exists and is reused; (3) saveRecoveredChangeStatus(status:'closed') exists, bypasses workflow re-routing, requires audit; (4) dry-run already no-write in both handlers. No CONFLICT."
+      },
+      "recommendation": "Proceed. Implement by mirroring archive recovery (change.ts:3936-4009) exactly: signal first; on catch, gate on recoveryMode==='poisoned_history'; classify via isWorkflowCompletedError(error) (completed) OR workflowHasPoisonedRecoveryEvidence probe (poisoned); only then call saveRecoveredChangeStatus({status, authorization:{reason: completedWorkflow?'completed_workflow_close_recovery':'poisoned_history_close_recovery', evidence: recoveryEvidence ?? errorText}}); return _recoveryMutation:true + RECOVERY_RECONCILIATION_WARNING; run best-effort removeChangeDir/sweep AFTER recovery succeeds. Use RecoveryModeSchema from task.ts for schema parity. Validate recoveryEvidence with isPreciseWorkflowRecoveryEvidence when recoveryMode set, before the try block (matches archive 3442-3452).",
+      "follow_ups": [
+        "RISK (low): saveRecoveredChangeStatus deliberately does NOT bestEffortRefresh (unlike task writers) — confirm close recovery path does not invalidate cache afterward, else stale completed-workflow state reprojects over the disk close (per _recovery-writers.ts:12-17 and 158-172). Archive path correctly avoids refresh; copy that exactly.",
+        "RISK (bulk, medium): in bulk close the recovery branch must live INSIDE the per-id try/catch loop (3210-3237), not the outer try. Each id classifies its own error independently; a completed-workflow id recovers while a genuinely-failing id still records {success:false}. Do not let one recovery short-circuit the loop.",
+        "BULK ordering: ensure disk sweep (3245-3255) treats recovery-closed ids as successfulIds so changes/<id> dirs are removed; otherwise recovered closes leak source dirs.",
+        "DENY-BY-DEFAULT: verify a completed-workflow close failure WITHOUT recoveryMode still returns the raw error (negative test) — mirror archive test change.test.ts:1478-1506.",
+        "TEST PARITY: add single-close recovery (completed + poisoned-evidence variants), bulk mixed (one recovers, one hard-fails), and no-recoveryMode negative — mirroring change.test.ts:1442-1545 and task.test.ts:585-690.",
+        "Confirm Change['status'] union includes the intended terminal close value ('closed' vs 'cancelled') so saveRecoveredChangeStatus type-checks; close currently fires changeCancelledSignal so the disk status value must match what the cancelled signal would have set."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixChangeCloseRecovery",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixChangeCloseRecovery",
+      "task_id": "tk-63b1c2930c8c",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-63b1c2930c8c"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/tools/change.test.ts src/utils/tool-arg-preflight.test.ts (provided prior evidence: passed, 150 tests)",
+          "pnpm run typecheck (provided prior evidence: passed)",
+          "pnpm run lint (provided prior evidence: passed)",
+          "pnpm run format:check (provided prior evidence: passed)",
+          "pnpm --dir plugin run schemas:check"
+        ],
+        "results": "pass",
+        "evidence": "Path preflight OK for all scoped files. Reviewed close/bulk-close recovery schemas, validation, signal-first execution, completed-workflow-only disk recovery, dry-run no-write branches, recovery-writer authorization, and preflight placeholder policy/tests. Additional schemas:check exited successfully."
+      },
+      "scope_drift": null,
+      "risks": [],
+      "required_main_agent_actions": [],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/change.test.ts src/utils/tool-arg-preflight.test.ts (provided prior evidence: passed, 150 tests)"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run typecheck (provided prior evidence: passed)"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run lint (provided prior evidence: passed)"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run format:check (provided prior evidence: passed)"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm --dir plugin run schemas:check"
+        }
+      ]
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-06-06T20:18:52.204Z",
+      "completed_by": "agent",
+      "approval_evidence": "User requested `fix bug and then close it`; proposal updated with scope and error handling.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixChangeCloseRecovery/proposal.md",
+        "content_hash": "688578ec1b807d6261ef7a2974d897fd338e7ff6f9945ce8879bce63399f19dd",
+        "non_whitespace_chars": 1905,
+        "checked_at": "2026-06-06T20:17:47.426Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-06-06T20:19:06.352Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery done: docs/temporal-recovery.md confirms audited recovery; _recovery-writers.ts has disk projection writers requiring authorization; recovery-classification.ts has completed-workflow classifiers; change.ts close paths currently lack recovery fallback.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixChangeCloseRecovery/agreement.md",
+        "content_hash": "c0cb40513faef9cc882264969afed44b40fb997fccf325b55f0d11d7c71bc8a0",
+        "non_whitespace_chars": 1062,
+        "checked_at": "2026-06-06T20:17:47.427Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-06-06T20:22:48.195Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design validator VALIDATED. Proceed with signal-first close recovery using existing recovery classifiers and disk-projection writer pattern; confirm close terminal status is `closed` from applyChangeCancelledToState.",
+      "artifact_evidence": {
+        "kind": "design",
+        "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixChangeCloseRecovery/design.md",
+        "content_hash": "10f786f62b1a0b7fb2ac9535067a445025ffdfb1296677b68a89dcfeba3446e6",
+        "non_whitespace_chars": 1664,
+        "checked_at": "2026-06-06T20:17:47.428Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-06-06T20:22:56.022Z",
+      "completed_by": "agent",
+      "approval_evidence": "User explicitly requested: `fix bug and then close it`. Task graph contains one implementation/test task for change-close recovery."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-06-06T20:30:51.207Z",
+      "completed_by": "agent",
+      "approval_evidence": "Task tk-63b1c2930c8c complete. Commit 1f5a12411fd5c28a1a31b9799f51a22ebb0f9ae6. Verification passed: targeted tests (150), typecheck, lint, format:check."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-06-06T20:35:30.238Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved acceptance via chat: `approve`. Contract review matrix has 10 passing rows, reviewer verdict READY, targeted tests/typecheck/lint/format/schemas checks passed, executive summary persisted.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixChangeCloseRecovery/executive-summary.md",
+        "content_hash": "cb2a9a528289dc6f6c5526a1c5b016e9407c73af228d71440df1f71a083d705f",
+        "non_whitespace_chars": 947,
+        "checked_at": "2026-06-06T20:17:47.429Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "discovery",
+    "source_artifact": "renameAdvWorktreeNamespace close failure: adv_change_close and bulk close returned `workflow execution already completed`"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "c0cb40513faef9cc882264969afed44b40fb997fccf325b55f0d11d7c71bc8a0",
+      "approvedAt": "2026-06-06T20:18:59.325Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "`adv_change_close` exposes recovery arguments and rejects recovery without precise evidence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c0cb40513faef9cc882264969afed44b40fb997fccf325b55f0d11d7c71bc8a0",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "`adv_change_close` succeeds by disk projection only after the normal signal path fails with completed-workflow evidence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c0cb40513faef9cc882264969afed44b40fb997fccf325b55f0d11d7c71bc8a0",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "`adv_change_bulk_close` passes recovery arguments through to every selected close and preserves dry-run behavior.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c0cb40513faef9cc882264969afed44b40fb997fccf325b55f0d11d7c71bc8a0",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Existing normal close tests continue to prove signal-first behavior.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c0cb40513faef9cc882264969afed44b40fb997fccf325b55f0d11d7c71bc8a0",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Targeted tests covering change close recovery pass.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c0cb40513faef9cc882264969afed44b40fb997fccf325b55f0d11d7c71bc8a0",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "The stale `renameAdvWorktreeNamespace` close is completed or the session reports the required restart/deploy blocker explicitly.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c0cb40513faef9cc882264969afed44b40fb997fccf325b55f0d11d7c71bc8a0",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Do not directly edit ADV state files by hand.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c0cb40513faef9cc882264969afed44b40fb997fccf325b55f0d11d7c71bc8a0",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Do not bypass user approval metadata.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c0cb40513faef9cc882264969afed44b40fb997fccf325b55f0d11d7c71bc8a0",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Do not make recovery the default path.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c0cb40513faef9cc882264969afed44b40fb997fccf325b55f0d11d7c71bc8a0",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Do not weaken protected/invalid target checks in bulk close.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c0cb40513faef9cc882264969afed44b40fb997fccf325b55f0d11d7c71bc8a0",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-06-06T20:34:15.628Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "`adv_change_close` schema includes optional `recoveryMode` and `recoveryEvidence`; handler validates precise recovery evidence when recoveryMode='poisoned_history'.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`change.test.ts` includes `recovers completed-workflow close failure with audited disk projection`, passing under `bin/oc-test targeted -- src/tools/change.test.ts src/utils/tool-arg-preflight.test.ts`.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`change.test.ts` includes `recovers completed-workflow failures per id during bulk close` and dry-run coverage remains passing.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Existing normal close test `fires changeCancelledSignal with approval metadata` passed; recovery tests prove no recovery without recoveryMode.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Verification passed: targeted tests (150), typecheck, lint, format:check, reviewer ran schemas:check.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "The stale close is not completed in this live session because OpenCode caches deployed plugin tool schemas; actual close requires build/deploy and fresh OpenCode session before new recovery args can be invoked. This explicitly satisfies the blocker branch of AC6.",
+          "notes": "Runtime reload blocker, not source failure."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No ADV state files edited directly; implementation uses `saveRecoveredChangeStatus` through audited recovery path only.",
+          "notes": ""
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Both close tools still require `approvedByUser: true` and non-blank `approvalEvidence`; recovery does not bypass that validation.",
+          "notes": ""
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Recovery activates only when `recoveryMode === 'poisoned_history'`; no recovery mode returns original completed-workflow error.",
+          "notes": ""
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Bulk close still resolves selection through existing protected/invalid target checks before dry-run or execution.",
+          "notes": ""
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "`adv_change_close` exposes recovery arguments and rejects recovery without precise evidence.",
+    "`adv_change_close` succeeds by disk projection only after the normal signal path fails with completed-workflow evidence.",
+    "`adv_change_bulk_close` passes recovery arguments through to every selected close and preserves dry-run behavior.",
+    "Existing normal close tests continue to prove signal-first behavior.",
+    "Targeted tests covering change close recovery pass.",
+    "The stale `renameAdvWorktreeNamespace` close is completed or the session reports the required restart/deploy blocker explicitly."
+  ],
+  "documents": {
+    "proposal": "# Fix change close recovery\n\n## Problem\n\n`adv_change_close` and `adv_change_bulk_close` fail with `workflow execution already completed` when a draft/active change projection still exists but its Temporal workflow is already terminal. This blocks legitimate user-approved cancellation/removal of stale changes such as `renameAdvWorktreeNamespace`.\n\n## Direction\n\nAdd an audited recovery path to the close tools, mirroring the existing archive/gate poisoned-history recovery pattern: normal close still signals Temporal; completed-workflow recovery requires explicit recovery mode and evidence, then applies a disk-projection close/remove only when the live signal path fails because the workflow is already completed.\n\n## Success Criteria\n\n- `adv_change_close` accepts an explicit recovery mode for completed/poisoned workflow close repair.\n- `adv_change_bulk_close` supports the same recovery path for explicit/filter closures.\n- Recovery requires user approval evidence and precise completed-workflow evidence.\n- Tests prove normal close remains signal-first and recovery only activates for completed-workflow failures.\n- After deploy/restart, the stale `renameAdvWorktreeNamespace` change can be closed with audited evidence.\n\n## Scope\n\n- `plugin/src/tools/change.ts` close and bulk close tool schemas/handlers.\n- `plugin/src/tools/_recovery-writers.ts` if terminal close projection needs an audited helper beyond `saveRecoveredChangeStatus`.\n- `plugin/src/tools/change.test.ts` and preflight/schema tests as needed.\n- `plugin/src/utils/tool-arg-preflight.ts` only if strict-mode placeholder policy needs new recovery fields.\n\n## Error Handling\n\n- Without recovery mode, completed-workflow errors remain surfaced unchanged.\n- With recovery mode but missing/imprecise evidence, the tool returns a structured error before mutating state.\n- With recovery mode and non-completed workflow failure, the tool returns the original failure and does not write disk projection.\n- Disk cleanup remains best-effort and reported as warning/failure data, not hidden.\n\n## Out of Scope\n\n- Manual state-file surgery.\n- Changing archive recovery semantics.\n- Changing unrelated gate/task recovery paths.\n",
+    "problemStatement": "Stale ADV changes can remain visible even when their backing Temporal workflow is already completed. Current close tools always signal the workflow, so user-approved close/removal fails with `workflow execution already completed` and there is no safe force-close path.",
+    "agreement": "# Agreement\n\n## Objectives\n\n1. Add a safe, audited recovery close path for changes whose workflow is already completed.\n2. Keep normal close behavior signal-first and unchanged.\n3. Extend both single and bulk close surfaces consistently.\n4. Provide tests for recovery validation and completed-workflow fallback.\n5. Use the fixed tool to close `renameAdvWorktreeNamespace` once the live tool surface is available.\n\n## Acceptance Criteria\n\n1. `adv_change_close` exposes recovery arguments and rejects recovery without precise evidence.\n2. `adv_change_close` succeeds by disk projection only after the normal signal path fails with completed-workflow evidence.\n3. `adv_change_bulk_close` passes recovery arguments through to every selected close and preserves dry-run behavior.\n4. Existing normal close tests continue to prove signal-first behavior.\n5. Targeted tests covering change close recovery pass.\n6. The stale `renameAdvWorktreeNamespace` close is completed or the session reports the required restart/deploy blocker explicitly.\n\n## Constraints\n\n- Do not directly edit ADV state files by hand.\n- Do not bypass user approval metadata.\n- Do not make recovery the default path.\n- Do not weaken protected/invalid target checks in bulk close.\n",
+    "design": "# Design\n\n## Evidence\n\n- `docs/temporal-recovery.md` documents recovery as audited, explicit, and not a manual disk edit.\n- `plugin/src/tools/_recovery-writers.ts` already contains disk-projection writers and states completed-workflow recovery must carry authorization reason/evidence.\n- `plugin/src/temporal/recovery-classification.ts` already provides `isWorkflowCompletedError` and `isPreciseWorkflowRecoveryEvidence`.\n- `plugin/src/tools/change.ts` close handlers currently catch and return the Temporal signal error without a recovery fallback.\n\n## Implementation\n\n- Extend `adv_change_close` and `adv_change_bulk_close` schemas with optional `recoveryMode: 'normal' | 'poisoned_history'` and `recoveryEvidence` to align existing recovery terminology.\n- Validate: when `recoveryMode === 'poisoned_history'`, require non-empty precise workflow recovery evidence via `isPreciseWorkflowRecoveryEvidence`.\n- Extract a close helper used by single and bulk paths:\n  1. Try `changeCancelledSignal` via `fireSignalAndRefresh`.\n  2. On success, remove/sweep closed change directory as today.\n  3. On failure, if recovery mode is enabled and `isWorkflowCompletedError(error)` is true, call `saveRecoveredChangeStatus` with status `closed`, authorization reason `completed_workflow_close_recovery`, and recovery evidence.\n  4. Then perform best-effort directory cleanup through existing removal/sweep helpers.\n  5. If failure is not completed-workflow, return original error.\n- Preserve dry-run: no signals, no disk writes, no cleanup.\n- Add tests for rejection without evidence, no recovery without recovery mode, single close recovery success, and bulk close recovery success/dry-run.\n\n## Runtime note\n\nOpenCode caches deployed plugin tool schemas. After source fix is merged/deployed, a fresh OpenCode session is required before the new recovery arguments can be used through live `adv_change_close`.",
+    "executiveSummary": "# Executive Summary\n\n`adv_change_close` and `adv_change_bulk_close` now have an explicit, audited completed-workflow recovery path. Normal close remains signal-first. Recovery is opt-in via `recoveryMode: 'poisoned_history'`, requires precise `recoveryEvidence`, and only disk-projects a closed status after the normal signal path fails with completed-workflow evidence.\n\nThe bulk close path applies recovery per selected change without short-circuiting siblings, preserves dry-run no-write behavior, and treats recovery-closed items as successful for cleanup. Strict-mode placeholder policy now normalizes blank recovery fields for close tools while preserving non-blank approval evidence requirements.\n\nVerification passed: targeted close/preflight tests, typecheck, lint, format check, and reviewer schemas check. The stale `renameAdvWorktreeNamespace` close cannot be completed from this current OpenCode session because the live tool schema is cached; after archive/deploy and a fresh OpenCode session, close it with the new recovery arguments and completed-workflow evidence.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-06-06T20:34:15.628Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| AC1 | acceptance_criterion | `adv_change_close` exposes recovery arguments and rejects recovery without precise evidence. | pass | `adv_change_close` schema includes optional `recoveryMode` and `recoveryEvidence`; handler validates precise recovery evidence when recoveryMode='poisoned_history'. |\n| AC2 | acceptance_criterion | `adv_change_close` succeeds by disk projection only after the normal signal path fails with completed-workflow evidence. | pass | `change.test.ts` includes `recovers completed-workflow close failure with audited disk projection`, passing under `bin/oc-test targeted -- src/tools/change.test.ts src/utils/tool-arg-preflight.test.ts`. |\n| AC3 | acceptance_criterion | `adv_change_bulk_close` passes recovery arguments through to every selected close and preserves dry-run behavior. | pass | `change.test.ts` includes `recovers completed-workflow failures per id during bulk close` and dry-run coverage remains passing. |\n| AC4 | acceptance_criterion | Existing normal close tests continue to prove signal-first behavior. | pass | Existing normal close test `fires changeCancelledSignal with approval metadata` passed; recovery tests prove no recovery without recoveryMode. |\n| AC5 | acceptance_criterion | Targeted tests covering change close recovery pass. | pass | Verification passed: targeted tests (150), typecheck, lint, format:check, reviewer ran schemas:check. |\n| AC6 | acceptance_criterion | The stale `renameAdvWorktreeNamespace` close is completed or the session reports the required restart/deploy blocker explicitly. | pass | The stale close is not completed in this live session because OpenCode caches deployed plugin tool schemas; actual close requires build/deploy and fresh OpenCode session before new recovery args can be invoked. This explicitly satisfies the blocker branch of AC6. |\n| C1 | constraint | Do not directly edit ADV state files by hand. | respected | No ADV state files edited directly; implementation uses `saveRecoveredChangeStatus` through audited recovery path only. |\n| C2 | constraint | Do not bypass user approval metadata. | respected | Both close tools still require `approvedByUser: true` and non-blank `approvalEvidence`; recovery does not bypass that validation. |\n| C3 | constraint | Do not make recovery the default path. | respected | Recovery activates only when `recoveryMode === 'poisoned_history'`; no recovery mode returns original completed-workflow error. |\n| C4 | constraint | Do not weaken protected/invalid target checks in bulk close. | respected | Bulk close still resolves selection through existing protected/invalid target checks before dry-run or execution. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixChangeCloseRecovery/proposal.md",
+      "updatedAt": "2026-06-06T20:18:45.899Z",
+      "contentHash": "688578ec1b807d6261ef7a2974d897fd338e7ff6f9945ce8879bce63399f19dd"
+    },
+    "problemStatement": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixChangeCloseRecovery/problem-statement.md",
+      "updatedAt": "2026-06-06T20:18:45.899Z",
+      "contentHash": "255d4e44a17d35afc6418e9410d3a9ee69fa2010f4659cb140d995f9aa0fb705"
+    },
+    "agreement": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixChangeCloseRecovery/agreement.md",
+      "updatedAt": "2026-06-06T20:18:45.899Z",
+      "contentHash": "c0cb40513faef9cc882264969afed44b40fb997fccf325b55f0d11d7c71bc8a0"
+    },
+    "design": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixChangeCloseRecovery/design.md",
+      "updatedAt": "2026-06-06T20:18:45.899Z",
+      "contentHash": "10f786f62b1a0b7fb2ac9535067a445025ffdfb1296677b68a89dcfeba3446e6"
+    },
+    "executiveSummary": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixChangeCloseRecovery/executive-summary.md",
+      "updatedAt": "2026-06-06T20:34:37.370Z",
+      "contentHash": "cb2a9a528289dc6f6c5526a1c5b016e9407c73af228d71440df1f71a083d705f"
+    }
+  },
+  "lastSignalAt": "2026-06-06T20:35:30.238Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true
+}
