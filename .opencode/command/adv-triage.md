@@ -114,7 +114,7 @@ Emit structured report: sources scanned, issues created/updated/autofilled/defer
 - × MUST NOT skip Phase 6.5 echo or replace with truncation
 - × MUST NOT commit ROADMAP.md from non-default branch (P32)
 - × MUST NOT use `git add -A` for roadmap commit — explicit paths
-- × MUST NOT use plain-text chat for Phase 4b — `question` tool required
+- × MUST NOT use plain-text chat for Phase 4c field assignments — `question` tool required
 - × MUST NOT autofill bug `priority:*` — user-only
 
 ---
@@ -136,6 +136,6 @@ Emit structured report: sources scanned, issues created/updated/autofilled/defer
 | Agenda | `adv_agenda_list`, `adv_agenda_complete` |
 | Wisdom | `adv_wisdom_list` |
 | Local source scan | `glob`, `read`, `lgrep_search_text` |
-| Phase 4b assignments | `question` tool (batch control + per-item) |
+| Phase 4c field assignments | `question` tool (batch control + per-item) |
 | Roadmap write | `write` (whole file, deterministic from project state) |
 | Git ops | `bash` (`git status`, `git add ROADMAP.md`, `git commit`, `git pull --rebase`, `git push`) |
