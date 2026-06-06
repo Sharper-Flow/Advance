@@ -372,6 +372,9 @@ export async function createDiskStore(
           ...(initialMetadata?.fast_follow_of !== undefined
             ? { fast_follow_of: initialMetadata.fast_follow_of }
             : {}),
+          ...(initialMetadata?.cross_project_origin !== undefined
+            ? { cross_project_origin: initialMetadata.cross_project_origin }
+            : {}),
           ...(initialMetadata?.scope_repos !== undefined
             ? { scope_repos: initialMetadata.scope_repos }
             : {}),

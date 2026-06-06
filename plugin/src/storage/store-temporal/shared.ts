@@ -76,6 +76,7 @@ export function mapTemporalChangeStateToChange(
     gates: safeState.gates,
     reentry_history: safeState.reentry_history,
     fast_follow_of: safeState.fast_follow_of,
+    cross_project_origin: safeState.cross_project_origin,
     origin: safeState.origin,
     contract: safeState.contract,
     acceptanceCriteria: safeState.acceptanceCriteria,
@@ -84,6 +85,8 @@ export function mapTemporalChangeStateToChange(
     phase9_status: safeState.phase9_status,
     lastSignalAt: safeState.lastSignalAt,
     adv_project_id: safeState.projectId,
+    cross_project_links: safeState.cross_project_links,
+    external_dependencies: safeState.external_dependencies,
   };
 }
 

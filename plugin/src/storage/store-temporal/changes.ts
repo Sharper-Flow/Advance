@@ -18,6 +18,7 @@ import {
   proposalUpdatedSignal,
   updateArtifactMetadataSignal,
   changeStateQuery,
+  crossProjectCoordinationUpdatedSignal,
 } from "../../temporal/messages";
 import { ensureChangeWorkflowStarted } from "../../temporal/workflow-start";
 import { listChangeDirs, removeChangeDir } from "../json";
@@ -195,6 +196,7 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
             gates: created.data.gates,
             reentry_history: created.data.reentry_history,
             fast_follow_of: created.data.fast_follow_of,
+            cross_project_origin: created.data.cross_project_origin,
             origin: created.data.origin,
             // rq-autoManageAdvWorktrees AC3 — new changes are auto-managed
             // by default. Seed the workflow state with the marker so the
@@ -321,6 +323,25 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
       }
 
       await legacy.changes.save(change);
+      if (
+        change.cross_project_links !== undefined ||
+        change.external_dependencies !== undefined
+      ) {
+        await runTemporal(async () =>
+          (await getGuardedChangeHandle(input, change.id)).signal(
+            crossProjectCoordinationUpdatedSignal,
+            {
+              ...(change.cross_project_links !== undefined
+                ? { cross_project_links: change.cross_project_links }
+                : {}),
+              ...(change.external_dependencies !== undefined
+                ? { external_dependencies: change.external_dependencies }
+                : {}),
+              updatedAt: new Date().toISOString(),
+            },
+          ),
+        );
+      }
       updateOverlay(change.id, {
         title: change.title,
         status: change.status,
@@ -333,6 +354,8 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
         clarify_findings: change.clarify_findings,
         reentry_history: change.reentry_history,
         cross_project_origin: change.cross_project_origin,
+        cross_project_links: change.cross_project_links,
+        external_dependencies: change.external_dependencies,
         fast_follow_of: change.fast_follow_of,
         origin: change.origin,
         scope_repos: change.scope_repos,

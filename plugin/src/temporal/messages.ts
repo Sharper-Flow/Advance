@@ -57,6 +57,7 @@ import type {
 import type {
   ChangeWorkflowBootstrapState,
   ChangeWorkflowState,
+  CrossProjectCoordinationUpdatedSignalPayload,
 } from "./contracts";
 import {
   CHANGE_WORKFLOW_COMPAT_QUERY_NAMES,
@@ -208,6 +209,9 @@ export const worktreeAutoManagedSignal = wf.defineSignal<
 export const worktreeAttachedSignal = wf.defineSignal<
   [WorktreeAttachedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.worktreeAttached);
+export const crossProjectCoordinationUpdatedSignal = wf.defineSignal<
+  [CrossProjectCoordinationUpdatedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.crossProjectCoordinationUpdated);
 export const conformanceLockedSignal = wf.defineSignal<
   [ConformanceLockedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.conformanceLocked);

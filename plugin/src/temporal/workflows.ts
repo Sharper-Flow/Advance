@@ -20,6 +20,7 @@ import {
   type ChangeWorkflowState,
   type ChangeWorkflowBootstrapState,
   type ChangeWorkflowInput,
+  type CrossProjectCoordinationUpdatedSignalPayload,
 } from "./contracts";
 import {
   applyAcceptanceCriteriaSetToState,
@@ -32,6 +33,7 @@ import {
   applyContractAmendedToState,
   applyContractReviewMatrixSetToState,
   applyContractSetToState,
+  applyCrossProjectCoordinationUpdatedToState,
   applyAcceptanceUpdatedToState,
   applyDesignUpdatedToState,
   applyExecutiveSummaryUpdatedToState,
@@ -310,6 +312,9 @@ const worktreeAutoManagedSignal = wf.defineSignal<
 const worktreeAttachedSignal = wf.defineSignal<
   [import("../types").WorktreeAttachedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.worktreeAttached);
+const crossProjectCoordinationUpdatedSignal = wf.defineSignal<
+  [CrossProjectCoordinationUpdatedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.crossProjectCoordinationUpdated);
 const conformanceLockedSignal = wf.defineSignal<
   [import("../types").ConformanceLockedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.conformanceLocked);
@@ -495,6 +500,15 @@ export async function changeWorkflow(
     }
     if (input.seedState.origin) {
       state.origin = input.seedState.origin;
+    }
+    if (input.seedState.cross_project_origin) {
+      state.cross_project_origin = input.seedState.cross_project_origin;
+    }
+    if (input.seedState.cross_project_links) {
+      state.cross_project_links = input.seedState.cross_project_links;
+    }
+    if (input.seedState.external_dependencies) {
+      state.external_dependencies = input.seedState.external_dependencies;
     }
     if (typeof input.seedState.worktree_auto_managed === "boolean") {
       state.worktree_auto_managed = input.seedState.worktree_auto_managed;
@@ -1222,6 +1236,12 @@ export async function changeWorkflow(
     ),
   );
   wf.setHandler(
+    crossProjectCoordinationUpdatedSignal,
+    signalMutation("crossProjectCoordinationUpdated", (payload) =>
+      applyCrossProjectCoordinationUpdatedToState(state, payload),
+    ),
+  );
+  wf.setHandler(
     conformanceLockedSignal,
     signalMutation("conformanceLocked", (payload) =>
       applyConformanceLockedToState(state, payload),
@@ -1460,6 +1480,9 @@ export async function changeWorkflow(
       archiveRequest: state.archiveRequest,
       phase9_status: state.phase9_status,
       origin: state.origin,
+      cross_project_origin: state.cross_project_origin,
+      cross_project_links: state.cross_project_links,
+      external_dependencies: state.external_dependencies,
       worktree_auto_managed: state.worktree_auto_managed,
       target_worktree_path: state.target_worktree_path,
       scope_worktrees: state.scope_worktrees,

@@ -41,13 +41,11 @@ import {
   type ScopedSubagentReport,
 } from "../types";
 import type { ChangeCreateInitialMetadata, Store } from "../storage/store";
-import { createDiskStore as createLegacyStore } from "../storage/store-disk";
 import { getReflection } from "../storage/reflection";
-import { getProjectId, getExternalRootForProject } from "../utils/project-id";
+import { getProjectId } from "../utils/project-id";
 import { isSyntheticValidationDraftPattern } from "../utils/synthetic-fixture-detector";
 import { validateChange } from "../validator";
 import { createLogger } from "../utils/debug-log";
-import { validateCrossRepoTarget } from "../temporal/activities";
 import { queryClaimsByIssueNumber } from "../temporal/visibility-claim-queries";
 import { subagentReportKey } from "../temporal/contracts";
 import { advWorktreeCleanup } from "./worktree";
@@ -718,6 +716,8 @@ async function createCrossProjectFollowUp({
   design,
   executiveSummary,
   target_path,
+  target_confirmed,
+  confirmationEvidence,
   source_project,
   source_change_id,
   store,
@@ -730,20 +730,13 @@ async function createCrossProjectFollowUp({
   design?: string;
   executiveSummary?: string;
   target_path: string;
+  target_confirmed?: true;
+  confirmationEvidence?: string;
   source_project?: string;
   source_change_id?: string;
   store: Store;
 }): Promise<string> {
-  const validateTargetPath = async (): Promise<string | null> => {
-    // P2.5: route through the same validation primitive that
-    // crossRepoArtifactActivity uses. This unifies the existence + git-repo
-    // checks under one source of truth and ensures cross-repo file I/O is
-    // gated by activity-style validation per design.md § KD-4.
-    const validation = await validateCrossRepoTarget(target_path);
-    if (!validation.ok) {
-      return formatToolOutput({ error: validation.error });
-    }
-
+  const validateNotCurrentProject = async (): Promise<string | null> => {
     try {
       const [realTarget, realRoot] = await Promise.all([
         realpath(target_path),
@@ -762,7 +755,7 @@ async function createCrossProjectFollowUp({
     return null;
   };
 
-  const validationError = await validateTargetPath();
+  const validationError = await validateNotCurrentProject();
   if (validationError) return validationError;
 
   const resolvedSourceProject =
@@ -777,81 +770,71 @@ async function createCrossProjectFollowUp({
   const enrichedProposal = proposal
     ? `${originSection}\n\n${proposal}`
     : undefined;
-  const targetProjectId = await getProjectId(target_path);
-  const targetExternalRoot = targetProjectId
-    ? getExternalRootForProject(targetProjectId)
-    : undefined;
-
-  let targetStore: Store;
   try {
-    // Cross-repo change creation uses the legacy store directly as a
-    // non-runtime filesystem utility. Temporal runtime is not initialized
-    // for external repos in this tool path.
-    targetStore = await createLegacyStore(target_path, {
-      externalRoot: targetExternalRoot,
-    });
-    await targetStore.init();
+    return await withTargetPathStore(
+      {
+        currentProjectPath: store.paths.root,
+        target_path,
+        stateRequirement: "temporal-required",
+        target_confirmed,
+        confirmationEvidence,
+      },
+      async ({ context, store: targetStore }) => {
+        const result = await targetStore.changes.create(summary, {
+          capability,
+          artifacts: {
+            ...(enrichedProposal !== undefined
+              ? { proposal: enrichedProposal }
+              : {}),
+            ...(problemStatement !== undefined ? { problemStatement } : {}),
+            ...(agreement !== undefined ? { agreement } : {}),
+            ...(design !== undefined ? { design } : {}),
+            ...(executiveSummary !== undefined ? { executiveSummary } : {}),
+          },
+          initialMetadata: { cross_project_origin: origin },
+        });
+
+        const output: Record<string, unknown> = {
+          ...result,
+          cross_project_origin: origin,
+          target_path,
+          _projectContext: formatTargetProjectContext(context),
+        };
+        if (result.duplicateWarning) {
+          output._duplicateWarning = result.duplicateWarning;
+        }
+
+        if (source_change_id) {
+          const sourceResult = await store.changes.get(source_change_id);
+          if (sourceResult.success && sourceResult.data) {
+            const sourceChange = sourceResult.data;
+            const links = sourceChange.cross_project_links ?? [];
+            const duplicate = links.some(
+              (link) =>
+                link.target_path === target_path &&
+                link.changeId === result.changeId,
+            );
+            if (!duplicate) {
+              links.push({
+                target_path,
+                target_project_id: context.projectId,
+                changeId: result.changeId,
+                relationship: "follow_up",
+                linked_at: origin.linked_at,
+              });
+              sourceChange.cross_project_links = links;
+              await store.changes.save(sourceChange);
+            }
+          }
+        }
+
+        return formatToolOutput(output);
+      },
+    );
   } catch (err) {
     return formatToolOutput({
-      error: `Failed to initialize target project at ${target_path}: ${err instanceof Error ? err.message : String(err)}`,
+      error: `Failed to create target project change at ${target_path}: ${err instanceof Error ? err.message : String(err)}`,
     });
-  }
-
-  try {
-    const result = await targetStore.changes.create(summary, {
-      capability,
-      artifacts: {
-        ...(enrichedProposal !== undefined
-          ? { proposal: enrichedProposal }
-          : {}),
-        ...(problemStatement !== undefined ? { problemStatement } : {}),
-        ...(agreement !== undefined ? { agreement } : {}),
-        ...(design !== undefined ? { design } : {}),
-        ...(executiveSummary !== undefined ? { executiveSummary } : {}),
-      },
-    });
-    const changeResult = await targetStore.changes.get(result.changeId);
-    if (changeResult.success && changeResult.data) {
-      changeResult.data.cross_project_origin = origin;
-      await targetStore.changes.save(changeResult.data);
-    }
-
-    const output: Record<string, unknown> = {
-      ...result,
-      cross_project_origin: origin,
-      target_path,
-    };
-    if (result.duplicateWarning) {
-      output._duplicateWarning = result.duplicateWarning;
-    }
-
-    if (source_change_id) {
-      const sourceResult = await store.changes.get(source_change_id);
-      if (sourceResult.success && sourceResult.data) {
-        const sourceChange = sourceResult.data;
-        const links = sourceChange.cross_project_links ?? [];
-        const duplicate = links.some(
-          (link) =>
-            link.target_path === target_path &&
-            link.changeId === result.changeId,
-        );
-        if (!duplicate) {
-          links.push({
-            target_path,
-            ...(targetProjectId ? { target_project_id: targetProjectId } : {}),
-            changeId: result.changeId,
-            relationship: "follow_up",
-            linked_at: origin.linked_at,
-          });
-          sourceChange.cross_project_links = links;
-          await store.changes.save(sourceChange);
-        }
-      }
-    }
-
-    return formatToolOutput(output);
-  } finally {
-    targetStore.close();
   }
 }
 
@@ -2464,6 +2447,18 @@ export const changeTools = {
         .describe(
           "Change ID in the source project that triggered this follow-up.",
         ),
+      target_confirmed: z
+        .literal(true)
+        .optional()
+        .describe(
+          "Required for untrusted target_path mutation. Confirms the target project was explicitly approved.",
+        ),
+      confirmationEvidence: z
+        .string()
+        .optional()
+        .describe(
+          "Required with target_confirmed for untrusted target_path mutation. Cite user approval evidence.",
+        ),
       parent_change_id: z
         .string()
         .optional()
@@ -2515,6 +2510,8 @@ export const changeTools = {
         target_path,
         source_project,
         source_change_id,
+        target_confirmed,
+        confirmationEvidence,
         parent_change_id,
         scope_repos,
         origin_kind,
@@ -2531,6 +2528,8 @@ export const changeTools = {
         target_path?: string;
         source_project?: string;
         source_change_id?: string;
+        target_confirmed?: true;
+        confirmationEvidence?: string;
         parent_change_id?: string;
         scope_repos?: ChangeRepoScope[];
         origin_kind?: ChangeOrigin["kind"];
@@ -2633,6 +2632,8 @@ export const changeTools = {
           design,
           executiveSummary,
           target_path,
+          target_confirmed,
+          confirmationEvidence,
           source_project,
           source_change_id,
           store,

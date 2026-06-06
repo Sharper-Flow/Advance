@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { createTempDir, cleanupTempDir } from "../../__tests__/setup";
 import { createDefaultGates, type Change, type Task } from "../../types";
 import { createDiskStore } from "../store-disk";
+import { changeToWorkflowState } from "../../temporal/change-state";
 import { createTemporalStoreBackend } from "./index";
 
 function poisonedHistoryError(): Error {
@@ -62,6 +63,14 @@ function activeChange(id: string): Change {
     ) as Change["gates"],
     reentry_history: [],
     wisdom: [],
+  };
+}
+
+function closedChange(id: string): Change {
+  return {
+    ...activeChange(id),
+    title: `Closed ${id}`,
+    status: "closed",
   };
 }
 
@@ -281,6 +290,73 @@ async function createGenericQueryUnprovenStore(root: string) {
   });
 }
 
+async function createMissingWorkflowSuccessfulReseedStore(
+  root: string,
+  changes: Change[],
+) {
+  const legacy = await createDiskStore(root);
+  for (const change of changes) {
+    await legacy.changes.save(change);
+  }
+
+  const byId = new Map(changes.map((change) => [change.id, change]));
+  const started = new Set<string>();
+  const startInputs: unknown[] = [];
+  const queryCounts = new Map<string, number>();
+  const resolveChangeId = (workflowId: string): string => {
+    const match = changes.find(
+      (change) =>
+        workflowId.endsWith(`/${change.id}`) ||
+        workflowId.endsWith(`-${change.id}`),
+    );
+    if (!match) throw new Error(`Unexpected workflow id: ${workflowId}`);
+    return match.id;
+  };
+
+  const temporal = {
+    client: {
+      workflow: {
+        getHandle: (workflowId: string) => {
+          const changeId = resolveChangeId(workflowId);
+          return {
+            query: async () => {
+              queryCounts.set(changeId, (queryCounts.get(changeId) ?? 0) + 1);
+              if (!started.has(changeId)) throw workflowNotFoundError();
+              return changeToWorkflowState({
+                projectId: "project-1",
+                change: byId.get(changeId)!,
+              });
+            },
+          };
+        },
+        start: async (_workflow: unknown, options: { args: [unknown] }) => {
+          const input = options.args[0] as { changeId: string };
+          startInputs.push(input);
+          started.add(input.changeId);
+          return {
+            query: async () =>
+              changeToWorkflowState({
+                projectId: "project-1",
+                change: byId.get(input.changeId)!,
+              }),
+          };
+        },
+      },
+    },
+  };
+
+  const store = createTemporalStoreBackend({
+    legacy,
+    temporal,
+    projectId: "project-1",
+  });
+  return {
+    store,
+    startInputs: () => startInputs,
+    queryCount: (changeId: string) => queryCounts.get(changeId) ?? 0,
+  };
+}
+
 describe("createTemporalStoreBackend change projection fallback", () => {
   let tempDir: string | undefined;
 
@@ -376,6 +452,58 @@ describe("createTemporalStoreBackend change projection fallback", () => {
     const gates = await store.gates.get("activePoisonedReseedFailGates");
 
     expect(gates).toEqual(change.gates);
+  });
+
+  it("re-seeds an active disk-only change on direct read", async () => {
+    tempDir = await createTempDir();
+    const active = activeChange("activeDiskOnlyRead");
+    const { store, startInputs } =
+      await createMissingWorkflowSuccessfulReseedStore(tempDir, [active]);
+
+    const result = await store.changes.get("activeDiskOnlyRead");
+
+    expect(result.success).toBe(true);
+    expect(result.data).toMatchObject({
+      id: "activeDiskOnlyRead",
+      status: "active",
+    });
+    expect(startInputs()).toHaveLength(1);
+    expect(startInputs()[0]).toEqual(
+      expect.objectContaining({
+        changeId: "activeDiskOnlyRead",
+        seedState: expect.objectContaining({ status: "active" }),
+      }),
+    );
+  });
+
+  it("list re-seeds active disk-only changes without resurrecting terminal changes", async () => {
+    tempDir = await createTempDir();
+    const active = activeChange("activeDiskOnlyList");
+    const archived = archivedChange("archivedDiskOnlyList");
+    const closed = closedChange("closedDiskOnlyList");
+    const { store, startInputs, queryCount } =
+      await createMissingWorkflowSuccessfulReseedStore(tempDir, [
+        active,
+        archived,
+        closed,
+      ]);
+
+    const list = await store.changes.list();
+
+    expect(list.changes.map((change) => change.id)).toContain(
+      "activeDiskOnlyList",
+    );
+    expect(list.changes.map((change) => change.id)).not.toContain(
+      "archivedDiskOnlyList",
+    );
+    expect(list.changes.map((change) => change.id)).not.toContain(
+      "closedDiskOnlyList",
+    );
+    expect(startInputs()).toEqual([
+      expect.objectContaining({ changeId: "activeDiskOnlyList" }),
+    ]);
+    expect(queryCount("archivedDiskOnlyList")).toBe(1);
+    expect(queryCount("closedDiskOnlyList")).toBe(1);
   });
 
   it("seeds contract proof fields when recovering a poisoned non-terminal change", async () => {
