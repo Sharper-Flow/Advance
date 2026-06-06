@@ -1,0 +1,1037 @@
+{
+  "id": "fixTargetMutationReadiness",
+  "title": "Fix target mutation readiness",
+  "status": "archived",
+  "created_at": "2026-06-06T22:35:19.043Z",
+  "tasks": [
+    {
+      "id": "tk-28152fd2daa6",
+      "title": "Add advance-workflow spec law for target mutation readiness",
+      "type": "code",
+      "section": "Spec",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-06-06T22:54:41.055Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC2",
+          "SC3",
+          "C1",
+          "C2",
+          "C5"
+        ],
+        "verifies": [
+          "AC2"
+        ],
+        "respects": [
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "OOS1",
+          "OOS2",
+          "OOS3",
+          "OOS4"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-06T23:00:46.329Z",
+      "verification": "Spec JSON parse verification passed: node JSON.parse command exited 0. Diff reviewed for new rq-targetMutationReadiness01..03 scenarios and docs mirror.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added `rq-targetMutationReadiness01`, `rq-targetMutationReadiness02`, and `rq-targetMutationReadiness03` scenarios to `advance-workflow` spec under cross-project coordination. Mirrored the target mutation readiness law in `docs/specs/advance-workflow.md` and updated doc header to current spec version/date. Verified spec JSON parses successfully.",
+      "filesTouched": [
+        ".adv/specs/advance-workflow/spec.json",
+        "docs/specs/advance-workflow.md"
+      ],
+      "touched_files": [
+        ".adv/specs/advance-workflow/spec.json",
+        "docs/specs/advance-workflow.md"
+      ],
+      "checkpointSha": "6dda557e25e9cd1d5c9a7e644ae0cdf22076b03a",
+      "completedAt": "2026-06-06T23:02:34.099Z",
+      "completed_at": "2026-06-06T23:02:34.099Z",
+      "notes": "Completed spec law task. Checkpoint 6dda557e25e9cd1d5c9a7e644ae0cdf22076b03a.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "updatedAt": "2026-06-06T23:02:44.485Z"
+    },
+    {
+      "id": "tk-08358f278a59",
+      "title": "Implement target mutation readiness helper with boundary tests",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-06-06T22:54:58.360Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-28152fd2daa6"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC6"
+        ],
+        "respects": [
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "OOS1",
+          "OOS2",
+          "OOS3",
+          "OOS4"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-06T23:03:13.118Z",
+      "verification": "Targeted tests passed: `bin/oc-test targeted -- src/tools/target-project.test.ts src/temporal/queue-serviceability.test.ts` exited 0. Typecheck passed: `pnpm run typecheck` exited 0.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added `ensureTargetMutationQueueReady` at the temporal-required target store boundary. The helper preserves local queue registration, falls back to fresh server-poller probing through `probeTaskQueuePollers`, classifies readiness with `classifyQueueServiceability`, and fails closed with queue/blockers/action when unproven. Updated `withTargetPathStore` to fetch the Temporal bundle before readiness and avoid terminal client-only `no registered worker` failure. Added target-project tests for fresh server poller success and unproven poller fail-closed behavior. Verification: targeted tests and typecheck pass.",
+      "filesTouched": [
+        "plugin/src/tools/target-project.test.ts",
+        "plugin/src/tools/target-project.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/target-project.test.ts",
+        "plugin/src/tools/target-project.ts"
+      ],
+      "checkpointSha": "bf4957bf33af671b4af9a00ec9fc695dd16fd6f7",
+      "completedAt": "2026-06-06T23:05:54.612Z",
+      "completed_at": "2026-06-06T23:05:54.612Z",
+      "notes": "Completed readiness helper implementation. Checkpoint bf4957bf33af671b4af9a00ec9fc695dd16fd6f7.",
+      "error_recovery": {
+        "last_error": "Initial verification command ran from plugin/ and `bin/oc-test` was not found (exit 127).",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "ENVIRONMENTAL",
+        "next_strategy": "",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "`bin/oc-test` not found from plugin/ workdir",
+            "diagnosis": "Repo-local test wrapper lives at repository root, not plugin/ package directory.",
+            "fix_tried": "Reran same targeted test command from repository root.",
+            "strategy_label": "correct-workdir",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-06T23:05:11.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-06T23:06:09.340Z"
+    },
+    {
+      "id": "tk-ad71e2c8c81e",
+      "title": "Verify cross-project create no-partial-link behavior after readiness passes",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-06-06T22:55:08.287Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-08358f278a59"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC4",
+          "AC5"
+        ],
+        "verifies": [
+          "AC5",
+          "AC6"
+        ],
+        "respects": [
+          "DONT1",
+          "DONT2",
+          "DONT5",
+          "OOS1",
+          "OOS2",
+          "OOS3",
+          "OOS4"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-06T23:06:37.417Z",
+      "verification": "Targeted no-partial-link test passed: `bin/oc-test targeted -- src/tools/change-cross-project-create.test.ts` exited 0.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Strengthened `change-cross-project-create.test.ts` to prove the target create failure case runs through the temporal-required target store path, attempts target create with cross-project origin metadata, avoids target `get`, surfaces the Temporal workflow-start failure, and does not write the source `cross_project_links` entry. Targeted test passed.",
+      "filesTouched": [
+        "plugin/src/tools/change-cross-project-create.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/change-cross-project-create.test.ts"
+      ],
+      "checkpointSha": "10ab6400e2f9b83b515b73f561779de251dea7f3",
+      "completedAt": "2026-06-06T23:07:24.126Z",
+      "completed_at": "2026-06-06T23:07:24.126Z",
+      "notes": "Completed no-partial-link verification task. Checkpoint 10ab6400e2f9b83b515b73f561779de251dea7f3.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "updatedAt": "2026-06-06T23:07:33.942Z"
+    },
+    {
+      "id": "tk-8dd953c53fc1",
+      "title": "Run final verification for target mutation readiness",
+      "type": "code",
+      "section": "Verification",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-06-06T22:55:20.234Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-28152fd2daa6"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-08358f278a59"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-ad71e2c8c81e"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [],
+        "verifies": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "SC4",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "OOS1",
+          "OOS2",
+          "OOS3",
+          "OOS4"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-06T23:08:02.739Z",
+      "verification": "Reviewer remediation expanded fail-closed poller coverage. Reviewer ran `pnpm --dir plugin run check` and `bin/oc-test targeted -- src/tools/target-project.test.ts src/tools/change-cross-project-create.test.ts src/temporal/queue-serviceability.test.ts`, both passing.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Final verification completed. Reviewer additionally expanded fail-closed readiness coverage in `target-project.test.ts` to cover absent, stale, and unavailable poller evidence; reviewer-reported `pnpm --dir plugin run check` and targeted tests passed. Change remains within agreed scope.",
+      "filesTouched": [
+        "plugin/src/tools/target-project.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/target-project.test.ts"
+      ],
+      "checkpointSha": "e50db85153081229616190e49333760aeb367d7c",
+      "completedAt": "2026-06-06T23:15:23.792Z",
+      "completed_at": "2026-06-06T23:15:23.792Z",
+      "notes": "Reviewer remediation expanded fail-closed test coverage; checkpoint e50db85153081229616190e49333760aeb367d7c.",
+      "error_recovery": {
+        "last_error": "`pnpm run check` failed on Prettier format check for `src/tools/target-project.test.ts` and `src/tools/target-project.ts`.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "Prettier format check failed for touched files.",
+            "diagnosis": "Implementation and tests were semantically correct; formatting needed normalization.",
+            "fix_tried": "Ran `pnpm run format`, then reran `pnpm run check`. Reviewer later reran `pnpm --dir plugin run check` successfully after expanding test coverage.",
+            "strategy_label": "format-and-rerun",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-06T23:08:55.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-06T23:15:39.019Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "fixTargetMutationReadiness",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation: target mutation readiness check at withTargetPathStore boundary",
+      "sources": [
+        {
+          "label": "plugin/src/tools/target-project.ts L204-224",
+          "locator": "plugin/src/tools/target-project.ts",
+          "summary": "temporal-required branch is the single boundary for target_path mutations: calls ensureProjectTemporalQueue(projectId) then getService(); confirms design's chosen insertion point and bundle availability."
+        },
+        {
+          "label": "plugin/src/plugin-init.ts ensureProjectTemporalQueue",
+          "locator": "plugin/src/plugin-init.ts:function:ensureProjectTemporalQueue",
+          "summary": "Throws 'Temporal worker not ready for target project queue {queue}: no registered worker' when inProcessTemporalWorkers is empty (client-only session). This is the exact failure the design removes for fresh-poller sessions."
+        },
+        {
+          "label": "plugin/src/temporal/queue-serviceability.ts",
+          "locator": "plugin/src/temporal/queue-serviceability.ts",
+          "summary": "classifyQueueServiceability returns typed status/confidence/blockers; probeTaskQueuePollers returns ServerPollerProbe with fresh/stale/none/unavailable and DEFAULT_FRESH_POLLER_MS=60s. Provides the typed serviceability evidence the design mandates (no prose parsing)."
+        },
+        {
+          "label": "plugin/src/tools/status.ts computeStatusQueueServiceability L358-404",
+          "locator": "plugin/src/tools/status.ts",
+          "summary": "Status path runs probeTaskQueuePollers + classifyQueueServiceability with a FRESH (uncached) probe via getService().connection/namespace. This is the same model the design reuses, satisfying Constraint #2 (no drift) and Constraint #4 (fresh evidence)."
+        },
+        {
+          "label": "plugin/src/temporal/health-probe.ts L70-112",
+          "locator": "plugin/src/temporal/health-probe.ts",
+          "summary": "getTemporalHealth caches poller probe with 30s TTL (pollerProbeCache). Confirms cached health evidence exists and why design correctly forbids it at the mutation boundary (Design-Derived Criterion #1)."
+        },
+        {
+          "label": "plugin/src/tools/change.ts L774-833",
+          "locator": "plugin/src/tools/change.ts",
+          "summary": "Cross-project create writes source cross_project_links INSIDE the withTargetPathStore callback, after targetStore.changes.create succeeds. Readiness check at boundary entry fails before callback runs, so no partial source link is written (AC5 / Constraint #6 preserved)."
+        },
+        {
+          "label": ".adv/specs/advance-workflow rq-crossProjectCoordination01 (.2/.5)",
+          "locator": ".adv/specs/advance-workflow/spec.json",
+          "summary": "Spec requires untrusted-target confirmation before any target state mutation and no active disk-only target change on workflow-start failure. Design preserves both; readiness sits after resolveTargetProject trust gate."
+        }
+      ],
+      "architecture_assessment": "Design is well-aligned with existing architecture and specs. Insertion point (withTargetPathStore temporal-required branch) is the correct single chokepoint for all temporal-required target_path mutations. Reusing classifyQueueServiceability + a FRESH probeTaskQueuePollers matches the status/temporal-ops model exactly and avoids the 30s health-probe cache, satisfying Constraints #2/#4. Typed blockers satisfy structural-correctness (P33) and the no-prose-parsing criterion. Source-link ordering in change.ts already places the cross_project_links write after target create success and inside the callback, so a boundary-entry readiness failure cannot leave a partial link (AC5). One concrete implementation dependency: the current boundary calls ensureProjectTemporalQueue BEFORE getService(), and ensureProjectTemporalQueue throws on client-only sessions; the helper must restructure that throw so the server-poller fallback can run when no local worker exists. The design's Implementation Strategy #2/#3 explicitly covers this restructure.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "No spec conflict found. Objectives 1-6 and AC1-6 are achievable with the proposed boundary helper; evidence sources confirm the reusable serviceability primitives, the fresh-vs-cached distinction, and the no-partial-link ordering already in change.ts. Cautions are advisory, not blocking."
+      },
+      "recommendation": "VALIDATED. Proceed with the boundary helper (ensureTargetMutationQueueReady) using a FRESH probeTaskQueuePollers + classifyQueueServiceability call sourced from getService().connection/namespace; do not reuse health-probe's cached pollerProbeCache. Ensure the helper restructures ensureProjectTemporalQueue's 'no registered worker' throw into: (a) accept already-registered queue, (b) register if a local worker exists, (c) else fresh server probe -> classify -> accept only 'fresh'/serviceable, (d) else fail with typed blockers + recovery action before createStore. Add the freshPollerMs threshold as an explicit boundary parameter so mutation-boundary freshness is auditable and not silently inheriting the 60s default. Keep tests covering client-only fresh poller, stale/absent/unavailable poller, owned local registration, untrusted-target confirmation, and create no-partial-link.",
+      "follow_ups": [
+        "Confirm during planning whether mutation-boundary freshness window should be stricter than the 60s DEFAULT_FRESH_POLLER_MS used by status/health; design says 'fresh' but does not pin the threshold.",
+        "Helper must catch/restructure ensureProjectTemporalQueue's throw (plugin-init.ts) for client-only sessions rather than calling it unguarded, since it currently throws before getService() runs."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixTargetMutationReadiness",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixTargetMutationReadiness",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [
+        {
+          "id": "review-praise-1",
+          "label": "praise",
+          "file": "plugin/src/tools/target-project.ts",
+          "line": 218,
+          "what": "Target mutation readiness now uses typed QueueServiceability and accepts fresh server poller evidence while failing closed before target store construction when unproven.",
+          "why": "Implementation traces to AC1/AC2 and rq-targetMutationReadiness01-03 without bypassing Temporal or target confirmation.",
+          "fix": "n/a"
+        }
+      ],
+      "changes_made": [
+        {
+          "file": "plugin/src/tools/target-project.test.ts",
+          "summary": "Expanded target mutation readiness fail-closed test from absent poller only to table-driven absent, stale, and unavailable poller evidence; confirms typed blocker appears and Temporal target store is not opened.",
+          "verification": "pnpm --dir plugin run check exited 0; bin/oc-test targeted -- src/tools/target-project.test.ts src/tools/change-cross-project-create.test.ts src/temporal/queue-serviceability.test.ts exited 0 with 3 files/25 tests passed."
+        }
+      ],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "Acceptance coverage for target mutation readiness should exercise stale, absent, and unavailable server poller statuses at the target-store boundary, not only in lower-level queue serviceability helpers."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/tools/target-project.test.ts src/tools/change-cross-project-create.test.ts src/temporal/queue-serviceability.test.ts",
+          "pnpm --dir plugin run check",
+          "pnpm --dir plugin exec prettier --write src/tools/target-project.test.ts",
+          "pnpm --dir plugin run check && bin/oc-test targeted -- src/tools/target-project.test.ts src/tools/change-cross-project-create.test.ts src/temporal/queue-serviceability.test.ts"
+        ],
+        "results": "pass",
+        "evidence": "Initial targeted tests passed 3 files/23 tests. After scoped test coverage remediation, full plugin check passed (schemas:check, typecheck, test-isolation check, lockfile-policy check, lint, format:check) and targeted tests passed 3 files/25 tests."
+      },
+      "scope_drift": null,
+      "risks": [],
+      "required_main_agent_actions": [
+        "Review uncommitted reviewer remediation in plugin/src/tools/target-project.test.ts and include it before acceptance/archive if desired."
+      ],
+      "consumer_warnings": []
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-J9y3Wy",
+      "type": "gotcha",
+      "content": "`docs/specs/advance-workflow.md` can lag `.adv/specs/advance-workflow/spec.json`; when adding spec-law scenarios, mirror the relevant section manually and update the doc header version/date if the mirror is stale.",
+      "source_task": "tk-28152fd2daa6",
+      "recorded_at": "2026-06-06T23:02:59.275Z"
+    },
+    {
+      "id": "ws-2T5FoT",
+      "type": "gotcha",
+      "content": "Advance's repo-local `bin/oc-test` wrapper is at the repository root; running `bin/oc-test ...` from `plugin/` fails with exit 127. Use repo root as workdir for wrapper-based tests, even when test paths are under `plugin/src`.",
+      "source_task": "tk-08358f278a59",
+      "recorded_at": "2026-06-06T23:06:16.538Z"
+    },
+    {
+      "id": "ws-uSroX-",
+      "type": "success",
+      "content": "`adv_change_create target_path` source-link write is already ordered after `targetStore.changes.create`; tests can prove no-partial-link behavior by making target create throw and asserting `sourceStore.changes.save` is not called.",
+      "source_task": "tk-ad71e2c8c81e",
+      "recorded_at": "2026-06-06T23:07:43.597Z"
+    },
+    {
+      "id": "ws-pa2Il7",
+      "type": "gotcha",
+      "content": "Acceptance coverage for target mutation readiness should exercise stale, absent, and unavailable server poller statuses at the target-store boundary, not only in lower-level queue serviceability helpers.",
+      "source_task": "tk-8dd953c53fc1",
+      "recorded_at": "2026-06-06T23:15:56.870Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-06-06T22:37:08.262Z",
+      "completed_by": "user",
+      "approval_evidence": "Command-as-approval: user invoked exact continuation `/adv-discover fixTargetMutationReadiness` after proposal approval prompt; treated as explicit Tier A proposal approval per ADV command-as-approval rule.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixTargetMutationReadiness/proposal.md",
+        "content_hash": "037aa9de08fce77aa9d966606b97b9a1074d3defa4ddd0a2e4564c9fa2ced429",
+        "non_whitespace_chars": 6256,
+        "checked_at": "2026-06-06T22:35:19.212Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-06-06T22:48:46.531Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery completed. Findings persisted in proposal; agreement approved by user reply `approve`; ChangeContract minted with SC/AC/C/DONT/OOS spine.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixTargetMutationReadiness/agreement.md",
+        "content_hash": "6f8aa9167c6b2cce6c8bd2433d4bce18a602c560b26d762ac61959179e1a9109",
+        "non_whitespace_chars": 4217,
+        "checked_at": "2026-06-06T22:35:19.213Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-06-06T22:54:07.114Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design recorded. Independent adv-researcher validator returned VALIDATED with two cautions; both cautions folded into design. No unresolved conflict, user-value tradeoff, or contract-compromise risk.",
+      "artifact_evidence": {
+        "kind": "design",
+        "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixTargetMutationReadiness/design.md",
+        "content_hash": "acf99832ca2132b70bf565b063fa1e177e3a168bc50369c066e204002ea2c1b6",
+        "non_whitespace_chars": 8013,
+        "checked_at": "2026-06-06T22:35:19.214Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-06-06T23:00:26.832Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved prep plan via reply: `approve`. Last human checkpoint before autonomous execution complete."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-06-06T23:10:23.492Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 4 execution tasks completed with checkpoints. Final targeted tests passed and `pnpm run check` passed. Validation passed with only expected NO_DELTAS warning because spec deltas were applied directly to branch-local specs."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-06-06T23:17:45.181Z",
+      "completed_by": "user",
+      "approval_evidence": "User accepted delivered work by replying `Continue if you have next steps, or stop and ask for clarification if you are unsure how to proceed.` after acceptance prompt explicitly listed `continue` as an acceptance whitelist option. Review verdict READY, 0 blockers/issues; verification passed; contract matrix has 24 rows with 0 failing/violated/unknown.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixTargetMutationReadiness/executive-summary.md",
+        "content_hash": "f5b56314e36c88452089e6922efdf77465329e46f06a708b11bc5e1e1914a1c9",
+        "non_whitespace_chars": 1211,
+        "checked_at": "2026-06-06T22:35:19.215Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "triage",
+    "source_artifact": "ag-4pjHP3zg"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "6f8aa9167c6b2cce6c8bd2433d4bce18a602c560b26d762ac61959179e1a9109",
+      "approvedAt": "2026-06-06T22:48:40.432Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "Client-only sessions can perform temporal-required `target_path` mutations when target queue has fresh server poller evidence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6f8aa9167c6b2cce6c8bd2433d4bce18a602c560b26d762ac61959179e1a9109",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "`adv_status`/diagnostics readiness and target mutation readiness no longer contradict each other for peer-owned queues.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6f8aa9167c6b2cce6c8bd2433d4bce18a602c560b26d762ac61959179e1a9109",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "Unproven target queue readiness fails closed with actionable serviceability blockers.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6f8aa9167c6b2cce6c8bd2433d4bce18a602c560b26d762ac61959179e1a9109",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC4",
+        "kind": "success_criterion",
+        "text": "Cross-project create preserves no-partial-link behavior when target workflow start fails after readiness passes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6f8aa9167c6b2cce6c8bd2433d4bce18a602c560b26d762ac61959179e1a9109",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "Given no current-process worker registration and a fresh server poller for target queue, a temporal-required `target_path` mutation does not fail solely with `Temporal worker not ready ... no registered worker`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6f8aa9167c6b2cce6c8bd2433d4bce18a602c560b26d762ac61959179e1a9109",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Given no local worker registration and stale/absent/unavailable server poller evidence, the mutation fails before target state mutation and reports queue name, serviceability blockers, and recovery action.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6f8aa9167c6b2cce6c8bd2433d4bce18a602c560b26d762ac61959179e1a9109",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Given an owned local worker exists, existing target queue registration behavior still works.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6f8aa9167c6b2cce6c8bd2433d4bce18a602c560b26d762ac61959179e1a9109",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Given an untrusted `target_path`, existing `target_confirmed` + `confirmationEvidence` enforcement remains required before mutation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6f8aa9167c6b2cce6c8bd2433d4bce18a602c560b26d762ac61959179e1a9109",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Given `adv_change_create target_path` passes readiness but target workflow start fails, the tool surfaces the Temporal failure and does not write a source `cross_project_links` entry.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6f8aa9167c6b2cce6c8bd2433d4bce18a602c560b26d762ac61959179e1a9109",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Tests cover client-only fresh poller, stale/absent/unavailable poller, owned local registration, untrusted target confirmation, and create no-partial-link behavior.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6f8aa9167c6b2cce6c8bd2433d4bce18a602c560b26d762ac61959179e1a9109",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Target mutations remain Temporal-required.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6f8aa9167c6b2cce6c8bd2433d4bce18a602c560b26d762ac61959179e1a9109",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Status/health readiness and mutation readiness must not drift into contradictory definitions.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6f8aa9167c6b2cce6c8bd2433d4bce18a602c560b26d762ac61959179e1a9109",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Existing current-process worker registration remains valid for local owned-worker sessions.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6f8aa9167c6b2cce6c8bd2433d4bce18a602c560b26d762ac61959179e1a9109",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Server poller evidence must be fresh at mutation boundary; cached health/status evidence alone is not sufficient.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6f8aa9167c6b2cce6c8bd2433d4bce18a602c560b26d762ac61959179e1a9109",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Correctness must be structural: use typed serviceability status/blockers, not free-text parsing.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6f8aa9167c6b2cce6c8bd2433d4bce18a602c560b26d762ac61959179e1a9109",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not introduce disk-only target change creation or mutation fallback.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6f8aa9167c6b2cce6c8bd2433d4bce18a602c560b26d762ac61959179e1a9109",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not bypass existing untrusted-target confirmation rules.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6f8aa9167c6b2cce6c8bd2433d4bce18a602c560b26d762ac61959179e1a9109",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not build an ad-hoc non-LLM ADV tool execution path or CLI bypass.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6f8aa9167c6b2cce6c8bd2433d4bce18a602c560b26d762ac61959179e1a9109",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not broadly replace ADV Temporal worker architecture.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6f8aa9167c6b2cce6c8bd2433d4bce18a602c560b26d762ac61959179e1a9109",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "Do not claim target ADV worker is missing when fresh server poller evidence proves target queue serviceability.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6f8aa9167c6b2cce6c8bd2433d4bce18a602c560b26d762ac61959179e1a9109",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "Product-linked repository scope behavior changes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6f8aa9167c6b2cce6c8bd2433d4bce18a602c560b26d762ac61959179e1a9109",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "Direct ADV state file read/write policy changes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6f8aa9167c6b2cce6c8bd2433d4bce18a602c560b26d762ac61959179e1a9109",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "Broad status performance or latency redesign.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6f8aa9167c6b2cce6c8bd2433d4bce18a602c560b26d762ac61959179e1a9109",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS4",
+        "kind": "out_of_scope",
+        "text": "Worker restart UX beyond the actionable recovery message.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6f8aa9167c6b2cce6c8bd2433d4bce18a602c560b26d762ac61959179e1a9109",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-06-06T23:16:31.129Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "`ensureTargetMutationQueueReady` accepts fresh server poller evidence; `target-project.test.ts` client-only fresh poller case passes. Reviewer verdict READY.",
+          "notes": "Client-only target mutation path covered."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Spec `rq-targetMutationReadiness03`; helper reuses `classifyQueueServiceability`; reviewer confirmed status/mutation readiness semantics align.",
+          "notes": "No contradiction found."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Unproven poller statuses fail before `createStore` with typed blockers/action in table-driven test; reviewer expanded absent/stale/unavailable coverage.",
+          "notes": "Fail-closed behavior verified."
+        },
+        {
+          "contractId": "SC4",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "`change-cross-project-create.test.ts` target create failure surfaces Temporal failure and source `changes.save` is not called.",
+          "notes": "No-partial-link behavior preserved."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`bin/oc-test targeted -- src/tools/target-project.test.ts ...` passed; fresh server poller test opens temporal store after local registration failure.",
+          "notes": "Does not fail solely with no local worker."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Table-driven `target-project.test.ts` covers `none`, `stale`, and `unavailable` pollers; each throws queue/blocker/action error before `createStore`.",
+          "notes": "Reviewer expanded coverage to all requested unproven statuses."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Existing temporal-required target store test still passes and asserts `ensureProjectTemporalQueue(TARGET_PROJECT_ID)` and `createStore` are called.",
+          "notes": "Owned/local registration behavior preserved."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Existing untrusted target mutation resolver test still passes; `resolveTargetProject` rejects missing `target_confirmed` before readiness/store construction.",
+          "notes": "Trust confirmation not bypassed."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`change-cross-project-create.test.ts` failure case asserts target create attempted, target get not called, Temporal failure surfaced, and source `changes.save` not called.",
+          "notes": "Source link write remains after target create success only."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Targeted tests passed 3 files/25 tests; `pnpm run check` passed after reviewer remediation.",
+          "notes": "Coverage includes fresh, absent, stale, unavailable, local registration, confirmation, and create failure."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "`withTargetPathStore` still constructs target mutations through `createStore(... temporalBundle ...)`; snapshot/scaffold branches unchanged; no disk mutation fallback added.",
+          "notes": "Temporal-required semantics preserved."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Mutation readiness uses `classifyQueueServiceability`, same structural model used by status/diagnostics.",
+          "notes": "Spec `rq-targetMutationReadiness03` added."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Helper first checks registered queues and then calls existing `ensureProjectTemporalQueue` before server fallback.",
+          "notes": "Current-process worker registration remains first path."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Helper calls `probeTaskQueuePollers` at mutation boundary with explicit `freshPollerMs: TARGET_MUTATION_FRESH_POLLER_MS`; does not consume cached status/health evidence.",
+          "notes": "Freshness threshold explicit at 60s."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Failure is built from `QueueServiceability.status`, `confidence`, `evidence.serverPollerProbe`, and `blockers`; no parsing of `no registered worker` prose controls correctness.",
+          "notes": "P33 structural correctness satisfied."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No disk-only target mutation fallback added; unproven readiness throws before `createStore`.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "`resolveTargetProject` trust gate remains before temporal readiness; existing confirmation test passes.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No CLI/tool-exec path added; change limited to target-project readiness helper, tests, and spec docs.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No broad worker architecture replacement; existing `ensureProjectTemporalQueue` remains local path, server poller fallback added at target boundary.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Fresh poller path no longer reports missing target worker; it proceeds to temporal store path.",
+          "notes": ""
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No product-linked repository scope files or behavior were changed.",
+          "notes": "Out of scope honored."
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No direct ADV state file read/write policy changes made.",
+          "notes": "Out of scope honored."
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No broad status performance/latency redesign; only readiness semantics reused status classifier/probe model.",
+          "notes": "Out of scope honored."
+        },
+        {
+          "contractId": "OOS4",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Worker restart UX not changed beyond target readiness failure action text.",
+          "notes": "Out of scope honored."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "Given no current-process worker registration and a fresh server poller for target queue, a temporal-required `target_path` mutation does not fail solely with `Temporal worker not ready ... no registered worker`.",
+    "Given no local worker registration and stale/absent/unavailable server poller evidence, the mutation fails before target state mutation and reports queue name, serviceability blockers, and recovery action.",
+    "Given an owned local worker exists, existing target queue registration behavior still works.",
+    "Given an untrusted `target_path`, existing `target_confirmed` + `confirmationEvidence` enforcement remains required before mutation.",
+    "Given `adv_change_create target_path` passes readiness but target workflow start fails, the tool surfaces the Temporal failure and does not write a source `cross_project_links` entry.",
+    "Tests cover client-only fresh poller, stale/absent/unavailable poller, owned local registration, untrusted target confirmation, and create no-partial-link behavior."
+  ],
+  "documents": {
+    "proposal": "## Why\n\nADV cross-project target mutations use stricter readiness than ADV health/status. `adv_status` can prove target queue serviceability from Temporal server poller evidence (`confidence: server`, fresh poller, peer-owned worker alive), but `adv_change_create target_path` still calls `ensureProjectTemporalQueue`, which only accepts workers registered in the current OpenCode process.\n\nClient-only sessions therefore fail with `Temporal worker not ready for target project queue ...: no registered worker` even when the target project worker is alive and polling. Users need target-path change creation to share the same readiness contract as status/health: allow server-serviceable peer-owned target queues, and fail only when queue serviceability cannot be proven.\n\n## What Changes\n\nADV target-path mutation readiness will be aligned with the existing queue serviceability model used by status/health. A target mutation from a client-only session should proceed when Temporal server evidence proves the target queue has a fresh poller. When readiness cannot be proven, the tool should return a specific, actionable failure that distinguishes a missing target worker from a client-only local process.\n\nThis proposal is about behavior and contract alignment, not implementation choice. Discovery should determine whether the shared readiness contract belongs in `ensureProjectTemporalQueue`, `withTargetPathStore`, or a new target-mutation readiness helper.\n\n## User Outcomes\n\n- Users can create cross-project ADV follow-up changes from orchestrator/client sessions when the target project's ADV worker is already alive and polling.\n- Users no longer receive misleading `no registered worker` failures when the target queue is serviceable through a peer-owned worker.\n- Users get a clear recovery message when no safe target mutation path is available.\n- ADV health/status and target mutation readiness describe the same operational truth.\n\n## Affected Code\n\nKnown candidate areas for discovery:\n\n- `plugin/src/plugin-init.ts` — current `ensureProjectTemporalQueue` local-worker guard.\n- `plugin/src/tools/target-project.ts` — `withTargetPathStore(... stateRequirement: \"temporal-required\")` readiness path.\n- `plugin/src/temporal/queue-serviceability.ts` — shared queue serviceability classifier.\n- `plugin/src/tools/status.ts` and `plugin/src/tools/temporal-ops.ts` — existing health/status readiness evidence.\n- Tests near `plugin/src/tools/target-project.test.ts`, `plugin/src/tools/change-cross-project-create.test.ts`, and queue-serviceability tests.\n\n## Related Repositories\n\nCurrent repository: `advance`.\n\nNo product-linked `project.json` configuration is present. No cross-repo scope is selected for this proposal.\n\n## Scope\n\n### In Scope\n\n- Align target-path mutation readiness with the existing Temporal queue serviceability contract.\n- Support client-only sessions when target queue serviceability is proven by fresh server poller evidence.\n- Preserve local-worker queue registration behavior when the current process owns a worker that can register the target queue.\n- Return actionable errors when target queue serviceability cannot be proven.\n- Add regression coverage for client-only, peer-owned/server-serviceable target queue creation.\n- Keep target mutation safety structural; no disk-only mutation fallback.\n\n### Out of Scope\n\n- Building an ad-hoc non-LLM ADV tool execution path or CLI bypass.\n- Falling back to disk-only target mutation for active changes.\n- Broad replacement of ADV Temporal worker architecture.\n- Changing direct ADV state file read/write policy.\n- Changing product-linked repository scope behavior.\n\n### Must Not\n\n- Must not claim the target ADV worker is missing when Temporal server poller evidence proves the target queue is fresh.\n- Must not mutate target ADV state when neither local worker registration nor server-side queue serviceability can be proven.\n- Must not introduce disk-only target change creation as a fallback for Temporal-required mutations.\n- Must not bypass existing target trust confirmation rules.\n\n## Constraints\n\n- Target mutations remain Temporal-required.\n- Untrusted `target_path` mutations still require explicit confirmation evidence.\n- Status/health readiness and mutation readiness should not drift into contradictory definitions.\n- Existing current-process worker registration should remain valid for local owned-worker sessions.\n\n## Impact\n\n- Cross-project follow-up creation becomes reliable from normal orchestrator/client sessions.\n- Failure messages become more accurate for peer-owned worker deployments.\n- Reduces false blocking in multi-session ADV workflows.\n- Strengthens shared readiness semantics between status, temporal diagnostics, and mutation tooling.\n\n## Context\n\nEvidence supplied during proposal:\n\n- `temporal-dev.service` active.\n- Target queue `advance-bdf259aa162ae192af5b18899ccdc653b085528d` serviceable.\n- Poller fresh; confidence `server`.\n- Peer worker PID `1548382`, cwd `/home/jon/dev/advance`.\n- Current session has `worker role: client`, `registered_queues: []`, `worker_process_alive: false`.\n- Failure source cited at `plugin/src/plugin-init.ts:462-472`.\n\nQuick checks completed:\n\n- Active changes inspected; no obvious overlapping non-terminal change found.\n- `advance-workflow` identified as primary affected capability because it owns cross-project coordination and target-path mutation behavior.\n- `project.json` inspected; no product-linked context present.\n- Existing code path inspected: `withTargetPathStore` calls `ensureProjectTemporalQueue` before constructing the Temporal target store.\n\n## Discovery Agenda\n\n### Codebase unknowns\n\n- Confirm all temporal-required `target_path` mutation tools pass through the same readiness path.\n- Determine whether readiness alignment belongs in `ensureProjectTemporalQueue`, `withTargetPathStore`, or a dedicated helper shared by mutation tools and health/status.\n- Identify exact test seams for simulating client-only process plus fresh server poller evidence.\n\n### Ecosystem unknowns\n\n- Confirm Temporal `describeTaskQueue` poller freshness is sufficient evidence for submitting target workflow starts/signals from a client-only process.\n- Confirm any Temporal SDK behavior that could require a local worker object even when server pollers exist.\n\n### Domain unknowns\n\n- Decide desired wording for the actionable failure when no local worker and no server-serviceable target queue exist.\n- Decide whether this behavior should apply to all temporal-required target mutations or only target change creation.\n\n### Integration unknowns\n\n- Check interactions with `adv_temporal_worker_restart`, worker lock ownership, stale queue detection, and target trust confirmation.\n- Check whether existing status/health cache freshness windows are acceptable for mutation readiness or require a fresh probe at mutation time.\n\n## Ambiguity Scan\n\nNo CRITICAL B/F/S ambiguity found in this proposal draft.\n\n- B: Scope sections present: `### In Scope`, `### Out of Scope`, `### Must Not`.\n- F: `## User Outcomes` exists and is implementation-free.\n- S: Completion details are deferred to Discovery Agenda rather than encoded as engineering acceptance criteria in proposal.\n\n## Discovery Findings\n\n### Discovery Checklist\n\n| Step | Status | Reason |\n|---|---|---|\n| Skill Discovery | PASS | Global skills scanned; no pending-review skill found; `adv-agent-tool-contracts` loaded because this changes an ADV agent-callable tool readiness contract. |\n| Prior Research Extension | PASS | `docs/repo-improve-prep.md` and `docs/adv-run-test-prep.md` inspected; only repo-improve partially relevant through status/Temporal health observations. |\n| Conflict & Related-Work Scan | PASS | `adv_change_list`, `adv_change_validate`, and `adv_agenda_list` executed; own NO_TASKS/NO_DELTAS warnings are expected pre-prep. |\n| Edge Case Investigation | PASS | Edge cases documented for serviceability, freshness, and mutation safety gaps. |\n| Design Question Depth | PASS | Open design questions annotated with trust model, blast radius, alternatives. |\n| Draft Spec Delta Shapes | PASS | Draft `rq-targetMutationReadiness01` and `rq-targetMutationReadiness02` proposed. |\n| P25 Related-Pattern Scan | PASS | Similar readiness/serviceability patterns scanned; status/diagnose already handle peer-owned queues. |\n| LBP Check | PASS | Direction matches Temporal client/worker split and ADV structural-readiness model. |\n\n### Skills Considered\n\n- `adv-agent-tool-contracts` — loaded. Match: tool readiness/error contract, schema/test/spec alignment.\n- `adv-arch-detection` — considered, not loaded; architecture inconsistency is narrow and already evidenced structurally.\n- `adv-audit` — considered, not loaded; this is not a broad spec/implementation audit.\n- `adv-worktree` — considered, not loaded; target-path issue is Temporal worker readiness, not worktree lifecycle.\n- Pending skill review scan: no actual `metadata.review_status: \"pending\"` frontmatter found; only template text in `adv-skill-author/SKILL.md`.\n- Gap detection: no new skill needed. Core domain already covered by existing ADV tool-contract and local Temporal readiness patterns.\n\n### Extends\n\n- `docs/repo-improve-prep.md` — prior pack notes `adv_status` builds full health/queue serviceability payloads and recommends better latency/visibility. New finding: the status serviceability contract is already good enough to identify fresh peer-owned queues, but target mutation readiness does not reuse it.\n- `docs/adv-run-test-prep.md` — not directly applicable; it reinforces structural result classification over free-text inference. New finding: target mutation failures need typed/serviceability-derived blockers, not only `no registered worker` prose.\n- No `temp/*.md` artifacts found.\n- Archived-change scan was attempted; full archived listing timed out in this session. Active/recent list showed no obvious overlapping target-readiness change.\n\n### Conflict Scan\n\n- Active/recent changes: `fixCheckpointCommits`, `addOrchestratorOpsDelegation`, `conformAdvanceCi`, stale archived/other drafts listed; none overlaps target-path mutation readiness.\n- Validation: passed with expected pre-prep warnings `NO_TASKS` and `NO_DELTAS`.\n- Agenda: overlapping item `ag-4pjHP3zg` is the source triage item and is linked as origin; no separate duplicate agenda item found in returned top set.\n\n### Current State\n\n- `plugin/src/tools/target-project.ts:205` always calls `ensureProjectTemporalQueue(context.projectId)` before creating the Temporal-backed target store for `stateRequirement: \"temporal-required\"`.\n- `plugin/src/plugin-init.ts:462-475` accepts already registered local queues, otherwise tries current-process worker handles, and throws `no registered worker` when `inProcessTemporalWorkers` is empty.\n- `plugin/src/temporal/queue-serviceability.ts:56-128` already classifies a fresh server poller as `serviceable` with `confidence: \"server\"`, even when local registered/alive are false.\n- `plugin/src/temporal/queue-serviceability.test.ts:26-40` already codifies that peer-owned fresh server poller evidence is serviceable.\n- `plugin/src/tools/temporal-ops.ts:367-389` already recommends `Local worker not running; queue is serviceable via peer workers` when local worker is down but server poller is fresh.\n- `plugin/src/tools/change-cross-project-create.test.ts:66-146` covers target create routing through temporal store, but mocks `withTargetPathStore`; it does not exercise the readiness guard that failed in production.\n- Temporal docs: `@temporalio/client` sends commands to Temporal Server; `@temporalio/worker` runs workflows/activities. Workflow start includes `taskQueue`. Temporal task-queue describe displays active Workers that recently polled; `LastAccessTime` over one minute may indicate capacity/shutdown and workers are removed after 5 minutes without poll.\n\n### Edge Cases\n\nGap: readiness false-negative for peer-owned queues.\n\n1. Current process has no local worker objects, but target queue has a fresh workflow poller. Expected: allow Temporal target store mutation path.\n2. Current process has no local worker objects and target poller is stale/absent/unavailable. Expected: fail before mutation with serviceability blockers and recovery hint.\n\nGap: freshness and race windows.\n\n1. Poller is fresh at probe time but worker exits before workflow start/signal. Expected: Temporal start/signal failure remains surfaced; no disk-only fallback or source link write on create failure.\n2. Poller timestamp cannot be parsed. Expected: classify as unavailable/unknown, not serviceable.\n\nGap: applying fix across mutation types.\n\n1. `adv_change_create target_path` starts workflow state; should allow serviceable peer-owned target queues.\n2. Other temporal-required target mutations (`adv_task_add`, `adv_gate_complete`, `adv_run_test`, `adv_contract_mint`, etc.) route through the same helper; if fix is helper-level, behavior changes for all. Expected: covered intentionally or constrained by tests.\n\n### Open Design Questions\n\n1. Where should readiness alignment live?\n   - Trust model: agent-resolved via LBP and tests.\n   - Blast radius: helper-level change affects all temporal-required target mutations; narrow change could leave inconsistent behavior.\n   - Alternatives: update `ensureProjectTemporalQueue`; add target-mutation readiness helper in `target-project.ts`; duplicate status classifier logic. Recommendation: shared helper used before Temporal-required target store creation, not duplicated prose checks.\n\n2. Should behavior apply to all temporal-required `target_path` mutations?\n   - Trust model: joint; it changes user-visible breadth but follows existing helper architecture.\n   - Blast radius: all target mutations may start accepting peer-owned server-serviceable queues.\n   - Alternatives: create-only first; all helper users; opt-in flag. Recommendation: all helper users, because all already require Temporal-backed target store and existing helper is the shared boundary.\n\n3. What failure should user see when no safe path exists?\n   - Trust model: user-facing outcome, user confirmation useful.\n   - Blast radius: affects operator recovery and support diagnosis, not internal correctness.\n   - Alternatives: terse blockers list; prescriptive restart/open target session hint; current `no registered worker`. Recommendation: serviceability-derived failure naming target queue, poller status, and next action.\n\n4. Should mutation readiness use cached status/health evidence or fresh probe?\n   - Trust model: agent-resolved; correctness/safety boundary.\n   - Blast radius: cached stale data could allow a mutation that immediately fails or misreport readiness.\n   - Alternatives: reuse cached health; run fresh describeTaskQueue probe; rely on Temporal failure only. Recommendation: fresh probe at mutation boundary, with Temporal failure still authoritative.\n\n### Draft Spec Deltas\n\n- `rq-targetMutationReadiness01` — Target mutation readiness uses shared queue serviceability.\n  - Given a temporal-required target-path mutation and no current-process worker registration.\n  - When the target task queue has a fresh server poller.\n  - Then the mutation readiness check treats the target queue as serviceable and proceeds to the Temporal-backed target store path.\n\n- `rq-targetMutationReadiness02` — Unproven target queue readiness fails safely.\n  - Given a temporal-required target-path mutation and no local worker registration.\n  - When server poller evidence is stale, absent, unavailable, or reports stale running workflows.\n  - Then the tool fails before target mutation and reports serviceability blockers plus a recovery hint.\n\n- `rq-targetMutationReadiness03` — Status and mutation readiness remain consistent.\n  - Given `adv_status` reports target queue serviceability from server poller evidence.\n  - When a target mutation checks the same queue under a fresh probe.\n  - Then mutation readiness must not contradict status by failing solely because current process has no local worker.\n\n### Related Pattern Scan\n\n- Similar positive pattern: `classifyQueueServiceability` already structurally supports peer-owned/server-serviceable queues.\n- Similar positive pattern: `adv_temporal_diagnose` reports `Local worker not running; queue is serviceable via peer workers` instead of hard failure.\n- Similar failure pattern: all `withTargetPathStore(... stateRequirement: \"temporal-required\")` callers inherit the same local-worker-only guard; search found call sites in `change.ts`, `task.ts`, `gate.ts`, `contract.ts`, `test.ts`, `subagent-report.ts`, `adv-worktree.ts`, and `temporal-ops.ts`.\n- No separate same-pattern guard found outside `ensureProjectTemporalQueue`.\n\n### LBP Check\n\nLikely direction matches LBP: Temporal clients submit workflow commands to the server; workers poll task queues. A client process does not need to own a local Worker object if another Worker is polling the task queue. Temporal task-queue describe is intended to show active recent pollers. ADV already models that as serviceable with `confidence: \"server\"`.\n\nExternal-solution check: skipped as external alternatives are not viable for this narrow internal bug. Official Temporal docs were consulted to validate the client/worker/task-queue model. `/adv-improve` not needed unless future work broadens into worker architecture or status performance.\n\n### Recommended Objectives\n\n1. Make target-path temporal-required mutation readiness consume the same structural serviceability model as status/health.\n2. Permit peer-owned/server-serviceable target queues when a fresh poller is observed.\n3. Preserve local worker registration for owned-worker sessions.\n4. Fail closed with serviceability blockers when readiness cannot be proven.\n5. Add regression tests at the readiness boundary and cross-project create path.\n6. Preserve trust confirmation and Temporal-required mutation semantics.\n\n### AMBIGUITY ANALYSIS\n\nM1  MEDIUM  Missing Information  Exact user-facing recovery wording is not approved.\n  Evidence: \"Decide desired wording for the actionable failure when no local worker and no server-serviceable target queue exist.\"\n  Reason: unclear because wording affects operator action, but not technical feasibility.\n\nM2  MEDIUM  Missing Information  Breadth across all temporal-required target mutations needs confirmation.\n  Evidence: \"Decide whether this behavior should apply to all temporal-required target mutations or only target change creation.\"\n  Reason: unclear because helper-level fix is cleaner but changes more tools at once.\n\nCoverage: B:C F:C S:C M:P\n\n### Discovery Opportunity Scout\n\nScout: skipped — narrow internal bug with low opportunity surface; no product strategy, broad architecture, or external-option decision beyond official Temporal readiness validation.\n",
+    "problemStatement": "## Problem\n\nADV cross-project target mutations use stricter readiness than ADV health/status. `adv_status` can prove target queue serviceability from Temporal server poller evidence (`confidence: server`, fresh poller, peer-owned worker alive), but `adv_change_create target_path` still calls `ensureProjectTemporalQueue`, which only accepts workers registered in the current OpenCode process.\n\nClient-only sessions therefore fail with `Temporal worker not ready for target project queue ...: no registered worker` even when the target project worker is alive and polling. Users need target-path change creation to share the same readiness contract as status/health: allow server-serviceable peer-owned target queues, and fail only when queue serviceability cannot be proven.\n\n## Desired Outcome\n\nCross-project `adv_change_create target_path` works from orchestrator/client sessions when the target queue is healthy through peer-owned/server-poller evidence, and emits an actionable failure only when no safe target mutation path is available.\n\n## Evidence\n\n- `temporal-dev.service` active.\n- Target queue `advance-bdf259aa162ae192af5b18899ccdc653b085528d` serviceable.\n- Poller fresh; confidence `server`.\n- Peer worker PID `1548382`, cwd `/home/jon/dev/advance`.\n- Current session is client-only: `worker role: client`, `registered_queues: []`, `worker_process_alive: false`.\n- Failure source: `plugin/src/plugin-init.ts:462-472`.\n- Current helper throws before target change creation when `inProcessTemporalWorkers` is empty.",
+    "agreement": "# Agreement\n\n## Objectives\n\n1. Align temporal-required `target_path` mutation readiness with the existing queue serviceability model used by ADV status/health.\n2. Allow client-only sessions to perform target-path mutations when the target queue has fresh server poller evidence.\n3. Preserve existing local worker registration behavior for owned-worker sessions.\n4. Fail closed with actionable serviceability blockers when target queue readiness cannot be proven.\n5. Preserve target trust confirmation and Temporal-required mutation semantics.\n6. Preserve no-partial-link behavior for cross-project create failures after readiness passes.\n\n## Success Criteria\n\n1. Client-only sessions can perform temporal-required `target_path` mutations when target queue has fresh server poller evidence.\n2. `adv_status`/diagnostics readiness and target mutation readiness no longer contradict each other for peer-owned queues.\n3. Unproven target queue readiness fails closed with actionable serviceability blockers.\n4. Cross-project create preserves no-partial-link behavior when target workflow start fails after readiness passes.\n\n## Acceptance Criteria\n\n1. Given no current-process worker registration and a fresh server poller for target queue, a temporal-required `target_path` mutation does not fail solely with `Temporal worker not ready ... no registered worker`.\n2. Given no local worker registration and stale/absent/unavailable server poller evidence, the mutation fails before target state mutation and reports queue name, serviceability blockers, and recovery action.\n3. Given an owned local worker exists, existing target queue registration behavior still works.\n4. Given an untrusted `target_path`, existing `target_confirmed` + `confirmationEvidence` enforcement remains required before mutation.\n5. Given `adv_change_create target_path` passes readiness but target workflow start fails, the tool surfaces the Temporal failure and does not write a source `cross_project_links` entry.\n6. Tests cover client-only fresh poller, stale/absent/unavailable poller, owned local registration, untrusted target confirmation, and create no-partial-link behavior.\n\n## Constraints\n\n1. Target mutations remain Temporal-required.\n2. Status/health readiness and mutation readiness must not drift into contradictory definitions.\n3. Existing current-process worker registration remains valid for local owned-worker sessions.\n4. Server poller evidence must be fresh at mutation boundary; cached health/status evidence alone is not sufficient.\n5. Correctness must be structural: use typed serviceability status/blockers, not free-text parsing.\n\n## Avoidances\n\n1. Do not introduce disk-only target change creation or mutation fallback.\n2. Do not bypass existing untrusted-target confirmation rules.\n3. Do not build an ad-hoc non-LLM ADV tool execution path or CLI bypass.\n4. Do not broadly replace ADV Temporal worker architecture.\n5. Do not claim target ADV worker is missing when fresh server poller evidence proves target queue serviceability.\n\n## Out of Scope\n\n1. Product-linked repository scope behavior changes.\n2. Direct ADV state file read/write policy changes.\n3. Broad status performance or latency redesign.\n4. Worker restart UX beyond the actionable recovery message.\n\n## Preview Applicability\n\nvisual_surface: false\n\nRationale: this change affects ADV tool readiness/error behavior and tests; no browser-visible or visual output surface changes are expected.\n\n## Decisions\n\n### User Decisions\n\n1. Question: Apply peer-owned/server-serviceable readiness to which target-path mutations?\n   Choice: All temporal-required target_path mutations.\n   Why it matters: keeps status/health and all target mutation tools on one shared readiness contract.\n\n2. Question: What recovery guidance should users see when no safe target queue readiness is proven?\n   Choice: Blockers plus action.\n   Why it matters: operators need the target queue, blockers, and next action to open/restart the target project ADV worker.\n\n3. Question: If server poller is fresh but Temporal workflow start/signal fails moments later, what should create do?\n   Choice: Surface the Temporal failure and write no source link.\n   Why it matters: preserves existing no-partial-link behavior and avoids claiming a target follow-up was created when workflow start failed.\n\n### Agent Decisions (LBP)\n\n1. Use shared queue serviceability semantics as the readiness authority for temporal-required target mutations.\n2. Prefer a fresh mutation-boundary poller probe over cached status/health evidence.\n3. Preserve Temporal failure as authoritative after readiness passes; readiness proves a safe attempt, not guaranteed completion.\n4. Apply the contract at the shared target store readiness boundary so all temporal-required target mutations remain consistent.\n\n## Deferred Questions\n\nNone.\n\n## Sign-Off\n\nCriteria and agreement approved by user reply: `approve`.",
+    "design": "# Design\n\n## Architecture Overview\n\nAdd a shared target-mutation readiness check at the `withTargetPathStore(... stateRequirement: \"temporal-required\")` boundary. That boundary already owns target trust resolution, target store construction, and every temporal-required `target_path` mutation route.\n\nThe readiness check will accept either:\n\n1. **Local readiness** — current process already has or can register a worker for the target project queue.\n2. **Server readiness** — current process is client-only, but a fresh Temporal server poller exists for the target project queue.\n\nIf neither path proves readiness, target mutation fails before constructing or mutating target state. The failure reports the queue name, typed serviceability blockers, and recovery action.\n\n## Key Decisions\n\n1. **Place readiness at target-store boundary**\n   - `plugin/src/tools/target-project.ts` remains the single entry point for temporal-required target mutations.\n   - This applies the user-approved breadth: all temporal-required `target_path` mutations get the same readiness semantics.\n   - Avoids patching only `adv_change_create` while leaving task/gate/test/contract paths inconsistent.\n\n2. **Keep local worker registration first**\n   - Existing `ensureProjectTemporalQueue(projectId)` behavior remains the fast/owned-worker path.\n   - Owned-worker sessions still register new target queues through existing worker handles.\n   - This preserves current behavior for host sessions and satisfies AC3.\n\n3. **Add server-poller fallback for client-only sessions**\n   - If no local worker is available for registration, probe the target queue through Temporal `describeTaskQueue` using `probeTaskQueuePollers`.\n   - Feed probe evidence into `classifyQueueServiceability`.\n   - Accept `status: \"serviceable\"` with `confidence: \"server\"` as safe readiness to attempt the Temporal-backed mutation.\n   - Fresh probe happens at mutation boundary; do not rely only on cached `adv_status`/health evidence.\n   - Use an explicit mutation-boundary freshness parameter. Start with `TARGET_MUTATION_FRESH_POLLER_MS = 60_000` to match the existing `fresh` serviceability definition; pass it explicitly rather than relying on hidden default behavior.\n\n4. **Use typed serviceability evidence for failures**\n   - Failure path reports `expectedQueue`, serviceability `status`, `confidence`, `blockers`, poller status, and recovery action.\n   - No free-text parsing of `no registered worker` for correctness.\n   - Error copy should distinguish “local worker absent” from “target queue not serviceable.”\n\n5. **Keep Temporal failure authoritative after readiness**\n   - Readiness proves safe attempt, not guaranteed completion.\n   - If workflow start/signal fails after readiness passes, surface the Temporal error.\n   - For cross-project create, preserve current no-source-link write when target create fails.\n\n## ADR Drafts\n\nNo ADR. The decision is localized, reversible, and follows the existing shared-helper architecture rather than introducing a surprising new subsystem.\n\n## Implementation Strategy\n\n1. Add or refactor a helper near the target store boundary, preferably `ensureTargetMutationQueueReady({ projectId, temporalBundle, freshPollerMs })` in or near `plugin/src/tools/target-project.ts`.\n\n2. Helper flow:\n   - Build queue with `buildProjectTaskQueue(projectId)`.\n   - If `getRegisteredTemporalWorkerQueues()` includes queue, return local serviceability.\n   - If current-process workers exist, call existing queue registration path and return local serviceability.\n   - If no current-process worker exists, require Temporal service bundle and run `probeTaskQueuePollers` for the target queue using explicit `freshPollerMs`.\n   - Classify with `classifyQueueServiceability` using localRegistered/localWorkerAlive false and localOwnership derived from worker role/diagnostics when available.\n   - If serviceable, return typed readiness result.\n   - If not serviceable/unknown, throw a `TargetProjectError` carrying formatted blockers and recovery action.\n\n3. Update `withTargetPathStore` temporal-required branch:\n   - Fetch `temporalBundle` before readiness fallback, because both server probing and store construction require it.\n   - Run the readiness helper.\n   - Construct target `createStore` only after readiness passes.\n   - Do not allow `ensureProjectTemporalQueue` to throw `no registered worker` before server-poller fallback is attempted.\n\n4. Add regression tests:\n   - `target-project.test.ts`: temporal-required target opens with no local worker when probe returns fresh server poller.\n   - `target-project.test.ts`: stale/absent/unavailable poller fails before `createStore` and reports queue/blockers/action.\n   - Existing local-worker registration test remains green.\n   - `change-cross-project-create.test.ts`: preserve no source link when target create fails after readiness passes.\n   - Confirmation tests remain green for untrusted `target_path`.\n\n5. Add spec delta in `advance-workflow`:\n   - `rq-targetMutationReadiness01` server-serviceable peer-owned target queue support.\n   - `rq-targetMutationReadiness02` fail-closed blockers/action when unproven.\n   - `rq-targetMutationReadiness03` status/mutation readiness consistency.\n\n## LBP Analysis\n\nTemporal’s model separates client commands from workers. The client sends workflow commands to the Temporal Server; workers poll task queues. Official Temporal docs describe `@temporalio/client` as sending commands to the server and `@temporalio/worker` as running workflows/activities. Task queue describe output lists active workers that recently polled a task queue, with stale pollers indicating capacity/shutdown risk.\n\nTherefore a local Worker object is not required in the caller process when another worker is actively polling the target queue. ADV already encodes that in `classifyQueueServiceability`: a fresh server poller is `serviceable` with `confidence: \"server\"`. The best design is to reuse this structural contract, not maintain a second local-worker-only definition at mutation time.\n\n## Affected Components\n\n- `plugin/src/tools/target-project.ts` — temporal-required target store readiness boundary.\n- `plugin/src/plugin-init.ts` — local worker queue registration helper and exported worker diagnostics/queue functions.\n- `plugin/src/temporal/queue-serviceability.ts` — existing classifier/probe reused as readiness authority.\n- `plugin/src/tools/status.ts` / `plugin/src/tools/temporal-ops.ts` — no behavior change required, but tests should confirm semantic consistency.\n- `plugin/src/tools/change.ts` — create no-partial-link behavior preserved through existing error path.\n- Tests: `target-project.test.ts`, `change-cross-project-create.test.ts`, `queue-serviceability.test.ts` as needed.\n- Spec: `.adv/specs/advance-workflow/spec.json` and docs mirror if required by repo convention.\n\n## Design-Derived Criteria\n\n1. Readiness probe at mutation boundary must not use status/health cached poller evidence as the sole authority.\n2. Failure output must expose typed serviceability blockers and not rely on parsing `ensureProjectTemporalQueue` prose.\n3. Helper-level tests must prove `createStore`/target mutation callback is not reached when readiness is unproven.\n4. Fresh server-poller path must not bypass `target_confirmed` / `confirmationEvidence` checks; those happen before readiness in `resolveTargetProject`.\n5. Cross-project create source-link write remains after target create success only.\n6. Mutation-boundary poller freshness must be explicit in code/tests (`TARGET_MUTATION_FRESH_POLLER_MS` or equivalent), not an implicit default.\n\n## Risks / Mitigations\n\n1. **Race: poller fresh, worker exits before mutation.**\n   - Mitigation: surface Temporal workflow/signal failure; no disk fallback; no source link on create failure.\n\n2. **Over-broad helper change affects all target mutations.**\n   - Mitigation: this is user-approved and desired; use shared helper tests plus targeted mutation tests.\n\n3. **Dependency cycle from moving readiness into `plugin-init.ts`.**\n   - Mitigation: prefer `target-project.ts` or a small temporal readiness module if import graph becomes cyclic.\n\n4. **Noisy failure output.**\n   - Mitigation: include concise top-level message plus structured blockers/action; keep full diagnostics out unless needed.\n\n5. **Untrusted-target confirmation accidentally bypassed.**\n   - Mitigation: keep `resolveTargetProject` trust gate before readiness; add/keep explicit tests.\n\n## Design Leverage Scout\n\nScout: skipped — narrow internal bug with already-shared helper boundary and user-confirmed breadth. Opportunity surface is low; main leverage is reusing existing `classifyQueueServiceability` rather than adding a new readiness model.\n\n## Validator Result\n\nValidator: VALIDATED with two cautions folded into design.\n\n- Caution: `ensureProjectTemporalQueue` currently throws before `getService()` runs. Design now explicitly requires restructuring so server-poller fallback runs before any terminal `no registered worker` failure.\n- Caution: freshness threshold was not pinned. Design now requires explicit mutation-boundary freshness parameter, starting at 60s to match the existing serviceability definition.\n\nNo unresolved `CONFLICT`. No contract-compromise risk identified.",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\n\n`target_path` temporal-required mutations now share ADV's queue serviceability model, so client-only sessions can proceed when the target queue has a fresh server poller and fail closed with typed blockers when readiness is unproven.\n\n## Verdict\n\nAPPROVED\n\n## What Was Built\n\n1. Added `advance-workflow` spec law and docs for target mutation readiness: fresh server pollers, fail-closed blockers, and status/mutation consistency.\n2. Added `ensureTargetMutationQueueReady` at the temporal-required target store boundary, preserving local worker registration and target confirmation while adding fresh server-poller fallback.\n3. Strengthened cross-project create coverage to prove Temporal start failures surface and do not write source `cross_project_links`.\n4. Expanded readiness tests to cover fresh, absent, stale, and unavailable poller evidence.\n\n## What Was Verified\n\n- Verdict: APPROVED / READY with 0 blockers and 0 issues.\n- Tests: `bin/oc-test targeted -- src/tools/target-project.test.ts src/tools/change-cross-project-create.test.ts src/temporal/queue-serviceability.test.ts` passed; `pnpm run check` passed.\n- Preview URL: not_applicable — agreement `visual_surface: false`; no frontend/browser-visible output changed.\n- Contract matrix: 24 rows persisted; required rows passed/respected; 0 failed/violated/unknown.\n\n## Remaining Concerns\n\nNone.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-06-06T23:16:31.129Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | Client-only sessions can perform temporal-required `target_path` mutations when target queue has fresh server poller evidence. | pass | `ensureTargetMutationQueueReady` accepts fresh server poller evidence; `target-project.test.ts` client-only fresh poller case passes. Reviewer verdict READY. |\n| SC2 | success_criterion | `adv_status`/diagnostics readiness and target mutation readiness no longer contradict each other for peer-owned queues. | pass | Spec `rq-targetMutationReadiness03`; helper reuses `classifyQueueServiceability`; reviewer confirmed status/mutation readiness semantics align. |\n| SC3 | success_criterion | Unproven target queue readiness fails closed with actionable serviceability blockers. | pass | Unproven poller statuses fail before `createStore` with typed blockers/action in table-driven test; reviewer expanded absent/stale/unavailable coverage. |\n| SC4 | success_criterion | Cross-project create preserves no-partial-link behavior when target workflow start fails after readiness passes. | pass | `change-cross-project-create.test.ts` target create failure surfaces Temporal failure and source `changes.save` is not called. |\n| AC1 | acceptance_criterion | Given no current-process worker registration and a fresh server poller for target queue, a temporal-required `target_path` mutation does not fail solely with `Temporal worker not ready ... no registered worker`. | pass | `bin/oc-test targeted -- src/tools/target-project.test.ts ...` passed; fresh server poller test opens temporal store after local registration failure. |\n| AC2 | acceptance_criterion | Given no local worker registration and stale/absent/unavailable server poller evidence, the mutation fails before target state mutation and reports queue name, serviceability blockers, and recovery action. | pass | Table-driven `target-project.test.ts` covers `none`, `stale`, and `unavailable` pollers; each throws queue/blocker/action error before `createStore`. |\n| AC3 | acceptance_criterion | Given an owned local worker exists, existing target queue registration behavior still works. | pass | Existing temporal-required target store test still passes and asserts `ensureProjectTemporalQueue(TARGET_PROJECT_ID)` and `createStore` are called. |\n| AC4 | acceptance_criterion | Given an untrusted `target_path`, existing `target_confirmed` + `confirmationEvidence` enforcement remains required before mutation. | pass | Existing untrusted target mutation resolver test still passes; `resolveTargetProject` rejects missing `target_confirmed` before readiness/store construction. |\n| AC5 | acceptance_criterion | Given `adv_change_create target_path` passes readiness but target workflow start fails, the tool surfaces the Temporal failure and does not write a source `cross_project_links` entry. | pass | `change-cross-project-create.test.ts` failure case asserts target create attempted, target get not called, Temporal failure surfaced, and source `changes.save` not called. |\n| AC6 | acceptance_criterion | Tests cover client-only fresh poller, stale/absent/unavailable poller, owned local registration, untrusted target confirmation, and create no-partial-link behavior. | pass | Targeted tests passed 3 files/25 tests; `pnpm run check` passed after reviewer remediation. |\n| C1 | constraint | Target mutations remain Temporal-required. | respected | `withTargetPathStore` still constructs target mutations through `createStore(... temporalBundle ...)`; snapshot/scaffold branches unchanged; no disk mutation fallback added. |\n| C2 | constraint | Status/health readiness and mutation readiness must not drift into contradictory definitions. | respected | Mutation readiness uses `classifyQueueServiceability`, same structural model used by status/diagnostics. |\n| C3 | constraint | Existing current-process worker registration remains valid for local owned-worker sessions. | respected | Helper first checks registered queues and then calls existing `ensureProjectTemporalQueue` before server fallback. |\n| C4 | constraint | Server poller evidence must be fresh at mutation boundary; cached health/status evidence alone is not sufficient. | respected | Helper calls `probeTaskQueuePollers` at mutation boundary with explicit `freshPollerMs: TARGET_MUTATION_FRESH_POLLER_MS`; does not consume cached status/health evidence. |\n| C5 | constraint | Correctness must be structural: use typed serviceability status/blockers, not free-text parsing. | respected | Failure is built from `QueueServiceability.status`, `confidence`, `evidence.serverPollerProbe`, and `blockers`; no parsing of `no registered worker` prose controls correctness. |\n| DONT1 | avoidance | Do not introduce disk-only target change creation or mutation fallback. | respected | No disk-only target mutation fallback added; unproven readiness throws before `createStore`. |\n| DONT2 | avoidance | Do not bypass existing untrusted-target confirmation rules. | respected | `resolveTargetProject` trust gate remains before temporal readiness; existing confirmation test passes. |\n| DONT3 | avoidance | Do not build an ad-hoc non-LLM ADV tool execution path or CLI bypass. | respected | No CLI/tool-exec path added; change limited to target-project readiness helper, tests, and spec docs. |\n| DONT4 | avoidance | Do not broadly replace ADV Temporal worker architecture. | respected | No broad worker architecture replacement; existing `ensureProjectTemporalQueue` remains local path, server poller fallback added at target boundary. |\n| DONT5 | avoidance | Do not claim target ADV worker is missing when fresh server poller evidence proves target queue serviceability. | respected | Fresh poller path no longer reports missing target worker; it proceeds to temporal store path. |\n| OOS1 | out_of_scope | Product-linked repository scope behavior changes. | not_applicable | No product-linked repository scope files or behavior were changed. |\n| OOS2 | out_of_scope | Direct ADV state file read/write policy changes. | not_applicable | No direct ADV state file read/write policy changes made. |\n| OOS3 | out_of_scope | Broad status performance or latency redesign. | not_applicable | No broad status performance/latency redesign; only readiness semantics reused status classifier/probe model. |\n| OOS4 | out_of_scope | Worker restart UX beyond the actionable recovery message. | not_applicable | Worker restart UX not changed beyond target readiness failure action text. |\n\n"
+  },
+  "artifacts": {
+    "problemStatement": {
+      "path": "",
+      "updatedAt": "2026-06-06T22:35:19.325Z"
+    },
+    "proposal": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixTargetMutationReadiness/proposal.md",
+      "updatedAt": "2026-06-06T22:40:51.829Z",
+      "contentHash": "845a5e46ed2c341ea697aaa608752153d2fe9ea2538f04841f86f484f05d3a92"
+    },
+    "agreement": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixTargetMutationReadiness/agreement.md",
+      "updatedAt": "2026-06-06T22:48:32.777Z",
+      "contentHash": "6f8aa9167c6b2cce6c8bd2433d4bce18a602c560b26d762ac61959179e1a9109"
+    },
+    "design": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixTargetMutationReadiness/design.md",
+      "updatedAt": "2026-06-06T22:54:01.553Z",
+      "contentHash": "acf99832ca2132b70bf565b063fa1e177e3a168bc50369c066e204002ea2c1b6"
+    },
+    "executiveSummary": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixTargetMutationReadiness/executive-summary.md",
+      "updatedAt": "2026-06-06T23:16:45.053Z",
+      "contentHash": "f5b56314e36c88452089e6922efdf77465329e46f06a708b11bc5e1e1914a1c9"
+    }
+  },
+  "lastSignalAt": "2026-06-06T23:17:45.181Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true
+}

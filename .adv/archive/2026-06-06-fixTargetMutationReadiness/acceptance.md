@@ -1,0 +1,33 @@
+# Acceptance
+
+Reviewed at: 2026-06-06T23:16:31.129Z
+
+## Contract Review Matrix
+
+| ID | Kind | Requirement | Status | Evidence |
+|---|---|---|---|---|
+| SC1 | success_criterion | Client-only sessions can perform temporal-required `target_path` mutations when target queue has fresh server poller evidence. | pass | `ensureTargetMutationQueueReady` accepts fresh server poller evidence; `target-project.test.ts` client-only fresh poller case passes. Reviewer verdict READY. |
+| SC2 | success_criterion | `adv_status`/diagnostics readiness and target mutation readiness no longer contradict each other for peer-owned queues. | pass | Spec `rq-targetMutationReadiness03`; helper reuses `classifyQueueServiceability`; reviewer confirmed status/mutation readiness semantics align. |
+| SC3 | success_criterion | Unproven target queue readiness fails closed with actionable serviceability blockers. | pass | Unproven poller statuses fail before `createStore` with typed blockers/action in table-driven test; reviewer expanded absent/stale/unavailable coverage. |
+| SC4 | success_criterion | Cross-project create preserves no-partial-link behavior when target workflow start fails after readiness passes. | pass | `change-cross-project-create.test.ts` target create failure surfaces Temporal failure and source `changes.save` is not called. |
+| AC1 | acceptance_criterion | Given no current-process worker registration and a fresh server poller for target queue, a temporal-required `target_path` mutation does not fail solely with `Temporal worker not ready ... no registered worker`. | pass | `bin/oc-test targeted -- src/tools/target-project.test.ts ...` passed; fresh server poller test opens temporal store after local registration failure. |
+| AC2 | acceptance_criterion | Given no local worker registration and stale/absent/unavailable server poller evidence, the mutation fails before target state mutation and reports queue name, serviceability blockers, and recovery action. | pass | Table-driven `target-project.test.ts` covers `none`, `stale`, and `unavailable` pollers; each throws queue/blocker/action error before `createStore`. |
+| AC3 | acceptance_criterion | Given an owned local worker exists, existing target queue registration behavior still works. | pass | Existing temporal-required target store test still passes and asserts `ensureProjectTemporalQueue(TARGET_PROJECT_ID)` and `createStore` are called. |
+| AC4 | acceptance_criterion | Given an untrusted `target_path`, existing `target_confirmed` + `confirmationEvidence` enforcement remains required before mutation. | pass | Existing untrusted target mutation resolver test still passes; `resolveTargetProject` rejects missing `target_confirmed` before readiness/store construction. |
+| AC5 | acceptance_criterion | Given `adv_change_create target_path` passes readiness but target workflow start fails, the tool surfaces the Temporal failure and does not write a source `cross_project_links` entry. | pass | `change-cross-project-create.test.ts` failure case asserts target create attempted, target get not called, Temporal failure surfaced, and source `changes.save` not called. |
+| AC6 | acceptance_criterion | Tests cover client-only fresh poller, stale/absent/unavailable poller, owned local registration, untrusted target confirmation, and create no-partial-link behavior. | pass | Targeted tests passed 3 files/25 tests; `pnpm run check` passed after reviewer remediation. |
+| C1 | constraint | Target mutations remain Temporal-required. | respected | `withTargetPathStore` still constructs target mutations through `createStore(... temporalBundle ...)`; snapshot/scaffold branches unchanged; no disk mutation fallback added. |
+| C2 | constraint | Status/health readiness and mutation readiness must not drift into contradictory definitions. | respected | Mutation readiness uses `classifyQueueServiceability`, same structural model used by status/diagnostics. |
+| C3 | constraint | Existing current-process worker registration remains valid for local owned-worker sessions. | respected | Helper first checks registered queues and then calls existing `ensureProjectTemporalQueue` before server fallback. |
+| C4 | constraint | Server poller evidence must be fresh at mutation boundary; cached health/status evidence alone is not sufficient. | respected | Helper calls `probeTaskQueuePollers` at mutation boundary with explicit `freshPollerMs: TARGET_MUTATION_FRESH_POLLER_MS`; does not consume cached status/health evidence. |
+| C5 | constraint | Correctness must be structural: use typed serviceability status/blockers, not free-text parsing. | respected | Failure is built from `QueueServiceability.status`, `confidence`, `evidence.serverPollerProbe`, and `blockers`; no parsing of `no registered worker` prose controls correctness. |
+| DONT1 | avoidance | Do not introduce disk-only target change creation or mutation fallback. | respected | No disk-only target mutation fallback added; unproven readiness throws before `createStore`. |
+| DONT2 | avoidance | Do not bypass existing untrusted-target confirmation rules. | respected | `resolveTargetProject` trust gate remains before temporal readiness; existing confirmation test passes. |
+| DONT3 | avoidance | Do not build an ad-hoc non-LLM ADV tool execution path or CLI bypass. | respected | No CLI/tool-exec path added; change limited to target-project readiness helper, tests, and spec docs. |
+| DONT4 | avoidance | Do not broadly replace ADV Temporal worker architecture. | respected | No broad worker architecture replacement; existing `ensureProjectTemporalQueue` remains local path, server poller fallback added at target boundary. |
+| DONT5 | avoidance | Do not claim target ADV worker is missing when fresh server poller evidence proves target queue serviceability. | respected | Fresh poller path no longer reports missing target worker; it proceeds to temporal store path. |
+| OOS1 | out_of_scope | Product-linked repository scope behavior changes. | not_applicable | No product-linked repository scope files or behavior were changed. |
+| OOS2 | out_of_scope | Direct ADV state file read/write policy changes. | not_applicable | No direct ADV state file read/write policy changes made. |
+| OOS3 | out_of_scope | Broad status performance or latency redesign. | not_applicable | No broad status performance/latency redesign; only readiness semantics reused status classifier/probe model. |
+| OOS4 | out_of_scope | Worker restart UX beyond the actionable recovery message. | not_applicable | Worker restart UX not changed beyond target readiness failure action text. |
+
