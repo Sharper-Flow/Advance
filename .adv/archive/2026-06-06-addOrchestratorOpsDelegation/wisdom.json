@@ -1,0 +1,12 @@
+{
+  "entries": [
+    {
+      "id": "ws-KGIn3Q",
+      "type": "gotcha",
+      "content": "When testing prose-only agent sections, scope the no-pipe/no-table assertion to the exact Markdown heading slice. Adjacent sections like `Sub-Agent Policy` legitimately contain tables, so file-wide checks false-fail.",
+      "source_task": "tk-cbbd31f8ee76",
+      "recorded_at": "2026-06-06T22:30:52.416Z"
+    }
+  ],
+  "count": 1
+}
