@@ -206,6 +206,48 @@ ADV health and recovery diagnostics that probe Temporal, task queues, worker dia
 
 ---
 
+### CLI Status Reads Visibility Search Attributes Worker-Free
+
+**ID:** `rq-statusCliWorkerFree01` | **Priority:** **[MUST]**
+
+The `adv status` default table must build active-change rows from Temporal Visibility search attributes (`AdvChangeId`, `AdvChangeTitle`, `AdvChangeStatus`, `AdvCurrentGate`, `AdvLastSignalAt`, `AdvCreatedAt`) upserted by change workflows, not from a per-change `getState` workflow query. A workflow query requires a live worker polling the project task queue, so the query path fails for projects with no open session. Visibility search attributes are server-side data readable without a worker. The read must remain live-Temporal-backed and fail closed (no disk-projected active rows) when the Temporal connection or Visibility list fails. Gate progress is synthesized from `AdvCurrentGate` using the canonical gate order; terminal-complete changes are excluded from active rows.
+
+**Tags:** `status`, `cli`, `visibility`, `worker-free`
+
+#### Scenarios
+
+**Inactive project returns live rows from Visibility** (`rq-statusCliWorkerFree01.1`)
+
+**Given:**
+
+- A project has non-archived change workflows but no open ADV session (no worker polling its task queue)
+- Temporal Visibility is reachable
+
+**When:** `adv status --json` runs for that project
+
+**Then:**
+
+- The payload is `source: "temporal"`, `live: true`
+- Each non-terminal change yields one row built from its Visibility search attributes
+- `gateProgressStr` and `firstIncompleteGate` are synthesized from `AdvCurrentGate`
+- No per-change `getState` workflow query is issued for the default table
+
+**Temporal unavailable still fails closed** (`rq-statusCliWorkerFree01.2`)
+
+**Given:**
+
+- The Temporal connection or Visibility list fails or times out
+
+**When:** `adv status --json` handles that result
+
+**Then:**
+
+- The payload is `live: false` with an error and remediation
+- Zero active rows are returned
+- Disk projections are not used as a substitute source for active rows
+
+---
+
 ### OpenCode Session Debt Diagnostics
 
 **ID:** `rq-opencodeDebt01` | **Priority:** **[MUST]**

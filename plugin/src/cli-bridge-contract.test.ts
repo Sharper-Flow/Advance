@@ -238,12 +238,37 @@ describe("STATUS LIVE DEFAULT GUARDS (AC8/AC9/AC10)", () => {
     expect(forbidden.filter((token) => content.includes(token))).toEqual([]);
   });
 
-  test("status live client uses canonical getState query name", () => {
-    const contracts = readFileSync(TEMPORAL_CONTRACTS, "utf8");
+  test("advance-meta pins the worker-free Visibility status read law", () => {
+    const spec = readAdvanceMetaSpec();
+    const requirement = spec.requirements?.find(
+      (item) => item.id === "rq-statusCliWorkerFree01",
+    );
+    expect(requirement).toMatchObject({
+      id: "rq-statusCliWorkerFree01",
+      priority: "must",
+    });
+    expect(requirement?.scenarios?.map((s) => s.id)).toEqual([
+      "rq-statusCliWorkerFree01.1",
+      "rq-statusCliWorkerFree01.2",
+    ]);
+  });
+
+  test("default status table reads Visibility search attributes, not per-workflow query", () => {
+    const cli = readFileSync(ADV_CLI, "utf8");
     const liveStatus = readFileSync(ADV_STATUS_LIVE, "utf8");
 
-    expect(contracts).toContain('getState: "adv.change.getState"');
-    expect(liveStatus).toContain("CHANGE_WORKFLOW_QUERY_NAMES.getState");
+    // The CLI default status path must use the worker-free Visibility
+    // search-attribute reader, not the per-change getState workflow query
+    // (which depends on a live per-project worker).
+    expect(cli).toContain("loadLiveSummaries");
+    expect(cli).not.toContain("loadLiveStatus(");
+
+    // The Visibility reader builds rows from upserted change search
+    // attributes and synthesizes gate progress from AdvCurrentGate.
+    expect(liveStatus).toContain("summariesFromVisibility");
+    expect(liveStatus).toContain("buildSummaryFromSearchAttributes");
+    expect(liveStatus).toContain("AdvCurrentGate");
+    expect(liveStatus).toContain("AdvAffectedProjects");
   });
 
   test("default status active rows are not loaded from disk changes directory", () => {

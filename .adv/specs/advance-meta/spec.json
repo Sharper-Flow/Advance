@@ -215,6 +215,48 @@
       ]
     },
     {
+      "id": "rq-statusCliWorkerFree01",
+      "title": "CLI Status Reads Visibility Search Attributes Worker-Free",
+      "body": "The `adv status` default table must build active-change rows from Temporal Visibility search attributes (`AdvChangeId`, `AdvChangeTitle`, `AdvChangeStatus`, `AdvCurrentGate`, `AdvLastSignalAt`, `AdvCreatedAt`) upserted by change workflows, not from a per-change `getState` workflow query. A workflow query requires a live worker polling the project task queue, so the query path fails for projects with no open session. Visibility search attributes are server-side data readable without a worker, so the CLI works for any project whose Temporal connection succeeds. The read must remain live-Temporal-backed and fail closed (no disk-projected active rows) when the Temporal connection or Visibility list fails. Gate progress is synthesized from `AdvCurrentGate` using the canonical gate order; terminal-complete changes are excluded from active rows.",
+      "priority": "must",
+      "tags": [
+        "status",
+        "cli",
+        "visibility",
+        "worker-free"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-statusCliWorkerFree01.1",
+          "title": "Inactive project returns live rows from Visibility",
+          "given": [
+            "A project has non-archived change workflows but no open ADV session (no worker polling its task queue)",
+            "Temporal Visibility is reachable"
+          ],
+          "when": "`adv status --json` runs for that project",
+          "then": [
+            "The payload is `source: \"temporal\"`, `live: true`",
+            "Each non-terminal change yields one row built from its Visibility search attributes",
+            "`gateProgressStr` and `firstIncompleteGate` are synthesized from `AdvCurrentGate`",
+            "No per-change `getState` workflow query is issued for the default table"
+          ]
+        },
+        {
+          "id": "rq-statusCliWorkerFree01.2",
+          "title": "Temporal unavailable still fails closed",
+          "given": [
+            "The Temporal connection or Visibility list fails or times out"
+          ],
+          "when": "`adv status --json` handles that result",
+          "then": [
+            "The payload is `live: false` with an error and remediation",
+            "Zero active rows are returned",
+            "Disk projections are not used as a substitute source for active rows"
+          ]
+        }
+      ]
+    },
+    {
       "id": "rq-roadmapCliBridge01",
       "title": "Roadmap Slash Command Uses CLI Bridge",
       "body": "The default /adv-roadmap slash command must be a thin OpenCode shell-output bridge over `adv roadmap --no-color`. It must return the CLI roadmap table output without instructing the agent to call adv_roadmap, adv_backlog_state, adv_change_list, adv_change_show, adv_gate_status, adv_spec, synthesize recommendations, or read freshness metadata. Active-change annotation is explicitly out of CLI file mode and available only via explicit MCP backlog tooling; the CLI MUST NOT fabricate annotation from disk.",
