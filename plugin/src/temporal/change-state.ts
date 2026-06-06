@@ -135,6 +135,8 @@ export function changeSeedStateFromChange(
     documents: safeChange.documents,
     origin: safeChange.origin,
     cross_project_origin: safeChange.cross_project_origin,
+    cross_project_links: safeChange.cross_project_links,
+    external_dependencies: safeChange.external_dependencies,
     worktree_auto_managed: safeChange.worktree_auto_managed,
     target_worktree_path: safeChange.target_worktree_path,
     scope_worktrees: safeChange.scope_worktrees,
@@ -169,6 +171,20 @@ export function changeToWorkflowState(input: {
 function setLastSignalAt(state: ChangeWorkflowState, at: string): void {
   if (state.lastSignalAt && state.lastSignalAt > at) return;
   state.lastSignalAt = at;
+}
+
+export function applyCrossProjectCoordinationUpdatedToState(
+  state: ChangeWorkflowState,
+  payload: import("./contracts").CrossProjectCoordinationUpdatedSignalPayload,
+): ChangeWorkflowState {
+  if (payload.cross_project_links !== undefined) {
+    state.cross_project_links = payload.cross_project_links;
+  }
+  if (payload.external_dependencies !== undefined) {
+    state.external_dependencies = payload.external_dependencies;
+  }
+  setLastSignalAt(state, payload.updatedAt);
+  return state;
 }
 
 export const SIGNAL_REJECTION_RING_BUFFER_LIMIT = 20;

@@ -1,6 +1,7 @@
 import type {
   ChangeClosure,
   ChangeContract,
+  Change,
   ChangeOrigin,
   SubagentAgent,
   SubagentReportScope,
@@ -74,6 +75,7 @@ export const CHANGE_WORKFLOW_SIGNAL_NAMES = {
   worktreeDeleted: "adv.change.worktreeDeleted",
   worktreeAutoManaged: "adv.change.worktreeAutoManaged",
   worktreeAttached: "adv.change.worktreeAttached",
+  crossProjectCoordinationUpdated: "adv.change.crossProjectCoordinationUpdated",
   conformanceLocked: "adv.change.conformanceLocked",
   conformanceVerdict: "adv.change.conformanceVerdict",
   conformanceOverridden: "adv.change.conformanceOverridden",
@@ -207,6 +209,8 @@ export interface ChangeWorkflowInput {
       | "phase9_status"
       | "origin"
       | "cross_project_origin"
+      | "cross_project_links"
+      | "external_dependencies"
       | "worktree_auto_managed"
       | "target_worktree_path"
       | "scope_worktrees"
@@ -218,6 +222,12 @@ export interface ChangeWorkflowInput {
 }
 
 export type ChangeWorkflowBootstrapState = ChangeWorkflowInput;
+
+export interface CrossProjectCoordinationUpdatedSignalPayload {
+  cross_project_links?: Change["cross_project_links"];
+  external_dependencies?: Change["external_dependencies"];
+  updatedAt: string;
+}
 
 export interface SignalRejection {
   signalName: string;
@@ -333,6 +343,10 @@ export interface ChangeWorkflowState extends ChangeWorkflowInput {
   origin?: ChangeOrigin;
   /** Cross-project provenance for target follow-up changes. */
   cross_project_origin?: import("../types").Change["cross_project_origin"];
+  /** Source-side outbound links to target project follow-up changes. */
+  cross_project_links?: import("../types").Change["cross_project_links"];
+  /** Advisory dependencies on external project changes. */
+  external_dependencies?: import("../types").Change["external_dependencies"];
   /** Deterministic idempotency keys for submitted sub-agent reports. */
   seenReportIds?: string[];
 

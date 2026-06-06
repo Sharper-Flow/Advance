@@ -239,6 +239,46 @@ describe("change-state pure mutation helpers", () => {
     expect(seed.cross_project_origin).toEqual(crossProjectOrigin);
   });
 
+  it("carries source-side cross-project coordination metadata when seeding workflow state", () => {
+    const crossProjectLinks = [
+      {
+        target_path: "/home/jon/target",
+        target_project_id: "target-project-id",
+        changeId: "targetFollowup",
+        relationship: "follow_up" as const,
+        linked_at: "2026-06-06T20:00:00.000Z",
+      },
+    ];
+    const externalDependencies = [
+      {
+        target_path: "/home/jon/target",
+        changeId: "targetFollowup",
+        relationship: "requires" as const,
+      },
+    ];
+
+    const seed = changeSeedStateFromChange({
+      id: "source-change",
+      title: "Source change",
+      status: "active",
+      created_at: "2026-06-06T20:00:00.000Z",
+      tasks: [],
+      deltas: {},
+      wisdom: [],
+      gates: createChangeWorkflowState({
+        changeId: "source-change",
+        title: "Source change",
+        createdAt: "2026-06-06T20:00:00.000Z",
+      }).gates,
+      reentry_history: [],
+      cross_project_links: crossProjectLinks,
+      external_dependencies: externalDependencies,
+    } as unknown as Change);
+
+    expect(seed.cross_project_links).toEqual(crossProjectLinks);
+    expect(seed.external_dependencies).toEqual(externalDependencies);
+  });
+
   it("records task lifecycle mutations without task-run ledger state", () => {
     const state = createChangeWorkflowState({
       changeId: "change-state-test",

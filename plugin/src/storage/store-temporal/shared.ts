@@ -85,6 +85,8 @@ export function mapTemporalChangeStateToChange(
     phase9_status: safeState.phase9_status,
     lastSignalAt: safeState.lastSignalAt,
     adv_project_id: safeState.projectId,
+    cross_project_links: safeState.cross_project_links,
+    external_dependencies: safeState.external_dependencies,
   };
 }
 

@@ -309,6 +309,89 @@ describe("createChangeOps", () => {
     );
   });
 
+  test("save overlays source-side cross-project coordination metadata", async () => {
+    const updateOverlayMock = vi.fn();
+    const signalMock = vi.fn().mockResolvedValue(undefined);
+    const legacy = {
+      paths: { changes: "/tmp/changes", root: "/tmp/project" },
+      changes: {
+        save: vi.fn().mockResolvedValue(undefined),
+      },
+    };
+    const workflowClient = {
+      workflow: {
+        start: vi.fn(),
+        getHandle: vi.fn(() => ({ signal: signalMock })),
+      },
+    };
+    const ops = createChangeOps({
+      input: {
+        legacy,
+        temporal: { client: workflowClient },
+        projectId: "pid-source",
+      },
+      legacy,
+      invalidateChange: vi.fn(),
+      updateOverlay: updateOverlayMock,
+      emitChangeSummarySignal: vi.fn(),
+      indexTasksFromState: vi.fn(),
+      setCachedChange: vi.fn(),
+      getTemporalChange: vi.fn(),
+      listResolvedChanges: vi.fn(),
+      getTemporalWorkflowClient: () => workflowClient,
+      dualWriteAfterMutation: vi.fn(),
+    } as never);
+
+    await ops.save({
+      id: "sourceChange",
+      title: "Source change",
+      status: "active",
+      created_at: "2026-06-06T20:00:00.000Z",
+      tasks: [],
+      deltas: {},
+      wisdom: [],
+      cross_project_links: [
+        {
+          target_path: "/repo/target",
+          target_project_id: "pid-target",
+          changeId: "targetFollowup",
+          relationship: "follow_up",
+          linked_at: "2026-06-06T20:00:00.000Z",
+        },
+      ],
+      external_dependencies: [
+        {
+          target_path: "/repo/target",
+          changeId: "targetFollowup",
+          relationship: "requires",
+        },
+      ],
+    } as never);
+
+    expect(updateOverlayMock).toHaveBeenCalledWith(
+      "sourceChange",
+      expect.objectContaining({
+        cross_project_links: [
+          expect.objectContaining({ changeId: "targetFollowup" }),
+        ],
+        external_dependencies: [
+          expect.objectContaining({ changeId: "targetFollowup" }),
+        ],
+      }),
+    );
+    expect(signalMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        cross_project_links: [
+          expect.objectContaining({ changeId: "targetFollowup" }),
+        ],
+        external_dependencies: [
+          expect.objectContaining({ changeId: "targetFollowup" }),
+        ],
+      }),
+    );
+  });
+
   describe("listSummary (rq-changeSummaryReadModel01)", () => {
     test("serves memo-only candidates without per-change full hydration", async () => {
       const memo = new ChangeSummaryMemo();
