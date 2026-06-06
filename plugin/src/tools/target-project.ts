@@ -5,8 +5,20 @@ import { createLegacyStore, createStore } from "../storage/store";
 import type { Store } from "../storage/store-types";
 import { loadProjectConfig } from "../storage/json";
 import { validateCrossRepoTarget } from "../temporal/activities";
+import { buildProjectTaskQueue } from "../temporal/client";
+import {
+  classifyQueueServiceability,
+  probeTaskQueuePollers,
+  type QueueServiceability,
+} from "../temporal/queue-serviceability";
 import { getService } from "../temporal/service";
-import { ensureProjectTemporalQueue } from "../plugin-init";
+import {
+  ensureProjectTemporalQueue,
+  getRegisteredTemporalWorkerQueues,
+  getTemporalWorkerAliveness,
+  getTemporalWorkerDiagnostics,
+  getTemporalWorkerRole,
+} from "../plugin-init";
 import {
   getExternalRoot,
   getExternalRootForProject,
@@ -39,6 +51,8 @@ export class TargetProjectError extends Error {
     this.name = "TargetProjectError";
   }
 }
+
+export const TARGET_MUTATION_FRESH_POLLER_MS = 60_000;
 
 export interface ResolveTargetProjectInput {
   currentProjectPath: string;
@@ -161,6 +175,99 @@ function closeStore(store: Store): void {
   store.close?.();
 }
 
+function targetMutationLocalOwnership(): "owned" | "peer" | "unknown" {
+  const role = getTemporalWorkerRole();
+  if (role === "host") return "owned";
+  if (role === "client") return "peer";
+  return "unknown";
+}
+
+function localQueueServiceability(input: {
+  projectId: string;
+  expectedQueue: string;
+}): QueueServiceability {
+  return classifyQueueServiceability({
+    projectId: input.projectId,
+    expectedQueue: input.expectedQueue,
+    localRegistered: true,
+    localWorkerAlive: true,
+    localOwnership: "owned",
+    workerDiagnostics: getTemporalWorkerDiagnostics(),
+    serverPollerProbe: { status: "unavailable", lastAccessMs: null },
+    staleRunningWorkflowCount: 0,
+    staleQueueProbe: "unavailable",
+  });
+}
+
+function formatTargetMutationReadinessError(
+  serviceability: QueueServiceability,
+): string {
+  const blockers = serviceability.blockers.length
+    ? serviceability.blockers.join(", ")
+    : "unknown";
+  return [
+    `Target project Temporal queue is not serviceable for target_path mutation: ${serviceability.expectedQueue}`,
+    `status=${serviceability.status}`,
+    `confidence=${serviceability.confidence}`,
+    `poller=${serviceability.evidence.serverPollerProbe}`,
+    `blockers=${blockers}`,
+    "action=open or restart the target project ADV worker, then retry the target_path mutation",
+  ].join("; ");
+}
+
+export async function ensureTargetMutationQueueReady(input: {
+  projectId: string;
+  temporalBundle: NonNullable<ReturnType<typeof getService>>;
+  freshPollerMs?: number;
+}): Promise<QueueServiceability> {
+  const expectedQueue = buildProjectTaskQueue(input.projectId);
+  if (getRegisteredTemporalWorkerQueues().includes(expectedQueue)) {
+    return localQueueServiceability({
+      projectId: input.projectId,
+      expectedQueue,
+    });
+  }
+
+  try {
+    await ensureProjectTemporalQueue(input.projectId);
+    return localQueueServiceability({
+      projectId: input.projectId,
+      expectedQueue,
+    });
+  } catch {
+    // Local registration is not the only valid readiness signal. A client-only
+    // process may safely submit target mutations when another worker is freshly
+    // polling the target queue.
+  }
+
+  const serverPollerProbe = await probeTaskQueuePollers({
+    connection: input.temporalBundle.connection as Parameters<
+      typeof probeTaskQueuePollers
+    >[0]["connection"],
+    namespace: input.temporalBundle.namespace,
+    taskQueue: expectedQueue,
+    freshPollerMs: input.freshPollerMs ?? TARGET_MUTATION_FRESH_POLLER_MS,
+  });
+  const serviceability = classifyQueueServiceability({
+    projectId: input.projectId,
+    expectedQueue,
+    localRegistered: getRegisteredTemporalWorkerQueues().includes(
+      expectedQueue,
+    ),
+    localWorkerAlive: getTemporalWorkerAliveness(),
+    localOwnership: targetMutationLocalOwnership(),
+    workerDiagnostics: getTemporalWorkerDiagnostics(),
+    serverPollerProbe,
+    staleRunningWorkflowCount: 0,
+    staleQueueProbe: "ok",
+  });
+
+  if (serviceability.status === "serviceable") return serviceability;
+  throw new TargetProjectError(
+    formatTargetMutationReadinessError(serviceability),
+  );
+}
+
 export async function withTargetPathStore<T>(
   input: WithTargetPathStoreInput,
   fn: (scope: TargetStoreScope) => Promise<T>,
@@ -202,13 +309,18 @@ export async function withTargetPathStore<T>(
     }
   }
 
-  await ensureProjectTemporalQueue(context.projectId);
   const temporalBundle = getService();
   if (!temporalBundle) {
     throw new TargetProjectError(
       `Temporal service layer not initialized; target_path mutations require a Temporal-backed target store: ${context.root}`,
     );
   }
+
+  await ensureTargetMutationQueueReady({
+    projectId: context.projectId,
+    temporalBundle,
+    freshPollerMs: TARGET_MUTATION_FRESH_POLLER_MS,
+  });
 
   const store = await createStore(context.root, {
     externalRoot: context.externalRoot,
