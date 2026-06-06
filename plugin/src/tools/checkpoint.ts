@@ -11,8 +11,8 @@
  * - Hardened environment: GIT_EDITOR=true, GIT_PAGER=cat,
  *   GIT_TERMINAL_PROMPT=0.
  * - Staging: `git add -A` respects `.gitignore`.
- * - Commit message: `task(tk-xxxx): <title>` for complete,
- *   `task(tk-xxxx): cancel — <reason>` for cancel.
+ * - Commit message: `chore(adv): checkpoint tk-xxxx` for complete,
+ *   `chore(adv): cancel checkpoint tk-xxxx` for cancel.
  * - Idempotent on clean trees: returns {status:'clean'} without committing.
  * - Persists touched_files and error_class bridge via store.tasks.update.
  */
@@ -39,7 +39,7 @@ import { extractStructuredOutput } from "../utils/extract-structured-output";
 const DEFAULT_TIMEOUT_MS = 30_000;
 const DEFAULT_MAX_BUFFER = 10 * 1024 * 1024;
 const SUBJECT_MAX_LEN = 72;
-const CANCEL_REASON_MAX_LEN = 64;
+const CHECKPOINT_TASK_ID_RE = /^tk-[A-Za-z0-9]+$/;
 
 /** Enable verbose checkpoint diagnostics. Set ADV_DEBUG=1 in env. */
 const ADV_DEBUG = process.env.ADV_DEBUG === "1";
@@ -257,8 +257,8 @@ export function classifyGitError(error: unknown): ErrorClass {
 
 /**
  * Build commit message with structured body/trailers.
- * Complete: `task(tk-xxxx): completed` (subject ≤ 72)
- * Cancel:   `task(tk-xxxx): cancel — <reason>` (reason ≤ 64)
+ * Complete: `chore(adv): checkpoint tk-xxxx` (subject ≤ 72)
+ * Cancel:   `chore(adv): cancel checkpoint tk-xxxx` (subject ≤ 72)
  */
 export function buildCommitMessage(
   taskId: string,
@@ -267,23 +267,28 @@ export function buildCommitMessage(
   changeId?: string,
   verification?: string,
 ): { subject: string; body: string } {
-  let subject: string;
-  if (mode === "cancel") {
-    const prefix = `task(${taskId}): cancel \u2014 `;
-    const maxReason = Math.min(
-      CANCEL_REASON_MAX_LEN,
-      SUBJECT_MAX_LEN - prefix.length,
+  if (!CHECKPOINT_TASK_ID_RE.test(taskId)) {
+    throw new Error(
+      `Invalid checkpoint task ID "${taskId}". Expected tk-[A-Za-z0-9]+.`,
     );
-    const truncatedReason = (reason ?? "").slice(0, Math.max(0, maxReason));
-    subject = `${prefix}${truncatedReason}`;
-  } else {
-    subject = `task(${taskId}): completed`.slice(0, SUBJECT_MAX_LEN);
+  }
+
+  const subject =
+    mode === "cancel"
+      ? `chore(adv): cancel checkpoint ${taskId}`
+      : `chore(adv): checkpoint ${taskId}`;
+
+  if (subject.length > SUBJECT_MAX_LEN) {
+    throw new Error(
+      `Checkpoint commit subject exceeds ${SUBJECT_MAX_LEN} characters for task ${taskId}.`,
+    );
   }
 
   const lines: string[] = [];
   if (changeId) lines.push(`Change: ${changeId}`);
   lines.push(`Task: ${taskId}`);
   lines.push(`Mode: ${mode}`);
+  if (mode === "cancel" && reason) lines.push(`Reason: ${reason}`);
   if (verification) lines.push(`Verification: ${verification}`);
 
   const body = lines.join("\n");
@@ -745,13 +750,26 @@ export const checkpointTools = {
       }
 
       // Build commit message with structured body
-      const { subject, body } = buildCommitMessage(
-        args.taskId,
-        mode,
-        args.reason,
-        derivedChangeId,
-        args.verification,
-      );
+      let commitMessage: { subject: string; body: string };
+      try {
+        commitMessage = buildCommitMessage(
+          args.taskId,
+          mode,
+          args.reason,
+          effectiveChangeId,
+          args.verification,
+        );
+      } catch (err) {
+        return formatToolOutput({
+          status: "failed",
+          classification: "SEMANTIC",
+          workdir: cwd,
+          gitRoot,
+          error: err instanceof Error ? err.message : String(err),
+        } satisfies CheckpointResult);
+      }
+
+      const { subject, body } = commitMessage;
 
       try {
         // Stage

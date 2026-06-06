@@ -446,10 +446,11 @@ Checkpoint commits MUST include machine-readable metadata in the commit message 
 **When:** The commit is created
 
 **Then:**
-- The commit message MUST have a terse subject line (`task({taskId}): {mode}`)
+- The commit message MUST have a Conventional Commit-compatible subject line (`chore(adv): checkpoint {taskId}` for complete mode, `chore(adv): cancel checkpoint {taskId}` for cancel mode)
 - The commit body MUST include `Change: {changeId}`
 - The commit body MUST include `Task: {taskId}`
 - The commit body MUST include `Mode: {mode}`
+- When cancellation `reason` is present, the body MUST include `Reason: {reason}`
 - When `verification` is present, the body MUST include `Verification: {verification}`
 - The message MUST be created with multiple `-m` args for subject + body/trailers
 
