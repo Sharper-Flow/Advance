@@ -145,6 +145,35 @@ describe("triageWorktrees (T18)", () => {
     expect(orphan?.recommendedFix).toContain("adv_worktree_resume");
   });
 
+  it("reports missing_from_temporal_unmerged for no-registry worktrees with unmerged commits", async () => {
+    const wtPath = join(tempRoot, "wt-unmerged");
+    execFileSync(
+      "git",
+      ["worktree", "add", "-b", "change/unmerged", wtPath, "trunk"],
+      { cwd: repoRoot },
+    );
+    execFileSync("git", ["config", "user.email", "t@e.com"], {
+      cwd: wtPath,
+    });
+    execFileSync("git", ["config", "user.name", "T"], { cwd: wtPath });
+    execFileSync("touch", [join(wtPath, "feature.ts")]);
+    execFileSync("git", ["add", "feature.ts"], { cwd: wtPath });
+    execFileSync("git", ["commit", "-m", "feature"], { cwd: wtPath });
+
+    mockRegistrySnapshot([]);
+
+    const result = await triageWorktrees(repoRoot);
+    const orphan = result.orphans.find(
+      (o) => o.class === "missing_from_temporal_unmerged",
+    );
+
+    expect(orphan).toBeDefined();
+    expect(orphan?.branch).toBe("change/unmerged");
+    expect(orphan?.reason).toContain("unmerged commits");
+    expect(orphan?.recommendedFix).toContain("adv_worktree_resume");
+    expect(orphan?.recommendedFix).not.toContain("adv_worktree_delete");
+  });
+
   it("reports missing_from_disk when registry has worktree but disk doesn't", async () => {
     mockRegistrySnapshot([
       {

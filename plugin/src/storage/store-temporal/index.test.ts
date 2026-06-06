@@ -796,3 +796,234 @@ describe("listResolvedChanges memo fast path", () => {
     expect(listed!.completedTasks).toBe(1);
   });
 });
+
+describe("listResolvedChanges memo busting (rq-crossSessionCacheConsistency01)", () => {
+  let tempDir: string | undefined;
+
+  afterEach(async () => {
+    if (tempDir) await cleanupTempDir(tempDir);
+    tempDir = undefined;
+  });
+
+  it("busts stale memo and returns archived status when archive bundle exists", async () => {
+    tempDir = await createTempDir();
+    const legacy = await createDiskStore(tempDir);
+
+    // Save an active change on disk
+    const change = activeChange("staleMemoChange");
+    await legacy.changes.save(change);
+
+    // Stateful mock: first query returns active (warm memo), subsequent
+    // queries return archived (simulates session B archiving the change).
+    let queryCount = 0;
+    const temporal = {
+      client: {
+        workflow: {
+          getHandle: () => ({
+            query: async () => {
+              queryCount++;
+              if (queryCount === 1) {
+                return {
+                  id: "staleMemoChange",
+                  changeId: "staleMemoChange",
+                  title: "Active staleMemoChange",
+                  status: "active",
+                  createdAt: "2026-05-07T00:00:00.000Z",
+                  initializedAt: "2026-05-07T00:00:00.000Z",
+                  projectId: "project-1",
+                  tasks: [],
+                  deltas: {},
+                  wisdom: [],
+                  gates: createDefaultGates(),
+                  reentry_history: [],
+                  artifacts: {},
+                  documents: {},
+                  reflections: [],
+                  worktrees: {},
+                  conformance: { lockedSpecs: [], overrides: [] },
+                };
+              }
+              return {
+                id: "staleMemoChange",
+                changeId: "staleMemoChange",
+                title: "Archived staleMemoChange",
+                status: "archived",
+                createdAt: "2026-05-07T00:00:00.000Z",
+                initializedAt: "2026-05-07T00:00:00.000Z",
+                projectId: "project-1",
+                tasks: [],
+                deltas: {},
+                wisdom: [],
+                gates: Object.fromEntries(
+                  Object.entries(createDefaultGates()).map(([gate, value]) => [
+                    gate,
+                    { ...value, status: "done" as const },
+                  ]),
+                ) as Change["gates"],
+                reentry_history: [],
+                artifacts: {},
+                documents: {},
+                reflections: [],
+                worktrees: {},
+                conformance: { lockedSpecs: [], overrides: [] },
+              };
+            },
+          }),
+          start: async () => {
+            throw new Error("start should not be called");
+          },
+        },
+      },
+    };
+
+    const store = createTemporalStoreBackend({
+      legacy,
+      temporal,
+      projectId: "project-1",
+    });
+
+    // Warm memo with active status
+    const getResult = await store.changes.get("staleMemoChange");
+    expect(getResult.success).toBe(true);
+    expect(getResult.data?.status).toBe("active");
+
+    // Simulate session B archiving the change: create archive bundle
+    const archiveBundleDir = join(
+      tempDir,
+      ".adv",
+      "archive",
+      "staleMemoChange",
+    );
+    await mkdir(archiveBundleDir, { recursive: true });
+    await writeFile(
+      join(archiveBundleDir, "change.json"),
+      JSON.stringify(archivedChange("staleMemoChange"), null, 2),
+    );
+
+    // Default list should now exclude the change (correctly seen as archived)
+    const defaultList = await store.changes.list();
+    const defaultIds = defaultList.changes.map((c) => c.id);
+    expect(defaultIds).not.toContain("staleMemoChange");
+
+    // With includeArchived, the change surfaces as archived
+    const archivedList = await store.changes.list({ includeArchived: true });
+    const archived = archivedList.changes.find(
+      (c) => c.id === "staleMemoChange",
+    );
+    expect(archived).toBeDefined();
+    expect(archived!.status).toBe("archived");
+  });
+
+  it("skips memo busting for entries already in terminal state", async () => {
+    tempDir = await createTempDir();
+    const legacy = await createDiskStore(tempDir);
+
+    // Save an archived change on disk
+    const change = archivedChange("terminalMemoChange");
+    await legacy.changes.save(change);
+
+    // Temporal client always throws poisoned history — forces disk fallback
+    const temporal = {
+      client: {
+        workflow: {
+          getHandle: () => ({
+            query: async () => {
+              throw poisonedHistoryError();
+            },
+          }),
+          start: async () => {
+            throw new Error("start should not be called");
+          },
+        },
+      },
+    };
+
+    const store = createTemporalStoreBackend({
+      legacy,
+      temporal,
+      projectId: "project-1",
+    });
+
+    // Warm memo with archived status
+    const getResult = await store.changes.get("terminalMemoChange");
+    expect(getResult.success).toBe(true);
+    expect(getResult.data?.status).toBe("archived");
+
+    // Create archive bundle (should not trigger extra invalidation)
+    const archiveBundleDir = join(
+      tempDir,
+      ".adv",
+      "archive",
+      "terminalMemoChange",
+    );
+    await mkdir(archiveBundleDir, { recursive: true });
+    await writeFile(
+      join(archiveBundleDir, "change.json"),
+      JSON.stringify(archivedChange("terminalMemoChange"), null, 2),
+    );
+
+    // List with includeArchived should still return the change correctly
+    const list = await store.changes.list({ includeArchived: true });
+    const found = list.changes.find((c) => c.id === "terminalMemoChange");
+    expect(found).toBeDefined();
+    expect(found!.status).toBe("archived");
+  });
+
+  it("does not add excessive latency from pre-scan", async () => {
+    tempDir = await createTempDir();
+    const legacy = await createDiskStore(tempDir);
+
+    // Save a single active change
+    const change = activeChange("perfChange");
+    await legacy.changes.save(change);
+
+    const temporal = {
+      client: {
+        workflow: {
+          getHandle: () => ({
+            query: async () => ({
+              id: "perfChange",
+              changeId: "perfChange",
+              title: "Active perfChange",
+              status: "active",
+              createdAt: "2026-05-07T00:00:00.000Z",
+              initializedAt: "2026-05-07T00:00:00.000Z",
+              projectId: "project-1",
+              tasks: [],
+              deltas: {},
+              wisdom: [],
+              gates: createDefaultGates(),
+              reentry_history: [],
+              artifacts: {},
+              documents: {},
+              reflections: [],
+              worktrees: {},
+              conformance: { lockedSpecs: [], overrides: [] },
+            }),
+          }),
+          start: async () => {
+            throw new Error("start should not be called");
+          },
+        },
+      },
+    };
+
+    const store = createTemporalStoreBackend({
+      legacy,
+      temporal,
+      projectId: "project-1",
+    });
+
+    // Warm memo
+    await store.changes.get("perfChange");
+
+    // No archive bundle exists — pre-scan should still complete quickly
+    const start = performance.now();
+    const list = await store.changes.list();
+    const elapsed = performance.now() - start;
+
+    expect(list.changes.some((c) => c.id === "perfChange")).toBe(true);
+    // Pre-scan + hydration for 1 change should be well under 100ms
+    expect(elapsed).toBeLessThan(100);
+  });
+});

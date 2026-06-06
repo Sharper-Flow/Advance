@@ -1270,6 +1270,44 @@ describe("change tools — signal-driven lifecycle", () => {
       expect(parsed.errors).toEqual([]);
       expect(parsed.warnings).toEqual([]);
     });
+
+    // Fix 5 / AC7: a dangling peer change whose Temporal workflow was evicted
+    // (disk projection may survive) makes store.changes.get throw. The
+    // validation-context per-peer hydration loop must skip it, not crash.
+    test("tolerates a peer whose workflow query throws (multi-session orphan)", async () => {
+      const store = createMockStore({
+        tasks: [
+          { id: "tk-1", title: "Task", status: "done" },
+        ] as Change["tasks"],
+      });
+      const target = (await store.changes.get("test-change")).data!;
+      vi.mocked(store.changes.list).mockResolvedValue({
+        changes: [
+          { id: "test-change", title: "Test Change", status: "active" },
+          { id: "danglingPeer", title: "Dangling Peer", status: "draft" },
+        ],
+      } as Awaited<ReturnType<Store["changes"]["list"]>>);
+      vi.mocked(store.changes.get).mockImplementation(async (id: string) => {
+        if (id === "danglingPeer") {
+          throw Object.assign(
+            new Error("workflow not found for ID: danglingPeer"),
+            { name: "WorkflowNotFoundError" },
+          );
+        }
+        return { success: true, data: target };
+      });
+
+      const result = await changeTools.adv_change_validate.execute(
+        { changeId: "test-change", strict: true },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      // Must not crash on the dangling peer; validation runs for the target.
+      expect(parsed.validationErrors).toBeUndefined();
+      expect(parsed).toHaveProperty("passed");
+      expect(parsed.passed).toBe(true);
+    });
   });
 
   describe("adv_change_archive", () => {
@@ -1291,6 +1329,40 @@ describe("change tools — signal-driven lifecycle", () => {
       expect(mocks.querySignal).toHaveBeenCalledTimes(1);
       expect(parsed.error ?? "").not.toContain("incomplete gates");
       expect(parsed.incompleteGates).toBeUndefined();
+    });
+
+    // Fix 5 / AC7: archive validation loads peer changes for conflict
+    // detection. A dangling peer whose workflow query throws must NOT crash
+    // archive with VALIDATION_CONTEXT_FAILED (the multi-session bug that
+    // blocked this very change's archive).
+    test("tolerates a peer whose workflow query throws during archive validation", async () => {
+      const store = createMockStore({ gates: allDoneGates });
+      const target = (await store.changes.get("test-change")).data!;
+      vi.mocked(store.changes.list).mockResolvedValue({
+        changes: [
+          { id: "test-change", title: "Test Change", status: "active" },
+          { id: "danglingPeer", title: "Dangling Peer", status: "draft" },
+        ],
+      } as Awaited<ReturnType<Store["changes"]["list"]>>);
+      vi.mocked(store.changes.get).mockImplementation(async (id: string) => {
+        if (id === "danglingPeer") {
+          throw Object.assign(
+            new Error("workflow not found for ID: danglingPeer"),
+            { name: "WorkflowNotFoundError" },
+          );
+        }
+        return { success: true, data: target };
+      });
+      mocks.querySignal.mockResolvedValueOnce(allDoneGates);
+
+      const result = await changeTools.adv_change_archive.execute(
+        { changeId: "test-change", dryRun: true },
+        store,
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed.validationErrors).toBeUndefined();
+      expect(parsed.error ?? "").not.toContain("validation could not run");
     });
 
     test("allows archive when only release gate is pending (finalization completes it)", async () => {

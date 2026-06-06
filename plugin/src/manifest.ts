@@ -79,19 +79,11 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
   },
   "adv-roadmap": {
     name: "adv-roadmap",
-    description: "Show prioritized backlog with active-change cross-reference",
+    description: "Show fast ADV roadmap table",
     phase: "core",
     requiresChangeId: false,
     prerequisites: [],
     successors: ["adv-proposal", "adv-triage"],
-    scope: {
-      creates: [],
-      reads: ["roadmap-snapshot", "github-project", "changes"],
-      modifies: [],
-      gates: [],
-    },
-    args_hint:
-      "[--live] [--top N] [--kind bug|feature|all] [--priority c|h|m|l]",
   },
   "adv-proposal": {
     name: "adv-proposal",

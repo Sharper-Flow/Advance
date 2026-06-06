@@ -322,6 +322,9 @@ const conformanceOverriddenSignal = wf.defineSignal<
 const archiveRequestedSignal = wf.defineSignal<
   [import("../types").ArchiveRequestedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.archiveRequested);
+const phase9StatusUpdatedSignal = wf.defineSignal<
+  [import("../types").Phase9StatusUpdatedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.phase9StatusUpdated);
 const changeCancelledSignal = wf.defineSignal<
   [import("../types").ChangeCancelledSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.changeCancelled);
@@ -486,6 +489,9 @@ export async function changeWorkflow(
     }
     if (input.seedState.archiveRequest) {
       state.archiveRequest = input.seedState.archiveRequest;
+    }
+    if (input.seedState.phase9_status) {
+      state.phase9_status = input.seedState.phase9_status;
     }
     if (input.seedState.origin) {
       state.origin = input.seedState.origin;
@@ -1265,6 +1271,18 @@ export async function changeWorkflow(
     ),
   );
   wf.setHandler(
+    phase9StatusUpdatedSignal,
+    signalMutation(
+      "phase9StatusUpdated",
+      (payload: import("../types").Phase9StatusUpdatedSignalPayload) => {
+        state.phase9_status = payload.phase9_status;
+        state.lastSignalAt = payload.updatedAt;
+        return state;
+      },
+      { projectAfter: true },
+    ),
+  );
+  wf.setHandler(
     changeCancelledSignal,
     signalAsync(
       "changeCancelled",
@@ -1440,6 +1458,7 @@ export async function changeWorkflow(
       worktrees: state.worktrees,
       conformance: state.conformance,
       archiveRequest: state.archiveRequest,
+      phase9_status: state.phase9_status,
       origin: state.origin,
       worktree_auto_managed: state.worktree_auto_managed,
       target_worktree_path: state.target_worktree_path,

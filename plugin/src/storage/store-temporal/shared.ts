@@ -81,6 +81,7 @@ export function mapTemporalChangeStateToChange(
     acceptanceCriteria: safeState.acceptanceCriteria,
     documents: safeState.documents,
     artifacts: safeState.artifacts,
+    phase9_status: safeState.phase9_status,
     lastSignalAt: safeState.lastSignalAt,
     adv_project_id: safeState.projectId,
   };

@@ -78,6 +78,7 @@ export const CHANGE_WORKFLOW_SIGNAL_NAMES = {
   conformanceVerdict: "adv.change.conformanceVerdict",
   conformanceOverridden: "adv.change.conformanceOverridden",
   archiveRequested: "adv.change.archiveRequested",
+  phase9StatusUpdated: "adv.change.phase9StatusUpdated",
   changeCancelled: "adv.change.changeCancelled",
   updateArtifactMetadata: "adv.change.updateArtifactMetadata",
   archiveChange: "adv.change.archiveChange",
@@ -203,6 +204,7 @@ export interface ChangeWorkflowInput {
       | "worktrees"
       | "conformance"
       | "archiveRequest"
+      | "phase9_status"
       | "origin"
       | "worktree_auto_managed"
       | "target_worktree_path"
@@ -313,6 +315,7 @@ export interface ChangeWorkflowState extends ChangeWorkflowInput {
     requestedBy: string;
     requestedAt: string;
   };
+  phase9_status?: import("../types").Change["phase9_status"];
   /**
    * Closure metadata set when the workflow records a terminal close. Stored
    * on the workflow state explicitly so readers/tests don't have to rely on

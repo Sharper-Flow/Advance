@@ -465,6 +465,17 @@ export const ChangeOriginSchema = z.object({
 
 export type ChangeOrigin = z.infer<typeof ChangeOriginSchema>;
 
+export const Phase9FinalizationStatusSchema = z.object({
+  status: z.enum(["pending", "done", "failed"]),
+  startedAt: z.string(),
+  completedAt: z.string().optional(),
+  error: z.string().optional(),
+});
+
+export type Phase9FinalizationStatus = z.infer<
+  typeof Phase9FinalizationStatusSchema
+>;
+
 // =============================================================================
 // Signal Rejection (workflow-state sidecar projection)
 // =============================================================================
@@ -640,6 +651,13 @@ export const ChangeSchema = z
 
     /** Running total of rejected signals across the workflow's lifetime. */
     signal_rejections_total: z.number().optional(),
+
+    /**
+     * Phase 9 async finalization status. Set when archive dispatches
+     * finalization to the background queue (phase9:"run"). Agents can
+     * observe this field via adv_change_show to confirm completion.
+     */
+    phase9_status: Phase9FinalizationStatusSchema.optional(),
   })
   .passthrough(); // Allow extra fields for forward/backward compatibility
 

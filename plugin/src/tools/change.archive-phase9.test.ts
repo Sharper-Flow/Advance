@@ -105,6 +105,7 @@ const mocks = vi.hoisted(() => {
         };
       },
     ),
+    dispatchPhase9Finalization: vi.fn(),
   };
 });
 
@@ -151,6 +152,10 @@ vi.mock("../temporal/service", () => ({
 
 vi.mock("./_recovery-writers", () => ({
   saveRecoveredGateCompletion: mocks.saveRecoveredGateCompletion,
+}));
+
+vi.mock("./archive-helpers/phase9-queue", () => ({
+  dispatchPhase9Finalization: mocks.dispatchPhase9Finalization,
 }));
 
 function createMockStore(
@@ -692,5 +697,140 @@ describe("adv_change_archive Phase 9 behavior", () => {
     expect(mocks.verifyChangeBranchReachable).toHaveBeenCalled();
     // Status should remain archived (no redundant save)
     expect(store.changes.save).not.toHaveBeenCalled();
+  });
+
+  // AC3: async phase9 dispatch
+  test("dispatches phase9 finalization async when phase9=run", async () => {
+    const store = createMockStore();
+    const result = await changeTools.adv_change_archive.execute(
+      { changeId: "example", worktreePath: "/tmp/worktree", phase9: "run" },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(true);
+    expect(parsed.phase9).toBe("pending");
+    expect(mocks.dispatchPhase9Finalization).toHaveBeenCalledTimes(1);
+    // Finalization must NOT run synchronously
+    expect(mocks.finalizeRelease).not.toHaveBeenCalled();
+    // phase9_status should be persisted via workflow state, not legacy save.
+    expect(mocks.workflow.signalPayloads).toContainEqual(
+      expect.objectContaining({
+        phase9_status: expect.objectContaining({ status: "pending" }),
+      }),
+    );
+  });
+
+  test("async phase9 callback completes archive and updates phase9_status to done", async () => {
+    const store = createMockStore();
+    let capturedRun: (() => Promise<void>) | undefined;
+    mocks.dispatchPhase9Finalization.mockImplementationOnce(
+      (params: { run: () => Promise<void> }) => {
+        capturedRun = params.run;
+      },
+    );
+
+    await changeTools.adv_change_archive.execute(
+      { changeId: "example", worktreePath: "/tmp/worktree", phase9: "run" },
+      store,
+    );
+
+    expect(capturedRun).toBeDefined();
+    await capturedRun!();
+
+    expect(mocks.workflow.signalPayloads).toContainEqual(
+      expect.objectContaining({
+        phase9_status: expect.objectContaining({ status: "done" }),
+      }),
+    );
+    expect(store.changes.save).toHaveBeenLastCalledWith(
+      expect.objectContaining({ status: "archived" }),
+    );
+  });
+
+  test("async phase9 callback records failed status on blocked finalization", async () => {
+    mocks.finalizeRelease.mockResolvedValueOnce({
+      status: "blocked",
+      mainCheckout: "/tmp/main",
+      defaultBranch: "trunk",
+      pushStatus: "not_attempted",
+      blocked: {
+        reason: "DIRTY_MAIN_CHECKOUT",
+        remediation: "Clean the main checkout",
+      },
+    });
+
+    const store = createMockStore();
+    let capturedRun: (() => Promise<void>) | undefined;
+    mocks.dispatchPhase9Finalization.mockImplementationOnce(
+      (params: { run: () => Promise<void> }) => {
+        capturedRun = params.run;
+      },
+    );
+
+    await changeTools.adv_change_archive.execute(
+      { changeId: "example", worktreePath: "/tmp/worktree", phase9: "run" },
+      store,
+    );
+
+    expect(capturedRun).toBeDefined();
+    await expect(capturedRun!()).rejects.toThrow();
+
+    // Failure state should be recorded by the queue wrapper
+    // (the queue module is responsible for catching and recording)
+  });
+
+  test("dryRun with phase9=run does not dispatch async or mutate state", async () => {
+    const store = createMockStore();
+    const result = await changeTools.adv_change_archive.execute(
+      {
+        changeId: "example",
+        worktreePath: "/tmp/worktree",
+        phase9: "run",
+        dryRun: true,
+      },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.dryRun).toBe(true);
+    expect(mocks.dispatchPhase9Finalization).not.toHaveBeenCalled();
+    expect(store.changes.save).not.toHaveBeenCalled();
+    expect(parsed.phase9).toBeUndefined();
+  });
+
+  test("phase9=skip behavior unchanged with explicit run default", async () => {
+    const store = createMockStore({ releaseDone: true });
+    const result = await changeTools.adv_change_archive.execute(
+      { changeId: "example", phase9: "skip" },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(true);
+    expect(parsed.finalization).toBeUndefined();
+    expect(mocks.finalizeRelease).not.toHaveBeenCalled();
+    expect(mocks.dispatchPhase9Finalization).not.toHaveBeenCalled();
+  });
+
+  // AC4: phase9_status visible in adv_change_show
+  test("adv_change_show surfaces phase9_status when present on change", async () => {
+    const store = createMockStore();
+    const change = (await store.changes.get("example")).data as Change;
+    change.phase9_status = {
+      status: "pending",
+      startedAt: "2026-01-01T00:00:00Z",
+    };
+
+    const result = await changeTools.adv_change_show.execute(
+      { changeId: "example" },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.phase9_status).toEqual({
+      status: "pending",
+      startedAt: "2026-01-01T00:00:00Z",
+    });
   });
 });

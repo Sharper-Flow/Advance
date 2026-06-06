@@ -37,6 +37,7 @@ import {
   type Change,
   type ChangeRepoScope,
   type ClarifyFindingSnapshot,
+  type Phase9FinalizationStatus,
   type ScopedSubagentReport,
 } from "../types";
 import type { ChangeCreateInitialMetadata, Store } from "../storage/store";
@@ -322,6 +323,7 @@ import {
   gateCompletedSignal,
   gateReenteredSignal,
   getGateStatusQuery,
+  phase9StatusUpdatedSignal,
 } from "../temporal/messages";
 import {
   detectDefaultBranch,
@@ -334,6 +336,7 @@ import {
   verifyDefaultBranchPushed,
   type GitFinalizeOutcome,
 } from "./archive-helpers/git-finalize";
+import { dispatchPhase9Finalization } from "./archive-helpers/phase9-queue";
 
 /**
  * Extract structured context-mismatch fields from an error, if it's an
@@ -1001,9 +1004,27 @@ async function loadValidationContext(
     .map((c) => ({ id: c.id, title: c.title, capabilities: [] as string[] }));
 
   for (const activeChange of activeChanges) {
-    const fullChangeResult = await store.changes.get(activeChange.id);
-    if (fullChangeResult.success && fullChangeResult.data) {
-      activeChange.capabilities = Object.keys(fullChangeResult.data.deltas);
+    // Fix 5 (rq fixMultiSessionTemporalState / AC7): a peer change whose
+    // Temporal workflow was evicted/terminated (its disk projection may
+    // still exist) makes store.changes.get throw WorkflowNotFoundError when
+    // disk re-seed also fails. A dangling peer must NOT block a healthy
+    // change's validate/archive — listResolvedChanges already tolerates this
+    // in the list path; this is the matching guard for the validation-context
+    // read path. Skip the unrecoverable peer: it contributes no known
+    // capabilities to conflict detection. This guard intentionally only
+    // tolerates per-peer hydration failures and never suppresses validation
+    // errors for the target change (constraint C5).
+    try {
+      const fullChangeResult = await store.changes.get(activeChange.id);
+      if (fullChangeResult.success && fullChangeResult.data) {
+        activeChange.capabilities = Object.keys(fullChangeResult.data.deltas);
+      }
+    } catch (err) {
+      logger.warn(
+        `Validation context: skipping peer change ${activeChange.id} (workflow unavailable): ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
     }
   }
 
@@ -1220,6 +1241,32 @@ function buildReleaseCompletionEvidence(
     finalization.prBranch ? `prBranch=${finalization.prBranch}` : null,
   ].filter(Boolean);
   return `Phase 9 finalization ${finalization.status}; ${details.join("; ")}`;
+}
+
+async function recordPhase9Status(input: {
+  store: Store;
+  changeId: string;
+  status: Phase9FinalizationStatus;
+}): Promise<void> {
+  const bundle = getService();
+  if (!bundle) {
+    throw new Error("Temporal service not available for phase9 status update");
+  }
+  const projectId = await getProjectId(input.store.paths.root);
+  if (!projectId) {
+    throw new Error("Could not resolve project ID for phase9 status update");
+  }
+  const handle = getChangeHandle(bundle.client, projectId, input.changeId);
+  await fireSignalAndRefresh(
+    handle,
+    input.store,
+    input.changeId,
+    phase9StatusUpdatedSignal,
+    {
+      phase9_status: input.status,
+      updatedAt: new Date().toISOString(),
+    },
+  );
 }
 
 /**
@@ -3377,7 +3424,7 @@ export const changeTools = {
         worktreePath,
         noCloseIssue,
         closeIssue: _closeIssue,
-        phase9 = "run",
+        phase9,
         recoveryMode,
         recoveryEvidence,
       }: {
@@ -3607,6 +3654,170 @@ export const changeTools = {
         | undefined;
       const { archiveMode, autoPush } = detectArchiveMode(store.config ?? {});
       if (!dryRun && archiveResult.success && phase9 !== "skip") {
+        if (phase9 === "run" && change.status !== "archived") {
+          // AC3: Async phase9 dispatch. Save pending status, then run
+          // finalization + release gate + cleanup in background.
+          const now = new Date().toISOString();
+          await recordPhase9Status({
+            store,
+            changeId,
+            status: { status: "pending", startedAt: now },
+          });
+
+          dispatchPhase9Finalization({
+            changeId,
+            store,
+            run: async () => {
+              const currentResult = await store.changes.get(changeId);
+              if (!currentResult.success || !currentResult.data) {
+                throw new Error("Change not found for async phase9 completion");
+              }
+              const currentChange = currentResult.data;
+
+              const currentFinalization = worktreePath
+                ? await finalizeRelease({
+                    changeId,
+                    workdir: worktreePath,
+                    expectedMainCheckout: store.paths.root,
+                    archiveMode,
+                    autoPush,
+                  })
+                : verifyReleaseEvidenceFromMain({
+                    store,
+                    changeId,
+                    archiveMode,
+                  });
+
+              if (currentFinalization.status === "blocked") {
+                throw new Error(
+                  `Archive finalization blocked: ${currentFinalization.blocked?.reason}`,
+                );
+              }
+
+              const releaseResult = await completeReleaseGateAfterFinalization({
+                store,
+                change: currentChange,
+                changeId,
+                finalization: currentFinalization,
+              });
+              if (!releaseResult.ok) {
+                throw new Error(
+                  `Archive release gate completion blocked: ${releaseResult.error}`,
+                );
+              }
+
+              const releaseEvidence =
+                buildReleaseCompletionEvidence(currentFinalization);
+              const durableProof = await verifyReleaseGateDurableForArchive({
+                store,
+                changeId,
+                evidence: releaseEvidence,
+              });
+              if (!durableProof.ok) {
+                throw new Error(
+                  `Archive durable release gate proof blocked: ${durableProof.error}`,
+                );
+              }
+
+              // Archive status transition
+              await recordPhase9Status({
+                store,
+                changeId,
+                status: {
+                  status: "done",
+                  startedAt: currentChange.phase9_status?.startedAt ?? now,
+                  completedAt: new Date().toISOString(),
+                },
+              });
+              currentChange.status = "archived";
+              await store.changes.save(currentChange);
+
+              // Cleanup
+              try {
+                await removeChangeDir(store.paths.changes, currentChange.id);
+              } catch {
+                // warning-only
+              }
+
+              try {
+                await advWorktreeCleanup("archive", {
+                  projectRoot: store.paths.root,
+                  database: await initWorktreeStateDb(store.paths.root),
+                  log: logger,
+                  store,
+                  forceAttempts: false,
+                });
+              } catch {
+                // warning-only
+              }
+
+              if (
+                currentFinalization?.status === "shipped" &&
+                currentFinalization.mainCheckout &&
+                archiveMode === "direct"
+              ) {
+                try {
+                  deleteChangeBranch(
+                    currentFinalization.mainCheckout,
+                    currentChange.id,
+                  );
+                } catch {
+                  // warning-only
+                }
+              }
+
+              // Issue closure
+              await closeLinkedIssue({
+                change: currentChange,
+                store,
+                noCloseIssue,
+                dryRun: false,
+                existingBundlePath: existingBundlePath ?? undefined,
+                worktreePath,
+              });
+            },
+            recordFailure: async (error) => {
+              await recordPhase9Status({
+                store,
+                changeId,
+                status: {
+                  status: "failed",
+                  startedAt: now,
+                  completedAt: new Date().toISOString(),
+                  error: error instanceof Error ? error.message : String(error),
+                },
+              });
+            },
+          });
+
+          return formatToolOutput({
+            success: archiveResult.success,
+            specsUpdated: archiveResult.specsUpdated.map((s) => ({
+              capability: s.capability,
+              version: `${s.originalVersion} → ${s.newVersion}`,
+              deltas: s.deltaResults.length,
+            })),
+            docsGenerated: archiveResult.docsGenerated,
+            archivePath: archiveResult.archivePath,
+            errors: archiveResult.errors,
+            dryRun: false,
+            ...(archiveResult.multiRepo
+              ? { multiRepo: archiveResult.multiRepo }
+              : {}),
+            phase9: "pending",
+            ...(validationResult.warnings.length > 0
+              ? {
+                  validationWarnings: validationResult.warnings.map((w) => ({
+                    code: w.code,
+                    message: w.message,
+                    path: w.path,
+                  })),
+                }
+              : {}),
+          });
+        }
+
+        // Sync mode (existing behavior)
         finalization = worktreePath
           ? await finalizeRelease({
               changeId,

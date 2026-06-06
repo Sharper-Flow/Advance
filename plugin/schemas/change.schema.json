@@ -2181,6 +2181,33 @@
     "pendingCheckpoint": {
       "type": "boolean"
     },
+    "phase9_status": {
+      "additionalProperties": false,
+      "properties": {
+        "completedAt": {
+          "type": "string"
+        },
+        "error": {
+          "type": "string"
+        },
+        "startedAt": {
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "pending",
+            "done",
+            "failed"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "status",
+        "startedAt"
+      ],
+      "type": "object"
+    },
     "reentry_history": {
       "items": {
         "additionalProperties": false,
