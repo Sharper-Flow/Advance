@@ -1,0 +1,1303 @@
+{
+  "id": "startCrossProjectChange",
+  "title": "Start cross-project change workflows",
+  "status": "archived",
+  "created_at": "2026-06-06T19:46:15.241Z",
+  "tasks": [
+    {
+      "id": "tk-873bd3762fab",
+      "title": "Seed cross-project origin through Temporal workflow state",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-06-06T20:30:11.178Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2"
+        ],
+        "verifies": [
+          "AC2"
+        ],
+        "respects": [
+          "C1",
+          "C6",
+          "DONT4",
+          "DONT5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-06T20:33:21.788Z",
+      "verification": "RED: pnpm exec vitest run src/storage/store-temporal/changes.test.ts failed on missing cross_project_origin seed. GREEN/VERIFY: pnpm exec vitest run src/storage/store-temporal/changes.test.ts src/temporal/change-state.test.ts passed (32 tests). VERIFY: pnpm run typecheck passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added cross_project_origin to ChangeCreateInitialMetadata, disk create initial metadata, Temporal create seedState, ChangeWorkflowState seed contract, workflow initialization and continue-as-new seed, changeSeedStateFromChange(), and mapTemporalChangeStateToChange(). Added targeted regression tests proving createChangeOps seeds cross_project_origin at workflow start and changeSeedStateFromChange carries it during reseed.",
+      "filesTouched": [
+        "plugin/src/storage/store-disk.ts",
+        "plugin/src/storage/store-temporal/changes.test.ts",
+        "plugin/src/storage/store-temporal/changes.ts",
+        "plugin/src/storage/store-temporal/shared.ts",
+        "plugin/src/storage/store-types.ts",
+        "plugin/src/temporal/change-state.test.ts",
+        "plugin/src/temporal/change-state.ts",
+        "plugin/src/temporal/contracts.ts",
+        "plugin/src/temporal/workflows.ts"
+      ],
+      "touched_files": [
+        "plugin/src/storage/store-disk.ts",
+        "plugin/src/storage/store-temporal/changes.test.ts",
+        "plugin/src/storage/store-temporal/changes.ts",
+        "plugin/src/storage/store-temporal/shared.ts",
+        "plugin/src/storage/store-types.ts",
+        "plugin/src/temporal/change-state.test.ts",
+        "plugin/src/temporal/change-state.ts",
+        "plugin/src/temporal/contracts.ts",
+        "plugin/src/temporal/workflows.ts"
+      ],
+      "checkpointSha": "40c128fa62a32f7f0c1e0e6d84e84f212d38fbdd",
+      "completedAt": "2026-06-06T20:38:52.511Z",
+      "completed_at": "2026-06-06T20:38:52.511Z",
+      "notes": "Completed with checkpoint 40c128fa62a32f7f0c1e0e6d84e84f212d38fbdd. RED test proved missing workflow seed; green targeted tests and typecheck passed.",
+      "error_recovery": {
+        "last_error": "RED test failed because ensureChangeWorkflowStarted seedState did not include cross_project_origin.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "Proceed to dependent target-store routing task.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "src/storage/store-temporal/changes.test.ts failed: expected ensureChangeWorkflowStarted seedState to contain cross_project_origin.",
+            "diagnosis": "Temporal create path only propagated origin/fast_follow_of metadata; cross-project origin existed only in disk/manual patch surfaces.",
+            "fix_tried": "Threaded cross_project_origin through store initial metadata, Temporal workflow seed/state, workflow initialization/continue-as-new, and Temporal-to-Change mapping.",
+            "strategy_label": "seed metadata structurally through workflow state",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-06T16:38:30.000-04:00"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-06T20:39:11.346Z"
+    },
+    {
+      "id": "tk-dcdfbc164743",
+      "title": "Route cross-project create through target Temporal store",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-06-06T20:30:24.803Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-873bd3762fab"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC7"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC7"
+        ],
+        "respects": [
+          "C1",
+          "C3",
+          "C4",
+          "C6",
+          "DONT1",
+          "DONT2",
+          "DONT4",
+          "DONT5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-06T20:39:38.719Z",
+      "verification": "RED: pnpm exec vitest run src/tools/change-cross-project-create.test.ts failed because withTargetPathStore was not called and target_path validation returned disk-only error. GREEN/VERIFY: pnpm exec vitest run src/tools/change-cross-project-create.test.ts src/tools/cross-project-coordination.test.ts passed (10 tests). VERIFY: pnpm run typecheck passed. VERIFY: pnpm exec vitest run src/utils/tool-arg-preflight.test.ts passed (93 tests).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Routed adv_change_create target_path through withTargetPathStore using stateRequirement:\"temporal-required\" instead of createLegacyStore. Added target_confirmed/confirmationEvidence to adv_change_create schema and preflight blank normalization. Cross-project target create now passes cross_project_origin in initialMetadata before target workflow start, does not call target changes.get after create, surfaces _projectContext, and writes source cross_project_links using the target context projectId only after target create succeeds. Target Temporal create failures return an error without source link write.",
+      "filesTouched": [
+        "plugin/src/tools/change-cross-project-create.test.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/cross-project-coordination.test.ts",
+        "plugin/src/utils/tool-arg-preflight.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/change-cross-project-create.test.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/cross-project-coordination.test.ts",
+        "plugin/src/utils/tool-arg-preflight.ts"
+      ],
+      "checkpointSha": "b56a63cc460f25a91939d54b934a3059c8efc471",
+      "completedAt": "2026-06-06T20:48:32.394Z",
+      "completed_at": "2026-06-06T20:48:32.394Z",
+      "notes": "Completed with checkpoint b56a63cc460f25a91939d54b934a3059c8efc471. RED target-routing test failed before implementation; targeted tests, typecheck, and preflight tests passed after implementation.",
+      "error_recovery": {
+        "last_error": "Existing cross-project create used legacy disk target store and post-create target get/save patch; RED tests showed withTargetPathStore was not called and failure path returned disk validation instead of Temporal create failure.",
+        "retry_count": 2,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "Proceed to active disk-only reconciliation task.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "RED src/tools/change-cross-project-create.test.ts: withTargetPathStore call count 0; target failure test saw target_path disk validation instead of Temporal workflow start failure.",
+            "diagnosis": "createCrossProjectFollowUp still validated and opened target through createLegacyStore, then patched target disk state after create.",
+            "fix_tried": "Route through withTargetPathStore temporal-required, seed cross_project_origin in initialMetadata, remove target get/save post-create patch, add target confirmation args.",
+            "strategy_label": "target temporal store routing",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-06T16:44:31.000-04:00"
+          },
+          {
+            "attempt_number": 2,
+            "error": "Existing cross-project coordination test failed because legacy fixture source change was not loaded through the mocked source-link path.",
+            "diagnosis": "After routing through mocked target store, source-link assertion needed to observe sourceStore.changes.save directly rather than reloading fixture disk state.",
+            "fix_tried": "Adapted coordination test to mock source get/save for source-link proof and kept canonical target store routing assertion via withTargetPathStore.",
+            "strategy_label": "test adaptation for Temporal routing",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-06T16:47:42.000-04:00"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-06T20:48:49.385Z"
+    },
+    {
+      "id": "tk-44042f1cb172",
+      "title": "Prove active disk-only reconciliation through list/read reseed",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-06-06T20:30:37.415Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC5",
+          "AC6"
+        ],
+        "verifies": [
+          "AC5",
+          "AC6"
+        ],
+        "respects": [
+          "C2",
+          "C5",
+          "C6",
+          "DONT2",
+          "DONT3",
+          "DONT4"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-06T20:49:16.016Z",
+      "verification": "CHARACTERIZATION/VERIFY: pnpm exec vitest run src/storage/store-temporal/index.test.ts initially failed due test helper workflow-id parsing, then passed after correcting helper (21 tests). VERIFY: pnpm run typecheck passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added store-temporal index tests proving direct read re-seeds an active disk-only change via ensureChangeWorkflowStarted and that list() discovers disk IDs, re-seeds active disk-only records, excludes archived/closed records from default active list, and does not start workflows for terminal disk records. Added a missing-workflow successful-reseed fixture that simulates WorkflowNotFound before start and hydrated workflow state after start.",
+      "filesTouched": [
+        "plugin/src/storage/store-temporal/index.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/storage/store-temporal/index.test.ts"
+      ],
+      "checkpointSha": "f8bfa4dc8c7cb0af51d7a3951286fc0b0114b05b",
+      "completedAt": "2026-06-06T20:52:11.856Z",
+      "completed_at": "2026-06-06T20:52:11.856Z",
+      "notes": "Completed with checkpoint f8bfa4dc8c7cb0af51d7a3951286fc0b0114b05b. Added bounded reconciliation tests; no production implementation change needed for this task.",
+      "error_recovery": {
+        "last_error": "New reconciliation tests initially failed because the test helper expected dash-delimited workflow IDs while the production workflow ID format is adv/change/{projectId}/{changeId}.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "Proceed to spec law/generated schema update task.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "src/storage/store-temporal/index.test.ts failed: Unexpected workflow id adv/change/project-1/activeDiskOnlyRead; list test had no start inputs.",
+            "diagnosis": "Test helper parsed workflow IDs with the wrong delimiter, so it failed before exercising production reseed behavior.",
+            "fix_tried": "Updated helper to recognize slash-delimited and dash-delimited workflow IDs.",
+            "strategy_label": "fix test helper workflow-id parsing",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-06T16:51:22.000-04:00"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-06T20:52:26.954Z"
+    },
+    {
+      "id": "tk-17a9028d9076",
+      "title": "Update spec law and generated tool contract surfaces",
+      "type": "code",
+      "section": "Spec Law",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-06-06T20:30:50.877Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-873bd3762fab"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-dcdfbc164743"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-44042f1cb172"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC8"
+        ],
+        "verifies": [
+          "AC8"
+        ],
+        "respects": [
+          "C3",
+          "C4",
+          "C6",
+          "DONT4"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-06T20:52:55.299Z",
+      "verification": "VERIFY: pnpm run schemas:check passed. VERIFY: adv_change_validate strict passed with warning NO_DELTAS only. VERIFY: pnpm exec vitest run src/__tests__/spec-citation-invariant.test.ts src/schema-url-assets.test.ts passed (3 tests). VERIFY: pnpm run typecheck passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Updated advance-workflow spec law rq-crossProjectCoordination01 to require target_path adv_change_create to route through target Temporal-backed store, seed cross_project_origin before workflow start, avoid source-process target getState queries, fail without active disk-only target orphan on workflow-start failure, and reconcile active disk-only target records through list/read while not recreating archived/closed records. Public JSON schemas had no drift under schemas:check after the tool schema update.",
+      "filesTouched": [
+        ".adv/specs/advance-workflow/spec.json"
+      ],
+      "touched_files": [
+        ".adv/specs/advance-workflow/spec.json"
+      ],
+      "checkpointSha": "474eb805f28709c99f646a690cf2766f43f05b4f",
+      "completedAt": "2026-06-06T20:55:33.356Z",
+      "completed_at": "2026-06-06T20:55:33.356Z",
+      "notes": "Completed with checkpoint 474eb805f28709c99f646a690cf2766f43f05b4f. schemas:check, spec asset checks, typecheck passed; adv_change_validate strict passed with NO_DELTAS warning only.",
+      "error_recovery": {
+        "last_error": "No production/spec verification failure. schemas:check passed without generated schema drift.",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "Proceed to final verification and cross-project visibility proof.",
+        "attempts": []
+      },
+      "updatedAt": "2026-06-06T20:55:44.298Z"
+    },
+    {
+      "id": "tk-e3d9e51d2cc1",
+      "title": "Run final verification and cross-project visibility proof",
+      "type": "code",
+      "section": "Verification",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-06-06T20:31:06.013Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-873bd3762fab"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-dcdfbc164743"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-44042f1cb172"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-17a9028d9076"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7",
+          "AC8",
+          "SC1",
+          "SC2",
+          "SC3",
+          "SC4"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-06T20:56:14.782Z",
+      "verification": "REVIEW REMEDIATION: adv-reviewer verdict READY after scoped fix preserving cross_project_links/external_dependencies through Temporal state. Reviewer verification: bin/oc-test targeted -- src/temporal/change-state.test.ts src/storage/store-temporal/changes.test.ts src/tools/change-cross-project-create.test.ts passed (36 tests); bin/oc-test smoke passed; bin/oc-test targeted -- src/temporal/workflows.signal-handlers.test.ts src/temporal/workflow-bundle-boundary.test.ts passed (26 tests).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Final verification plus acceptance-review remediation complete. Reviewer found and fixed a traceability gap: cross_project_links/external_dependencies now survive Temporal state, seed, continue-as-new, read mapping, and coordination update signal paths. Post-remediation verification: pnpm run check passed; targeted suite including workflow signal handlers and bundle boundary passed (184 tests).",
+      "filesTouched": [
+        "plugin/src/storage/store-temporal/changes.test.ts",
+        "plugin/src/storage/store-temporal/changes.ts",
+        "plugin/src/storage/store-temporal/shared.ts",
+        "plugin/src/temporal/change-state.test.ts",
+        "plugin/src/temporal/change-state.ts",
+        "plugin/src/temporal/contracts.ts",
+        "plugin/src/temporal/messages.ts",
+        "plugin/src/temporal/workflows.ts"
+      ],
+      "touched_files": [
+        "plugin/src/storage/store-temporal/changes.test.ts",
+        "plugin/src/storage/store-temporal/changes.ts",
+        "plugin/src/storage/store-temporal/shared.ts",
+        "plugin/src/temporal/change-state.test.ts",
+        "plugin/src/temporal/change-state.ts",
+        "plugin/src/temporal/contracts.ts",
+        "plugin/src/temporal/messages.ts",
+        "plugin/src/temporal/workflows.ts"
+      ],
+      "checkpointSha": "bb32f6e498f084647309c118ce6c49718439a157",
+      "completedAt": "2026-06-06T21:15:03.139Z",
+      "completed_at": "2026-06-06T21:15:03.139Z",
+      "notes": "Final verification updated after acceptance review remediation. Checkpoint 04a9abdc covered initial final verification; checkpoint bb32f6e498f084647309c118ce6c49718439a157 captured reviewer remediation preserving cross_project_links/external_dependencies in Temporal state. Post-remediation pnpm run check passed and expanded targeted tests passed (184 tests). Worktree clean.",
+      "error_recovery": {
+        "last_error": "Acceptance reviewer found cross_project_links/external_dependencies were not preserved through Temporal state after source-side link updates.",
+        "retry_count": 2,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "Proceed to acceptance proof matrix and user acceptance checkpoint.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "pnpm run check failed at scripts/check-test-isolation.ts: tools/change-cross-project-create.test.ts",
+            "diagnosis": "New test used mocked /repo paths and no explicit test-isolation marker, violating repository test-isolation lint for adv_change_create tests.",
+            "fix_tried": "Changed mocked source/target roots to tmpdir()-derived paths and reran pnpm run check.",
+            "strategy_label": "test isolation compliance",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-06T16:58:00.000-04:00"
+          },
+          {
+            "attempt_number": 2,
+            "error": "Review finding: source-side cross_project_links/external_dependencies could be lost because Temporal state did not model/preserve them across seed/continue-as-new/read mapping.",
+            "diagnosis": "Cross-project link metadata was patched on Change objects but not fully represented in ChangeWorkflowState and update signal paths.",
+            "fix_tried": "Reviewer added Temporal state fields, seed/continue-as-new/read mapping, coordination update signal, and regression tests.",
+            "strategy_label": "review remediation metadata preservation",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-06T17:16:10.000-04:00"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-06T21:16:39.436Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "startCrossProjectChange",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:discovery-opportunity-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Cross-project change workflow start — opportunity scouting within approved scope",
+      "sources": [
+        {
+          "label": "change.ts cross-project create path",
+          "locator": "plugin/src/tools/change.ts:785-855",
+          "summary": "Lone outlier: cross-project create uses createLegacyStore(target_path) (disk store, no workflow start). Comment at L787-789 confirms 'Temporal runtime is not initialized for external repos in this tool path.' Calls targetStore.changes.create + save with NO ensureChangeWorkflowStarted/startChangeWorkflow."
+        },
+        {
+          "label": "Temporal-backed store create already starts workflow",
+          "locator": "plugin/src/storage/store-temporal/changes.ts:182-221",
+          "summary": "Same-project (Temporal) create path already does getTemporalWorkflowClient()+ensureChangeWorkflowStarted with full seedState AND a P1.4 transactional rollback guard (removeChangeDir on start failure, rethrow original error). This is the exact pattern the proposal asks to add."
+        },
+        {
+          "label": "withTargetPathStore Temporal mode",
+          "locator": "plugin/src/tools/target-project.ts:164-224",
+          "summary": "Default stateRequirement (not snapshot-ok/scaffold) builds a Temporal-backed target store via createStore({temporalBundle}) + init(), after ensureProjectTemporalQueue(projectId). task/gate/contract/subagent-report/temporal-ops cross-project tools ALL route through this; change-create is the only cross-project mutation NOT using it."
+        },
+        {
+          "label": "reseedChangeFromDisk reconciliation primitive",
+          "locator": "plugin/src/storage/store-temporal/index.ts:400-490 + 514-539",
+          "summary": "P1.5 orphan-tolerant getTemporalChange already auto-seeds disk-only non-terminal changes into workflows ON READ via reseedChangeFromDisk (ensureChangeWorkflowStarted with changeSeedStateFromChange). Archived/closed short-circuit (no re-seed). The reconciliation engine the proposal scopes already exists."
+        },
+        {
+          "label": "startChangeWorkflow adapter",
+          "locator": "plugin/src/tools/_adapters.ts:222-249",
+          "summary": "Idempotent thin wrapper over ensureChangeWorkflowStarted; documented 'returns existing handle if already running'. Available for direct reuse; satisfies proposal idempotency constraint."
+        },
+        {
+          "label": "rq-statusCliWorkerFree01 spec",
+          "locator": ".adv/specs/advance-meta/spec.json:218-257",
+          "summary": "Confirms status active rows come from Temporal Visibility search attributes upserted by change workflows, fail-closed, no disk active fallback. A disk-only change has no Visibility attrs → invisible. Root cause confirmed by spec."
+        }
+      ],
+      "architecture_assessment": "Root cause and fix are convergence, not new machinery. Every primitive the proposal scopes already exists and is exercised by sibling tools: (1) Temporal-backed target store (withTargetPathStore default mode) that auto-starts the workflow on create via changes.ts:182 with a built-in P1.4 rollback guard; (2) idempotent startChangeWorkflow/ensureChangeWorkflowStarted adapters; (3) reseedChangeFromDisk + P1.5 orphan-tolerant read that already reconciles disk-only active changes into workflows on the first Temporal-store read. The cross-project create path is the single outlier still using createLegacyStore directly. The lowest-risk by-the-book fix is to route cross-project create through withTargetPathStore (default Temporal stateRequirement) exactly as task/gate/contract already do, inheriting workflow-start + rollback + cache-refresh + trust-gating for free, instead of hand-rolling a second ensureChangeWorkflowStarted call site in change.ts. This also removes the existing trust-gating asymmetry (change-create currently does its own validateCrossRepoTarget rather than the shared resolveTargetProject mutation gate). Proposal constraints are satisfied: workflow.start is not a synchronous target query; idempotency is guaranteed by ensureChangeWorkflowStarted; Visibility-backed worker-free status semantics are preserved (workflow start upserts search attributes server-side). Reconciliation for pre-existing orphans (reworkRelatedCards) is LARGELY ALREADY SOLVED by reseedChangeFromDisk on read — discovery should verify whether a dedicated startup scan is even needed or whether first Temporal-store read already heals it, avoiding a redundant new scan surface.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "No source-access blockers, no contract/security/release blockers, no contradictory evidence. All findings code/spec-cited in-repo."
+      },
+      "recommendation": "Adopt the convergence framing in design: (a) prefer routing cross-project change-create through withTargetPathStore default Temporal mode to reuse the existing workflow-start + P1.4 rollback + trust gate, rather than adding a parallel ensureChangeWorkflowStarted call in change.ts (CANDIDATE-1, user-surface: architectural direction); (b) before designing a new bounded reconciliation scan, verify whether existing reseedChangeFromDisk/P1.5 read-time healing already makes disk-only orphans visible once their target project opens a Temporal-store session — this may shrink reconciliation scope to docs+test-only (CANDIDATE-2, user-surface); (c) auto-adopt reuse of the idempotent startChangeWorkflow adapter and changeSeedStateFromChange seed builder rather than constructing seedState inline (CANDIDATE-3, auto-adopt).",
+      "follow_ups": [
+        "SCOUT CANDIDATES (<=5):",
+        "C1 [user-surface] candidate=Route cross-project create through withTargetPathStore (Temporal mode) | evidence=target-project.ts:205-220, change.ts:790, task/gate/contract already do this | payoff=eliminates the disk-store outlier, inherits workflow-start+P1.4 rollback+trust gate+cache refresh | risk=med (must preserve cross_project_origin enrichment + source-side cross_project_links write currently in change.ts:801-850) | fate=auto-adopt-direction | contract_tie=workflow-start AC + idempotency constraint | rec=design should evaluate this vs hand-rolled start as the primary architecture decision",
+        "C2 [user-surface] candidate=Reuse existing reseedChangeFromDisk read-time healing for orphan reconciliation | evidence=index.ts:400-490,514-539 (P1.5 orphan-tolerant get) | payoff=may make a new startup reconciliation scan unnecessary; orphan heals on first target-project Temporal read | risk=low | fate=user-surface (scope-reduction decision) | contract_tie=reconciliation/visibility AC | rec=discovery must confirm whether reworkRelatedCards heals on read before building a new scan surface",
+        "C3 [auto-adopt] candidate=Reuse startChangeWorkflow adapter + changeSeedStateFromChange | evidence=_adapters.ts:222-249, index.ts:444 | payoff=idempotent, tested, avoids inline seedState drift | risk=low | fate=auto-adopt | contract_tie=idempotency constraint | rec=use these helpers directly",
+        "C4 [auto-adopt] candidate=Mirror P1.4 transactional rollback guard for warning-vs-rollback decision | evidence=changes.ts:174-221 | payoff=proposal wants 'change written vs live-registered' distinction; P1.4 already rolls back on start failure. Decide: rollback (P1.4 parity) OR keep-disk+warn (proposal text). These CONFLICT. | risk=med | fate=user-surface | contract_tie=Temporal-down warning AC | rec=design MUST resolve: proposal says keep disk projection + warn; existing same-project path rolls back. Pick one explicitly.",
+        "C5 [inconclusive] candidate=Trust-gating unification | evidence=change.ts uses validateCrossRepoTarget; withTargetPathStore uses resolveTargetProject mutation gate | payoff=single trust source if C1 adopted | risk=med (behavior-change risk if gates differ) | fate=inconclusive | contract_tie='preserve target_path trust validation' Must-Not | rec=if C1 adopted, verify the two trust checks are equivalent before collapsing",
+        "WARNING: VERIFICATION block present in packet; required_when_possible source citations satisfied. C4 surfaces a real contradiction between proposal text (keep disk + warn) and existing same-project P1.4 behavior (rollback) — orchestrator/design must decide."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "startCrossProjectChange",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-leverage-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design leverage scouting for cross-project Temporal-backed change creation + active disk-only reconciliation",
+      "sources": [
+        {
+          "label": "Cross-project create outlier (disk store, no workflow start)",
+          "locator": "plugin/src/tools/change.ts:785-855",
+          "summary": "createLegacyStore(target_path)+changes.create+save with NO ensureChangeWorkflowStarted. Comment L787-789 confirms 'Temporal runtime is not initialized for external repos in this tool path.' Source-side cross_project_origin enrichment (L815-817) and cross_project_links write (L828-849) live here and must be preserved if routing changes."
+        },
+        {
+          "label": "Same-project Temporal create already starts workflow + P1.4 rollback",
+          "locator": "plugin/src/storage/store-temporal/changes.ts:174-221",
+          "summary": "getTemporalWorkflowClient()+ensureChangeWorkflowStarted with full seedState. P1.4 guard removeChangeDir on start failure and re-throws ORIGINAL error. This ROLLS BACK on failure — it does NOT keep disk+warn."
+        },
+        {
+          "label": "withTargetPathStore default Temporal mode",
+          "locator": "plugin/src/tools/target-project.ts:164-224",
+          "summary": "Default stateRequirement (not snapshot-ok/scaffold) runs ensureProjectTemporalQueue + createStore({temporalBundle}) + init(), returns stateMode:'temporal'. resolveTargetProject mutation gate applied (L168-174). task/gate/contract/report cross-project tools route through this; change-create does not."
+        },
+        {
+          "label": "reseedChangeFromDisk reconciliation primitive",
+          "locator": "plugin/src/storage/store-temporal/index.ts:400-490",
+          "summary": "Non-terminal disk-only change → ensureChangeWorkflowStarted(changeSeedStateFromChange(change)). Archived/closed short-circuit to disk projection without re-creating workflow (AC5 'do not backfill terminal' already enforced)."
+        },
+        {
+          "label": "List-time + read-time self-healing drives reconciliation for ALL active orphans",
+          "locator": "plugin/src/storage/store-temporal/index.ts:494-545, 695-700",
+          "summary": "getTemporalChange triggers reseedChangeFromDisk on missing-workflow fallback. listResolvedChanges unions disk IDs and loads each via getTemporalChange (L700) — so adv_status/adv_change_list against the target Temporal store already reseeds every non-terminal disk-only orphan. No new startup-scan surface required for AC5/AC6."
+        },
+        {
+          "label": "Trust-gating asymmetry",
+          "locator": "plugin/src/tools/change.ts:742 vs target-project.ts:168",
+          "summary": "Cross-project create uses validateCrossRepoTarget; withTargetPathStore uses resolveTargetProject mutation gate. If create is rerouted, the two trust checks must be proven equivalent before collapsing (C3 constraint)."
+        },
+        {
+          "label": "Status worker-free Visibility law",
+          "locator": ".adv/specs/advance-meta rq-statusCliWorkerFree01",
+          "summary": "Status active rows come from Temporal Visibility search attributes upserted by change workflows; fail-closed, no disk active fallback. Disk-only change = no Visibility attrs = invisible. workflow.start upserts attributes server-side without a live worker, satisfying AC2/SC4."
+        }
+      ],
+      "architecture_assessment": "Every primitive the design needs already exists and is exercised by sibling cross-project tools; the fix is convergence onto the existing target-path mutation architecture, not new machinery (satisfies DONT4). The single outlier is cross-project create still using createLegacyStore directly. Routing it through withTargetPathStore default Temporal mode inherits workflow-start + P1.4 rollback + resolveTargetProject trust gate + cache refresh, exactly as task/gate/contract do. For reconciliation: list-time + read-time reseed already self-heals ALL non-terminal disk-only orphans on the next adv_status/adv_change_list through the target Temporal store, so AC5/AC6 likely need NO new scan surface — design should make this the deliberate, tested trigger rather than building a redundant startup scan (DONT3). One genuine contradiction the design MUST resolve: proposal text says 'keep disk projection + warn' on Temporal-start failure, but the existing same-project P1.4 guard ROLLS BACK (removeChangeDir). Agreement AC4 + decision #1 already chose rollback ('no active disk-only orphan remains'), so P1.4 parity is the correct path and the proposal's keep+warn wording is stale — confirm design follows AC4, not proposal prose.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "No source-access, contract, security, or release blockers. All candidates code/spec-cited in-repo. AC4 vs proposal-prose contradiction is resolved by the approved agreement (rollback); flagged for design to state explicitly."
+      },
+      "recommendation": "Adopt convergence framing: (C1, user-surface direction) reroute cross-project create through withTargetPathStore default Temporal mode as primary architecture vs hand-rolled ensureChangeWorkflowStarted in change.ts, preserving source-side cross_project_origin + cross_project_links writes; (C2, auto-adopt) treat existing list/read-time reseedChangeFromDisk as the reconciliation trigger and add bounded latency/safety tests rather than a new startup scan; (C3, auto-adopt) reuse startChangeWorkflow adapter + changeSeedStateFromChange seed builder; (C4, auto-adopt) follow P1.4 rollback semantics per AC4 and drop stale proposal keep+warn wording; (C5, user-surface) if C1 adopted, verify validateCrossRepoTarget == resolveTargetProject trust equivalence before collapsing.",
+      "follow_ups": [
+        "SCOUT CANDIDATES (<=5):",
+        "C1 [user-surface] candidate=Reroute cross-project create through withTargetPathStore(Temporal mode) | evidence=target-project.ts:205-220, change.ts:790, task/gate/contract precedent | payoff=eliminates disk-store outlier; inherits workflow-start+P1.4 rollback+trust gate+cache refresh; satisfies AC1/AC2/AC4 + DONT4 | risk=med (must preserve change.ts:815-817 origin enrichment and 828-849 cross_project_links source write) | fate=user-surface (primary architecture decision) | contract_tie=AC1,AC2,AC4,DONT4 | rec=make this the design's central decision vs inline start",
+        "C2 [auto-adopt] candidate=Use existing list/read-time reseedChangeFromDisk as reconciliation trigger | evidence=index.ts:494-545,695-700 (list loads each disk ID via getTemporalChange→reseed) | payoff=AC5/AC6 satisfied with NO new scan surface; all active orphans heal on next target adv_status/list; archived/closed already short-circuit (C5/AC5) | risk=low | fate=auto-adopt | contract_tie=AC5,AC6,C5,DONT3 | rec=design picks this trigger + adds bounded latency/safety + idempotency tests",
+        "C3 [auto-adopt] candidate=Reuse startChangeWorkflow adapter + changeSeedStateFromChange | evidence=index.ts:444, changes.ts:183 | payoff=idempotent, tested, avoids inline seedState drift | risk=low | fate=auto-adopt | contract_tie=idempotency AC8, DONT4 | rec=use helpers directly",
+        "C4 [auto-adopt] candidate=Resolve rollback-vs-warn contradiction in favor of P1.4 rollback | evidence=changes.ts:174-221 rollback; agreement AC4 + decision#1 = rollback; proposal prose says keep+warn (stale) | payoff=removes a real spec/prose conflict; matches approved acceptance criteria | risk=low | fate=auto-adopt | contract_tie=AC4,SC3,DONT5 | rec=design must state AC4 rollback governs; drop proposal keep+warn wording",
+        "C5 [inconclusive] candidate=Unify trust gate (validateCrossRepoTarget → resolveTargetProject) | evidence=change.ts:742 vs target-project.ts:168 | payoff=single trust source if C1 adopted | risk=med (behavior drift if gates differ) | fate=inconclusive | contract_tie=C3 (preserve target_path trust validation) | rec=if C1 adopted, prove equivalence before collapsing; else keep separate",
+        "NOTE: full design.md body could not be read (stored in Temporal documents blob, tool-truncated >21k chars; no on-disk design.md). Scouting based on agreement/contract/problem-statement/proposal + direct code evidence + prior discovery scout report. If design already encodes C1/C2 decisions, treat these as confirmation rather than new surface."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "startCrossProjectChange",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation for startCrossProjectChange (cross-project change workflow registration)",
+      "sources": [
+        {
+          "label": "createCrossProjectFollowUp source",
+          "locator": "plugin/src/tools/change.ts:712-841",
+          "summary": "Confirms current divergence: uses createLegacyStore (L790), calls changes.create then changes.get + patches cross_project_origin via changes.save (L813-817). Never starts a target change workflow. This is the exact gap the design targets."
+        },
+        {
+          "label": "Temporal store changes.create (rollback semantics)",
+          "locator": "plugin/src/storage/store-temporal/changes.ts:162-221",
+          "summary": "Temporal-backed create scaffolds disk via legacy then ensureChangeWorkflowStarted; on failure removeChangeDir + rethrow ORIGINAL error (P1.4 transactional guard). Validates KD1/KD4/AC4 reuse claim. seedState (L190-204) currently omits cross_project_origin, confirming KD2 work item."
+        },
+        {
+          "label": "reseedChangeFromDisk (reconciliation trigger)",
+          "locator": "plugin/src/storage/store-temporal/index.ts:400-490; getTemporalChange 492-539",
+          "summary": "Non-terminal disk projections reseed via ensureChangeWorkflowStarted + changeSeedStateFromChange (L437-445); archived/closed short-circuit to disk projection WITHOUT workflow start (L422-424). getTemporalChange classifies fallback and calls reseed. Validates KD5/AC5 with no new scanner."
+        },
+        {
+          "label": "withTargetPathStore / TargetStateRequirement",
+          "locator": "plugin/src/tools/target-project.ts:16-75",
+          "summary": "withTargetPathStore exists with trust gating, confirmation, shard routing. TargetStateRequirement enum is 'snapshot-ok' | 'temporal-required' | 'scaffold' — there is NO 'temporal' value. Design's 'stateRequirement: temporal' is an imprecise label; correct value is 'temporal-required'."
+        },
+        {
+          "label": "ChangeCreateInitialMetadata + changeSeedStateFromChange",
+          "locator": "plugin/src/storage/store-types.ts:40-48; plugin/src/temporal/change-state.ts:114",
+          "summary": "ChangeCreateInitialMetadata currently carries origin | fast_follow_of | scope_repos (no cross_project_origin). changeSeedStateFromChange exists. Confirms KD2 must extend metadata + seed picklist; replay-safe optional-field approach matches existing pattern."
+        },
+        {
+          "label": "Spec: CLI Status Reads Visibility Worker-Free",
+          "locator": ".adv/specs/advance-meta/spec.json:219-248",
+          "summary": "Active rows MUST come from Temporal Visibility search attributes and fail closed (no disk-projected active rows). Design KD7 explicitly preserves this; no contradiction."
+        },
+        {
+          "label": "Spec: cross-project target_path routing + shard routing",
+          "locator": ".adv/specs/advance-workflow/spec.json:1434-1462, 1500, 1555-1600",
+          "summary": "Existing law: target_path validation, untrusted-target confirmation, cross_project_links persistence, target store ownership of signals/cache (task mutations), canonical target shard routing (fixTargetPathSharding). Design KD1-KD3 align with and extend this contract; no conflict."
+        }
+      ],
+      "architecture_assessment": "Design converges a genuinely divergent path (createCrossProjectFollowUp using createLegacyStore + post-create disk patch) onto the proven Temporal-backed target-store create machinery that already provides ensureChangeWorkflowStarted, Visibility search-attribute registration, and P1.4 rollback-on-start-failure. Every structural anchor cited in the design (withTargetPathStore, Temporal changes.create rollback, reseedChangeFromDisk archived/closed short-circuit, ChangeCreateInitialMetadata, changeSeedStateFromChange, CHANGE_LIST_BATCH_SIZE=20) is verified present in source. The reconciliation choice (KD5: reuse existing list/read reseed rather than a new scanner) is the materially simpler option and is already implemented and tested-adjacent. No spec-law contradiction found; design preserves worker-free Visibility status (advance-meta) and target shard routing (advance-workflow).",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "One non-blocking naming imprecision: design references withTargetPathStore stateRequirement 'temporal', but the actual TargetStateRequirement enum value is 'temporal-required' (target-project.ts:16-19). Cosmetic; implementer should use the real enum value. Second non-blocking gap: KD2 says extend ChangeWorkflowState seed + changeSeedStateFromChange to carry cross_project_origin replay-safe, but the design does not state how the Temporal store create path (changes.ts L190-204, which builds seedState inline, NOT via changeSeedStateFromChange) will pass cross_project_origin through — that inline seed block also needs cross_project_origin wired, or the create path must route through changeSeedStateFromChange. Worth an explicit prep task."
+      },
+      "recommendation": "VALIDATED with two minor cautions. The design is correct, evidence-backed, and notably simple: it removes a bespoke divergent path and reuses existing target-store + Temporal-create + reseed machinery, satisfying AC1-AC8 and all constraints without new scanners or duplicated workflow-start code. Before planning, resolve two precision items: (1) replace stateRequirement label 'temporal' with the real enum 'temporal-required'; (2) make explicit that the Temporal store changes.create inline seedState block (changes.ts ~L190-204) must also carry cross_project_origin, not only changeSeedStateFromChange — otherwise KD2 leaves a seed gap on the primary create path. Neither item changes the architecture; both are implementation-precision tasks for prep.",
+      "follow_ups": [
+        "Prep task: wire cross_project_origin into the Temporal store changes.create inline seedState (changes.ts ~L190-204), not only changeSeedStateFromChange.",
+        "Prep task: correct design wording from stateRequirement 'temporal' to 'temporal-required' to match TargetStateRequirement enum.",
+        "Confirm during prep whether adv_change_create's target-path branch needs target_confirmed/confirmationEvidence plumbed through withTargetPathStore for untrusted targets (KD1 'if required')."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "startCrossProjectChange",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/startCrossProjectChange",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [
+        {
+          "id": "review-praise-1",
+          "label": "praise",
+          "file": "plugin/src/tools/change.ts",
+          "line": 774,
+          "what": "Cross-project create routes target_path creation through withTargetPathStore using temporal-required target store.",
+          "why": "Satisfies AC1/AC7 target routing and trust-gating expectations without a target getState read in the source process.",
+          "fix": "n/a"
+        },
+        {
+          "id": "review-praise-2",
+          "label": "praise",
+          "file": "plugin/src/storage/store-temporal/index.ts",
+          "line": 400,
+          "what": "Active-only disk reseed path preserves terminal archived/closed behavior.",
+          "why": "Satisfies AC5/AC6 safety boundary: non-terminal disk-only changes recover, terminal records are not recreated.",
+          "fix": "n/a"
+        }
+      ],
+      "changes_made": [
+        {
+          "file": "plugin/src/temporal/contracts.ts",
+          "summary": "Added cross-project coordination metadata to ChangeWorkflowState/seedState and declared crossProjectCoordinationUpdated signal payload/name.",
+          "verification": "bin/oc-test smoke passed; workflow signal/bundle targeted tests passed."
+        },
+        {
+          "file": "plugin/src/temporal/messages.ts",
+          "summary": "Added client-side binding for crossProjectCoordinationUpdatedSignal.",
+          "verification": "bin/oc-test targeted -- src/temporal/workflows.signal-handlers.test.ts src/temporal/workflow-bundle-boundary.test.ts passed."
+        },
+        {
+          "file": "plugin/src/temporal/change-state.ts",
+          "summary": "Carried cross_project_links/external_dependencies into workflow seeds and added pure signal-state mutator.",
+          "verification": "bin/oc-test targeted -- src/temporal/change-state.test.ts src/storage/store-temporal/changes.test.ts src/tools/change-cross-project-create.test.ts passed."
+        },
+        {
+          "file": "plugin/src/temporal/workflows.ts",
+          "summary": "Applied seeded source-side coordination metadata, handled coordination update signal, and preserved fields across continue-as-new.",
+          "verification": "bin/oc-test targeted -- src/temporal/workflows.signal-handlers.test.ts src/temporal/workflow-bundle-boundary.test.ts passed."
+        },
+        {
+          "file": "plugin/src/storage/store-temporal/shared.ts",
+          "summary": "Mapped workflow cross_project_links/external_dependencies back to Change read model so adv_change_show/status can see source-side links from Temporal state.",
+          "verification": "bin/oc-test smoke passed."
+        },
+        {
+          "file": "plugin/src/storage/store-temporal/changes.ts",
+          "summary": "When saving active changes with source-side coordination metadata, now signals workflow state and overlays fields for live cached reads.",
+          "verification": "bin/oc-test targeted -- src/temporal/change-state.test.ts src/storage/store-temporal/changes.test.ts src/tools/change-cross-project-create.test.ts passed."
+        },
+        {
+          "file": "plugin/src/temporal/change-state.test.ts",
+          "summary": "Added regression coverage that workflow seed state carries source-side cross-project links and advisory dependencies.",
+          "verification": "bin/oc-test targeted -- src/temporal/change-state.test.ts src/storage/store-temporal/changes.test.ts src/tools/change-cross-project-create.test.ts passed."
+        },
+        {
+          "file": "plugin/src/storage/store-temporal/changes.test.ts",
+          "summary": "Added regression coverage that save emits workflow signal and overlay for cross-project coordination metadata.",
+          "verification": "bin/oc-test targeted -- src/temporal/change-state.test.ts src/storage/store-temporal/changes.test.ts src/tools/change-cross-project-create.test.ts passed."
+        }
+      ],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "Cross-project source-side metadata cannot be disk-only under Temporal-first reads. Persist fields through ChangeWorkflowState, workflow seed/continue-as-new, read-model mapping, and an explicit signal for post-start updates; overlay alone only helps current-process cache."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/temporal/change-state.test.ts src/storage/store-temporal/changes.test.ts src/tools/change-cross-project-create.test.ts",
+          "bin/oc-test smoke",
+          "bin/oc-test targeted -- src/temporal/workflows.signal-handlers.test.ts src/temporal/workflow-bundle-boundary.test.ts"
+        ],
+        "results": "pass",
+        "evidence": "Targeted metadata tests passed: 3 files, 36 tests. Smoke validation passed: schemas:check, typecheck, isolation, lockfile policy, lint, format:check, plus 2 smoke test files / 39 tests. Workflow signal/bundle targeted tests passed: 2 files, 26 tests. Initial smoke exposed Prettier drift in changed files; formatted and reran green."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Full pnpm test was not rerun by reviewer after scoped fix; smoke plus focused Temporal/storage/tool tests passed, and orchestrator had already run broader targeted bundle before review.",
+        "No frontend/browser verification performed; affected surface is backend ADV storage/Temporal/tool behavior."
+      ],
+      "required_main_agent_actions": [
+        "Review the scoped reviewer diff before final acceptance; especially note added crossProjectCoordinationUpdated signal as durable fix for source-side cross_project_links/external_dependencies.",
+        "Do not revisit target_path trust/canonical shard routing unless new evidence appears; inspected path remains withTargetPathStore temporal-required and target_confirmed gating."
+      ],
+      "consumer_warnings": []
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-kdfLs9",
+      "type": "gotcha",
+      "content": "Temporal workflow-state metadata additions must be threaded through all structural surfaces together: ChangeCreateInitialMetadata, disk create scaffold metadata, ChangeWorkflowInput.seedState Pick list, ChangeWorkflowState, createChangeOps seedState, workflow initialization, continue-as-new seed, changeSeedStateFromChange(), and mapTemporalChangeStateToChange(). Updating only disk/overlay makes new target changes invisible or loses metadata on reseed/continue-as-new.",
+      "source_task": "tk-873bd3762fab",
+      "recorded_at": "2026-06-06T20:39:18.670Z"
+    },
+    {
+      "id": "ws-VxqtFU",
+      "type": "pattern",
+      "content": "Cross-project target mutations should route through withTargetPathStore({ stateRequirement: \"temporal-required\" }) and use the returned target store/context for all target writes and target project IDs. For creates, pass provenance through initialMetadata before workflow start and avoid post-create target get/save patches, which can reintroduce target workflow queries and disk-only state.",
+      "source_task": "tk-dcdfbc164743",
+      "recorded_at": "2026-06-06T20:48:55.819Z"
+    },
+    {
+      "id": "ws-dAZUlI",
+      "type": "success",
+      "content": "The existing listResolvedChanges + getTemporalChange path already provides active disk-only reconciliation: list unions disk IDs, per-ID get handles WorkflowNotFound through reseedChangeFromDisk, terminal archived/closed records short-circuit to disk projection, and successful active reseed returns hydrated workflow state. Bounded tests can prove this without adding a startup scanner.",
+      "source_task": "tk-44042f1cb172",
+      "recorded_at": "2026-06-06T20:52:34.008Z"
+    },
+    {
+      "id": "ws-egkvMY",
+      "type": "gotcha",
+      "content": "Repository check-test-isolation flags any test calling adv_change_create unless the source includes createTempDir/tmpdir/os.tmpdir/XDG_DATA_HOME. Even fully mocked target_path tests need an explicit isolation marker, e.g. tmpdir()-derived fake roots, or pnpm run check fails before lint/format.",
+      "source_task": "tk-e3d9e51d2cc1",
+      "recorded_at": "2026-06-06T20:59:18.911Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-06-06T19:59:04.047Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved proposal via Tier A inline approval: \"approve\".",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/startCrossProjectChange/proposal.md",
+        "content_hash": "853017f750b8c80b0b37172dff51696682d9fcfa5eef4e6138e717c58f94adef",
+        "non_whitespace_chars": 4393,
+        "checked_at": "2026-06-06T19:53:40.647Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-06-06T20:17:17.208Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery agreement persisted and contract minted. User approved criteria with exact reply: \"approve\".",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/startCrossProjectChange/agreement.md",
+        "content_hash": "cf59869672f7076d4fe18badb8139cd158768264764716ea3db9d7ac0f4d7b5c",
+        "non_whitespace_chars": 3681,
+        "checked_at": "2026-06-06T19:53:40.648Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-06-06T20:28:00.857Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design persisted. Leverage scout and independent validator ran. Validator verdict VALIDATED with non-blocking cautions incorporated. No user-value tradeoff, unresolved conflict, or contract-compromise risk.",
+      "artifact_evidence": {
+        "kind": "design",
+        "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/startCrossProjectChange/design.md",
+        "content_hash": "42bdfc007a6953c872cfc2fbbf2b12c0c8dc514f9af3552c61c6282b9d25588c",
+        "non_whitespace_chars": 10668,
+        "checked_at": "2026-06-06T19:53:40.649Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-06-06T20:32:42.580Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved prep plan with exact reply: \"approve\". Task graph has 5 tasks, dependencies, TDD intents, and contract refs. Worktree: /home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/startCrossProjectChange."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-06-06T20:59:36.253Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 5 planned tasks completed with checkpoints. Verification includes pnpm run check passing, 156 targeted tests passing, typecheck/schemas/lint/format passing via check, and strict change validation passing with NO_DELTAS warning only."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-06-06T21:19:39.740Z",
+      "completed_by": "agent",
+      "approval_evidence": "User accepted delivered work at acceptance checkpoint with exact reply: \"approve\". Acceptance proof already persisted: contract review matrix 23 rows pass/respected; executive summary persisted; review verdict READY; pnpm run check and targeted tests passed.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/startCrossProjectChange/executive-summary.md",
+        "content_hash": "07973f2788d8fdce4dac9b2b3351537b1a1021140ee86c1ecfcad665bb0bf75f",
+        "non_whitespace_chars": 1563,
+        "checked_at": "2026-06-06T19:53:40.650Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "cf59869672f7076d4fe18badb8139cd158768264764716ea3db9d7ac0f4d7b5c",
+      "approvedAt": "2026-06-06T20:17:11.732Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "Cross-project ADV follow-up creation becomes visible in target project status/launcher for all new active target changes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cf59869672f7076d4fe18badb8139cd158768264764716ea3db9d7ac0f4d7b5c",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "Existing active disk-only target changes become recoverable by a future-proof reconciliation path, not one-off manual repair.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cf59869672f7076d4fe18badb8139cd158768264764716ea3db9d7ac0f4d7b5c",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "Cross-project create fails cleanly when Temporal start fails; no new active disk-only orphan remains.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cf59869672f7076d4fe18badb8139cd158768264764716ea3db9d7ac0f4d7b5c",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC4",
+        "kind": "success_criterion",
+        "text": "Target worker absence does not block creation or status visibility when Temporal server is reachable.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cf59869672f7076d4fe18badb8139cd158768264764716ea3db9d7ac0f4d7b5c",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "`adv_change_create` with `target_path` creates target state through a Temporal-backed target store or equivalent workflow-start path.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cf59869672f7076d4fe18badb8139cd158768264764716ea3db9d7ac0f4d7b5c",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "After cross-project create, Temporal Visibility contains target workflow search attributes: `AdvChangeId`, `AdvChangeStatus`, `AdvCurrentGate`, `AdvAffectedProjects`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cf59869672f7076d4fe18badb8139cd158768264764716ea3db9d7ac0f4d7b5c",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Cross-project create does not issue a target workflow `getState` query from the source process.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cf59869672f7076d4fe18badb8139cd158768264764716ea3db9d7ac0f4d7b5c",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "If target Temporal workflow start fails, partial target active change state is rolled back or otherwise absent, and response reports failure.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cf59869672f7076d4fe18badb8139cd158768264764716ea3db9d7ac0f4d7b5c",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "All non-terminal disk-only changes in target project can be reseeded into workflows; archived/closed records are not recreated.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cf59869672f7076d4fe18badb8139cd158768264764716ea3db9d7ac0f4d7b5c",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Reconciliation trigger is selected in design from source evidence and has bounded tests for latency/safety.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cf59869672f7076d4fe18badb8139cd158768264764716ea3db9d7ac0f4d7b5c",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "`target_path` trust gating and canonical target shard routing remain enforced.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cf59869672f7076d4fe18badb8139cd158768264764716ea3db9d7ac0f4d7b5c",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC8",
+        "kind": "acceptance_criterion",
+        "text": "Specs/tests cover workflow registration, no target query, rollback/failure, active-only reconciliation, and idempotency.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cf59869672f7076d4fe18badb8139cd158768264764716ea3db9d7ac0f4d7b5c",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Do not synchronously query a target workflow from the source project process.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cf59869672f7076d4fe18badb8139cd158768264764716ea3db9d7ac0f4d7b5c",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Do not use disk fallback as live active status.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cf59869672f7076d4fe18badb8139cd158768264764716ea3db9d7ac0f4d7b5c",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Preserve `target_path` trust validation and explicit confirmation behavior.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cf59869672f7076d4fe18badb8139cd158768264764716ea3db9d7ac0f4d7b5c",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Preserve canonical target shard routing from prior `fixTargetPathSharding` work.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cf59869672f7076d4fe18badb8139cd158768264764716ea3db9d7ac0f4d7b5c",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Do not backfill archived or closed changes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cf59869672f7076d4fe18badb8139cd158768264764716ea3db9d7ac0f4d7b5c",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C6",
+        "kind": "constraint",
+        "text": "Keep correctness structural through helpers, schemas, tests, and spec law; no prose-only guard.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cf59869672f7076d4fe18badb8139cd158768264764716ea3db9d7ac0f4d7b5c",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not add multi-namespace or multi-Temporal-server support.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cf59869672f7076d4fe18badb8139cd158768264764716ea3db9d7ac0f4d7b5c",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not change launcher behavior beyond making target changes visible through existing status data.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cf59869672f7076d4fe18badb8139cd158768264764716ea3db9d7ac0f4d7b5c",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not create a one-off repair path limited to `reworkRelatedCards`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cf59869672f7076d4fe18badb8139cd158768264764716ea3db9d7ac0f4d7b5c",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not duplicate target-store or Temporal workflow-start machinery when existing helpers fit.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cf59869672f7076d4fe18badb8139cd158768264764716ea3db9d7ac0f4d7b5c",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "Do not silently claim full live registration when workflow start fails.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cf59869672f7076d4fe18badb8139cd158768264764716ea3db9d7ac0f4d7b5c",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-06-06T21:17:00.000Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Review verdict READY. change-cross-project-create.test proves target_path create routes through temporal-required target store and returns _projectContext stateMode temporal; workflow-start path supplies Visibility search attrs.",
+          "notes": ""
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "store-temporal/index.test proves list/read reseed of active disk-only changes via normal getTemporalChange/reseedChangeFromDisk path; no one-off repair path added.",
+          "notes": ""
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "change-cross-project-create.test failure case proves target Temporal create failure returns error and source link is not written; store-temporal/changes.ts retains rollback on workflow start failure.",
+          "notes": ""
+        },
+        {
+          "contractId": "SC4",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "target-project routing uses withTargetPathStore temporal-required and ensureProjectTemporalQueue before createStore; no target workflow query is required for creation/status visibility. Tests prove worker-query-free target create path.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "src/tools/change-cross-project-create.test.ts: target_path creation calls withTargetPathStore with stateRequirement temporal-required and targetStore.changes.create.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "src/storage/store-temporal/changes.test.ts proves target create seed reaches ensureChangeWorkflowStarted; workflow-start.ts builds Temporal searchAttributes for every workflow start. check/test suites passed.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "src/tools/change-cross-project-create.test.ts asserts targetStore.changes.get is not called after target create; post-create target get/save patch removed.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "src/tools/change-cross-project-create.test.ts covers target create failure: error contains Temporal workflow start failure and sourceStore.changes.save is not called; temporal store rollback path remains covered in changes tests.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "src/storage/store-temporal/index.test.ts covers direct read reseed and list reseed of active disk-only changes; archived/closed records are not started/recreated.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Design selected list/read reseed. src/storage/store-temporal/index.test.ts bounds the path through getTemporalChange/reseedChangeFromDisk; no startup scanner added.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "src/tools/change-cross-project-create.test.ts and cross-project-coordination.test.ts prove target_confirmed/confirmationEvidence routing and canonical target context use; target-project.test already covers canonical shard helper behavior.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC8",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Spec rq-crossProjectCoordination01 updated. Relevant tests passed: 184 targeted tests plus pnpm run check.",
+          "notes": ""
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Post-create targetStore.changes.get was removed; test asserts it is not called. No source-process target workflow getState query is used for create.",
+          "notes": ""
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Active status reads remain Temporal-backed; disk is used only as reseed/projection fallback for missing workflows and terminal records, per store-temporal/index.ts tests.",
+          "notes": ""
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "adv_change_create now exposes target_confirmed and confirmationEvidence and delegates trust gating to withTargetPathStore. Preflight blanks omit confirmationEvidence for contextual validation.",
+          "notes": ""
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Target project id/external root comes from withTargetPathStore context; cross-project coordination test proves target canonical store is used rather than caller shard.",
+          "notes": ""
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "reseedChangeFromDisk returns archived/closed disk projections without ensureChangeWorkflowStarted; list test proves only active disk-only record starts.",
+          "notes": ""
+        },
+        {
+          "contractId": "C6",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Correctness implemented structurally via typed metadata fields, workflow state contract, signal, preflight policy, spec law, and regression tests.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No multi-namespace or multi-Temporal-server code added; implementation reuses existing service/target store machinery.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No launcher behavior changed; visibility/status behavior is via existing target Temporal workflows and current status data.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Reconciliation uses generic list/read reseed for all active disk-only changes; no reworkRelatedCards-specific repair path added.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Implementation reuses withTargetPathStore, createStore, ensureChangeWorkflowStarted, and existing reseed helpers; no duplicate target-store/start machinery added.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Target create failure returns an error and does not write source links; temporal store create rollback preserves no active disk-only orphan semantics.",
+          "notes": ""
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "`adv_change_create` with `target_path` creates target state through a Temporal-backed target store or equivalent workflow-start path.",
+    "After cross-project create, Temporal Visibility contains target workflow search attributes: `AdvChangeId`, `AdvChangeStatus`, `AdvCurrentGate`, `AdvAffectedProjects`.",
+    "Cross-project create does not issue a target workflow `getState` query from the source process.",
+    "If target Temporal workflow start fails, partial target active change state is rolled back or otherwise absent, and response reports failure.",
+    "All non-terminal disk-only changes in target project can be reseeded into workflows; archived/closed records are not recreated.",
+    "Reconciliation trigger is selected in design from source evidence and has bounded tests for latency/safety.",
+    "`target_path` trust gating and canonical target shard routing remain enforced.",
+    "Specs/tests cover workflow registration, no target query, rollback/failure, active-only reconciliation, and idempotency."
+  ],
+  "documents": {
+    "proposal": "## Cross-Project Origin\n\nThis change was created as a follow-up from **toolbox**.\n\n| Field | Value |\n|-------|-------|\n| Source project | toolbox |\n| Source path | `/home/jon/toolbox` |\n\n> **Note:** The originating project should be consulted for context on why this change is needed.\n\n# Proposal: Start cross-project change workflows\n\n## Problem\n\nCross-project `adv_change_create` currently creates target-project changes as disk projections only. Those changes do not get Temporal workflows or Visibility search attributes, so live status and launcher surfaces miss them even though creation succeeded.\n\n## What Changes\n\n- Cross-project change creation registers the target project's change workflow after the disk projection is created.\n- Existing disk-only target changes can be reconciled into Temporal-backed live status without changing their user-facing content.\n- Temporal-unavailable cases fail clearly and roll back partial target scaffolding, matching same-project create semantics.\n\n## User Outcomes\n\n- Users who create follow-up changes in another ADV project see those changes in that target project's live status and launcher rows.\n- Existing active disk-only changes become discoverable again from normal ADV status surfaces.\n- Cross-project creation remains usable when the target project's worker is not running.\n- Failures distinguish \"not created\" from \"created and live-registered\"; no silent disk-only active records are created on Temporal failure.\n\n## Affected Code\n\n- `plugin/src/tools/change.ts` — cross-project `target_path` creation path.\n- `plugin/src/tools/target-project.ts` — likely route cross-project create through the existing Temporal-backed target store helper.\n- `plugin/src/storage/store-temporal/index.ts` — existing read-time orphan reseed path may satisfy reconciliation if triggered deliberately.\n- `plugin/src/temporal/workflow-start.ts` and adjacent Temporal-start helpers — idempotent workflow start/hydration behavior.\n- Tests around cross-project create, Temporal workflow start, Visibility-backed status, and reconciliation.\n\n## Related Repositories\n\n- Current repo: `advance` — implementation and specs.\n- Origin repo: `toolbox` — reported follow-up source; `/home/jon/toolbox` exists and is a project directory.\n- Example impacted target: `pokeedge` — contains known disk-only `reworkRelatedCards` orphan used as validation context.\n\n## Constraints\n\n- Do not query target-project workflows synchronously from the source process.\n- Preserve cross-project trust gating for `target_path` mutations.\n- Preserve worker-free live status semantics: active rows come from Temporal Visibility, not disk fallback.\n- Keep workflow start idempotent; repeated create/reconcile attempts must not duplicate workflows or fail because one already exists.\n- Do not backfill archived or closed changes.\n\n## Impact\n\n- Improves reliability of cross-project follow-up creation and launcher visibility.\n- Adds future-proof self-healing for active disk-only changes, not a one-time repair.\n- May add a bounded reconciliation path; discovery found existing read-time reseed logic that can be reused instead of inventing a broad startup scanner.\n\n## Context\n\nKnown evidence from existing code and specs:\n\n- `plugin/src/tools/change.ts` uses `createLegacyStore(target_path, ...)` in the cross-project path, then writes the target change projection.\n- `plugin/src/tools/target-project.ts` already provides `withTargetPathStore(... stateRequirement: \"temporal\")`, which creates a Temporal-backed target store after target trust validation.\n- Temporal-backed `changes.create` already calls `ensureChangeWorkflowStarted` and has rollback behavior when workflow start fails.\n- `plugin/src/storage/store-temporal/index.ts` has `reseedChangeFromDisk` and `getTemporalChange` fallback that can start a missing workflow from disk for non-terminal changes.\n- `ensureChangeWorkflowStarted` starts workflows with `AdvChangeId`, `AdvChangeStatus`, and `AdvCurrentGate` search attributes and handles already-started workflows idempotently.\n- `advance-meta` requirement `rq-statusCliWorkerFree01` requires CLI status active rows to come from Temporal Visibility and fail closed without disk active fallback.\n- Archived `readCliStatusVisibility` implemented the worker-free Visibility row path for CLI status; current source has `loadLiveSummaries`/`summariesFromVisibility` for search-attribute summaries.\n- Temporal TypeScript SDK docs show `workflow.start` takes `workflowId` and `taskQueue`; docs/source note one active workflow per ID and `WorkflowExecutionAlreadyStartedError`/conflict behavior for duplicate running IDs.\n\n## Discovery Agenda\n\nResolved by discovery:\n\n- Shared Temporal client is available through existing target-store routing (`withTargetPathStore` -> `getService()` -> `createStore`).\n- Target project id and projection paths are already resolved in target-store context.\n- Existing `reseedChangeFromDisk` can reconcile missing non-terminal workflows from disk on read; design must investigate exact trigger shape.\n- User chose rollback/fail semantics when Temporal start fails after target scaffold begins.\n- User chose all active disk-only records for reconciliation; archived/closed records remain untouched.\n\n## Scope\n\n### In Scope\n\n- Start target Temporal workflow after cross-project target change projection is written, preferably by routing cross-project create through the existing Temporal-backed target store.\n- Reconcile all active disk-only changes in a bounded, future-proof way, reusing existing reseed logic where safe.\n- Add tests for workflow start, no target workflow query, idempotency, Temporal-down rollback/failure, and reconciliation.\n- Update relevant specs/docs to state cross-project create live-registers target changes.\n\n### Out of Scope\n\n- Multi-namespace or multi-Temporal-server support.\n- Changing worker-free Visibility-backed status semantics.\n- Backfilling archived or closed changes.\n- Changing launcher behavior beyond making target changes visible through existing status data.\n- One-off manual repair limited only to `reworkRelatedCards`.\n\n### Must Not\n\n- Must not synchronously query a target workflow from the source project process.\n- Must not treat disk fallback as live active status.\n- Must not leave active disk-only target records on Temporal-start failure.\n- Must not weaken `target_path` trust validation.\n\n## Discovery Findings\n\n### Discovery Checklist\n\n| Step | Result | Reason |\n|---|---|---|\n| Skills Considered | PASS | Loaded `adv-agent-tool-contracts`; no frontmatter pending-review skills found. |\n| Prior Research Extension | PASS | No `temp/*.md`; cited `docs/repo-improve-prep.md` for Visibility/read-path context. |\n| Conflict Scan | PASS | Active changes show no direct overlap; archived `readCliStatusVisibility` and `fixTargetPathSharding` are relevant prior work. `adv_change_validate` passed with expected pre-prep `NO_TASKS`/`NO_DELTAS` warnings. |\n| Edge Case Investigation | PASS | Covered no target worker, Temporal unavailable, duplicate/already-started workflow, archived/closed disk records, untrusted target path, target shard routing. |\n| Design Question Depth | PASS | User resolved behavior choices; technical trigger shape moves to design investigation. |\n| Draft Spec Deltas | PASS | Add/adjust cross-project create law in `advance-workflow` or `advance-meta` with workflow-registration and reconciliation scenarios. |\n| Related Pattern Scan | PASS | Cross-project create is the outlier; target mutation helpers already use Temporal-backed target stores. |\n| LBP Check | PASS | Best direction is convergence on existing target-store/workflow-start machinery, not new bespoke Temporal client code. |\n\n### Skills Considered\n\n- `adv-agent-tool-contracts` — relevant; this changes an agent-callable tool behavior contract and must keep schema/preflight/tests/specs aligned.\n- No new skill needed; core domain is existing ADV Temporal tool routing.\n\n### Extends\n\n- `docs/repo-improve-prep.md` — prior research validates Visibility-first read paths and warns about status/list hydration cost. New finding: cross-project creation has a write-side registration gap; fixing create reduces the need for status-side disk fallback and aligns with worker-free Visibility status.\n- Archived `readCliStatusVisibility` — prior work made CLI status read active rows from search attributes; this change supplies missing workflows/search attributes for cross-project-created target changes.\n- Archived `fixTargetPathSharding` — prior work fixed canonical target shard resolution; this change should reuse that target-path infrastructure and avoid caller-shard shadow writes.\n\n### Conflict Scan\n\n- Active related changes: none blocking. `updateTriageRelevanceChecks` is unrelated triage workflow work.\n- Archived relevant work: `readCliStatusVisibility`, `fixTargetPathSharding`, `rewriteStatusCli`.\n- Validation: passed; warnings are expected before planning (`NO_TASKS`, `NO_DELTAS`).\n- Agenda overlap: several cross-project target cleanup/routing follow-ups exist, but none block this change.\n\n### Current State\n\n- `createCrossProjectFollowUp()` in `plugin/src/tools/change.ts` initializes a target `createLegacyStore`, writes the target change, patches `cross_project_origin`, and returns. It does not start a target workflow.\n- `withTargetPathStore()` in `plugin/src/tools/target-project.ts` can create a Temporal-backed target store with target project id, canonical external root, target trust gating, and `ensureProjectTemporalQueue`.\n- Temporal-backed `changes.create()` in `plugin/src/storage/store-temporal/changes.ts` starts the workflow via `ensureChangeWorkflowStarted` and rolls back the disk scaffold if workflow start fails.\n- `reseedChangeFromDisk()` in `plugin/src/storage/store-temporal/index.ts` starts a missing workflow from a non-terminal disk projection and skips archived/closed records.\n- CLI status has a worker-free `loadLiveSummaries()` path that builds rows from Visibility search attributes; no workflow means no row.\n\n### Edge Cases\n\n1. Target worker absent:\n   - Create must not query target workflow state.\n   - Workflow start can enqueue without waiting for worker execution; Visibility attrs must be present from start options or upsert soon enough for status.\n2. Temporal unavailable:\n   - User chose rollback/fail, matching same-project create.\n   - Return must not claim create or live registration succeeded.\n3. Already-started workflow:\n   - Reconciliation and create retries must reuse/get existing handle or no-op, not throw user-visible duplicate errors.\n   - Closed/archived workflow IDs must not be accidentally resurrected.\n4. Disk-only old changes:\n   - Active/non-terminal projections should be reseeded.\n   - Archived/closed projections should remain terminal disk records; no workflow recreation.\n5. Target path trust/sharding:\n   - Untrusted mutation still requires explicit confirmation.\n   - Target state must use target canonical shard, not caller shard.\n\n### Open Design Questions\n\n1. Reconciliation trigger\n   - Trust model: agent-resolved by design investigation.\n   - Blast radius: startup/status latency and whether old orphans self-heal without explicit read.\n   - Alternatives: reuse read-time reseed only; add bounded active-disk scan on target status/session start; add explicit repair tool path.\n2. Implementation route\n   - Trust model: agent-only technical decision.\n   - Blast radius: bespoke Temporal start code could duplicate target-store semantics.\n   - Alternatives: route create through `withTargetPathStore(... temporal)`; direct `startChangeWorkflow`; direct `ensureChangeWorkflowStarted` with manual target paths. Recommended: target-store route.\n\n### Draft Spec Deltas\n\n- `rq-crossProjectCreateWorkflow01` — Cross-project `adv_change_create target_path` registers the target Temporal change workflow and Visibility search attributes for non-terminal target changes.\n  - Given a trusted target path and reachable Temporal service; when `adv_change_create` creates a target change; then a target workflow exists with `AdvChangeId`, `AdvChangeStatus`, `AdvCurrentGate`, and target `AdvAffectedProjects` search attributes.\n- `rq-crossProjectCreateNoTargetQuery01` — Cross-project create must not issue synchronous target workflow state queries from the source process.\n  - Given no target worker is polling; when cross-project create runs with Temporal reachable; then creation completes or reports start failure without a target `getState` query timeout.\n- `rq-crossProjectDiskOrphanReconcile01` — Active disk-only changes can be reseeded into workflows; archived/closed records are not resurrected.\n  - Given a non-terminal disk projection with no workflow; when bounded reconciliation or read-time reseed runs; then a workflow starts from disk. Given archived/closed disk state; then no workflow is recreated.\n- `rq-crossProjectTemporalFailure01` — Temporal-start failure rolls back partial target scaffolding and fails clearly.\n  - Given target disk scaffolding begins but Temporal start fails; when create returns; then the target active change does not remain as disk-only state and the response never claims live registration.\n\n### Related Pattern Scan\n\n- `plugin/src/tools/change.ts` cross-project create is the only found target-change creation path using `createLegacyStore` for mutation.\n- `plugin/src/tools/target-project.ts` target mutations already centralize trust gating and Temporal-backed target store creation.\n- `plugin/src/storage/store-temporal/index.ts` already has non-terminal disk reseed behavior, so a separate broad reconciler may be unnecessary.\n\n### LBP Check\n\n- Internal architecture change; no external tool/library alternative is viable.\n- Temporal docs/source support `workflow.start` with `workflowId`/`taskQueue`, one active workflow per ID, and explicit conflict handling. Existing ADV `ensureChangeWorkflowStarted` already wraps this behavior.\n- Long-term best practice: reuse target-store and workflow-start helpers so correctness stays structural and tested.\n\n### Discovery Opportunity Scout\n\n- Scout ran via `adv-researcher`; report submitted.\n- Auto-adopt: reuse `startChangeWorkflow`/`changeSeedStateFromChange` rather than bespoke seed assembly.\n- User/design surfaced choices resolved: rollback/fail on Temporal failure; reconcile all active disk-only records; investigate exact trigger in design.\n\n### User Decisions\n\n- Temporal-start failure after scaffold begins: rollback and fail.\n- Orphan reconciliation breadth: all active records; not a one-time `reworkRelatedCards` repair.\n- Recovery trigger: needs design investigation; choose the trigger by source evidence and performance/safety tradeoff.\n\n### AMBIGUITY ANALYSIS\n\nCoverage: B:C F:C S:C M:C\n\nNo blocking ambiguity findings.\n\n### Recommended Objectives\n\n1. Cross-project create live-registers target changes in Temporal Visibility without requiring a target worker query.\n2. Existing active disk-only target changes are recoverable through bounded, non-terminal-only reseeding.\n3. `target_path` trust and canonical target shard routing remain intact.\n4. Temporal failure behavior is explicit: rollback/fail, no active disk-only orphan.\n5. Specs/tests pin the contract so future cross-project create paths cannot regress to disk-only.",
+    "problemStatement": "Cross-project change creation (`adv_change_create` with `target_path`) writes the target project's change only to disk and never starts its Temporal change workflow. In `plugin/src/tools/change.ts` the cross-repo path uses `createLegacyStore(target_path, …)` with an explicit comment that \"Temporal runtime is not initialized for external repos in this tool path.\" It calls `targetStore.changes.create(...)` and persists cross-project metadata, but does not call `startChangeWorkflow` or `ensureChangeWorkflowStarted` for the target project.\n\nSince the CLI status read is Temporal-Visibility-backed (`rq-statusCliWorkerFree01`), a change with no Temporal workflow has no Visibility search attributes and therefore does not appear in `adv status --json` or launcher ADV rows. Confirmed context: `reworkRelatedCards` exists as a disk-only change in pokeedge but has no `adv/change/<projectId>/reworkRelatedCards` workflow and no `AdvChangeId='reworkRelatedCards'` Visibility entry.\n\nStarting a workflow in the target project fits the current architecture: ADV projects share one Temporal namespace, isolation is by workflow id and task queue, `client.workflow.start` does not require a live target worker, and `ensureChangeWorkflowStarted` is idempotent and can hydrate from disk. The unsafe path is querying the target workflow synchronously from the source process; this change must avoid that.\n\nDesired outcome: cross-project create registers the target change workflow so live status and launcher surfaces can see it, and existing active disk-only target changes can be reconciled into Temporal-backed visibility.",
+    "agreement": "# Agreement\n\n## Objectives\n\n1. Ensure cross-project `adv_change_create target_path` live-registers the target change in Temporal Visibility.\n2. Preserve worker-free target visibility: creation must not require a live target worker or source-side target workflow query.\n3. Recover existing active disk-only target changes through a bounded future-proof reconciliation path.\n4. Preserve target-path trust gating and canonical target shard routing.\n5. Fail safely on Temporal-start failure: no new active disk-only target orphan remains.\n\n## Success Criteria\n\n1. Cross-project ADV follow-up creation becomes visible in target project status/launcher for all new active target changes.\n2. Existing active disk-only target changes become recoverable by a future-proof reconciliation path, not one-off manual repair.\n3. Cross-project create fails cleanly when Temporal start fails; no new active disk-only orphan remains.\n4. Target worker absence does not block creation or status visibility when Temporal server is reachable.\n\n## Acceptance Criteria\n\n1. `adv_change_create` with `target_path` creates target state through a Temporal-backed target store or equivalent workflow-start path.\n2. After cross-project create, Temporal Visibility contains target workflow search attributes: `AdvChangeId`, `AdvChangeStatus`, `AdvCurrentGate`, `AdvAffectedProjects`.\n3. Cross-project create does not issue a target workflow `getState` query from the source process.\n4. If target Temporal workflow start fails, partial target active change state is rolled back or otherwise absent, and response reports failure.\n5. All non-terminal disk-only changes in target project can be reseeded into workflows; archived/closed records are not recreated.\n6. Reconciliation trigger is selected in design from source evidence and has bounded tests for latency/safety.\n7. `target_path` trust gating and canonical target shard routing remain enforced.\n8. Specs/tests cover workflow registration, no target query, rollback/failure, active-only reconciliation, and idempotency.\n\n## Constraints\n\n1. Do not synchronously query a target workflow from the source project process.\n2. Do not use disk fallback as live active status.\n3. Preserve `target_path` trust validation and explicit confirmation behavior.\n4. Preserve canonical target shard routing from prior `fixTargetPathSharding` work.\n5. Do not backfill archived or closed changes.\n6. Keep correctness structural through helpers, schemas, tests, and spec law; no prose-only guard.\n\n## Avoidances\n\n1. Do not add multi-namespace or multi-Temporal-server support.\n2. Do not change launcher behavior beyond making target changes visible through existing status data.\n3. Do not create a one-off repair path limited to `reworkRelatedCards`.\n4. Do not duplicate target-store or Temporal workflow-start machinery when existing helpers fit.\n5. Do not silently claim full live registration when workflow start fails.\n\n## Preview Applicability\n\nvisual_surface: false\n\nRationale: ADV tool/state routing and CLI/launcher data source behavior only; no browser-visible or visual UI surface is changed.\n\n## Decisions\n\n### User Decisions\n\n1. Temporal-start failure after target scaffold begins: rollback and fail; no active disk-only orphan remains.\n2. Orphan reconciliation breadth: all active/non-terminal disk-only records, not just the known `reworkRelatedCards` case.\n3. Recovery trigger: requires design investigation; choose based on source evidence, performance, and safety.\n4. Criteria approved by user reply: `approve`.\n\n### Agent Decisions (LBP)\n\n1. Prefer routing cross-project create through `withTargetPathStore(... stateRequirement: \"temporal\")` or equivalent existing target-store machinery.\n2. Reuse `ensureChangeWorkflowStarted`, `startChangeWorkflow`, and `changeSeedStateFromChange` rather than bespoke workflow seed assembly.\n3. Treat existing `reseedChangeFromDisk` as the primary reconciliation candidate; design must prove whether read-time reseed alone is enough or whether a bounded trigger is needed.\n4. Spec deltas should live in `advance-workflow` or `advance-meta` where cross-project workflow/state contracts are governed.\n\n## Deferred Questions\n\nNone.\n\n## Sign-Off\n\nAcceptance criteria approved by user reply: `approve`.",
+    "design": "# Design\n\n## Architecture Overview\n\nCross-project create currently diverges from the target-path mutation architecture: `createCrossProjectFollowUp()` opens a target `createLegacyStore`, writes disk state, patches cross-project origin metadata, and returns. It never starts a target change workflow.\n\nThe design converges cross-project create on existing Temporal-backed target-store machinery:\n\n1. Resolve the target through `withTargetPathStore(... stateRequirement: \"temporal-required\")` so target trust gating, canonical target shard routing, target project id, and target Temporal client are one source of truth.\n2. Pass all creation metadata before `Store.changes.create()` starts the workflow, so the target workflow seed contains provenance and the disk projection is not patched after start.\n3. Reuse `ensureChangeWorkflowStarted` from the Temporal store; do not add direct workflow-start code in `change.ts`.\n4. Make existing read/list reseed behavior the deliberate reconciliation trigger for active disk-only records.\n5. Keep CLI status read-only and Visibility-backed. Reconciliation is a Temporal-backed store/session concern, not a disk fallback in `adv status`.\n\n## Key Decisions\n\n### KD1 — Route cross-project create through Temporal-backed target store\n\nUse `withTargetPathStore({ target_path, stateRequirement: \"temporal-required\" })` for `adv_change_create target_path`.\n\nRationale:\n\n- `target-project.ts` already validates target paths, resolves target project id, preserves canonical target shard routing, and initializes a Temporal-backed target store.\n- Temporal-backed `changes.create()` already calls `ensureChangeWorkflowStarted` with `projectionChangesDir`, `archiveProjects`, workflow id, task queue, and seed state.\n- This avoids bespoke Temporal client construction inside `change.ts` and preserves structural correctness.\n\nDesign detail:\n\n- Extend `adv_change_create` target-path arguments with optional `target_confirmed` and `confirmationEvidence` if target-store routing requires them.\n- Trusted related repos proceed without extra confirmation; untrusted target mutation preserves the existing target-project confirmation gate.\n\n### KD2 — Seed cross-project origin before workflow start\n\nCurrent code patches `change.cross_project_origin` after create via `changes.save()`. That is not sufficient for a workflow-owned target change because non-archived `save()` is a disk/overlay update, not an authoritative workflow-state mutation.\n\nDesign:\n\n- Extend `ChangeCreateInitialMetadata` to include `cross_project_origin`.\n- Extend `ChangeWorkflowState` seed support and workflow-state-to-change mapping to carry `cross_project_origin` as a replay-safe optional field.\n- Wire `cross_project_origin` into both seed paths:\n  - the inline `seedState` object in `store-temporal/changes.ts` create path;\n  - `changeSeedStateFromChange()` for reseed/import paths.\n- Build the origin section into proposal content as before, but pass `cross_project_origin` as initial metadata before `changes.create()` starts the workflow.\n- Remove the post-create target `changes.get()`/`changes.save()` patch from cross-project create.\n\n### KD3 — No target workflow query from source process\n\nCross-project create must not call target `changes.get()` after create, because a workflow query can require a target worker. The source process should:\n\n- call target `changes.create()`;\n- rely on workflow start and content signals only;\n- return the known `changeId`, target path, and origin metadata from local inputs/results;\n- update source-side `cross_project_links` in the current store only.\n\n### KD4 — Temporal-start failure rolls back/fails\n\nUse the existing Temporal store create semantics: if `ensureChangeWorkflowStarted` fails after disk scaffolding, remove the target change directory and rethrow/report the original failure. This matches the approved agreement and same-project create behavior.\n\nImplementation adds explicit tests that the target active change is absent after simulated workflow-start failure and the response does not claim live registration.\n\n### KD5 — Existing read/list reseed is the reconciliation trigger\n\nNo new broad scanner is needed. `listResolvedChanges()` already unions disk ids with Visibility ids, then loads each id through `getTemporalChange()`. `getTemporalChange()` classifies missing workflow reads and calls `reseedChangeFromDisk()` for non-terminal disk projections. `reseedChangeFromDisk()` skips `archived` and `closed` records.\n\nDesign action:\n\n- Treat this as the intended reconciliation trigger.\n- Add tests proving `changes.list()` / target Temporal store list on disk-only active records starts workflows and returns live state.\n- Add tests proving archived/closed disk records are not recreated.\n- Keep the existing batch size (`CHANGE_LIST_BATCH_SIZE = 20`) as the automatic bound; add targeted checks that one missing workflow does not abort the batch.\n\nThis satisfies the user decision: all active records can be recovered by normal target ADV list/read flows, not a one-off repair. It also avoids adding mutation authority to the CLI status path.\n\n### KD6 — Optional future explicit repair reuses same helper\n\nIf future UX needs a manual repair tool, it should call the same store-owned reseed/list helper path and not duplicate scanning logic. This change only makes the existing behavior deliberate and tested.\n\n### KD7 — Keep worker-free status semantics unchanged\n\n`adv status --json` remains live Temporal Visibility-backed. It must not scan disk active records as a substitute source. Once cross-project create starts workflows and list/read reconciliation reseeds old active records, the existing Visibility status path sees them normally.\n\n## ADR Drafts\n\nNone. Decisions converge on existing target-store and Temporal-store architecture and are reversible through normal helper-level refactor.\n\n## Implementation Strategy\n\n1. **Schema/metadata path**\n   - Add optional `target_confirmed` and `confirmationEvidence` fields to `adv_change_create` if target-store routing requires them.\n   - Add `cross_project_origin` to `ChangeCreateInitialMetadata`.\n   - Add `cross_project_origin` to `ChangeWorkflowState` seed picklist, inline create `seedState`, `changeSeedStateFromChange()`, and workflow-state-to-change mapping.\n2. **Cross-project create path**\n   - Replace direct `createLegacyStore` in `createCrossProjectFollowUp()` with `withTargetPathStore(... stateRequirement: \"temporal-required\")`.\n   - Pass enriched proposal artifacts plus `initialMetadata: { cross_project_origin }`.\n   - Remove target post-create `get()`/`save()` patch.\n   - Keep source-side outbound link update.\n3. **Reconciliation tests / hardening**\n   - Add tests around existing `listResolvedChanges()` → `getTemporalChange()` → `reseedChangeFromDisk()` path.\n   - Confirm non-terminal disk-only changes reseed into workflows.\n   - Confirm archived/closed changes short-circuit and do not start workflows.\n   - Confirm batch/list behavior remains bounded and orphan-tolerant.\n4. **Tests**\n   - Cross-project create starts target workflow through target Temporal store.\n   - Workflow start receives target project id, target queue/search attrs, and cross-project origin seed.\n   - No target `getState` query occurs in source process.\n   - Workflow-start failure rolls back target active disk projection and reports failure.\n   - Existing non-terminal disk-only records reseed; archived/closed records do not.\n   - Target trust gating and canonical shard tests from `fixTargetPathSharding` remain green.\n5. **Spec law**\n   - Add requirements for cross-project create workflow registration, no target query, active-only reconciliation, and rollback/failure behavior.\n\n## LBP Analysis\n\nThis design uses existing structural sources of truth:\n\n- `withTargetPathStore()` for target trust, target project id, target external root, and target Temporal service.\n- Temporal-backed `changes.create()` for workflow start and rollback.\n- `ensureChangeWorkflowStarted()` for idempotent start/search-attribute registration.\n- `listResolvedChanges()`/`getTemporalChange()`/`reseedChangeFromDisk()` for missing workflow recovery.\n- Visibility status remains the read model; disk is not reintroduced as active status source.\n\nRejected alternatives:\n\n- Direct `client.workflow.start` in `change.ts`: duplicates target-store setup, trust gating, target shard routing, and seed construction.\n- CLI-status disk scan + reseed: would add mutation authority to a read-only worker-free CLI path and weaken fail-closed semantics.\n- New startup scanner: existing list/read reseed already provides bounded recovery; extra scanner adds latency and duplicate logic.\n- One-off `reworkRelatedCards` repair: fixes symptom only and violates the approved future-proof scope.\n\n## Affected Components\n\n- `plugin/src/tools/change.ts`\n- `plugin/src/tools/target-project.ts`\n- `plugin/src/storage/store-types.ts`\n- `plugin/src/storage/store-temporal/changes.ts`\n- `plugin/src/storage/store-temporal/index.ts`\n- `plugin/src/temporal/contracts.ts`\n- `plugin/src/temporal/change-state.ts`\n- `plugin/src/temporal/observability.ts` tests around start attrs\n- `plugin/src/tools/cross-project-coordination.test.ts`\n- `plugin/src/tools/target-project.test.ts`\n- `plugin/src/storage/store-temporal/*.test.ts`\n- `.adv/specs/advance-workflow/spec.json` or `.adv/specs/advance-meta/spec.json`\n\n## Design-Derived Criteria\n\n1. Cross-project create must not call target `changes.get()` or any target workflow query after create.\n2. Cross-project origin metadata must be present in workflow state after creation, not only in disk projection or overlay cache.\n3. Reconciliation trigger is `changes.list()`/normal Temporal-backed target store reads through existing reseed path; CLI status remains read-only.\n4. Reconciliation must skip `archived` and `closed` records before workflow start.\n5. List/reseed behavior remains bounded by existing batch loading and must not abort the whole list when one orphan fails.\n6. `stateRequirement` values must use the actual enum value `\"temporal-required\"`.\n\n## Risks / Mitigations\n\n- **Risk:** `adv_change_create` target-path schema changes can break existing callers.\n  - Mitigation: fields are optional; only untrusted target mutations require confirmation per existing target policy.\n- **Risk:** Cross-project origin disappears from workflow-owned reads.\n  - Mitigation: seed `cross_project_origin` before workflow start and map it through workflow state, including the inline create seed block.\n- **Risk:** Existing CLI launcher cannot heal old orphans without a target ADV list/read path first.\n  - Mitigation: preserve CLI read-only contract; new cross-project creates no longer need healing, and normal target ADV list/read/session paths self-heal old active records.\n- **Risk:** Already-started workflows produce duplicate errors.\n  - Mitigation: reuse `ensureChangeWorkflowStarted` idempotency; tests cover duplicate/reconcile reruns.\n- **Risk:** Trust gate asymmetry remains if `adv_change_create` does not expose confirmation fields.\n  - Mitigation: add optional confirmation fields or explicitly prove target is trusted in tests before using temporal target store.\n\n## Design Leverage Scout\n\nScout result: VALIDATED with adopted leverage points.\n\nAuto-adopted:\n\n- Use existing list/read-time reseed as reconciliation trigger; no new scan surface.\n- Reuse `ensureChangeWorkflowStarted` / seed helpers, not bespoke workflow-start code.\n- Keep rollback/fail semantics aligned with existing P1.4 Temporal create behavior.\n\nSurfaced/handled in design:\n\n- Central architecture decision is routing cross-project create through `withTargetPathStore` while preserving source-side `cross_project_links` and target origin metadata.\n- Trust-gate unification remains implementation-sensitive; preserve existing policy and add optional create confirmation fields if needed.\n\n## Validator Result\n\nValidator: VALIDATED with two non-blocking cautions; both incorporated.\n\n- Caution 1: `cross_project_origin` must be wired into the inline `seedState` block in `store-temporal/changes.ts`, not only `changeSeedStateFromChange()`.\n- Caution 2: use actual `TargetStateRequirement` enum value `\"temporal-required\"`, not shorthand `\"temporal\"`.",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\nCross-project change creation now uses target Temporal workflow state instead of disk-only target scaffolds. Active disk-only target records are recoverable through the normal list/read reseed path, while archived/closed records remain terminal projections.\n\n## Verdict\nAPPROVED\n\n## What Was Built\n1. Threaded `cross_project_origin`, `cross_project_links`, and `external_dependencies` through Temporal workflow state, seed, continue-as-new, read mapping, and coordination update signals.\n2. Routed `adv_change_create target_path` through `withTargetPathStore({ stateRequirement: \"temporal-required\" })` with target confirmation evidence and target-context project IDs.\n3. Removed post-create target get/save patching; target create seeds provenance before workflow start and failure returns an error without writing source links.\n4. Added bounded tests for target routing, no target getState query, failure semantics, active disk-only reseed, terminal skip behavior, preflight policy, and spec law.\n5. Updated `advance-workflow` spec law for cross-project Temporal create and active-only reconciliation.\n\n## What Was Verified\n- Verdict: READY from `adv-reviewer`; review remediation applied for cross-project link/dependency metadata preservation.\n- Tests: `pnpm run check` passed; targeted Vitest suite passed (184 tests) after review remediation.\n- Preview URL: not_applicable — backend/tooling workflow change; no browser-visible or visual output surface.\n- Contract matrix: 23 required rows passed/respected; 0 failed/violated/unknown.\n\n## Remaining Concerns\nLive ADV tool behavior requires build/deploy/restart before in-session MCP calls use the new source, because OpenCode loads deployed `dist` at session startup. No product-scope concerns remain.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-06-06T21:17:00.000Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | Cross-project ADV follow-up creation becomes visible in target project status/launcher for all new active target changes. | pass | Review verdict READY. change-cross-project-create.test proves target_path create routes through temporal-required target store and returns _projectContext stateMode temporal; workflow-start path supplies Visibility search attrs. |\n| SC2 | success_criterion | Existing active disk-only target changes become recoverable by a future-proof reconciliation path, not one-off manual repair. | pass | store-temporal/index.test proves list/read reseed of active disk-only changes via normal getTemporalChange/reseedChangeFromDisk path; no one-off repair path added. |\n| SC3 | success_criterion | Cross-project create fails cleanly when Temporal start fails; no new active disk-only orphan remains. | pass | change-cross-project-create.test failure case proves target Temporal create failure returns error and source link is not written; store-temporal/changes.ts retains rollback on workflow start failure. |\n| SC4 | success_criterion | Target worker absence does not block creation or status visibility when Temporal server is reachable. | pass | target-project routing uses withTargetPathStore temporal-required and ensureProjectTemporalQueue before createStore; no target workflow query is required for creation/status visibility. Tests prove worker-query-free target create path. |\n| AC1 | acceptance_criterion | `adv_change_create` with `target_path` creates target state through a Temporal-backed target store or equivalent workflow-start path. | pass | src/tools/change-cross-project-create.test.ts: target_path creation calls withTargetPathStore with stateRequirement temporal-required and targetStore.changes.create. |\n| AC2 | acceptance_criterion | After cross-project create, Temporal Visibility contains target workflow search attributes: `AdvChangeId`, `AdvChangeStatus`, `AdvCurrentGate`, `AdvAffectedProjects`. | pass | src/storage/store-temporal/changes.test.ts proves target create seed reaches ensureChangeWorkflowStarted; workflow-start.ts builds Temporal searchAttributes for every workflow start. check/test suites passed. |\n| AC3 | acceptance_criterion | Cross-project create does not issue a target workflow `getState` query from the source process. | pass | src/tools/change-cross-project-create.test.ts asserts targetStore.changes.get is not called after target create; post-create target get/save patch removed. |\n| AC4 | acceptance_criterion | If target Temporal workflow start fails, partial target active change state is rolled back or otherwise absent, and response reports failure. | pass | src/tools/change-cross-project-create.test.ts covers target create failure: error contains Temporal workflow start failure and sourceStore.changes.save is not called; temporal store rollback path remains covered in changes tests. |\n| AC5 | acceptance_criterion | All non-terminal disk-only changes in target project can be reseeded into workflows; archived/closed records are not recreated. | pass | src/storage/store-temporal/index.test.ts covers direct read reseed and list reseed of active disk-only changes; archived/closed records are not started/recreated. |\n| AC6 | acceptance_criterion | Reconciliation trigger is selected in design from source evidence and has bounded tests for latency/safety. | pass | Design selected list/read reseed. src/storage/store-temporal/index.test.ts bounds the path through getTemporalChange/reseedChangeFromDisk; no startup scanner added. |\n| AC7 | acceptance_criterion | `target_path` trust gating and canonical target shard routing remain enforced. | pass | src/tools/change-cross-project-create.test.ts and cross-project-coordination.test.ts prove target_confirmed/confirmationEvidence routing and canonical target context use; target-project.test already covers canonical shard helper behavior. |\n| AC8 | acceptance_criterion | Specs/tests cover workflow registration, no target query, rollback/failure, active-only reconciliation, and idempotency. | pass | Spec rq-crossProjectCoordination01 updated. Relevant tests passed: 184 targeted tests plus pnpm run check. |\n| C1 | constraint | Do not synchronously query a target workflow from the source project process. | respected | Post-create targetStore.changes.get was removed; test asserts it is not called. No source-process target workflow getState query is used for create. |\n| C2 | constraint | Do not use disk fallback as live active status. | respected | Active status reads remain Temporal-backed; disk is used only as reseed/projection fallback for missing workflows and terminal records, per store-temporal/index.ts tests. |\n| C3 | constraint | Preserve `target_path` trust validation and explicit confirmation behavior. | respected | adv_change_create now exposes target_confirmed and confirmationEvidence and delegates trust gating to withTargetPathStore. Preflight blanks omit confirmationEvidence for contextual validation. |\n| C4 | constraint | Preserve canonical target shard routing from prior `fixTargetPathSharding` work. | respected | Target project id/external root comes from withTargetPathStore context; cross-project coordination test proves target canonical store is used rather than caller shard. |\n| C5 | constraint | Do not backfill archived or closed changes. | respected | reseedChangeFromDisk returns archived/closed disk projections without ensureChangeWorkflowStarted; list test proves only active disk-only record starts. |\n| C6 | constraint | Keep correctness structural through helpers, schemas, tests, and spec law; no prose-only guard. | respected | Correctness implemented structurally via typed metadata fields, workflow state contract, signal, preflight policy, spec law, and regression tests. |\n| DONT1 | avoidance | Do not add multi-namespace or multi-Temporal-server support. | respected | No multi-namespace or multi-Temporal-server code added; implementation reuses existing service/target store machinery. |\n| DONT2 | avoidance | Do not change launcher behavior beyond making target changes visible through existing status data. | respected | No launcher behavior changed; visibility/status behavior is via existing target Temporal workflows and current status data. |\n| DONT3 | avoidance | Do not create a one-off repair path limited to `reworkRelatedCards`. | respected | Reconciliation uses generic list/read reseed for all active disk-only changes; no reworkRelatedCards-specific repair path added. |\n| DONT4 | avoidance | Do not duplicate target-store or Temporal workflow-start machinery when existing helpers fit. | respected | Implementation reuses withTargetPathStore, createStore, ensureChangeWorkflowStarted, and existing reseed helpers; no duplicate target-store/start machinery added. |\n| DONT5 | avoidance | Do not silently claim full live registration when workflow start fails. | respected | Target create failure returns an error and does not write source links; temporal store create rollback preserves no active disk-only orphan semantics. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/startCrossProjectChange/proposal.md",
+      "updatedAt": "2026-06-06T20:15:41.042Z",
+      "contentHash": "e8674ce64c9a746a332e8544cf5393c6ca0c124e0df481f7327fcc2a254f2087"
+    },
+    "problemStatement": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/startCrossProjectChange/problem-statement.md",
+      "updatedAt": "2026-06-06T19:58:23.085Z",
+      "contentHash": "a633d1774bfcdb0df5ba44e3f0c9a15c2339fc9e396ddbaee6308bc18d0ec82d"
+    },
+    "agreement": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/startCrossProjectChange/agreement.md",
+      "updatedAt": "2026-06-06T20:17:06.590Z",
+      "contentHash": "cf59869672f7076d4fe18badb8139cd158768264764716ea3db9d7ac0f4d7b5c"
+    },
+    "design": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/startCrossProjectChange/design.md",
+      "updatedAt": "2026-06-06T20:27:53.811Z",
+      "contentHash": "42bdfc007a6953c872cfc2fbbf2b12c0c8dc514f9af3552c61c6282b9d25588c"
+    },
+    "executiveSummary": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/startCrossProjectChange/executive-summary.md",
+      "updatedAt": "2026-06-06T21:17:35.270Z",
+      "contentHash": "07973f2788d8fdce4dac9b2b3351537b1a1021140ee86c1ecfcad665bb0bf75f"
+    }
+  },
+  "lastSignalAt": "2026-06-06T21:19:39.740Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d"
+}

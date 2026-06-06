@@ -1,0 +1,33 @@
+{
+  "entries": [
+    {
+      "id": "ws-kdfLs9",
+      "type": "gotcha",
+      "content": "Temporal workflow-state metadata additions must be threaded through all structural surfaces together: ChangeCreateInitialMetadata, disk create scaffold metadata, ChangeWorkflowInput.seedState Pick list, ChangeWorkflowState, createChangeOps seedState, workflow initialization, continue-as-new seed, changeSeedStateFromChange(), and mapTemporalChangeStateToChange(). Updating only disk/overlay makes new target changes invisible or loses metadata on reseed/continue-as-new.",
+      "source_task": "tk-873bd3762fab",
+      "recorded_at": "2026-06-06T20:39:18.670Z"
+    },
+    {
+      "id": "ws-VxqtFU",
+      "type": "pattern",
+      "content": "Cross-project target mutations should route through withTargetPathStore({ stateRequirement: \"temporal-required\" }) and use the returned target store/context for all target writes and target project IDs. For creates, pass provenance through initialMetadata before workflow start and avoid post-create target get/save patches, which can reintroduce target workflow queries and disk-only state.",
+      "source_task": "tk-dcdfbc164743",
+      "recorded_at": "2026-06-06T20:48:55.819Z"
+    },
+    {
+      "id": "ws-dAZUlI",
+      "type": "success",
+      "content": "The existing listResolvedChanges + getTemporalChange path already provides active disk-only reconciliation: list unions disk IDs, per-ID get handles WorkflowNotFound through reseedChangeFromDisk, terminal archived/closed records short-circuit to disk projection, and successful active reseed returns hydrated workflow state. Bounded tests can prove this without adding a startup scanner.",
+      "source_task": "tk-44042f1cb172",
+      "recorded_at": "2026-06-06T20:52:34.008Z"
+    },
+    {
+      "id": "ws-egkvMY",
+      "type": "gotcha",
+      "content": "Repository check-test-isolation flags any test calling adv_change_create unless the source includes createTempDir/tmpdir/os.tmpdir/XDG_DATA_HOME. Even fully mocked target_path tests need an explicit isolation marker, e.g. tmpdir()-derived fake roots, or pnpm run check fails before lint/format.",
+      "source_task": "tk-e3d9e51d2cc1",
+      "recorded_at": "2026-06-06T20:59:18.911Z"
+    }
+  ],
+  "count": 4
+}
