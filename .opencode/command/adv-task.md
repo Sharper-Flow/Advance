@@ -28,7 +28,7 @@ Extract agreed change from conversation. Emit QUICK CONTRACT block:
 - **INTENT:** {1-3 sentences}
 - **LBP TARGETS:** {decisions requiring validation}
 - **SCOPE:** {files/modules}
-- **SUCCESS CRITERIA:** {measurable}
+- **USER OUTCOMES:** {user-facing outcomes}
 
 Ask via `question`: Confirmed — execute (Recommended), Modify contract, Abort.
 - Modify → re-synthesize → re-confirm
@@ -37,7 +37,7 @@ Ask via `question`: Confirmed — execute (Recommended), Modify contract, Abort.
 
 ---
 ## Phase 1: Create Change
-`adv_change_create summary: "{2-5 words}" proposal: "{rendered proposal markdown}"` — include Intent, LBP Targets, Scope, Success Criteria sections. Capture `changeId`.
+`adv_change_create summary: "{2-5 words}" proposal: "{rendered proposal markdown}"` — include Intent, LBP Targets, Scope, and User Outcomes sections. Capture `changeId`.
 
 × Persist proposal via tool call only — no direct filesystem writes.
 ### Complete Gate

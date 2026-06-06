@@ -1,6 +1,6 @@
 ---
 name: adv-prep
-description: "Analyze gaps and synthesize tasks from validated research findings"
+description: "Analyze gaps and synthesize tasks from approved agreement plus validated design"
 phaseGoal: "Complete the flight-check: every gap closed, every dependency mapped, every task ready — ready for autonomous implementation."
 ---
 
@@ -8,14 +8,14 @@ phaseGoal: "Complete the flight-check: every gap closed, every dependency mapped
 
 # ADV Prep — Pre-Implementation Gap Analysis
 
-Analyze change for gaps (missing scenarios, tasks, cross-cutting concerns) → add them via ADV tools. Uses 4-Step Gap Analysis and IEEE completeness criteria. Runs **inline** — no sub-agents.
+Analyze change for implementation-readiness gaps (tasks, sequencing, cross-cutting concerns, contract traceability) → add them via ADV tools. Uses 4-Step Gap Analysis to map approved criteria/design into tasks; prep does not firm criteria. Runs **inline** — no sub-agents.
 
-<!-- rq-prep-out1 rq-prep-neg1 rq-prep-scope1 rq-prepArtifactExcerpt01 -->
+<!-- rq-prep-out1 rq-prep-neg1 rq-prep-scope1 rq-stagePrepNoCriteriaFirming01 rq-prepArtifactExcerpt01 -->
 
 ## Command Boundary
 
 **Produces:** Complete task graph via `adv_task_add` (sole pre-impl task creator per rq-prep-out1), gap analysis (rq-prep-scope1), task sequencing with dependencies.
-**× MUST NOT:** Complete non-planning gates, make new architecture decisions, modify problem statement/agreement/design intent (per rq-prep-neg1).
+**× MUST NOT:** Complete non-planning gates, make new architecture decisions, invent/rewrite acceptance criteria or success criteria, modify problem statement/agreement/design intent (per rq-prep-neg1 and rq-stagePrepNoCriteriaFirming01).
 **Gate:** Completes `planning` only. `/adv-task` is exempt (fast-track bundles proposal+discovery+design+planning).
 <UserRequest>
 $ARGUMENTS
@@ -36,7 +36,7 @@ $ARGUMENTS
 
 #### Purpose
 
-Reusable gap analysis and task synthesis methodology for ADV prep workflows. Provides the INVEST criteria, requirements smell detection, task sequencing rules, and cross-cutting concern checklist.
+Reusable gap analysis and task synthesis methodology for ADV prep workflows. Provides agreement/design coverage checks, task sequencing rules, and cross-cutting concern checklist. Prep maps criteria to tasks; it does not firm criteria.
 
 **Runtime source:** this embedded section provides the prep methodology needed during command execution.
 
@@ -44,15 +44,15 @@ Reusable gap analysis and task synthesis methodology for ADV prep workflows. Pro
 
 Every `/adv-prep` invocation must execute these steps:
 
-| #   | Step                   | Focus                                                                          |
-| --- | ---------------------- | ------------------------------------------------------------------------------ |
-| 1   | Requirements quality   | INVEST criteria + smell detection                                              |
-| 2   | Task completeness      | Atomic tasks, coverage, verification steps                                     |
-| 3   | Task sequencing        | Absorption, TDD ordering, dependency coherence                                 |
-| 4   | Cross-cutting concerns | Error handling, logging, validation, security, performance, config, monitoring |
-| 5   | Codebase impact        | Key term search, missing files, undiscovered dependencies                      |
-| 6   | Cross-spec consistency | Terminology, overlapping scope, conflicts                                      |
-| 7   | Cross-repo routing     | Target metadata, related repos config, routing completeness                    |
+| #   | Step                      | Focus                                                                          |
+| --- | ------------------------- | ------------------------------------------------------------------------------ |
+| 1   | Agreement/design coverage | Approved criteria + validated design mapped to tasks                           |
+| 2   | Task completeness         | Atomic tasks, coverage, verification steps                                     |
+| 3   | Task sequencing           | Absorption, TDD ordering, dependency coherence                                 |
+| 4   | Cross-cutting concerns    | Error handling, logging, validation, security, performance, config, monitoring |
+| 5   | Codebase impact           | Key term search, missing files, undiscovered dependencies                      |
+| 6   | Cross-spec consistency    | Terminology, overlapping scope, conflicts                                      |
+| 7   | Cross-repo routing        | Target metadata, related repos config, routing completeness                    |
 
 All steps must be executed. Skipping requires explicit justification.
 
@@ -62,6 +62,7 @@ All steps must be executed. Skipping requires explicit justification.
 - **No gate completion** — command owns the planning gate
 - **Runtime source** — use this embedded methodology during command execution
 - **No architecture decisions** — those belong in `/adv-design`
+- **No criteria firming** — acceptance criteria and success criteria belong in `/adv-discover`; design-derived technical criteria belong in `/adv-design`
 - **No workflow sequencing** — command owns phase ordering
 
 ---
@@ -92,7 +93,7 @@ Doctor-Lite: check cross-repo routing completeness — flag MUST gap if `target_
 
 Run 4-Step Gap Analysis (desired state → current state → gap → action plan) using the embedded methodology above:
 
-1. **Requirements quality** — INVEST criteria + smell detection (from embedded methodology)
+1. **Agreement/design coverage** — approved criteria + validated design mapped to tasks (from embedded methodology)
 2. **Task sequencing** — absorption analysis, TDD ordering, dependency graph coherence (from embedded methodology)
 3. **Cross-cutting concerns** — 12-item checklist, document N/A with rationale (from embedded methodology)
 4. **Codebase impact** — search key terms, flag missing files/dependencies
@@ -172,26 +173,26 @@ If contract validation returns `CONTRACT_*` issues, fix task graph or contract r
 
 Agent self-assesses readiness (requirements clarity, technical approach, edge cases). Resolve gaps inline or ask user.
 
-### 3.1 Requirements Quality (INVEST)
+### 3.1 Agreement/Design Coverage
 
-| Criterion       | Check                        | Gap if Missing            |
-| --------------- | ---------------------------- | ------------------------- |
-| **I**ndependent | Self-contained?              | Decouple from X           |
-| **N**egotiable  | Leaves solution flexibility? | Clarify intent vs impl    |
-| **V**aluable    | Demonstrable value?          | Define user benefit       |
-| **E**stimable   | Can be sized?                | Break into smaller pieces |
-| **S**mall       | Fits one iteration?          | Split into phases         |
-| **T**estable    | Can write test?              | Add acceptance scenario   |
+| Source                            | Check                                   | Gap if Missing                                    |
+| --------------------------------- | --------------------------------------- | ------------------------------------------------- |
+| `AC*` / `SC*` contract items      | Implemented or verified by tasks?       | Add task/refs, or re-enter discovery if invalid   |
+| Constraints / avoidances          | Respected by task graph?                | Add respecting task/refs or adjust design         |
+| Design-derived technical criteria | Covered by implementation/verification? | Add task, or re-enter design if criteria conflict |
+| Proposal User Outcomes            | Reflected by approved agreement/design? | Surface upstream mismatch; do not rewrite in prep |
 
-### 3.2 Requirements Smells
+If criteria are missing, contradictory, implementation-derived, or invalidated, route to the earliest affected gate. Prep does not repair criteria inline.
 
-| Smell       | Pattern         | Action                          |
-| ----------- | --------------- | ------------------------------- |
-| Subjective  | "user-friendly" | Add measurable criterion        |
-| Ambiguous   | "efficiently"   | Specify metric                  |
-| Superlative | "best"          | Define baseline                 |
-| Totality    | "all", "never"  | Identify exceptions             |
-| Negative    | "must not"      | Convert to positive or add test |
+### 3.2 Task Readiness Smells
+
+| Smell                  | Pattern                           | Action                                   |
+| ---------------------- | --------------------------------- | ---------------------------------------- |
+| Unmapped contract item | No task implements/verifies it    | Add task or contract refs                |
+| Ambiguous task         | "handle X" without behavior       | Clarify task scope from agreement/design |
+| Unsupported design     | Task contradicts design.md        | Re-enter design or revise task           |
+| Over-broad task        | Multiple independent outcomes     | Split or sequence tasks                  |
+| Missing proof          | No RED/GREEN or verification plan | Add TDD/verification detail              |
 
 ### 3.3 Task Completeness
 

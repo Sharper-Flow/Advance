@@ -2,15 +2,16 @@
 name: adv-discover
 description: Gather context, analyze current state, identify objectives, and obtain user agreement
 ---
+
 <!-- manifest: adv-discover · gate: discovery · requiresChangeId: true · prereqs: [adv-proposal] · scope: reads[specs, proposal, codebase] · modifies[proposal] -->
 
 # ADV Discover — Establish Discovery Findings
 
-Gather current-state evidence needed to move from proposal into a shared agreement. Command completes the `discovery` gate and carries the full user-facing discovery + agreement flow.
+Gather current-state evidence needed to move from proposal into a shared agreement. Command completes the `discovery` gate and carries the full user-facing discovery + agreement flow. Discovery owns firming design-independent behavioral acceptance criteria and success criteria.
 
 ## Command Boundary
 
-**Produces:** Discovery findings, current-state analysis, blocker/options summary, recommended objectives for agreement, `agreement.md`, and the typed `ChangeContract` spine minted from approved agreement items.
+**Produces:** Discovery findings, current-state analysis, blocker/options summary, recommended objectives, approved acceptance criteria + success criteria, `agreement.md`, and the typed `ChangeContract` spine minted from approved agreement items.
 
 **× MUST NOT:** Create tasks, complete non-discovery gates, skip LBP validation when multiple viable directions exist.
 
@@ -26,6 +27,7 @@ $ARGUMENTS
 3. If none exist → stop and suggest `/adv-proposal`
 
 ---
+
 ## Phase 0: Embedded Methodology
 
 ### Discover Methodology
@@ -40,18 +42,19 @@ Embedded protocol below owns discovery step rules, edge cases, and output sectio
 
 Every `/adv-discover` invocation must execute these 8 protocol steps and emit a Discovery Checklist section summarizing their results:
 
-| # | Step | Output section | Required content |
-| - | ---- | -------------- | ---------------- |
-| 1 | **Skill Discovery** (Phase 1.5) | Skills Considered | Examined skills + match results (or "none available") |
-| 2 | **Prior Research Extension** | Extends | Cited artifacts (including `/adv-improve` research packs under `docs/*-prep.md`) + ≥1 new finding (or "No prior research found") |
-| 3 | **Conflict & Related-Work Scan** (Phase 1.6) | Conflict Scan | Results from `adv_change_list` (includeArchived), `adv_change_validate`, `adv_agenda_list` |
-| 4 | **Edge Case Investigation** | Edge Cases | ≥2 edge cases per gap (or "N/A: structural" with rationale) |
-| 5 | **Design Question Depth** | Open Design Questions | Each question annotated with trust model, blast radius, alternatives |
-| 6 | **Draft Spec Delta Shapes** | Draft Spec Deltas | `rq-*` IDs + ≥1 G/W/T per delta (or "No spec deltas required") |
-| 7 | **P25 Related-Pattern Scan** (Phase 1.7) | Related Pattern Scan | Similar patterns or "no similar patterns found" |
-| 8 | **LBP Check (with gated External-Solution Check)** | LBP Check | Whether likely direction matches long-term best practice |
+| #   | Step                                               | Output section        | Required content                                                                                                                 |
+| --- | -------------------------------------------------- | --------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | **Skill Discovery** (Phase 1.5)                    | Skills Considered     | Examined skills + match results (or "none available")                                                                            |
+| 2   | **Prior Research Extension**                       | Extends               | Cited artifacts (including `/adv-improve` research packs under `docs/*-prep.md`) + ≥1 new finding (or "No prior research found") |
+| 3   | **Conflict & Related-Work Scan** (Phase 1.6)       | Conflict Scan         | Results from `adv_change_list` (includeArchived), `adv_change_validate`, `adv_agenda_list`                                       |
+| 4   | **Edge Case Investigation**                        | Edge Cases            | ≥2 edge cases per gap (or "N/A: structural" with rationale)                                                                      |
+| 5   | **Design Question Depth**                          | Open Design Questions | Each question annotated with trust model, blast radius, alternatives                                                             |
+| 6   | **Draft Spec Delta Shapes**                        | Draft Spec Deltas     | `rq-*` IDs + ≥1 G/W/T per delta (or "No spec deltas required")                                                                   |
+| 7   | **P25 Related-Pattern Scan** (Phase 1.7)           | Related Pattern Scan  | Similar patterns or "no similar patterns found"                                                                                  |
+| 8   | **LBP Check (with gated External-Solution Check)** | LBP Check             | Whether likely direction matches long-term best practice                                                                         |
 
 After all 8 steps, emit a **Discovery Checklist** table listing each step with PASS/SKIP + reason.
+
 <!-- rq-disc01 -->
 
 #### Constraints
@@ -61,6 +64,7 @@ After all 8 steps, emit a **Discovery Checklist** table listing each step with P
 - **Runtime source** — use this embedded methodology during command execution
 - **No workflow sequencing** — command owns phase ordering
 - **No architecture decisions** — those belong in `/adv-design`
+
 ---
 
 ## Phase 1: Load Context
@@ -103,7 +107,9 @@ If neither field is present → skip this phase (local change, normal flow).
 > **Gate requirement:** Lineage MUST be validated and confirmed by user before proceeding to agreement. This prevents stale or misdirected follow-up changes from being adopted blindly.
 
 ---
+
 ## Phase 1.5: Skill Discovery + Gap-Triggered Creation
+
 <!-- rq-disc02 -->
 
 Execute skill discovery protocol from `ADV_INSTRUCTIONS.md § Skill Discovery Protocol`, then check for skill gaps and pending reviews.
@@ -123,12 +129,15 @@ Before keyword matching, scan the global skills dir (`~/.config/opencode/skills/
 Search trusted skill directories → match `keywords` against tech stack/domain → load via `skill("{name}")` → apply guidance.
 
 ### Step 3: Gap Detection + Creation
+
 <!-- rq-sc01 -->
 
 If no matching skill was found for a domain clearly relevant to change's **core problem** (not tangential), the agent MAY create a skill on demand. See `ADV_INSTRUCTIONS.md § Skill Creation Protocol` for the full trigger conditions, naming convention, assembly template, and creation flow.
 
 **Creation sub-flow (only if gap detected):**
+
 <!-- rq-sc02 -->
+
 1. Research domain using Context7, Exa, and searchcode. Use Exa for candidate repo discovery, then `searchcode_code_search` / `searchcode_code_get_file` for in-repo implementation evidence.
 2. Assemble SKILL.md using the template from `ADV_INSTRUCTIONS.md § Skill Creation Protocol`
 3. Write atomically to `~/.config/opencode/skills/agent-{domain}/SKILL.md`
@@ -140,16 +149,17 @@ If no matching skill was found for a domain clearly relevant to change's **core 
 **Output:** "Skills Considered" section listing each examined skill, match assessment, action taken, and any gap detection/creation results.
 
 **Graceful degradation:**
+
 - No skills in trusted directories → report "Skills considered: none available" (non-blocking)
 - Malformed YAML frontmatter → skip silently
 - Multiple matches → load all matching skills
 - No matches for tangential domain → proceed normally, report "no skills matched"
 - No matches for core domain → gap detected, proceed to creation sub-flow
 
-**Protocol extension note:** This extends the Skill Discovery Protocol's "No matches → proceed normally" behavior. When all trigger conditions are met (core domain, no partial match), "no matches" becomes a conditional trigger for skill creation. Agents that don't implement creation still conform by reporting the gap and proceeding.
----
+## **Protocol extension note:** This extends the Skill Discovery Protocol's "No matches → proceed normally" behavior. When all trigger conditions are met (core domain, no partial match), "no matches" becomes a conditional trigger for skill creation. Agents that don't implement creation still conform by reporting the gap and proceeding.
 
 ## Phase 1.6: Conflict & Related-Work Scan
+
 <!-- rq-disc04 -->
 
 Execute all three tools and report findings in a "Conflict Scan" section:
@@ -161,14 +171,19 @@ Execute all three tools and report findings in a "Conflict Scan" section:
 For relevant archived changes, use `adv_change_show` to inspect their tasks and decisions. Prior work may inform or constrain current proposal.
 
 ---
+
 ## Phase 1.7: P25 Related-Pattern Scan
+
 <!-- rq-disc08 -->
+
 Per rule P25 (related-scan): identify the class of bug or gap being addressed, then scan for similar patterns elsewhere in the codebase.
 
 **Output:** "Related Pattern Scan" section listing similar patterns with file references, or explicitly stating "no similar patterns found".
+
 - Zero matches → state explicitly (do not silently omit the section)
 - Many matches → cap at top N with rationale
 - Matches in deprecated/archived code → filter and note
+
 ---
 
 ## Phase 2: Discovery Analysis
@@ -177,20 +192,20 @@ Build a compact discovery report. The output MUST contain these sections (order 
 
 ### Required Output Sections
 
-| Section                    | Required content                                                                            |
-| -------------------------- | ------------------------------------------------------------------------------------------- |
-| **Discovery Checklist**    | Table of all protocol steps with PASS/SKIP + reason                                         |
-| **Skills Considered**      | Examined skills with match assessment (from Phase 1.5)                                      |
-| **Extends**                | Prior research artifacts cited + ≥1 new finding per artifact (or "No prior research found") |
-| **Conflict Scan**          | Results from Phase 1.6 (or "no conflicts")                                                  |
-| **Current State**          | What exists today in code/specs/docs                                                        |
-| **Edge Cases**             | ≥2 per identified gap (or "N/A: structural" with rationale)                                 |
-| **Open Design Questions**  | Each with trust model + blast radius + alternatives considered                              |
-| **Draft Spec Deltas**      | `rq-*` IDs + ≥1 Given/When/Then per delta (or "No spec deltas required" with rationale)     |
-| **Related Pattern Scan**   | Results from Phase 1.7                                                                      |
-| **LBP Check**              | Whether likely direction matches long-term best practice                                    |
-| **Recommended Objectives** | Numbered list for the agreement phase                                                       |
-| **AMBIGUITY ANALYSIS** | Finding table: B/F/S/M findings (required v1) + optional D/X/Q/I/E/C/T findings; severity column; evidence quotes; coverage report row |
+| Section                    | Required content                                                                                                                       |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| **Discovery Checklist**    | Table of all protocol steps with PASS/SKIP + reason                                                                                    |
+| **Skills Considered**      | Examined skills with match assessment (from Phase 1.5)                                                                                 |
+| **Extends**                | Prior research artifacts cited + ≥1 new finding per artifact (or "No prior research found")                                            |
+| **Conflict Scan**          | Results from Phase 1.6 (or "no conflicts")                                                                                             |
+| **Current State**          | What exists today in code/specs/docs                                                                                                   |
+| **Edge Cases**             | ≥2 per identified gap (or "N/A: structural" with rationale)                                                                            |
+| **Open Design Questions**  | Each with trust model + blast radius + alternatives considered                                                                         |
+| **Draft Spec Deltas**      | `rq-*` IDs + ≥1 Given/When/Then per delta (or "No spec deltas required" with rationale)                                                |
+| **Related Pattern Scan**   | Results from Phase 1.7                                                                                                                 |
+| **LBP Check**              | Whether likely direction matches long-term best practice                                                                               |
+| **Recommended Objectives** | Numbered list for the agreement phase                                                                                                  |
+| **AMBIGUITY ANALYSIS**     | Finding table: B/F/S/M findings (required v1) + optional D/X/Q/I/E/C/T findings; severity column; evidence quotes; coverage report row |
 
 <!-- rq-disc07 -->
 
@@ -203,6 +218,7 @@ Run a structured ambiguity scan using the taxonomy from `ADV_INSTRUCTIONS.md § 
 - Per UD2 hybrid scope: required categories MUST appear in every discovery; optional categories are at agent discretion. Any emitted optional-category CRITICAL/HIGH findings still participate in trigger evaluation.
 
 **Finding shape** (from `ADV_INSTRUCTIONS.md § Ambiguity Taxonomy`):
+
 ```
 {Letter}{N}  {SEVERITY}  {Category}  {Finding text}
   Evidence: {verbatim quote OR `(no {section} section)`}
@@ -216,6 +232,7 @@ Run a structured ambiguity scan using the taxonomy from `ADV_INSTRUCTIONS.md § 
 If scan is clean: emit `### AMBIGUITY ANALYSIS — no ambiguity findings. Coverage: B:C F:C S:C M:C`
 
 ### Prior Research Extension
+
 <!-- rq-disc03 -->
 
 Search these locations for prior artifacts:
@@ -233,6 +250,7 @@ Search these locations for prior artifacts:
 - No prior artifacts → report "No prior research found" (non-blocking). If the discovery agenda includes ecosystem unknowns or viable external alternatives, note that running `/adv-improve {target}` first would produce a reusable research pack.
 
 ### Edge Case Investigation
+
 <!-- rq-disc05 -->
 
 For each gap identified:
@@ -242,6 +260,7 @@ For each gap identified:
 - Structural gaps (no logic) may be marked "Edge cases: N/A — structural" with rationale
 
 ### Design Question Depth
+
 <!-- rq-disc06 -->
 
 Each open design question MUST include:
@@ -257,6 +276,7 @@ Each open design question MUST include:
 If 2+ viable approaches have user-value tradeoffs, run the inline Tradeoff Prioritizer Protocol from `ADV_INSTRUCTIONS.md` and produce criteria-based comparison before asking the user. If only one viable approach remains after evidence, record why.
 
 ### External-Solution Check (gated)
+
 <!-- rq-disc10 -->
 
 Required when proposal's Discovery Agenda contains ecosystem unknowns OR an open design question lists external tools / libraries / services as a realistic option.
@@ -271,6 +291,7 @@ Required when proposal's Discovery Agenda contains ecosystem unknowns OR an open
 Skip this step for purely internal changes (refactors, bug fixes, local doc/test fixes) where no external alternative is viable — say so explicitly in the LBP Check.
 
 ---
+
 ## Phase 2.5: Trigger Evaluation
 
 After producing the AMBIGUITY ANALYSIS, evaluate findings before proceeding to Phase 3:
@@ -279,25 +300,30 @@ After producing the AMBIGUITY ANALYSIS, evaluate findings before proceeding to P
 2. **Resolution log check** — read `## Clarify Resolution Log` section from proposal.md if present; previously-resolved findings are excluded from current trigger count
 3. **Classify output noise:**
 
-| Class | Condition | Action |
-|-------|-----------|--------|
-| **Blocking ambiguity** | CRITICAL ≥ 1 | Halt discovery. Do NOT call `adv_gate_complete gateId: 'discovery'`. Output evidence quotes and hand off to `/adv-clarify {change-id}`. |
-| **Blocking ambiguity** | HIGH ≥ 2 (no CRITICAL) | Halt discovery. Same handoff as above with evidence quotes. |
-| **Advisory ambiguity** | Single HIGH only | Continue to Phase 3. Log one concise advisory with finding ID, severity, and evidence quote. Do not repeat the warning in unrelated status text. |
-| **Clean** | No trigger findings | Continue to Phase 3. |
+| Class                  | Condition              | Action                                                                                                                                           |
+| ---------------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Blocking ambiguity** | CRITICAL ≥ 1           | Halt discovery. Do NOT call `adv_gate_complete gateId: 'discovery'`. Output evidence quotes and hand off to `/adv-clarify {change-id}`.          |
+| **Blocking ambiguity** | HIGH ≥ 2 (no CRITICAL) | Halt discovery. Same handoff as above with evidence quotes.                                                                                      |
+| **Advisory ambiguity** | Single HIGH only       | Continue to Phase 3. Log one concise advisory with finding ID, severity, and evidence quote. Do not repeat the warning in unrelated status text. |
+| **Clean**              | No trigger findings    | Continue to Phase 3.                                                                                                                             |
 
 4. **Skip trigger evaluation** when `clarify_enforcement: 'off'` or when discovery gate is already completed (legacy/in-flight changes)
 5. **Rerun cap:** After `/adv-clarify` resolves findings and user reruns `/adv-discover`, cap at 2 reruns before escalating to user via `question` tool per EC4
 
 ---
+
 ## Phase 3: Persist Discovery Findings
+
 Update proposal artifact with the discovery findings so the sign-off flow can present them cleanly.
+
 - Use `adv_change_update` to refine proposal content
 - Keep findings concise and decision-oriented
 - Do not create `agreement.md` here
+
 ---
 
 ## Phase 3.5: Discovery Opportunity Scout
+
 <!-- rq-discOpportunityScout01 -->
 
 Run a trigger-based Discovery Opportunity Scout pass after current-state research and before agreement formation when Trigger Conditions apply. The scout identifies missed opportunities: alternative approaches, overlooked patterns, gaps in objectives/AC, and unconsidered edge cases.
@@ -358,12 +384,15 @@ EXPECTED OUTPUT: return ScoutCandidate rows and call adv_subagent_report_submit 
 ---
 
 ## Phase 4: Present Agreement Draft + Resolve Questions
+
 <!-- rq-disc11 -->
+
 - Load the refreshed discovery context from proposal findings
-- Extract objectives, constraints, avoidances, open questions, and draft acceptance criteria
+- Extract objectives, constraints, avoidances, open questions, draft acceptance criteria, and success criteria. Proposal `## User Outcomes` may seed this work, but discovery owns making criteria design-independent, behavioral, and user-confirmed.
 - Present a concise agreement view:
   - **Objectives**
   - **Acceptance Criteria**
+  - **Success Criteria**
   - **Constraints**
   - **Avoidances / rejected approaches**
   - **Preview applicability** — record preview applicability as `visual_surface: true|false|unknown` plus rationale. Use `true` when the change affects front-end, browser-visible, or any visual output; `false` when no visual output can be affected; `unknown` when uncertainty remains. `unknown` carries forward as an acceptance blocker until clarified.
@@ -371,9 +400,11 @@ EXPECTED OUTPUT: return ScoutCandidate rows and call adv_subagent_report_submit 
 - Agreement sign-off uses the **Inline Approval prompt (Tier A)** at Phase 4.5.1 (AC checkpoint) and Phase 4.6 (Persist Agreement). Phase 4.5 (Open Question Resolution Loop) keeps the `question` tool — that is a non-checkpoint clarification round.
 
 ### Phase 4.5: Open Question Resolution Loop
+
 **× MUST NOT skip this phase.** Open questions that require user input must be resolved before `agreement.md` is finalized.
 
 #### Question Triage
+
 Before presenting questions to user, classify each open question from discovery:
 | Category | Action | Example |
 |----------|--------|---------|
@@ -381,6 +412,7 @@ Before presenting questions to user, classify each open question from discovery:
 | **User-facing outcome** | **Ask user** | "What should happen when X fails?", "Which matters more: speed or completeness?", "Should this be opt-in or opt-out?" |
 
 **Ask user about:**
+
 - Weighing competing priorities
 - Choosing between acceptable downsides
 - Clarifying expected behavior
@@ -389,6 +421,7 @@ Before presenting questions to user, classify each open question from discovery:
 - Preference on UX/workflow
 
 **× Do NOT ask user about:**
+
 - Which technology, library, or pattern to use
 - Implementation strategy (option A vs B)
 - Internal architecture
@@ -397,18 +430,20 @@ Before presenting questions to user, classify each open question from discovery:
 Technical questions that were open during discovery should be resolved autonomously and recorded as agent-resolved decisions in the agreement.
 
 #### Minimum Engagement Rule
+
 The agent **MUST** always conduct at least **1 round of 3 clarifying questions**, even if discovery surfaced zero open questions. The agent **MAY** conduct up to **5 rounds** total, with up to **5 questions per round**.
 
-| Constraint | Value |
-|------------|-------|
-| Minimum rounds | 1 |
-| Minimum questions in first round | 3 |
-| Maximum rounds | 5 |
-| Maximum questions per round | 5 |
+| Constraint                       | Value |
+| -------------------------------- | ----- |
+| Minimum rounds                   | 1     |
+| Minimum questions in first round | 3     |
+| Maximum rounds                   | 5     |
+| Maximum questions per round      | 5     |
 
 Stop the loop when: all user-facing questions are resolved, user signals satisfaction, or the 5-round cap is reached.
 
 #### Protocol
+
 1. **Collect** all open questions from discovery findings
 2. **Triage** each question per the table above
 3. **Resolve technical questions** autonomously and record decisions
@@ -418,11 +453,13 @@ Stop the loop when: all user-facing questions are resolved, user signals satisfa
 7. **Summarize** all resolutions (user-resolved and agent-resolved) before proceeding
 
 #### Deferral Rules
+
 - If user chooses to defer → record it as `Deferred by user: {reason}` in the agreement
 - Deferred questions carry forward as constraints for `/adv-design`
 - × NEVER silently defer a question or assume "no preference"
 
 #### Question Presentation
+
 For each user-facing question, provide:
 | Element | Required |
 |---------|----------|
@@ -436,73 +473,99 @@ For each user-facing question, provide:
 Visual comparison blocks are supplementary context, not a replacement for the `question` tool.
 
 #### Batch Guidance
+
 - Group related questions
 - Up to 5 questions per round via the `question` tool
 - Unrelated questions should be separate prompts within same round
 
 ### Phase 4.5.1: Acceptance Criteria Checkpoint (Inline)
 
-**Purpose:** Dedicated checkpoint for acceptance-criteria agreement before `agreement.md` persistence and before the `discovery` gate completes. This separates AC approval from the broader agreement sign-off that follows in Phase 4.6.
+**Purpose:** Dedicated checkpoint for acceptance-criteria and success-criteria agreement before `agreement.md` persistence and before the `discovery` gate completes. This separates criteria approval from the broader agreement sign-off that follows in Phase 4.6.
 
-**Requirements:** `rq-disc12` (Explicit Acceptance Criteria Checkpoint), `rq-inlineApproval01` (Inline Approval at Named Human Checkpoints).
+**Requirements:** `rq-disc12` (Explicit Acceptance Criteria Checkpoint), `rq-stageDiscoveryFirmCriteria01` (Discovery Firms Design-Independent Criteria), `rq-stageDiscoveryImplFreeGuard01` (Discovery Criteria Implementation-Free Guard Is Advisory), `rq-inlineApproval01` (Inline Approval at Named Human Checkpoints).
 
 **When:** After Phase 4.5 (Open Question Resolution Loop) and before Phase 4.6 (Persist Agreement).
 
 **Protocol:**
 
-1. Present the **draft acceptance criteria** as a focused, numbered list. Separate this from the broader agreement view (objectives, constraints, avoidances).
-2. Emit the **Inline Approval prompt (Tier A with `/adv-clarify` literal detection)** per `docs/command-voice-standard.md` § Inline Approval Voice:
+1. Present the **draft acceptance criteria** and **draft success criteria** as focused, numbered lists. Separate them from the broader agreement view (objectives, constraints, avoidances).
+2. Run the **advisory implementation-free guard** over each draft criterion:
+   - If a criterion encodes a mechanism/component/library/data structure, emit an advisory finding with the exact phrase.
+   - Mark it preliminary or likely design-derived; recommend revision or design review.
+   - × Do NOT hard-block discovery solely because this advisory guard fired.
+3. Emit the **Inline Approval prompt (Tier A with `/adv-clarify` literal detection)** per `docs/command-voice-standard.md` § Inline Approval Voice:
 
    ```
-   Acceptance Criteria for {change-id}:
+   Criteria for {change-id}:
+
+   Success Criteria:
+
+   1. ...
+
+   Acceptance Criteria:
 
    1. ...
    2. ...
 
    Reply:
-   - `approve` (or whitelist hit: continue, go, yes, ok, proceed, lgtm) — approve AC and proceed to agreement persistence
+   - `approve` (or whitelist hit: continue, go, yes, ok, proceed, lgtm) — approve criteria and proceed to agreement persistence
    - `/adv-clarify {change-id}` — halt /adv-discover; user runs /adv-clarify; rerun /adv-discover after
-   - Or describe what to add/clarify — agent normalizes into revised AC and re-runs this checkpoint
+   - Or describe what to add/clarify — agent normalizes into revised criteria and re-runs this checkpoint
    ```
 
-3. **Reply detection rules (in order):**
+4. **Reply detection rules (in order):**
 
-   | Reply | Action |
-   |---|---|
+   | Reply                                                  | Action                                                                                                                                                           |
+   | ------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
    | Trimmed = `/adv-clarify` or `/adv-clarify {change-id}` | Halt cleanly: no `agreement.md` write, no `adv_gate_complete`, return control to user with instruction to rerun `/adv-discover {change-id}` after `/adv-clarify` |
-   | Trimmed first token = `/adv-clarify` | Same halt branch |
-    | Tier A whitelist match | Approve AC, proceed to Phase 4.6 |
-    | Anything else | Treat as revision text; normalize into revised AC bullets and re-run this checkpoint |
+   | Trimmed first token = `/adv-clarify`                   | Same halt branch                                                                                                                                                 |
+   | Tier A whitelist match                                 | Approve criteria, proceed to Phase 4.6                                                                                                                           |
+   | Anything else                                          | Treat as revision text; normalize into revised criteria bullets and re-run this checkpoint                                                                       |
 
    **× Do NOT** treat phrases like "I want to clarify something" or "let's clarify X" as `/adv-clarify` invocation. Only the literal slash-command form triggers the halt branch. Non-literal "clarify" intent is revision text (per `rq-disc12.2`).
 
-> **Note:** The `/adv-clarify` halt path at Phase 4.5.1 is same mechanism as the Phase 2.5 trigger evaluation halt. Both hand off to `/adv-clarify` with same rerun instruction. Phase 2.5 catches ambiguity findings in proposal's scope/success criteria; Phase 4.5.1 catches ambiguity introduced by AC revision text.
+> **Note:** The `/adv-clarify` halt path at Phase 4.5.1 is same mechanism as the Phase 2.5 trigger evaluation halt. Both hand off to `/adv-clarify` with same rerun instruction. Phase 2.5 catches ambiguity findings in proposal scope/User Outcomes; Phase 4.5.1 catches ambiguity introduced by criteria revision text.
 
-4. If revised AC still need substantial clarification after 3 re-runs, recommend the `/adv-clarify` branch instead of continuing to loop.
-5. If AC are empty or weak, keep the approve option but mark the `/adv-clarify` branch as the recommended path.
-6. Do not proceed to Phase 4.6 until AC are approved.
+5. If revised criteria still need substantial clarification after 3 re-runs, recommend the `/adv-clarify` branch instead of continuing to loop.
+6. If criteria are empty or weak, keep the approve option but mark the `/adv-clarify` branch as the recommended path.
+7. Do not proceed to Phase 4.6 until acceptance criteria and success criteria are approved.
 
 **Anchor phrase:** `Reply `approve``
 
-**× MUST NOT:** Complete `discovery` gate without AC approval. Do not invoke `/adv-clarify` directly outside this checkpoint outcome — pause and hand off to user.
+**× MUST NOT:** Complete `discovery` gate without criteria approval. Do not invoke `/adv-clarify` directly outside this checkpoint outcome — pause and hand off to user.
 
 ### Phase 4.6: Persist Agreement (Inline)
-Once AC are approved at Phase 4.5.1 and all open questions are resolved (or explicitly deferred), write `agreement.md` through `adv_change_update`. The Phase 4.5.1 inline approval is the sign-off — no additional `question` tool prompt.
+
+Once criteria are approved at Phase 4.5.1 and all open questions are resolved (or explicitly deferred), write `agreement.md` through `adv_change_update`. The Phase 4.5.1 inline approval is the sign-off — no additional `question` tool prompt.
 
 Suggested structure:
+
 ```md
 # Agreement
+
 ## Objectives
+
+## Success Criteria
+
 ## Acceptance Criteria
+
 ## Constraints
+
 ## Avoidances
+
 ## Preview Applicability
+
 ## Decisions
+
 ### User Decisions
+
 ### Agent Decisions (LBP)
+
 ## Deferred Questions
+
 ## Sign-Off
 ```
+
 - **User Decisions** — questions user answered, each with the question, user's choice, and why it matters
 - **Agent Decisions (LBP)** — technical questions resolved autonomously
 - **Preview Applicability** — mandatory `visual_surface: true|false|unknown` value plus rationale. `visual_surface: unknown` is allowed only when uncertainty is explicit and MUST be treated as blocking during `/adv-review` before acceptance.
@@ -511,7 +574,7 @@ Suggested structure:
 
 ### Contract Minting
 
-After Phase 4.5.1 AC approval and before `discovery` gate completion: call `adv_contract_mint`. Tool parses approved `agreement.md`, validates `ChangeContract`, persists via `contractSetSignal`.
+After Phase 4.5.1 criteria approval and before `discovery` gate completion: call `adv_contract_mint`. Tool parses approved `agreement.md`, validates `ChangeContract`, persists via `contractSetSignal`.
 
 Contract rules:
 
@@ -532,6 +595,7 @@ Discovery completion blocked when approved agreement lacks contract spine or pro
 If `adv_gate_complete changeId: {change-id} gateId: discovery` returns `DISCOVERY_CONTRACT_MISSING`: run `adv_contract_mint`, fix parser/schema failures in approved agreement, retry gate.
 
 ---
+
 ## Phase 5: Complete Gate
 
 `adv_gate_complete changeId: {change-id} gateId: discovery`

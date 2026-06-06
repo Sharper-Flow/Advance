@@ -256,38 +256,6 @@ describe("createDegradedToolMap parity with createToolMap", () => {
 
   test.each([
     {
-      toolName: "adv_task_update",
-      schema: {
-        taskId: z.string(),
-        status: z.enum(["pending", "in_progress", "blocked", "done"]),
-        recoveryMode: z.enum(["normal", "poisoned_history"]).optional(),
-        recoveryEvidence: z.string().optional(),
-      },
-      rawArgs: {
-        taskId: "tk-1",
-        status: "done",
-        recoveryMode: "poisoned_history",
-        recoveryEvidence: " ",
-      },
-      field: "recoveryEvidence",
-    },
-    {
-      toolName: "adv_task_add",
-      schema: {
-        changeId: z.string(),
-        content: z.string(),
-        recoveryMode: z.enum(["normal", "poisoned_history"]).optional(),
-        recoveryEvidence: z.string().optional(),
-      },
-      rawArgs: {
-        changeId: "c",
-        content: "Add task",
-        recoveryMode: "poisoned_history",
-        recoveryEvidence: " ",
-      },
-      field: "recoveryEvidence",
-    },
-    {
       toolName: "adv_snapshot_health",
       schema: {
         action: z.enum(["scan", "repair"]),

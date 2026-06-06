@@ -21,7 +21,6 @@ import type { ValidationIssue } from "./types";
 
 export const ClarifyReadinessCodes = {
   CLARIFY_SUBJECTIVE_LANGUAGE: "CLARIFY_SUBJECTIVE_LANGUAGE",
-  CLARIFY_MISSING_SUCCESS_CRITERIA: "CLARIFY_MISSING_SUCCESS_CRITERIA",
   CLARIFY_MISSING_SCENARIOS: "CLARIFY_MISSING_SCENARIOS",
   CLARIFY_UNCLEAR_SCOPE: "CLARIFY_UNCLEAR_SCOPE",
   CLARIFY_ASSUMPTION_HEAVY: "CLARIFY_ASSUMPTION_HEAVY",
@@ -82,10 +81,6 @@ const RISKY_BEHAVIOR_PATTERN =
 const TRIVIAL_CHANGE_PATTERN =
   /\b(readme|docs?|documentation|changelog|comment|typo|config|lint|format|style)\b/i;
 
-/** Placeholder success criteria patterns */
-const PLACEHOLDER_CRITERIA_PATTERN =
-  /^-\s*\[[\sx]\]\s*(criterion\s+\d+|todo|tbd|placeholder|fill\s+in)/im;
-
 // =============================================================================
 // Check: Subjective Language
 // =============================================================================
@@ -109,72 +104,6 @@ export function checkSubjectiveLanguage(change: Change): ValidationIssue[] {
         matchedTerm: match[0],
         questionCategory: "clarification",
         remediation: `Replace "${match[0]}" with a concrete, measurable target. Run /adv-clarify to define specific acceptance criteria.`,
-      },
-    });
-  }
-
-  return issues;
-}
-
-// =============================================================================
-// Check: Missing Success Criteria
-// =============================================================================
-
-/**
- * Check if proposal has concrete success criteria (not just placeholders).
- * Maps to adv-clarify question type: "evidence" (demand proof of done).
- */
-export function checkMissingSuccessCriteria(
-  _change: Change,
-  proposalText: string,
-): ValidationIssue[] {
-  const issues: ValidationIssue[] = [];
-
-  // Look for a "Success Criteria" section (case-insensitive)
-  // Extract content between this header and the next ## header (or end of text)
-  const criteriaMatch =
-    proposalText.match(
-      /##\s*success\s+criteria\s*\n([\s\S]*?)(?=\n##\s|\n---)/i,
-    ) ?? proposalText.match(/##\s*success\s+criteria\s*\n([\s\S]*)/i);
-
-  if (!criteriaMatch) {
-    issues.push({
-      code: ClarifyReadinessCodes.CLARIFY_MISSING_SUCCESS_CRITERIA,
-      severity: "warning",
-      message:
-        "Proposal has no Success Criteria section. How will we know this change is done?",
-      path: "proposal.success_criteria",
-      details: {
-        questionCategory: "evidence",
-        remediation:
-          "Add a ## Success Criteria section with measurable outcomes. Run /adv-clarify to define concrete done criteria.",
-      },
-    });
-    return issues;
-  }
-
-  // Check if criteria are all placeholder
-  const criteriaBody = criteriaMatch[1].trim();
-  const lines = criteriaBody
-    .split("\n")
-    .map((l) => l.trim())
-    .filter((l) => l.startsWith("- "));
-
-  const allPlaceholder =
-    lines.length > 0 &&
-    lines.every((line) => PLACEHOLDER_CRITERIA_PATTERN.test(line));
-
-  if (lines.length === 0 || allPlaceholder) {
-    issues.push({
-      code: ClarifyReadinessCodes.CLARIFY_MISSING_SUCCESS_CRITERIA,
-      severity: "warning",
-      message:
-        "Success criteria are placeholder or empty. What measurable outcomes define done?",
-      path: "proposal.success_criteria",
-      details: {
-        questionCategory: "evidence",
-        remediation:
-          "Replace placeholder criteria with specific, testable outcomes. Run /adv-clarify to define concrete done criteria.",
       },
     });
   }
@@ -388,7 +317,6 @@ export function runClarifyReadinessChecks(
 ): ClarifyReadinessResult {
   const findings: ValidationIssue[] = [
     ...checkSubjectiveLanguage(change),
-    ...checkMissingSuccessCriteria(change, proposalText),
     ...checkMissingScenarios(change),
     ...checkUnclearScope(change, proposalText),
     ...checkAssumptionHeavy(change, proposalText),
@@ -400,7 +328,6 @@ export function runClarifyReadinessChecks(
     findings,
     checksPerformed: [
       "checkSubjectiveLanguage",
-      "checkMissingSuccessCriteria",
       "checkMissingScenarios",
       "checkUnclearScope",
       "checkAssumptionHeavy",

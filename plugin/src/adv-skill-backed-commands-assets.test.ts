@@ -262,9 +262,14 @@ describe("ambiguity taxonomy spec assets", () => {
       ),
     ) as { version: string; requirements: Array<{ id: string }> };
 
-    expect(spec.version).toBe("1.2.0");
+    expect(spec.version).toBe("1.3.0");
     expect(spec.requirements.map((rq) => rq.id)).toEqual(
-      expect.arrayContaining(["rq-prop-tax1", "rq-prop-tax2", "rq-prop-tax3"]),
+      expect.arrayContaining([
+        "rq-prop-tax1",
+        "rq-prop-tax2",
+        "rq-prop-tax3",
+        "rq-stageProposalUserOutcomes01",
+      ]),
     );
   });
 
@@ -276,7 +281,7 @@ describe("ambiguity taxonomy spec assets", () => {
       ),
     ) as { version: string; requirements: Array<{ id: string }> };
 
-    expect(spec.version).toBe("1.2.0");
+    expect(spec.version).toBe("1.3.0");
     expect(spec.requirements.map((rq) => rq.id)).toEqual(
       expect.arrayContaining([
         "rq-disc-tax1",
@@ -284,6 +289,32 @@ describe("ambiguity taxonomy spec assets", () => {
         "rq-disc-tax3",
         "rq-discOpportunityScout01",
         "rq-discOpportunityScout02",
+        "rq-stageDiscoveryFirmCriteria01",
+        "rq-stageDiscoveryImplFreeGuard01",
+      ]),
+    );
+  });
+
+  test("stage-boundary specs include criteria ownership requirements", () => {
+    const prepSpec = JSON.parse(
+      readFileSync(join(REPO_ROOT, ".adv/specs/adv-prep/spec.json"), "utf8"),
+    ) as { version: string; requirements: Array<{ id: string }> };
+    const workflowSpec = JSON.parse(
+      readFileSync(
+        join(REPO_ROOT, ".adv/specs/advance-workflow/spec.json"),
+        "utf8",
+      ),
+    ) as { version: string; requirements: Array<{ id: string }> };
+
+    expect(prepSpec.version).toBe("1.3.0");
+    expect(prepSpec.requirements.map((rq) => rq.id)).toEqual(
+      expect.arrayContaining(["rq-stagePrepNoCriteriaFirming01"]),
+    );
+    expect(workflowSpec.version).toBe("1.15.0");
+    expect(workflowSpec.requirements.map((rq) => rq.id)).toEqual(
+      expect.arrayContaining([
+        "rq-stageDesignCriteriaBoundary01",
+        "rq-stageCriteriaEnforcementRetarget01",
       ]),
     );
   });
@@ -311,8 +342,27 @@ describe("ambiguity taxonomy spec assets", () => {
     );
 
     expect(proposal).toContain("Phase 2.6: Run B/F/S Ambiguity Scan");
+    expect(proposal).toContain("User Outcomes");
+    expect(proposal).toContain("does NOT require testable success criteria");
     expect(discover).toContain("## Phase 2.5: Trigger Evaluation");
     expect(discover).toContain("AMBIGUITY ANALYSIS");
+    expect(discover).toContain("## Success Criteria");
+    expect(discover).toContain("advisory implementation-free guard");
+    const design = readFileSync(
+      join(REPO_ROOT, ".opencode/command/adv-design.md"),
+      "utf8",
+    );
+    const prep = readFileSync(
+      join(REPO_ROOT, ".opencode/command/adv-prep.md"),
+      "utf8",
+    );
+    expect(design).toContain("## Design-Derived Criteria");
+    expect(design).toContain(
+      "MUST NOT invent new user-facing acceptance criteria",
+    );
+    expect(design).toContain("adv_change_reenter");
+    expect(prep).toContain("does not firm criteria");
+    expect(prep).toContain("rq-stagePrepNoCriteriaFirming01");
     expect(clarify).toContain("## Findings-Driven Mode");
     expect(proposalChecklist).toContain("## Ambiguity Scan (B/F/S)");
     expect(discoverChecklist).toContain("## Ambiguity Analysis Protocol");
@@ -633,6 +683,9 @@ describe("thin-command shape enforcement", () => {
     expect(gatesDoc).toContain(
       "workflow validates proposal.md, agreement.md, design.md, and generated acceptance.md",
     );
+    expect(gatesDoc).toContain("User Outcomes");
+    expect(gatesDoc).toContain("Design-Derived Criteria");
+    expect(gatesDoc).toContain("Prep maps criteria/design into tasks");
     expect(gatesDoc).toContain("readiness_blockers");
     expect(prep).toContain("Artifact Excerpts");
     expect(prep).toContain("problem-statement.md excerpt");

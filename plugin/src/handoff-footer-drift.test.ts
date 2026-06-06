@@ -534,7 +534,7 @@ describe("chat-output-display drift contract", () => {
     expect(output.length).toBeLessThanOrEqual(80);
   });
 
-  test("chat-output-display spec exists with v1.5.0 and required requirements", () => {
+  test("chat-output-display spec exists with v1.6.0 and required requirements", () => {
     const specPath = join(
       REPO_ROOT,
       ".adv",
@@ -545,7 +545,7 @@ describe("chat-output-display drift contract", () => {
     const spec = JSON.parse(readFileSync(specPath, "utf8"));
 
     expect(spec.name).toBe("chat-output-display");
-    expect(spec.version).toBe("1.5.0");
+    expect(spec.version).toBe("1.6.0");
     expect(spec.supersedes).toContain("context-display");
 
     const requirementIds = spec.requirements.map((r: any) => r.id);

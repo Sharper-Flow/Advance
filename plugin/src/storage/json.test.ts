@@ -634,7 +634,8 @@ describe("createChangeScaffold", () => {
     // All 8 sections from the structured proposal template
     expect(content).toContain("## Why");
     expect(content).toContain("## What Changes");
-    expect(content).toContain("## Success Criteria");
+    expect(content).toContain("## User Outcomes");
+    expect(content).not.toContain("## Success Criteria");
     expect(content).toContain("## Affected Code");
     expect(content).toContain("## Constraints");
     expect(content).toContain("## Impact");
@@ -654,7 +655,7 @@ describe("createChangeScaffold", () => {
 
     // Validation Plan should mention TDD
     expect(content).toMatch(/TDD|test.*first|red.*green/i);
-    // Success Criteria should have checklist items
+    // User Outcomes should have checklist items
     expect(content).toContain("- [ ]");
   });
 

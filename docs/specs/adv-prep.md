@@ -1,11 +1,11 @@
 # ADV Prep Command
 
-> **Version:** 1.1.0
-> **Updated:** 2026-03-14
+> **Version:** 1.3.0
+> **Updated:** 2026-06-05
 
 ## Purpose
 
-Defines the responsibilities and boundaries of /adv-prep. The prep command is the sole creator and sequencer of tasks. It synthesizes tasks from validated design decisions, runs gap analysis, validates task ordering, and ensures implementation readiness.
+Defines the responsibilities and boundaries of /adv-prep. The prep command is the sole creator and sequencer of tasks. It synthesizes tasks from the approved agreement and validated design decisions, runs gap analysis, validates task ordering, and ensures implementation readiness. It does not firm or rewrite acceptance criteria or success criteria.
 
 ## Requirements
 
@@ -51,7 +51,7 @@ Defines the responsibilities and boundaries of /adv-prep. The prep command is th
 
 **ID:** `rq-prep-scope1` | **Priority:** **[MUST]**
 
-/adv-prep must run the 4-Step Gap Analysis framework: define desired state, benchmark current state, analyze gaps, and compile an action plan. It must check requirements quality (INVEST), task completeness, cross-cutting concerns, and cross-spec consistency.
+/adv-prep must run the 4-Step Gap Analysis framework: define desired state, benchmark current state, analyze gaps, and compile an action plan. It must check approved agreement/design coverage, task completeness, cross-cutting concerns, and cross-spec consistency. It must not firm acceptance criteria or success criteria; criteria gaps require returning to discovery/design as appropriate.
 
 **Tags:** `prep`, `boundary`, `gap-analysis`
 
@@ -65,8 +65,8 @@ Defines the responsibilities and boundaries of /adv-prep. The prep command is th
 **When:** /adv-prep runs gap analysis
 
 **Then:**
-- Requirements quality is checked against INVEST criteria
-- Requirements smell detection is applied
+- Approved agreement and design coverage is checked against the task graph
+- Criteria-quality gaps are reported as discovery/design re-entry candidates instead of being rewritten by prep
 - Task completeness is verified against requirements
 - Cross-cutting concerns checklist is completed
 - Cross-spec consistency is checked
@@ -126,7 +126,7 @@ When a change has zero tasks and design gate is complete, /adv-prep must synthes
 
 **ID:** `rq-prep-neg1` | **Priority:** **[MUST]**
 
-/adv-prep MUST NOT complete non-planning gates, make architectural decisions (that is discover/design's job), or modify the problem statement or success criteria in proposal.md.
+/adv-prep MUST NOT complete non-planning gates, make architectural decisions (that is discover/design's job), or modify the problem statement, acceptance criteria, or success criteria. /adv-prep maps approved criteria and design into tasks; it does not firm criteria.
 
 **Tags:** `prep`, `boundary`, `negative`
 
@@ -144,3 +144,72 @@ When a change has zero tasks and design gate is complete, /adv-prep must synthes
 - No other gates are completed
 
 ---
+
+### Prep Maps Criteria to Tasks Without Firming Criteria
+
+**ID:** `rq-stagePrepNoCriteriaFirming01` | **Priority:** **[MUST]**
+
+/adv-prep MUST consume approved agreement criteria and validated design decisions to build a task graph. It MUST NOT invent, rewrite, or user-confirm new acceptance criteria or success criteria. If prep discovers that criteria are missing, contradictory, implementation-derived, or invalidated by design, it MUST surface a readiness gap and route to the earliest affected gate rather than silently repairing the criteria inside prep.
+
+**Tags:** `prep`, `criteria`, `task-graph`, `stage-boundary`
+
+#### Scenarios
+
+**Prep maps approved criteria to tasks** (`rq-stagePrepNoCriteriaFirming01.1`)
+
+**Given:**
+- agreement.md contains approved `AC*` and `SC*` items and design.md is complete
+
+**When:** /adv-prep synthesizes the task graph
+
+**Then:**
+- Each implementation task is traced to approved agreement criteria, design decisions, or explicit technical readiness work
+- No new user-facing acceptance criterion is introduced by /adv-prep
+- The planning checkpoint asks the user to approve tasks, not to approve newly firmed criteria
+
+**Criteria gap routes to re-entry** (`rq-stagePrepNoCriteriaFirming01.2`)
+
+**Given:**
+- /adv-prep detects that an approved criterion is missing, contradictory, or invalidated by design
+
+**When:** The planning readiness result is prepared
+
+**Then:**
+- The gap is reported as requiring discovery or design re-entry
+- /adv-prep does not rewrite agreement.md to fix the criterion
+- The planning gate remains pending until the upstream criteria gap is resolved
+
+---
+
+### Prep Approval Surfaces Source Artifact Excerpts
+
+**ID:** `rq-prepArtifactExcerpt01` | **Priority:** **[MUST]**
+
+/adv-prep MUST surface concise proposal, agreement, and design excerpts relevant to the synthesized task graph before planning approval. The excerpts must show what the user is approving for autonomous execution and must not replace the underlying artifacts as the source of truth.
+
+**Tags:** `prep`, `approval`, `artifacts`, `planning`
+
+#### Scenarios
+
+**Planning approval includes relevant artifact excerpts** (`rq-prepArtifactExcerpt01.1`)
+
+**Given:**
+- A change has proposal, agreement, and design artifacts
+
+**When:** /adv-prep presents the planning approval checkpoint
+
+**Then:**
+- The approval view includes concise excerpts from proposal, agreement, and design relevant to task synthesis
+- The approval view identifies the generated task graph derived from those artifacts
+- The underlying artifacts remain the source of truth
+
+**Missing excerpt source is reported** (`rq-prepArtifactExcerpt01.2`)
+
+**Given:**
+- A source artifact expected by prep is missing or unavailable
+
+**When:** /adv-prep prepares the approval checkpoint
+
+**Then:**
+- The missing artifact is reported as a readiness gap
+- Prep does not silently approve a task graph without showing the relevant source basis

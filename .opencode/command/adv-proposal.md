@@ -1,14 +1,14 @@
 ---
 name: adv-proposal
-description: "Extract problem statement, success criteria, and constraints without creating tasks"
-phaseGoal: "Clarify the problem, user needs, and acceptance criteria scope. Establish what and why — no how."
+description: "Extract problem statement, user outcomes, and constraints without creating tasks"
+phaseGoal: "Clarify the problem, user needs, and high-level user outcomes. Establish what and why — no engineering AC and no how."
 ---
 
 <!-- manifest: adv-proposal · gate: proposal · requiresChangeId: false · scope: reads[specs] -->
 
 # ADV Proposal — Establish the Problem Statement
 
-Two-phase workflow: Phase 1 (problem statement agreement) → Phase 2 (full proposal with INVEST criteria and smell detection). **Fully collaborative** — user shapes every decision.
+Two-phase workflow: Phase 1 (problem statement agreement) → Phase 2 (full proposal with implementation-free User Outcomes and ambiguity scan). **Fully collaborative** — user shapes every decision. Proposal does NOT require testable success criteria; discovery firms engineering AC/SC.
 
 ## Command Boundary
 
@@ -28,7 +28,7 @@ Two-phase workflow: Phase 1 (problem statement agreement) → Phase 2 (full prop
 
 1. **Verify ADV tools are live** — call `adv_status` once. If it returns `ADV_PLUGIN_INIT_FAILED`, stop immediately, report the `error` + `remediation` fields verbatim, and ask user how to proceed. × Do NOT self-block by declaring adv\_\* tools "unavailable" based on prior assumption — verify first.
 2. **Resolve summary from `$ARGUMENTS`**:
-<!-- rq-issueChangeLinkage01 -->
+   <!-- rq-issueChangeLinkage01 -->
    - **Roadmap-origin path (`#N` positional)** — if the first token in `$ARGUMENTS` matches `/^#(\d+)\b/` (rq-issueChangeLinkage01):
      - Run `gh issue view <N> --json title,body,labels,number,state`. On non-zero exit, abort with the exact stderr + hint to run `gh auth status` and verify the issue exists. Do **not** create a partial change.
      - Run the issue body through `sanitizeRoadmapOrigin()` (`plugin/src/utils/roadmap-origin-sanitize.ts`) to strip ADV scoring trailers per `rq-roadmapOriginSanitize01`. Surface any `warnings` from the sanitizer in change context for human review.
@@ -84,15 +84,17 @@ After confirmation:
 1. `adv_change_create` with the confirmed problem statement as `## Why`
 2. Infer change type autonomously from the problem statement + current codebase
 3. Use `adv_spec` list/show/search to determine affected capabilities and whether a new capability/spec is required
-4. Fill proposal sections: What Changes, Success Criteria, Affected Code, Related Repositories, Constraints, Impact, Context, Discovery Agenda (unresolved unknowns from Phase 1b)
+4. Fill proposal sections: What Changes, User Outcomes, Affected Code, Related Repositories, Constraints, Impact, Context, Discovery Agenda (unresolved unknowns from Phase 1b)
+   - `## User Outcomes` captures high-level user-perspective outcomes only: what the user needs delivered, stated implementation-free.
+   - × Do NOT write engineering acceptance criteria or testable success criteria here. Defer AC/SC firming to `/adv-discover`.
 5. Determine cross-repo scope autonomously from code paths/interfaces/config; ask only if boundary ambiguity changes the intended outcome
 6. Run proposal checklist quality gate; refine autonomously unless refinement would change confirmed intent
-  7. **Phase 2.5: Build Scope Section** — Build `## Scope` section in proposal.md with `### In Scope`, `### Out of Scope`, and `### Must Not` subsections. Must Not captures negative constraints — things the implementation must actively avoid even within scope. `"None identified"` is valid content. Surface to user inline if In Scope or Out of Scope are empty or missing — block gate completion until populated. Missing Must Not produces HIGH finding but does NOT block gate. Backwards-compat: if proposal gate already done (re-entry case), skip rebuilding (treat as legacy).
+7. **Phase 2.5: Build Scope Section** — Build `## Scope` section in proposal.md with `### In Scope`, `### Out of Scope`, and `### Must Not` subsections. Must Not captures negative constraints — things the implementation must actively avoid even within scope. `"None identified"` is valid content. Surface to user inline if In Scope or Out of Scope are empty or missing — block gate completion until populated. Missing Must Not produces HIGH finding but does NOT block gate. Backwards-compat: if proposal gate already done (re-entry case), skip rebuilding (treat as legacy).
 <!-- rq-prop-scope1 -->
 8. **Phase 2.6: Run B/F/S Ambiguity Scan** — Read full proposal.md content. Apply 3-category scan per `ADV_INSTRUCTIONS.md § Ambiguity Taxonomy`:
    - B (Boundaries) — check for `### Out of Scope` content and `### Must Not` subsection. Missing Must Not → HIGH finding (does NOT block gate). `"None identified"` accepted as valid content.
-   - F (Functional Scope) — check for testable Success Criteria
-   - S (Completion Signals) — check for vague/unmeasurable language
+   - F (Functional Scope) — check that `## User Outcomes` exists and is implementation-free; this does NOT require testable success criteria
+   - S (Completion Signals) — check for vague/unmeasurable language in the proposal and Discovery Agenda
    - Emit findings inline in proposal output (not persisted as section unless any CRITICAL)
    - × MUST NOT call `adv_gate_complete gateId: 'proposal'` if any CRITICAL B/F/S finding exists (agent honor-system rule per KD1; v2 may add machine enforcement)
    - × MUST NOT fabricate evidence quotes — every finding cites verbatim text from proposal.md or `(no {section} section)`
@@ -161,6 +163,7 @@ Agreed problem framing + scope boundary.
 ## Delivered
 - Change {change-id} created
 - Problem statement confirmed
+- User Outcomes captured
 - Discovery agenda captured
 
 ---

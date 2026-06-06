@@ -23,7 +23,7 @@ describe("formatContextSnapshot", () => {
   const baseInput: ContextSnapshotInput = {
     changeId: "improveContextAgreement",
     title: "Improve context agreement",
-    successCriteriaCount: 3,
+    userOutcomeCount: 3,
     gates: {
       proposal: { status: "done" },
       discovery: { status: "done" },
@@ -62,9 +62,9 @@ describe("formatContextSnapshot", () => {
     expect(output).toContain("5 pending");
   });
 
-  test("includes success criteria count", () => {
+  test("includes user outcome count", () => {
     const output = formatContextSnapshot(baseInput);
-    expect(output).toContain("Success: 3 criteria");
+    expect(output).toContain("Outcomes: 3 items");
   });
 
   test("includes workdir path", () => {
@@ -119,13 +119,13 @@ describe("formatContextSnapshot", () => {
     expect(output).toContain("0 done");
   });
 
-  test("handles missing success criteria count gracefully", () => {
+  test("handles missing user outcome count gracefully", () => {
     const input: ContextSnapshotInput = {
       ...baseInput,
-      successCriteriaCount: undefined,
+      userOutcomeCount: undefined,
     };
     const output = formatContextSnapshot(input);
-    expect(output).toContain("Success: ? criteria");
+    expect(output).toContain("Outcomes: ? items");
   });
 
   // Wisdom line tests (tk-VRoeOJTG)
@@ -231,7 +231,7 @@ describe("MAX_BOX_WIDTH cap on compact surfaces (rq-ctxformat.3, rq-ctxformat.4)
     const input: ContextSnapshotInput = {
       changeId: longId,
       title: "synthetic test for truncation",
-      successCriteriaCount: 0,
+      userOutcomeCount: 0,
       gates: {},
       taskCounts: { done: 0, in_progress: 0, pending: 0, cancelled: 0 },
       workdir: "/tmp",
@@ -249,7 +249,7 @@ describe("MAX_BOX_WIDTH cap on compact surfaces (rq-ctxformat.3, rq-ctxformat.4)
     const input: ContextSnapshotInput = {
       changeId: "improverefactorbatchorderingan",
       title: "improve refactor batch ordering and hot skip",
-      successCriteriaCount: 0,
+      userOutcomeCount: 0,
       gates: {},
       taskCounts: { done: 0, in_progress: 0, pending: 0, cancelled: 0 },
       workdir: "/tmp",
@@ -303,7 +303,7 @@ describe("buildChangeContextSnapshot", () => {
           { id: "tk-3", title: "Pending task", status: "pending" },
         ],
       },
-      proposalText: "## Success Criteria\n- One\n- Two\n",
+      proposalText: "## User Outcomes\n- One\n- Two\n",
       gates: {
         proposal: { status: "done" },
         discovery: { status: "done" },
@@ -313,7 +313,7 @@ describe("buildChangeContextSnapshot", () => {
     });
 
     expect(output).toContain("fixSlopScanFindings");
-    expect(output).toContain("Success: 2 criteria");
+    expect(output).toContain("Outcomes: 2 items");
     expect(output).toContain("1 done");
     expect(output).toContain("1 active");
     expect(output).toContain("1 pending");
@@ -328,7 +328,7 @@ describe("buildChangeContextSnapshot", () => {
         tasks: [{ id: "tk-1", title: "Done task", status: "done" }],
         wisdom: [{ type: "pattern" }, { type: "gotcha" }, { type: "pattern" }],
       },
-      proposalText: "## Success Criteria\n- One\n",
+      proposalText: "## User Outcomes\n- One\n",
       gates: {
         proposal: { status: "done" },
       },
@@ -478,7 +478,7 @@ describe("formatContextSnapshot enrichment", () => {
   const baseInput: ContextSnapshotInput = {
     changeId: "improveContextAgreement",
     title: "Improve context agreement",
-    successCriteriaCount: 3,
+    userOutcomeCount: 3,
     gates: {
       proposal: { status: "done" },
       discovery: { status: "done" },
@@ -507,19 +507,19 @@ describe("formatContextSnapshot enrichment", () => {
     expect(output).not.toContain("files");
   });
 
-  test("replaces Success line with errorBudgetProximity when provided", () => {
+  test("replaces Outcomes line with errorBudgetProximity when provided", () => {
     const input: ContextSnapshotInput = {
       ...baseInput,
       errorBudgetProximity: "⚠ 2/3 budget",
     };
     const output = formatContextSnapshot(input);
     expect(output).toContain("⚠ 2/3 budget");
-    expect(output).not.toContain("Success: 3 criteria");
+    expect(output).not.toContain("Outcomes: 3 items");
   });
 
-  test("shows Success line when errorBudgetProximity is absent", () => {
+  test("shows Outcomes line when errorBudgetProximity is absent", () => {
     const output = formatContextSnapshot(baseInput);
-    expect(output).toContain("Success: 3 criteria");
+    expect(output).toContain("Outcomes: 3 items");
   });
 });
 

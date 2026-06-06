@@ -9,7 +9,6 @@ import { describe, test, expect } from "vitest";
 import {
   ClarifyReadinessCodes,
   checkSubjectiveLanguage,
-  checkMissingSuccessCriteria,
   checkMissingScenarios,
   checkUnclearScope,
   checkAssumptionHeavy,
@@ -77,40 +76,6 @@ describe("checkSubjectiveLanguage", () => {
     });
     const issues = checkSubjectiveLanguage(change);
     expect(issues).toEqual([]);
-  });
-});
-
-// =============================================================================
-// checkMissingSuccessCriteria
-// =============================================================================
-
-describe("checkMissingSuccessCriteria", () => {
-  test("flags when proposal has no success criteria section", () => {
-    const proposalText = `# My Change\n\n## Intent\n\nDo something.\n\n## Scope\n\n- file.ts`;
-    const issues = checkMissingSuccessCriteria(makeChange(), proposalText);
-    expect(issues.length).toBe(1);
-    expect(issues[0].code).toBe(
-      ClarifyReadinessCodes.CLARIFY_MISSING_SUCCESS_CRITERIA,
-    );
-    expect(issues[0].details?.questionCategory).toBe("evidence");
-  });
-
-  test("flags when success criteria are all placeholder", () => {
-    const proposalText = `# My Change\n\n## Success Criteria\n\n- [ ] Criterion 1\n- [ ] Criterion 2`;
-    const issues = checkMissingSuccessCriteria(makeChange(), proposalText);
-    expect(issues.length).toBe(1);
-  });
-
-  test("does not flag when success criteria have concrete content", () => {
-    const proposalText = `# My Change\n\n## Success Criteria\n\n- [ ] API responds within 200ms at p95\n- [ ] Rate limiter rejects after 100 req/min`;
-    const issues = checkMissingSuccessCriteria(makeChange(), proposalText);
-    expect(issues).toEqual([]);
-  });
-
-  test("does not flag empty proposal (handled by other checks)", () => {
-    const issues = checkMissingSuccessCriteria(makeChange(), "");
-    // Empty proposal means no section found — should flag
-    expect(issues.length).toBe(1);
   });
 });
 
@@ -357,7 +322,7 @@ describe("runClarifyReadinessChecks", () => {
         ],
       },
     });
-    const proposalText = `# Add Rate Limiting\n\n## Intent\n\nLimit API requests to 100/min per user.\n\n## Scope\n\n- src/middleware/rate-limiter.ts\n- src/routes/api.ts\n\n## Success Criteria\n\n- [ ] API returns 429 after 100 requests per minute\n- [ ] Rate limit headers included in response\n\n## Error Handling\n\nOn rate limit exceeded, return 429 with Retry-After header.`;
+    const proposalText = `# Add Rate Limiting\n\n## Intent\n\nLimit API requests to 100/min per user.\n\n## User Outcomes\n\n- Users receive a clear 429 response after exceeding the approved request limit\n- Operators can see rate-limit headers in responses\n\n## Scope\n\n- src/middleware/rate-limiter.ts\n- src/routes/api.ts\n\n## Error Handling\n\nOn rate limit exceeded, return 429 with Retry-After header.`;
     const result = runClarifyReadinessChecks(change, proposalText);
     expect(result.passed).toBe(true);
     expect(result.findings).toEqual([]);
@@ -385,19 +350,27 @@ describe("runClarifyReadinessChecks", () => {
     const result = runClarifyReadinessChecks(change, proposalText);
     expect(result.passed).toBe(false);
     expect(result.findings.length).toBeGreaterThan(0);
-    // Should have at least: subjective language, missing success criteria, missing scenarios, unclear scope
+    // Should have at least: subjective language, missing scenarios, unclear scope.
+    // Proposal-level success criteria are intentionally not required; discovery
+    // owns firming AC/SC into the ChangeContract.
     const codes = result.findings.map((f) => f.code);
     expect(codes).toContain(ClarifyReadinessCodes.CLARIFY_SUBJECTIVE_LANGUAGE);
-    expect(codes).toContain(
-      ClarifyReadinessCodes.CLARIFY_MISSING_SUCCESS_CRITERIA,
+    expect(codes.every((code) => !code.includes("SUCCESS_CRITERIA"))).toBe(
+      true,
     );
     expect(codes).toContain(ClarifyReadinessCodes.CLARIFY_MISSING_SCENARIOS);
     expect(codes).toContain(ClarifyReadinessCodes.CLARIFY_UNCLEAR_SCOPE);
   });
 
-  test("checksPerformed lists all 6 check functions", () => {
+  test("checksPerformed lists active check functions", () => {
     const result = runClarifyReadinessChecks(makeChange(), "");
-    expect(result.checksPerformed).toHaveLength(6);
+    expect(result.checksPerformed).toEqual([
+      "checkSubjectiveLanguage",
+      "checkMissingScenarios",
+      "checkUnclearScope",
+      "checkAssumptionHeavy",
+      "checkMissingErrorHandling",
+    ]);
   });
 
   test("checkedAt is a valid ISO timestamp", () => {

@@ -88,7 +88,7 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
   "adv-proposal": {
     name: "adv-proposal",
     description:
-      "Extract problem statement, success criteria, and constraints without creating tasks",
+      "Extract problem statement, user outcomes, and constraints without creating tasks",
     phase: "core",
     gate: "proposal",
     requiresChangeId: false,
@@ -101,7 +101,7 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
       gates: ["proposal"],
     },
     phaseGoal:
-      "Clarify the problem, user needs, and acceptance criteria scope. Establish what and why \u2014 no how.",
+      "Clarify the problem, user needs, and high-level user outcomes. Establish what and why \u2014 no how.",
   },
   "adv-validate": {
     name: "adv-validate",
@@ -227,7 +227,7 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
   "adv-prep": {
     name: "adv-prep",
     description:
-      "Analyze gaps and synthesize tasks from validated research findings",
+      "Analyze gaps and synthesize tasks from approved agreement plus validated design",
     phase: "pre-implementation",
     gate: "planning",
     requiresChangeId: true,

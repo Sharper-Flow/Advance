@@ -483,7 +483,7 @@ describe("Status Tools", () => {
 
     test("suppresses clarify recommendation when all gates complete", async () => {
       // Vague proposal that triggers ≥2 clarify-readiness findings:
-      // missing Success Criteria + missing Scope sections.
+      // missing Scope section plus vague/assumption-heavy content.
       const vagueProposal = `# Completed Vague Change
 
 ## Summary

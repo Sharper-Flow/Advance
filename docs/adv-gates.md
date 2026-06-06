@@ -8,26 +8,26 @@ All changes must complete 7 sequential quality gates before archival.
 proposal → discovery → design → planning → execution → acceptance → release
 ```
 
-| #   | Gate ID      | Description                         | Triggered By                   | Artifact                           |
-| --- | ------------ | ----------------------------------- | ------------------------------ | ---------------------------------- |
-| 1   | `proposal`   | Problem statement confirmed         | `/adv-proposal`                | `problem-statement.md`             |
-| 2   | `discovery`  | Context gathered, objectives agreed | `/adv-discover`                | `agreement.md`                     |
-| 3   | `design`     | Architecture decisions validated    | `/adv-design`                  | `design.md`                        |
-| 4   | `planning`   | Task graph synthesized              | `/adv-prep`                    | Task graph in `change.json`        |
-| 5   | `execution`  | Deliverables produced via TDD       | `/adv-apply` (all tasks done)  | Code, docs, ops deliverables       |
-| 6   | `acceptance` | User accepts deliverables           | `/adv-review`                  | User sign-off                      |
-| 7   | `release`    | Final quality pass and archive      | `/adv-harden` + `/adv-archive` | Spec deltas applied, git finalized |
+| #   | Gate ID      | Description                                  | Triggered By                   | Artifact                              |
+| --- | ------------ | -------------------------------------------- | ------------------------------ | ------------------------------------- |
+| 1   | `proposal`   | Problem statement + User Outcomes confirmed  | `/adv-proposal`                | `problem-statement.md`, `proposal.md` |
+| 2   | `discovery`  | Context gathered, criteria agreed            | `/adv-discover`                | `agreement.md`, `ChangeContract`      |
+| 3   | `design`     | Architecture + technical criteria validated  | `/adv-design`                  | `design.md`                           |
+| 4   | `planning`   | Task graph synthesized from agreement/design | `/adv-prep`                    | Task graph in `change.json`           |
+| 5   | `execution`  | Deliverables produced via TDD                | `/adv-apply` (all tasks done)  | Code, docs, ops deliverables          |
+| 6   | `acceptance` | User accepts deliverables                    | `/adv-review`                  | User sign-off                         |
+| 7   | `release`    | Final quality pass and archive               | `/adv-harden` + `/adv-archive` | Spec deltas applied, git finalized    |
 
 ## Gate Status Values
 
-| Value                | Meaning                                                                       |
-| -------------------- | ----------------------------------------------------------------------------- |
-| `pending`            | Not yet started                                                               |
-| `in_progress`        | A workflow phase is actively running for this gate                            |
-| `awaiting_approval`  | Phase output is staged; waiting for explicit user approval                    |
-| `stuck`              | Surfaced blocker; gate cannot advance until the blocker is resolved or re-entered |
-| `done`               | Completed with timestamp + actor evidence                                     |
-| `skipped`            | Explicitly skipped with documented reason                                     |
+| Value               | Meaning                                                                           |
+| ------------------- | --------------------------------------------------------------------------------- |
+| `pending`           | Not yet started                                                                   |
+| `in_progress`       | A workflow phase is actively running for this gate                                |
+| `awaiting_approval` | Phase output is staged; waiting for explicit user approval                        |
+| `stuck`             | Surfaced blocker; gate cannot advance until the blocker is resolved or re-entered |
+| `done`              | Completed with timestamp + actor evidence                                         |
+| `skipped`           | Explicitly skipped with documented reason                                         |
 
 The signal-driven model exposes per-gate state transitions via dedicated signals:
 `gateInProgressSignal`, `gateAwaitingApprovalSignal`, `gateStuckSignal`, `gateCompletedSignal`,
@@ -49,25 +49,25 @@ The signal-driven model exposes per-gate state transitions via dedicated signals
 
 Owner: `/adv-proposal` | **Pauses for:** proposal confirmation
 
-Produces `proposal.md` and `problem-statement.md` — the confirmed problem statement with success criteria and constraints. This is the entry point for all changes. The proposal gate is artifact-backed: direct `gateCompletedSignal` calls still require workflow-readable `proposal.md` evidence unless an explicit migration/replay compatibility rationale is recorded.
+Produces `proposal.md` and `problem-statement.md` — the confirmed problem statement, implementation-free `## User Outcomes`, scope boundaries, constraints, and discovery agenda. Proposal does not own engineering acceptance criteria or testable success criteria; those are firmed in discovery. This is the entry point for all changes. The proposal gate is artifact-backed: direct `gateCompletedSignal` calls still require workflow-readable `proposal.md` evidence unless an explicit migration/replay compatibility rationale is recorded.
 
 ### Discovery Gate
 
 Owner: `/adv-discover` | **Pauses for:** agreement sign-off (user-facing outcome questions only)
 
-Produces `agreement.md` — context analysis, objectives, and constraints agreed with the user. `/adv-discover` Phase 4 (the agreement phase) includes a mandatory clarification loop that triages all open questions from discovery: technical questions are resolved autonomously via LBP research, while user-facing questions (priorities, behavior, downsides, AC boundaries) are presented to the user. No question may be silently deferred. Phase 4.5.1 adds an explicit **Acceptance Criteria Checkpoint** before `agreement.md` is persisted and the discovery gate completes, offering approve, `/adv-clarify` handoff, or write-in edit outcomes; if the user selects `/adv-clarify`, discovery stops and resumes only after the user reruns `/adv-discover`. The discovery and planning gates evaluate the full change including completed tasks — completed work is evidence to validate, not acceptance proof. Follow-up tasks are added where gaps are found. The discovery gate is artifact-backed by workflow-readable `agreement.md`.
+Produces `agreement.md` — context analysis, objectives, success criteria, acceptance criteria, constraints, and avoidances agreed with the user. `/adv-discover` Phase 4 (the agreement phase) includes a mandatory clarification loop that triages all open questions from discovery: technical questions are resolved autonomously via LBP research, while user-facing questions (priorities, behavior, downsides, AC boundaries) are presented to the user. No question may be silently deferred. Phase 4.5.1 adds an explicit criteria checkpoint before `agreement.md` is persisted and the discovery gate completes, offering approve, `/adv-clarify` handoff, or write-in edit outcomes; if the user selects `/adv-clarify`, discovery stops and resumes only after the user reruns `/adv-discover`. Discovery also runs an advisory implementation-free guard: mechanism-encoding criteria are flagged as likely design-derived but do not hard-block the gate by themselves. The discovery and planning gates evaluate the full change including completed tasks — completed work is evidence to validate, not acceptance proof. Follow-up tasks are added where gaps are found. The discovery gate is artifact-backed by workflow-readable `agreement.md` and the minted `ChangeContract`.
 
 ### Design Gate
 
 Owner: `/adv-design` | **Pauses for:** design approval when real tradeoffs depend on user values, when the design validator returns CONFLICT, or when the agent identifies contract-compromise risk (rq-designval04); auto-continues for straightforward deterministic designs with no compromise risk
 
-Produces `design.md` — validated architecture decisions and implementation strategy. Design decisions are frozen after this gate completes. The design gate is artifact-backed by workflow-readable `design.md`.
+Produces `design.md` — validated architecture decisions, implementation strategy, and `## Design-Derived Criteria` for technical budgets/limits created by the selected design. `/adv-design` must not invent new user-facing acceptance criteria. If design invalidates approved criteria, routine re-entry starts from discovery before prep resumes. Design decisions are frozen after this gate completes. The design gate is artifact-backed by workflow-readable `design.md`.
 
 ### Planning Gate
 
 Owner: `/adv-prep` | **Auto-continues** when clean (no user approval needed)
 
-Produces the task graph in `change.json`. After this gate completes, `metadata.tdd_intent` is frozen on all tasks. Genuine scope changes are handled via `adv_change_reenter` rather than mid-execution mutation.
+Produces the task graph in `change.json`. Prep maps criteria/design into tasks; it does not firm criteria or rewrite `agreement.md`. Criteria gaps discovered during prep route back to discovery/design through `adv_change_reenter`. After this gate completes, `metadata.tdd_intent` is frozen on all tasks. Genuine scope changes are handled via `adv_change_reenter` rather than mid-execution mutation.
 
 ### Execution Gate
 

@@ -2,14 +2,14 @@
   "$schema": "https://raw.githubusercontent.com/Sharper-Flow/Advance/trunk/plugin/schemas/spec.schema.json",
   "name": "adv-proposal",
   "title": "ADV Proposal Command",
-  "purpose": "Defines the responsibilities and boundaries of /adv-proposal. The proposal command establishes WHAT and WHY \u2014 problem statement, objectives, success criteria, and constraints. It produces alignment artifacts, not implementation artifacts.",
-  "version": "1.2.0",
-  "updated_at": "2026-03-14T00:00:00.000Z",
+  "purpose": "Defines the responsibilities and boundaries of /adv-proposal. The proposal command establishes WHAT and WHY \u2014 problem statement, vision/direction, high-level user outcomes (implementation-free), and constraints. Engineering acceptance criteria and success criteria are firmed downstream in /adv-discover. It produces alignment artifacts, not implementation artifacts.",
+  "version": "1.3.0",
+  "updated_at": "2026-06-05T00:00:00.000Z",
   "requirements": [
     {
       "id": "rq-prop-out1",
       "title": "Proposal Produces Alignment Artifacts Only",
-      "body": "/adv-proposal must produce a confirmed problem statement, success criteria, constraints, and affected specs. It must NOT create tasks, complete gates, or make implementation decisions.",
+      "body": "/adv-proposal must produce a confirmed problem statement, high-level user outcomes (implementation-free), constraints, and affected specs. It must NOT create tasks, complete gates, or make implementation decisions.",
       "priority": "must",
       "tags": ["proposal", "boundary", "alignment"],
       "scenarios": [
@@ -20,7 +20,7 @@
           "when": "The command completes successfully",
           "then": [
             "A change is created via adv_change_create",
-            "proposal.md contains problem statement, success criteria, and constraints",
+            "proposal.md contains problem statement, user outcomes, and constraints",
             "Zero calls to adv_task_add are made",
             "The change has an empty task list"
           ]
@@ -40,7 +40,7 @@
     {
       "id": "rq-prop-scope1",
       "title": "Proposal Focuses on Problem Agreement",
-      "body": "/adv-proposal must use a two-phase workflow: Phase 1 establishes shared understanding of the problem via inline approval voice, Phase 2 builds the full proposal with INVEST-quality success criteria. The command must not proceed to Phase 2 without user confirmation of the problem statement.",
+      "body": "/adv-proposal must use a two-phase workflow: Phase 1 establishes shared understanding of the problem via inline approval voice, Phase 2 builds the full proposal with high-level, implementation-free user outcomes. Testable success criteria and engineering acceptance criteria are deferred to /adv-discover. The command must not proceed to Phase 2 without user confirmation of the problem statement.",
       "priority": "must",
       "tags": ["proposal", "boundary", "context-agreement"],
       "scenarios": [
@@ -57,13 +57,13 @@
         },
         {
           "id": "rq-prop-scope1.2",
-          "title": "Success criteria pass INVEST quality check",
+          "title": "User outcomes are implementation-free",
           "given": ["Phase 2 is reached after problem statement confirmation"],
-          "when": "Success criteria are defined",
+          "when": "User outcomes are defined",
           "then": [
-            "Each criterion is testable and measurable",
-            "No subjective or ambiguous language remains",
-            "Requirements smell detection is applied"
+            "Each outcome is stated as a user-facing need, not a mechanism or solution",
+            "No testable or INVEST success-criteria rigor is required at the proposal stage",
+            "Testable acceptance criteria are deferred to /adv-discover"
           ]
         }
       ]
@@ -137,7 +137,7 @@
     {
       "id": "rq-prop-tax2",
       "title": "B/F/S Ambiguity Scan",
-      "body": "/adv-proposal MUST run a 3-category ambiguity scan (B=Boundaries, F=Functional Scope, S=Completion Signals) against the proposal during Phase 2.6. CRITICAL findings MUST block proposal gate completion under clarify_enforcement: strict.",
+      "body": "/adv-proposal MUST run a 3-category ambiguity scan (B=Boundaries, F=Functional Scope, S=Completion Signals) against the proposal during Phase 2.6. F=Functional Scope checks that high-level user outcomes are present and implementation-free; it does NOT require testable success criteria. CRITICAL findings MUST block proposal gate completion under clarify_enforcement: strict.",
       "priority": "must",
       "tags": [
         "proposal",
@@ -149,15 +149,15 @@
       "scenarios": [
         {
           "id": "rq-prop-tax2.1",
-          "title": "Vague success criteria produce S1 HIGH finding",
+          "title": "Implementation-encoding user outcome produces F finding",
           "given": [
-            "A proposal with success criteria containing 'fast response'"
+            "A proposal whose ## User Outcomes encodes a mechanism, e.g. 'store sessions in Redis'"
           ],
           "when": "The B/F/S scan runs during Phase 2.6",
           "then": [
-            "An S1 HIGH finding is emitted",
-            "Evidence field cites exact phrase 'fast response' verbatim",
-            "Reason field states why the criterion is vague"
+            "An F-category HIGH finding is emitted",
+            "Evidence field cites the exact mechanism phrase verbatim",
+            "Reason field states the outcome is implementation detail deferred to /adv-design"
           ]
         },
         {
@@ -221,7 +221,7 @@
           "when": "The change is created",
           "then": [
             "proposal.md is written in the change directory",
-            "The file includes intent, scope, and success criteria"
+            "The file includes intent, scope, and user outcomes"
           ]
         },
         {
@@ -323,6 +323,37 @@
         "legacy_ids": ["rq-advprop02"],
         "migrated_from": "advance-meta"
       }
+    },
+    {
+      "id": "rq-stageProposalUserOutcomes01",
+      "title": "Proposal Owns Implementation-Free User Outcomes",
+      "body": "/adv-proposal MUST produce a ## User Outcomes section capturing high-level, user-perspective outcomes (what the user needs delivered), stated implementation-free per ISO/IEC/IEEE 29148. /adv-proposal MUST NOT require testable or INVEST success criteria or engineering acceptance criteria, and MUST NOT make design or implementation decisions. Testable acceptance criteria and success criteria are firmed and user-confirmed downstream in /adv-discover. A proposal that lacks testable success criteria MUST NOT, on that basis, produce a blocking finding or block any gate.",
+      "priority": "must",
+      "tags": ["proposal", "user-outcomes", "stage-boundary", "implementation-free"],
+      "scenarios": [
+        {
+          "id": "rq-stageProposalUserOutcomes01.1",
+          "title": "Proposal produces User Outcomes, defers AC to discovery",
+          "given": ["A user invokes /adv-proposal"],
+          "when": "Phase 2 builds the full proposal",
+          "then": [
+            "proposal.md contains a ## User Outcomes section with implementation-free, user-perspective outcomes",
+            "The proposal does not contain a required testable success-criteria or engineering acceptance-criteria section",
+            "Engineering acceptance criteria and success criteria are explicitly deferred to /adv-discover"
+          ]
+        },
+        {
+          "id": "rq-stageProposalUserOutcomes01.2",
+          "title": "Missing testable success criteria does not block the proposal",
+          "given": ["A proposal with User Outcomes but no testable success criteria"],
+          "when": "Gate readiness and the planning-gate clarify run are evaluated",
+          "then": [
+            "No clarify-readiness finding fires on the basis of absent proposal success criteria",
+            "No gate is blocked on that basis",
+            "Criteria-presence enforcement is anchored to /adv-discover agreement and the minted ChangeContract"
+          ]
+        }
+      ]
     }
   ]
 }

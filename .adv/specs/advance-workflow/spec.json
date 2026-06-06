@@ -3,8 +3,8 @@
   "name": "advance-workflow",
   "title": "Advance Workflow",
   "purpose": "Capability: Workflow contract layer for ADV \u2014 gate model, autonomy boundaries, design validation, scope management, releases, approvals, handoff voice, review remediation, and touched-scope quality. Split from `advance` capability.",
-  "version": "1.14.0",
-  "updated_at": "2026-05-25T00:00:00.000Z",
+  "version": "1.15.0",
+  "updated_at": "2026-06-05T00:00:00.000Z",
   "requirements": [
     {
       "id": "rq-problemSpecLaw01",
@@ -87,9 +87,7 @@
         {
           "id": "rq-taskSpecLaw01.3",
           "title": "Small durable changes use tracked fast path",
-          "given": [
-            "A user asks for a small well-understood durable change"
-          ],
+          "given": ["A user asks for a small well-understood durable change"],
           "when": "Full /adv-proposal ceremony is not warranted but implementation work is needed",
           "then": [
             "ADV agent routing prefers /adv-task over ad hoc/direct implementation",
@@ -122,7 +120,9 @@
         {
           "id": "rq-R3v13wR1.1",
           "title": "Evidence-backed clean verdict validation",
-          "given": ["A review or harden pass produces few or no actionable findings"],
+          "given": [
+            "A review or harden pass produces few or no actionable findings"
+          ],
           "when": "The final verdict is emitted",
           "then": [
             "The verdict includes evidence-backed clean justification for checked dimensions",
@@ -133,7 +133,9 @@
         {
           "id": "rq-R3v13wR1.2",
           "title": "Review remediation is mandatory",
-          "given": ["Review or harden produces blocker/issue findings or validated in-scope findings"],
+          "given": [
+            "Review or harden produces blocker/issue findings or validated in-scope findings"
+          ],
           "when": "The phase enters remediation",
           "then": [
             "All blocker and issue findings are fixed and verified unless rejected with evidence as invalid or out of scope",
@@ -2514,12 +2516,7 @@
       "title": "Blank Artifact and Linkage Mutation Arguments",
       "body": "ADV mutation tools MUST normalize provided blank or whitespace-only strings to omitted for fields that write durable narrative artifacts or origin linkage metadata. Required-when-present audit, evidence, and identity fields MUST still reject blank values. For adv_change_update this applies to proposal, problemStatement, agreement, design, and executiveSummary, including mixed payloads where another artifact field is non-blank. For adv_change_create this applies to provided narrative artifact fields and origin_source_artifact. Omitted fields preserve existing omission/default semantics. Normalization MUST occur before writes or workflow signals. Storage artifact write boundaries MUST also reject blank artifact content so bypassing preflight cannot erase an artifact.",
       "priority": "must",
-      "tags": [
-        "tools",
-        "validation",
-        "artifacts",
-        "origin"
-      ],
+      "tags": ["tools", "validation", "artifacts", "origin"],
       "scenarios": [
         {
           "id": "rq-toolArgBlankArtifactLinkage01.1",
@@ -2549,9 +2546,7 @@
         {
           "id": "rq-toolArgBlankArtifactLinkage01.3",
           "title": "Create normalizes blank provided narrative artifacts to omitted",
-          "given": [
-            "adv_change_create receives agreement: '   '"
-          ],
+          "given": ["adv_change_create receives agreement: '   '"],
           "when": "The create invocation is validated",
           "then": [
             "agreement is normalized to omitted",
@@ -2574,9 +2569,7 @@
         {
           "id": "rq-toolArgBlankArtifactLinkage01.5",
           "title": "Blank origin source artifact is normalized to omitted",
-          "given": [
-            "adv_change_create receives origin_source_artifact: '   '"
-          ],
+          "given": ["adv_change_create receives origin_source_artifact: '   '"],
           "when": "The create invocation is validated",
           "then": [
             "origin_source_artifact is normalized to omitted",
@@ -2586,9 +2579,7 @@
         {
           "id": "rq-toolArgBlankArtifactLinkage01.6",
           "title": "Required-when-present audit fields still reject blank",
-          "given": [
-            "adv_change_update receives confirmationEvidence: ''"
-          ],
+          "given": ["adv_change_update receives confirmationEvidence: ''"],
           "when": "The update invocation is validated",
           "then": [
             "The invocation fails before writes or workflow signals",
@@ -2955,6 +2946,76 @@
             "The summary may include Preview URL: not_applicable",
             "The not_applicable state includes rationale",
             "Preview URL absence does not block acceptance for the non-visual change"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-stageDesignCriteriaBoundary01",
+      "title": "Design Owns Design-Derived Technical Criteria Only",
+      "body": "/adv-design MUST produce validated architecture decisions, implementation strategy, and any design-derived technical criteria such as performance, security, scale, migration, or operational budgets. /adv-design MUST NOT invent new user-facing acceptance criteria. If design invalidates or requires changing approved user-facing criteria, the workflow MUST treat discovery re-entry as the routine path for criteria revision before prep resumes.",
+      "priority": "must",
+      "tags": ["workflow", "design", "criteria", "re-entry", "stage-boundary"],
+      "scenarios": [
+        {
+          "id": "rq-stageDesignCriteriaBoundary01.1",
+          "title": "Design records technical criteria without new user AC",
+          "given": [
+            "A change reaches /adv-design with approved discovery criteria"
+          ],
+          "when": "/adv-design writes design.md",
+          "then": [
+            "design.md may include a Design-Derived Criteria section for technical budgets and constraints",
+            "design.md does not add new user-facing acceptance criteria as if they were approved agreement items",
+            "The design explains how approved discovery criteria will be delivered"
+          ]
+        },
+        {
+          "id": "rq-stageDesignCriteriaBoundary01.2",
+          "title": "Design-invalidated AC uses discovery re-entry",
+          "given": [
+            "A design decision proves an approved acceptance criterion invalid, incomplete, or mechanism-derived"
+          ],
+          "when": "/adv-design handles the conflict",
+          "then": [
+            "The conflict is surfaced before planning",
+            "adv_change_reenter is used from discovery when criteria must change",
+            "The design gate does not silently rewrite approved user-facing criteria"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-stageCriteriaEnforcementRetarget01",
+      "title": "Criteria Enforcement Anchors After Discovery",
+      "body": "Workflow enforcement MUST NOT require proposal.md to contain testable success criteria. Proposal `## User Outcomes` are alignment inputs. Criteria-presence enforcement for full changes MUST anchor to discovery's agreement artifact and the minted ChangeContract. Planning, execution, acceptance, and release MUST continue to use the approved ChangeContract review matrix and evidence policies without reading proposal-level success criteria as contract law.",
+      "priority": "must",
+      "tags": ["workflow", "criteria", "proposal", "discovery", "contract"],
+      "scenarios": [
+        {
+          "id": "rq-stageCriteriaEnforcementRetarget01.1",
+          "title": "Proposal without success criteria reaches planning",
+          "given": [
+            "proposal.md contains `## User Outcomes` and no proposal-level `## Success Criteria` section"
+          ],
+          "when": "The change reaches planning-gate readiness checks",
+          "then": [
+            "No clarify-readiness finding fires solely because proposal success criteria are absent",
+            "The planning gate is not blocked on that basis",
+            "Criteria checks use agreement.md and the ChangeContract instead"
+          ]
+        },
+        {
+          "id": "rq-stageCriteriaEnforcementRetarget01.2",
+          "title": "Acceptance contract behavior unchanged",
+          "given": [
+            "The ChangeContract contains approved `AC*` items from discovery"
+          ],
+          "when": "/adv-review builds the acceptance review matrix",
+          "then": [
+            "Each `AC*` item is reviewed with its evidence policy as before",
+            "No proposal `## User Outcomes` item is reviewed as an `AC*` unless it was approved through discovery agreement",
+            "The absence of proposal success criteria does not weaken acceptance review of approved contract items"
           ]
         }
       ]

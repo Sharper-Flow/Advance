@@ -1,11 +1,11 @@
 # ADV Discover Command
 
-> **Version:** 1.1.0
-> **Updated:** 2026-04-10
+> **Version:** 1.3.0
+> **Updated:** 2026-06-05
 
 ## Purpose
 
-Defines the rigor requirements for /adv-discover. The discover command gathers current-state evidence, investigates edge cases, scans for conflicts and related patterns, and produces structured findings for /adv-agree. It must extend prior research rather than rehash it.
+Defines the rigor requirements for /adv-discover. The discover command gathers current-state evidence, investigates edge cases, scans for conflicts and related patterns, and produces the user-confirmed agreement. It owns firming design-independent behavioral acceptance criteria and success criteria before design. It must extend prior research rather than rehash it.
 
 ## Requirements
 
@@ -339,7 +339,7 @@ When /adv-discover absorbs the user-facing agreement flow, the command MUST pres
 
 **ID:** `rq-disc12` | **Priority:** **[MUST]**
 
-/adv-discover MUST present draft acceptance criteria as a dedicated checkpoint before agreement.md persistence and before adv_gate_complete gateId: discovery. The checkpoint MUST offer explicit user outcomes for approval, /adv-clarify handoff, or write-in edits, and MUST NOT complete discovery until acceptance criteria are approved.
+/adv-discover MUST present draft acceptance criteria and success criteria as a dedicated checkpoint before agreement.md persistence and before adv_gate_complete gateId: discovery. The checkpoint MUST offer explicit user choices for approval, /adv-clarify handoff, or write-in edits, and MUST NOT complete discovery until acceptance criteria and success criteria are approved.
 
 **Tags:** `discover`, `acceptance-criteria`, `checkpoint`, `agreement`
 
@@ -348,14 +348,14 @@ When /adv-discover absorbs the user-facing agreement flow, the command MUST pres
 **Acceptance criteria checkpoint precedes agreement persistence and gate completion** (`rq-disc12.1`)
 
 **Given:**
-- /adv-discover has resolved all user-facing open questions and produced draft acceptance criteria
+- /adv-discover has resolved all user-facing open questions and produced draft acceptance criteria and success criteria
 
 **When:** The command reaches the agreement sign-off flow
 
 **Then:**
-- The command presents Acceptance Criteria as a focused checkpoint
+- The command presents Acceptance Criteria and Success Criteria as a focused checkpoint
 - The inline handoff offers approve, start /adv-clarify, and add/clarify outcomes per docs/command-voice-standard.md § Inline Approval Voice
-- agreement.md is persisted only after acceptance criteria are approved
+- agreement.md is persisted only after acceptance criteria and success criteria are approved
 - adv_gate_complete gateId: discovery occurs only after approval
 
 **/adv-clarify branch stops discovery cleanly** (`rq-disc12.2`)
@@ -696,6 +696,78 @@ After creating a skill, the agent MUST load it via `skill()`, use it in the curr
 **Then:**
 - The scout is skipped with documented rationale
 - Phase 3.5 records Scout: skipped — {rationale}
+
+---
+
+### Discovery Firms Design-Independent Criteria
+
+**ID:** `rq-stageDiscoveryFirmCriteria01` | **Priority:** **[MUST]**
+
+/adv-discover MUST firm and user-confirm design-independent behavioral acceptance criteria and success criteria in agreement.md before completing the discovery gate. These criteria are the authoritative source for ChangeContract `AC*` and `SC*` items. Proposal-level User Outcomes may inform the criteria, but engineering acceptance criteria and success criteria are discovery-owned and must not be treated as already final at proposal time.
+
+**Tags:** `discover`, `agreement`, `criteria`, `stage-boundary`
+
+#### Scenarios
+
+**Agreement contains user-confirmed behavioral criteria** (`rq-stageDiscoveryFirmCriteria01.1`)
+
+**Given:**
+- A change reaches the discovery agreement flow
+
+**When:** /adv-discover persists agreement.md and completes discovery
+
+**Then:**
+- agreement.md contains user-confirmed acceptance criteria and success criteria
+- The criteria describe externally observable behavior or completion signals, not implementation mechanisms
+- adv_gate_complete gateId: discovery occurs only after criteria approval
+
+**Discovery criteria mint into ChangeContract** (`rq-stageDiscoveryFirmCriteria01.2`)
+
+**Given:**
+- agreement.md contains approved criteria
+
+**When:** The ChangeContract is minted from the agreement
+
+**Then:**
+- Acceptance Criteria become `AC*` contract items
+- Success Criteria become `SC*` contract items
+- No proposal `## User Outcomes` section is parsed as a ChangeContract criteria source
+
+---
+
+### Discovery Criteria Implementation-Free Guard Is Advisory
+
+**ID:** `rq-stageDiscoveryImplFreeGuard01` | **Priority:** **[MUST]**
+
+When /adv-discover scans draft acceptance criteria and detects a mechanism, component, library, data structure, or implementation-specific phrasing, it MUST emit an advisory finding that marks the criterion as preliminary or likely design-derived. The finding MUST cite the exact phrase and recommend design review or discovery revision. The guard MUST NOT hard-block the discovery gate by itself.
+
+**Tags:** `discover`, `criteria`, `implementation-free`, `advisory`
+
+#### Scenarios
+
+**Mechanism encoded in AC emits advisory finding** (`rq-stageDiscoveryImplFreeGuard01.1`)
+
+**Given:**
+- A draft acceptance criterion says `store sessions in Redis`
+
+**When:** /adv-discover runs its criteria scan
+
+**Then:**
+- An advisory finding is emitted
+- The finding evidence cites `store sessions in Redis` verbatim
+- The finding states that implementation mechanism belongs in design unless the user-facing behavior truly depends on it
+
+**Advisory guard does not block discovery** (`rq-stageDiscoveryImplFreeGuard01.2`)
+
+**Given:**
+- The implementation-free guard emits one or more advisory findings
+
+**When:** All required discovery approvals and contract checks pass
+
+**Then:**
+- The discovery gate may still complete
+- No CRITICAL/blocking finding is produced solely by this advisory guard
+- Any needed criteria rewrite is handled by user revision or routine design-to-discovery re-entry
 
 ---
 

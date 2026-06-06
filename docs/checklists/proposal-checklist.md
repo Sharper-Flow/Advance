@@ -94,8 +94,8 @@ Uses finding shape from `ADV_INSTRUCTIONS.md § Ambiguity Taxonomy`:
 |----|----------|----------|---------|
 | B1 | CRITICAL | Boundaries | Missing `### Out of Scope` subsection |
 | B2 | HIGH | Boundaries | Missing `### Must Not` subsection |
-| F1 | CRITICAL | Functional Scope | Missing or placeholder `## Success Criteria` section |
-| S1 | HIGH | Completion Signals | Vague/unmeasurable success criteria (cite exact phrase) |
+| F1 | CRITICAL | Functional Scope | Missing or placeholder `## User Outcomes` section |
+| S1 | HIGH | Completion Signals | Vague user outcome or completion signal that will not guide discovery (cite exact phrase) |
 
 ### Gate-Block Rule
 

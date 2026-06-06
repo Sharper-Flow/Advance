@@ -1,0 +1,1219 @@
+{
+  "id": "sharpenWorkflowStageBoundaries",
+  "title": "Sharpen workflow stage boundaries",
+  "status": "archived",
+  "created_at": "2026-06-05T15:59:22.231Z",
+  "tasks": [
+    {
+      "id": "tk-4ac9e6e24635",
+      "title": "Edit adv-proposal spec: success criteria → User Outcomes",
+      "type": "code",
+      "section": "Specs",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-06-05T16:37:57.365Z",
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC2"
+        ],
+        "respects": [
+          "DONT1"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-05T16:51:06.435Z",
+      "verification": "pnpm exec vitest run src/adv-skill-backed-commands-assets.test.ts passed (54 tests). Earlier pnpm test -- src/... unexpectedly ran broader suite and exposed pre-existing malformed worktree-lifecycle spec/tool-registry failures; not caused by this task's two-file diff.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".adv/specs/adv-proposal/spec.json",
+        "plugin/src/adv-skill-backed-commands-assets.test.ts"
+      ],
+      "touched_files": [
+        ".adv/specs/adv-proposal/spec.json",
+        "plugin/src/adv-skill-backed-commands-assets.test.ts"
+      ],
+      "checkpointSha": "164f2eca121635bb67341f56aa56d8a356605f8d",
+      "completedAt": "2026-06-05T22:39:01.952Z",
+      "completed_at": "2026-06-05T22:39:01.952Z"
+    },
+    {
+      "id": "tk-22654e7a7284",
+      "title": "Add discover/design/workflow spec deltas",
+      "type": "code",
+      "section": "Specs",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-06-05T16:38:01.305Z",
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6"
+        ]
+      },
+      "verification": "pnpm exec vitest run src/adv-skill-backed-commands-assets.test.ts passed (55 tests). Edited spec JSON parsed successfully for adv-discover, adv-prep, and advance-workflow.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".adv/specs/adv-discover/spec.json",
+        ".adv/specs/adv-prep/spec.json",
+        ".adv/specs/advance-workflow/spec.json",
+        "plugin/src/adv-skill-backed-commands-assets.test.ts"
+      ],
+      "touched_files": [
+        ".adv/specs/adv-discover/spec.json",
+        ".adv/specs/adv-prep/spec.json",
+        ".adv/specs/advance-workflow/spec.json",
+        "plugin/src/adv-skill-backed-commands-assets.test.ts"
+      ],
+      "checkpointSha": "68cee8cdb229f90b4ff6a41b216cf09a912a84ab",
+      "completedAt": "2026-06-05T22:45:19.583Z",
+      "completed_at": "2026-06-05T22:45:19.583Z"
+    },
+    {
+      "id": "tk-8066fc3ac7a9",
+      "title": "Retire checkMissingSuccessCriteria + CLARIFY_MISSING_SUCCESS_CRITERIA",
+      "type": "code",
+      "section": "Plugin",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-06-05T16:38:17.803Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-4ac9e6e24635"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC6"
+        ],
+        "respects": [
+          "C4",
+          "DONT2"
+        ]
+      },
+      "verification": "RED: pnpm exec vitest run src/validator/clarify-readiness.test.ts failed with 3 expected failures while checkMissingSuccessCriteria was still wired. GREEN/VERIFY: pnpm exec vitest run src/validator/clarify-readiness.test.ts src/validator/clarify-readiness.e2e.test.ts passed (33 tests). `CLARIFY_MISSING_SUCCESS_CRITERIA` and `checkMissingSuccessCriteria` no longer appear in plugin/src.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/types/changes.ts",
+        "plugin/src/utils/tool-formatters.ts",
+        "plugin/src/validator/clarify-readiness.test.ts",
+        "plugin/src/validator/clarify-readiness.ts"
+      ],
+      "touched_files": [
+        "plugin/src/types/changes.ts",
+        "plugin/src/utils/tool-formatters.ts",
+        "plugin/src/validator/clarify-readiness.test.ts",
+        "plugin/src/validator/clarify-readiness.ts"
+      ],
+      "checkpointSha": "f76c8274ddb432b2e3a40ad3ee70fab6bf74b405",
+      "completedAt": "2026-06-05T22:48:39.022Z",
+      "completed_at": "2026-06-05T22:48:39.022Z"
+    },
+    {
+      "id": "tk-e5902391c572",
+      "title": "Rename proposal Success Criteria → User Outcomes (emitters + snapshot + manifest)",
+      "type": "code",
+      "section": "Plugin",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-06-05T16:38:27.997Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-4ac9e6e24635"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC2"
+        ],
+        "respects": [
+          "C4"
+        ]
+      },
+      "verification": "RED: pnpm exec vitest run src/utils/context-snapshot.test.ts src/storage/json.test.ts failed with expected Success Criteria/User Outcomes mismatches. GREEN/VERIFY: pnpm exec vitest run src/manifest.test.ts src/utils/context-snapshot.test.ts src/storage/json.test.ts src/handoff-footer-drift.test.ts passed (185 tests).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".adv/specs/chat-output-display/spec.json",
+        "plugin/src/handoff-footer-drift.test.ts",
+        "plugin/src/manifest.ts",
+        "plugin/src/storage/json.test.ts",
+        "plugin/src/storage/json.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/utils/context-snapshot.test.ts",
+        "plugin/src/utils/context-snapshot.ts"
+      ],
+      "touched_files": [
+        ".adv/specs/chat-output-display/spec.json",
+        "plugin/src/handoff-footer-drift.test.ts",
+        "plugin/src/manifest.ts",
+        "plugin/src/storage/json.test.ts",
+        "plugin/src/storage/json.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/utils/context-snapshot.test.ts",
+        "plugin/src/utils/context-snapshot.ts"
+      ],
+      "checkpointSha": "1ff8b65f93a6b6fa036c1d92e75633cd1c805700",
+      "completedAt": "2026-06-05T22:54:18.001Z",
+      "completed_at": "2026-06-05T22:54:18.001Z"
+    },
+    {
+      "id": "tk-5c8542973655",
+      "title": "Update proposal + discover command contracts",
+      "type": "code",
+      "section": "Commands",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-06-05T16:38:41.239Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-4ac9e6e24635"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-22654e7a7284"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC2",
+          "AC3",
+          "AC4"
+        ]
+      },
+      "verification": "RED: pnpm exec vitest run src/adv-skill-backed-commands-assets.test.ts failed until proposal/discover command contracts named User Outcomes and advisory implementation-free guard. GREEN/VERIFY: pnpm exec vitest run src/adv-skill-backed-commands-assets.test.ts src/delegation-matrix.test.ts src/commands-spine-assets.test.ts passed (81 tests).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".opencode/command/adv-discover.md",
+        ".opencode/command/adv-proposal.md",
+        "plugin/src/adv-skill-backed-commands-assets.test.ts"
+      ],
+      "touched_files": [
+        ".opencode/command/adv-discover.md",
+        ".opencode/command/adv-proposal.md",
+        "plugin/src/adv-skill-backed-commands-assets.test.ts"
+      ],
+      "checkpointSha": "cb2de4ae4228673c9c40dcc1a35b0550941f321d",
+      "completedAt": "2026-06-05T22:57:10.402Z",
+      "completed_at": "2026-06-05T22:57:10.402Z"
+    },
+    {
+      "id": "tk-f9f2b153abe2",
+      "title": "Update design + prep command contracts",
+      "type": "code",
+      "section": "Commands",
+      "status": "done",
+      "priority": 5,
+      "created_at": "2026-06-05T16:38:49.262Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-22654e7a7284"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC5"
+        ],
+        "respects": [
+          "DONT2"
+        ]
+      },
+      "verification": "RED: pnpm exec vitest run src/adv-skill-backed-commands-assets.test.ts failed until design/prep command contracts named Design-Derived Criteria, no-new-user-facing-AC, adv_change_reenter, and prep no-criteria-firming. GREEN/VERIFY: pnpm exec vitest run src/adv-skill-backed-commands-assets.test.ts src/delegation-matrix.test.ts src/commands-spine-assets.test.ts passed (81 tests).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".opencode/command/adv-design.md",
+        ".opencode/command/adv-prep.md",
+        "plugin/src/adv-skill-backed-commands-assets.test.ts"
+      ],
+      "touched_files": [
+        ".opencode/command/adv-design.md",
+        ".opencode/command/adv-prep.md",
+        "plugin/src/adv-skill-backed-commands-assets.test.ts"
+      ],
+      "checkpointSha": "6fc29dfb6631a8ed6df76fdd2f6da3fb4fe00037",
+      "completedAt": "2026-06-05T22:59:22.805Z",
+      "completed_at": "2026-06-05T22:59:22.805Z"
+    },
+    {
+      "id": "tk-cb49a6c039b6",
+      "title": "Update docs/adv-gates.md gate-behavior rows",
+      "type": "code",
+      "section": "Docs",
+      "status": "done",
+      "priority": 6,
+      "created_at": "2026-06-05T16:39:04.539Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-4ac9e6e24635"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-22654e7a7284"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1"
+        ]
+      },
+      "verification": "Docs-only task (tdd_intent not_applicable): updated docs/adv-gates.md gate rows and behavior text for User Outcomes, discovery-owned criteria, design-derived criteria, and prep criteria-mapping. Verification: pnpm exec vitest run src/adv-skill-backed-commands-assets.test.ts passed (55 tests).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "docs/adv-gates.md",
+        "plugin/src/adv-skill-backed-commands-assets.test.ts"
+      ],
+      "touched_files": [
+        "docs/adv-gates.md",
+        "plugin/src/adv-skill-backed-commands-assets.test.ts"
+      ],
+      "checkpointSha": "ba4130c77b8f189394b3d449d99b4cfb957940cb",
+      "completedAt": "2026-06-05T23:01:01.725Z",
+      "completed_at": "2026-06-05T23:01:01.725Z"
+    },
+    {
+      "id": "tk-81191f652ea3",
+      "title": "Full green build + reconcile validator refinements",
+      "type": "code",
+      "section": "Verification",
+      "status": "done",
+      "priority": 7,
+      "created_at": "2026-06-05T16:39:20.160Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-8066fc3ac7a9"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-e5902391c572"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-5c8542973655"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-f9f2b153abe2"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-cb49a6c039b6"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "contract_refs": {
+        "verifies": [
+          "AC7",
+          "AC8"
+        ]
+      },
+      "verification": "Acceptance-review remediation by adv-reviewer: stale stage-boundary wording fixed across manifest/docs/spec mirrors. Reviewer reported READY; verification passed: targeted 4 files/170 tests, bin/oc-test smoke, bin/oc-test full, JSON validation, stale wording scan, git diff --check.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".adv/specs/adv-discover/spec.json",
+        "ADV_INSTRUCTIONS.md",
+        "README.md",
+        "docs/specs/adv-discover.md",
+        "docs/specs/adv-prep.md",
+        "docs/specs/adv-proposal.md",
+        "plugin/src/manifest.test.ts",
+        "plugin/src/manifest.ts"
+      ],
+      "touched_files": [
+        ".adv/specs/adv-discover/spec.json",
+        "ADV_INSTRUCTIONS.md",
+        "README.md",
+        "docs/specs/adv-discover.md",
+        "docs/specs/adv-prep.md",
+        "docs/specs/adv-proposal.md",
+        "plugin/src/manifest.test.ts",
+        "plugin/src/manifest.ts"
+      ],
+      "checkpointSha": "f757fb60764724366a00f91fad9c8984c32ba163",
+      "completedAt": "2026-06-05T23:22:18.030Z",
+      "completed_at": "2026-06-05T23:22:18.030Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "sharpenWorkflowStageBoundaries",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:discovery-lbp-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Validate criteria-ownership model (firm behavioral AC before design, design-derived technical criteria after) against established RE/agile/stage-gate practice",
+      "sources": [
+        {
+          "label": "ISO/IEC/IEEE 29148:2011/2018 (RE standard) — Implementation-Free / what-not-how",
+          "locator": "https://nirmt.com/storage/uploads/E-BOOK_BE-INDUSTRIAL-AND-SAFETY/29148-2011%20-%20ISOIECIEEE%20International%20Standard%20-%20Systems%20and%20software%20engineering%20--%20Life%20cycle%20processes%20--Requirements.pdf",
+          "summary": "Canonical good-requirement characteristic 'Implementation Free': requirement states WHAT is required not HOW; avoids placing unnecessary constraints on architectural design; objective is implementation-independent. Directly endorses design-independent behavioral AC. Also: requirements must be verifiable/testable and atomic. Crucially includes the re-entry caveat (see below)."
+        },
+        {
+          "label": "ISO/IEC/IEEE 29148 — iterative/recursive RE+architecture caveat (re-entry control)",
+          "locator": "https://drkasbokar.com/wp-content/uploads/2024/09/29148-2018-ISOIECIEEE.pdf",
+          "summary": "'as requirements are allocated and decomposed through the levels of the system, there can be recognition of design decisions/solution architectures defined at a higher level. This is part of the iterative and recursive application of the requirements, architecture and design processes.' = standards-level endorsement of design-derived technical criteria AND of design feeding back to refine requirements (the re-entry valve)."
+        },
+        {
+          "label": "Marty Cagan / SVPG — Dual-Track Agile",
+          "locator": "https://www.svpg.com/dual-track-agile/",
+          "summary": "Discovery track produces VALIDATED backlog items; validation happens DURING discovery, before production code (vs waterfall validating after release). Confirms firming criteria forward of delivery is the named, established model."
+        },
+        {
+          "label": "Dual-track agile Definition of Ready handoff (evidence-anchored AC before delivery)",
+          "locator": "https://umbrex.com/resources/frameworks/project-management-frameworks/dual-track-agile/",
+          "summary": "Items move Discovery→Delivery on a Definition of Ready: validated problem, acceptance criteria, telemetry/test strategy written. Named failure mode: 'ideas flood delivery without clear acceptance criteria, causing churn and rework' — i.e. firming AC before build is the explicit control against churn."
+        },
+        {
+          "label": "PM StackExchange — keep AC independent of solution/UI",
+          "locator": "https://pm.stackexchange.com/questions/33816/should-we-write-acceptance-criteria-of-a-user-story-before-starting-with-ux-ui-d",
+          "summary": "'Keep your acceptance criteria independent of the solution... AC capture the basic requirements without being tied too closely to the UI or solution design.' BUT cautions against forcing a strictly LINEAR flow: design activity may legitimately surface new/changed AC → iterate. Direct support for both the design-independence rule and the re-entry valve; warning against rigid one-way linearity."
+        },
+        {
+          "label": "Scrum.org / Mountain Goat (Cohn) — DoD vs Acceptance Criteria",
+          "locator": "https://www.scrum.org/resources/blog/definition-done-vs-acceptance-criteria-explained",
+          "summary": "AC = per-item, user-perspective, what success looks like (extrinsic quality). DoD = universal engineering/quality bar (intrinsic quality). Maps cleanly: PROPOSAL user-outcomes + DISCOVERY behavioral AC = extrinsic/AC family; DESIGN-derived technical criteria lean toward intrinsic/DoD family. The two-axis split is a recognized, named distinction."
+        },
+        {
+          "label": "Gojko Adzic — Specification by Example; LeSS A-TDD; Fowler",
+          "locator": "https://martinfowler.com/bliki/SpecificationByExample.html",
+          "summary": "Collaborative requirements discovery: examples/executable acceptance tests specified WITH user/stakeholders in workshops BEFORE/concurrent with development; 'conversations leading to examples often more valuable than the tests.' Validates discovery-owned, user-confirmed, testable behavioral AC. Fowler caveat: SbE 'can't be the only requirements technique' — examples need generalization."
+        }
+      ],
+      "architecture_assessment": "The criteria-ownership model is strongly aligned with canonical practice; it is essentially a named recombination of three established ideas, not a novel/clever invention. (1) DISCOVERY owning design-INDEPENDENT behavioral AC = ISO/IEC/IEEE 29148 'Implementation-Free' requirement characteristic (state what, not how; implementation-independent; verifiable; atomic) + dual-track agile's 'validated backlog item / Definition of Ready' handoff. (2) DESIGN owning design-DERIVED technical criteria/budgets = 29148's explicit recursive caveat that design decisions/solution architectures are recognized as requirements are decomposed through system levels — i.e. derived constraints are expected downstream, not upstream. This design-independent-vs-design-derived split is real and named in practice as stakeholder/system requirements (extrinsic, what) vs derived/design constraints + intrinsic quality (how), and as AC vs DoD (extrinsic vs intrinsic quality). (3) The 'design → discovery re-entry when design invalidates a user-facing AC' valve is itself a standards-endorsed control: 29148 frames RE+architecture as iterative/recursive, and practitioners explicitly warn against a strictly linear flow — design work legitimately surfaces new/changed AC and must loop back (change control / iterative refinement / requirements churn management). PROPOSAL owning non-gating user-outcomes vs DISCOVERY owning testable AC mirrors the well-established business-goal/outcome vs conditions-of-satisfaction layering (Cohn, Scrum.org) and is NOT a false distinction. Forward ordering (firm behavioral AC before design, with escape valve) is exactly dual-track agile's posture: validate before build to avoid churn/rework, but never enforce one-way linearity.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "Model passes LBP validation: it is boring/proven, not clever. The ONLY caution is enforcement RIGIDITY, not the ownership split itself. Mature methods uniformly warn that a strictly linear AC-then-design flow is an anti-pattern; the re-entry valve is what makes the model correct. Spec deltas MUST make re-entry cheap and expected, not exceptional. Two guardrails the deltas should encode explicitly: (a) Some criteria genuinely CANNOT be firmed without architectural knowledge (performance/security/scale budgets) — these are correctly DESIGN-derived; do NOT force them into discovery. Discovery AC must stay black-box/observable per 29148. (b) Guard against the inverse failure: discovery AC secretly encoding design ('AC that smell like solutions' — 29148 implementation-free check + 'keep AC independent of solution'). Recommend a discovery-exit lint: any AC referencing a mechanism/component/architecture is mis-placed and belongs in design."
+      },
+      "recommendation": "Ship the model. Adopt established terminology to anchor it and reduce reinvention friction: (1) Use 29148 'Implementation-Free' as the test for discovery AC (what-not-how, black-box/observable, atomic, verifiable). (2) Call DISCOVERY criteria 'behavioral / black-box acceptance criteria' and DESIGN criteria 'derived requirements / design constraints' (29148 vocabulary) or frame as extrinsic (AC, user-perceived) vs intrinsic (DoD/engineering) quality (Scrum.org/Cohn). (3) Name the discovery→delivery handoff a 'Definition of Ready' (dual-track agile) and the design→discovery loop 'iterative/recursive refinement' or 'requirements re-validation' (29148) — frame it as normal change control, NOT failure. (4) Add a discovery-exit guard rejecting AC that encode a chosen mechanism, and an explicit category for design-derived budgets so teams don't try to firm un-firmable criteria in discovery. (5) Optionally lean on Specification-by-Example / Gherkin for the 'firmed and confirmed with the user' step — established mechanism for user-confirmed testable AC — but heed Fowler's caveat that examples are not the sole requirements technique.",
+      "follow_ups": [
+        "Spec deltas should make design→discovery re-entry low-friction and explicitly 'expected', not an exception path — biggest risk is the model hardening into rigid linear waterfall.",
+        "Add a discovery-gate guard: reject/flag AC that reference a specific mechanism/component/architecture (29148 implementation-free violation); these belong in design.",
+        "Add an explicit 'design-derived budget/constraint' criteria category so performance/security/scale limits that cannot be firmed pre-architecture are not forced into discovery.",
+        "Consider naming alignment with 29148 (Implementation-Free, derived requirements) and dual-track (Definition of Ready) so the model reads as established practice rather than bespoke ADV invention.",
+        "Did not separately verify Volere/BABOK/Cockburn/Cooper stage-gate primary sources this pass (bounded research); 29148 + dual-track + SbE + Scrum DoD/AC corpus already give converging multi-source support. State explicitly if deeper stage-gate-specific citation is later required."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "sharpenWorkflowStageBoundaries",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation: sharpen workflow stage boundaries (retire checkMissingSuccessCriteria, rename proposal Success Criteria -> User Outcomes)",
+      "sources": [
+        {
+          "label": "clarify-readiness.ts checkMissingSuccessCriteria + runClarifyReadinessChecks",
+          "locator": "plugin/src/validator/clarify-readiness.ts:127-183, 385-411",
+          "summary": "Reads proposal '## Success Criteria' (line 137-138); emits CLARIFY_MISSING_SUCCESS_CRITERIA as severity 'warning' only. Confirms retire surface and heading-regex collision."
+        },
+        {
+          "label": "gate.ts planning-gate clarify invocation",
+          "locator": "plugin/src/tools/gate.ts:704-737",
+          "summary": "clarify_enforcement defaults to 'advisory'; findings only HARD-BLOCK under 'strict' mode. So checkMissingSuccessCriteria only hard-blocks in strict mode today; advisory/off it is a warning."
+        },
+        {
+          "label": "contract-mint.ts buildContractFromAgreement",
+          "locator": "plugin/src/validator/contract-mint.ts:141-219",
+          "summary": "Parses input.agreement (NOT proposal). CONTRACT_ITEMS_EMPTY requires >=1 of SC/AC/C/DONT/OOS of ANY kind, not AC/SC specifically. Confirms rename claim 3b and reveals contract mint does not require an acceptance criterion specifically."
+        },
+        {
+          "label": "gate-readiness.ts discovery enforcement chain",
+          "locator": "plugin/src/temporal/gate-readiness.ts:12-18,220-242,387-413; workflows.ts:790-819",
+          "summary": "discovery gate is artifact-backed on 'agreement' (L2 stateBackedArtifactEvidence -> ARTIFACT_MISSING if no agreement). discoveryContractBlockers fires DISCOVERY_CONTRACT_MISSING when agreementExists && !contract. Combined: discovery cannot complete without an agreement AND a minted contract."
+        },
+        {
+          "label": "context-snapshot.countSuccessCriteria + chat-output-display spec",
+          "locator": "plugin/src/utils/context-snapshot.ts:79-95; .adv/specs/chat-output-display/spec.json:13",
+          "summary": "countSuccessCriteria parses proposal '## Success Criteria'; feeds the chat-output-display MUST requirement 'success criteria count'. Design step 3 acknowledges repoint/drop."
+        },
+        {
+          "label": "adv-proposal spec success-criteria dependencies",
+          "locator": ".adv/specs/adv-proposal/spec.json:5,12,23,43,60,152",
+          "summary": "Multiple MUST requirements mandate proposal 'success criteria' (rq-prop-out1, rq-prop-scope1/1.2, rq-prop-tax2.1). Design Key Decision #5 names exactly these lines for edit."
+        },
+        {
+          "label": "CLARIFY_MISSING_SUCCESS_CRITERIA live references",
+          "locator": "grep: clarify-readiness.ts, clarify-readiness.test.ts, tool-formatters.ts:269, types/changes.ts:171(comment)",
+          "summary": "Live code references bounded to those files; 50+ archive change.json hits are frozen historical records, not type-checked consumers. Enum is string-keyed object, removal is type-safe."
+        },
+        {
+          "label": "json.ts proposal scaffolds emit '## Success Criteria'",
+          "locator": "plugin/src/storage/json.ts:591,661; change.ts:166-172",
+          "summary": "Two scaffold templates WRITE '## Success Criteria' into new proposal.md. They emit (not parse) the heading; design did not explicitly enumerate them."
+        }
+      ],
+      "architecture_assessment": "The load-bearing claim (decision #1: retire-not-repoint preserves net criteria enforcement) is SOUND for the enforcement-gap question. The discovery gate is doubly gated: (a) artifact-backed on agreement.md (stateBackedArtifactEvidence -> ARTIFACT_MISSING/UNDERSIZED if absent or <20 non-whitespace chars), and (b) DISCOVERY_CONTRACT_MISSING once an agreement exists and no contract is minted. Contract mint requires >=1 contract item (CONTRACT_ITEMS_EMPTY). Therefore no change can reach planning/execution without an agreement + a minted contract. Removing checkMissingSuccessCriteria removes only (i) a severity:'warning' advisory in advisory/off modes and (ii) a strict-mode hard block on the PROPOSAL artifact. The post-design enforcement floor (agreement + contract present) is structurally stronger than a proposal-text regex. IMPORTANT NUANCE (not an enforcement-gap regression, but a precision caveat): neither contract mint nor the acceptance gate require an item of kind 'acceptance_criterion' SPECIFICALLY -- CONTRACT_ITEMS_EMPTY accepts any of SC/AC/C/DONT/OOS, and acceptanceContractBlockers iterate all verificationRequired items regardless of kind. This is unchanged by this design (it predates it) and AC8 preserves it, so it is not introduced here; but the design's framing 'discovery contract mint already blocks when AC/SC are absent' is slightly imprecise -- it blocks when ALL contract items are absent, not specifically when AC/SC are absent. Net: no NEW gap created; the pre-existing 'any-item-suffices' behavior is retained per AC8. Rename claim (3b) verified: contract-mint SECTION_MAPPINGS parses agreement.md only, so the proposal rename causes no acceptance-gate regression. The only proposal-text PARSERS of '## Success Criteria' are clarify-readiness + context-snapshot (both in scope); json.ts/change.ts templates are WRITERS that should follow the rename for consistency.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "VERDICT: VALIDATED with CAUTIONs (no conflicts). Dim1 CORRECTNESS=pass: no enforcement gap; discovery agreement+contract gating is the structural floor. Dim2 SIMPLICITY=pass: retire-not-repoint is correct and simpler; no path reaches planning without contract; legacy/in-flight handled by AC4-avoidance (no shim) since the removed check was warning/strict-only, not load-bearing. Dim3 SPEC-LAW=pass-with-caution: removal is spec-safe, but adv-proposal has 6 MUST requirement sites mandating proposal 'success criteria' that MUST all be edited (design Key Decision #5 + grep-sweep mitigation covers this) and chat-output-display 'success criteria count' MUST requirement depends on countSuccessCriteria (design step 3 covers repoint/drop). Dim3b=pass: contract-mint reads agreement.md. Dim4 ALTERNATIVES=pass: rejected re-point alternative correctly reasoned; design also retains sibling clarify checks. CAUTIONS to carry into prep: (C-a) precision wording -- contract enforces 'any item present', not 'AC/SC present'; align spec/command text accordingly. (C-b) enumerate json.ts:591/661 + change.ts:166-172 proposal scaffold templates in the edit list so new proposals emit '## User Outcomes' not '## Success Criteria' (else scaffolded proposals mismatch the renamed model and any User-Outcomes presence check). (C-c) confirm tool-formatters.ts:269 entry removal and that types/changes.ts:171 comment example is updated."
+      },
+      "recommendation": "Proceed to design-gate completion. The design is architecturally sound and the load-bearing enforcement-gap claim holds: the discovery gate's agreement-artifact L2 check plus DISCOVERY_CONTRACT_MISSING contract blocker form a structural enforcement floor that supersedes the retired proposal-text warning, so removing checkMissingSuccessCriteria creates no path to planning/execution without an agreement+contract. Three non-blocking cautions should be folded into prep tasks: (1) tighten spec/command wording -- the contract enforces 'at least one contract item', not 'AC/SC specifically' (the design's framing slightly overstates the existing guarantee, though AC8 correctly preserves current behavior); (2) add json.ts:591/661 and change.ts:166-172 proposal scaffold templates to the rename edit list so freshly scaffolded proposals emit '## User Outcomes'; (3) verify the complete bounded removal set for CLARIFY_MISSING_SUCCESS_CRITERIA (clarify-readiness.ts def+2 uses, clarify-readiness.test.ts, tool-formatters.ts:269, types/changes.ts:171 comment). None of these change the verdict; the retire-not-repoint decision is correct and simpler than the rejected alternative.",
+      "follow_ups": [
+        "Prep: edit all 6 adv-proposal success-criteria MUST sites (spec.json:5,12,23,43,60,152) via grep-sweep gate.",
+        "Prep: enumerate json.ts:591/661 + change.ts:166-172 scaffold templates in rename scope.",
+        "Prep: tighten spec/command wording on contract enforcement granularity (any-item vs AC/SC-specific) to match actual CONTRACT_ITEMS_EMPTY semantics.",
+        "Prep: confirm context-snapshot countSuccessCriteria repoint/drop keeps chat-output-display 'success criteria count' MUST satisfied."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "sharpenWorkflowStageBoundaries",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/sharpenWorkflowStageBoundaries",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [
+        {
+          "id": "review-praise-1",
+          "label": "praise",
+          "file": ".adv/specs/adv-proposal/spec.json",
+          "line": 5,
+          "what": "Core law now cleanly separates proposal User Outcomes from discovery AC/SC and avoids proposal-level criteria enforcement.",
+          "why": "This matches the approved stage-boundary model and keeps ChangeContract criteria anchored after discovery.",
+          "fix": "n/a"
+        }
+      ],
+      "changes_made": [
+        {
+          "file": "ADV_INSTRUCTIONS.md",
+          "summary": "Aligned autonomous drift detection with agreement.md contract sections and changed proposal phase goal from acceptance-criteria scope to high-level user outcomes.",
+          "verification": "grep stale-pattern scan passed; bin/oc-test full passed (258 files, 3499 tests)."
+        },
+        {
+          "file": "README.md",
+          "summary": "Updated core workflow and gate table so proposal owns user outcomes instead of success criteria.",
+          "verification": "grep stale-pattern scan passed; bin/oc-test full passed (258 files, 3499 tests)."
+        },
+        {
+          "file": "plugin/src/manifest.ts",
+          "summary": "Updated adv-proposal phaseGoal to high-level user outcomes, avoiding engineering AC wording in proposal stage metadata.",
+          "verification": "bin/oc-test targeted -- src/manifest.test.ts src/adv-skill-backed-commands-assets.test.ts src/validator/clarify-readiness.test.ts src/utils/context-snapshot.test.ts passed (170 tests); bin/oc-test full passed (258 files, 3499 tests)."
+        },
+        {
+          "file": "plugin/src/manifest.test.ts",
+          "summary": "Updated manifest phaseGoal assertion to match the approved proposal-stage boundary wording.",
+          "verification": "Targeted manifest/assets/validator/context snapshot test run passed; bin/oc-test full passed."
+        },
+        {
+          "file": ".adv/specs/adv-discover/spec.json",
+          "summary": "Changed rq-disc12 checkpoint law to require both acceptance criteria and success criteria approval, and replaced confusing 'user outcomes' choice wording with 'user choices'.",
+          "verification": "python -m json.tool .adv/specs/adv-discover/spec.json passed; stale-pattern scan passed; bin/oc-test full passed."
+        },
+        {
+          "file": "docs/specs/adv-proposal.md",
+          "summary": "Synchronized proposal spec mirror with User Outcomes semantics, implementation-free proposal stage, and no proposal-level INVEST success criteria requirement.",
+          "verification": "stale-pattern scan passed; bin/oc-test full passed."
+        },
+        {
+          "file": "docs/specs/adv-discover.md",
+          "summary": "Synchronized discovery spec mirror with AC+SC checkpoint approval and 'user choices' wording.",
+          "verification": "stale-pattern scan passed; bin/oc-test full passed."
+        },
+        {
+          "file": "docs/specs/adv-prep.md",
+          "summary": "Updated prep prohibited-actions mirror to forbid modifying agreement AC/SC or design intent rather than proposal success criteria.",
+          "verification": "stale-pattern scan passed; bin/oc-test full passed."
+        }
+      ],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "Stage-boundary wording can linger in secondary mirrors (`docs/specs/*.md`, README, manifest phase goals) even when canonical `.adv/specs/*.json` and command files are corrected; review should grep for old boundary phrases across non-archive docs before acceptance."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "Path preflight for all context-packet changed files",
+          "python -m json.tool .adv/specs/adv-discover/spec.json >/dev/null && python -m json.tool .adv/specs/adv-proposal/spec.json >/dev/null && bin/oc-test targeted -- src/manifest.test.ts src/adv-skill-backed-commands-assets.test.ts src/validator/clarify-readiness.test.ts src/utils/context-snapshot.test.ts",
+          "bin/oc-test smoke",
+          "python stale stage-boundary pattern scan excluding .adv/archive",
+          "bin/oc-test full",
+          "git diff --check"
+        ],
+        "results": "pass",
+        "evidence": "Path preflight OK for all listed files. Targeted tests: 4 files, 170 tests passed. Smoke: check pipeline plus 2 smoke test files, 39 tests passed. JSON validation passed for edited specs. Stale stage-boundary scan found no targeted stale patterns outside .adv/archive. Full suite: 258 test files, 3499 tests passed. git diff --check produced no output."
+      },
+      "scope_drift": null,
+      "risks": [
+        "No post-remediation blockers found. Full suite passed after fixes. .adv/archive still contains historical proposal success-criteria wording by design and was excluded from remediation."
+      ],
+      "required_main_agent_actions": [
+        "Review and keep the reviewer remediation diff before acceptance gate completion.",
+        "No ADV gate or orchestration mutation was performed by adv-reviewer."
+      ],
+      "consumer_warnings": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "sharpenWorkflowStageBoundaries",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/sharpenWorkflowStageBoundaries",
+      "scope": {
+        "kind": "change",
+        "scope_key": "scanner-bundle:harden"
+      },
+      "agent": "adv-scanner-bundle",
+      "phase": "harden",
+      "scanner_count": 3,
+      "dimensions": [
+        "documentation-hygiene",
+        "cleanup-readiness",
+        "residual-slop-maintainability",
+        "test-coverage",
+        "production-readiness",
+        "deployment-readiness"
+      ],
+      "summary": "Harden scanners initially found stale stage-boundary docs and /adv-task wording. In-scope findings fixed; user approved the narrow /adv-task wording fix. Verification passed: targeted affected tests, bin/oc-test smoke, bin/oc-test full, git diff --check, stale-token grep, merge dry-run against origin/trunk.",
+      "findings": [],
+      "follow_ups": [
+        "Optional non-blocking naming consistency: update pre-existing clarify-readiness test fixtures that still use `## Success Criteria` as structural text if a future cleanup wants complete fixture terminology alignment."
+      ],
+      "consumer_warnings": []
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-06-05T16:02:44.894Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved proposal inline (Tier A: \"approve\"). Problem statement confirmed; 3-tier criteria-ownership model + design→discovery re-entry valve folded in. Spec-delta obligation carried forward (rebalance proposal/discovery/design/prep stage responsibilities across specs + commands + plugin enforcement).",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/sharpenWorkflowStageBoundaries/proposal.md",
+        "content_hash": "0944e7609140ffa6c0a6142578b87d6e96d51dd6d691f472687ee16a04eb9704",
+        "non_whitespace_chars": 7245,
+        "checked_at": "2026-06-05T15:59:22.268Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-06-05T16:30:12.201Z",
+      "completed_by": "user",
+      "approval_evidence": "AC approved inline (Tier A: \"approve\") at the discovery AC checkpoint. agreement.md persisted; ChangeContract minted (25 items). 5 user decisions: User Outcomes heading; relocate checkMissingSuccessCriteria to discovery; advisory implementation-free guard; /adv-task out of scope (follow-up ag-JpHqmo1c); no backward-compat shim. LBP validated against ISO/IEC/IEEE 29148 + dual-track agile (adv-researcher PASS).",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/sharpenWorkflowStageBoundaries/agreement.md",
+        "content_hash": "f1c95ac92889bc2be462619280b2d55fddd3bc2557dd419450956e94116c41ed",
+        "non_whitespace_chars": 5586,
+        "checked_at": "2026-06-05T15:59:22.269Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-06-05T16:36:40.113Z",
+      "completed_by": "agent",
+      "approval_evidence": "Independent validator (adv-researcher) verdict VALIDATED — retire-not-repoint creates no enforcement gap (discovery double-gated: agreement artifact + DISCOVERY_CONTRACT_MISSING + CONTRACT_ITEMS_EMPTY). No user-value tradeoff, no CONFLICT, no contract-compromise risk → auto-continue. 3 non-blocking refinements folded into design.md + prep agenda (ag-HHWF51De/xYOw5fHJ/P7k57DXl/JOcYsX4o).",
+      "artifact_evidence": {
+        "kind": "design",
+        "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/sharpenWorkflowStageBoundaries/design.md",
+        "content_hash": "49ed8ce0af280dbed1d7bb8ff6372c2b5e5c3992e3cd96be19b4de8739b5247a",
+        "non_whitespace_chars": 7162,
+        "checked_at": "2026-06-05T15:59:22.270Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-06-05T16:50:10.503Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved the 8-task prep contract inline (\"approve\"). Law-first sequencing, full AC coverage, validator refinements folded in. Proceeding to autonomous execution in an isolated worktree (P32)."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-06-05T23:09:05.561Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 8 execution tasks completed with checkpoint commits. Verification passed: bin/oc-test smoke (pnpm run check + smoke slice) and bin/oc-test full. adv_change_validate strict passed with one NO_DELTAS warning accepted for spec-law edits already applied directly in repo specs."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-06-06T03:59:31.692Z",
+      "completed_by": "user",
+      "approval_evidence": "User accepted delivered work inline (Tier A: \"accept\"). Review verdict APPROVED/READY with 0 blockers and 0 issues. Contract review matrix persisted: 25/25 pass/respected/not_applicable; 0 fail/violated/unknown. Executive summary persisted and verified workflow-visible. Preview URL not_applicable (visual_surface:false). Verification passed: targeted affected suites, bin/oc-test smoke, bin/oc-test full; adv_change_validate strict passed with accepted NO_DELTAS warning.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/sharpenWorkflowStageBoundaries/executive-summary.md",
+        "content_hash": "c14cd2eaef1b8ae0b947ce432aa2ae85407018b197f467b0c5c764e281ea1bc8",
+        "non_whitespace_chars": 1569,
+        "checked_at": "2026-06-05T15:59:22.271Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "discovery"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "f1c95ac92889bc2be462619280b2d55fddd3bc2557dd419450956e94116c41ed",
+      "approvedAt": "2026-06-05T16:30:05.070Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "Each pre-execution stage owns one distinct concern with no upstream leakage of AC-grade or design work.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f1c95ac92889bc2be462619280b2d55fddd3bc2557dd419450956e94116c41ed",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "The proposal stage is materially lighter — no testable-success-criteria obligation, no design decisions.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f1c95ac92889bc2be462619280b2d55fddd3bc2557dd419450956e94116c41ed",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "The criteria-ownership model reads as established practice (29148 / dual-track), not bespoke ADV invention.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f1c95ac92889bc2be462619280b2d55fddd3bc2557dd419450956e94116c41ed",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC4",
+        "kind": "success_criterion",
+        "text": "No regression to the acceptance-gate contract machinery; full build green.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f1c95ac92889bc2be462619280b2d55fddd3bc2557dd419450956e94116c41ed",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "Given a new proposal run, when it completes the proposal gate, then it is not required to produce testable/INVEST success criteria or engineering AC, and a proposal lacking testable success criteria produces no blocking or planning-gate finding on that basis.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f1c95ac92889bc2be462619280b2d55fddd3bc2557dd419450956e94116c41ed",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Given the proposal spec + command, when inspected, then proposal owns a `## User Outcomes` section (implementation-free, non-gating) and explicitly defers engineering AC + success criteria to discovery.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f1c95ac92889bc2be462619280b2d55fddd3bc2557dd419450956e94116c41ed",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Given a discovery run, when agreement is formed, then discovery firms and user-confirms design-independent behavioral acceptance criteria + success criteria, and these mint into the ChangeContract (`AC*`/`SC*`) as today.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f1c95ac92889bc2be462619280b2d55fddd3bc2557dd419450956e94116c41ed",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Given a discovery AC that encodes a mechanism or component, when discovery runs its criteria scan, then ADV emits an advisory finding marking it preliminary/likely design-derived, without hard-blocking the discovery gate.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f1c95ac92889bc2be462619280b2d55fddd3bc2557dd419450956e94116c41ed",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Given the design spec + command, when inspected, then design owns design-derived technical criteria and is prohibited from inventing new user-facing AC, and the design→discovery re-entry path for invalidated AC is documented as routine.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f1c95ac92889bc2be462619280b2d55fddd3bc2557dd419450956e94116c41ed",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Given a change with no proposal-level success-criteria section, when it reaches the planning gate, then no clarify-readiness finding fires on proposal success-criteria, and criteria enforcement is anchored to discovery's agreement/contract.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f1c95ac92889bc2be462619280b2d55fddd3bc2557dd419450956e94116c41ed",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "Given the full change, when `pnpm run check` and the test suite run, then both pass, including updated asset tests for the four command files and the affected validator, snapshot, and manifest tests.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f1c95ac92889bc2be462619280b2d55fddd3bc2557dd419450956e94116c41ed",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC8",
+        "kind": "acceptance_criterion",
+        "text": "Given the acceptance gate, when a change is reviewed, then the ChangeContract `AC*` review matrix and evidence policies behave exactly as before this change.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f1c95ac92889bc2be462619280b2d55fddd3bc2557dd419450956e94116c41ed",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Specs-as-laws: all spec deltas authored, validated, and conformant before release.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f1c95ac92889bc2be462619280b2d55fddd3bc2557dd419450956e94116c41ed",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Preserve the crash-safe, artifact-backed gate model.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f1c95ac92889bc2be462619280b2d55fddd3bc2557dd419450956e94116c41ed",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Honor `clarify_enforcement` feature-flag semantics (off / advisory / strict).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f1c95ac92889bc2be462619280b2d55fddd3bc2557dd419450956e94116c41ed",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "No regression to ChangeContract `AC*` minting, review matrix, or evidence policies.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f1c95ac92889bc2be462619280b2d55fddd3bc2557dd419450956e94116c41ed",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not conflate proposal `User Outcomes` with engineering acceptance criteria.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f1c95ac92889bc2be462619280b2d55fddd3bc2557dd419450956e94116c41ed",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not hard-block the discovery gate on the implementation-free guard (advisory only).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f1c95ac92889bc2be462619280b2d55fddd3bc2557dd419450956e94116c41ed",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not redesign the `/adv-task` fast-track in this change (tracked follow-up `ag-JpHqmo1c`).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f1c95ac92889bc2be462619280b2d55fddd3bc2557dd419450956e94116c41ed",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not add backward-compatibility migration shims for existing proposals (no special handling).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f1c95ac92889bc2be462619280b2d55fddd3bc2557dd419450956e94116c41ed",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "Do not silently change the `clarify_enforcement` default.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f1c95ac92889bc2be462619280b2d55fddd3bc2557dd419450956e94116c41ed",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "Execution, acceptance, and release gate responsibilities.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f1c95ac92889bc2be462619280b2d55fddd3bc2557dd419450956e94116c41ed",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "ChangeContract `AC*` schema or evidence-policy redesign.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f1c95ac92889bc2be462619280b2d55fddd3bc2557dd419450956e94116c41ed",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "`/adv-task` fast-track redesign (follow-up `ag-JpHqmo1c`).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f1c95ac92889bc2be462619280b2d55fddd3bc2557dd419450956e94116c41ed",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS4",
+        "kind": "out_of_scope",
+        "text": "Backward-compat migration for in-flight changes carrying proposal success criteria.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f1c95ac92889bc2be462619280b2d55fddd3bc2557dd419450956e94116c41ed",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-06-05T23:23:30.000Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Review READY; specs/commands/docs now separate Proposal=User Outcomes, Discovery=AC/SC, Design=design-derived criteria, Prep=task mapping. Stale wording scan passed.",
+          "notes": "No upstream AC/design leakage remains in reviewed stage contracts."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Proposal spec/command/storage/snapshot changed from Success Criteria to User Outcomes; clarify readiness no longer blocks missing proposal success criteria.",
+          "notes": "Proposal materially lighter."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Agreement/design adopted ISO/IEC/IEEE 29148 implementation-free wording and dual-track Definition-of-Ready framing; adv-researcher validation PASS.",
+          "notes": "Reads as established requirements practice."
+        },
+        {
+          "contractId": "SC4",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "bin/oc-test smoke passed; bin/oc-test full passed; acceptance review READY; contract review matrix persisted through typed tool.",
+          "notes": "No acceptance contract regression observed."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "clarify-readiness tests updated: proposal without testable success criteria no longer emits CLARIFY_MISSING_SUCCESS_CRITERIA; targeted validator tests passed.",
+          "notes": "Planning-gate proposal SC blocker retired."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "adv-proposal spec/command/scaffold/snapshot tests pass; proposal owns implementation-free User Outcomes and defers engineering AC/SC to discovery.",
+          "notes": "User Outcomes section verified."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Discovery agreement still minted 25 ChangeContract items (SC*, AC*, C*, DONT*, OOS*) from agreement.md; contract present in adv_change_show.",
+          "notes": "AC/SC minting preserved."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "adv-discover spec/command updated for advisory implementation-free criteria scan; asset tests pass; no hard-blocking gate path added.",
+          "notes": "Advisory guard only."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "adv-design spec/command updated for Design-Derived Criteria, no-new-user-facing-AC rule, and routine adv_change_reenter from discovery; asset tests pass.",
+          "notes": "Design boundary documented."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "checkMissingSuccessCriteria and CLARIFY_MISSING_SUCCESS_CRITERIA removed from plugin/src; planning-gate criteria enforcement anchored to agreement/contract; validator tests pass.",
+          "notes": "No proposal SC readiness finding remains."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "bin/oc-test smoke passed; bin/oc-test full passed; targeted affected tests passed (manifest, snapshot, storage, clarify-readiness, command assets).",
+          "notes": "Full verification green."
+        },
+        {
+          "contractId": "AC8",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Review matrix rows set for all 25 contract items; preview URL not_applicable because agreement visual_surface:false and no visual-output files/tasks were implemented.",
+          "notes": "Evidence policies behave as before."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "adv_change_validate strict passed; NO_DELTAS warning accepted because spec-law edits were applied directly in repo specs; spec mirrors/docs updated.",
+          "notes": "Specs-as-laws honored."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "All tasks completed via ADV task checkpoints; gates advanced through ADV tools; worktree isolation used for mutations.",
+          "notes": "Crash-safe artifact model preserved."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No clarify_enforcement default change made; retirement limited to proposal success-criteria check; sibling clarify checks remain.",
+          "notes": "Feature-flag semantics preserved."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "ChangeContract schema/evidence policies untouched; AC*/SC* minting still present; typed review matrix set through adv_contract_review_matrix_set.",
+          "notes": "Contract machinery preserved."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Proposal terminology changed to User Outcomes; discovery remains AC/SC owner; docs and manifest aligned.",
+          "notes": "No conflation found in review."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Discovery implementation-free guard documented as advisory; no hard-blocking code path introduced.",
+          "notes": "No hard-block regression."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "/adv-task fast-track redesign not implemented; follow-up ag-JpHqmo1c retained.",
+          "notes": "Out-of-scope honored."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No backward-compat migration shim added; new model applies uniformly by removing the proposal-level check.",
+          "notes": "No shim added."
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No code/config change to clarify_enforcement default found in touched files or review evidence.",
+          "notes": "Default unchanged."
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "This change did not alter execution, acceptance, or release gate responsibilities beyond review-time evidence artifacts required by the workflow.",
+          "notes": "Out-of-scope item respected."
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No ChangeContract AC* schema or evidence-policy redesign performed; existing contract machinery used.",
+          "notes": "Out-of-scope item respected."
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "/adv-task fast-track redesign excluded; follow-up ag-JpHqmo1c tracks it.",
+          "notes": "Out-of-scope item respected."
+        },
+        {
+          "contractId": "OOS4",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No migration for in-flight changes carrying proposal success criteria was added.",
+          "notes": "Out-of-scope item respected."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "Given a new proposal run, when it completes the proposal gate, then it is not required to produce testable/INVEST success criteria or engineering AC, and a proposal lacking testable success criteria produces no blocking or planning-gate finding on that basis.",
+    "Given the proposal spec + command, when inspected, then proposal owns a `## User Outcomes` section (implementation-free, non-gating) and explicitly defers engineering AC + success criteria to discovery.",
+    "Given a discovery run, when agreement is formed, then discovery firms and user-confirms design-independent behavioral acceptance criteria + success criteria, and these mint into the ChangeContract (`AC*`/`SC*`) as today.",
+    "Given a discovery AC that encodes a mechanism or component, when discovery runs its criteria scan, then ADV emits an advisory finding marking it preliminary/likely design-derived, without hard-blocking the discovery gate.",
+    "Given the design spec + command, when inspected, then design owns design-derived technical criteria and is prohibited from inventing new user-facing AC, and the design→discovery re-entry path for invalidated AC is documented as routine.",
+    "Given a change with no proposal-level success-criteria section, when it reaches the planning gate, then no clarify-readiness finding fires on proposal success-criteria, and criteria enforcement is anchored to discovery's agreement/contract.",
+    "Given the full change, when `pnpm run check` and the test suite run, then both pass, including updated asset tests for the four command files and the affected validator, snapshot, and manifest tests.",
+    "Given the acceptance gate, when a change is reviewed, then the ChangeContract `AC*` review matrix and evidence policies behave exactly as before this change."
+  ],
+  "documents": {
+    "proposal": "## Why\n\nADV's four pre-execution gates leak responsibilities upstream. `adv-proposal/spec.json` mandates testable/INVEST success criteria + full scope + affected-code at proposal time, and machine enforcement (`validator/clarify-readiness.ts` `checkMissingSuccessCriteria()`, planning-gate block in `tools/gate.ts` under strict mode, `tools/status.ts` clarify nags) gives it teeth. The proposal stage over-plans and occasionally makes design decisions ahead of discovery/design. We want each pre-execution gate to own one distinct concern.\n\n## What Changes\n\n- **Proposal** owns: problem clarity, context gathering, user clarification, vision + direction, high-level user-perspective outcomes (user needs). Stops requiring testable success criteria, engineering AC, or design.\n- **Discovery** owns: design-independent (implementation-free) behavioral acceptance criteria + success criteria — firmed and confirmed with the user — plus deep project-state and web research toward the vision.\n- **Design** owns: architectural/engineering decisions and design-derived technical criteria; the plan to satisfy discovery's AC + vision. Tighten so nothing upstream pre-decides architecture.\n- **Prep** owns: remaining-context gathering, technical-doc readiness for implementing agents, task mapping + sequencing.\n- Rebalance the machine enforcement so proposal-level success-criteria checks no longer pull acceptance-grade work upstream; relocate/retarget that enforcement to discovery.\n- Resolve a terminology collision: proposal-level criteria must NOT reuse the load-bearing engineering term. Discovery mints typed ChangeContract `AC*` items (`evidencePolicy: \"test\"`) that drive the acceptance-gate review matrix. Give the proposal-level artifact a distinct, non-gating name; exact name decided in this change.\n\n## Criteria Ownership Model\n\nA clean 3-tier split resolves the discovery-vs-design chicken-and-egg (AC that depend on the chosen architecture cannot be firmed before design):\n\n| Stage | Criteria | Nature |\n|---|---|---|\n| Proposal | User outcomes | What the user needs. Value-framed, non-gating, implementation-free. |\n| Discovery | Acceptance criteria (`AC*`) + success criteria (`SC*`) | Observable/behavioral contract derived from user needs + domain + spec constraints + research. Design-independent (29148 implementation-free). User-confirmable. \"What must be true,\" not \"how.\" |\n| Design | Technical/design criteria | Budgets + constraints that fall out of the chosen architecture (perf/security/scale). Not user-facing, not user-confirmed. The plan to satisfy discovery's AC + vision. |\n\nInvariants:\n\n- Discovery firms only **design-independent** criteria. Design owns the HOW plus criteria the HOW forces.\n- Design MUST NOT invent new user-facing AC. If a design choice can only work by changing a user-facing AC, that is contract-compromise → `adv_change_reenter` from discovery (the existing escape valve; framed as routine iterative refinement, not exceptional).\n- Maps onto the existing typed contract: `AC*` (behavioral, `evidencePolicy: \"test\"`) + `SC*` (outcome, `review`) minted at discovery from `agreement.md`; technical criteria live in `design.md`.\n\n## Success Criteria\n\n- `adv-proposal` spec + command no longer require testable/INVEST success criteria; they require user-perspective outcomes instead.\n- `adv-discover` spec + command explicitly own firming + confirming design-independent behavioral AC + success criteria.\n- `adv-design` spec + command explicitly own design-derived technical criteria and forbid inventing new user-facing AC (re-entry path documented).\n- Machine enforcement (clarify-readiness checks, planning-gate block, status nags, context-snapshot count, contract-mint heading parse) is consistent with the new placement — no check demands testable success criteria from the proposal artifact.\n- Acceptance-gate machinery (ChangeContract `AC*`, review matrix, evidence policies) remains intact — no regression.\n- Terminology collision resolved: proposal-level user outcomes carry a distinct, non-gating name.\n- All affected specs, command files, `docs/adv-gates.md`, manifest, and tests are aligned and green: `pnpm run check` passes and the test suite is green.\n\n## Affected Code\n\n**Specs:** `adv-proposal`, `adv-discover`, `adv-design`, `adv-prep`, `advance-workflow`.\n\n**Commands:** `.opencode/command/adv-proposal.md` (Phase 1b / 2 / 2.5 / 2.6), `adv-discover.md`, `adv-design.md`, `adv-prep.md`.\n\n**Docs:** `docs/adv-gates.md` (Gate-Specific Behaviors), `ADV_INSTRUCTIONS.md` (Ambiguity Taxonomy).\n\n**Plugin code:** `validator/clarify-readiness.ts` (`checkMissingSuccessCriteria` — sole proposal-level AC-grade check), `tools/gate.ts` (planning-gate clarify block), `utils/context-snapshot.ts` (`countSuccessCriteria`), `utils/tool-formatters.ts` (`CLARIFY_MISSING_SUCCESS_CRITERIA`), `manifest.ts` (proposal description). `validator/contract-mint.ts` `SECTION_MAPPINGS` confirmed to read `agreement.md` (discovery), NOT proposal — heading collision only, no contract regression. `tools/status.ts` (ambiguity recommendations).\n\n**Tests:** `clarify-readiness.test.ts`, `clarify-readiness.e2e.test.ts`, `status.test.ts`, `context-snapshot.test.ts`, plus per-command asset tests.\n\n## Related Repositories\n\nSingle repo (`advance`). No cross-repo scope.\n\n## Constraints\n\n- Specs-as-laws: spec deltas must be authored, validated, and conformant.\n- Must not regress acceptance-gate ChangeContract machinery (`AC*`, review matrix, evidence policies).\n- Preserve the crash-safe, artifact-backed gate model.\n- Honor `clarify_enforcement` feature-flag semantics (off / advisory / strict).\n- Operate under current law until shipped (this proposal itself still carries a Success Criteria section).\n\n## Impact\n\n- Behavioral: lighter proposal stage; heavier, better-scoped discovery; less upstream over-planning and design leakage.\n- Risk: retargeting machine enforcement could regress gate-blocking or clarify recommendations if not carefully migrated.\n- Migration: in-flight changes carrying proposal-level success criteria need backward-compatible (legacy) handling.\n\n## Context\n\nSurfaced via `/adv-problem` triage this session. Root cause confirmed in spec law + plugin enforcement (not agent drift). User confirmed the four-stage responsibility model, the user-perspective outcomes framing for proposal, and the design-independent-vs-design-derived criteria split.\n\n## Scope\n\n### In Scope\n\n- Rebalancing pre-execution stage responsibilities across the four command files + their specs + the `advance-workflow` spec.\n- Retargeting/relocating machine enforcement of success-criteria from proposal to discovery.\n- Resolving the proposal-level criteria terminology collision (distinct non-gating name).\n- Codifying the 3-tier criteria ownership model + design→discovery re-entry path for invalidated AC.\n- Aligning docs, manifest, and tests.\n\n### Out of Scope\n\n- Execution / acceptance / release gate responsibilities.\n- ChangeContract `AC*` schema / evidence-policy redesign (must stay intact).\n- Runtime tool behavior beyond what the rebalance requires.\n- `/adv-task` fast-track redesign (revisit only if the rebalance forces it).\n\n### Must Not\n\n- Must not break the acceptance-gate review matrix or `AC*` minting.\n- Must not conflate proposal-level user outcomes with testable engineering AC.\n- Must not remove crash-safe artifact-backing from any gate.\n- Must not silently change the `clarify_enforcement` default without an explicit decision.\n\n## Discovery Findings\n\n### Current State (verified)\n\n- **ChangeContract mints from `agreement.md`, not proposal.** `contract-mint.ts` `SECTION_MAPPINGS` maps agreement headings → contract items: `Success Criteria`→`SC*`(`review`), `Acceptance Criteria`→`AC*`(`test`), `Constraints`→`C*`(`static_check`), `Avoidances`/`Do Not`→`DONT*`(`review`), `Out of Scope`→`OOS*`(`not_applicable`). Engineering criteria already form at discovery.\n- **Exactly one machine check pulls AC-grade work into proposal:** `clarify-readiness.ts` `checkMissingSuccessCriteria(change, proposalText)` parses proposal `## Success Criteria`. Other proposal-level clarify checks (`checkUnclearScope`, `checkAssumptionHeavy`, `checkMissingErrorHandling`) are context/boundary checks — retain. `checkSubjectiveLanguage`/`checkMissingScenarios` read change-level fields.\n- **Enforcement path:** `gate.ts` runs `runClarifyReadinessChecks` at the **planning gate**; `clarify_enforcement: \"strict\"` hard-blocks, `advisory` (default) warns, `status.ts` surfaces `/adv-clarify` nags. `context-snapshot.ts` `countSuccessCriteria(proposalText)` is display-only.\n- **Collision is heading-level only:** because the minter and the checker both key off the literal `Success Criteria` / `Acceptance Criteria` headings, giving the proposal artifact a distinct heading avoids both — no contract regression.\n\n### LBP Check — PASS (external validation, adv-researcher)\n\nModel is a named recombination of established practice, not bespoke:\n- Firm design-independent behavioral AC before design = ISO/IEC/IEEE 29148 \"Implementation-Free\" requirement characteristic.\n- Forward ordering = dual-track agile; validation in discovery gated by a \"Definition of Ready\".\n- User-outcomes (proposal) vs testable AC (discovery) mirrors business-outcome vs conditions-of-satisfaction layering (Cohn); AC vs DoD is the established two-axis split.\n- Design→discovery re-entry = standards-endorsed iterative refinement.\nCautions to encode: (C1) make re-entry cheap + expected, not waterfall-rigid; (C2) don't force un-firmable budgets (perf/security/scale) into discovery — they are correctly design-derived; (C3) inverse guard — reject discovery AC that encode a mechanism/component (implementation-free violation → belongs in design). Adopt 29148/dual-track terminology.\n\n### Conflict Scan\n\n`adv_change_validate`: passed (NO_TASKS/NO_DELTAS expected own-change warnings). No active/archived change addresses workflow stage boundaries. `adv_agenda_list` (73 items): no overlapping item; `ag-hevnf5t8` independently notes a different change \"still carries CLARIFY_MISSING_SUCCESS_CRITERIA\" — corroborates the recurring friction.\n\n### Draft Spec Deltas (shapes; final IDs in design/prep)\n\n- `rq-stageProposalUserOutcomes01` (adv-proposal): proposal owns implementation-free user outcomes; MUST NOT require testable success criteria / engineering AC / design.\n- `rq-stageDiscoveryFirmAC01` (adv-discover): discovery firms + user-confirms design-independent behavioral AC + success criteria, minted into ChangeContract from `agreement.md`.\n- `rq-stageDiscoveryImplFreeGuard01` (adv-discover): discovery AC MUST be implementation-free; AC encoding a mechanism/component are flagged as belonging to design (researcher C3).\n- `rq-stageDesignDerivedCriteria01` (adv-design): design owns design-derived technical criteria (perf/security/scale budgets); MUST NOT invent new user-facing AC; AC invalidated by design route back via routine `adv_change_reenter` from discovery (researcher C1/C2).\n- `rq-stageEnforcementRetarget01` (advance-workflow): proposal-level success-criteria machine check no longer gates planning on the proposal artifact; SC/AC presence enforcement is anchored to discovery's agreement/contract.\n\n### Recommended Objectives (for agreement)\n\n1. Proposal owns problem + vision/direction + implementation-free user outcomes; drops testable success criteria / engineering AC / design.\n2. Discovery owns firming + user-confirming design-independent behavioral AC + success criteria (minted into ChangeContract), with an implementation-free guard.\n3. Design owns design-derived technical criteria + the plan; forbids inventing user-facing AC; routine design→discovery re-entry for invalidated AC.\n4. Prep owns task mapping + technical-doc readiness; explicitly does not firm criteria.\n5. Retarget machine enforcement (surgical: relocate/retire `checkMissingSuccessCriteria`; resolve heading collision); anchor SC/AC enforcement to discovery.\n6. Align specs + commands + `docs/adv-gates.md` + manifest + tests; adopt 29148/dual-track terminology.\n7. Backward-compatible handling for in-flight changes.\n\n## Discovery Agenda (carry-forward / resolved)\n\n- RESOLVED: `contract-mint.ts` reads `agreement.md` (discovery), not proposal; `SC*` consumers = acceptance review matrix.\n- RESOLVED: enumerated clarify-readiness checks; only `checkMissingSuccessCriteria` is proposal-level AC-grade.\n- OPEN (design): proposal-level criteria name (User Outcomes vs UAC vs other).\n- OPEN (design): whether proposal user-outcomes seed discovery AC or are independent inputs.\n- RESOLVED: 3-tier boundary validated against 29148/dual-track; re-entry covers design-invalidated AC.\n- OPEN (this change): `clarify_enforcement` default + whether proposal retains a non-testable outcome-presence check.\n- OPEN (this change): backward-compat for in-flight changes with existing proposal success criteria.",
+    "problemStatement": "## Why\n\nADV's four pre-execution gates (proposal → discovery → design → prep) leak responsibilities upstream. The root cause is spec law plus machine enforcement, not agent drift:\n\n- `adv-proposal/spec.json` mandates the proposal produce INVEST-quality / testable **success criteria**, full scope, and an affected-code map at proposal time (purpose line; rq lines 12, 23, 43, 60, 152).\n- Machine enforcement gives it teeth: `validator/clarify-readiness.ts` `checkMissingSuccessCriteria()` parses `proposal.md` for a `## Success Criteria` section and flags missing/placeholder; `tools/gate.ts` runs those checks at the **planning gate** and, under `clarify_enforcement: \"strict\"`, hard-blocks; `tools/status.ts` nags via `/adv-clarify` recommendations.\n\nResult: the proposal stage over-plans — firming acceptance-grade and solution-adjacent detail — and occasionally makes design decisions, all ahead of discovery and design where that work belongs.\n\nDesired end-state: each pre-execution gate owns one distinct concern.\n\n- **Proposal** — problem clarity, context gathering, user clarification, vision + direction, and high-level **user-perspective** acceptance criteria (what the user needs delivered). No engineering AC, no testable success criteria, no design.\n- **Discovery** — specific context for design decisions, blocker/issue checks, deep project-state research, deep web research on the vision/direction. Engineering AC + success criteria firmed and confirmed with the user here.\n- **Design** — architectural/engineering decisions proposed, web-researched, validated, affirmed; plan to deliver AC + vision.\n- **Prep** — gather remaining context, ready technical docs for implementing agents, map tasks + sequence.",
+    "agreement": "# Agreement\n\n## Objectives\n\n1. Proposal stage owns problem + vision/direction + implementation-free **User Outcomes**; drops required testable success criteria, engineering AC, and design.\n2. Discovery stage owns firming + user-confirming design-independent behavioral acceptance criteria + success criteria (minted into the ChangeContract from `agreement.md`), with an advisory implementation-free guard.\n3. Design stage owns design-derived technical criteria (perf/security/scale budgets) + the plan to satisfy discovery's AC + vision; forbids inventing new user-facing AC; AC invalidated by design route back via routine `adv_change_reenter` from discovery.\n4. Prep stage owns task mapping + sequencing + technical-doc readiness; explicitly does not firm criteria.\n5. Retarget machine enforcement: relocate `checkMissingSuccessCriteria` from proposal to discovery; rename the proposal criteria heading to `User Outcomes` to avoid the `contract-mint` / clarify-check heading collision.\n6. Align specs (`adv-proposal`, `adv-discover`, `adv-design`, `adv-prep`, `advance-workflow`) + the four command files + `docs/adv-gates.md` + manifest + tests; adopt ISO/IEC/IEEE 29148 \"implementation-free\" and dual-track \"Definition of Ready\" terminology.\n\n## Success Criteria\n\n- Each pre-execution stage owns one distinct concern with no upstream leakage of AC-grade or design work.\n- The proposal stage is materially lighter — no testable-success-criteria obligation, no design decisions.\n- The criteria-ownership model reads as established practice (29148 / dual-track), not bespoke ADV invention.\n- No regression to the acceptance-gate contract machinery; full build green.\n\n## Acceptance Criteria\n\n1. Given a new proposal run, when it completes the proposal gate, then it is not required to produce testable/INVEST success criteria or engineering AC, and a proposal lacking testable success criteria produces no blocking or planning-gate finding on that basis.\n2. Given the proposal spec + command, when inspected, then proposal owns a `## User Outcomes` section (implementation-free, non-gating) and explicitly defers engineering AC + success criteria to discovery.\n3. Given a discovery run, when agreement is formed, then discovery firms and user-confirms design-independent behavioral acceptance criteria + success criteria, and these mint into the ChangeContract (`AC*`/`SC*`) as today.\n4. Given a discovery AC that encodes a mechanism or component, when discovery runs its criteria scan, then ADV emits an advisory finding marking it preliminary/likely design-derived, without hard-blocking the discovery gate.\n5. Given the design spec + command, when inspected, then design owns design-derived technical criteria and is prohibited from inventing new user-facing AC, and the design→discovery re-entry path for invalidated AC is documented as routine.\n6. Given a change with no proposal-level success-criteria section, when it reaches the planning gate, then no clarify-readiness finding fires on proposal success-criteria, and criteria enforcement is anchored to discovery's agreement/contract.\n7. Given the full change, when `pnpm run check` and the test suite run, then both pass, including updated asset tests for the four command files and the affected validator, snapshot, and manifest tests.\n8. Given the acceptance gate, when a change is reviewed, then the ChangeContract `AC*` review matrix and evidence policies behave exactly as before this change.\n\n## Constraints\n\n1. Specs-as-laws: all spec deltas authored, validated, and conformant before release.\n2. Preserve the crash-safe, artifact-backed gate model.\n3. Honor `clarify_enforcement` feature-flag semantics (off / advisory / strict).\n4. No regression to ChangeContract `AC*` minting, review matrix, or evidence policies.\n\n## Avoidances\n\n1. Do not conflate proposal `User Outcomes` with engineering acceptance criteria.\n2. Do not hard-block the discovery gate on the implementation-free guard (advisory only).\n3. Do not redesign the `/adv-task` fast-track in this change (tracked follow-up `ag-JpHqmo1c`).\n4. Do not add backward-compatibility migration shims for existing proposals (no special handling).\n5. Do not silently change the `clarify_enforcement` default.\n\n## Out of Scope\n\n1. Execution, acceptance, and release gate responsibilities.\n2. ChangeContract `AC*` schema or evidence-policy redesign.\n3. `/adv-task` fast-track redesign (follow-up `ag-JpHqmo1c`).\n4. Backward-compat migration for in-flight changes carrying proposal success criteria.\n\n## Preview Applicability\n\n`visual_surface: false` — this change edits workflow-contract markdown (command files), spec JSON, plugin TypeScript (validator/gate/snapshot/manifest), and docs. No browser-visible or visual output is affected.\n\n## Decisions\n\n### User Decisions\n\n- **Proposal criteria name** → `User Outcomes`. Distinct, implementation-free; avoids the engineering AC/SC heading collision.\n- **`checkMissingSuccessCriteria` fate** → relocate to discovery; anchor SC/AC presence enforcement to the agreement/contract.\n- **Implementation-free guard** → advisory finding (flag as preliminary/belongs-to-design); no hard block.\n- **`/adv-task` fast-track** → out of scope; tracked as follow-up `ag-JpHqmo1c`.\n- **Backward-compat** → no special handling; new model applies uniformly (clean because the proposal-level check is removed, not re-pointed at old proposals).\n\n### Agent Decisions (LBP)\n\n- Adopt ISO/IEC/IEEE 29148 \"implementation-free\" requirement terminology and dual-track \"Definition of Ready\" framing in spec/command text.\n- Frame design→discovery re-entry as routine iterative refinement, not an exceptional path (researcher caution C1).\n- Retain the sibling proposal-level clarify checks (`checkUnclearScope`, `checkAssumptionHeavy`, `checkMissingErrorHandling`) — they are context/boundary checks, not AC firming.\n- Add an explicit design-derived criteria category for un-firmable budgets (perf/security/scale) per researcher caution C2.\n\n## Deferred Questions\n\nNone. Two design-stage open items carry forward as design inputs (not user-deferred): (a) whether proposal `User Outcomes` seed discovery AC or are independent inputs; (b) exact placement/shape of the relocated discovery criteria check.\n\n## Sign-Off\n\nAcceptance criteria approved by user inline (\"approve\") on the discovery AC checkpoint. Objectives, constraints, avoidances, and decisions confirmed via the discovery open-question round (5 decisions).",
+    "design": "# Design\n\n## Architecture Overview\n\nA workflow-contract rebalance applied **law-first** across four layers: specs → command contracts → plugin enforcement code → tests/docs. No new subsystems. The change re-homes one machine check, re-labels one artifact section, and propagates stage-ownership language. The engineering ChangeContract (minted from `agreement.md` at discovery via `contract-mint.ts`) is the existing, authoritative criteria-enforcement point — the rebalance leans on it instead of building new enforcement.\n\n## Key Decisions\n\n1. **Relocate = retire, not re-point.** Discovery's `adv_contract_mint` already requires ≥1 contract item (`CONTRACT_ITEMS_EMPTY` throws otherwise), and the discovery gate is artifact-backed by `agreement.md` plus `DISCOVERY_CONTRACT_MISSING`. The \"relocated\" enforcement therefore already exists as a structural floor. So `checkMissingSuccessCriteria` is **retired** — removed from `runClarifyReadinessChecks` and deleted with its code path + `CLARIFY_MISSING_SUCCESS_CRITERIA` code + tests — not re-pointed at `agreement.md`. Net enforcement preserved (AC6, AC8). Validator-confirmed: the post-discovery floor is stronger than the removed proposal-text warning.\n\n2. **Proposal `## User Outcomes` heading.** Rename the proposal criteria section `Success Criteria` → `User Outcomes`. Avoids the `contract-mint` `SECTION_MAPPINGS` + clarify-check heading regex collision **by construction**. Proposal B/F/S F-category (adv-proposal.md Phase 2.6) checks for User Outcomes presence (implementation-free), not testable success criteria.\n\n3. **Advisory implementation-free guard.** Discovery's criteria scan emits an *advisory* finding when an AC encodes a mechanism/component (references a specific library/class/algorithm/data structure). Command-text-driven (agent honor-system) with an optional bounded regex assist. Never hard-blocks (per user decision). P33-compliant: the heuristic is advisory-only and human-owned; correctness still rests on the structural contract.\n\n4. **Design-derived criteria category.** `design.md` gains a `## Design-Derived Criteria` section for budgets/limits that fall out of architecture (perf/security/scale). `adv-design` spec + command forbid inventing new user-facing AC; design-invalidated user-facing AC route back via `adv_change_reenter` from discovery, framed as routine iterative refinement (researcher C1).\n\n5. **Spec edits, not append-only.** `adv-proposal` requirements that mandate success criteria (purpose line + rq bodies at spec lines ~5/12/23/43/60/152: `rq-prop-out1`, `rq-prop-scope1/1.2`, `rq-prop-tax2.1`) are **edited** to user-outcomes semantics; new `rq-*` added for the stage-ownership invariants. A `grep` sweep of `success criteria` in the adv-proposal spec gates completeness.\n\n6. **Terminology.** Adopt ISO/IEC/IEEE 29148 \"implementation-free\" and dual-track \"Definition of Ready\" framing in spec/command text (researcher recommendation).\n\n## Implementation Strategy / Sequencing\n\nLaw-first; TDD on logic-bearing plugin edits.\n\n1. **Spec deltas:** `adv-proposal` (edit success-criteria reqs → User Outcomes; add `rq-stageProposalUserOutcomes01`), `adv-discover` (add `rq-stageDiscoveryFirmAC01` + `rq-stageDiscoveryImplFreeGuard01`), `adv-design` (add `rq-stageDesignDerivedCriteria01`), `advance-workflow` (add `rq-stageEnforcementRetarget01`). Each delta carries ≥1 Given/When/Then. Run `adv_change_validate` + conformance.\n2. **Command contracts:** `adv-proposal.md` (Phase 2 section list, Phase 2.6 F-category, Output), `adv-discover.md` (explicit AC+SC firming ownership + advisory implementation-free guard in the criteria scan / AC checkpoint), `adv-design.md` (Design-Derived Criteria section + no-new-user-facing-AC rule + routine re-entry), `adv-prep.md` (clarify prep does not firm criteria).\n3. **Plugin code (TDD red→green):** retire `checkMissingSuccessCriteria` + remove from `runClarifyReadinessChecks` (clarify-readiness.ts) and the planning-gate path (gate.ts); remove `CLARIFY_MISSING_SUCCESS_CRITERIA` enum + `tool-formatters.ts:269` message + `types/changes.ts:171` comment ref; repoint `context-snapshot.ts` `countSuccessCriteria` to count agreement AC (display-only) or drop; update `manifest.ts:99` proposal description string; update scaffold-template emitters `storage/json.ts:591/661` + `tools/change.ts:166-172` (`## Success Criteria` → `## User Outcomes`).\n4. **Tests:** RED→GREEN for plugin changes; update asset tests for the four command files; update `clarify-readiness.test.ts`, `clarify-readiness.e2e.test.ts`, `status.test.ts`, `context-snapshot.test.ts`.\n5. **Docs:** `docs/adv-gates.md` Proposal/Discovery/Design gate-behavior rows.\n6. **Gate:** full `pnpm run check` + suite green.\n\n## Affected Components\n\nPrimary seam: `gate.ts` `runClarifyReadinessChecks` ← `clarify-readiness.ts` (retire one check). `contract-mint.ts` is unaffected (parses `input.agreement`, never `proposal.md`) — verified, no acceptance-gate regression. Additional spec touched: `chat-output-display/spec.json` (MUST on \"success criteria count\" tied to `context-snapshot.countSuccessCriteria` — repoint/drop). Full file list per proposal Affected Code + the scaffold-template emitters above.\n\n## Design-Derived Criteria\n\n- The advisory implementation-free heuristic MUST be bounded (keyword/regex assist), false-positive-tolerant (advisory only), and MUST NOT gate any transition.\n- Removing a `ClarifyReadinessCode` MUST keep the remaining codes stable (no behavioral renumbering of other checks).\n- The `context-snapshot` display change MUST update snapshot-format fixtures so existing format tests stay green.\n\n## LBP Analysis\n\nLaw-first sequencing plus leaning on the existing `contract-mint` enforcement is long-term correct: it **reduces** enforcement surface rather than adding a parallel check. Validated against 29148 / dual-track agile (adv-researcher PASS). Rejected alternative: re-pointing `checkMissingSuccessCriteria` at `agreement.md` — duplicates the contract-mint guarantee for zero added assurance, more code + tests.\n\n## Risks / Mitigations\n\n- **R:** removing `CLARIFY_MISSING_SUCCESS_CRITERIA` breaks status/e2e tests. **M:** update those tests in-change (in scope).\n- **R:** strict-mode projects perceive lost enforcement. **M:** AC8 regression check + document discovery contract mint as the enforcement point.\n- **R:** an edited-not-appended adv-proposal spec misses a requirement. **M:** `grep` sweep of `success criteria` in the spec + conformance gate.\n- **R:** advisory guard false positives annoy. **M:** advisory-only, no gate block; tune keyword set.\n\n## Validator Result & Prep Refinements\n\n**Independent validator (adv-researcher, Phase 3.5): VALIDATED.** Verified against real code: removing `checkMissingSuccessCriteria` creates no enforcement gap — discovery is structurally double-gated by the `agreement.md` artifact-backed check (`gate-readiness.ts`) and `DISCOVERY_CONTRACT_MISSING`; contract mint requires ≥1 item (`contract-mint.ts:203-207`). Rename claim confirmed: `SECTION_MAPPINGS` parses `input.agreement` only. No viable alternative overlooked.\n\nNon-blocking refinements folded into prep (validator agenda: `ag-HHWF51De`, `ag-xYOw5fHJ`, `ag-P7k57DXl`, `ag-JOcYsX4o`):\n\n1. **Wording precision:** spec/command text describing the discovery enforcement floor should say \"≥1 contract item present\", not \"AC/SC present\" — `CONTRACT_ITEMS_EMPTY` accepts any of `SC/AC/C/DONT/OOS`. A change with only Constraints/OOS mints + passes acceptance with zero AC; this is **pre-existing** behavior preserved by AC8, not a regression introduced here.\n2. **Rename edit list expansion:** include scaffold-template emitters `storage/json.ts:591/661` and `tools/change.ts:166-172` (they WRITE `## Success Criteria`), plus the `chat-output-display` spec dependency on `countSuccessCriteria`.\n3. **Bounded removal verification:** confirm the `CLARIFY_MISSING_SUCCESS_CRITERIA` removal set is exactly `clarify-readiness.ts` + its test + `tool-formatters.ts:269` + `types/changes.ts:171` comment (archive `change.json` hits are frozen records, not consumers).",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\n\nADV workflow-stage boundaries were sharpened so proposal now owns implementation-free User Outcomes, discovery owns confirmed behavioral AC/SC, design owns design-derived technical criteria, and prep maps approved criteria into tasks without rewriting them.\n\n## Verdict\n\nAPPROVED\n\n## What Was Built\n\n1. Proposal spec/command/scaffold/snapshot language moved from testable Success Criteria to implementation-free User Outcomes.\n2. Discovery/design/prep specs and command contracts now define their stage-owned criteria boundaries, including advisory discovery implementation-free findings and routine design→discovery re-entry.\n3. Plugin enforcement retired the proposal-level `checkMissingSuccessCriteria` / `CLARIFY_MISSING_SUCCESS_CRITERIA` path while preserving discovery ChangeContract enforcement.\n4. Manifest, README, ADV instructions, generated spec docs, and asset tests were aligned to the new boundary model.\n5. Acceptance-review remediation fixed stale stage-boundary wording across manifest/docs/spec mirrors.\n\n## What Was Verified\n\n- Verdict: APPROVED with 0 blockers and 0 issues after acceptance review remediation.\n- Tests: targeted validator/manifest/snapshot/storage/command-asset suites passed; `bin/oc-test smoke` passed; `bin/oc-test full` passed.\n- Preview URL: not_applicable — agreement declares `visual_surface: false`; implementation changed workflow specs, commands, docs, and plugin TypeScript only; no browser-visible surface delivered.\n- Contract matrix: 25/25 rows passed, respected, or not_applicable; 0 failed, violated, unknown, or missing rows.\n- Validation: `adv_change_validate strict` passed with one accepted `NO_DELTAS` warning because spec-law edits were applied directly in repo specs.\n\n## Remaining Concerns\n\nNone.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-06-05T23:23:30.000Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | Each pre-execution stage owns one distinct concern with no upstream leakage of AC-grade or design work. | pass | Review READY; specs/commands/docs now separate Proposal=User Outcomes, Discovery=AC/SC, Design=design-derived criteria, Prep=task mapping. Stale wording scan passed. |\n| SC2 | success_criterion | The proposal stage is materially lighter — no testable-success-criteria obligation, no design decisions. | pass | Proposal spec/command/storage/snapshot changed from Success Criteria to User Outcomes; clarify readiness no longer blocks missing proposal success criteria. |\n| SC3 | success_criterion | The criteria-ownership model reads as established practice (29148 / dual-track), not bespoke ADV invention. | pass | Agreement/design adopted ISO/IEC/IEEE 29148 implementation-free wording and dual-track Definition-of-Ready framing; adv-researcher validation PASS. |\n| SC4 | success_criterion | No regression to the acceptance-gate contract machinery; full build green. | pass | bin/oc-test smoke passed; bin/oc-test full passed; acceptance review READY; contract review matrix persisted through typed tool. |\n| AC1 | acceptance_criterion | Given a new proposal run, when it completes the proposal gate, then it is not required to produce testable/INVEST success criteria or engineering AC, and a proposal lacking testable success criteria produces no blocking or planning-gate finding on that basis. | pass | clarify-readiness tests updated: proposal without testable success criteria no longer emits CLARIFY_MISSING_SUCCESS_CRITERIA; targeted validator tests passed. |\n| AC2 | acceptance_criterion | Given the proposal spec + command, when inspected, then proposal owns a `## User Outcomes` section (implementation-free, non-gating) and explicitly defers engineering AC + success criteria to discovery. | pass | adv-proposal spec/command/scaffold/snapshot tests pass; proposal owns implementation-free User Outcomes and defers engineering AC/SC to discovery. |\n| AC3 | acceptance_criterion | Given a discovery run, when agreement is formed, then discovery firms and user-confirms design-independent behavioral acceptance criteria + success criteria, and these mint into the ChangeContract (`AC*`/`SC*`) as today. | pass | Discovery agreement still minted 25 ChangeContract items (SC*, AC*, C*, DONT*, OOS*) from agreement.md; contract present in adv_change_show. |\n| AC4 | acceptance_criterion | Given a discovery AC that encodes a mechanism or component, when discovery runs its criteria scan, then ADV emits an advisory finding marking it preliminary/likely design-derived, without hard-blocking the discovery gate. | pass | adv-discover spec/command updated for advisory implementation-free criteria scan; asset tests pass; no hard-blocking gate path added. |\n| AC5 | acceptance_criterion | Given the design spec + command, when inspected, then design owns design-derived technical criteria and is prohibited from inventing new user-facing AC, and the design→discovery re-entry path for invalidated AC is documented as routine. | pass | adv-design spec/command updated for Design-Derived Criteria, no-new-user-facing-AC rule, and routine adv_change_reenter from discovery; asset tests pass. |\n| AC6 | acceptance_criterion | Given a change with no proposal-level success-criteria section, when it reaches the planning gate, then no clarify-readiness finding fires on proposal success-criteria, and criteria enforcement is anchored to discovery's agreement/contract. | pass | checkMissingSuccessCriteria and CLARIFY_MISSING_SUCCESS_CRITERIA removed from plugin/src; planning-gate criteria enforcement anchored to agreement/contract; validator tests pass. |\n| AC7 | acceptance_criterion | Given the full change, when `pnpm run check` and the test suite run, then both pass, including updated asset tests for the four command files and the affected validator, snapshot, and manifest tests. | pass | bin/oc-test smoke passed; bin/oc-test full passed; targeted affected tests passed (manifest, snapshot, storage, clarify-readiness, command assets). |\n| AC8 | acceptance_criterion | Given the acceptance gate, when a change is reviewed, then the ChangeContract `AC*` review matrix and evidence policies behave exactly as before this change. | pass | Review matrix rows set for all 25 contract items; preview URL not_applicable because agreement visual_surface:false and no visual-output files/tasks were implemented. |\n| C1 | constraint | Specs-as-laws: all spec deltas authored, validated, and conformant before release. | respected | adv_change_validate strict passed; NO_DELTAS warning accepted because spec-law edits were applied directly in repo specs; spec mirrors/docs updated. |\n| C2 | constraint | Preserve the crash-safe, artifact-backed gate model. | respected | All tasks completed via ADV task checkpoints; gates advanced through ADV tools; worktree isolation used for mutations. |\n| C3 | constraint | Honor `clarify_enforcement` feature-flag semantics (off / advisory / strict). | respected | No clarify_enforcement default change made; retirement limited to proposal success-criteria check; sibling clarify checks remain. |\n| C4 | constraint | No regression to ChangeContract `AC*` minting, review matrix, or evidence policies. | respected | ChangeContract schema/evidence policies untouched; AC*/SC* minting still present; typed review matrix set through adv_contract_review_matrix_set. |\n| DONT1 | avoidance | Do not conflate proposal `User Outcomes` with engineering acceptance criteria. | respected | Proposal terminology changed to User Outcomes; discovery remains AC/SC owner; docs and manifest aligned. |\n| DONT2 | avoidance | Do not hard-block the discovery gate on the implementation-free guard (advisory only). | respected | Discovery implementation-free guard documented as advisory; no hard-blocking code path introduced. |\n| DONT3 | avoidance | Do not redesign the `/adv-task` fast-track in this change (tracked follow-up `ag-JpHqmo1c`). | respected | /adv-task fast-track redesign not implemented; follow-up ag-JpHqmo1c retained. |\n| DONT4 | avoidance | Do not add backward-compatibility migration shims for existing proposals (no special handling). | respected | No backward-compat migration shim added; new model applies uniformly by removing the proposal-level check. |\n| DONT5 | avoidance | Do not silently change the `clarify_enforcement` default. | respected | No code/config change to clarify_enforcement default found in touched files or review evidence. |\n| OOS1 | out_of_scope | Execution, acceptance, and release gate responsibilities. | not_applicable | This change did not alter execution, acceptance, or release gate responsibilities beyond review-time evidence artifacts required by the workflow. |\n| OOS2 | out_of_scope | ChangeContract `AC*` schema or evidence-policy redesign. | not_applicable | No ChangeContract AC* schema or evidence-policy redesign performed; existing contract machinery used. |\n| OOS3 | out_of_scope | `/adv-task` fast-track redesign (follow-up `ag-JpHqmo1c`). | not_applicable | /adv-task fast-track redesign excluded; follow-up ag-JpHqmo1c tracks it. |\n| OOS4 | out_of_scope | Backward-compat migration for in-flight changes carrying proposal success criteria. | not_applicable | No migration for in-flight changes carrying proposal success criteria was added. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/sharpenWorkflowStageBoundaries/proposal.md",
+      "updatedAt": "2026-06-05T16:07:57.145Z",
+      "contentHash": "d82096a30b50be524f63255918fc37090b3e8d49e37c1bf15cde9f90c8227e35"
+    },
+    "problemStatement": {
+      "path": "",
+      "updatedAt": "2026-06-05T15:59:22.296Z"
+    },
+    "agreement": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/sharpenWorkflowStageBoundaries/agreement.md",
+      "updatedAt": "2026-06-05T16:30:00.934Z",
+      "contentHash": "f1c95ac92889bc2be462619280b2d55fddd3bc2557dd419450956e94116c41ed"
+    },
+    "design": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/sharpenWorkflowStageBoundaries/design.md",
+      "updatedAt": "2026-06-05T16:36:31.986Z",
+      "contentHash": "49ed8ce0af280dbed1d7bb8ff6372c2b5e5c3992e3cd96be19b4de8739b5247a"
+    },
+    "executiveSummary": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/sharpenWorkflowStageBoundaries/executive-summary.md",
+      "updatedAt": "2026-06-05T23:24:15.348Z",
+      "contentHash": "c14cd2eaef1b8ae0b947ce432aa2ae85407018b197f467b0c5c764e281ea1bc8"
+    }
+  },
+  "lastSignalAt": "2026-06-06T04:42:58.371Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d"
+}
