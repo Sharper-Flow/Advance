@@ -186,14 +186,11 @@ describe("Archive and spec assets", () => {
     expect(content).toMatch(
       /git -C "\$MAIN" merge --ff-only change\/\{change-id\}/,
     );
-    // Post-T28e (J3 expansion): the reconcile path rebases the change branch
-    // and Step 4 handles conflicts via the full classification + resolution
-    // flow (classifyConflict → navigateConflicts → applyResolveAction). The
-    // old `git rebase {freshness-ref}` placeholder was replaced by explicit
-    // references to the conflict-recovery flow.
-    expect(content).toMatch(/rebase the change branch/i);
-    expect(content).toMatch(/Step 4 handles conflicts/i);
-    expect(content).toMatch(/PR workflow path/i);
+    // Remote-backed release now proves origin/default or merged-PR state;
+    // conflicts still route through the classification + resolution flow.
+    expect(content).toMatch(/origin\/\{default-branch\}|origin\/<default>/i);
+    expect(content).toMatch(/classification \+ resolution loop/i);
+    expect(content).toMatch(/PR auto-merge|pr_auto_merge/i);
   });
 
   test("adv-archive.md explicitly owns ship finalization merge and push", () => {
@@ -205,7 +202,14 @@ describe("Archive and spec assets", () => {
     expect(content).toMatch(
       /git -C "\$MAIN" merge --ff-only change\/\{change-id\}[\s\S]*git -C "\$MAIN" push origin \{default-branch\}/,
     );
-    expect(content).toMatch(/push failure[\s\S]*Merged locally\./i);
+    expect(content).toMatch(/push failure[\s\S]*Pending auto-merge\./i);
+    expect(content).toMatch(/push failure[\s\S]*Blocked\./i);
+    expect(content).toMatch(
+      /Remote-backed push failure never becomes `Merged locally\.`/i,
+    );
+    expect(content).not.toMatch(
+      /If no remote is configured OR push is skipped OR push fails[\s\S]*Merged locally\./i,
+    );
   });
 
   test("adv-archive.md records release gate through archive and points back to main", () => {
@@ -240,7 +244,10 @@ describe("Archive and spec assets", () => {
     const content = readAsset(ADVANCE_WORKFLOW_SPEC);
     expect(content).toMatch(/push origin \{default-branch\}/);
     expect(content).toMatch(/Merged locally\./);
-    expect(content).toMatch(/push fails/);
+    expect(content).toMatch(/origin\/\{default-branch\}/);
+    expect(content).toMatch(/Pending auto-merge\./);
+    expect(content).toMatch(/Blocked\./);
+    expect(content).not.toMatch(/push fails[\s\S]{0,120}Merged locally\./i);
   });
 
   test("advance-workflow spec encodes release projection durability", () => {
@@ -329,7 +336,7 @@ describe("Archive and spec assets", () => {
     expect(archive).toMatch(/default(?:s)? to closing/i);
     expect(archive).toMatch(/origin\.kind.*roadmap.*triage/s);
     expect(archive).toMatch(/issue_number/);
-    expect(archive).toMatch(/push verified|push verification/i);
+    expect(archive).toMatch(/final release proof|release proof/i);
     expect(archive).not.toMatch(/Default-off; require explicit opt-in/i);
 
     expect(instructions).toMatch(/--no-close-issue/);

@@ -8,14 +8,15 @@ phaseGoal: "Promote change from contract to law: apply spec deltas, capture wisd
 
 # ADV Archive — Finalize Completed Change
 
-Archive change → apply deltas to specs → canonical ship/finalize path via mandatory Phase 9 Git Finalization (commit, merge+push, local deploy when available, verify, cleanup). Archive is not complete after `adv_change_archive`; it is complete only after Phase 9 verifies the change branch is reachable from the default branch and the default branch push/deploy status is reported.
+Archive change → apply deltas to specs → canonical ship/finalize path via mandatory Phase 9 Git Finalization (commit, merge+push or PR auto-merge handoff, local deploy when available, verify, cleanup). Archive is not complete after `adv_change_archive`; it is complete only after Phase 9 proves either no-remote local merge, post-fetch `origin/{default-branch}` reachability, or merged PR state. Pending auto-merge and blocked remote-backed outcomes leave the change active.
 
 ## Exits
 
 | Exit        | Condition                                                                                                                                                         |
 | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| ✅ Complete | All gates passed, specs updated, release committed, merged to default branch, pushed or explicitly reported local-only, local deploy run when available, verified |
-| 🎤 Blocked  | Incomplete gates/tasks or merge conflicts                                                                                                                         |
+| ✅ Complete | All gates passed, specs updated, release committed, no-remote local proof or remote origin/merged-PR proof verified, local deploy run when available |
+| ⏳ Pending  | PR opened/reused and GitHub auto-merge armed; release gate and archive status remain incomplete                                                                    |
+| 🎤 Blocked  | Incomplete gates/tasks, merge conflicts, missing origin/PR proof, unavailable `gh`, or PR not armable                                                             |
 | 🔁 Dry Run  | Preview only, no changes                                                                                                                                          |
 
 <UserRequest>
@@ -149,7 +150,7 @@ Run only if the spec being archived has `conformance_required: true` in the conf
 
 ## Phase 6: Execute Archive
 
-`adv_change_archive changeId: <target> worktreePath: <worktree-root> phase9: "run"` — applies deltas, writes the archive bundle into the change worktree, commits the bundle/spec artifacts on `change/{id}`, finalizes git release evidence, records the release gate, then retires the change. When a contract exists, archive output includes `CONTRACT_TRACEABILITY.md` only after the Contract Proof Gate passes. For product-linked `scope_repos`, inspect `multiRepo` output and `multi-repo-archive.json`; it must include before/after refs, ff-only preflight results, and verification evidence for every scoped repo.
+`adv_change_archive changeId: <target> worktreePath: <worktree-root> phase9: "run"` — applies deltas, writes the archive bundle into the change worktree, commits the bundle/spec artifacts on `change/{id}`, and finalizes git release evidence. It records the release gate and retires the change only after final proof exists (`no_remote`, `origin/{default-branch}`, or merged PR). Pending auto-merge and blocked outcomes keep the change active. When a contract exists, archive output includes `CONTRACT_TRACEABILITY.md` only after the Contract Proof Gate passes. For product-linked `scope_repos`, inspect `multiRepo` output and `multi-repo-archive.json`; it must include before/after refs, ff-only preflight results, and verification evidence for every scoped repo.
 
 When archiving from a worktree, pass `worktreePath: <worktree-root>` so the in-repo bundle lands in the worktree's `.adv/archive/` directory and Phase 9 Step 1 can stage it on change branch without `cp -r` workarounds. Omit `worktreePath` only for dry runs, `phase9: "skip"`, or existing-bundle recovery where the change worktree has already been cleaned up and main-checkout evidence can prove release completion.
 
@@ -171,36 +172,40 @@ Before the final archive report, invoke reflection (non-blocking) and capture th
 - If reflection fails → record `Reflection: failed: <reason>; nonblocking`, emit `[ADV:WARN] Reflection generation failed: {reason}; does not block release. Rerun /adv-reflect {change-id} later.`
 - Reflection report is informational only and never blocks release unless it exposes a structural release-safety failure already covered by Phase 9 proof, contract proof, conformance, or merge/push reachability checks.
 
-Use archive terminal variant of the Gate Handoff Voice spine (see `docs/command-voice-standard.md § Archive terminal variant`). The terminal verb branches by push state; deploy/reflection failures stay visible in Delivered lines but do not choose the terminal verb unless they expose a structural release-safety failure:
+Use archive terminal variant of the Gate Handoff Voice spine (see `docs/command-voice-standard.md § Archive terminal variant`). The terminal verb branches by release-proof state; deploy/reflection failures stay visible in Delivered lines but do not choose the terminal verb unless they expose a structural release-safety failure:
 
-- **Shipped.** — push succeeded AND `sync_action` ∈ {`auto via hook`, `manual fix`, `not needed`}
-- **Merged locally.** — no remote configured OR push skipped OR push failed (with explicit reason)
+- **Shipped.** — `origin/{default-branch}` reachability or merged PR proof exists
+- **Merged locally.** — no `origin` remote configured and local merge proof exists
+- **Pending auto-merge.** — PR opened/reused and GitHub auto-merge armed; release remains incomplete
+- **Blocked.** — remote-backed release proof missing, PR/auto-merge unavailable, fetch/push/conflict failure, or validation failed
 
 ```
-## {Shipped. | Merged locally.}
+## {Shipped. | Merged locally. | Pending auto-merge. | Blocked.}
 
 ## Problem
 {One-line restatement of the problem this change addressed.}
 
 ## Chosen direction
-What shipped (or merged locally), what spec deltas applied.
+What shipped, merged locally, waits on PR auto-merge, or blocked release completion; include spec deltas applied.
 
 ## Delivered
 - Spec deltas applied: {added/modified/removed counts per capability}
 - Docs generated
 - Archive location: {path}
 - Git merge: {default-branch} ({merge-mode: ff-only | reconcile | pr})
-- Push: {SHA range pushed | skipped: <reason>}
+- Push: {SHA range pushed | n/a: no origin | branch pushed for PR | blocked: <reason>}
+- Release proof: {origin/{default-branch} reachable | PR {number} state MERGED | no_remote local proof | pending PR {number} | missing: <reason>}
+- PR: {n/a | <url> auto-merge armed | <url> manual merge required | unavailable: <reason>}
 - Local deploy: {ran | not available | not needed | failed: <reason>; nonblocking}
 - Reflection: {completed: <id/path/summary> | failed: <reason>; nonblocking}
 - Pre-push hooks: {hooksPath | githooks | husky | lefthook | standard | none}
 - Asset sync: {auto via hook | manual fix | not needed | n/a}
-- Cleanup: worktree + temp artifacts
+- Cleanup: {worktree + temp artifacts | not run; change remains active}
 - Continue from: {mainCheckout} ({default-branch})
 
 ---
 
-> **{change-id}** · release ✓ · {Shipped. | Merged locally.}
+> **{change-id}** · {release ✓ | release pending | release blocked} · {Shipped. | Merged locally. | Pending auto-merge. | Blocked.}
 ```
 
 ## Phase 9: Git Finalization (Mandatory)
@@ -220,7 +225,7 @@ the human-facing explanation of that runtime contract.
 
 > **Invariant: main checkout stays on the default branch.** ADV NEVER runs `git checkout` or `git switch` on any worktree (or on the main checkout) during archive. Trunk is updated in place via `git -C "$MAIN" merge --ff-only`. The agent MUST resolve `$MAIN` once at the start of Phase 9 (Step 3) and use it for all default-branch operations (fetch, merge, push, verify, hook detection) through Step 7. If main is not on the default branch, the readiness check (Step 4.4) hard-blocks and asks user. If main is on the default branch but dirty, ADV commits pre-existing changes as an auditable checkpoint and continues — ADV does not create new change-owned work on main.
 
-> **Completion bar:** Do not say "archived", "shipped", or "done" after only the archive bundle commit or a partial `adv_change_archive` result. The archive workflow owns finalization through default-branch merge, local deploy (when `scripts/deploy-local.sh` exists), release-gate recording, push or explicit local-only report, reachability verification, reflection, and clean working tree status. If any finalization step is skipped, failed, or unverified, the terminal report MUST say `Merged locally.` or `Blocked`, not `Shipped.`
+> **Completion bar:** Do not say "archived", "shipped", or "done" after only the archive bundle commit or a partial `adv_change_archive` result. The archive workflow owns finalization through no-remote local merge proof, `origin/{default-branch}` reachability, or merged PR proof; local deploy (when `scripts/deploy-local.sh` exists); release-gate recording; reflection; and clean working tree status. If remote-backed finalization is pending or unverified, the terminal report MUST say `Pending auto-merge.` or `Blocked.`, not `Shipped.` or `Merged locally.`
 
 > **Ordering invariant (rq-releaseFinalization01 AC1):** Release gate completion MUST happen BEFORE archive status transition. The structural sequence is: Phase 9 evidence → release gate signal → durable proof verification → `change.status = "archived"` → source cleanup. If release gate confirmation or durable proof fails, the change stays active for retry. Archive retry with an existing bundle reconciles release metadata without re-running the full archive write.
 
@@ -279,13 +284,15 @@ Before any merge attempt, verify the main checkout is in a state ADV can safely 
 
 Runtime helper outcomes:
 
-- **LOCAL_FINISH / fast path** — branch is already on current default-branch basis → `git -C "$MAIN" merge --ff-only change/{change-id}`
-- **Blocked / reconcile externally** — if `--ff-only` cannot merge, runtime blocks and asks the operator to rebase the change branch before retrying; Step 4 handles conflicts via the classification + resolution flow below.
-- **PR workflow path / handoff** — explicit `archive_mode: "pr"` pushes `change/{change-id}` for PR workflow handoff; PR creation itself remains project/user policy unless a future helper implements it.
+- **no_remote / local fast path** — no `origin` remote and branch is on current default-branch basis → `git -C "$MAIN" merge --ff-only change/{change-id}`; release may complete as `Merged locally.` after local proof.
+- **direct / remote fast path** — `origin` exists, direct push is allowed, local merge succeeds, `git push origin {default-branch}` succeeds, and post-fetch `origin/{default-branch}` reachability is proven → release may complete as `Shipped.`.
+- **pr_auto_merge / pending path** — default branch is protected or publish risk requires PR workflow → push `change/{change-id}`, open/reuse one PR, arm GitHub auto-merge, and report `Pending auto-merge.` while release remains incomplete until PR state is `MERGED`.
+- **pr_manual / blocked path** — PR creation or auto-merge cannot be established (`gh` unavailable, auth failure, allow_auto_merge disabled, checks missing, PR not armable) → report `Blocked.`; release remains incomplete.
+- **blocked / reconcile externally** — if merge, fetch, or proof checks fail, runtime reports diagnostics and keeps cleanup blocked.
 
 ### Step 4 — Conflict-recovery flow (post-J3 expansion)
 
-> × Helpers ship in T28+T28b+T28c+T28d+T28f; runtime wiring into the Phase 9 orchestrator is a follow-up.
+> Runtime wiring lives in `plugin/src/tools/archive-helpers/git-finalize.ts`; this section explains operator-facing behavior only.
 
 When `git rebase` surfaces conflicts during Phase 9, /adv-archive runs the full classification + resolution loop:
 
@@ -360,14 +367,13 @@ After local merge succeeds, archive finalization attempts a safe remote push of 
 - `git -C "$MAIN" fetch origin` (if fetch fails or auth is unclear → stop and ask user before proceeding)
 - `git -C "$MAIN" log --oneline origin/{default-branch}..{default-branch}` → inspect the commits that will publish
 - If `origin/{default-branch}..{default-branch}` is a clean fast-forward → `git -C "$MAIN" push origin {default-branch} 2>&1` (capture output verbatim — do NOT redirect to `/dev/null`; agent must observe pre-push hook output)
-- × Do NOT force-push by default
-- Before any `--force-with-lease` prompt, show both `git -C "$MAIN" log --oneline origin/{default-branch}..{default-branch}` and `git -C "$MAIN" log --oneline {default-branch}..origin/{default-branch}` so user sees local-only and remote-only commits
-- Use `--force-with-lease` only after explicit user approval via the `question` tool confirms a non-fast-forward publish is intended
-- If remote divergence is detected and intent is unclear → stop and ask user
+- × Do NOT force-push the default branch. If remote divergence is detected, report `Blocked.` or route through PR workflow.
+- If push succeeds → fetch `origin {default-branch}` and verify `origin/{default-branch}` contains the change before release recording.
+- If push is rejected, fails, is skipped, or cannot be verified while `origin` exists → reconcile local default branch back to `origin/{default-branch}` when safe, push `change/{change-id}`, open/reuse PR, and arm GitHub auto-merge when possible. Terminal becomes `Pending auto-merge.` when auto-merge is armed; otherwise `Blocked.`. Release gate, archive status, issue closure, branch deletion, and worktree cleanup remain incomplete.
 
 If push hook output indicates failure (non-zero hook exit) but push itself succeeded: report it in Phase 8 but do NOT block — pre-push hook is best-effort sync; failure does not invalidate the push.
 
-If no remote is configured OR push is skipped OR push fails: record the push failure/skipped reason — Phase 8 footer becomes "Merged locally." instead of "Shipped."
+If no remote is configured: record no-remote local proof — Phase 8 footer becomes `Merged locally.` instead of `Shipped.`. Remote-backed push failure never becomes `Merged locally.`.
 
 ### Step 5.5: Pre-Push Hook Detection
 
@@ -394,9 +400,11 @@ Record `(hook_strategy, sync_action)` for the Phase 8 archive report (footer lin
 
 ### Step 6: Verify
 
-`git -C "$MAIN" log --oneline {default-branch}..change/{change-id}` → MUST return empty. Non-empty → stop. × Do NOT delete worktree.
+No-remote local proof: `git -C "$MAIN" log --oneline {default-branch}..change/{change-id}` → MUST return empty. Non-empty → stop. × Do NOT delete worktree.
 
-If Step 5 pushed: `git -C "$MAIN" fetch origin {default-branch}` → compare `origin/{default-branch}` and local `{default-branch}` SHAs. Mismatch → stop, keep worktree, report drift in Phase 8.
+Remote direct proof: `git -C "$MAIN" fetch origin {default-branch}` → verify `origin/{default-branch}` contains the change. Mismatch or missing reachability → report `Blocked.`, keep worktree, leave release incomplete.
+
+PR proof: query `gh pr view <number> --json state,mergedAt,mergeCommit,autoMergeRequest`. `state == MERGED` → release may complete after origin reconciliation. `autoMergeRequest != null` and not merged → report `Pending auto-merge.`, keep release incomplete. Anything else → report `Blocked.` with reason.
 
 ### Step 7: Cleanup Worktree(s)
 
@@ -408,7 +416,7 @@ Auto-managed changes (`change.worktree_auto_managed: true`) may own: current rep
 2. `target_worktree_path` if set.
 3. `scope_worktrees[*]` in `Object.keys` insertion order.
 
-Per target, proceed only after Step 6 merge proof:
+Per target, proceed only after Step 6 final release proof (`Shipped.` or no-remote `Merged locally.`):
 - `adv_worktree_delete branch: "change/{change-id}" reason: "Change {change-id} merged"`
 - Target/scope repo: scope deletion to target repo root when tool supports it.
 - No scoped tool support → manual fallback: `git -C "<target-repo-root>" worktree remove <path>` then `git -C "<target-repo-root>" branch -D change/{change-id}`.
@@ -441,7 +449,7 @@ Remove `*.bak`, `*.tmp`, `*.orig` from `$MAIN` (excluding `node_modules`).
 
 - `--no-close-issue` NOT passed.
 - `origin.kind ∈ {'roadmap', 'triage'}` and `origin.issue_number > 0`.
-- Push verification passed; archive status durable; release gate recorded.
+- Final release proof passed; archive status durable; release gate recorded.
 - `dryRun` false.
 
 **Tool behavior:**
@@ -464,7 +472,7 @@ Remove `*.bak`, `*.tmp`, `*.orig` from `$MAIN` (excluding `node_modules`).
 
 ### Completion
 
-Emit `GIT FINALIZATION COMPLETE` only after Step 6 proof. Include: commit SHA, merge target (`$MAIN` default-branch HEAD), push status, local deploy status, verification status, reflection status, worktree cleanup status, artifacts removed, `Continue from: {mainCheckout} ({default-branch})`, final `git -C "$MAIN" status --short --branch`. If push failed, use non-shipped terminal verb + exact remaining command. If deploy or reflection failed without structural release-safety failure, keep release complete and surface the advisory line.
+Emit `GIT FINALIZATION COMPLETE` only after Step 6 final proof. Include: commit SHA, release proof source (`no_remote`, `origin/{default-branch}`, or merged PR), merge target (`$MAIN` default-branch HEAD when applicable), push/PR status, local deploy status, verification status, reflection status, worktree cleanup status, artifacts removed, `Continue from: {mainCheckout} ({default-branch})`, final `git -C "$MAIN" status --short --branch`. If PR auto-merge is pending, emit `Pending auto-merge.` with the PR URL and exact retry command; do not emit final completion. If remote-backed proof is missing, emit `Blocked.` with reason. If deploy or reflection failed without structural release-safety failure, keep release complete and surface the advisory line.
 
 ### Step 9: Post-Deploy Nudge
 

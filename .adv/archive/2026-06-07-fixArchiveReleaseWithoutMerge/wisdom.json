@@ -1,0 +1,26 @@
+{
+  "entries": [
+    {
+      "id": "ws-d6k0SO",
+      "type": "gotcha",
+      "content": "When adding fields to public Zod-backed schemas, run `pnpm run schemas:generate` after any Prettier pass on generated JSON. Formatting `plugin/schemas/*.schema.json` manually can make `schemas:check` fail even when source schemas are correct.",
+      "source_task": "tk-4f99e6b996df",
+      "recorded_at": "2026-06-07T04:05:57.035Z"
+    },
+    {
+      "id": "ws-38YipH",
+      "type": "pattern",
+      "content": "Release-state checks should go through the same route-aware reachability proof (`classifyFinalizationRoute` + `resolveReleaseReachability`) in archive, gate completion, and recovery paths. Duplicating local ancestry + push checks creates bypasses for origin/default and PR states.",
+      "source_task": "tk-f26b1aa86943",
+      "recorded_at": "2026-06-07T04:14:44.518Z"
+    },
+    {
+      "id": "ws-4vTrNZ",
+      "type": "gotcha",
+      "content": "Adding a new ADV MCP tool requires more than createToolMap registration: update `ADV_TOOL_NAMES`, `cli-bridge-contract` frozen snapshot, `docs/cli-surface-matrix.md`, `FIELD_POLICIES` for strict-mode placeholders, and `utils/tool-title.ts`. Tool-registry tests enforce the display-title piece.",
+      "source_task": "tk-b588db3c6f3c",
+      "recorded_at": "2026-06-07T04:26:18.943Z"
+    }
+  ],
+  "count": 3
+}

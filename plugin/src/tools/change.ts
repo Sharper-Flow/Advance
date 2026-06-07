@@ -327,11 +327,14 @@ import {
   detectDefaultBranch,
   detectArchiveMode,
   deleteChangeBranch,
+  resolveMainCheckout,
   finalizeRelease,
   validateChangeWorktree,
-  verifyChangeBranchReachable,
-  verifyChangeBranchPushed,
-  verifyDefaultBranchPushed,
+  classifyFinalizationRoute,
+  coercePrWorkflowRoute,
+  resolveReleaseReachability,
+  detectArchivedUnmergedBranches,
+  redriveArchivedUnmergedBranch,
   type GitFinalizeOutcome,
 } from "./archive-helpers/git-finalize";
 import { dispatchPhase9Finalization } from "./archive-helpers/phase9-queue";
@@ -1222,8 +1225,25 @@ function buildReleaseCompletionEvidence(
       ? `mainCheckpointCommitSha=${finalization.mainCheckpointCommitSha}`
       : null,
     finalization.prBranch ? `prBranch=${finalization.prBranch}` : null,
+    finalization.prNumber ? `prNumber=${finalization.prNumber}` : null,
+    finalization.prUrl ? `prUrl=${finalization.prUrl}` : null,
+    finalization.route ? `route=${finalization.route}` : null,
   ].filter(Boolean);
   return `Phase 9 finalization ${finalization.status}; ${details.join("; ")}`;
+}
+
+function buildPendingMergePhase9Status(input: {
+  finalization: GitFinalizeOutcome;
+  startedAt: string;
+}): Phase9FinalizationStatus {
+  return {
+    status: "pending_merge",
+    startedAt: input.startedAt,
+    prNumber: input.finalization.prNumber,
+    prUrl: input.finalization.prUrl,
+    autoMergeArmed: input.finalization.autoMergeArmed,
+    route: input.finalization.route,
+  };
 }
 
 async function recordPhase9Status(input: {
@@ -1261,76 +1281,95 @@ function verifyReleaseEvidenceFromMain(input: {
   store: Store;
   changeId: string;
   archiveMode: "direct" | "pr";
+  change?: Change;
 }): GitFinalizeOutcome {
   const mainCheckout = input.store.paths.root;
   const { branch: defaultBranch } = detectDefaultBranch(mainCheckout);
 
-  if (input.archiveMode === "pr") {
-    const branchPush = verifyChangeBranchPushed(mainCheckout, input.changeId);
-    if (branchPush.pushed) {
-      return {
-        status: "pr_pushed",
-        mainCheckout,
-        defaultBranch,
-        prBranch: `change/${input.changeId}`,
-        pushStatus: "pushed",
-      };
-    }
-    return {
-      status: "blocked",
-      mainCheckout,
-      defaultBranch,
-      prBranch: `change/${input.changeId}`,
-      pushStatus: "failed",
-      pushFailureReason: branchPush.reason,
-      blocked: {
-        reason: "PR_BRANCH_PUSH_NOT_VERIFIED",
-        remediation: `Change branch change/${input.changeId} must be pushed for PR-mode handoff before release completion (rq-releaseFinalization01).`,
-        details: [branchPush.reason ?? "change branch push not verified"],
-      },
-    };
-  }
-
-  const reachability = verifyChangeBranchReachable(
+  const classifiedRoute = classifyFinalizationRoute(
     mainCheckout,
     defaultBranch,
-    input.changeId,
   );
-  if (!reachability.reachable) {
+  const route =
+    input.archiveMode === "pr" ||
+    input.change?.phase9_status?.status === "pending_merge"
+      ? coercePrWorkflowRoute(classifiedRoute)
+      : classifiedRoute;
+  const reachability = resolveReleaseReachability({
+    mainCheckout,
+    defaultBranch,
+    changeId: input.changeId,
+    route,
+    prNumber: input.change?.phase9_status?.prNumber,
+  });
+  if (reachability.reachable) {
     return {
-      status: "blocked",
+      status: "shipped",
       mainCheckout,
       defaultBranch,
-      pushStatus: "not_attempted",
-      blocked: {
-        reason: "CHANGE_BRANCH_NOT_REACHABLE",
-        remediation: `Change branch change/${input.changeId} must be reachable from ${defaultBranch} before release completion (rq-releaseFinalization01).`,
-        details: reachability.unmergedCommits,
-      },
+      route: route.route,
+      mergeCommitSha:
+        reachability.proof === "pr_merged"
+          ? reachability.mergeCommitOid
+          : undefined,
+      prNumber: reachability.prNumber,
+      prUrl: input.change?.phase9_status?.prUrl,
+      autoMergeArmed: false,
+      pushStatus: "pushed",
     };
   }
 
-  const pushCheck = verifyDefaultBranchPushed(mainCheckout, defaultBranch);
-  if (!pushCheck.pushed) {
+  if (reachability.proof === "origin_push_unverified") {
     return {
       status: "blocked",
       mainCheckout,
       defaultBranch,
+      route: route.route,
       pushStatus: "failed",
-      pushFailureReason: pushCheck.reason,
+      pushFailureReason: reachability.details?.join("; "),
       blocked: {
         reason: "DEFAULT_BRANCH_PUSH_NOT_VERIFIED",
         remediation: `Default branch ${defaultBranch} must be pushed before release completion (rq-releaseFinalization01).`,
-        details: [pushCheck.reason ?? `${defaultBranch} push not verified`],
+        details: reachability.details,
+      },
+    };
+  }
+
+  if (reachability.proof === "pr_unmerged") {
+    return {
+      status: "blocked",
+      mainCheckout,
+      defaultBranch,
+      route: route.route,
+      pushStatus: "pushed",
+      prBranch: `change/${input.changeId}`,
+      prNumber: reachability.prNumber,
+      prUrl: input.change?.phase9_status?.prUrl,
+      autoMergeArmed: reachability.autoMergeArmed,
+      blocked: {
+        reason: reachability.autoMergeArmed
+          ? "PR_PENDING_AUTO_MERGE"
+          : "PR_NOT_MERGED",
+        remediation: `PR for change/${input.changeId} must be merged before release completion (rq-releaseFinalization01).`,
+        details: reachability.details,
       },
     };
   }
 
   return {
-    status: "shipped",
+    status: "blocked",
     mainCheckout,
     defaultBranch,
-    pushStatus: "pushed",
+    route: route.route,
+    pushStatus: "not_attempted",
+    blocked: {
+      reason:
+        reachability.proof === "origin_unmerged"
+          ? "CHANGE_BRANCH_NOT_REACHABLE_FROM_ORIGIN"
+          : "CHANGE_BRANCH_NOT_REACHABLE",
+      remediation: `Change branch change/${input.changeId} must be reachable from ${route.route === "no_remote" ? defaultBranch : `origin/${defaultBranch}`} before release completion (rq-releaseFinalization01).`,
+      details: reachability.details,
+    },
   };
 }
 
@@ -1452,7 +1491,7 @@ async function verifyReleaseGateDurableForArchive(input: {
 }
 
 /**
- * Record the release gate after Phase 9 returns shipped/pr_pushed evidence and
+ * Record the release gate after Phase 9 returns shipped evidence and
  * before archive status retires the workflow. Each Temporal interaction can
  * race a completed workflow, so query, signal, and confirmation poll all route
  * completed-workflow failures through disk-projection recovery.
@@ -1463,10 +1502,7 @@ async function completeReleaseGateAfterFinalization(input: {
   changeId: string;
   finalization: GitFinalizeOutcome;
 }): Promise<ArchiveReleaseGateResult> {
-  if (
-    input.finalization.status !== "shipped" &&
-    input.finalization.status !== "pr_pushed"
-  ) {
+  if (input.finalization.status !== "shipped") {
     return {
       ok: false,
       error: `Release gate requires successful Phase 9 finalization, got ${input.finalization.status}`,
@@ -3697,6 +3733,27 @@ export const changeTools = {
       if (gatePreflightError) {
         return gatePreflightError;
       }
+      const { archiveMode, autoPush } = detectArchiveMode(store.config ?? {});
+
+      if (!dryRun && phase9 === "skip") {
+        const releaseEvidence = verifyReleaseEvidenceFromMain({
+          store,
+          changeId,
+          archiveMode,
+          change,
+        });
+        if (releaseEvidence.status === "blocked") {
+          return formatToolOutput({
+            success: false,
+            error: `Phase 9 skip blocked: ${releaseEvidence.blocked?.reason}`,
+            requirement: "rq-releaseFinalization01",
+            changeId,
+            remediation: releaseEvidence.blocked?.remediation,
+            details: releaseEvidence.blocked?.details,
+            finalization: releaseEvidence,
+          });
+        }
+      }
 
       // rq-archiveValidate01: run completeness validation before bundle creation.
       let validationResult: Awaited<ReturnType<typeof validateChange>>;
@@ -3855,7 +3912,6 @@ export const changeTools = {
       let releaseGateCompletion:
         | Extract<ArchiveReleaseGateResult, { ok: true }>
         | undefined;
-      const { archiveMode, autoPush } = detectArchiveMode(store.config ?? {});
       if (!dryRun && archiveResult.success && phase9 !== "skip") {
         if (phase9 === "run" && change.status !== "archived") {
           // AC3: Async phase9 dispatch. Save pending status, then run
@@ -3889,12 +3945,25 @@ export const changeTools = {
                     store,
                     changeId,
                     archiveMode,
+                    change: currentChange,
                   });
 
               if (currentFinalization.status === "blocked") {
                 throw new Error(
                   `Archive finalization blocked: ${currentFinalization.blocked?.reason}`,
                 );
+              }
+
+              if (currentFinalization.status === "pending_merge") {
+                await recordPhase9Status({
+                  store,
+                  changeId,
+                  status: buildPendingMergePhase9Status({
+                    finalization: currentFinalization,
+                    startedAt: currentChange.phase9_status?.startedAt ?? now,
+                  }),
+                });
+                return;
               }
 
               const releaseResult = await completeReleaseGateAfterFinalization({
@@ -3957,6 +4026,7 @@ export const changeTools = {
               if (
                 currentFinalization?.status === "shipped" &&
                 currentFinalization.mainCheckout &&
+                currentFinalization.route !== "pr_auto_merge" &&
                 archiveMode === "direct"
               ) {
                 try {
@@ -4033,6 +4103,7 @@ export const changeTools = {
               store,
               changeId,
               archiveMode,
+              change,
             });
 
         if (finalization.status === "blocked") {
@@ -4049,6 +4120,48 @@ export const changeTools = {
               version: `${s.originalVersion} → ${s.newVersion}`,
               deltas: s.deltaResults.length,
             })),
+          });
+        }
+
+        if (finalization.status === "pending_merge") {
+          await recordPhase9Status({
+            store,
+            changeId,
+            status: buildPendingMergePhase9Status({
+              finalization,
+              startedAt:
+                change.phase9_status?.startedAt ?? new Date().toISOString(),
+            }),
+          });
+          return formatToolOutput({
+            success: true,
+            specsUpdated: archiveResult.specsUpdated.map((s) => ({
+              capability: s.capability,
+              version: `${s.originalVersion} → ${s.newVersion}`,
+              deltas: s.deltaResults.length,
+            })),
+            docsGenerated: archiveResult.docsGenerated,
+            archivePath: archiveResult.archivePath,
+            errors: archiveResult.errors,
+            dryRun: false,
+            ...(archiveResult.multiRepo
+              ? { multiRepo: archiveResult.multiRepo }
+              : {}),
+            phase9: "pending_merge",
+            finalization,
+            continueFrom: {
+              path: finalization.mainCheckout,
+              branch: finalization.defaultBranch,
+            },
+            ...(validationResult.warnings.length > 0
+              ? {
+                  validationWarnings: validationResult.warnings.map((w) => ({
+                    code: w.code,
+                    message: w.message,
+                    path: w.path,
+                  })),
+                }
+              : {}),
           });
         }
 
@@ -4268,6 +4381,7 @@ export const changeTools = {
         if (
           finalization?.status === "shipped" &&
           finalization.mainCheckout &&
+          finalization.route !== "pr_auto_merge" &&
           archiveMode === "direct"
         ) {
           try {
@@ -4297,17 +4411,14 @@ export const changeTools = {
       }
 
       // Issue closure — after archive state is durable (or previewed in dryRun)
-      const issueClosure =
-        finalization?.status === "pr_pushed"
-          ? { issue_closed: [], close_eligible: false }
-          : await closeLinkedIssue({
-              change,
-              store,
-              noCloseIssue,
-              dryRun,
-              existingBundlePath: existingBundlePath ?? undefined,
-              worktreePath,
-            });
+      const issueClosure = await closeLinkedIssue({
+        change,
+        store,
+        noCloseIssue,
+        dryRun,
+        existingBundlePath: existingBundlePath ?? undefined,
+        worktreePath,
+      });
 
       return formatToolOutput({
         success: archiveResult.success,
@@ -4365,6 +4476,131 @@ export const changeTools = {
               })),
             }
           : {}),
+      });
+    },
+  },
+
+  adv_archive_repair: {
+    description:
+      "Scan for archived change branches not reachable from origin/default and re-drive PR auto-merge handoff",
+    args: {
+      action: z
+        .enum(["scan", "redrive"])
+        .describe(
+          "scan = list candidates; redrive = open/reuse PR and arm auto-merge for one archived change",
+        ),
+      changeId: z
+        .string()
+        .optional()
+        .describe("Archived change ID to re-drive when action='redrive'"),
+      dryRun: z
+        .boolean()
+        .optional()
+        .describe("Preview redrive without creating PRs or arming auto-merge"),
+    },
+    execute: async (
+      {
+        action,
+        changeId,
+        dryRun,
+      }: { action: "scan" | "redrive"; changeId?: string; dryRun?: boolean },
+      store: Store,
+    ) => {
+      const mainCheckout = resolveMainCheckout(store.paths.root);
+      const { branch: defaultBranch } = detectDefaultBranch(mainCheckout);
+      const archivedList = await store.changes.list({
+        status: "archived",
+        includeArchived: true,
+      });
+      const archivedChangeIds = archivedList.changes.map((change) => change.id);
+      const scan = detectArchivedUnmergedBranches({
+        mainCheckout,
+        defaultBranch,
+        archivedChangeIds,
+      });
+      if (scan.status === "blocked") {
+        return formatToolOutput({
+          success: false,
+          action,
+          error: `Archive repair scan blocked: ${scan.reason}`,
+          requirement: "rq-releaseFinalization01",
+          details: scan.details,
+        });
+      }
+
+      if (action === "scan") {
+        return formatToolOutput({
+          success: true,
+          action,
+          mainCheckout,
+          defaultBranch,
+          branches: scan.branches,
+          count: scan.branches.length,
+        });
+      }
+
+      if (!changeId?.trim()) {
+        return formatToolOutput({
+          success: false,
+          action,
+          error: "changeId is required when action='redrive'",
+        });
+      }
+      if (!archivedChangeIds.includes(changeId)) {
+        return formatToolOutput({
+          success: false,
+          action,
+          changeId,
+          error: `Change is not archived or was not found: ${changeId}`,
+        });
+      }
+      const candidate = scan.branches.find(
+        (branch) => branch.changeId === changeId,
+      );
+      if (!candidate) {
+        return formatToolOutput({
+          success: true,
+          action,
+          changeId,
+          dryRun: Boolean(dryRun),
+          message: `No archived-but-unmerged branch found for ${changeId}`,
+        });
+      }
+      if (dryRun) {
+        return formatToolOutput({
+          success: true,
+          action,
+          changeId,
+          dryRun: true,
+          candidate,
+          mainCheckout,
+          defaultBranch,
+        });
+      }
+
+      const outcome = redriveArchivedUnmergedBranch({
+        mainCheckout,
+        defaultBranch,
+        changeId,
+      });
+      if (outcome.status === "blocked") {
+        return formatToolOutput({
+          success: false,
+          action,
+          changeId,
+          error: `Archive repair redrive blocked: ${outcome.blocked?.reason}`,
+          requirement: "rq-releaseFinalization01",
+          remediation: outcome.blocked?.remediation,
+          details: outcome.blocked?.details,
+          outcome,
+        });
+      }
+
+      return formatToolOutput({
+        success: true,
+        action,
+        changeId,
+        outcome,
       });
     },
   },

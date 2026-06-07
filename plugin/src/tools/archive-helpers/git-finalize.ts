@@ -1,13 +1,15 @@
 import { realpathSync } from "fs";
+import { spawnSync } from "child_process";
 import { dirname } from "path";
 import { spawnSyncGit } from "../../utils/git-binary";
 
 export type ArchiveMode = "direct" | "pr";
 
 export interface GitFinalizeOutcome {
-  status: "shipped" | "blocked" | "pr_pushed";
+  status: "shipped" | "blocked" | "pending_merge";
   mainCheckout: string;
   defaultBranch: string;
+  route?: ReleaseFinalizationRouteName;
   mergeCommitSha?: string;
   /** SHA of the dirty-main checkpoint commit, set when ADV committed pre-existing
    *  main checkout changes before merge (rq-releaseFinalization01.7). */
@@ -15,6 +17,9 @@ export interface GitFinalizeOutcome {
   pushStatus: "pushed" | "skipped" | "failed" | "not_attempted";
   pushFailureReason?: string;
   prBranch?: string;
+  prNumber?: number;
+  prUrl?: string;
+  autoMergeArmed?: boolean;
   blocked?: { reason: string; remediation: string; details?: string[] };
 }
 
@@ -26,8 +31,70 @@ export interface RunGitResult {
 
 export interface GitFinalizeDeps {
   runGit?: (cwd: string, args: string[], timeoutMs?: number) => RunGitResult;
+  runGh?: (cwd: string, args: string[], timeoutMs?: number) => RunGitResult;
   requireCleanWorktree?: boolean;
 }
+
+export type ReleaseFinalizationRouteName =
+  | "no_remote"
+  | "direct"
+  | "pr_auto_merge"
+  | "pr_manual"
+  | "blocked";
+
+export interface FinalizationRoute {
+  route: ReleaseFinalizationRouteName;
+  repo?: string;
+  remoteUrl?: string;
+  protected?: boolean;
+  autoMergeAllowed?: boolean;
+  reason?: string;
+  details?: string[];
+}
+
+export interface PullRequestMergeState {
+  state: string;
+  mergedAt?: string | null;
+  mergeCommitOid?: string;
+  autoMergeArmed: boolean;
+  raw?: unknown;
+}
+
+interface PullRequestSummary {
+  number: number;
+  url: string;
+  state: string;
+  autoMergeArmed: boolean;
+}
+
+export interface ReleaseReachabilityInput {
+  mainCheckout: string;
+  defaultBranch: string;
+  changeId: string;
+  route?: FinalizationRoute;
+  prNumber?: number;
+}
+
+export type ReleaseReachabilityProof =
+  | {
+      reachable: true;
+      proof: "local_merge" | "origin_default" | "pr_merged";
+      prNumber?: number;
+      mergeCommitOid?: string;
+      details?: string[];
+    }
+  | {
+      reachable: false;
+      proof:
+        | "local_unmerged"
+        | "origin_unmerged"
+        | "origin_push_unverified"
+        | "pr_unmerged"
+        | "blocked";
+      prNumber?: number;
+      autoMergeArmed?: boolean;
+      details?: string[];
+    };
 
 export interface DeleteChangeBranchResult {
   localDeleted: boolean;
@@ -142,6 +209,35 @@ function defaultRunGit(
   };
 }
 
+function defaultRunGh(
+  cwd: string,
+  args: string[],
+  timeoutMs: number = DEFAULT_GIT_TIMEOUT_MS,
+): RunGitResult {
+  const result = spawnSync("gh", args, {
+    cwd,
+    encoding: "utf8",
+    timeout: timeoutMs,
+    env: {
+      ...process.env,
+      GIT_TERMINAL_PROMPT: "0",
+      GH_PROMPT_DISABLED: "1",
+    },
+  });
+  const timedOut = result.error?.message.includes("ETIMEDOUT") ?? false;
+  const stdout =
+    typeof result.stdout === "string" ? result.stdout : String(result.stdout);
+  const stderr =
+    typeof result.stderr === "string" ? result.stderr : String(result.stderr);
+  return {
+    status: timedOut ? 124 : result.status,
+    stdout: redactGitOutput(stdout ?? ""),
+    stderr: timedOut
+      ? `gh ${args.join(" ")} timed out after ${timeoutMs}ms`
+      : redactGitOutput(stderr ?? ""),
+  };
+}
+
 function runGitOrThrow(
   cwd: string,
   args: string[],
@@ -161,6 +257,176 @@ function splitLines(value: string): string[] {
     .split(/\r?\n/)
     .map((line) => line.trim())
     .filter(Boolean);
+}
+
+function parseJson(value: string): unknown {
+  try {
+    return JSON.parse(value.trim() || "null");
+  } catch {
+    return undefined;
+  }
+}
+
+export function parseGitHubRepoFromRemote(url: string): string | undefined {
+  const trimmed = url.trim().replace(/\.git$/, "");
+  const match = trimmed.match(
+    /github\.com[:/]([^/\s:]+)\/([^/\s]+(?:\/[^/\s]+)*)$/i,
+  );
+  if (!match) return undefined;
+  const owner = match[1];
+  const repo = match[2]?.split("/").pop();
+  return owner && repo ? `${owner}/${repo}` : undefined;
+}
+
+function getOriginRemote(
+  mainCheckout: string,
+  deps: Pick<GitFinalizeDeps, "runGit"> = {},
+):
+  | { configured: true; remoteUrl: string; repo?: string }
+  | { configured: false; reason: string } {
+  const runGit = deps.runGit ?? defaultRunGit;
+  const remote = runGit(mainCheckout, ["remote", "get-url", "origin"]);
+  if (remote.status !== 0 || !remote.stdout.trim()) {
+    return {
+      configured: false,
+      reason: (
+        remote.stderr ||
+        remote.stdout ||
+        "origin remote not configured"
+      ).trim(),
+    };
+  }
+  const remoteUrl = remote.stdout.trim();
+  return {
+    configured: true,
+    remoteUrl,
+    repo: parseGitHubRepoFromRemote(remoteUrl),
+  };
+}
+
+function ghFailureReason(result: RunGitResult): string {
+  if (result.status === 127) return "GITHUB_CLI_UNAVAILABLE";
+  if (/not found|command not found/i.test(result.stderr || result.stdout)) {
+    return "GITHUB_CLI_UNAVAILABLE";
+  }
+  if (
+    /not authenticated|authentication|authorization|Bad credentials/i.test(
+      result.stderr || result.stdout,
+    )
+  ) {
+    return "GITHUB_CLI_UNAUTHENTICATED";
+  }
+  return "GITHUB_API_UNAVAILABLE";
+}
+
+export function classifyFinalizationRoute(
+  mainCheckout: string,
+  defaultBranch: string,
+  deps: Pick<GitFinalizeDeps, "runGit" | "runGh"> = {},
+): FinalizationRoute {
+  const origin = getOriginRemote(mainCheckout, deps);
+  if (!origin.configured) {
+    return {
+      route: "no_remote",
+      reason: origin.reason,
+    };
+  }
+
+  if (!origin.repo) {
+    return {
+      route: "pr_manual",
+      remoteUrl: origin.remoteUrl,
+      reason: "GITHUB_REPO_UNRESOLVABLE",
+      details: [
+        `Unable to derive owner/repo from origin URL ${origin.remoteUrl}`,
+      ],
+    };
+  }
+
+  const runGh = deps.runGh ?? defaultRunGh;
+  const rules = runGh(mainCheckout, [
+    "api",
+    `repos/${origin.repo}/rules/branches/${encodeURIComponent(defaultBranch)}`,
+  ]);
+  if (rules.status !== 0) {
+    return {
+      route: "pr_manual",
+      repo: origin.repo,
+      remoteUrl: origin.remoteUrl,
+      reason: ghFailureReason(rules),
+      details: splitLines(rules.stderr || rules.stdout),
+    };
+  }
+
+  const parsedRules = parseJson(rules.stdout);
+  if (!Array.isArray(parsedRules)) {
+    return {
+      route: "pr_manual",
+      repo: origin.repo,
+      remoteUrl: origin.remoteUrl,
+      reason: "BRANCH_RULES_UNPARSEABLE",
+      details: splitLines(rules.stdout),
+    };
+  }
+
+  if (parsedRules.length === 0) {
+    return {
+      route: "direct",
+      repo: origin.repo,
+      remoteUrl: origin.remoteUrl,
+      protected: false,
+    };
+  }
+
+  const allowAutoMerge = runGh(mainCheckout, [
+    "api",
+    `repos/${origin.repo}`,
+    "--jq",
+    ".allow_auto_merge",
+  ]);
+  if (allowAutoMerge.status !== 0) {
+    return {
+      route: "pr_manual",
+      repo: origin.repo,
+      remoteUrl: origin.remoteUrl,
+      protected: true,
+      reason: "AUTO_MERGE_STATUS_UNAVAILABLE",
+      details: splitLines(allowAutoMerge.stderr || allowAutoMerge.stdout),
+    };
+  }
+
+  const parsedAllowAutoMerge = parseJson(allowAutoMerge.stdout);
+  if (parsedAllowAutoMerge === true) {
+    return {
+      route: "pr_auto_merge",
+      repo: origin.repo,
+      remoteUrl: origin.remoteUrl,
+      protected: true,
+      autoMergeAllowed: true,
+    };
+  }
+
+  return {
+    route: "pr_manual",
+    repo: origin.repo,
+    remoteUrl: origin.remoteUrl,
+    protected: true,
+    autoMergeAllowed: false,
+    reason: "AUTO_MERGE_DISABLED",
+  };
+}
+
+export function coercePrWorkflowRoute(
+  route: FinalizationRoute,
+): FinalizationRoute {
+  if (route.route === "blocked" || route.route === "no_remote") return route;
+  if (!route.repo) return route;
+  if (route.route === "pr_manual") return route;
+  return {
+    ...route,
+    route: "pr_auto_merge",
+    protected: route.protected ?? true,
+  };
 }
 
 export function resolveMainCheckout(
@@ -397,6 +663,35 @@ export function verifyChangeBranchReachable(
     "log",
     "--oneline",
     `${defaultBranch}..change/${changeId}`,
+  ]);
+  if (result.status !== 0) {
+    return {
+      reachable: false,
+      unmergedCommits: splitLines(result.stderr || result.stdout),
+    };
+  }
+  const unmergedCommits = splitLines(result.stdout);
+  return { reachable: unmergedCommits.length === 0, unmergedCommits };
+}
+
+export function verifyChangeBranchReachableFromOrigin(
+  mainCheckout: string,
+  defaultBranch: string,
+  changeId: string,
+  deps: GitFinalizeDeps = {},
+): { reachable: boolean; unmergedCommits: string[] } {
+  const runGit = deps.runGit ?? defaultRunGit;
+  const fetch = runGit(mainCheckout, ["fetch", "origin", defaultBranch]);
+  if (fetch.status !== 0) {
+    return {
+      reachable: false,
+      unmergedCommits: splitLines(fetch.stderr || fetch.stdout),
+    };
+  }
+  const result = runGit(mainCheckout, [
+    "log",
+    "--oneline",
+    `origin/${defaultBranch}..change/${changeId}`,
   ]);
   if (result.status !== 0) {
     return {
@@ -669,10 +964,814 @@ export function verifyDefaultBranchPushed(
       };
 }
 
+export function readPrMergeState(
+  mainCheckout: string,
+  repo: string,
+  prNumber: number,
+  deps: Pick<GitFinalizeDeps, "runGh"> = {},
+): PullRequestMergeState | { error: string; details?: string[] } {
+  const runGh = deps.runGh ?? defaultRunGh;
+  const result = runGh(mainCheckout, [
+    "pr",
+    "view",
+    String(prNumber),
+    "--repo",
+    repo,
+    "--json",
+    "state,mergedAt,mergeCommit,autoMergeRequest",
+  ]);
+  if (result.status !== 0) {
+    return {
+      error: ghFailureReason(result),
+      details: splitLines(result.stderr || result.stdout),
+    };
+  }
+  const parsed = parseJson(result.stdout);
+  if (!parsed || typeof parsed !== "object") {
+    return {
+      error: "PR_STATE_UNPARSEABLE",
+      details: splitLines(result.stdout),
+    };
+  }
+  const payload = parsed as {
+    state?: unknown;
+    mergedAt?: unknown;
+    mergeCommit?: { oid?: unknown } | null;
+    autoMergeRequest?: unknown;
+  };
+  return {
+    state: typeof payload.state === "string" ? payload.state : "UNKNOWN",
+    mergedAt: typeof payload.mergedAt === "string" ? payload.mergedAt : null,
+    mergeCommitOid:
+      payload.mergeCommit && typeof payload.mergeCommit.oid === "string"
+        ? payload.mergeCommit.oid
+        : undefined,
+    autoMergeArmed:
+      payload.autoMergeRequest !== null &&
+      payload.autoMergeRequest !== undefined,
+    raw: parsed,
+  };
+}
+
+function parsePullRequestSummary(
+  value: unknown,
+): PullRequestSummary | { error: string; details?: string[] } {
+  if (!value || typeof value !== "object") {
+    return { error: "PR_SUMMARY_UNPARSEABLE" };
+  }
+  const payload = value as {
+    number?: unknown;
+    url?: unknown;
+    state?: unknown;
+    autoMergeRequest?: unknown;
+  };
+  if (typeof payload.number !== "number" || !Number.isInteger(payload.number)) {
+    return { error: "PR_NUMBER_MISSING" };
+  }
+  if (typeof payload.url !== "string" || !payload.url.trim()) {
+    return { error: "PR_URL_MISSING" };
+  }
+  return {
+    number: payload.number,
+    url: payload.url,
+    state: typeof payload.state === "string" ? payload.state : "UNKNOWN",
+    autoMergeArmed:
+      payload.autoMergeRequest !== null &&
+      payload.autoMergeRequest !== undefined,
+  };
+}
+
+function readPullRequestByBranch(
+  mainCheckout: string,
+  repo: string,
+  branch: string,
+  deps: Pick<GitFinalizeDeps, "runGh"> = {},
+): PullRequestSummary | { error: string; details?: string[] } {
+  const runGh = deps.runGh ?? defaultRunGh;
+  const result = runGh(mainCheckout, [
+    "pr",
+    "view",
+    branch,
+    "--repo",
+    repo,
+    "--json",
+    "number,url,state,autoMergeRequest",
+  ]);
+  if (result.status !== 0) {
+    return {
+      error: ghFailureReason(result),
+      details: splitLines(result.stderr || result.stdout),
+    };
+  }
+  const parsed = parseJson(result.stdout);
+  const summary = parsePullRequestSummary(parsed);
+  return "error" in summary
+    ? { ...summary, details: splitLines(result.stdout) }
+    : summary;
+}
+
+function createArchivePullRequest(
+  input: {
+    mainCheckout: string;
+    repo: string;
+    branch: string;
+    defaultBranch: string;
+    changeId: string;
+  },
+  deps: Pick<GitFinalizeDeps, "runGh"> = {},
+):
+  | { ok: true; url?: string }
+  | { ok: false; reason: string; details?: string[] } {
+  const runGh = deps.runGh ?? defaultRunGh;
+  const result = runGh(input.mainCheckout, [
+    "pr",
+    "create",
+    "--repo",
+    input.repo,
+    "--head",
+    input.branch,
+    "--base",
+    input.defaultBranch,
+    "--title",
+    `Archive ${input.changeId}`,
+    "--body",
+    `ADV Phase 9 archive finalization for ${input.branch}.`,
+  ]);
+  if (result.status !== 0) {
+    return {
+      ok: false,
+      reason: ghFailureReason(result),
+      details: splitLines(result.stderr || result.stdout),
+    };
+  }
+  return { ok: true, url: splitLines(result.stdout)[0] };
+}
+
+function ensureArchivePullRequest(
+  input: {
+    mainCheckout: string;
+    repo: string;
+    branch: string;
+    defaultBranch: string;
+    changeId: string;
+  },
+  deps: Pick<GitFinalizeDeps, "runGh"> = {},
+): PullRequestSummary | { error: string; details?: string[] } {
+  const existing = readPullRequestByBranch(
+    input.mainCheckout,
+    input.repo,
+    input.branch,
+    deps,
+  );
+  if (!("error" in existing)) {
+    if (existing.state === "CLOSED") {
+      return {
+        error: "PR_CLOSED",
+        details: [`Existing PR ${existing.url} is closed`],
+      };
+    }
+    return existing;
+  }
+
+  const created = createArchivePullRequest(input, deps);
+  if (!created.ok) {
+    return { error: created.reason, details: created.details };
+  }
+
+  const afterCreate = readPullRequestByBranch(
+    input.mainCheckout,
+    input.repo,
+    input.branch,
+    deps,
+  );
+  if ("error" in afterCreate) {
+    return {
+      error: afterCreate.error,
+      details: [
+        ...(created.url ? [`created=${created.url}`] : []),
+        ...(afterCreate.details ?? []),
+      ],
+    };
+  }
+  return afterCreate;
+}
+
+function armPullRequestAutoMerge(
+  mainCheckout: string,
+  repo: string,
+  prNumber: number,
+  deps: Pick<GitFinalizeDeps, "runGh"> = {},
+): { ok: true } | { ok: false; reason: string; details?: string[] } {
+  const runGh = deps.runGh ?? defaultRunGh;
+  const result = runGh(mainCheckout, [
+    "pr",
+    "merge",
+    String(prNumber),
+    "--repo",
+    repo,
+    "--squash",
+    "--auto",
+  ]);
+  if (result.status !== 0) {
+    return {
+      ok: false,
+      reason: ghFailureReason(result),
+      details: splitLines(result.stderr || result.stdout),
+    };
+  }
+  return { ok: true };
+}
+
+function resetMainToOriginDefault(
+  mainCheckout: string,
+  defaultBranch: string,
+  deps: Pick<GitFinalizeDeps, "runGit"> = {},
+): { ok: true } | { ok: false; reason: string; details?: string[] } {
+  const runGit = deps.runGit ?? defaultRunGit;
+  const fetch = runGit(mainCheckout, ["fetch", "origin", defaultBranch]);
+  if (fetch.status !== 0) {
+    return {
+      ok: false,
+      reason: "DEFAULT_BRANCH_FETCH_FAILED",
+      details: splitLines(fetch.stderr || fetch.stdout),
+    };
+  }
+  const reset = runGit(mainCheckout, [
+    "reset",
+    "--hard",
+    `origin/${defaultBranch}`,
+  ]);
+  if (reset.status !== 0) {
+    return {
+      ok: false,
+      reason: "DEFAULT_BRANCH_RESET_FAILED",
+      details: splitLines(reset.stderr || reset.stdout),
+    };
+  }
+  return { ok: true };
+}
+
+function completeProtectedBranchViaPullRequest(
+  input: {
+    mainCheckout: string;
+    workdir: string;
+    changeId: string;
+    defaultBranch: string;
+    route: FinalizationRoute;
+    pushFailureReason: string;
+  },
+  deps: GitFinalizeDeps = {},
+): GitFinalizeOutcome {
+  const branch = `change/${input.changeId}`;
+  if (!input.route.repo) {
+    return {
+      status: "blocked",
+      mainCheckout: input.mainCheckout,
+      defaultBranch: input.defaultBranch,
+      route: input.route.route,
+      pushStatus: "failed",
+      pushFailureReason: input.pushFailureReason,
+      prBranch: branch,
+      blocked: {
+        reason: "GITHUB_REPO_UNRESOLVABLE",
+        remediation: `Unable to derive GitHub repo for ${branch}; create or merge a PR manually before release completion (rq-releaseFinalization01).`,
+        details: input.route.details,
+      },
+    };
+  }
+
+  const reset = resetMainToOriginDefault(
+    input.mainCheckout,
+    input.defaultBranch,
+    deps,
+  );
+  if (!reset.ok) {
+    return {
+      status: "blocked",
+      mainCheckout: input.mainCheckout,
+      defaultBranch: input.defaultBranch,
+      route: input.route.route,
+      pushStatus: "failed",
+      pushFailureReason: input.pushFailureReason,
+      prBranch: branch,
+      blocked: {
+        reason: reset.reason,
+        remediation: `Default branch ${input.defaultBranch} must be reconciled to origin/${input.defaultBranch} before PR auto-merge handoff (rq-releaseFinalization01).`,
+        details: reset.details,
+      },
+    };
+  }
+
+  const branchPush = pushChangeBranch(input.workdir, input.changeId, {
+    autoPush: true,
+    runGit: deps.runGit,
+  });
+  if (branchPush.status !== "pushed") {
+    return {
+      status: "blocked",
+      mainCheckout: input.mainCheckout,
+      defaultBranch: input.defaultBranch,
+      route: input.route.route,
+      pushStatus: branchPush.status,
+      pushFailureReason: branchPush.reason,
+      prBranch: branch,
+      blocked: {
+        reason:
+          branchPush.status === "failed"
+            ? "PR_BRANCH_PUSH_FAILED"
+            : "PR_BRANCH_PUSH_SKIPPED",
+        remediation: `Change branch ${branch} must be pushed before PR auto-merge handoff (rq-releaseFinalization01).`,
+        details: [branchPush.reason],
+      },
+    };
+  }
+
+  const pr = ensureArchivePullRequest(
+    {
+      mainCheckout: input.mainCheckout,
+      repo: input.route.repo,
+      branch,
+      defaultBranch: input.defaultBranch,
+      changeId: input.changeId,
+    },
+    deps,
+  );
+  if ("error" in pr) {
+    return {
+      status: "blocked",
+      mainCheckout: input.mainCheckout,
+      defaultBranch: input.defaultBranch,
+      route: input.route.route,
+      pushStatus: "pushed",
+      pushFailureReason: input.pushFailureReason,
+      prBranch: branch,
+      blocked: {
+        reason: pr.error,
+        remediation: `Open or reuse a PR for ${branch}, then rerun archive finalization (rq-releaseFinalization01).`,
+        details: pr.details,
+      },
+    };
+  }
+
+  const armed = armPullRequestAutoMerge(
+    input.mainCheckout,
+    input.route.repo,
+    pr.number,
+    deps,
+  );
+  if (!armed.ok) {
+    return {
+      status: "blocked",
+      mainCheckout: input.mainCheckout,
+      defaultBranch: input.defaultBranch,
+      route: input.route.route,
+      pushStatus: "pushed",
+      pushFailureReason: input.pushFailureReason,
+      prBranch: branch,
+      prNumber: pr.number,
+      prUrl: pr.url,
+      blocked: {
+        reason: "AUTO_MERGE_ARM_FAILED",
+        remediation: `Enable auto-merge or manually merge PR ${pr.url}, then rerun archive finalization (rq-releaseFinalization01).`,
+        details: [armed.reason, ...(armed.details ?? [])],
+      },
+    };
+  }
+
+  const reachability = resolveReleaseReachability(
+    {
+      mainCheckout: input.mainCheckout,
+      defaultBranch: input.defaultBranch,
+      changeId: input.changeId,
+      route: input.route,
+      prNumber: pr.number,
+    },
+    deps,
+  );
+  if (reachability.reachable && reachability.proof === "pr_merged") {
+    return {
+      status: "shipped",
+      mainCheckout: input.mainCheckout,
+      defaultBranch: input.defaultBranch,
+      route: input.route.route,
+      mergeCommitSha: reachability.mergeCommitOid,
+      pushStatus: "pushed",
+      pushFailureReason: input.pushFailureReason,
+      prBranch: branch,
+      prNumber: pr.number,
+      prUrl: pr.url,
+      autoMergeArmed: false,
+    };
+  }
+  if (!reachability.reachable && reachability.autoMergeArmed) {
+    return {
+      status: "pending_merge",
+      mainCheckout: input.mainCheckout,
+      defaultBranch: input.defaultBranch,
+      route: input.route.route,
+      pushStatus: "pushed",
+      pushFailureReason: input.pushFailureReason,
+      prBranch: branch,
+      prNumber: pr.number,
+      prUrl: pr.url,
+      autoMergeArmed: true,
+    };
+  }
+
+  return {
+    status: "blocked",
+    mainCheckout: input.mainCheckout,
+    defaultBranch: input.defaultBranch,
+    route: input.route.route,
+    pushStatus: "pushed",
+    pushFailureReason: input.pushFailureReason,
+    prBranch: branch,
+    prNumber: pr.number,
+    prUrl: pr.url,
+    autoMergeArmed: false,
+    blocked: {
+      reason: "PR_AUTO_MERGE_NOT_ARMED",
+      remediation: `PR ${pr.url} must be merged or have auto-merge armed before release completion (rq-releaseFinalization01).`,
+      details: reachability.details,
+    },
+  };
+}
+
+export interface ArchivedUnmergedBranch {
+  changeId: string;
+  branch: string;
+  remoteRef: string;
+  sha: string;
+  unmergedCommits: string[];
+}
+
+export type ArchivedUnmergedBranchesResult =
+  | { status: "ok"; branches: ArchivedUnmergedBranch[] }
+  | { status: "blocked"; reason: string; details?: string[] };
+
+function parseRemoteChangeBranchRefs(output: string): Array<{
+  changeId: string;
+  branch: string;
+  remoteRef: string;
+  sha: string;
+}> {
+  return splitLines(output)
+    .map((line) => {
+      const [sha, remoteRef] = line.split(/\s+/, 2);
+      const prefix = "refs/heads/change/";
+      if (!sha || !remoteRef?.startsWith(prefix)) return null;
+      const changeId = remoteRef.slice(prefix.length);
+      if (!changeId) return null;
+      return {
+        changeId,
+        branch: `change/${changeId}`,
+        remoteRef,
+        sha,
+      };
+    })
+    .filter((entry): entry is NonNullable<typeof entry> => entry !== null);
+}
+
+export function detectArchivedUnmergedBranches(
+  input: {
+    mainCheckout: string;
+    defaultBranch: string;
+    archivedChangeIds?: string[];
+  },
+  deps: Pick<GitFinalizeDeps, "runGit"> = {},
+): ArchivedUnmergedBranchesResult {
+  const runGit = deps.runGit ?? defaultRunGit;
+  const archivedSet = input.archivedChangeIds
+    ? new Set(input.archivedChangeIds)
+    : null;
+  const remoteBranches = runGit(input.mainCheckout, [
+    "ls-remote",
+    "--heads",
+    "origin",
+    "refs/heads/change/*",
+  ]);
+  if (remoteBranches.status !== 0) {
+    return {
+      status: "blocked",
+      reason: "CHANGE_BRANCH_LIST_FAILED",
+      details: splitLines(remoteBranches.stderr || remoteBranches.stdout),
+    };
+  }
+
+  const defaultFetch = runGit(input.mainCheckout, [
+    "fetch",
+    "origin",
+    input.defaultBranch,
+  ]);
+  if (defaultFetch.status !== 0) {
+    return {
+      status: "blocked",
+      reason: "DEFAULT_BRANCH_FETCH_FAILED",
+      details: splitLines(defaultFetch.stderr || defaultFetch.stdout),
+    };
+  }
+
+  const candidates = parseRemoteChangeBranchRefs(remoteBranches.stdout).filter(
+    (entry) => !archivedSet || archivedSet.has(entry.changeId),
+  );
+  const branches: ArchivedUnmergedBranch[] = [];
+  for (const candidate of candidates) {
+    const branchFetch = runGit(input.mainCheckout, [
+      "fetch",
+      "origin",
+      `+refs/heads/${candidate.branch}:refs/remotes/origin/${candidate.branch}`,
+    ]);
+    if (branchFetch.status !== 0) {
+      branches.push({
+        ...candidate,
+        unmergedCommits: splitLines(branchFetch.stderr || branchFetch.stdout),
+      });
+      continue;
+    }
+    const unmerged = runGit(input.mainCheckout, [
+      "log",
+      "--oneline",
+      `origin/${input.defaultBranch}..origin/${candidate.branch}`,
+    ]);
+    if (unmerged.status !== 0) {
+      branches.push({
+        ...candidate,
+        unmergedCommits: splitLines(unmerged.stderr || unmerged.stdout),
+      });
+      continue;
+    }
+    const unmergedCommits = splitLines(unmerged.stdout);
+    if (unmergedCommits.length > 0) {
+      branches.push({ ...candidate, unmergedCommits });
+    }
+  }
+
+  return { status: "ok", branches };
+}
+
+export function redriveArchivedUnmergedBranch(
+  input: {
+    mainCheckout: string;
+    defaultBranch: string;
+    changeId: string;
+  },
+  deps: GitFinalizeDeps = {},
+): GitFinalizeOutcome {
+  const branch = `change/${input.changeId}`;
+  const runGit = deps.runGit ?? defaultRunGit;
+  const remoteBranch = runGit(input.mainCheckout, [
+    "ls-remote",
+    "--heads",
+    "origin",
+    `refs/heads/${branch}`,
+  ]);
+  if (remoteBranch.status !== 0 || !remoteBranch.stdout.trim()) {
+    return {
+      status: "blocked",
+      mainCheckout: input.mainCheckout,
+      defaultBranch: input.defaultBranch,
+      pushStatus: "not_attempted",
+      prBranch: branch,
+      blocked: {
+        reason: "REMOTE_CHANGE_BRANCH_NOT_FOUND",
+        remediation: `Remote branch ${branch} must exist before archive re-drive can open or arm a PR (rq-releaseFinalization01).`,
+        details: splitLines(remoteBranch.stderr || remoteBranch.stdout),
+      },
+    };
+  }
+
+  const route = classifyFinalizationRoute(
+    input.mainCheckout,
+    input.defaultBranch,
+    deps,
+  );
+  if (route.route !== "pr_auto_merge" || !route.repo) {
+    return {
+      status: "blocked",
+      mainCheckout: input.mainCheckout,
+      defaultBranch: input.defaultBranch,
+      route: route.route,
+      pushStatus: "not_attempted",
+      prBranch: branch,
+      blocked: {
+        reason: route.reason ?? "PR_AUTO_MERGE_UNAVAILABLE",
+        remediation: `Auto-merge PR route is required to re-drive archived branch ${branch}; inspect branch protection and GitHub CLI access (rq-releaseFinalization01).`,
+        details: route.details,
+      },
+    };
+  }
+
+  const pr = ensureArchivePullRequest(
+    {
+      mainCheckout: input.mainCheckout,
+      repo: route.repo,
+      branch,
+      defaultBranch: input.defaultBranch,
+      changeId: input.changeId,
+    },
+    deps,
+  );
+  if ("error" in pr) {
+    return {
+      status: "blocked",
+      mainCheckout: input.mainCheckout,
+      defaultBranch: input.defaultBranch,
+      route: route.route,
+      pushStatus: "not_attempted",
+      prBranch: branch,
+      blocked: {
+        reason: pr.error,
+        remediation: `Open or reuse a PR for ${branch}, then rerun archive re-drive (rq-releaseFinalization01).`,
+        details: pr.details,
+      },
+    };
+  }
+
+  const armed = armPullRequestAutoMerge(
+    input.mainCheckout,
+    route.repo,
+    pr.number,
+    deps,
+  );
+  if (!armed.ok) {
+    return {
+      status: "blocked",
+      mainCheckout: input.mainCheckout,
+      defaultBranch: input.defaultBranch,
+      route: route.route,
+      pushStatus: "not_attempted",
+      prBranch: branch,
+      prNumber: pr.number,
+      prUrl: pr.url,
+      blocked: {
+        reason: "AUTO_MERGE_ARM_FAILED",
+        remediation: `Enable auto-merge or manually merge PR ${pr.url}, then rerun archive re-drive (rq-releaseFinalization01).`,
+        details: [armed.reason, ...(armed.details ?? [])],
+      },
+    };
+  }
+
+  const reachability = resolveReleaseReachability(
+    {
+      mainCheckout: input.mainCheckout,
+      defaultBranch: input.defaultBranch,
+      changeId: input.changeId,
+      route,
+      prNumber: pr.number,
+    },
+    deps,
+  );
+  if (reachability.reachable && reachability.proof === "pr_merged") {
+    return {
+      status: "shipped",
+      mainCheckout: input.mainCheckout,
+      defaultBranch: input.defaultBranch,
+      route: route.route,
+      mergeCommitSha: reachability.mergeCommitOid,
+      pushStatus: "pushed",
+      prBranch: branch,
+      prNumber: pr.number,
+      prUrl: pr.url,
+      autoMergeArmed: false,
+    };
+  }
+  if (!reachability.reachable && reachability.autoMergeArmed) {
+    return {
+      status: "pending_merge",
+      mainCheckout: input.mainCheckout,
+      defaultBranch: input.defaultBranch,
+      route: route.route,
+      pushStatus: "pushed",
+      prBranch: branch,
+      prNumber: pr.number,
+      prUrl: pr.url,
+      autoMergeArmed: true,
+    };
+  }
+
+  return {
+    status: "blocked",
+    mainCheckout: input.mainCheckout,
+    defaultBranch: input.defaultBranch,
+    route: route.route,
+    pushStatus: "not_attempted",
+    prBranch: branch,
+    prNumber: pr.number,
+    prUrl: pr.url,
+    autoMergeArmed: false,
+    blocked: {
+      reason: "PR_AUTO_MERGE_NOT_ARMED",
+      remediation: `PR ${pr.url} must be merged or have auto-merge armed before re-drive can complete (rq-releaseFinalization01).`,
+      details: reachability.details,
+    },
+  };
+}
+
+export function resolveReleaseReachability(
+  input: ReleaseReachabilityInput,
+  deps: Pick<GitFinalizeDeps, "runGit" | "runGh"> = {},
+): ReleaseReachabilityProof {
+  const route =
+    input.route ??
+    classifyFinalizationRoute(input.mainCheckout, input.defaultBranch, deps);
+
+  if (route.route === "blocked") {
+    return {
+      reachable: false,
+      proof: "blocked",
+      details: route.details ?? (route.reason ? [route.reason] : undefined),
+    };
+  }
+
+  if (route.route === "no_remote") {
+    const local = verifyChangeBranchReachable(
+      input.mainCheckout,
+      input.defaultBranch,
+      input.changeId,
+      deps,
+    );
+    return local.reachable
+      ? { reachable: true, proof: "local_merge" }
+      : {
+          reachable: false,
+          proof: "local_unmerged",
+          details: local.unmergedCommits,
+        };
+  }
+
+  if (route.route === "direct") {
+    const pushed = verifyDefaultBranchPushed(
+      input.mainCheckout,
+      input.defaultBranch,
+      deps,
+    );
+    if (!pushed.pushed) {
+      return {
+        reachable: false,
+        proof: "origin_push_unverified",
+        details: pushed.reason ? [pushed.reason] : undefined,
+      };
+    }
+    const originReachability = verifyChangeBranchReachableFromOrigin(
+      input.mainCheckout,
+      input.defaultBranch,
+      input.changeId,
+      deps,
+    );
+    return originReachability.reachable
+      ? { reachable: true, proof: "origin_default" }
+      : {
+          reachable: false,
+          proof: "origin_unmerged",
+          details: originReachability.unmergedCommits,
+        };
+  }
+
+  if (!route.repo || !input.prNumber) {
+    return {
+      reachable: false,
+      proof: "pr_unmerged",
+      prNumber: input.prNumber,
+      details: ["PR merge state requires repo and prNumber"],
+    };
+  }
+
+  const prState = readPrMergeState(
+    input.mainCheckout,
+    route.repo,
+    input.prNumber,
+    deps,
+  );
+  if ("error" in prState) {
+    return {
+      reachable: false,
+      proof: "pr_unmerged",
+      prNumber: input.prNumber,
+      details: [prState.error, ...(prState.details ?? [])],
+    };
+  }
+  if (prState.state === "MERGED" && prState.mergedAt) {
+    return {
+      reachable: true,
+      proof: "pr_merged",
+      prNumber: input.prNumber,
+      mergeCommitOid: prState.mergeCommitOid,
+    };
+  }
+
+  return {
+    reachable: false,
+    proof: "pr_unmerged",
+    prNumber: input.prNumber,
+    autoMergeArmed: prState.autoMergeArmed,
+    details: [`PR state is ${prState.state}`],
+  };
+}
+
 export function detectArchiveMode(
   config: Record<string, unknown> | undefined,
 ): { archiveMode: ArchiveMode; autoPush: boolean } {
-  const archiveMode = (config?.archive_mode ?? "direct") as unknown;
+  const archiveMode = config?.archive_mode ?? "direct";
   if (archiveMode !== "direct" && archiveMode !== "pr") {
     throw new Error(`Invalid archive_mode: ${String(archiveMode)}`);
   }
@@ -905,38 +2004,39 @@ export async function finalizeRelease(
   }
 
   if (ctx.archiveMode === "pr") {
-    const branchPush = pushChangeBranch(ctx.workdir, ctx.changeId, {
-      autoPush: ctx.autoPush,
-      skipPush: ctx.skipPush,
-      runGit: deps.runGit,
-    });
-
-    if (branchPush.status === "pushed") {
+    const route = coercePrWorkflowRoute(
+      classifyFinalizationRoute(mainCheckout, defaultBranch, deps),
+    );
+    if (route.route === "no_remote" || route.route === "blocked") {
       return {
-        status: "pr_pushed",
+        status: "blocked",
         mainCheckout,
         defaultBranch,
+        route: route.route,
         prBranch: `change/${ctx.changeId}`,
-        pushStatus: "pushed",
+        pushStatus: "not_attempted",
+        blocked: {
+          reason:
+            route.route === "no_remote"
+              ? "PR_WORKFLOW_REQUIRES_ORIGIN"
+              : (route.reason ?? "PR_WORKFLOW_ROUTE_BLOCKED"),
+          remediation: `PR archive mode requires an origin-backed GitHub repository and merged PR proof before release completion (rq-releaseFinalization01).`,
+          details: route.details ?? (route.reason ? [route.reason] : undefined),
+        },
       };
     }
 
-    return {
-      status: "blocked",
-      mainCheckout,
-      defaultBranch,
-      prBranch: `change/${ctx.changeId}`,
-      pushStatus: branchPush.status,
-      pushFailureReason: branchPush.reason,
-      blocked: {
-        reason:
-          branchPush.status === "failed"
-            ? "PR_BRANCH_PUSH_FAILED"
-            : "PR_BRANCH_PUSH_SKIPPED",
-        remediation: `Change branch change/${ctx.changeId} must be pushed for PR-mode handoff before release completion (rq-releaseFinalization01).`,
-        details: [branchPush.reason],
+    return completeProtectedBranchViaPullRequest(
+      {
+        mainCheckout,
+        defaultBranch,
+        workdir: ctx.workdir,
+        changeId: ctx.changeId,
+        route,
+        pushFailureReason: "archive_mode_pr",
       },
-    };
+      deps,
+    );
   }
 
   // rq-releaseFinalization01.7/.8: Readiness check replaces old invariant gate.
@@ -1059,6 +2159,25 @@ export async function finalizeRelease(
     mergeCommitSha = runGitOrThrow(mainCheckout, ["rev-parse", "HEAD"], deps);
   }
 
+  const routeAfterMerge = classifyFinalizationRoute(
+    mainCheckout,
+    defaultBranch,
+    deps,
+  );
+  if (routeAfterMerge.route === "no_remote") {
+    return {
+      status: "shipped",
+      mainCheckout,
+      defaultBranch,
+      route: "no_remote",
+      mergeCommitSha,
+      mainCheckpointCommitSha,
+      pushStatus: "skipped",
+      pushFailureReason:
+        routeAfterMerge.reason ?? "origin remote not configured",
+    };
+  }
+
   const push = pushToOrigin(mainCheckout, defaultBranch, {
     autoPush: ctx.autoPush,
     skipPush: ctx.skipPush,
@@ -1070,16 +2189,71 @@ export async function finalizeRelease(
       status: "shipped",
       mainCheckout,
       defaultBranch,
+      route: "direct",
       mergeCommitSha,
       mainCheckpointCommitSha,
       pushStatus: "pushed",
     };
   }
 
+  if (push.status === "failed") {
+    const route = classifyFinalizationRoute(mainCheckout, defaultBranch, deps);
+    if (route.route === "pr_auto_merge") {
+      if (mainCheckpointCommitSha) {
+        return {
+          status: "blocked",
+          mainCheckout,
+          defaultBranch,
+          route: route.route,
+          mergeCommitSha,
+          mainCheckpointCommitSha,
+          pushStatus: push.status,
+          pushFailureReason: push.reason,
+          prBranch: `change/${ctx.changeId}`,
+          blocked: {
+            reason: "MAIN_CHECKPOINT_PR_HANDOFF_UNSAFE",
+            remediation: `Default branch ${defaultBranch} has an ADV checkpoint commit ${mainCheckpointCommitSha}; manually reconcile it before PR auto-merge handoff (rq-releaseFinalization01).`,
+            details: [push.reason],
+          },
+        };
+      }
+      return completeProtectedBranchViaPullRequest(
+        {
+          mainCheckout,
+          workdir: ctx.workdir,
+          changeId: ctx.changeId,
+          defaultBranch,
+          route,
+          pushFailureReason: push.reason,
+        },
+        deps,
+      );
+    }
+    if (route.route === "pr_manual") {
+      return {
+        status: "blocked",
+        mainCheckout,
+        defaultBranch,
+        route: route.route,
+        mergeCommitSha,
+        mainCheckpointCommitSha,
+        pushStatus: push.status,
+        pushFailureReason: push.reason,
+        prBranch: `change/${ctx.changeId}`,
+        blocked: {
+          reason: route.reason ?? "PR_MANUAL_REQUIRED",
+          remediation: `Default branch push failed and ADV could not arm auto-merge. Manually open or merge PR for change/${ctx.changeId}, then rerun archive finalization (rq-releaseFinalization01).`,
+          details: [push.reason, ...(route.details ?? [])],
+        },
+      };
+    }
+  }
+
   return {
     status: "blocked",
     mainCheckout,
     defaultBranch,
+    route: "direct",
     mergeCommitSha,
     mainCheckpointCommitSha,
     pushStatus: push.status,

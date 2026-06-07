@@ -466,10 +466,16 @@ export const ChangeOriginSchema = z.object({
 export type ChangeOrigin = z.infer<typeof ChangeOriginSchema>;
 
 export const Phase9FinalizationStatusSchema = z.object({
-  status: z.enum(["pending", "done", "failed"]),
+  status: z.enum(["pending", "pending_merge", "done", "failed"]),
   startedAt: z.string(),
   completedAt: z.string().optional(),
   error: z.string().optional(),
+  prNumber: z.number().int().positive().optional(),
+  prUrl: z.string().url().optional(),
+  autoMergeArmed: z.boolean().optional(),
+  route: z
+    .enum(["no_remote", "direct", "pr_auto_merge", "pr_manual", "blocked"])
+    .optional(),
 });
 
 export type Phase9FinalizationStatus = z.infer<

@@ -12,6 +12,7 @@ import { join } from "path";
 import { spawnSync } from "child_process";
 import { createTempDir } from "../../__tests__/setup";
 import {
+  classifyFinalizationRoute,
   detectArchiveMode,
   detectDefaultBranch,
   deleteChangeBranch,
@@ -29,8 +30,12 @@ import {
   detectMainInProgressState,
   commitDirtyMainCheckpoint,
   redactGitOutput,
+  resolveReleaseReachability,
   validateChangeWorktree,
   commitArchiveArtifacts,
+  verifyChangeBranchReachableFromOrigin,
+  detectArchivedUnmergedBranches,
+  redriveArchivedUnmergedBranch,
 } from "./git-finalize";
 
 function git(cwd: string, args: string[]): string {
@@ -186,6 +191,345 @@ describe("git-finalize helpers", () => {
       reachable: true,
       unmergedCommits: [],
     });
+  });
+
+  it("verifyChangeBranchReachableFromOrigin validates origin/default after fetch", () => {
+    const calls: string[][] = [];
+    const result = verifyChangeBranchReachableFromOrigin(
+      "/repo",
+      "trunk",
+      "example",
+      {
+        runGit: (_cwd, args) => {
+          calls.push(args);
+          if (args[0] === "fetch") return { status: 0, stdout: "", stderr: "" };
+          if (args[0] === "log" && args[2] === "origin/trunk..change/example") {
+            return { status: 0, stdout: "abc123 unmerged\n", stderr: "" };
+          }
+          if (args[0] === "log" && args[2] === "trunk..change/example") {
+            return { status: 0, stdout: "", stderr: "" };
+          }
+          return {
+            status: 1,
+            stdout: "",
+            stderr: `unexpected ${args.join(" ")}`,
+          };
+        },
+      },
+    );
+
+    expect(result).toEqual({
+      reachable: false,
+      unmergedCommits: ["abc123 unmerged"],
+    });
+    expect(calls).toContainEqual(["fetch", "origin", "trunk"]);
+    expect(calls).toContainEqual([
+      "log",
+      "--oneline",
+      "origin/trunk..change/example",
+    ]);
+  });
+
+  it("classifyFinalizationRoute uses remote and ruleset evidence", () => {
+    const noRemote = classifyFinalizationRoute("/repo", "trunk", {
+      runGit: (_cwd, args) => {
+        if (args.join(" ") === "remote get-url origin") {
+          return { status: 2, stdout: "", stderr: "No such remote" };
+        }
+        return { status: 1, stdout: "", stderr: "unexpected" };
+      },
+    });
+    expect(noRemote.route).toBe("no_remote");
+
+    const direct = classifyFinalizationRoute("/repo", "trunk", {
+      runGit: (_cwd, args) => {
+        if (args.join(" ") === "remote get-url origin") {
+          return {
+            status: 0,
+            stdout: "https://github.com/Sharper-Flow/Advance.git\n",
+            stderr: "",
+          };
+        }
+        return { status: 1, stdout: "", stderr: "unexpected" };
+      },
+      runGh: (_cwd, args) => {
+        if (args[0] === "api" && args[1].includes("/rules/branches/")) {
+          return { status: 0, stdout: "[]", stderr: "" };
+        }
+        if (args[0] === "api" && args[1] === "repos/Sharper-Flow/Advance") {
+          return { status: 0, stdout: "true\n", stderr: "" };
+        }
+        return { status: 1, stdout: "", stderr: "unexpected" };
+      },
+    });
+    expect(direct).toMatchObject({
+      route: "direct",
+      repo: "Sharper-Flow/Advance",
+    });
+
+    const protectedAuto = classifyFinalizationRoute("/repo", "trunk", {
+      runGit: (_cwd, args) => {
+        if (args.join(" ") === "remote get-url origin") {
+          return {
+            status: 0,
+            stdout: "git@github.com:Sharper-Flow/Advance.git\n",
+            stderr: "",
+          };
+        }
+        return { status: 1, stdout: "", stderr: "unexpected" };
+      },
+      runGh: (_cwd, args) => {
+        if (args[0] === "api" && args[1].includes("/rules/branches/")) {
+          return {
+            status: 0,
+            stdout: JSON.stringify([{ type: "required_status_checks" }]),
+            stderr: "",
+          };
+        }
+        if (args[0] === "api" && args[1] === "repos/Sharper-Flow/Advance") {
+          return { status: 0, stdout: "true\n", stderr: "" };
+        }
+        return { status: 1, stdout: "", stderr: "unexpected" };
+      },
+    });
+    expect(protectedAuto).toMatchObject({
+      route: "pr_auto_merge",
+      protected: true,
+      autoMergeAllowed: true,
+    });
+
+    const ghUnavailable = classifyFinalizationRoute("/repo", "trunk", {
+      runGit: (_cwd, args) => {
+        if (args.join(" ") === "remote get-url origin") {
+          return {
+            status: 0,
+            stdout: "https://github.com/Sharper-Flow/Advance.git\n",
+            stderr: "",
+          };
+        }
+        return { status: 1, stdout: "", stderr: "unexpected" };
+      },
+      runGh: () => ({
+        status: 127,
+        stdout: "",
+        stderr: "gh: command not found",
+      }),
+    });
+    expect(ghUnavailable).toMatchObject({
+      route: "pr_manual",
+      reason: "GITHUB_CLI_UNAVAILABLE",
+    });
+  });
+
+  it("resolveReleaseReachability accepts squash PR merge state instead of ancestry", () => {
+    const result = resolveReleaseReachability(
+      {
+        mainCheckout: "/repo",
+        defaultBranch: "trunk",
+        changeId: "example",
+        route: { route: "pr_auto_merge", repo: "Sharper-Flow/Advance" },
+        prNumber: 12,
+      },
+      {
+        runGh: (_cwd, args) => {
+          expect(args).toEqual([
+            "pr",
+            "view",
+            "12",
+            "--repo",
+            "Sharper-Flow/Advance",
+            "--json",
+            "state,mergedAt,mergeCommit,autoMergeRequest",
+          ]);
+          return {
+            status: 0,
+            stdout: JSON.stringify({
+              state: "MERGED",
+              mergedAt: "2026-06-07T00:00:00Z",
+              mergeCommit: { oid: "merge-sha" },
+              autoMergeRequest: null,
+            }),
+            stderr: "",
+          };
+        },
+      },
+    );
+
+    expect(result).toMatchObject({
+      reachable: true,
+      proof: "pr_merged",
+      prNumber: 12,
+    });
+  });
+
+  it("detectArchivedUnmergedBranches lists origin change branches not reachable from origin/default", () => {
+    const calls: string[][] = [];
+    const result = detectArchivedUnmergedBranches(
+      {
+        mainCheckout: "/repo",
+        defaultBranch: "trunk",
+        archivedChangeIds: ["archived-one", "already-merged"],
+      },
+      {
+        runGit: (_cwd, args) => {
+          calls.push(args);
+          if (args[0] === "ls-remote") {
+            return {
+              status: 0,
+              stdout:
+                "aaa\trefs/heads/change/archived-one\n" +
+                "bbb\trefs/heads/change/active-only\n" +
+                "ccc\trefs/heads/change/already-merged\n",
+              stderr: "",
+            };
+          }
+          if (args[0] === "fetch") {
+            return { status: 0, stdout: "", stderr: "" };
+          }
+          if (
+            args[0] === "log" &&
+            args[2] === "origin/trunk..origin/change/archived-one"
+          ) {
+            return { status: 0, stdout: "aaa archived commit\n", stderr: "" };
+          }
+          if (
+            args[0] === "log" &&
+            args[2] === "origin/trunk..origin/change/already-merged"
+          ) {
+            return { status: 0, stdout: "", stderr: "" };
+          }
+          return {
+            status: 1,
+            stdout: "",
+            stderr: `unexpected git ${args.join(" ")}`,
+          };
+        },
+      },
+    );
+
+    expect(result).toEqual({
+      status: "ok",
+      branches: [
+        {
+          changeId: "archived-one",
+          branch: "change/archived-one",
+          remoteRef: "refs/heads/change/archived-one",
+          sha: "aaa",
+          unmergedCommits: ["aaa archived commit"],
+        },
+      ],
+    });
+    expect(calls).toContainEqual([
+      "fetch",
+      "origin",
+      "+refs/heads/change/archived-one:refs/remotes/origin/change/archived-one",
+    ]);
+    expect(calls).not.toContainEqual([
+      "fetch",
+      "origin",
+      "+refs/heads/change/active-only:refs/remotes/origin/change/active-only",
+    ]);
+  });
+
+  it("redriveArchivedUnmergedBranch reuses PR and arms auto-merge without force-push", () => {
+    const gitCalls: string[][] = [];
+    const ghCalls: string[][] = [];
+    const result = redriveArchivedUnmergedBranch(
+      {
+        mainCheckout: "/repo",
+        defaultBranch: "trunk",
+        changeId: "archived-one",
+      },
+      {
+        runGit: (_cwd, args) => {
+          gitCalls.push(args);
+          if (args.join(" ") === "remote get-url origin") {
+            return {
+              status: 0,
+              stdout: "https://github.com/Sharper-Flow/Advance.git\n",
+              stderr: "",
+            };
+          }
+          if (args[0] === "ls-remote") {
+            return {
+              status: 0,
+              stdout: "aaa\trefs/heads/change/archived-one\n",
+              stderr: "",
+            };
+          }
+          return { status: 0, stdout: "", stderr: "" };
+        },
+        runGh: (_cwd, args) => {
+          ghCalls.push(args);
+          if (args[0] === "api" && args[1].includes("/rules/branches/")) {
+            return {
+              status: 0,
+              stdout: JSON.stringify([{ type: "required_status_checks" }]),
+              stderr: "",
+            };
+          }
+          if (args[0] === "api" && args[1] === "repos/Sharper-Flow/Advance") {
+            return { status: 0, stdout: "true\n", stderr: "" };
+          }
+          if (args[0] === "pr" && args[1] === "view") {
+            const selector = args[2];
+            if (selector === "change/archived-one") {
+              return {
+                status: 0,
+                stdout: JSON.stringify({
+                  number: 42,
+                  url: "https://github.com/Sharper-Flow/Advance/pull/42",
+                  state: "OPEN",
+                  autoMergeRequest: null,
+                }),
+                stderr: "",
+              };
+            }
+            if (selector === "42") {
+              return {
+                status: 0,
+                stdout: JSON.stringify({
+                  state: "OPEN",
+                  mergedAt: null,
+                  mergeCommit: null,
+                  autoMergeRequest: { enabledAt: "2026-06-07T00:00:00Z" },
+                }),
+                stderr: "",
+              };
+            }
+          }
+          if (args[0] === "pr" && args[1] === "merge") {
+            return { status: 0, stdout: "Auto-merge enabled", stderr: "" };
+          }
+          return {
+            status: 1,
+            stdout: "",
+            stderr: `unexpected gh ${args.join(" ")}`,
+          };
+        },
+      },
+    );
+
+    expect(result).toMatchObject({
+      status: "pending_merge",
+      prNumber: 42,
+      autoMergeArmed: true,
+      route: "pr_auto_merge",
+    });
+    expect(gitCalls.some((args) => args[0] === "push")).toBe(false);
+    expect(gitCalls.flat()).not.toContain("--force");
+    expect(
+      ghCalls.filter((args) => args[0] === "pr" && args[1] === "create"),
+    ).toHaveLength(0);
+    expect(ghCalls).toContainEqual([
+      "pr",
+      "merge",
+      "42",
+      "--repo",
+      "Sharper-Flow/Advance",
+      "--squash",
+      "--auto",
+    ]);
   });
 
   it("mergeChangeBranch and mergeToTrunk fast-forward a clean change branch", async () => {
@@ -440,21 +784,17 @@ describe("git-finalize helpers", () => {
       autoPush: false,
     });
 
-    // Dirty main on default branch is now checkpointed instead of blocking.
-    // After checkpoint, merge proceeds and push is skipped (no remote).
+    // Dirty main on default branch is checkpointed. With no remote, local
+    // release proof is enough and the terminal is Merged locally.
     expect(result).toMatchObject({
-      status: "blocked",
+      status: "shipped",
       defaultBranch: "trunk",
+      route: "no_remote",
       pushStatus: "skipped",
       mainCheckpointCommitSha: expect.any(String),
-      blocked: {
-        reason: "DEFAULT_BRANCH_PUSH_SKIPPED",
-        remediation: expect.stringContaining("rq-releaseFinalization01"),
-      },
     });
     // Verify the checkpoint commit actually happened on main
-    const checkpointSha = (result as any).mainCheckpointCommitSha;
-    expect(checkpointSha).toBeTruthy();
+    expect(result.mainCheckpointCommitSha).toBeTruthy();
   });
 
   it("finalizeRelease commits archive artifacts before merge", async () => {
@@ -491,7 +831,7 @@ describe("git-finalize helpers", () => {
     expect(git(main, ["show", "HEAD:.adv/archive/bundle.txt"])).toBe("bundle");
   });
 
-  it("finalizeRelease blocks when default-branch push is skipped or fails", async () => {
+  it("finalizeRelease completes no-remote local archive", async () => {
     const main = join(tempRoot, "main");
     const worktree = join(tempRoot, "wt");
     await mkdir(main);
@@ -508,21 +848,30 @@ describe("git-finalize helpers", () => {
       autoPush: false,
     });
 
-    expect(skipped.status).toBe("blocked");
-    expect(skipped.blocked?.reason).toBe("DEFAULT_BRANCH_PUSH_SKIPPED");
+    expect(skipped.status).toBe("shipped");
+    expect(skipped.route).toBe("no_remote");
+    expect(skipped.pushStatus).toBe("skipped");
+    expect(skipped.pushFailureReason).toContain("origin");
   });
 
-  it("finalizeRelease in PR mode pushes branch and returns pr_pushed", async () => {
+  it("finalizeRelease in PR mode opens PR and returns pending auto-merge", async () => {
     const main = join(tempRoot, "main");
     const worktree = join(tempRoot, "wt");
     await mkdir(main);
     await initRepo(main);
+    git(main, [
+      "remote",
+      "add",
+      "origin",
+      "https://github.com/Sharper-Flow/Advance.git",
+    ]);
     git(main, ["worktree", "add", "-b", "change/example", worktree]);
     await writeFile(join(worktree, "feature.txt"), "feature\n");
     git(worktree, ["add", "feature.txt"]);
     git(worktree, ["commit", "-m", "feature"]);
 
     const pushCalls: { cwd: string; args: string[] }[] = [];
+    let branchViewCount = 0;
     const result = await finalizeRelease(
       {
         changeId: "example",
@@ -533,21 +882,319 @@ describe("git-finalize helpers", () => {
       {
         runGit: (cwd, args) => {
           pushCalls.push({ cwd, args });
+          if (args[0] === "fetch" && args[1] === "origin") {
+            return { status: 0, stdout: "", stderr: "" };
+          }
+          if (args[0] === "reset" && args[1] === "--hard") {
+            return { status: 0, stdout: "reset", stderr: "" };
+          }
           if (args[0] === "push" && args.includes("change/example")) {
             return { status: 0, stdout: "remote: create PR...", stderr: "" };
           }
           return defaultRunGit(cwd, args);
         },
+        runGh: (_cwd, args) => {
+          if (args[0] === "api" && args[1].includes("/rules/branches/")) {
+            return { status: 0, stdout: "[]", stderr: "" };
+          }
+          if (args[0] === "pr" && args[1] === "view") {
+            const selector = args[2];
+            if (selector === "change/example") {
+              branchViewCount += 1;
+              if (branchViewCount === 1) {
+                return {
+                  status: 1,
+                  stdout: "",
+                  stderr: "no pull requests found",
+                };
+              }
+              return {
+                status: 0,
+                stdout: JSON.stringify({
+                  number: 42,
+                  url: "https://github.com/Sharper-Flow/Advance/pull/42",
+                  state: "OPEN",
+                  autoMergeRequest: null,
+                }),
+                stderr: "",
+              };
+            }
+            if (selector === "42") {
+              return {
+                status: 0,
+                stdout: JSON.stringify({
+                  state: "OPEN",
+                  mergedAt: null,
+                  mergeCommit: null,
+                  autoMergeRequest: { enabledAt: "2026-06-07T00:00:00Z" },
+                }),
+                stderr: "",
+              };
+            }
+          }
+          if (args[0] === "pr" && args[1] === "create") {
+            return {
+              status: 0,
+              stdout: "https://github.com/Sharper-Flow/Advance/pull/42\n",
+              stderr: "",
+            };
+          }
+          if (args[0] === "pr" && args[1] === "merge") {
+            return { status: 0, stdout: "Auto-merge enabled", stderr: "" };
+          }
+          return {
+            status: 1,
+            stdout: "",
+            stderr: `unexpected gh ${args.join(" ")}`,
+          };
+        },
       },
     );
 
-    expect(result.status).toBe("pr_pushed");
+    expect(result.status).toBe("pending_merge");
     expect(result.prBranch).toBe("change/example");
+    expect(result.prNumber).toBe(42);
+    expect(result.prUrl).toBe(
+      "https://github.com/Sharper-Flow/Advance/pull/42",
+    );
+    expect(result.autoMergeArmed).toBe(true);
     expect(result.pushStatus).toBe("pushed");
     expect(pushCalls.some((c) => c.args.includes("change/example"))).toBe(true);
   });
 
-  it("finalizeRelease in PR mode blocks when branch push is skipped", async () => {
+  it("finalizeRelease turns protected default push rejection into pending auto-merge PR", async () => {
+    const main = join(tempRoot, "protected-main");
+    const worktree = join(tempRoot, "protected-wt");
+    await mkdir(main);
+    await initRepo(main);
+    git(main, [
+      "remote",
+      "add",
+      "origin",
+      "https://github.com/Sharper-Flow/Advance.git",
+    ]);
+    git(main, ["worktree", "add", "-b", "change/example", worktree]);
+    await writeFile(join(worktree, "feature.txt"), "feature\n");
+    git(worktree, ["add", "feature.txt"]);
+    git(worktree, ["commit", "-m", "feature"]);
+
+    const gitCalls: string[][] = [];
+    const ghCalls: string[][] = [];
+    let branchViewCount = 0;
+    const result = await finalizeRelease(
+      {
+        changeId: "example",
+        workdir: worktree,
+        archiveMode: "direct",
+        autoPush: true,
+      },
+      {
+        runGit: (cwd, args) => {
+          gitCalls.push(args);
+          if (args[0] === "fetch" && args[1] === "origin") {
+            return { status: 0, stdout: "", stderr: "" };
+          }
+          if (args[0] === "push" && args.includes("trunk")) {
+            return {
+              status: 1,
+              stdout: "",
+              stderr: "remote: protected branch hook declined",
+            };
+          }
+          if (args[0] === "push" && args.includes("change/example")) {
+            return { status: 0, stdout: "pushed branch", stderr: "" };
+          }
+          if (args[0] === "reset" && args[1] === "--hard") {
+            return { status: 0, stdout: "reset", stderr: "" };
+          }
+          return defaultRunGit(cwd, args);
+        },
+        runGh: (_cwd, args) => {
+          ghCalls.push(args);
+          if (args[0] === "api" && args[1].includes("/rules/branches/")) {
+            return {
+              status: 0,
+              stdout: JSON.stringify([{ type: "required_status_checks" }]),
+              stderr: "",
+            };
+          }
+          if (args[0] === "api" && args[1] === "repos/Sharper-Flow/Advance") {
+            return { status: 0, stdout: "true\n", stderr: "" };
+          }
+          if (args[0] === "pr" && args[1] === "view") {
+            const selector = args[2];
+            if (selector === "change/example") {
+              branchViewCount += 1;
+              if (branchViewCount === 1) {
+                return {
+                  status: 1,
+                  stdout: "",
+                  stderr: "no pull requests found",
+                };
+              }
+              return {
+                status: 0,
+                stdout: JSON.stringify({
+                  number: 42,
+                  url: "https://github.com/Sharper-Flow/Advance/pull/42",
+                  state: "OPEN",
+                  autoMergeRequest: null,
+                }),
+                stderr: "",
+              };
+            }
+            if (selector === "42") {
+              return {
+                status: 0,
+                stdout: JSON.stringify({
+                  state: "OPEN",
+                  mergedAt: null,
+                  mergeCommit: null,
+                  autoMergeRequest: { enabledAt: "2026-06-07T00:00:00Z" },
+                }),
+                stderr: "",
+              };
+            }
+          }
+          if (args[0] === "pr" && args[1] === "create") {
+            return {
+              status: 0,
+              stdout: "https://github.com/Sharper-Flow/Advance/pull/42\n",
+              stderr: "",
+            };
+          }
+          if (args[0] === "pr" && args[1] === "merge") {
+            return { status: 0, stdout: "Auto-merge enabled", stderr: "" };
+          }
+          return {
+            status: 1,
+            stdout: "",
+            stderr: `unexpected gh ${args.join(" ")}`,
+          };
+        },
+      },
+    );
+
+    expect(result).toMatchObject({
+      status: "pending_merge",
+      route: "pr_auto_merge",
+      prBranch: "change/example",
+      prNumber: 42,
+      prUrl: "https://github.com/Sharper-Flow/Advance/pull/42",
+      autoMergeArmed: true,
+      pushStatus: "pushed",
+    });
+    expect(gitCalls).toContainEqual(["reset", "--hard", "origin/trunk"]);
+    expect(ghCalls).toContainEqual([
+      "pr",
+      "merge",
+      "42",
+      "--repo",
+      "Sharper-Flow/Advance",
+      "--squash",
+      "--auto",
+    ]);
+  });
+
+  it("finalizeRelease collapses immediately merged auto-merge PR to shipped", async () => {
+    const main = join(tempRoot, "merged-pr-main");
+    const worktree = join(tempRoot, "merged-pr-wt");
+    await mkdir(main);
+    await initRepo(main);
+    git(main, [
+      "remote",
+      "add",
+      "origin",
+      "https://github.com/Sharper-Flow/Advance.git",
+    ]);
+    git(main, ["worktree", "add", "-b", "change/example", worktree]);
+    await writeFile(join(worktree, "feature.txt"), "feature\n");
+    git(worktree, ["add", "feature.txt"]);
+    git(worktree, ["commit", "-m", "feature"]);
+
+    const result = await finalizeRelease(
+      {
+        changeId: "example",
+        workdir: worktree,
+        archiveMode: "direct",
+        autoPush: true,
+      },
+      {
+        runGit: (cwd, args) => {
+          if (args[0] === "fetch" && args[1] === "origin") {
+            return { status: 0, stdout: "", stderr: "" };
+          }
+          if (args[0] === "push" && args.includes("trunk")) {
+            return { status: 1, stdout: "", stderr: "protected" };
+          }
+          if (args[0] === "push" && args.includes("change/example")) {
+            return { status: 0, stdout: "pushed branch", stderr: "" };
+          }
+          if (args[0] === "reset" && args[1] === "--hard") {
+            return { status: 0, stdout: "reset", stderr: "" };
+          }
+          return defaultRunGit(cwd, args);
+        },
+        runGh: (_cwd, args) => {
+          if (args[0] === "api" && args[1].includes("/rules/branches/")) {
+            return {
+              status: 0,
+              stdout: JSON.stringify([{ type: "required_status_checks" }]),
+              stderr: "",
+            };
+          }
+          if (args[0] === "api" && args[1] === "repos/Sharper-Flow/Advance") {
+            return { status: 0, stdout: "true\n", stderr: "" };
+          }
+          if (args[0] === "pr" && args[1] === "view") {
+            const selector = args[2];
+            if (selector === "change/example") {
+              return {
+                status: 0,
+                stdout: JSON.stringify({
+                  number: 42,
+                  url: "https://github.com/Sharper-Flow/Advance/pull/42",
+                  state: "OPEN",
+                  autoMergeRequest: null,
+                }),
+                stderr: "",
+              };
+            }
+            if (selector === "42") {
+              return {
+                status: 0,
+                stdout: JSON.stringify({
+                  state: "MERGED",
+                  mergedAt: "2026-06-07T00:00:00Z",
+                  mergeCommit: { oid: "merge-sha" },
+                  autoMergeRequest: null,
+                }),
+                stderr: "",
+              };
+            }
+          }
+          if (args[0] === "pr" && args[1] === "merge") {
+            return { status: 0, stdout: "Merged", stderr: "" };
+          }
+          return {
+            status: 1,
+            stdout: "",
+            stderr: `unexpected gh ${args.join(" ")}`,
+          };
+        },
+      },
+    );
+
+    expect(result).toMatchObject({
+      status: "shipped",
+      route: "pr_auto_merge",
+      prNumber: 42,
+      mergeCommitSha: "merge-sha",
+      pushStatus: "pushed",
+    });
+  });
+
+  it("finalizeRelease in PR mode blocks when origin is missing", async () => {
     const main = join(tempRoot, "main");
     const worktree = join(tempRoot, "wt");
     await mkdir(main);
@@ -562,7 +1209,7 @@ describe("git-finalize helpers", () => {
     });
 
     expect(result.status).toBe("blocked");
-    expect(result.blocked?.reason).toBe("PR_BRANCH_PUSH_SKIPPED");
+    expect(result.blocked?.reason).toBe("PR_WORKFLOW_REQUIRES_ORIGIN");
   });
 
   it("verifyDefaultBranchPushed compares local HEAD with origin branch", () => {
@@ -848,7 +1495,6 @@ describe("git-finalize helpers", () => {
     await writeFile(join(main, "dirty.txt"), "dirty content\n");
     git(main, ["worktree", "add", "-b", "change/example", worktree]);
 
-    // Add remote so push is attempted (will be skipped since no actual remote)
     const result = await finalizeRelease({
       changeId: "example",
       workdir: worktree,
@@ -856,9 +1502,11 @@ describe("git-finalize helpers", () => {
       autoPush: false,
     });
 
-    // Push is skipped (no remote), but checkpoint should have happened
+    // Push is skipped because no remote exists, but no-remote local proof is
+    // release-complete and checkpoint evidence is preserved.
     expect(result).toMatchObject({
-      status: "blocked",
+      status: "shipped",
+      route: "no_remote",
       pushStatus: "skipped",
       mainCheckpointCommitSha: expect.any(String),
     });

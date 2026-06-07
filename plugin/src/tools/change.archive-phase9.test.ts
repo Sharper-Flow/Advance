@@ -73,6 +73,14 @@ const mocks = vi.hoisted(() => {
     })),
     verifyDefaultBranchPushed: vi.fn(() => ({ pushed: true })),
     verifyChangeBranchPushed: vi.fn(() => ({ pushed: true })),
+    classifyFinalizationRoute: vi.fn(() => ({
+      route: "direct",
+      repo: "Sharper-Flow/Advance",
+    })),
+    resolveReleaseReachability: vi.fn(() => ({
+      reachable: true,
+      proof: "origin_default",
+    })),
     closeLinkedIssue: vi.fn(() =>
       Promise.resolve({ issue_closed: [], close_eligible: false }),
     ),
@@ -129,6 +137,8 @@ vi.mock("./archive-helpers/git-finalize", async () => {
     verifyChangeBranchReachable: mocks.verifyChangeBranchReachable,
     verifyDefaultBranchPushed: mocks.verifyDefaultBranchPushed,
     verifyChangeBranchPushed: mocks.verifyChangeBranchPushed,
+    classifyFinalizationRoute: mocks.classifyFinalizationRoute,
+    resolveReleaseReachability: mocks.resolveReleaseReachability,
   };
 });
 
@@ -264,6 +274,14 @@ describe("adv_change_archive Phase 9 behavior", () => {
         }
       },
     );
+    mocks.classifyFinalizationRoute.mockReturnValue({
+      route: "direct",
+      repo: "Sharper-Flow/Advance",
+    });
+    mocks.resolveReleaseReachability.mockReturnValue({
+      reachable: true,
+      proof: "origin_default",
+    });
   });
 
   test("completes release gate after finalization and before retiring the change", async () => {
@@ -345,6 +363,27 @@ describe("adv_change_archive Phase 9 behavior", () => {
     expect(mocks.finalizeRelease).not.toHaveBeenCalled();
   });
 
+  test("blocks phase9=skip when origin/default release proof is missing", async () => {
+    mocks.resolveReleaseReachability.mockReturnValueOnce({
+      reachable: false,
+      proof: "origin_unmerged",
+      details: ["abc123 task commit"],
+    });
+    const store = createMockStore({ releaseDone: true });
+
+    const result = await changeTools.adv_change_archive.execute(
+      { changeId: "example", phase9: "skip" },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(false);
+    expect(parsed.requirement).toBe("rq-releaseFinalization01");
+    expect(parsed.error).toContain("Phase 9 skip blocked");
+    expect(store.changes.save).not.toHaveBeenCalled();
+    expect(mocks.closeLinkedIssue).not.toHaveBeenCalled();
+  });
+
   test("does not archive when finalization is blocked", async () => {
     mocks.finalizeRelease.mockResolvedValueOnce({
       status: "blocked",
@@ -372,6 +411,51 @@ describe("adv_change_archive Phase 9 behavior", () => {
     expect(mocks.closeLinkedIssue).not.toHaveBeenCalled();
   });
 
+  test("keeps change active when finalization is pending auto-merge", async () => {
+    mocks.finalizeRelease.mockResolvedValueOnce({
+      status: "pending_merge",
+      mainCheckout: "/tmp/main",
+      defaultBranch: "trunk",
+      pushStatus: "pushed",
+      prBranch: "change/example",
+      prNumber: 42,
+      prUrl: "https://github.com/Sharper-Flow/Advance/pull/42",
+      autoMergeArmed: true,
+      route: "pr_auto_merge",
+    });
+
+    const store = createMockStore();
+    const result = await changeTools.adv_change_archive.execute(
+      { changeId: "example", worktreePath: "/tmp/worktree" },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(true);
+    expect(parsed.phase9).toBe("pending_merge");
+    expect(parsed.finalization).toMatchObject({
+      status: "pending_merge",
+      prNumber: 42,
+      autoMergeArmed: true,
+    });
+    expect(mocks.workflow.handle.signal).not.toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ gateId: "release" }),
+    );
+    expect(mocks.workflow.signalPayloads).toContainEqual(
+      expect.objectContaining({
+        phase9_status: expect.objectContaining({
+          status: "pending_merge",
+          prNumber: 42,
+          prUrl: "https://github.com/Sharper-Flow/Advance/pull/42",
+          autoMergeArmed: true,
+        }),
+      }),
+    );
+    expect(store.changes.save).not.toHaveBeenCalled();
+    expect(mocks.closeLinkedIssue).not.toHaveBeenCalled();
+  });
+
   test("reconciles release gate from existing bundle without worktree", async () => {
     // T10 (removePositionalArtifactApi): readArtifact in validation
     // context now calls findArchiveBundle as fallback before the archive
@@ -390,14 +474,16 @@ describe("adv_change_archive Phase 9 behavior", () => {
     expect(mocks.archiveChange).not.toHaveBeenCalled();
     expect(mocks.finalizeRelease).not.toHaveBeenCalled();
     expect(mocks.validateChangeWorktree).not.toHaveBeenCalled();
-    expect(mocks.verifyChangeBranchReachable).toHaveBeenCalledWith(
+    expect(mocks.classifyFinalizationRoute).toHaveBeenCalledWith(
       "/tmp/main",
       "trunk",
-      "example",
     );
-    expect(mocks.verifyDefaultBranchPushed).toHaveBeenCalledWith(
-      "/tmp/main",
-      "trunk",
+    expect(mocks.resolveReleaseReachability).toHaveBeenCalledWith(
+      expect.objectContaining({
+        mainCheckout: "/tmp/main",
+        defaultBranch: "trunk",
+        changeId: "example",
+      }),
     );
     expect(mocks.workflow.handle.signal).toHaveBeenCalledWith(
       expect.anything(),
@@ -415,9 +501,10 @@ describe("adv_change_archive Phase 9 behavior", () => {
 
   test("blocks no-worktree reconciliation when Phase 9 evidence is missing", async () => {
     mocks.findArchiveBundle.mockResolvedValue("/tmp/archive/example");
-    mocks.verifyDefaultBranchPushed.mockReturnValueOnce({
-      pushed: false,
-      reason: "origin/trunk is behind",
+    mocks.resolveReleaseReachability.mockReturnValueOnce({
+      reachable: false,
+      proof: "origin_push_unverified",
+      details: ["origin/trunk is behind"],
     });
     const store = createMockStore();
 
@@ -562,7 +649,7 @@ describe("adv_change_archive Phase 9 behavior", () => {
     expect(store.changes.save).not.toHaveBeenCalled();
   });
 
-  test("returns pr_pushed outcome in PR mode", async () => {
+  test("rejects legacy pr_pushed outcome before release completion", async () => {
     mocks.detectArchiveMode.mockReturnValueOnce({
       archiveMode: "pr",
       autoPush: true,
@@ -582,11 +669,11 @@ describe("adv_change_archive Phase 9 behavior", () => {
     );
 
     const parsed = JSON.parse(result);
-    expect(parsed.success).toBe(true);
-    expect(parsed.finalization).toMatchObject({
-      status: "pr_pushed",
-      prBranch: "change/example",
-    });
+    expect(parsed.success).toBe(false);
+    expect(parsed.error).toContain("Archive release gate completion blocked");
+    expect(parsed.error).toContain("pr_pushed");
+    expect(parsed.requirement).toBe("rq-releaseFinalization01");
+    expect(store.changes.save).not.toHaveBeenCalled();
     expect(mocks.closeLinkedIssue).not.toHaveBeenCalled();
   });
 
@@ -694,7 +781,8 @@ describe("adv_change_archive Phase 9 behavior", () => {
     // Archive bundle should NOT be re-written
     expect(mocks.archiveChange).not.toHaveBeenCalled();
     // Finalization should verify evidence from main (no worktree needed)
-    expect(mocks.verifyChangeBranchReachable).toHaveBeenCalled();
+    expect(mocks.classifyFinalizationRoute).toHaveBeenCalled();
+    expect(mocks.resolveReleaseReachability).toHaveBeenCalled();
     // Status should remain archived (no redundant save)
     expect(store.changes.save).not.toHaveBeenCalled();
   });
@@ -746,6 +834,49 @@ describe("adv_change_archive Phase 9 behavior", () => {
     expect(store.changes.save).toHaveBeenLastCalledWith(
       expect.objectContaining({ status: "archived" }),
     );
+  });
+
+  test("async phase9 callback records pending_merge without archiving", async () => {
+    mocks.finalizeRelease.mockResolvedValueOnce({
+      status: "pending_merge",
+      mainCheckout: "/tmp/main",
+      defaultBranch: "trunk",
+      pushStatus: "pushed",
+      prBranch: "change/example",
+      prNumber: 42,
+      prUrl: "https://github.com/Sharper-Flow/Advance/pull/42",
+      autoMergeArmed: true,
+      route: "pr_auto_merge",
+    });
+    const store = createMockStore();
+    let capturedRun: (() => Promise<void>) | undefined;
+    mocks.dispatchPhase9Finalization.mockImplementationOnce(
+      (params: { run: () => Promise<void> }) => {
+        capturedRun = params.run;
+      },
+    );
+
+    await changeTools.adv_change_archive.execute(
+      { changeId: "example", worktreePath: "/tmp/worktree", phase9: "run" },
+      store,
+    );
+
+    expect(capturedRun).toBeDefined();
+    await capturedRun!();
+
+    expect(mocks.workflow.signalPayloads).toContainEqual(
+      expect.objectContaining({
+        phase9_status: expect.objectContaining({
+          status: "pending_merge",
+          prNumber: 42,
+          autoMergeArmed: true,
+        }),
+      }),
+    );
+    expect(store.changes.save).not.toHaveBeenCalledWith(
+      expect.objectContaining({ status: "archived" }),
+    );
+    expect(mocks.closeLinkedIssue).not.toHaveBeenCalled();
   });
 
   test("async phase9 callback records failed status on blocked finalization", async () => {

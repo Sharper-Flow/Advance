@@ -307,9 +307,9 @@ No other sections, headings, or structural elements in the handoff. The blockquo
 
 ### Archive terminal variant
 
-`/adv-archive` is the terminal message; verb branches by push state.
+`/adv-archive` is terminal only when release proof exists. Verb branches by release-proof state.
 
-**Shipped** (push succeeded; deploy/reflection advisory state visible):
+**Shipped** (remote-backed `origin/{default-branch}` reachability or merged PR proof exists; deploy/reflection advisory state visible):
 
 ```
 ## Shipped.
@@ -325,6 +325,7 @@ What shipped, what spec deltas applied.
 - Archive location: {path}
 - Git merge: {default-branch} ({mode})
 - Push: {SHA range pushed}
+- Release proof: {origin/{default-branch} reachable | PR {number} state MERGED}
 - Local deploy: {ran | not available | not needed | failed: <reason>; nonblocking}
 - Reflection: {completed | failed: <reason>; nonblocking}
 - Pre-push hooks: {strategy}
@@ -336,7 +337,7 @@ What shipped, what spec deltas applied.
 > **{change-id}** · release ✓ · Shipped.
 ```
 
-**Merged locally** (no remote OR push skipped/failed):
+**Merged locally** (no `origin` remote configured):
 
 ```
 ## Merged locally.
@@ -345,13 +346,14 @@ What shipped, what spec deltas applied.
 {One-line restatement.}
 
 ## Chosen direction
-What was merged locally, what spec deltas applied. Note: not pushed.
+What was merged locally, what spec deltas applied. Note: no remote exists.
 
 ## Delivered
 - Spec deltas applied: {counts}
 - Archive location: {path}
 - Git merge: {default-branch} ({mode})
-- Push: skipped ({reason: no_remote | local_only_mode | push_failed})
+- Push: n/a (no origin remote)
+- Release proof: no_remote local merge proof
 - Local deploy: {ran | not available | not needed | failed: <reason>; nonblocking}
 - Reflection: {completed | failed: <reason>; nonblocking}
 - Cleanup: worktree + temp artifacts
@@ -361,14 +363,61 @@ What was merged locally, what spec deltas applied. Note: not pushed.
 > **{change-id}** · release ✓ · Merged locally.
 ```
 
+**Pending auto-merge** (PR auto-merge armed; release not complete):
+
+```
+## Pending auto-merge.
+
+## Problem
+{One-line restatement.}
+
+## Chosen direction
+PR auto-merge armed; archive waits for GitHub merge proof.
+
+## Delivered
+- Spec deltas staged on change branch
+- Archive bundle staged on change branch
+- PR: {url} (auto-merge armed)
+- Release proof: pending; PR state not MERGED yet
+- Cleanup: not run; change remains active
+
+---
+
+> **{change-id}** · release pending · Pending auto-merge.
+```
+
+**Blocked** (remote-backed release proof unavailable):
+
+```
+## Blocked.
+
+## Problem
+{One-line restatement.}
+
+## Chosen direction
+Archive stopped before release completion because remote-backed release proof is missing.
+
+## Delivered
+- Spec deltas staged only if archive bundle reached that step
+- Reason: {push rejected | gh unavailable | auto-merge unavailable | PR not armable | fetch failed | conflict}
+- Release proof: missing
+- Cleanup: not run; change remains active
+
+---
+
+> **{change-id}** · release blocked · Blocked.
+```
+
 | Selection (from `/adv-archive` Phase 8) | Variant |
 |---|---|
-| push succeeded AND `sync_action` ∈ {`auto via hook`, `manual fix`, `not needed`} | **Shipped.** |
-| no remote OR push skipped OR push failed (with explicit reason) | **Merged locally.** |
+| `origin/{default-branch}` reachability proven OR PR state is MERGED | **Shipped.** |
+| no `origin` remote configured and local merge proof exists | **Merged locally.** |
+| PR auto-merge armed and PR state is not MERGED | **Pending auto-merge.** |
+| remote exists and origin/merged-PR proof is unavailable | **Blocked.** |
 
 Deploy/reflection failures remain visible in Delivered lines and do not block release unless they reveal structural release-safety failure already covered by archive proof checks.
 
-Both variants use a single-line blockquote terminal — the change is final.
+`Shipped.` and `Merged locally.` use a single-line blockquote terminal — the change is final. `Pending auto-merge.` and `Blocked.` use a single-line blockquote status and leave the change active.
 
 ### Fast-track variant (`/adv-task`)
 

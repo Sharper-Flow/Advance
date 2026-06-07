@@ -108,6 +108,10 @@ const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
     // Contextually-validated: handler checks only when recoveryMode=poisoned_history.
     recoveryEvidence: { blank: "omit" },
   },
+  adv_archive_repair: {
+    // Required only when action='redrive'; handler validates cross-field.
+    changeId: { blank: "omit" },
+  },
   adv_run_test: {
     command: { blank: "reject" }, // required-when-present
     phase: { blank: "omit" }, // optional descriptive metadata
