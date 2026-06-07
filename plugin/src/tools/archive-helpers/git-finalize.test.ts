@@ -12,6 +12,7 @@ import { join } from "path";
 import { spawnSync } from "child_process";
 import { createTempDir } from "../../__tests__/setup";
 import {
+  classifyFinalizationRoute,
   detectArchiveMode,
   detectDefaultBranch,
   deleteChangeBranch,
@@ -29,8 +30,10 @@ import {
   detectMainInProgressState,
   commitDirtyMainCheckpoint,
   redactGitOutput,
+  resolveReleaseReachability,
   validateChangeWorktree,
   commitArchiveArtifacts,
+  verifyChangeBranchReachableFromOrigin,
 } from "./git-finalize";
 
 function git(cwd: string, args: string[]): string {
@@ -185,6 +188,175 @@ describe("git-finalize helpers", () => {
     expect(verifyChangeBranchReachable(repo, "trunk", "example")).toEqual({
       reachable: true,
       unmergedCommits: [],
+    });
+  });
+
+  it("verifyChangeBranchReachableFromOrigin validates origin/default after fetch", () => {
+    const calls: string[][] = [];
+    const result = verifyChangeBranchReachableFromOrigin(
+      "/repo",
+      "trunk",
+      "example",
+      {
+        runGit: (_cwd, args) => {
+          calls.push(args);
+          if (args[0] === "fetch") return { status: 0, stdout: "", stderr: "" };
+          if (args[0] === "log" && args[2] === "origin/trunk..change/example") {
+            return { status: 0, stdout: "abc123 unmerged\n", stderr: "" };
+          }
+          if (args[0] === "log" && args[2] === "trunk..change/example") {
+            return { status: 0, stdout: "", stderr: "" };
+          }
+          return {
+            status: 1,
+            stdout: "",
+            stderr: `unexpected ${args.join(" ")}`,
+          };
+        },
+      },
+    );
+
+    expect(result).toEqual({
+      reachable: false,
+      unmergedCommits: ["abc123 unmerged"],
+    });
+    expect(calls).toContainEqual(["fetch", "origin", "trunk"]);
+    expect(calls).toContainEqual([
+      "log",
+      "--oneline",
+      "origin/trunk..change/example",
+    ]);
+  });
+
+  it("classifyFinalizationRoute uses remote and ruleset evidence", () => {
+    const noRemote = classifyFinalizationRoute("/repo", "trunk", {
+      runGit: (_cwd, args) => {
+        if (args.join(" ") === "remote get-url origin") {
+          return { status: 2, stdout: "", stderr: "No such remote" };
+        }
+        return { status: 1, stdout: "", stderr: "unexpected" };
+      },
+    });
+    expect(noRemote.route).toBe("no_remote");
+
+    const direct = classifyFinalizationRoute("/repo", "trunk", {
+      runGit: (_cwd, args) => {
+        if (args.join(" ") === "remote get-url origin") {
+          return {
+            status: 0,
+            stdout: "https://github.com/Sharper-Flow/Advance.git\n",
+            stderr: "",
+          };
+        }
+        return { status: 1, stdout: "", stderr: "unexpected" };
+      },
+      runGh: (_cwd, args) => {
+        if (args[0] === "api" && args[1].includes("/rules/branches/")) {
+          return { status: 0, stdout: "[]", stderr: "" };
+        }
+        if (args[0] === "api" && args[1] === "repos/Sharper-Flow/Advance") {
+          return { status: 0, stdout: "true\n", stderr: "" };
+        }
+        return { status: 1, stdout: "", stderr: "unexpected" };
+      },
+    });
+    expect(direct).toMatchObject({
+      route: "direct",
+      repo: "Sharper-Flow/Advance",
+    });
+
+    const protectedAuto = classifyFinalizationRoute("/repo", "trunk", {
+      runGit: (_cwd, args) => {
+        if (args.join(" ") === "remote get-url origin") {
+          return {
+            status: 0,
+            stdout: "git@github.com:Sharper-Flow/Advance.git\n",
+            stderr: "",
+          };
+        }
+        return { status: 1, stdout: "", stderr: "unexpected" };
+      },
+      runGh: (_cwd, args) => {
+        if (args[0] === "api" && args[1].includes("/rules/branches/")) {
+          return {
+            status: 0,
+            stdout: JSON.stringify([{ type: "required_status_checks" }]),
+            stderr: "",
+          };
+        }
+        if (args[0] === "api" && args[1] === "repos/Sharper-Flow/Advance") {
+          return { status: 0, stdout: "true\n", stderr: "" };
+        }
+        return { status: 1, stdout: "", stderr: "unexpected" };
+      },
+    });
+    expect(protectedAuto).toMatchObject({
+      route: "pr_auto_merge",
+      protected: true,
+      autoMergeAllowed: true,
+    });
+
+    const ghUnavailable = classifyFinalizationRoute("/repo", "trunk", {
+      runGit: (_cwd, args) => {
+        if (args.join(" ") === "remote get-url origin") {
+          return {
+            status: 0,
+            stdout: "https://github.com/Sharper-Flow/Advance.git\n",
+            stderr: "",
+          };
+        }
+        return { status: 1, stdout: "", stderr: "unexpected" };
+      },
+      runGh: () => ({
+        status: 127,
+        stdout: "",
+        stderr: "gh: command not found",
+      }),
+    });
+    expect(ghUnavailable).toMatchObject({
+      route: "pr_manual",
+      reason: "GITHUB_CLI_UNAVAILABLE",
+    });
+  });
+
+  it("resolveReleaseReachability accepts squash PR merge state instead of ancestry", () => {
+    const result = resolveReleaseReachability(
+      {
+        mainCheckout: "/repo",
+        defaultBranch: "trunk",
+        changeId: "example",
+        route: { route: "pr_auto_merge", repo: "Sharper-Flow/Advance" },
+        prNumber: 12,
+      },
+      {
+        runGh: (_cwd, args) => {
+          expect(args).toEqual([
+            "pr",
+            "view",
+            "12",
+            "--repo",
+            "Sharper-Flow/Advance",
+            "--json",
+            "state,mergedAt,mergeCommit,autoMergeRequest",
+          ]);
+          return {
+            status: 0,
+            stdout: JSON.stringify({
+              state: "MERGED",
+              mergedAt: "2026-06-07T00:00:00Z",
+              mergeCommit: { oid: "merge-sha" },
+              autoMergeRequest: null,
+            }),
+            stderr: "",
+          };
+        },
+      },
+    );
+
+    expect(result).toMatchObject({
+      reachable: true,
+      proof: "pr_merged",
+      prNumber: 12,
     });
   });
 

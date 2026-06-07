@@ -1,4 +1,5 @@
 import { realpathSync } from "fs";
+import { spawnSync } from "child_process";
 import { dirname } from "path";
 import { spawnSyncGit } from "../../utils/git-binary";
 
@@ -8,6 +9,7 @@ export interface GitFinalizeOutcome {
   status: "shipped" | "blocked" | "pr_pushed";
   mainCheckout: string;
   defaultBranch: string;
+  route?: ReleaseFinalizationRouteName;
   mergeCommitSha?: string;
   /** SHA of the dirty-main checkpoint commit, set when ADV committed pre-existing
    *  main checkout changes before merge (rq-releaseFinalization01.7). */
@@ -26,8 +28,63 @@ export interface RunGitResult {
 
 export interface GitFinalizeDeps {
   runGit?: (cwd: string, args: string[], timeoutMs?: number) => RunGitResult;
+  runGh?: (cwd: string, args: string[], timeoutMs?: number) => RunGitResult;
   requireCleanWorktree?: boolean;
 }
+
+export type ReleaseFinalizationRouteName =
+  | "no_remote"
+  | "direct"
+  | "pr_auto_merge"
+  | "pr_manual"
+  | "blocked";
+
+export interface FinalizationRoute {
+  route: ReleaseFinalizationRouteName;
+  repo?: string;
+  remoteUrl?: string;
+  protected?: boolean;
+  autoMergeAllowed?: boolean;
+  reason?: string;
+  details?: string[];
+}
+
+export interface PullRequestMergeState {
+  state: string;
+  mergedAt?: string | null;
+  mergeCommitOid?: string;
+  autoMergeArmed: boolean;
+  raw?: unknown;
+}
+
+export interface ReleaseReachabilityInput {
+  mainCheckout: string;
+  defaultBranch: string;
+  changeId: string;
+  route?: FinalizationRoute;
+  prNumber?: number;
+}
+
+export type ReleaseReachabilityProof =
+  | {
+      reachable: true;
+      proof: "local_merge" | "origin_default" | "pr_merged";
+      prNumber?: number;
+      mergeCommitOid?: string;
+      details?: string[];
+    }
+  | {
+      reachable: false;
+      proof:
+        | "local_unmerged"
+        | "origin_unmerged"
+        | "origin_push_unverified"
+        | "pr_unmerged"
+        | "blocked";
+      prNumber?: number;
+      autoMergeArmed?: boolean;
+      details?: string[];
+    };
 
 export interface DeleteChangeBranchResult {
   localDeleted: boolean;
@@ -142,6 +199,35 @@ function defaultRunGit(
   };
 }
 
+function defaultRunGh(
+  cwd: string,
+  args: string[],
+  timeoutMs: number = DEFAULT_GIT_TIMEOUT_MS,
+): RunGitResult {
+  const result = spawnSync("gh", args, {
+    cwd,
+    encoding: "utf8",
+    timeout: timeoutMs,
+    env: {
+      ...process.env,
+      GIT_TERMINAL_PROMPT: "0",
+      GH_PROMPT_DISABLED: "1",
+    },
+  });
+  const timedOut = result.error?.message.includes("ETIMEDOUT") ?? false;
+  const stdout =
+    typeof result.stdout === "string" ? result.stdout : String(result.stdout);
+  const stderr =
+    typeof result.stderr === "string" ? result.stderr : String(result.stderr);
+  return {
+    status: timedOut ? 124 : result.status,
+    stdout: redactGitOutput(stdout ?? ""),
+    stderr: timedOut
+      ? `gh ${args.join(" ")} timed out after ${timeoutMs}ms`
+      : redactGitOutput(stderr ?? ""),
+  };
+}
+
 function runGitOrThrow(
   cwd: string,
   args: string[],
@@ -161,6 +247,163 @@ function splitLines(value: string): string[] {
     .split(/\r?\n/)
     .map((line) => line.trim())
     .filter(Boolean);
+}
+
+function parseJson(value: string): unknown {
+  try {
+    return JSON.parse(value.trim() || "null");
+  } catch {
+    return undefined;
+  }
+}
+
+export function parseGitHubRepoFromRemote(url: string): string | undefined {
+  const trimmed = url.trim().replace(/\.git$/, "");
+  const match = trimmed.match(
+    /github\.com[:/]([^/\s:]+)\/([^/\s]+(?:\/[^/\s]+)*)$/i,
+  );
+  if (!match) return undefined;
+  const owner = match[1];
+  const repo = match[2]?.split("/").pop();
+  return owner && repo ? `${owner}/${repo}` : undefined;
+}
+
+function getOriginRemote(
+  mainCheckout: string,
+  deps: Pick<GitFinalizeDeps, "runGit"> = {},
+):
+  | { configured: true; remoteUrl: string; repo?: string }
+  | { configured: false; reason: string } {
+  const runGit = deps.runGit ?? defaultRunGit;
+  const remote = runGit(mainCheckout, ["remote", "get-url", "origin"]);
+  if (remote.status !== 0 || !remote.stdout.trim()) {
+    return {
+      configured: false,
+      reason: (
+        remote.stderr ||
+        remote.stdout ||
+        "origin remote not configured"
+      ).trim(),
+    };
+  }
+  const remoteUrl = remote.stdout.trim();
+  return {
+    configured: true,
+    remoteUrl,
+    repo: parseGitHubRepoFromRemote(remoteUrl),
+  };
+}
+
+function ghFailureReason(result: RunGitResult): string {
+  if (result.status === 127) return "GITHUB_CLI_UNAVAILABLE";
+  if (/not found|command not found/i.test(result.stderr || result.stdout)) {
+    return "GITHUB_CLI_UNAVAILABLE";
+  }
+  if (
+    /not authenticated|authentication|authorization|Bad credentials/i.test(
+      result.stderr || result.stdout,
+    )
+  ) {
+    return "GITHUB_CLI_UNAUTHENTICATED";
+  }
+  return "GITHUB_API_UNAVAILABLE";
+}
+
+export function classifyFinalizationRoute(
+  mainCheckout: string,
+  defaultBranch: string,
+  deps: Pick<GitFinalizeDeps, "runGit" | "runGh"> = {},
+): FinalizationRoute {
+  const origin = getOriginRemote(mainCheckout, deps);
+  if (!origin.configured) {
+    return {
+      route: "no_remote",
+      reason: origin.reason,
+    };
+  }
+
+  if (!origin.repo) {
+    return {
+      route: "pr_manual",
+      remoteUrl: origin.remoteUrl,
+      reason: "GITHUB_REPO_UNRESOLVABLE",
+      details: [
+        `Unable to derive owner/repo from origin URL ${origin.remoteUrl}`,
+      ],
+    };
+  }
+
+  const runGh = deps.runGh ?? defaultRunGh;
+  const rules = runGh(mainCheckout, [
+    "api",
+    `repos/${origin.repo}/rules/branches/${encodeURIComponent(defaultBranch)}`,
+  ]);
+  if (rules.status !== 0) {
+    return {
+      route: "pr_manual",
+      repo: origin.repo,
+      remoteUrl: origin.remoteUrl,
+      reason: ghFailureReason(rules),
+      details: splitLines(rules.stderr || rules.stdout),
+    };
+  }
+
+  const parsedRules = parseJson(rules.stdout);
+  if (!Array.isArray(parsedRules)) {
+    return {
+      route: "pr_manual",
+      repo: origin.repo,
+      remoteUrl: origin.remoteUrl,
+      reason: "BRANCH_RULES_UNPARSEABLE",
+      details: splitLines(rules.stdout),
+    };
+  }
+
+  if (parsedRules.length === 0) {
+    return {
+      route: "direct",
+      repo: origin.repo,
+      remoteUrl: origin.remoteUrl,
+      protected: false,
+    };
+  }
+
+  const allowAutoMerge = runGh(mainCheckout, [
+    "api",
+    `repos/${origin.repo}`,
+    "--jq",
+    ".allow_auto_merge",
+  ]);
+  if (allowAutoMerge.status !== 0) {
+    return {
+      route: "pr_manual",
+      repo: origin.repo,
+      remoteUrl: origin.remoteUrl,
+      protected: true,
+      reason: "AUTO_MERGE_STATUS_UNAVAILABLE",
+      details: splitLines(allowAutoMerge.stderr || allowAutoMerge.stdout),
+    };
+  }
+
+  const parsedAllowAutoMerge = parseJson(allowAutoMerge.stdout);
+  if (parsedAllowAutoMerge === true) {
+    return {
+      route: "pr_auto_merge",
+      repo: origin.repo,
+      remoteUrl: origin.remoteUrl,
+      protected: true,
+      autoMergeAllowed: true,
+    };
+  }
+
+  return {
+    route: "pr_manual",
+    repo: origin.repo,
+    remoteUrl: origin.remoteUrl,
+    protected: true,
+    autoMergeAllowed: false,
+    reason: "AUTO_MERGE_DISABLED",
+  };
 }
 
 export function resolveMainCheckout(
@@ -397,6 +640,35 @@ export function verifyChangeBranchReachable(
     "log",
     "--oneline",
     `${defaultBranch}..change/${changeId}`,
+  ]);
+  if (result.status !== 0) {
+    return {
+      reachable: false,
+      unmergedCommits: splitLines(result.stderr || result.stdout),
+    };
+  }
+  const unmergedCommits = splitLines(result.stdout);
+  return { reachable: unmergedCommits.length === 0, unmergedCommits };
+}
+
+export function verifyChangeBranchReachableFromOrigin(
+  mainCheckout: string,
+  defaultBranch: string,
+  changeId: string,
+  deps: GitFinalizeDeps = {},
+): { reachable: boolean; unmergedCommits: string[] } {
+  const runGit = deps.runGit ?? defaultRunGit;
+  const fetch = runGit(mainCheckout, ["fetch", "origin", defaultBranch]);
+  if (fetch.status !== 0) {
+    return {
+      reachable: false,
+      unmergedCommits: splitLines(fetch.stderr || fetch.stdout),
+    };
+  }
+  const result = runGit(mainCheckout, [
+    "log",
+    "--oneline",
+    `origin/${defaultBranch}..change/${changeId}`,
   ]);
   if (result.status !== 0) {
     return {
@@ -667,6 +939,156 @@ export function verifyDefaultBranchPushed(
         pushed: false,
         reason: `origin/${defaultBranch} is at ${remoteSha}, local ${defaultBranch} is at ${localSha}`,
       };
+}
+
+export function readPrMergeState(
+  mainCheckout: string,
+  repo: string,
+  prNumber: number,
+  deps: Pick<GitFinalizeDeps, "runGh"> = {},
+): PullRequestMergeState | { error: string; details?: string[] } {
+  const runGh = deps.runGh ?? defaultRunGh;
+  const result = runGh(mainCheckout, [
+    "pr",
+    "view",
+    String(prNumber),
+    "--repo",
+    repo,
+    "--json",
+    "state,mergedAt,mergeCommit,autoMergeRequest",
+  ]);
+  if (result.status !== 0) {
+    return {
+      error: ghFailureReason(result),
+      details: splitLines(result.stderr || result.stdout),
+    };
+  }
+  const parsed = parseJson(result.stdout);
+  if (!parsed || typeof parsed !== "object") {
+    return {
+      error: "PR_STATE_UNPARSEABLE",
+      details: splitLines(result.stdout),
+    };
+  }
+  const payload = parsed as {
+    state?: unknown;
+    mergedAt?: unknown;
+    mergeCommit?: { oid?: unknown } | null;
+    autoMergeRequest?: unknown;
+  };
+  return {
+    state: typeof payload.state === "string" ? payload.state : "UNKNOWN",
+    mergedAt: typeof payload.mergedAt === "string" ? payload.mergedAt : null,
+    mergeCommitOid:
+      payload.mergeCommit && typeof payload.mergeCommit.oid === "string"
+        ? payload.mergeCommit.oid
+        : undefined,
+    autoMergeArmed:
+      payload.autoMergeRequest !== null &&
+      payload.autoMergeRequest !== undefined,
+    raw: parsed,
+  };
+}
+
+export function resolveReleaseReachability(
+  input: ReleaseReachabilityInput,
+  deps: Pick<GitFinalizeDeps, "runGit" | "runGh"> = {},
+): ReleaseReachabilityProof {
+  const route =
+    input.route ??
+    classifyFinalizationRoute(input.mainCheckout, input.defaultBranch, deps);
+
+  if (route.route === "blocked") {
+    return {
+      reachable: false,
+      proof: "blocked",
+      details: route.details ?? (route.reason ? [route.reason] : undefined),
+    };
+  }
+
+  if (route.route === "no_remote") {
+    const local = verifyChangeBranchReachable(
+      input.mainCheckout,
+      input.defaultBranch,
+      input.changeId,
+      deps,
+    );
+    return local.reachable
+      ? { reachable: true, proof: "local_merge" }
+      : {
+          reachable: false,
+          proof: "local_unmerged",
+          details: local.unmergedCommits,
+        };
+  }
+
+  if (route.route === "direct") {
+    const pushed = verifyDefaultBranchPushed(
+      input.mainCheckout,
+      input.defaultBranch,
+      deps,
+    );
+    if (!pushed.pushed) {
+      return {
+        reachable: false,
+        proof: "origin_push_unverified",
+        details: pushed.reason ? [pushed.reason] : undefined,
+      };
+    }
+    const originReachability = verifyChangeBranchReachableFromOrigin(
+      input.mainCheckout,
+      input.defaultBranch,
+      input.changeId,
+      deps,
+    );
+    return originReachability.reachable
+      ? { reachable: true, proof: "origin_default" }
+      : {
+          reachable: false,
+          proof: "origin_unmerged",
+          details: originReachability.unmergedCommits,
+        };
+  }
+
+  if (!route.repo || !input.prNumber) {
+    return {
+      reachable: false,
+      proof: "pr_unmerged",
+      prNumber: input.prNumber,
+      details: ["PR merge state requires repo and prNumber"],
+    };
+  }
+
+  const prState = readPrMergeState(
+    input.mainCheckout,
+    route.repo,
+    input.prNumber,
+    deps,
+  );
+  if ("error" in prState) {
+    return {
+      reachable: false,
+      proof: "pr_unmerged",
+      prNumber: input.prNumber,
+      details: [prState.error, ...(prState.details ?? [])],
+    };
+  }
+  if (prState.state === "MERGED" && prState.mergedAt) {
+    return {
+      reachable: true,
+      proof: "pr_merged",
+      prNumber: input.prNumber,
+      mergeCommitOid: prState.mergeCommitOid,
+    };
+  }
+
+  return {
+    reachable: false,
+    proof: "pr_unmerged",
+    prNumber: input.prNumber,
+    autoMergeArmed: prState.autoMergeArmed,
+    details: [`PR state is ${prState.state}`],
+  };
 }
 
 export function detectArchiveMode(
