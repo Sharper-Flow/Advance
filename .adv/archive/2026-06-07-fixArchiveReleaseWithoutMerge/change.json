@@ -1,0 +1,1376 @@
+{
+  "id": "fixArchiveReleaseWithoutMerge",
+  "title": "Fix archive release-without-merge",
+  "status": "archived",
+  "created_at": "2026-06-07T00:42:11.101Z",
+  "tasks": [
+    {
+      "id": "tk-a098e525b7db",
+      "title": "Add origin-aware release routing primitives",
+      "type": "code",
+      "section": "Release finalization",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-06-07T03:37:24.713Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "AC1",
+          "AC3",
+          "AC6"
+        ],
+        "verifies": [
+          "AC1"
+        ],
+        "respects": [
+          "C1",
+          "C3",
+          "C4",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "OOS1",
+          "OOS2",
+          "OOS3"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-07T03:43:14.133Z",
+      "verification": "RED: `bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts` failed before helpers existed. GREEN: same targeted suite passed (41 tests). VERIFY: `bin/oc-test smoke` passed (schemas:check, typecheck, lint, format:check, smoke tests). Implemented origin-aware route/reachability primitives in git-finalize.ts with tests.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/archive-helpers/git-finalize.test.ts",
+        "plugin/src/tools/archive-helpers/git-finalize.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/archive-helpers/git-finalize.test.ts",
+        "plugin/src/tools/archive-helpers/git-finalize.ts"
+      ],
+      "checkpointSha": "49dc208899d8c9568927dcade4e7d235b207cec7",
+      "completedAt": "2026-06-07T03:50:08.164Z",
+      "completed_at": "2026-06-07T03:50:08.164Z"
+    },
+    {
+      "id": "tk-4f99e6b996df",
+      "title": "Integrate pending-merge Phase 9 finalization",
+      "type": "code",
+      "section": "Release finalization",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-06-07T03:37:54.706Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-a098e525b7db"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "AC2",
+          "AC3",
+          "AC6"
+        ],
+        "verifies": [
+          "AC2",
+          "AC3",
+          "AC6"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "OOS1",
+          "OOS2",
+          "OOS3"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-07T03:50:37.625Z",
+      "verification": "RED: `bin/oc-test targeted -- src/tools/change.archive-phase9.test.ts` failed on pending_merge handling; `bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts` failed on protected push rejection PR handoff. GREEN/VERIFY: `bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts src/tools/change.archive-phase9.test.ts` passed (65 tests). Smoke: `bin/oc-test smoke` passed (schemas:check, typecheck, lint, format:check, smoke tests).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added `pending_merge` GitFinalizeOutcome/phase9_status support with PR metadata. Direct-mode protected default branch push failure now classifies branch protection, resets main to origin/default, pushes change branch, creates/reuses a PR, arms `gh pr merge --squash --auto`, re-reads PR state, returns `pending_merge` when auto-merge is armed, and collapses immediately merged PRs to shipped. Archive tool records pending_merge without completing release, archiving, closing issues, deleting branches, or cleanup. Added RED/GREEN coverage for protected push PR handoff, immediate PR merge collapse, sync archive pending_merge, and async callback pending_merge.",
+      "filesTouched": [
+        "plugin/schemas/change.schema.json",
+        "plugin/src/tools/archive-helpers/git-finalize.test.ts",
+        "plugin/src/tools/archive-helpers/git-finalize.ts",
+        "plugin/src/tools/change.archive-phase9.test.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/types/changes.ts"
+      ],
+      "touched_files": [
+        "plugin/schemas/change.schema.json",
+        "plugin/src/tools/archive-helpers/git-finalize.test.ts",
+        "plugin/src/tools/archive-helpers/git-finalize.ts",
+        "plugin/src/tools/change.archive-phase9.test.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/types/changes.ts"
+      ],
+      "checkpointSha": "c6eba44fc24053d399627c2313a81063b898661d",
+      "completedAt": "2026-06-07T04:05:28.422Z",
+      "completed_at": "2026-06-07T04:05:28.422Z",
+      "notes": "Completed pending-merge Phase 9 integration. Checkpoint commit: c6eba44fc24053d399627c2313a81063b898661d.",
+      "error_recovery": {
+        "last_error": "Smoke verification initially failed on Prettier formatting, then schema check failed after formatting changed generated schema file; fixed by running Prettier on touched source files and regenerating JSON schemas.",
+        "retry_count": 2,
+        "max_retries": 3,
+        "error_class": "ENVIRONMENTAL",
+        "next_strategy": "No further retry needed; targeted and smoke verification passed after formatting/schema regeneration.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "`bin/oc-test smoke` failed: Prettier warnings for git-finalize.test.ts, git-finalize.ts, and change.ts.",
+            "diagnosis": "Source edits were functionally correct but not formatted.",
+            "fix_tried": "Ran `pnpm exec prettier --write` on touched source/schema files.",
+            "strategy_label": "format-touched-files",
+            "outcome": "failed",
+            "attempted_at": "2026-06-08T00:03:00.000Z"
+          },
+          {
+            "attempt_number": 2,
+            "error": "`bin/oc-test smoke` failed: generated JSON schemas stale (`change.schema.json`).",
+            "diagnosis": "Formatting the generated schema made it differ from deterministic generator output.",
+            "fix_tried": "Ran `pnpm run schemas:generate` after formatting.",
+            "strategy_label": "regenerate-public-schemas",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-08T00:04:00.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-07T04:05:48.382Z"
+    },
+    {
+      "id": "tk-f26b1aa86943",
+      "title": "Harden release gate, skip, and recovery evidence paths",
+      "type": "code",
+      "section": "Release finalization",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-06-07T03:38:18.802Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-4f99e6b996df"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC4",
+          "AC4",
+          "AC5"
+        ],
+        "verifies": [
+          "AC4",
+          "AC5"
+        ],
+        "respects": [
+          "C3",
+          "C4",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "OOS1",
+          "OOS2",
+          "OOS3"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-07T04:06:20.286Z",
+      "verification": "RED: `bin/oc-test targeted -- src/tools/gate.release-enforcement.test.ts src/tools/change.archive-phase9.test.ts` failed on phase9 skip missing origin proof, local-only release gate completion, and recovery revalidation. GREEN/VERIFY: targeted suite passed (30 tests). Smoke: `bin/oc-test smoke` passed (schemas:check, typecheck, lint, format:check, smoke tests).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Release gate completion now uses route-aware `resolveReleaseReachability` instead of local-only ancestry/push checks, so direct remote-backed release completion requires origin/default proof and PR pending states remain blocked. Release poisoned/completed-workflow recovery revalidates the same release proof before writing recovered gate state. `adv_change_archive phase9:\"skip\"` now validates main-checkout release evidence before archive/status/issue-closure and blocks missing origin/default or PR-merged proof. Existing bundle reconciliation now uses origin-aware evidence, including PR merge proof when phase9_status carries PR metadata.",
+      "filesTouched": [
+        "plugin/src/tools/change.archive-phase9.test.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/gate.release-enforcement.test.ts",
+        "plugin/src/tools/gate.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/change.archive-phase9.test.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/gate.release-enforcement.test.ts",
+        "plugin/src/tools/gate.ts"
+      ],
+      "checkpointSha": "1f8dcaf3c3cb0082e092564b6d776c854bd1b97c",
+      "completedAt": "2026-06-07T04:14:21.497Z",
+      "completed_at": "2026-06-07T04:14:21.497Z",
+      "notes": "Completed release gate, phase9 skip, and recovery proof hardening. Checkpoint commit: 1f8dcaf3c3cb0082e092564b6d776c854bd1b97c.",
+      "error_recovery": {
+        "last_error": "Initial RED suite failed as expected on missing skip/origin/recovery enforcement; after implementation targeted and smoke suites passed.",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "No further retry needed; proceed to detector/re-drive task.",
+        "attempts": []
+      },
+      "updatedAt": "2026-06-07T04:14:36.176Z"
+    },
+    {
+      "id": "tk-b588db3c6f3c",
+      "title": "Add archived-but-unmerged detector and idempotent re-drive tool",
+      "type": "code",
+      "section": "Detector and re-drive",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-06-07T03:38:46.886Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-f26b1aa86943"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC5",
+          "AC7"
+        ],
+        "verifies": [
+          "AC7"
+        ],
+        "respects": [
+          "C1",
+          "C3",
+          "C4",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "OOS1",
+          "OOS2",
+          "OOS3"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-07T04:15:12.168Z",
+      "verification": "RED: `bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts` failed because detector/re-drive helpers did not exist; `bin/oc-test targeted -- src/tools/change.archive-repair.test.ts` failed because adv_archive_repair was not defined. GREEN/VERIFY: targeted suite passed for git-finalize helpers, adv_archive_repair, tool registry, CLI bridge, and CLI surface matrix (91 tests); `bin/oc-test smoke` passed (schemas:check, typecheck, lint, format:check, smoke tests); reran `bin/oc-test targeted -- src/cli-surface-matrix.test.ts` after minimizing docs diff.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added git-finalize detector for archived `change/*` branches on origin that are not reachable from `origin/<default>`, filtered to archived changes. Added idempotent re-drive helper that verifies remote branch existence, reuses an existing PR when present, creates one when needed, arms `gh pr merge --squash --auto`, re-reads PR state, returns `pending_merge` or `shipped`, and never force-pushes. Added `adv_archive_repair` tool with `scan` and `redrive` actions, registered it in createToolMap/ADV_TOOL_NAMES, added title/preflight/matrix coverage, and tests for scan/redrive behavior.",
+      "filesTouched": [
+        "docs/cli-surface-matrix.md",
+        "plugin/src/cli-bridge-contract.test.ts",
+        "plugin/src/tool-registry.ts",
+        "plugin/src/tools/archive-helpers/git-finalize.test.ts",
+        "plugin/src/tools/archive-helpers/git-finalize.ts",
+        "plugin/src/tools/change.archive-repair.test.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/utils/tool-arg-preflight.ts",
+        "plugin/src/utils/tool-title.ts"
+      ],
+      "touched_files": [
+        "docs/cli-surface-matrix.md",
+        "plugin/src/cli-bridge-contract.test.ts",
+        "plugin/src/tool-registry.ts",
+        "plugin/src/tools/archive-helpers/git-finalize.test.ts",
+        "plugin/src/tools/archive-helpers/git-finalize.ts",
+        "plugin/src/tools/change.archive-repair.test.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/utils/tool-arg-preflight.ts",
+        "plugin/src/utils/tool-title.ts"
+      ],
+      "checkpointSha": "22ea84705372b08cc8845485e03c484166edf48f",
+      "completedAt": "2026-06-07T04:25:52.052Z",
+      "completed_at": "2026-06-07T04:25:52.052Z",
+      "notes": "Completed archived-but-unmerged detector and re-drive tool. Checkpoint commit: 22ea84705372b08cc8845485e03c484166edf48f.",
+      "error_recovery": {
+        "last_error": "Tool registry targeted test initially failed because the new tool lacked an explicit display title; fixed by adding an `adv_archive_repair` title builder.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "No further retry needed; proceed to spec/docs contract update.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "`bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts src/tools/change.archive-repair.test.ts src/tool-registry.test.ts src/cli-bridge-contract.test.ts src/cli-surface-matrix.test.ts` failed: explicit title for adv_archive_repair missing.",
+            "diagnosis": "New agent-callable tool was registered but tool-title contract was incomplete.",
+            "fix_tried": "Added `adv_archive_repair` title builder in `src/utils/tool-title.ts`, reran targeted registry/matrix suite.",
+            "strategy_label": "complete-tool-title-contract",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-08T00:23:00.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-07T04:26:08.389Z"
+    },
+    {
+      "id": "tk-36c50b2a92a7",
+      "title": "Update archive spec, command, and terminal voice contracts",
+      "type": "code",
+      "section": "Spec and docs",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-06-07T03:39:16.024Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-b588db3c6f3c"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC3",
+          "AC6",
+          "AC8"
+        ],
+        "verifies": [
+          "AC6",
+          "AC8"
+        ],
+        "respects": [
+          "C3",
+          "C4",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "OOS1",
+          "OOS2",
+          "OOS3"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-07T04:26:47.939Z",
+      "verification": "RED: bin/oc-test targeted -- src/archive-release-finalization-assets.test.ts failed before docs/spec changes. GREEN/verify: bin/oc-test targeted -- src/archive-release-finalization-assets.test.ts; bin/oc-test targeted -- src/archive-release-finalization-assets.test.ts src/handoff-footer-drift.test.ts src/adv-autonomy-quality-assets.test.ts; bin/oc-test smoke.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".adv/specs/advance-workflow/spec.json",
+        ".opencode/command/adv-archive.md",
+        "ADV_INSTRUCTIONS.md",
+        "docs/command-voice-standard.md",
+        "docs/specs/advance-workflow.md",
+        "plugin/src/adv-autonomy-quality-assets.test.ts",
+        "plugin/src/archive-release-finalization-assets.test.ts"
+      ],
+      "touched_files": [
+        ".adv/specs/advance-workflow/spec.json",
+        ".opencode/command/adv-archive.md",
+        "ADV_INSTRUCTIONS.md",
+        "docs/command-voice-standard.md",
+        "docs/specs/advance-workflow.md",
+        "plugin/src/adv-autonomy-quality-assets.test.ts",
+        "plugin/src/archive-release-finalization-assets.test.ts"
+      ],
+      "checkpointSha": "1f2fcd74a4c3d459f4c88eb90ad75ff83f4387b9",
+      "completedAt": "2026-06-07T04:44:55.187Z",
+      "completed_at": "2026-06-07T04:44:55.187Z"
+    },
+    {
+      "id": "tk-1c704b8091e0",
+      "title": "Run cross-cutting release-finalization validation",
+      "type": "code",
+      "section": "Verification",
+      "status": "done",
+      "priority": 5,
+      "created_at": "2026-06-07T03:39:40.899Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-36c50b2a92a7"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "verifies": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "SC4",
+          "SC5",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7",
+          "AC8",
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "OOS1",
+          "OOS2",
+          "OOS3"
+        ],
+        "respects": [
+          "C5",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "OOS1",
+          "OOS2",
+          "OOS3"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-07T04:45:33.771Z",
+      "verification": "Review remediation for attempt-1 blockers completed. Verified: bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts src/tools/change.archive-phase9.test.ts src/tools/change.test.ts; bin/oc-test full; bin/oc-test smoke. Re-review attempt 2 READY with 0 blockers.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/archive-helpers/git-finalize.test.ts",
+        "plugin/src/tools/archive-helpers/git-finalize.ts",
+        "plugin/src/tools/change.archive-phase9.test.ts",
+        "plugin/src/tools/change.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/archive-helpers/git-finalize.test.ts",
+        "plugin/src/tools/archive-helpers/git-finalize.ts",
+        "plugin/src/tools/change.archive-phase9.test.ts",
+        "plugin/src/tools/change.ts"
+      ],
+      "checkpointSha": "04a1fb587ac2fd30541dc68d0513d322b216be31",
+      "completedAt": "2026-06-07T05:29:09.159Z",
+      "completed_at": "2026-06-07T05:29:09.159Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "fixArchiveReleaseWithoutMerge",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "tron:archive-release-finalization"
+      },
+      "agent": "adv-tron",
+      "target": "ADV archive/release-finalization remote-awareness audit (git-finalize.ts, gate.ts, change.ts, adv-archive.md, advance-workflow spec)",
+      "evidence": [
+        {
+          "file": "plugin/src/tools/archive-helpers/git-finalize.ts",
+          "line": 390,
+          "summary": "verifyChangeBranchReachable runs `git log {defaultBranch}..change/{id}` against LOCAL default branch, not origin/{default}. This is the load-bearing reachability check; it returns reachable:true once the branch is merged into LOCAL main even if origin was never updated."
+        },
+        {
+          "file": "plugin/src/tools/archive-helpers/git-finalize.ts",
+          "line": 178,
+          "summary": "detectDefaultBranch resolves origin/HEAD first, then init.defaultBranch, then local main/trunk. Returns a NAME only; reachability/merge ops operate on the LOCAL ref of that name."
+        },
+        {
+          "file": "plugin/src/tools/archive-helpers/git-finalize.ts",
+          "line": 629,
+          "summary": "verifyDefaultBranchPushed IS origin-aware: fetches origin, compares local HEAD == origin/{default} ls-remote SHA. This is the only origin gate. If push was rejected by branch protection, this returns pushed:false."
+        },
+        {
+          "file": "plugin/src/tools/archive-helpers/git-finalize.ts",
+          "line": 1062,
+          "summary": "finalizeRelease: after merge, pushToOrigin runs. status:'shipped' ONLY when push.status==='pushed'. Push failure/skip -> status:'blocked' with DEFAULT_BRANCH_PUSH_FAILED/SKIPPED. Runtime helper path does NOT report shipped on push failure."
+        },
+        {
+          "file": "plugin/src/tools/gate.ts",
+          "line": 1225,
+          "summary": "Release gate enforcement: direct mode checks verifyChangeBranchReachable (LOCAL) then verifyDefaultBranchPushed (origin). The reachability half uses local default branch."
+        },
+        {
+          "file": "plugin/src/tools/change.ts",
+          "line": 1294,
+          "summary": "verifyReleaseEvidenceFromMain (existing-bundle retry, no worktree) checks verifyChangeBranchReachable (LOCAL) + verifyDefaultBranchPushed (origin) and returns status:'shipped' when both pass."
+        },
+        {
+          "file": ".opencode/command/adv-archive.md",
+          "line": 177,
+          "summary": "Terminal verb 'Merged locally.' fires when 'no remote configured OR push skipped OR push failed'. 'release ✓' footer appears for BOTH Shipped and Merged locally variants (L203)."
+        },
+        {
+          "file": "docs/specs/advance-workflow.md",
+          "line": 408,
+          "summary": "rq-releaseFinalization01: explicitly authorizes local-only completion: 'If no remote exists or the push fails or is skipped, the archive may complete as a local-only result and must report Merged locally.' Spec sanctions the bug behavior."
+        }
+      ],
+      "findings": [
+        "LOCAL-only reachability: verifyChangeBranchReachable (git-finalize.ts:390-409) compares LOCAL {default}..change/{id}. After ff-only merge into local main, reachable:true regardless of origin. gate.ts:1231 and change.ts:1294 both consume this.",
+        "Origin gate exists but is separate: verifyDefaultBranchPushed (git-finalize.ts:629-670) fetches origin and compares local HEAD==origin SHA. On branch-protection push rejection it returns pushed:false. The gate.ts/change.ts archive paths DO consume it (gate.ts:1243, change.ts:1313) and BLOCK release on failure.",
+        "Runtime helper blocks on push failure: finalizeRelease (git-finalize.ts:1062-1095) returns status:'blocked' (DEFAULT_BRANCH_PUSH_FAILED) when push fails; change.ts:4038 turns that into archive error 'Archive finalization blocked'. So phase9:'run' through finalizeRelease does NOT mark release complete on push failure.",
+        "Spec sanctions Merged-locally success: rq-releaseFinalization01 (advance-workflow.md:408, scenario .4 L455-468) says push failure -> 'Merged locally.' as a LEGITIMATE completion, and 'release ✓' footer is emitted for that variant (adv-archive.md:203). This is the contradiction at the root of the reported bug: the command-level terminal contract treats push-failed as a release-complete state.",
+        "No PR/auto-merge anywhere: grep for `gh pr`, `--auto`, `mergeStateStatus`, `auto_merge`, `gh api`, `pull request` across plugin/src returns ZERO hits in finalization code. PR mode (detectArchiveMode 'pr') only PUSHES change/{id} (pushChangeBranch git-finalize.ts:555) for handoff; it never opens a PR. The proposal's assumption that any auto-merge path exists is REFUTED.",
+        "phase9:'skip' bypasses ALL finalization: change.ts:3859 guards `phase9 !== 'skip'`. With skip, finalizeRelease/verifyReleaseEvidenceFromMain/release-gate completion/durable proof are all skipped; archive jumps straight to status transition (L4122). The release gate is NOT auto-completed by skip, but skip removes the runtime reachability/push enforcement entirely.",
+        "recoveryMode:'poisoned_history' bypasses ONLY status transition, not reachability: change.ts:4142-4209 — the poisoned fallback fires inside the catch for store.changes.save (the final status flip), AFTER finalization+release-gate+durable-proof already passed (L3859-4115). It does NOT bypass verifyChangeBranchReachable or verifyDefaultBranchPushed. gate.ts poisoned recovery (completeGateViaRecovery L354) for 'release' runs evaluateGateReadiness but does NOT re-run the git reachability/push checks — those live in the pre-signal block (gate.ts:1225-1265) which is SKIPPED when the signal throws and recovery is entered. So gate.ts poisoned-history release recovery CAN complete release without the reachability/push gate. RISK.",
+        "getDefaultBranch in utils/git.ts (L46-97) differs from detectDefaultBranch in git-finalize.ts: utils/git.ts strategy order is origin/HEAD -> local branches -> init.defaultBranch; git-finalize.ts order is origin/HEAD -> init.defaultBranch -> local main/trunk. Two divergent default-branch resolvers. finalization uses git-finalize.ts's detectDefaultBranch exclusively."
+      ],
+      "hotspots": [
+        "plugin/src/tools/archive-helpers/git-finalize.ts:390 verifyChangeBranchReachable — single function defining 'reachable'; making it origin-aware (git log origin/{default}..change/{id} after fetch) is the minimal structural fix.",
+        "plugin/src/tools/gate.ts:1225-1265 release-gate enforcement block — only runs on the happy signal path; bypassed when signal throws and poisoned/completed recovery is taken (L1289-1313).",
+        "plugin/src/tools/change.ts:1294 verifyReleaseEvidenceFromMain — second consumer of local reachability; existing-bundle retry path.",
+        "docs/specs/advance-workflow.md:408 + scenario .4 (L455) — spec text that legitimizes 'Merged locally. release ✓' on push failure; must change if push-to-trunk becomes mandatory for release-complete.",
+        ".opencode/command/adv-archive.md:177,203,370 — terminal-verb contract emitting 'release ✓' for the Merged-locally (push-failed) variant."
+      ],
+      "risks": [
+        "gate.ts poisoned-history release recovery (completeGateViaRecovery) skips the verifyChangeBranchReachable/verifyDefaultBranchPushed checks entirely — a remote-aware fix placed only in the pre-signal block (gate.ts:1231-1254) would still be bypassable via recovery. Fix must also gate the recovery path or move the check into evaluateGateReadiness.",
+        "Making verifyChangeBranchReachable origin-aware requires a fetch; offline/no-remote repos must still legitimately complete as local-only. Distinguish 'no remote' (allowed local-only) from 'remote exists, push rejected' (must block release ✓).",
+        "Two default-branch resolvers (utils/git.ts getDefaultBranch vs git-finalize.ts detectDefaultBranch) with different precedence could disagree; ensure the origin-aware reachability uses the SAME resolved ref the push targets.",
+        "Tests that will break if guard becomes origin-aware / push-failure stops being release-complete: gate.release-enforcement.test.ts (mocks verifyChangeBranchReachable/verifyDefaultBranchPushed), change.archive-phase9.test.ts (mocks same, asserts call args L393-398), git-finalize.test.ts:167 (verifyChangeBranchReachable local-only semantics), handoff-footer-drift.test.ts:293-299 + adv-autonomy-quality-assets.test.ts:208,242 (assert 'Merged locally. release ✓' is valid terminal output).",
+        "Spec rq-releaseFinalization01.4 + .5 + docs + command markdown are coupled — a behavior change needs synchronized spec/command/test edits or schemas/asset-drift tests fail."
+      ],
+      "open_questions": [
+        "Intended end-state: should push-failed-to-protected-trunk become a BLOCKED (not release-complete) terminal, or should it require PR-mode handoff? This determines whether the fix is (a) origin-aware reachability that blocks, or (b) auto-routing to PR mode when direct push is rejected.",
+        "For repos with NO origin remote, should local merge still yield release ✓? Current spec says yes (Merged locally). Confirm this stays allowed.",
+        "Should the existing verifyDefaultBranchPushed (already origin-aware, already blocks on push failure in the happy path) be considered sufficient once the recovery-path bypass (gate.ts poisoned release recovery) is closed? The bug may be primarily the recovery bypass + the markdown 'release ✓ on Merged locally' contract, NOT the local reachability check."
+      ],
+      "suggested_next_commands": [
+        "Read plugin/src/temporal/gate-readiness.ts evaluateGateReadiness to see whether release reachability can be enforced structurally in the readiness evaluator (closes the recovery bypass).",
+        "Read plugin/src/tools/change.ts:1460 completeReleaseGateAfterFinalization to confirm it does not re-validate reachability and relies solely on finalization.status.",
+        "Read git-finalize.test.ts:560-600 verifyDefaultBranchPushed test + change.archive-phase9.test.ts push-failure cases to scope test churn for the fix."
+      ],
+      "follow_ups": [
+        "Proposal claim 'resolveDefaultBranchRef in archive.ts' is INACCURATE: archive.ts has no such function and no merge-base/reachability logic; all Phase 9 git logic lives in plugin/src/tools/archive-helpers/git-finalize.ts.",
+        "Proposal claim 'git merge-base --is-ancestor' is INACCURATE: reachability uses `git log {default}..change/{id}` (count unmerged commits), not merge-base --is-ancestor. Verbatim: git-finalize.ts:396-399.",
+        "Proposal cite 'docs/specs/advance-workflow.md ~L408' is CORRECT — the file exists at that path AND a mirror exists at .adv/specs/advance-workflow/spec.json:384. Phase 9 paragraph is advance-workflow.md:408.",
+        "Proposal assumption of an existing PR/auto-merge path is REFUTED — none exists; PR mode is push-only handoff."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixArchiveReleaseWithoutMerge",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:archive-release-automerge"
+      },
+      "agent": "adv-researcher",
+      "topic": "Validate hands-off Phase 9 archive-release via PR + native auto-merge squash on protected-default repos",
+      "sources": [
+        {
+          "label": "gh pr merge manual",
+          "locator": "https://cli.github.com/manual/gh_pr_merge",
+          "summary": "--auto merges only after requirements met; --squash confirmed; --admin/--disable-auto documented."
+        },
+        {
+          "label": "GitHub Docs: auto-merging a PR",
+          "locator": "https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/incorporating-changes-from-a-pull-request/automatically-merging-a-pull-request",
+          "summary": "Repo Allow auto-merge prereq; enable only on PRs that cannot merge immediately (needs protection)."
+        },
+        {
+          "label": "cli/cli #8792",
+          "locator": "https://github.com/cli/cli/issues/8792",
+          "summary": "auto-merge off or PR immediately mergeable -> gh does immediate merge, not arm."
+        },
+        {
+          "label": "cli/cli #13398",
+          "locator": "https://github.com/cli/cli/issues/13398",
+          "summary": "Error 'Auto merge is not allowed for this repository' when allow_auto_merge off."
+        },
+        {
+          "label": "REST rules-for-branch",
+          "locator": "https://docs.github.com/rest/repos/rules",
+          "summary": "GET /repos/{o}/{r}/rules/branches/{b} returns repo+org rules; classic /protection misses org rulesets."
+        },
+        {
+          "label": "cli/cli #5792",
+          "locator": "https://github.com/cli/cli/discussions/5792",
+          "summary": "pr create errors if PR exists; gate via gh pr list --head --state open --json url."
+        },
+        {
+          "label": "Docs squash semantics",
+          "locator": "https://github.com/github/docs/blob/main/content/pull-requests/collaborating-with-pull-requests/incorporating-changes-from-a-pull-request/about-pull-request-merges.md",
+          "summary": "Squash makes a new base commit; head commits not ancestors; ancestry falsely reports not-merged."
+        },
+        {
+          "label": "gh pr view #2306",
+          "locator": "https://github.com/cli/cli/issues/2306",
+          "summary": "Squash-merged PR: state=MERGED, mergedAt set, mergeCommit.oid = squash SHA."
+        }
+      ],
+      "architecture_assessment": "SOUND. Pattern (push branch; idempotent PR create/reuse; arm native auto-merge squash; gate pending-merge with change active; reconcile via re-drive on PR merge STATE; no daemon) matches intended GitHub usage and avoids both the squash-ancestry trap and a polling daemon. Two conditions must be enforced or it silently degrades: (A) auto-merge is armable ONLY when repo Allow auto-merge is ON and base has >=1 required check/review (classic OR ruleset) so PR is not immediately mergeable; else gh errors or silently immediate-merges (#8792), in which case the change IS merged but ADV wrongly sits pending. (B) push-rejection detection MUST use ruleset-aware rules-for-branch, not classic protection (org rulesets with empty bypass_actors are invisible to classic). Reconcile on PR merge STATE only, never commit ancestry.",
+      "validation": {
+        "status": "caution",
+        "blockers": [
+          "B1 immediate-merge collapse: PR already mergeable -> --auto not armed, gh immediate-merges (#8792). Re-read PR state right after arming; if MERGED reconcile now, else ADV stalls pending on a merged change.",
+          "B2 not-armable: Allow auto-merge OFF or no required check -> --auto rejected (#13398) or immediate-merge. Precheck allow_auto_merge + rules-for-branch; if not armable, do NOT report release done; manual-merge terminal.",
+          "B3 wrong detection API: classic /branches/{b}/protection false-negatives on org-ruleset repos; use GET /repos/{o}/{r}/rules/branches/{default}; reconcile on PR merge STATE only (squash breaks ancestry)."
+        ],
+        "notes": "PR-state-based reconciliation is correct and sourced. Caution (not pass) because the design must add: an after-arm PR-state re-read to catch immediate-merge collapse, an armability precheck (allow_auto_merge + rules-for-branch) with an explicit manual-merge fallback that never reports a false release-done, and ruleset-aware detection. With those three additions the design is pass-grade."
+      },
+      "recommendation": "1) Detection primary = gh api repos/{o}/{r}/rules/branches/{DEFAULT} (ruleset-aware, all levels) + gh api repos/{o}/{r} --jq '.allow_auto_merge,.default_branch'; keep reactive fallback (attempt push, classify GH008/protected branch/required status check, reset local default to origin/default, route to PR) as second line since bypass_actors may permit some pushes. 2) Idempotent: PR=$(gh pr list --head change/<id> --state open --json number,url --jq '.[0]'); create only if empty via non-interactive gh pr create --repo O/R -B <default> -H change/<id> --title.. --body.. (avoids multi-remote prompt hang). 3) Arm: gh pr merge <num> --squash --auto, then immediately gh pr view <num> --json state,mergedAt,mergeCommit,autoMergeRequest; MERGED->reconcile now; autoMergeRequest!=null->pending; neither->not armed->manual-merge terminal, no release done. 4) Reconcile: gh pr view change/<id> --json state,mergedAt,mergeCommit; state==MERGED (mergedAt non-null) is the ONLY merged signal; never git log origin/default..change/id. 5) Auth: require gh auth status healthy; classic repo+read:org; pass all flags non-interactive; exit 4 -> explicit error, not false release done.",
+      "follow_ups": [
+        "Packet defect: TASK_SCOPE/IN_SCOPE/OUT_OF_SCOPE/DONE_WHEN/STOP_WHEN/VERIFICATION anchors absent; proceeded with prompt scope per protocol; did not infer identity anchors (change_id from CHANGE line).",
+        "Live-probe whether gh pr view --json autoMergeRequest reliably returns non-null after a successful --auto arm before locking it as the armed-state discriminator.",
+        "Confirm ADV target repos use a gh token allowed to enable auto-merge on self-created PRs (self-PR restriction noted is Actions-bot-token specific; a user gh auth token is usually fine, probe once)."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixArchiveReleaseWithoutMerge",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArchiveReleaseWithoutMerge",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "BLOCKED",
+      "blocking_findings": [
+        {
+          "id": "contract-1",
+          "label": "blocker",
+          "file": "plugin/src/tools/change.ts",
+          "line": 1523,
+          "what": "`pr_pushed` finalization is accepted as release-gate-completable, allowing archive retirement without origin/default reachability or merged PR proof.",
+          "why": "AC1/AC3/AC4/AC5 require remote-backed release/archive completion only after post-fetch origin/default reachability or merged PR proof; pending PR handoff must remain active as `pending_merge` or blocked. `completeReleaseGateAfterFinalization` admits `pr_pushed`, and `archive_mode: \"pr\"` tests assert successful archive output for `pr_pushed`. Gate completion also treats a merely pushed PR branch as enough in `plugin/src/tools/gate.ts:224`.",
+          "fix": "Do not treat `pr_pushed` as release completion. Convert PR-mode handoff to `pending_merge`/blocked unless PR state is MERGED, update `getReleaseFinalizationBlocker`, and replace tests expecting `pr_pushed` success with pending/blocked proof assertions."
+        },
+        {
+          "id": "contract-2",
+          "label": "blocker",
+          "file": "plugin/src/tools/archive-helpers/git-finalize.ts",
+          "line": 2148,
+          "what": "Normal Phase 9 run does not implement the no-remote local completion path promised by AC6/docs.",
+          "why": "`finalizeRelease` attempts `git push origin <defaultBranch>` after local merge before classifying route. If no `origin` exists, push fails/skips and falls through to a blocked direct outcome rather than completing with local proof/no_remote. AC6 requires `Merged locally.` only for no-remote local proof; docs say no-remote archives may complete locally.",
+          "fix": "Classify route before push after merge. If route is `no_remote`, verify local reachability and return `shipped` with route `no_remote`/local proof; if route has origin, require post-fetch origin/default or merged PR proof before release completion."
+        }
+      ],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "Legacy `archive_mode: \"pr\"` / `pr_pushed` behavior can bypass newer release-proof contracts unless all release-gate and archive-status paths require origin/default or merged-PR proof structurally."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/tools/change.archive-phase9.test.ts src/tools/archive-helpers/git-finalize.test.ts"
+        ],
+        "results": "pass",
+        "evidence": "Focused tests passed: 2 files, 68 tests. Passing suite confirms current tests still encode the blocker (`pr_pushed` success), so additional/red tests are required for AC1/AC3/AC6."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Full orchestrator evidence was reviewed as passing, but current tests do not catch the pr_pushed release-completion bypass or missing no-remote normal-run success path.",
+        "No repo changes made; worktree remained clean."
+      ],
+      "required_main_agent_actions": [
+        "Fix release proof gating so `pr_pushed` cannot complete release gate/archive status; require `pending_merge` or merged PR proof for PR paths.",
+        "Add red/green tests for `archive_mode: \"pr\"` and manual release-gate completion showing pushed branch alone is insufficient.",
+        "Add/adjust tests for no-origin normal Phase 9 run proving local merge returns final no_remote/Merged locally outcome.",
+        "Rerun `bin/oc-test targeted -- src/tools/change.archive-phase9.test.ts src/tools/archive-helpers/git-finalize.test.ts src/tools/gate.release-enforcement.test.ts` and then smoke/full as needed."
+      ],
+      "consumer_warnings": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixArchiveReleaseWithoutMerge",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArchiveReleaseWithoutMerge",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts src/tools/change.archive-phase9.test.ts src/tools/change.test.ts"
+        ],
+        "results": "pass",
+        "evidence": "Path preflight OK for reviewed files. Source review confirmed completeReleaseGateAfterFinalization only accepts status:\"shipped\"; blocked and pending_merge finalization paths return before release gate/archive/status/cleanup/issue closure; legacy pr_pushed only remains in type/test fixture and is rejected before release completion; direct no-remote finalizeRelease returns status:\"shipped\", route:\"no_remote\", pushStatus:\"skipped\" after local merge proof; PR mode without origin blocks with PR_WORKFLOW_REQUIRES_ORIGIN; PR/remote-backed pending routes remain pending_merge or blocked. Targeted rerun passed: 3 test files, 122 tests, exit 0. Reviewed supplied latest verification: full PASS and smoke PASS."
+      },
+      "scope_drift": null,
+      "risks": [],
+      "required_main_agent_actions": [],
+      "consumer_warnings": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixArchiveReleaseWithoutMerge",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArchiveReleaseWithoutMerge",
+      "scope": {
+        "kind": "change",
+        "scope_key": "scanner-bundle:harden"
+      },
+      "agent": "adv-scanner-bundle",
+      "phase": "harden",
+      "scanner_count": 6,
+      "dimensions": [
+        "test_coverage",
+        "ai_slop",
+        "documentation_hygiene",
+        "cleanup",
+        "production_readiness",
+        "deployment_readiness"
+      ],
+      "summary": "Harden READY after scoped remediation. No blocker/high findings remain. Fixed dead pr_pushed production status variant and redundant casts in touched release-finalization code/tests. Historical .adv/archive stale evidence rejected as out-of-scope historical archive metadata; active specs/docs/commands clean. Full/smoke/targeted tests passed.",
+      "findings": [
+        {
+          "scanner": "documentation_hygiene",
+          "severity": "info",
+          "summary": "Historical .adv/archive bundles contain stale shipped/pr_pushed wording from prior archived changes, but active specs/docs/commands for this release-finalization change are clean and asset-tested. Rejected as non-active historical archive metadata, not a release blocker.",
+          "evidence": [
+            {
+              "label": "active docs asset coverage",
+              "locator": "plugin/src/archive-release-finalization-assets.test.ts",
+              "summary": "Asset test covers active spec/docs/command/voice surfaces for pending-merge/no-remote semantics."
+            }
+          ]
+        },
+        {
+          "scanner": "production_readiness",
+          "severity": "suggestion",
+          "summary": "plugin/src/tools/archive-helpers/git-finalize.ts remains a maintainability hotspot after this change; consider post-release module split for PR management, route classification, and reachability helpers.",
+          "evidence": [
+            {
+              "label": "hotspot",
+              "locator": "plugin/src/tools/archive-helpers/git-finalize.ts:1214",
+              "summary": "completeProtectedBranchViaPullRequest owns PR handoff wrapper."
+            },
+            {
+              "label": "hotspot",
+              "locator": "plugin/src/tools/archive-helpers/git-finalize.ts:1512",
+              "summary": "redriveArchivedUnmergedBranch has similar PR handoff structure."
+            }
+          ]
+        },
+        {
+          "scanner": "test_coverage",
+          "severity": "info",
+          "summary": "No explicit per-tool title assertion added for adv_archive_repair; rejected as non-blocking because TITLE_BUILDERS structurally owns hasExplicitAdvToolTitle and tool-title tests cover explicit-vs-fallback behavior. Full suite passed.",
+          "evidence": [
+            {
+              "label": "verification",
+              "locator": "bin/oc-test full",
+              "summary": "268 test files / 3596 tests passed after harden remediation."
+            }
+          ]
+        }
+      ],
+      "follow_ups": [
+        "Consider post-release refactor splitting plugin/src/tools/archive-helpers/git-finalize.ts into focused PR-management, route-classifier, and reachability modules."
+      ],
+      "consumer_warnings": []
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-d6k0SO",
+      "type": "gotcha",
+      "content": "When adding fields to public Zod-backed schemas, run `pnpm run schemas:generate` after any Prettier pass on generated JSON. Formatting `plugin/schemas/*.schema.json` manually can make `schemas:check` fail even when source schemas are correct.",
+      "source_task": "tk-4f99e6b996df",
+      "recorded_at": "2026-06-07T04:05:57.035Z"
+    },
+    {
+      "id": "ws-38YipH",
+      "type": "pattern",
+      "content": "Release-state checks should go through the same route-aware reachability proof (`classifyFinalizationRoute` + `resolveReleaseReachability`) in archive, gate completion, and recovery paths. Duplicating local ancestry + push checks creates bypasses for origin/default and PR states.",
+      "source_task": "tk-f26b1aa86943",
+      "recorded_at": "2026-06-07T04:14:44.518Z"
+    },
+    {
+      "id": "ws-4vTrNZ",
+      "type": "gotcha",
+      "content": "Adding a new ADV MCP tool requires more than createToolMap registration: update `ADV_TOOL_NAMES`, `cli-bridge-contract` frozen snapshot, `docs/cli-surface-matrix.md`, `FIELD_POLICIES` for strict-mode placeholders, and `utils/tool-title.ts`. Tool-registry tests enforce the display-title piece.",
+      "source_task": "tk-b588db3c6f3c",
+      "recorded_at": "2026-06-07T04:26:18.943Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-06-07T00:55:08.056Z",
+      "completed_by": "user",
+      "approval_evidence": "Proposal approved by user (reply: \"approve\"). Scope restructured (In/Out/Must-Not), User Outcomes added, B/F/S scan clean (no CRITICAL). Urgent global-deploy fix.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixArchiveReleaseWithoutMerge/proposal.md",
+        "content_hash": "5b317fe564550a036e9136ff0da6a67e40fceb046884d83cbc8cac9280be3db6",
+        "non_whitespace_chars": 4626,
+        "checked_at": "2026-06-07T00:50:11.379Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-06-07T01:45:12.930Z",
+      "completed_by": "user",
+      "approval_evidence": "Discovery: verified current-state (git-finalize.ts/gate.ts, happy-path guard already exists since 2026-05-21; leaks = phase9:skip, recovery bypass, local-only reachability, spec/command wrong terminals, no PR/auto-merge path). User approved full-fix scope incl. PR+auto-merge via question tool. Agreement firmed (SC1-5, AC1-8, C1-5, DONT1-3, OOS1-3); ChangeContract minted (24 items).",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixArchiveReleaseWithoutMerge/agreement.md",
+        "content_hash": "23efa4a2d1c1a80e6f885fda5ce1cc077208cd1adadc71f6b8e2e0b4c3be204b",
+        "non_whitespace_chars": 4476,
+        "checked_at": "2026-06-07T00:50:11.380Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-06-07T01:57:20.567Z",
+      "completed_by": "user",
+      "approval_evidence": "Design locked. Independent validator (adv-researcher) verdict CAUTION/pass-grade; refinements B1 (immediate-merge collapse re-read), B2 (not-armable → explicit terminal, no false release-done), B3 (ruleset-aware detection via /rules/branches, reconcile on PR merge STATE not ancestry) incorporated. Finalization-route classification (no_remote/direct/pr_auto_merge/pr_manual/blocked), pending_merge gate state, origin-aware reachability, phase9:skip + recovery hardening, detector/re-drive, spec+command updates. File-level strategy + test strategy defined.",
+      "artifact_evidence": {
+        "kind": "design",
+        "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixArchiveReleaseWithoutMerge/design.md",
+        "content_hash": "f80a234cc0e97f47cdc24a3c27093c6209aec2429f5a207b7e41250aeb19934a",
+        "non_whitespace_chars": 7713,
+        "checked_at": "2026-06-07T00:50:11.381Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-06-07T03:42:07.783Z",
+      "completed_by": "adv-prep",
+      "approval_evidence": "User approved prep plan (reply: \"approve\"). Six-task graph persisted with contract refs for SC1-SC5, AC1-AC8, C1-C5, DONT/OOS boundaries. Worktree: /home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArchiveReleaseWithoutMerge."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-06-07T04:54:27.753Z",
+      "completed_by": "adv-apply",
+      "approval_evidence": "All six planned tasks completed with checkpoints. Verification passed: targeted release-finalization suites, src/tools/change.test.ts, bin/oc-test full, and bin/oc-test smoke."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-06-07T13:25:34.026Z",
+      "completed_by": "user:acceptance",
+      "approval_evidence": "User accepted delivered work (reply: \"accept\"). Acceptance summary showed READY verdict, 0 review blockers, contract matrix 24 rows / 0 failing, preview URL not_applicable, full and smoke verification passed. Proceeding inline to harden per acceptance contract.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixArchiveReleaseWithoutMerge/executive-summary.md",
+        "content_hash": "e232f1b86ea25c9c0a3ec138348f4371da3d5ab955dd197501901751c8e51bdd",
+        "non_whitespace_chars": 1812,
+        "checked_at": "2026-06-07T00:50:11.382Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "23efa4a2d1c1a80e6f885fda5ce1cc077208cd1adadc71f6b8e2e0b4c3be204b",
+      "approvedAt": "2026-06-07T01:45:06.675Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "A remote-backed change reaching `release ✓` / `archived` implies the change is present on `origin/<default>`; never marked shipped while origin lacks it.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "23efa4a2d1c1a80e6f885fda5ce1cc077208cd1adadc71f6b8e2e0b4c3be204b",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "On a remote-backed protected default branch, Phase 9 ships hands-off via PR + GitHub auto-merge; the release gate stays pending-merge until origin reachability is confirmed.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "23efa4a2d1c1a80e6f885fda5ce1cc077208cd1adadc71f6b8e2e0b4c3be204b",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "A failed or rejected push to a remote-backed default branch never reads as success; the operator sees an honest terminal (`Pending auto-merge.` or `Blocked.`) with a reason.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "23efa4a2d1c1a80e6f885fda5ce1cc077208cd1adadc71f6b8e2e0b4c3be204b",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC4",
+        "kind": "success_criterion",
+        "text": "`phase9:\"skip\"` and poisoned-history recovery cannot record release-complete without true origin reachability or explicit audited override evidence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "23efa4a2d1c1a80e6f885fda5ce1cc077208cd1adadc71f6b8e2e0b4c3be204b",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC5",
+        "kind": "success_criterion",
+        "text": "A repeatable detector lists archived-but-unmerged `change/*` branches across a repo set and can re-drive each through the PR + auto-merge path idempotently.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "23efa4a2d1c1a80e6f885fda5ce1cc077208cd1adadc71f6b8e2e0b4c3be204b",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "When release reachability is evaluated for a repo with a remote, it validates reachability from `origin/<default>` post-fetch, not local-only.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "23efa4a2d1c1a80e6f885fda5ce1cc077208cd1adadc71f6b8e2e0b4c3be204b",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "A simulated protected-main push rejection during Phase 9 yields no `release ✓` and no `archived` status; the change stays active with an explicit pending or blocked reason.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "23efa4a2d1c1a80e6f885fda5ce1cc077208cd1adadc71f6b8e2e0b4c3be204b",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "On a remote-backed protected default branch, Phase 9 opens or reuses a PR and arms GitHub auto-merge, and the release gate is left in a distinct pending-merge state that does not complete release.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "23efa4a2d1c1a80e6f885fda5ce1cc077208cd1adadc71f6b8e2e0b4c3be204b",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "`phase9:\"skip\"` cannot transition a remote-backed change to `archived` or release-complete without origin reachability or explicit audited override evidence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "23efa4a2d1c1a80e6f885fda5ce1cc077208cd1adadc71f6b8e2e0b4c3be204b",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "`completeGateViaRecovery` for the release gate re-validates origin reachability and push, or refuses, instead of skipping git checks.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "23efa4a2d1c1a80e6f885fda5ce1cc077208cd1adadc71f6b8e2e0b4c3be204b",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "`Merged locally.` is emitted only when no remote is configured; with a remote, a non-shipped outcome yields `Pending auto-merge.` or `Blocked.` with a reason.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "23efa4a2d1c1a80e6f885fda5ce1cc077208cd1adadc71f6b8e2e0b4c3be204b",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "A detector lists archived-but-unmerged `change/*` branches (branch on origin, not reachable from `origin/<default>`); re-drive opens or reuses a PR and arms auto-merge with no duplicate PR and no force-push.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "23efa4a2d1c1a80e6f885fda5ce1cc077208cd1adadc71f6b8e2e0b4c3be204b",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC8",
+        "kind": "acceptance_criterion",
+        "text": "Spec (`docs/specs/advance-workflow.md` + `.adv/specs/advance-workflow/spec.json`) and `.opencode/command/adv-archive.md` updated so they no longer sanction `release ✓` on remote-backed push failure; the pending-merge terminal is documented; asset/consistency tests green.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "23efa4a2d1c1a80e6f885fda5ce1cc077208cd1adadc71f6b8e2e0b4c3be204b",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Never force-push a protected or remote branch; PR re-drive must be idempotent (reuse an existing PR rather than duplicating).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "23efa4a2d1c1a80e6f885fda5ce1cc077208cd1adadc71f6b8e2e0b4c3be204b",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Phase 9 must not leave local `<default>` merged-but-unpushed as de-facto source of truth after a failed push; reconcile to the PR path.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "23efa4a2d1c1a80e6f885fda5ce1cc077208cd1adadc71f6b8e2e0b4c3be204b",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Preserve the workflow-bundle boundary (no `storage/` or `node:*` imports reachable from the temporal bundle) and cache-refresh discipline (`fireSignalAndRefresh`).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "23efa4a2d1c1a80e6f885fda5ce1cc077208cd1adadc71f6b8e2e0b4c3be204b",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "`gh` interactions must degrade gracefully; when `gh` is unavailable or the repo lacks `allow_auto_merge`, fall back to `Blocked.` (remote) or `Merged locally.` (no remote) with an explicit reason, never silent success.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "23efa4a2d1c1a80e6f885fda5ce1cc077208cd1adadc71f6b8e2e0b4c3be204b",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Run test suites through the `bin/oc-test` throttle.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "23efa4a2d1c1a80e6f885fda5ce1cc077208cd1adadc71f6b8e2e0b4c3be204b",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not land this session's already-stranded branches as part of this change.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "23efa4a2d1c1a80e6f885fda5ce1cc077208cd1adadc71f6b8e2e0b4c3be204b",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not build a long-running polling daemon for merge reconciliation; rely on GitHub native auto-merge plus the detector/re-drive.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "23efa4a2d1c1a80e6f885fda5ce1cc077208cd1adadc71f6b8e2e0b4c3be204b",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not modify the pokeedge/web repo-side Conventional Commit Check here.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "23efa4a2d1c1a80e6f885fda5ce1cc077208cd1adadc71f6b8e2e0b4c3be204b",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "pokeedge/web repo-side Conventional Commit Check exemption (separate repo change).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "23efa4a2d1c1a80e6f885fda5ce1cc077208cd1adadc71f6b8e2e0b4c3be204b",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "Landing the existing stranded branches (parallelizeWebUnitTests, hardenIntegrationE2eSuite, integrateListingEndpoints, addCnPricechartingIdentity plus stale set).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "23efa4a2d1c1a80e6f885fda5ce1cc077208cd1adadc71f6b8e2e0b4c3be204b",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "Operational redeploy of ADV to consuming repos (operational action, not code in this change).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "23efa4a2d1c1a80e6f885fda5ce1cc077208cd1adadc71f6b8e2e0b4c3be204b",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-06-07T05:28:33.926Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Review attempt 2 READY. `completeReleaseGateAfterFinalization` accepts only shipped evidence; release proof now routes through `resolveReleaseReachability` for no_remote/origin/default/merged PR. Full + smoke passed.",
+          "notes": "Remote-backed release/archive cannot rely on local-only or pr_pushed evidence."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "`finalizeRelease` PR path uses `completeProtectedBranchViaPullRequest`; pending auto-merge persists `pending_merge` and leaves release incomplete. Covered by git-finalize and change.archive-phase9 tests.",
+          "notes": "PR state must be MERGED before release completion."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Remote push failure path routes to PR pending or blocked; docs/voice use `Pending auto-merge.` / `Blocked.`. Reviewer attempt 2 READY; targeted and full tests passed.",
+          "notes": "No remote-backed push failure is terminal success."
+        },
+        {
+          "contractId": "SC4",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "`phase9:\"skip\"` calls `verifyReleaseEvidenceFromMain`; release recovery uses route-aware proof. `change.test.ts` recovery fixtures now create structural no-remote proof; full suite passed.",
+          "notes": "Skip/recovery do not accept workflow state alone."
+        },
+        {
+          "contractId": "SC5",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "`adv_archive_repair` scan/redrive added and covered by `change.archive-repair.test.ts`; cross-targeted release-finalization suite passed.",
+          "notes": "Re-drive reuses PR path and avoids force-push."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts ...` PASS; tests cover `verifyChangeBranchReachableFromOrigin` and origin/default release proof.",
+          "notes": "Origin/default proof is post-fetch remote proof."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`change.archive-phase9.test.ts` and `git-finalize.test.ts` PASS; protected push rejection returns pending_merge or blocked, no archive save/issue closure.",
+          "notes": "Release gate remains incomplete."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`git-finalize.test.ts` PASS for PR open/reuse/auto-merge; `change.archive-phase9.test.ts` PASS for pending_merge persistence without archive.",
+          "notes": "Auto-merge pending state is distinct from release done."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`change.test.ts` PASS; phase9 skip/recovery tests now require structural no-remote proof fixtures and reject missing proof paths.",
+          "notes": "Remote-backed skip needs origin/merged PR proof or audited override."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`gate.release-enforcement.test.ts` included in cross-targeted suite PASS; recovery path uses shared release reachability proof.",
+          "notes": "Release gate recovery cannot skip git proof."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`archive-release-finalization-assets.test.ts`, `handoff-footer-drift.test.ts`, and `adv-autonomy-quality-assets.test.ts` PASS; command/voice docs restrict `Merged locally.` to no origin.",
+          "notes": "Remote non-shipped terminal is pending or blocked."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`change.archive-repair.test.ts` and `git-finalize.test.ts` PASS; detector/re-drive covers archived-but-unmerged branch, PR reuse, auto-merge, no force-push.",
+          "notes": "Detector/re-drive is idempotent."
+        },
+        {
+          "contractId": "AC8",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Spec JSON, spec docs, adv-archive command, command voice, and ADV_INSTRUCTIONS updated. Asset tests, full suite, and smoke passed.",
+          "notes": "Spec/command no longer sanction remote-backed local-only success."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Review found no force-push path. Re-drive/open PR code uses push branch and PR reuse; tests assert no force-push behavior.",
+          "notes": "No protected/default force-push introduced."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Push rejection path resets/reconciles main to origin before PR handoff; no remote-backed local merged-but-unpushed terminal success remains.",
+          "notes": "Campsite review fixed no-remote and pr_pushed edge cases."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Smoke passed: schemas:check, typecheck, lint, format:check. Workflow-boundary tests passed in full suite.",
+          "notes": "No workflow-unsafe import regression."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "`runGh` failures map to blocked/manual paths; PR auto-merge unavailable returns `Blocked.`. Tests cover gh unavailable/auth/manual outcomes.",
+          "notes": "No silent gh success."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "All orchestrator verification used `bin/oc-test`: targeted, full, and smoke.",
+          "notes": "Throttle respected."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No operational branch landing performed; code/tests/docs only in ADV worktree.",
+          "notes": "Existing stranded branches untouched."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No polling daemon added; design relies on GitHub auto-merge plus scan/re-drive tool.",
+          "notes": "No long-running reconciliation loop."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No pokeedge/web repo files changed; all changes are in Advance plugin/spec/docs.",
+          "notes": "Repo-side Conventional Commit Check untouched."
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "pokeedge/web Conventional Commit Check exemption intentionally not implemented in this repo change.",
+          "notes": "Out of scope."
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Existing stranded branches were not landed; this change only adds detector/re-drive capability.",
+          "notes": "Out of scope."
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "ADV operational redeploy to consuming repos not performed; source change only.",
+          "notes": "Out of scope."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "When release reachability is evaluated for a repo with a remote, it validates reachability from `origin/<default>` post-fetch, not local-only.",
+    "A simulated protected-main push rejection during Phase 9 yields no `release ✓` and no `archived` status; the change stays active with an explicit pending or blocked reason.",
+    "On a remote-backed protected default branch, Phase 9 opens or reuses a PR and arms GitHub auto-merge, and the release gate is left in a distinct pending-merge state that does not complete release.",
+    "`phase9:\"skip\"` cannot transition a remote-backed change to `archived` or release-complete without origin reachability or explicit audited override evidence.",
+    "`completeGateViaRecovery` for the release gate re-validates origin reachability and push, or refuses, instead of skipping git checks.",
+    "`Merged locally.` is emitted only when no remote is configured; with a remote, a non-shipped outcome yields `Pending auto-merge.` or `Blocked.` with a reason.",
+    "A detector lists archived-but-unmerged `change/*` branches (branch on origin, not reachable from `origin/<default>`); re-drive opens or reuses a PR and arms auto-merge with no duplicate PR and no force-push.",
+    "Spec (`docs/specs/advance-workflow.md` + `.adv/specs/advance-workflow/spec.json`) and `.opencode/command/adv-archive.md` updated so they no longer sanction `release ✓` on remote-backed push failure; the pending-merge terminal is documented; asset/consistency tests green."
+  ],
+  "documents": {
+    "proposal": "# Proposal: Make ADV archive \"release ✓\" mean \"actually merged to origin/main\"\n\n## Why\n\"Archived\" must imply \"shipped.\" On ruleset-protected repos, ADV Phase 9 does a local merge + direct push; when the push is rejected by branch protection it completes as **\"Merged locally · release ✓\"** while `origin/main` never receives the change — so it never deploys. The reachability guard only checks **local** main, so it passes. Discovered when a pokeedge-web agent archived `parallelizeWebUnitTests` that never landed; a cross-repo audit found ~10 unmerged change branches. Full code-level evidence is in `design.md`.\n\n## User Outcomes\n- When ADV reports a change archived / `release ✓`, the change is actually present on the branch that deploys (`origin/<default>`) — never silently stranded on a change branch.\n- On protected-main repos, archiving opens (or reuses) a PR and arms GitHub auto-merge; the release gate stays **pending-merge** until the merge truly lands.\n- A failed or rejected push never reads as success — the operator sees an honest terminal state (`Pending auto-merge.` / `Blocked.`) with an explicit reason.\n- `Merged locally.` only ever appears when there is genuinely no remote.\n- Operators can detect and re-drive already-stranded \"archived-but-unmerged\" changes across a repo set.\n\n## Scope\n\n### In Scope\n- `plugin/src/archive/archive.ts` — `resolveDefaultBranchRef` (local-first ref resolution) + ff-only/reachability preflight (`merge-base --is-ancestor`); make remote-aware so the guard validates `origin/<default>` for repos with a remote.\n- Phase 9 finalization path (`docs/specs/advance-workflow.md` §Phase 9, ~L408) — route local-merge vs PR + GitHub auto-merge by remote-protection / push-rejection detection.\n- `.opencode/command/adv-archive.md` terminal-state instructions (L172-204) — add a `Pending auto-merge.` terminal; restrict `Merged locally.` to the genuinely no-remote case.\n- Release-gate completion + `rq-releaseFinalization01` enforcement (gate/archive signal path) — validate `origin/<default>` reachability (post-fetch) for remote-backed repos.\n- `recoveryMode` / `phase9: skip` bypass audit — neither may record release-complete without true origin reachability or explicit audited override evidence.\n- New archived-but-unmerged detector / re-drive utility for cross-repo remediation.\n- Regression test for a simulated protected-main push rejection during Phase 9.\n\n### Out of Scope\n- Landing this session's already-stranded branches (handled directly via PR + auto-merge, outside this change).\n- pokeedge/web repo-side Conventional Commit Check exemption for ADV `Archive`/merge commits (separate change in those repos; squash-merge of the release PR sidesteps it and is the recommended pairing).\n\n### Must Not\n- Must NOT report `release ✓` when a push to a remote-backed default branch was rejected or skipped.\n- Must NOT force-push or otherwise bypass a protected branch.\n- Must NOT leave local `main` diverged-and-unpushed as the de-facto source of truth after a failed push.\n- Must NOT allow `recoveryMode: poisoned_history` / `phase9: skip` to silently mark release complete without origin reachability.\n- Must NOT destructively fail the archive on push rejection — preserve the pushed branch + already-written bundle and route to the PR path.\n\n## Success Criteria\n- **SC1** Archiving a change whose default branch is remote-backed + protected results in either the change present on `origin/<default>`, OR an open PR with GitHub auto-merge armed and the release gate left **pending-merge** — never `release ✓` while `origin/<default>` lacks the change.\n- **SC2** The release reachability guard validates `origin/<default>` (post-fetch) for repos with a remote; `Merged locally` is reachable ONLY when no remote is configured.\n- **SC3** A failed/rejected push to a remote-backed default branch never yields a release-complete terminal; it yields `Pending auto-merge.` (or `Blocked.`) with an explicit reason.\n- **SC4** `recoveryMode: poisoned_history` / `phase9: skip` cannot record release-complete without true origin reachability (or explicit, audited override evidence).\n- **SC5** A repeatable detector lists archived-but-unmerged change branches across a repo set and can re-drive each through the PR + auto-merge path.\n- **SC6** Regression test: simulated protected-main push rejection during Phase 9 asserts the change does NOT reach `release ✓` and an auto-merge PR path is taken.\n\n## Error handling / rollback\n- **Push rejected (protection):** do not fail the archive destructively — leave the change branch pushed, open/reuse PR, arm auto-merge, mark release pending-merge; archive bundle already written stays on the branch (squash-merged later). No partial spec-delta application to origin.\n- **PR/auto-merge unavailable** (repo lacks `allow_auto_merge`, or no remote): fall back to `Blocked.` (remote-backed) or `Merged locally.` (no remote) with explicit reason — never silent success.\n- **Idempotency / re-drive:** detector + re-drive must be safe to re-run; reuse an existing PR rather than duplicating; never force-push a protected branch.\n- **Local merge already done, push failed:** must not leave local main diverged-and-unpushed as the \"source of truth\"; reconcile to the PR-based path.\n\n## Acceptance\nMeets SC1–SC6, with the regression test (SC6) and a green re-drive of the blast-radius branches (SC5) as the primary evidence.",
+    "problemStatement": "# Problem: ADV archive reports \"released\" without landing code on main\n\n## Symptom (user-reported, reproduced)\nAn ADV agent in pokeedge-web archived `parallelizeWebUnitTests`:\n- Release gate: ✓\n- Phase 9: \"done\"\n- Branch: pushed (`origin/change/parallelizeWebUnitTests`)\n- **But: NOT merged to main.** `origin/main` does not contain the branch; the `Archive … apply spec deltas and bundle` commit sits only on the change branch.\n\nConsequence: the change is marked **archived/released in ADV state**, but the code **never reaches main and will never deploy** (deploy pipeline only runs from main → staging → prod). A \"shipped\" change is silently un-shipped.\n\n## Blast radius (cross-repo audit, this session)\nUnmerged `change/*` branches that are up-to-date with main (behind 0) yet not landed — i.e. archived-but-not-shipped:\n- pokeedge-web: `change/parallelizeWebUnitTests` (ahead 11 / behind 0), `change/hardenIntegrationE2eSuite` (#98).\n- pokeedge: `change/integrateListingEndpoints`, `change/addCnPricechartingIdentity`.\nPlus ~6 older stale branches (hundreds–thousands behind) that may be abandoned.\n\n## Root-cause hypotheses (to confirm in discovery)\n1. **Phase 9 direct-push-merge fails silently on protected main.** pokeedge/web require `Sharperflow CI Gate` via org ruleset; a direct push to main is rejected, so Phase 9 falls back to push-only but **still records release complete**.\n2. **The trunk-reachability guard exists but was bypassed.** In a security-gates session this session, `adv_gate_complete release` BLOCKED with `RELEASE_REQUIRES_TRUNK_MERGE: not reachable from main` (rq-releaseFinalization01). So current ADV *does* guard this. The pokeedge-web agent got release ✓ anyway → either (a) pokeedge-web runs an **older deployed ADV** without the guard, or (b) the agent used `recoveryMode: poisoned_history` / `phase9: skip` to **force past** the guard.\n3. **Even with a PR, the merge can be blocked** by pokeedge's Conventional Commit Check, which rejects ADV's own `Archive …`/`Merge branch …` commits — so ADV release PRs can't auto-land on pokeedge (separate but compounding; repo-side fix).\n\n## Desired end-state\n- ADV archive/Phase 9 must **not** report `release ✓` unless the change branch is actually reachable from main (trunk merge truly happened) — on **every** repo, protected or not.\n- On protected-main repos, Phase 9 should **open a PR and arm GitHub auto-merge** (hands-off auto-merge + auto-update-branch are now enabled org-wide) rather than relying on direct push, and only complete release after the merge lands.\n- If `recoveryMode`/`phase9: skip` can bypass the reachability guard, that path must require explicit, audited evidence and must not be reachable as a silent default.\n- Surface a remediation/repair path for already-poisoned changes: detect \"archived-but-unmerged\" branches and re-drive them to a real merge.\n- Coordinate the repo-side Conventional Commit Check exemption (merge + `Archive`/`archive(...)` commits) so ADV release PRs can auto-merge.",
+    "design": "# Design: Remote-aware Phase 9 — PR + GitHub auto-merge, honest release gate\n\nValidator: adv-researcher → **CAUTION/pass-grade**; refinements B1–B3 incorporated below (sources cited in discovery report).\n\n## Confirmed root cause (verified, file:line)\n- Reachability/push logic lives in `plugin/src/tools/archive-helpers/git-finalize.ts` + `plugin/src/tools/gate.ts` (NOT `archive.ts`).\n- Happy-path guard already exists (since 2026-05-21 `makeArchiveMergeTrunk`): `finalizeRelease` returns `blocked/DEFAULT_BRANCH_PUSH_FAILED` on push failure (git-finalize.ts:1062-1095); `gate.ts` release block (1225-1265) runs `verifyChangeBranchReachable` (LOCAL `default..change/id`) + `verifyDefaultBranchPushed` (origin SHA, fetches first).\n- Leaks: (1) spec/command still instruct `Merged locally. · release ✓` on push failure; (2) `phase9:\"skip\"` (change.ts:3859 guard) skips finalization+gate then flips `archived`; (3) `verifyChangeBranchReachable` is local-only; (4) `completeGateViaRecovery` (gate.ts:354) skips git checks on the signal-throw path; (5) NO PR/auto-merge path exists — \"PR mode\" is only branch-push handoff.\n- Likely incident cause: deployed-version drift on pokeedge/web (pre-guard binary) + the wrong-terminal prose.\n\n## Architecture: finalization classification\n\nPhase 9 computes a **finalization route** from remote topology + protection, deciding BEFORE mutating local `<default>`:\n\n| Route | Condition | Action | Terminal | release gate |\n|---|---|---|---|---|\n| `no_remote` | no `origin` remote | local merge | `Merged locally.` | ✓ complete |\n| `direct` | remote, default NOT protected against this actor | local merge + `push origin <default>` succeeds | `Shipped.` | ✓ complete |\n| `pr_auto_merge` | remote + protected default (push would/did reject) AND auto-merge armable | push `change/<id>`, open/reuse PR, arm squash auto-merge | `Pending auto-merge.` | ⏸ pending-merge (NOT complete) |\n| `pr_manual` | remote + protected default, auto-merge NOT armable (allow_auto_merge OFF, no required check, or `gh` unavailable) | push `change/<id>`, open/reuse PR if possible | `Blocked.` (explicit reason) | ⏸ not complete |\n| `blocked` | remote ahead / merge conflict | existing `DEFAULT_BRANCH_REMOTE_DIVERGED` / `MERGE_CONFLICT` | `Blocked.` | not complete |\n\n### Protection detection (B3, ruleset-aware)\nPrimary: `gh api repos/{o}/{r}/rules/branches/{default}` (returns BOTH org-ruleset + classic rules; classic `/branches/{b}/protection` false-negatives on org rulesets) + `gh api repos/{o}/{r} --jq .allow_auto_merge`.\nFallback (belt-and-suspenders): reactive — attempt local merge + push; on rejection (`GH008` / `protected branch` / `required status check`), **reset local `<default>` to `origin/<default>`** (`git fetch` + `git reset --hard origin/<default>`, satisfies C2) and route to `pr_auto_merge`/`pr_manual`. The local merge is reversible because `verifyRemoteNotAhead` already guaranteed origin not ahead.\n\n### PR mechanics (idempotent, non-interactive)\n1. Detect existing: `gh pr list --head change/<id> --state open --json number,url` → reuse if present (C1 idempotency; `gh pr create` exits 1 if PR exists).\n2. Create if absent: `gh pr create --repo {o}/{r} -B <default> -H change/<id> --title \"<conventional squash title>\" --body \"<archive summary>\"` (explicit flags → no interactive base-repo prompt hang).\n3. Arm: `gh pr merge <num> --squash --auto`. Squash → single conventional commit (sidesteps Conventional Commit Check; pairs with OOS1).\n4. **B1 re-read after arming**: `gh pr view <num> --json state,mergedAt,mergeCommit,autoMergeRequest`:\n   - `state==MERGED` → immediate-merge collapse → reconcile to release-complete NOW.\n   - `autoMergeRequest != null` → `pr_auto_merge` pending-merge.\n   - neither → `pr_manual` (`Blocked.`), never false release-done (B2).\n\n## Pending-merge state model\n`finalizeRelease` gains outcome `status: \"pending_merge\"` (alongside `shipped` / `blocked`) carrying `prNumber`, `prUrl`, `autoMergeArmed`. `change.ts`:\n- Maps `pending_merge` → do NOT complete release gate, do NOT flip `archived`; keep change `active`; persist pending-merge metadata (PR ref) on the change for the detector.\n- Release gate left `pending` with a structured `stuck_reason: RELEASE_PENDING_MERGE` (informational, not an error).\n- Archive bundle is already committed on the change branch (so it rides into the squash merge).\n\n## Origin-aware reachability (AC1, B3)\n- `direct` route: origin reachability = post-fetch commit ancestry on `origin/<default>` (extend `verifyDefaultBranchPushed` semantics).\n- `pr_*` route: origin reachability = **PR merge STATE** (`gh pr view --json state,mergedAt` == MERGED), NEVER `git log origin/default..change/id` (squash breaks ancestry — B3 confirmed trap).\n- Shared helper `resolveReleaseReachability(route)` used by BOTH the pre-signal gate path and recovery.\n\n## Bypass hardening\n- **AC4 `phase9:\"skip\"`**: before flipping `archived` for a remote-backed change, require release-gate `done` with durable origin-reachability proof; otherwise refuse with explicit error (skip stays valid for `no_remote`, already-`shipped`, or explicit audited override `recoveryEvidence`).\n- **AC5 recovery**: `completeGateViaRecovery(release)` calls `resolveReleaseReachability` and refuses (does not record `done`) when origin reachability is unproven. Move the release git checks into the shared helper so the recovery path cannot skip them.\n\n## Detector + re-drive (AC7, SC5)\nNew utility `archive-helpers/unmerged-detector.ts` (+ thin tool surface):\n- **Detect**: for each `change/*` branch on origin, classify \"archived-but-unmerged\" = ADV state archived/release-pending AND not present on `origin/<default>` (PR state != MERGED and not ancestor). \n- **Re-drive**: idempotently open/reuse PR + arm auto-merge (reuse PR mechanics above); on `state==MERGED`, complete the release gate + finalize archived status. Safe to re-run; never force-push (C1).\n\n## Spec + command updates (AC8)\n- `docs/specs/advance-workflow.md` §rq-releaseFinalization01 + `.adv/specs/advance-workflow/spec.json`: add scenarios for remote-protected → PR/auto-merge → pending-merge; restrict `Merged locally.` to `no_remote`; new `rq-releaseFinalization01.9` (remote-aware honesty) + `.10` (pending-merge terminal). Run `pnpm run schemas:check` parity if schema touched (spec.json is data, not Zod — asset tests cover it).\n- `.opencode/command/adv-archive.md` L150-210: replace \"push failed → Merged locally. release ✓\" with the route table; add `Pending auto-merge.` terminal; `Merged locally.` only for `no_remote`.\n\n## File-level implementation strategy (LBP)\n1. `git-finalize.ts`: add ruleset-aware `detectDefaultBranchProtection`, `classifyFinalizationRoute`, gh helpers (`findOpenPr`, `ensurePr`, `armAutoMerge`, `readPrMergeState`), `pending_merge` outcome in `finalizeRelease`, origin-aware `resolveReleaseReachability`, local-merge rollback on reactive reject.\n2. `gate.ts`: extract shared release-reachability helper; use it in pre-signal block AND `completeGateViaRecovery`; add `RELEASE_PENDING_MERGE` handling.\n3. `change.ts`: map `pending_merge` (no archived flip, keep active, persist PR meta); harden `phase9:\"skip\"` archived-flip guard.\n4. `archive-helpers/unmerged-detector.ts` + tool registration for detect/re-drive.\n5. Spec + command + `ADV_INSTRUCTIONS.md` docs.\n6. Tests (below).\n\n## Test strategy\n- Unit: `classifyFinalizationRoute` (no_remote/direct/protected/not-armable) with mocked `gh`/git deps (`GitFinalizeDeps.runGit` injection pattern already exists).\n- AC2 regression: simulated protected-push rejection → asserts NO `release ✓`, NO `archived`, change stays active, `Pending auto-merge.` (route `pr_auto_merge`) — primary evidence.\n- AC3: mocked `gh pr create`+`merge --auto`+`view` → PR opened/armed, release pending.\n- B1: `gh pr view` returns MERGED immediately after arm → reconcile-now path.\n- B2: allow_auto_merge OFF → `pr_manual`/`Blocked.`, no release-done.\n- AC4/AC5: `phase9:\"skip\"` + recovery cannot record release without reachability proof.\n- AC6: terminal-verb matrix; update `handoff-footer-drift.test.ts` + `adv-autonomy-quality-assets.test.ts` (currently assert `Merged locally. release ✓` is valid — must change to remote-aware).\n- AC7: detector classifies a squash-merged PR as MERGED (not via ancestry) and an unmerged one as stranded; re-drive idempotent (no duplicate PR).\n- Existing tests to update: `gate.release-enforcement.test.ts`, `change.archive-phase9.test.ts`, `git-finalize.test.ts`.\n- Run via `bin/oc-test` (C5).\n\n## Open follow-ups (non-blocking)\n- Live-probe `gh pr view --json autoMergeRequest` returns non-null after `--auto` arm before locking it as the armed-state discriminator (researcher ag-EaoBLRO0).\n- Confirm target repos' `gh` token may enable auto-merge on self-created PRs (ag-YyxI1Qdc).",
+    "agreement": "# Agreement: Make ADV archive \"release ✓\" mean \"actually merged to origin/<default>\"\n\n## Objectives\n\nMake \"archived\" structurally imply \"present on the branch that deploys (`origin/<default>`)\". On remote-backed protected repos, Phase 9 ships hands-off via PR + GitHub native auto-merge and holds the release gate pending-merge until origin actually contains the change. Close every path (`phase9:\"skip\"`, poisoned-history recovery, spec/command prose) that can record `release ✓` without true origin reachability. Provide a detector + re-drive for already-stranded \"archived-but-unmerged\" branches.\n\n## Verified Current-State\n\nReachability/push logic lives in `plugin/src/tools/archive-helpers/git-finalize.ts` + `gate.ts` (NOT `archive.ts`). The happy path already blocks rejected pushes (`finalizeRelease` → `blocked/DEFAULT_BRANCH_PUSH_FAILED`; `gate.ts` release block runs `verifyChangeBranchReachable` local + `verifyDefaultBranchPushed` origin SHA). Real leaks: spec/command still instruct `Merged locally. · release ✓` on push failure; `phase9:\"skip\"` skips finalization+gate then flips `archived`; `verifyChangeBranchReachable` is local-only; `completeGateViaRecovery` skips git checks; no PR/auto-merge path exists. Likely incident cause: deployed-version drift on pokeedge/web (pre-2026-05-21 guard) plus the wrong-terminal prose.\n\n## Success Criteria\n\n- SC1: A remote-backed change reaching `release ✓` / `archived` implies the change is present on `origin/<default>`; never marked shipped while origin lacks it.\n- SC2: On a remote-backed protected default branch, Phase 9 ships hands-off via PR + GitHub auto-merge; the release gate stays pending-merge until origin reachability is confirmed.\n- SC3: A failed or rejected push to a remote-backed default branch never reads as success; the operator sees an honest terminal (`Pending auto-merge.` or `Blocked.`) with a reason.\n- SC4: `phase9:\"skip\"` and poisoned-history recovery cannot record release-complete without true origin reachability or explicit audited override evidence.\n- SC5: A repeatable detector lists archived-but-unmerged `change/*` branches across a repo set and can re-drive each through the PR + auto-merge path idempotently.\n\n## Acceptance Criteria\n\n- AC1: When release reachability is evaluated for a repo with a remote, it validates reachability from `origin/<default>` post-fetch, not local-only.\n- AC2: A simulated protected-main push rejection during Phase 9 yields no `release ✓` and no `archived` status; the change stays active with an explicit pending or blocked reason.\n- AC3: On a remote-backed protected default branch, Phase 9 opens or reuses a PR and arms GitHub auto-merge, and the release gate is left in a distinct pending-merge state that does not complete release.\n- AC4: `phase9:\"skip\"` cannot transition a remote-backed change to `archived` or release-complete without origin reachability or explicit audited override evidence.\n- AC5: `completeGateViaRecovery` for the release gate re-validates origin reachability and push, or refuses, instead of skipping git checks.\n- AC6: `Merged locally.` is emitted only when no remote is configured; with a remote, a non-shipped outcome yields `Pending auto-merge.` or `Blocked.` with a reason.\n- AC7: A detector lists archived-but-unmerged `change/*` branches (branch on origin, not reachable from `origin/<default>`); re-drive opens or reuses a PR and arms auto-merge with no duplicate PR and no force-push.\n- AC8: Spec (`docs/specs/advance-workflow.md` + `.adv/specs/advance-workflow/spec.json`) and `.opencode/command/adv-archive.md` updated so they no longer sanction `release ✓` on remote-backed push failure; the pending-merge terminal is documented; asset/consistency tests green.\n\n## Constraints\n\n- C1: Never force-push a protected or remote branch; PR re-drive must be idempotent (reuse an existing PR rather than duplicating).\n- C2: Phase 9 must not leave local `<default>` merged-but-unpushed as de-facto source of truth after a failed push; reconcile to the PR path.\n- C3: Preserve the workflow-bundle boundary (no `storage/` or `node:*` imports reachable from the temporal bundle) and cache-refresh discipline (`fireSignalAndRefresh`).\n- C4: `gh` interactions must degrade gracefully; when `gh` is unavailable or the repo lacks `allow_auto_merge`, fall back to `Blocked.` (remote) or `Merged locally.` (no remote) with an explicit reason, never silent success.\n- C5: Run test suites through the `bin/oc-test` throttle.\n\n## Avoidances\n\n- DONT1: Do not land this session's already-stranded branches as part of this change.\n- DONT2: Do not build a long-running polling daemon for merge reconciliation; rely on GitHub native auto-merge plus the detector/re-drive.\n- DONT3: Do not modify the pokeedge/web repo-side Conventional Commit Check here.\n\n## Out of Scope\n\n- OOS1: pokeedge/web repo-side Conventional Commit Check exemption (separate repo change).\n- OOS2: Landing the existing stranded branches (parallelizeWebUnitTests, hardenIntegrationE2eSuite, integrateListingEndpoints, addCnPricechartingIdentity plus stale set).\n- OOS3: Operational redeploy of ADV to consuming repos (operational action, not code in this change).",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\n\nImplemented remote-aware ADV archive finalization so remote-backed changes cannot reach `release ✓` / `archived` without post-fetch `origin/{default-branch}` reachability or merged PR proof. Protected/default-branch failures now route to PR auto-merge pending or blocked states; no-remote archives remain valid local-only completions.\n\n## Verdict\n\nAPPROVED\n\n## What Was Built\n\n1. Origin-aware release routing and reachability primitives: no-remote, direct origin/default proof, PR auto-merge, PR manual/block, and route-aware release proof.\n2. Phase 9 integration for protected push rejection: reset/reconcile main to `origin/{default-branch}`, push `change/{id}`, open/reuse PR, arm GitHub auto-merge, persist `pending_merge` without release/archive side effects.\n3. Release gate, `phase9:\"skip\"`, and poisoned-history recovery hardening: only shipped/no-remote/merged-PR proof can complete release; legacy `pr_pushed` is rejected.\n4. Archived-but-unmerged detector and `adv_archive_repair` scan/re-drive tool with PR reuse and no force-push.\n5. Spec, command, ADV instruction, and terminal voice updates: `Merged locally.` is no-remote only; remote-backed non-shipped states are `Pending auto-merge.` or `Blocked.`.\n6. Cross-cutting tests and fixtures covering origin proof, PR pending state, skip/recovery proof, repair tool, docs/assets, and full-suite regression.\n\n## What Was Verified\n\n- Verdict: READY after independent adv-reviewer re-review attempt 2; 0 blocking findings.\n- Tests: PASS — targeted release-finalization suites (280 tests), `src/tools/change.test.ts` (54 tests), review-remediation targeted suite (122 tests), `bin/oc-test full`, and `bin/oc-test smoke`.\n- Preview URL: not_applicable — backend/tooling/spec/docs change; no frontend or browser-visible output.\n- Contract matrix: 24 required rows passed/respected/not_applicable; 0 failed/violated/unknown.\n\n## Remaining Concerns\n\nNone for this change. Operational redeploy to consuming repos and landing existing stranded branches remain explicitly out of scope.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-06-07T05:28:33.926Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | A remote-backed change reaching `release ✓` / `archived` implies the change is present on `origin/<default>`; never marked shipped while origin lacks it. | pass | Review attempt 2 READY. `completeReleaseGateAfterFinalization` accepts only shipped evidence; release proof now routes through `resolveReleaseReachability` for no_remote/origin/default/merged PR. Full + smoke passed. |\n| SC2 | success_criterion | On a remote-backed protected default branch, Phase 9 ships hands-off via PR + GitHub auto-merge; the release gate stays pending-merge until origin reachability is confirmed. | pass | `finalizeRelease` PR path uses `completeProtectedBranchViaPullRequest`; pending auto-merge persists `pending_merge` and leaves release incomplete. Covered by git-finalize and change.archive-phase9 tests. |\n| SC3 | success_criterion | A failed or rejected push to a remote-backed default branch never reads as success; the operator sees an honest terminal (`Pending auto-merge.` or `Blocked.`) with a reason. | pass | Remote push failure path routes to PR pending or blocked; docs/voice use `Pending auto-merge.` / `Blocked.`. Reviewer attempt 2 READY; targeted and full tests passed. |\n| SC4 | success_criterion | `phase9:\"skip\"` and poisoned-history recovery cannot record release-complete without true origin reachability or explicit audited override evidence. | pass | `phase9:\"skip\"` calls `verifyReleaseEvidenceFromMain`; release recovery uses route-aware proof. `change.test.ts` recovery fixtures now create structural no-remote proof; full suite passed. |\n| SC5 | success_criterion | A repeatable detector lists archived-but-unmerged `change/*` branches across a repo set and can re-drive each through the PR + auto-merge path idempotently. | pass | `adv_archive_repair` scan/redrive added and covered by `change.archive-repair.test.ts`; cross-targeted release-finalization suite passed. |\n| AC1 | acceptance_criterion | When release reachability is evaluated for a repo with a remote, it validates reachability from `origin/<default>` post-fetch, not local-only. | pass | `bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts ...` PASS; tests cover `verifyChangeBranchReachableFromOrigin` and origin/default release proof. |\n| AC2 | acceptance_criterion | A simulated protected-main push rejection during Phase 9 yields no `release ✓` and no `archived` status; the change stays active with an explicit pending or blocked reason. | pass | `change.archive-phase9.test.ts` and `git-finalize.test.ts` PASS; protected push rejection returns pending_merge or blocked, no archive save/issue closure. |\n| AC3 | acceptance_criterion | On a remote-backed protected default branch, Phase 9 opens or reuses a PR and arms GitHub auto-merge, and the release gate is left in a distinct pending-merge state that does not complete release. | pass | `git-finalize.test.ts` PASS for PR open/reuse/auto-merge; `change.archive-phase9.test.ts` PASS for pending_merge persistence without archive. |\n| AC4 | acceptance_criterion | `phase9:\"skip\"` cannot transition a remote-backed change to `archived` or release-complete without origin reachability or explicit audited override evidence. | pass | `change.test.ts` PASS; phase9 skip/recovery tests now require structural no-remote proof fixtures and reject missing proof paths. |\n| AC5 | acceptance_criterion | `completeGateViaRecovery` for the release gate re-validates origin reachability and push, or refuses, instead of skipping git checks. | pass | `gate.release-enforcement.test.ts` included in cross-targeted suite PASS; recovery path uses shared release reachability proof. |\n| AC6 | acceptance_criterion | `Merged locally.` is emitted only when no remote is configured; with a remote, a non-shipped outcome yields `Pending auto-merge.` or `Blocked.` with a reason. | pass | `archive-release-finalization-assets.test.ts`, `handoff-footer-drift.test.ts`, and `adv-autonomy-quality-assets.test.ts` PASS; command/voice docs restrict `Merged locally.` to no origin. |\n| AC7 | acceptance_criterion | A detector lists archived-but-unmerged `change/*` branches (branch on origin, not reachable from `origin/<default>`); re-drive opens or reuses a PR and arms auto-merge with no duplicate PR and no force-push. | pass | `change.archive-repair.test.ts` and `git-finalize.test.ts` PASS; detector/re-drive covers archived-but-unmerged branch, PR reuse, auto-merge, no force-push. |\n| AC8 | acceptance_criterion | Spec (`docs/specs/advance-workflow.md` + `.adv/specs/advance-workflow/spec.json`) and `.opencode/command/adv-archive.md` updated so they no longer sanction `release ✓` on remote-backed push failure; the pending-merge terminal is documented; asset/consistency tests green. | pass | Spec JSON, spec docs, adv-archive command, command voice, and ADV_INSTRUCTIONS updated. Asset tests, full suite, and smoke passed. |\n| C1 | constraint | Never force-push a protected or remote branch; PR re-drive must be idempotent (reuse an existing PR rather than duplicating). | respected | Review found no force-push path. Re-drive/open PR code uses push branch and PR reuse; tests assert no force-push behavior. |\n| C2 | constraint | Phase 9 must not leave local `<default>` merged-but-unpushed as de-facto source of truth after a failed push; reconcile to the PR path. | respected | Push rejection path resets/reconciles main to origin before PR handoff; no remote-backed local merged-but-unpushed terminal success remains. |\n| C3 | constraint | Preserve the workflow-bundle boundary (no `storage/` or `node:*` imports reachable from the temporal bundle) and cache-refresh discipline (`fireSignalAndRefresh`). | respected | Smoke passed: schemas:check, typecheck, lint, format:check. Workflow-boundary tests passed in full suite. |\n| C4 | constraint | `gh` interactions must degrade gracefully; when `gh` is unavailable or the repo lacks `allow_auto_merge`, fall back to `Blocked.` (remote) or `Merged locally.` (no remote) with an explicit reason, never silent success. | respected | `runGh` failures map to blocked/manual paths; PR auto-merge unavailable returns `Blocked.`. Tests cover gh unavailable/auth/manual outcomes. |\n| C5 | constraint | Run test suites through the `bin/oc-test` throttle. | respected | All orchestrator verification used `bin/oc-test`: targeted, full, and smoke. |\n| DONT1 | avoidance | Do not land this session's already-stranded branches as part of this change. | respected | No operational branch landing performed; code/tests/docs only in ADV worktree. |\n| DONT2 | avoidance | Do not build a long-running polling daemon for merge reconciliation; rely on GitHub native auto-merge plus the detector/re-drive. | respected | No polling daemon added; design relies on GitHub auto-merge plus scan/re-drive tool. |\n| DONT3 | avoidance | Do not modify the pokeedge/web repo-side Conventional Commit Check here. | respected | No pokeedge/web repo files changed; all changes are in Advance plugin/spec/docs. |\n| OOS1 | out_of_scope | pokeedge/web repo-side Conventional Commit Check exemption (separate repo change). | not_applicable | pokeedge/web Conventional Commit Check exemption intentionally not implemented in this repo change. |\n| OOS2 | out_of_scope | Landing the existing stranded branches (parallelizeWebUnitTests, hardenIntegrationE2eSuite, integrateListingEndpoints, addCnPricechartingIdentity plus stale set). | not_applicable | Existing stranded branches were not landed; this change only adds detector/re-drive capability. |\n| OOS3 | out_of_scope | Operational redeploy of ADV to consuming repos (operational action, not code in this change). | not_applicable | ADV operational redeploy to consuming repos not performed; source change only. |\n\n"
+  },
+  "artifacts": {
+    "design": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixArchiveReleaseWithoutMerge/design.md",
+      "updatedAt": "2026-06-07T01:57:15.317Z",
+      "contentHash": "f80a234cc0e97f47cdc24a3c27093c6209aec2429f5a207b7e41250aeb19934a"
+    },
+    "proposal": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixArchiveReleaseWithoutMerge/proposal.md",
+      "updatedAt": "2026-06-07T00:54:39.851Z",
+      "contentHash": "5b317fe564550a036e9136ff0da6a67e40fceb046884d83cbc8cac9280be3db6"
+    },
+    "agreement": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixArchiveReleaseWithoutMerge/agreement.md",
+      "updatedAt": "2026-06-07T01:45:04.147Z",
+      "contentHash": "23efa4a2d1c1a80e6f885fda5ce1cc077208cd1adadc71f6b8e2e0b4c3be204b"
+    },
+    "executiveSummary": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixArchiveReleaseWithoutMerge/executive-summary.md",
+      "updatedAt": "2026-06-07T05:29:30.415Z",
+      "contentHash": "e232f1b86ea25c9c0a3ec138348f4371da3d5ab955dd197501901751c8e51bdd"
+    }
+  },
+  "lastSignalAt": "2026-06-07T13:51:31.078Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d"
+}
