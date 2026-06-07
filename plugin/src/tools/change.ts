@@ -327,10 +327,13 @@ import {
   detectDefaultBranch,
   detectArchiveMode,
   deleteChangeBranch,
+  resolveMainCheckout,
   finalizeRelease,
   validateChangeWorktree,
   classifyFinalizationRoute,
   resolveReleaseReachability,
+  detectArchivedUnmergedBranches,
+  redriveArchivedUnmergedBranch,
   verifyChangeBranchPushed,
   type GitFinalizeOutcome,
 } from "./archive-helpers/git-finalize";
@@ -4497,6 +4500,131 @@ export const changeTools = {
               })),
             }
           : {}),
+      });
+    },
+  },
+
+  adv_archive_repair: {
+    description:
+      "Scan for archived change branches not reachable from origin/default and re-drive PR auto-merge handoff",
+    args: {
+      action: z
+        .enum(["scan", "redrive"])
+        .describe(
+          "scan = list candidates; redrive = open/reuse PR and arm auto-merge for one archived change",
+        ),
+      changeId: z
+        .string()
+        .optional()
+        .describe("Archived change ID to re-drive when action='redrive'"),
+      dryRun: z
+        .boolean()
+        .optional()
+        .describe("Preview redrive without creating PRs or arming auto-merge"),
+    },
+    execute: async (
+      {
+        action,
+        changeId,
+        dryRun,
+      }: { action: "scan" | "redrive"; changeId?: string; dryRun?: boolean },
+      store: Store,
+    ) => {
+      const mainCheckout = resolveMainCheckout(store.paths.root);
+      const { branch: defaultBranch } = detectDefaultBranch(mainCheckout);
+      const archivedList = await store.changes.list({
+        status: "archived",
+        includeArchived: true,
+      });
+      const archivedChangeIds = archivedList.changes.map((change) => change.id);
+      const scan = detectArchivedUnmergedBranches({
+        mainCheckout,
+        defaultBranch,
+        archivedChangeIds,
+      });
+      if (scan.status === "blocked") {
+        return formatToolOutput({
+          success: false,
+          action,
+          error: `Archive repair scan blocked: ${scan.reason}`,
+          requirement: "rq-releaseFinalization01",
+          details: scan.details,
+        });
+      }
+
+      if (action === "scan") {
+        return formatToolOutput({
+          success: true,
+          action,
+          mainCheckout,
+          defaultBranch,
+          branches: scan.branches,
+          count: scan.branches.length,
+        });
+      }
+
+      if (!changeId?.trim()) {
+        return formatToolOutput({
+          success: false,
+          action,
+          error: "changeId is required when action='redrive'",
+        });
+      }
+      if (!archivedChangeIds.includes(changeId)) {
+        return formatToolOutput({
+          success: false,
+          action,
+          changeId,
+          error: `Change is not archived or was not found: ${changeId}`,
+        });
+      }
+      const candidate = scan.branches.find(
+        (branch) => branch.changeId === changeId,
+      );
+      if (!candidate) {
+        return formatToolOutput({
+          success: true,
+          action,
+          changeId,
+          dryRun: Boolean(dryRun),
+          message: `No archived-but-unmerged branch found for ${changeId}`,
+        });
+      }
+      if (dryRun) {
+        return formatToolOutput({
+          success: true,
+          action,
+          changeId,
+          dryRun: true,
+          candidate,
+          mainCheckout,
+          defaultBranch,
+        });
+      }
+
+      const outcome = redriveArchivedUnmergedBranch({
+        mainCheckout,
+        defaultBranch,
+        changeId,
+      });
+      if (outcome.status === "blocked") {
+        return formatToolOutput({
+          success: false,
+          action,
+          changeId,
+          error: `Archive repair redrive blocked: ${outcome.blocked?.reason}`,
+          requirement: "rq-releaseFinalization01",
+          remediation: outcome.blocked?.remediation,
+          details: outcome.blocked?.details,
+          outcome,
+        });
+      }
+
+      return formatToolOutput({
+        success: true,
+        action,
+        changeId,
+        outcome,
       });
     },
   },

@@ -1384,6 +1384,276 @@ function completeProtectedBranchViaPullRequest(
   };
 }
 
+export interface ArchivedUnmergedBranch {
+  changeId: string;
+  branch: string;
+  remoteRef: string;
+  sha: string;
+  unmergedCommits: string[];
+}
+
+export type ArchivedUnmergedBranchesResult =
+  | { status: "ok"; branches: ArchivedUnmergedBranch[] }
+  | { status: "blocked"; reason: string; details?: string[] };
+
+function parseRemoteChangeBranchRefs(output: string): Array<{
+  changeId: string;
+  branch: string;
+  remoteRef: string;
+  sha: string;
+}> {
+  return splitLines(output)
+    .map((line) => {
+      const [sha, remoteRef] = line.split(/\s+/, 2);
+      const prefix = "refs/heads/change/";
+      if (!sha || !remoteRef?.startsWith(prefix)) return null;
+      const changeId = remoteRef.slice(prefix.length);
+      if (!changeId) return null;
+      return {
+        changeId,
+        branch: `change/${changeId}`,
+        remoteRef,
+        sha,
+      };
+    })
+    .filter((entry): entry is NonNullable<typeof entry> => entry !== null);
+}
+
+export function detectArchivedUnmergedBranches(
+  input: {
+    mainCheckout: string;
+    defaultBranch: string;
+    archivedChangeIds?: string[];
+  },
+  deps: Pick<GitFinalizeDeps, "runGit"> = {},
+): ArchivedUnmergedBranchesResult {
+  const runGit = deps.runGit ?? defaultRunGit;
+  const archivedSet = input.archivedChangeIds
+    ? new Set(input.archivedChangeIds)
+    : null;
+  const remoteBranches = runGit(input.mainCheckout, [
+    "ls-remote",
+    "--heads",
+    "origin",
+    "refs/heads/change/*",
+  ]);
+  if (remoteBranches.status !== 0) {
+    return {
+      status: "blocked",
+      reason: "CHANGE_BRANCH_LIST_FAILED",
+      details: splitLines(remoteBranches.stderr || remoteBranches.stdout),
+    };
+  }
+
+  const defaultFetch = runGit(input.mainCheckout, [
+    "fetch",
+    "origin",
+    input.defaultBranch,
+  ]);
+  if (defaultFetch.status !== 0) {
+    return {
+      status: "blocked",
+      reason: "DEFAULT_BRANCH_FETCH_FAILED",
+      details: splitLines(defaultFetch.stderr || defaultFetch.stdout),
+    };
+  }
+
+  const candidates = parseRemoteChangeBranchRefs(remoteBranches.stdout).filter(
+    (entry) => !archivedSet || archivedSet.has(entry.changeId),
+  );
+  const branches: ArchivedUnmergedBranch[] = [];
+  for (const candidate of candidates) {
+    const branchFetch = runGit(input.mainCheckout, [
+      "fetch",
+      "origin",
+      `+refs/heads/${candidate.branch}:refs/remotes/origin/${candidate.branch}`,
+    ]);
+    if (branchFetch.status !== 0) {
+      branches.push({
+        ...candidate,
+        unmergedCommits: splitLines(branchFetch.stderr || branchFetch.stdout),
+      });
+      continue;
+    }
+    const unmerged = runGit(input.mainCheckout, [
+      "log",
+      "--oneline",
+      `origin/${input.defaultBranch}..origin/${candidate.branch}`,
+    ]);
+    if (unmerged.status !== 0) {
+      branches.push({
+        ...candidate,
+        unmergedCommits: splitLines(unmerged.stderr || unmerged.stdout),
+      });
+      continue;
+    }
+    const unmergedCommits = splitLines(unmerged.stdout);
+    if (unmergedCommits.length > 0) {
+      branches.push({ ...candidate, unmergedCommits });
+    }
+  }
+
+  return { status: "ok", branches };
+}
+
+export function redriveArchivedUnmergedBranch(
+  input: {
+    mainCheckout: string;
+    defaultBranch: string;
+    changeId: string;
+  },
+  deps: GitFinalizeDeps = {},
+): GitFinalizeOutcome {
+  const branch = `change/${input.changeId}`;
+  const runGit = deps.runGit ?? defaultRunGit;
+  const remoteBranch = runGit(input.mainCheckout, [
+    "ls-remote",
+    "--heads",
+    "origin",
+    `refs/heads/${branch}`,
+  ]);
+  if (remoteBranch.status !== 0 || !remoteBranch.stdout.trim()) {
+    return {
+      status: "blocked",
+      mainCheckout: input.mainCheckout,
+      defaultBranch: input.defaultBranch,
+      pushStatus: "not_attempted",
+      prBranch: branch,
+      blocked: {
+        reason: "REMOTE_CHANGE_BRANCH_NOT_FOUND",
+        remediation: `Remote branch ${branch} must exist before archive re-drive can open or arm a PR (rq-releaseFinalization01).`,
+        details: splitLines(remoteBranch.stderr || remoteBranch.stdout),
+      },
+    };
+  }
+
+  const route = classifyFinalizationRoute(
+    input.mainCheckout,
+    input.defaultBranch,
+    deps,
+  );
+  if (route.route !== "pr_auto_merge" || !route.repo) {
+    return {
+      status: "blocked",
+      mainCheckout: input.mainCheckout,
+      defaultBranch: input.defaultBranch,
+      route: route.route,
+      pushStatus: "not_attempted",
+      prBranch: branch,
+      blocked: {
+        reason: route.reason ?? "PR_AUTO_MERGE_UNAVAILABLE",
+        remediation: `Auto-merge PR route is required to re-drive archived branch ${branch}; inspect branch protection and GitHub CLI access (rq-releaseFinalization01).`,
+        details: route.details,
+      },
+    };
+  }
+
+  const pr = ensureArchivePullRequest(
+    {
+      mainCheckout: input.mainCheckout,
+      repo: route.repo,
+      branch,
+      defaultBranch: input.defaultBranch,
+      changeId: input.changeId,
+    },
+    deps,
+  );
+  if ("error" in pr) {
+    return {
+      status: "blocked",
+      mainCheckout: input.mainCheckout,
+      defaultBranch: input.defaultBranch,
+      route: route.route,
+      pushStatus: "not_attempted",
+      prBranch: branch,
+      blocked: {
+        reason: pr.error,
+        remediation: `Open or reuse a PR for ${branch}, then rerun archive re-drive (rq-releaseFinalization01).`,
+        details: pr.details,
+      },
+    };
+  }
+
+  const armed = armPullRequestAutoMerge(
+    input.mainCheckout,
+    route.repo,
+    pr.number,
+    deps,
+  );
+  if (!armed.ok) {
+    return {
+      status: "blocked",
+      mainCheckout: input.mainCheckout,
+      defaultBranch: input.defaultBranch,
+      route: route.route,
+      pushStatus: "not_attempted",
+      prBranch: branch,
+      prNumber: pr.number,
+      prUrl: pr.url,
+      blocked: {
+        reason: "AUTO_MERGE_ARM_FAILED",
+        remediation: `Enable auto-merge or manually merge PR ${pr.url}, then rerun archive re-drive (rq-releaseFinalization01).`,
+        details: [armed.reason, ...(armed.details ?? [])],
+      },
+    };
+  }
+
+  const reachability = resolveReleaseReachability(
+    {
+      mainCheckout: input.mainCheckout,
+      defaultBranch: input.defaultBranch,
+      changeId: input.changeId,
+      route,
+      prNumber: pr.number,
+    },
+    deps,
+  );
+  if (reachability.reachable && reachability.proof === "pr_merged") {
+    return {
+      status: "shipped",
+      mainCheckout: input.mainCheckout,
+      defaultBranch: input.defaultBranch,
+      route: route.route,
+      mergeCommitSha: reachability.mergeCommitOid,
+      pushStatus: "pushed",
+      prBranch: branch,
+      prNumber: pr.number,
+      prUrl: pr.url,
+      autoMergeArmed: false,
+    };
+  }
+  if (!reachability.reachable && reachability.autoMergeArmed) {
+    return {
+      status: "pending_merge",
+      mainCheckout: input.mainCheckout,
+      defaultBranch: input.defaultBranch,
+      route: route.route,
+      pushStatus: "pushed",
+      prBranch: branch,
+      prNumber: pr.number,
+      prUrl: pr.url,
+      autoMergeArmed: true,
+    };
+  }
+
+  return {
+    status: "blocked",
+    mainCheckout: input.mainCheckout,
+    defaultBranch: input.defaultBranch,
+    route: route.route,
+    pushStatus: "not_attempted",
+    prBranch: branch,
+    prNumber: pr.number,
+    prUrl: pr.url,
+    autoMergeArmed: false,
+    blocked: {
+      reason: "PR_AUTO_MERGE_NOT_ARMED",
+      remediation: `PR ${pr.url} must be merged or have auto-merge armed before re-drive can complete (rq-releaseFinalization01).`,
+      details: reachability.details,
+    },
+  };
+}
+
 export function resolveReleaseReachability(
   input: ReleaseReachabilityInput,
   deps: Pick<GitFinalizeDeps, "runGit" | "runGh"> = {},

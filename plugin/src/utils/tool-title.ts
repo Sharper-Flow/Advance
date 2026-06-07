@@ -82,6 +82,8 @@ const TITLE_BUILDERS: Record<string, TitleBuilder> = {
     read(`Validate change${suffix(args, "changeId")}`),
   adv_change_archive: (args) =>
     write(`Archive change${suffix(args, "changeId")}`),
+  adv_archive_repair: (args) =>
+    operator(`Repair archive${suffix(args, "changeId", "action")}`),
   adv_change_update_issues: (args) =>
     write(`Update change issues${suffix(args, "changeId")}`),
   adv_change_reenter: (args) =>

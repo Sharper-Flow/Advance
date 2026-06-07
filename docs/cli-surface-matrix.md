@@ -83,6 +83,7 @@
 | `adv_change_close` | `no-cli-dangerous` | Change mutation |
 | `adv_change_bulk_close` | `no-cli-dangerous` | Change mutation |
 | `adv_change_archive` | `no-cli-dangerous` | Archive mutation + spec delta |
+| `adv_archive_repair` | `no-cli-dangerous` | Archive release repair mutation |
 | `adv_change_update_issues` | `no-cli-dangerous` | Issue linkage mutation |
 | `adv_change_reenter` | `no-cli-dangerous` | Change state mutation |
 | `adv_task_add` | `no-cli-dangerous` | Task mutation |

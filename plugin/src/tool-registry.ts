@@ -306,6 +306,11 @@ export function createToolMap(
       "adv_change_archive",
       store,
     ),
+    adv_archive_repair: bindTool(
+      changeTools.adv_archive_repair,
+      "adv_archive_repair",
+      store,
+    ),
     adv_change_update_issues: bindTool(
       changeTools.adv_change_update_issues,
       "adv_change_update_issues",
@@ -714,6 +719,7 @@ export const ADV_TOOL_NAMES: readonly string[] = [
   "adv_change_bulk_close",
   "adv_change_validate",
   "adv_change_archive",
+  "adv_archive_repair",
   "adv_change_update_issues",
   "adv_change_reenter",
   "adv_contract_mint",

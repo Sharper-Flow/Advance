@@ -34,6 +34,8 @@ import {
   validateChangeWorktree,
   commitArchiveArtifacts,
   verifyChangeBranchReachableFromOrigin,
+  detectArchivedUnmergedBranches,
+  redriveArchivedUnmergedBranch,
 } from "./git-finalize";
 
 function git(cwd: string, args: string[]): string {
@@ -358,6 +360,176 @@ describe("git-finalize helpers", () => {
       proof: "pr_merged",
       prNumber: 12,
     });
+  });
+
+  it("detectArchivedUnmergedBranches lists origin change branches not reachable from origin/default", () => {
+    const calls: string[][] = [];
+    const result = detectArchivedUnmergedBranches(
+      {
+        mainCheckout: "/repo",
+        defaultBranch: "trunk",
+        archivedChangeIds: ["archived-one", "already-merged"],
+      },
+      {
+        runGit: (_cwd, args) => {
+          calls.push(args);
+          if (args[0] === "ls-remote") {
+            return {
+              status: 0,
+              stdout:
+                "aaa\trefs/heads/change/archived-one\n" +
+                "bbb\trefs/heads/change/active-only\n" +
+                "ccc\trefs/heads/change/already-merged\n",
+              stderr: "",
+            };
+          }
+          if (args[0] === "fetch") {
+            return { status: 0, stdout: "", stderr: "" };
+          }
+          if (
+            args[0] === "log" &&
+            args[2] === "origin/trunk..origin/change/archived-one"
+          ) {
+            return { status: 0, stdout: "aaa archived commit\n", stderr: "" };
+          }
+          if (
+            args[0] === "log" &&
+            args[2] === "origin/trunk..origin/change/already-merged"
+          ) {
+            return { status: 0, stdout: "", stderr: "" };
+          }
+          return {
+            status: 1,
+            stdout: "",
+            stderr: `unexpected git ${args.join(" ")}`,
+          };
+        },
+      },
+    );
+
+    expect(result).toEqual({
+      status: "ok",
+      branches: [
+        {
+          changeId: "archived-one",
+          branch: "change/archived-one",
+          remoteRef: "refs/heads/change/archived-one",
+          sha: "aaa",
+          unmergedCommits: ["aaa archived commit"],
+        },
+      ],
+    });
+    expect(calls).toContainEqual([
+      "fetch",
+      "origin",
+      "+refs/heads/change/archived-one:refs/remotes/origin/change/archived-one",
+    ]);
+    expect(calls).not.toContainEqual([
+      "fetch",
+      "origin",
+      "+refs/heads/change/active-only:refs/remotes/origin/change/active-only",
+    ]);
+  });
+
+  it("redriveArchivedUnmergedBranch reuses PR and arms auto-merge without force-push", () => {
+    const gitCalls: string[][] = [];
+    const ghCalls: string[][] = [];
+    const result = redriveArchivedUnmergedBranch(
+      {
+        mainCheckout: "/repo",
+        defaultBranch: "trunk",
+        changeId: "archived-one",
+      },
+      {
+        runGit: (_cwd, args) => {
+          gitCalls.push(args);
+          if (args.join(" ") === "remote get-url origin") {
+            return {
+              status: 0,
+              stdout: "https://github.com/Sharper-Flow/Advance.git\n",
+              stderr: "",
+            };
+          }
+          if (args[0] === "ls-remote") {
+            return {
+              status: 0,
+              stdout: "aaa\trefs/heads/change/archived-one\n",
+              stderr: "",
+            };
+          }
+          return { status: 0, stdout: "", stderr: "" };
+        },
+        runGh: (_cwd, args) => {
+          ghCalls.push(args);
+          if (args[0] === "api" && args[1].includes("/rules/branches/")) {
+            return {
+              status: 0,
+              stdout: JSON.stringify([{ type: "required_status_checks" }]),
+              stderr: "",
+            };
+          }
+          if (args[0] === "api" && args[1] === "repos/Sharper-Flow/Advance") {
+            return { status: 0, stdout: "true\n", stderr: "" };
+          }
+          if (args[0] === "pr" && args[1] === "view") {
+            const selector = args[2];
+            if (selector === "change/archived-one") {
+              return {
+                status: 0,
+                stdout: JSON.stringify({
+                  number: 42,
+                  url: "https://github.com/Sharper-Flow/Advance/pull/42",
+                  state: "OPEN",
+                  autoMergeRequest: null,
+                }),
+                stderr: "",
+              };
+            }
+            if (selector === "42") {
+              return {
+                status: 0,
+                stdout: JSON.stringify({
+                  state: "OPEN",
+                  mergedAt: null,
+                  mergeCommit: null,
+                  autoMergeRequest: { enabledAt: "2026-06-07T00:00:00Z" },
+                }),
+                stderr: "",
+              };
+            }
+          }
+          if (args[0] === "pr" && args[1] === "merge") {
+            return { status: 0, stdout: "Auto-merge enabled", stderr: "" };
+          }
+          return {
+            status: 1,
+            stdout: "",
+            stderr: `unexpected gh ${args.join(" ")}`,
+          };
+        },
+      },
+    );
+
+    expect(result).toMatchObject({
+      status: "pending_merge",
+      prNumber: 42,
+      autoMergeArmed: true,
+      route: "pr_auto_merge",
+    });
+    expect(gitCalls.some((args) => args[0] === "push")).toBe(false);
+    expect(gitCalls.flat()).not.toContain("--force");
+    expect(
+      ghCalls.filter((args) => args[0] === "pr" && args[1] === "create"),
+    ).toHaveLength(0);
+    expect(ghCalls).toContainEqual([
+      "pr",
+      "merge",
+      "42",
+      "--repo",
+      "Sharper-Flow/Advance",
+      "--squash",
+      "--auto",
+    ]);
   });
 
   it("mergeChangeBranch and mergeToTrunk fast-forward a clean change branch", async () => {
