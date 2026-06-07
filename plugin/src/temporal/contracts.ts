@@ -397,6 +397,11 @@ export interface ChangeWorkflowState extends ChangeWorkflowInput {
 export type WorktreeRecordStatus =
   | "unmaterialized"
   | "materializing"
+  // Set by applyWorktreeCreatedToState on worktreeCreatedSignal (fired at
+  // advWorktreeCreate Step 7, post-setup). Setup-ready by construction; the
+  // isolation existing-worktree ALLOW probe (worktreeExistsForChange) treats
+  // it as a valid non-deleted/non-failed status.
+  | "created"
   | "active"
   | "idle"
   | "setup_failed"

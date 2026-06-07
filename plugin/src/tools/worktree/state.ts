@@ -852,13 +852,21 @@ export async function getWorktreeRecord(
       getHandle?: (workflowId: string) => ChangeWorkflowWorktreeHandle;
     };
   };
-  const getHandle = client.workflow?.getHandle;
-  if (!getHandle) return null;
+  // Call getHandle BOUND to client.workflow. The Temporal SDK's
+  // WorkflowClient.getHandle relies on `this` (it calls
+  // this.getOrMakeInterceptors()); extracting it into a bare variable and
+  // invoking it unbound throws `Cannot read properties of undefined (reading
+  // 'getOrMakeInterceptors')`, which the catch below would swallow to null —
+  // making worktreeExistsForChange always false and blocking every
+  // main-checkout mutation. Match the bound call pattern used elsewhere
+  // (e.g. getChangeSummaries/getWorktreeRegistrySnapshot in this file).
+  const workflowApi = client.workflow;
+  if (!workflowApi?.getHandle) return null;
 
   const workflowId = `${CHANGE_WORKFLOW_PREFIX}${access.projectId}/${changeId}`;
   let state: ChangeWorkflowState | undefined;
   try {
-    const handle = getHandle(workflowId);
+    const handle = workflowApi.getHandle(workflowId);
     state = (await handle.query(getStateQuery)) as ChangeWorkflowState;
   } catch {
     // Unknown existence (poisoned/unreachable workflow): do not assert a worktree.

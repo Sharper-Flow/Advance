@@ -79,6 +79,47 @@ describe("getWorktreeRecord", () => {
     expect(getHandleFn).toHaveBeenCalledWith("adv/change/proj-123/myChange");
   });
 
+  it("calls getHandle bound to client.workflow (regression: unbound `this` throws in the real SDK)", async () => {
+    // The real Temporal SDK WorkflowClient.getHandle relies on `this`
+    // (it calls this.getOrMakeInterceptors()). Extracting it into a bare
+    // variable and calling it unbound throws `Cannot read properties of
+    // undefined (reading 'getOrMakeInterceptors')`, which getWorktreeRecord's
+    // try/catch swallows to null — making worktreeExistsForChange always false
+    // and blocking every main-checkout mutation. This fake reproduces that
+    // `this`-dependence so the test fails unless getHandle is called bound.
+    const workflow = {
+      _interceptors: [] as unknown[],
+      getOrMakeInterceptors(this: { _interceptors: unknown[] }) {
+        return this._interceptors;
+      },
+      getHandle(this: { getOrMakeInterceptors: () => unknown[] }, _id: string) {
+        // Throws when `this` is undefined (unbound extraction).
+        void this.getOrMakeInterceptors();
+        return {
+          query: async () =>
+            stateWithWorktree("myChange", "change/myChange", {
+              branch: "change/myChange",
+              path: "/wt/change/myChange",
+              status: "created",
+              setupReady: true,
+              createdAt: "2026-01-01T00:00:00Z",
+              baseRef: "trunk",
+              headSha: "abc123",
+            }),
+        };
+      },
+    };
+    getServiceFn.mockReturnValueOnce({
+      connection: { close: vi.fn() },
+      client: { workflow },
+    } as never);
+
+    const record = await getWorktreeRecord(access, "change/myChange");
+    expect(record).not.toBeNull();
+    expect(record?.path).toBe("/wt/change/myChange");
+    expect(record?.setupReady).toBe(true);
+  });
+
   it("normalizes legacy created records with a path as setup-ready", async () => {
     queryFn.mockResolvedValueOnce(
       stateWithWorktree("myChange", "change/myChange", {
