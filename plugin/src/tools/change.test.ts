@@ -6,6 +6,8 @@
  * Verifies tool-layer enforcement for cancellation/archive approval.
  */
 
+import { execFileSync } from "node:child_process";
+import { writeFile } from "node:fs/promises";
 import { describe, test, expect, vi, beforeEach, afterEach } from "vitest";
 import { changeTools, closeLinkedIssue } from "./change";
 import type { Store } from "../storage/store";
@@ -108,6 +110,23 @@ vi.mock("../utils/git.js", async () => {
     execGit: mocks.execGit,
   };
 });
+
+function runGit(cwd: string, args: string[]): void {
+  execFileSync("git", args, { cwd, stdio: "pipe" });
+}
+
+async function prepareNoRemoteReleaseProof(
+  repoRoot: string,
+  changeId = "test-change",
+): Promise<void> {
+  runGit(repoRoot, ["init", "-b", "main"]);
+  runGit(repoRoot, ["config", "user.name", "ADV Test"]);
+  runGit(repoRoot, ["config", "user.email", "adv-test@example.com"]);
+  await writeFile(`${repoRoot}/README.md`, "release proof fixture\n");
+  runGit(repoRoot, ["add", "README.md"]);
+  runGit(repoRoot, ["commit", "-m", "chore: release proof fixture"]);
+  runGit(repoRoot, ["branch", `change/${changeId}`]);
+}
 
 function createMockStore(
   changeOverrides: Partial<Change> = {},
@@ -1607,6 +1626,7 @@ describe("change tools — signal-driven lifecycle", () => {
         "adv-change-archive-completed-recovery-",
       );
       try {
+        await prepareNoRemoteReleaseProof(tempDir);
         const store = createMockStore({ gates: allDoneGates });
         store.paths.root = tempDir;
         store.paths.changes = `${tempDir}/changes`;
@@ -1643,6 +1663,7 @@ describe("change tools — signal-driven lifecycle", () => {
         "adv-change-archive-completed-no-recovery-",
       );
       try {
+        await prepareNoRemoteReleaseProof(tempDir);
         const store = createMockStore({ gates: allDoneGates });
         store.paths.root = tempDir;
         store.paths.changes = `${tempDir}/changes`;
@@ -1673,6 +1694,7 @@ describe("change tools — signal-driven lifecycle", () => {
         "adv-change-archive-poisoned-recovery-",
       );
       try {
+        await prepareNoRemoteReleaseProof(tempDir);
         const store = createMockStore({ gates: allDoneGates });
         store.paths.root = tempDir;
         store.paths.changes = `${tempDir}/changes`;
