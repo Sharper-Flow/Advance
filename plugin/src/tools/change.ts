@@ -329,9 +329,9 @@ import {
   deleteChangeBranch,
   finalizeRelease,
   validateChangeWorktree,
-  verifyChangeBranchReachable,
+  classifyFinalizationRoute,
+  resolveReleaseReachability,
   verifyChangeBranchPushed,
-  verifyDefaultBranchPushed,
   type GitFinalizeOutcome,
 } from "./archive-helpers/git-finalize";
 import { dispatchPhase9Finalization } from "./archive-helpers/phase9-queue";
@@ -1278,6 +1278,7 @@ function verifyReleaseEvidenceFromMain(input: {
   store: Store;
   changeId: string;
   archiveMode: "direct" | "pr";
+  change?: Change;
 }): GitFinalizeOutcome {
   const mainCheckout = input.store.paths.root;
   const { branch: defaultBranch } = detectDefaultBranch(mainCheckout);
@@ -1308,46 +1309,82 @@ function verifyReleaseEvidenceFromMain(input: {
     };
   }
 
-  const reachability = verifyChangeBranchReachable(
+  const route = classifyFinalizationRoute(mainCheckout, defaultBranch);
+  const reachability = resolveReleaseReachability({
     mainCheckout,
     defaultBranch,
-    input.changeId,
-  );
-  if (!reachability.reachable) {
+    changeId: input.changeId,
+    route,
+    prNumber: input.change?.phase9_status?.prNumber,
+  });
+  if (reachability.reachable) {
+    return {
+      status: "shipped",
+      mainCheckout,
+      defaultBranch,
+      route: route.route,
+      mergeCommitSha:
+        reachability.proof === "pr_merged"
+          ? reachability.mergeCommitOid
+          : undefined,
+      prNumber: reachability.prNumber,
+      prUrl: input.change?.phase9_status?.prUrl,
+      autoMergeArmed: false,
+      pushStatus: "pushed",
+    };
+  }
+
+  if (reachability.proof === "origin_push_unverified") {
     return {
       status: "blocked",
       mainCheckout,
       defaultBranch,
-      pushStatus: "not_attempted",
+      route: route.route,
+      pushStatus: "failed",
+      pushFailureReason: reachability.details?.join("; "),
       blocked: {
-        reason: "CHANGE_BRANCH_NOT_REACHABLE",
-        remediation: `Change branch change/${input.changeId} must be reachable from ${defaultBranch} before release completion (rq-releaseFinalization01).`,
-        details: reachability.unmergedCommits,
+        reason: "DEFAULT_BRANCH_PUSH_NOT_VERIFIED",
+        remediation: `Default branch ${defaultBranch} must be pushed before release completion (rq-releaseFinalization01).`,
+        details: reachability.details,
       },
     };
   }
 
-  const pushCheck = verifyDefaultBranchPushed(mainCheckout, defaultBranch);
-  if (!pushCheck.pushed) {
+  if (reachability.proof === "pr_unmerged") {
     return {
       status: "blocked",
       mainCheckout,
       defaultBranch,
-      pushStatus: "failed",
-      pushFailureReason: pushCheck.reason,
+      route: route.route,
+      pushStatus: "pushed",
+      prBranch: `change/${input.changeId}`,
+      prNumber: reachability.prNumber,
+      prUrl: input.change?.phase9_status?.prUrl,
+      autoMergeArmed: reachability.autoMergeArmed,
       blocked: {
-        reason: "DEFAULT_BRANCH_PUSH_NOT_VERIFIED",
-        remediation: `Default branch ${defaultBranch} must be pushed before release completion (rq-releaseFinalization01).`,
-        details: [pushCheck.reason ?? `${defaultBranch} push not verified`],
+        reason: reachability.autoMergeArmed
+          ? "PR_PENDING_AUTO_MERGE"
+          : "PR_NOT_MERGED",
+        remediation: `PR for change/${input.changeId} must be merged before release completion (rq-releaseFinalization01).`,
+        details: reachability.details,
       },
     };
   }
 
   return {
-    status: "shipped",
+    status: "blocked",
     mainCheckout,
     defaultBranch,
-    pushStatus: "pushed",
+    route: route.route,
+    pushStatus: "not_attempted",
+    blocked: {
+      reason:
+        reachability.proof === "origin_unmerged"
+          ? "CHANGE_BRANCH_NOT_REACHABLE_FROM_ORIGIN"
+          : "CHANGE_BRANCH_NOT_REACHABLE",
+      remediation: `Change branch change/${input.changeId} must be reachable from ${route.route === "no_remote" ? defaultBranch : `origin/${defaultBranch}`} before release completion (rq-releaseFinalization01).`,
+      details: reachability.details,
+    },
   };
 }
 
@@ -3714,6 +3751,27 @@ export const changeTools = {
       if (gatePreflightError) {
         return gatePreflightError;
       }
+      const { archiveMode, autoPush } = detectArchiveMode(store.config ?? {});
+
+      if (!dryRun && phase9 === "skip") {
+        const releaseEvidence = verifyReleaseEvidenceFromMain({
+          store,
+          changeId,
+          archiveMode,
+          change,
+        });
+        if (releaseEvidence.status === "blocked") {
+          return formatToolOutput({
+            success: false,
+            error: `Phase 9 skip blocked: ${releaseEvidence.blocked?.reason}`,
+            requirement: "rq-releaseFinalization01",
+            changeId,
+            remediation: releaseEvidence.blocked?.remediation,
+            details: releaseEvidence.blocked?.details,
+            finalization: releaseEvidence,
+          });
+        }
+      }
 
       // rq-archiveValidate01: run completeness validation before bundle creation.
       let validationResult: Awaited<ReturnType<typeof validateChange>>;
@@ -3872,7 +3930,6 @@ export const changeTools = {
       let releaseGateCompletion:
         | Extract<ArchiveReleaseGateResult, { ok: true }>
         | undefined;
-      const { archiveMode, autoPush } = detectArchiveMode(store.config ?? {});
       if (!dryRun && archiveResult.success && phase9 !== "skip") {
         if (phase9 === "run" && change.status !== "archived") {
           // AC3: Async phase9 dispatch. Save pending status, then run
@@ -3906,6 +3963,7 @@ export const changeTools = {
                     store,
                     changeId,
                     archiveMode,
+                    change: currentChange,
                   });
 
               if (currentFinalization.status === "blocked") {
@@ -4063,6 +4121,7 @@ export const changeTools = {
               store,
               changeId,
               archiveMode,
+              change,
             });
 
         if (finalization.status === "blocked") {

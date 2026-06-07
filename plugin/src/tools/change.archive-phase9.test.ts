@@ -73,6 +73,14 @@ const mocks = vi.hoisted(() => {
     })),
     verifyDefaultBranchPushed: vi.fn(() => ({ pushed: true })),
     verifyChangeBranchPushed: vi.fn(() => ({ pushed: true })),
+    classifyFinalizationRoute: vi.fn(() => ({
+      route: "direct",
+      repo: "Sharper-Flow/Advance",
+    })),
+    resolveReleaseReachability: vi.fn(() => ({
+      reachable: true,
+      proof: "origin_default",
+    })),
     closeLinkedIssue: vi.fn(() =>
       Promise.resolve({ issue_closed: [], close_eligible: false }),
     ),
@@ -129,6 +137,8 @@ vi.mock("./archive-helpers/git-finalize", async () => {
     verifyChangeBranchReachable: mocks.verifyChangeBranchReachable,
     verifyDefaultBranchPushed: mocks.verifyDefaultBranchPushed,
     verifyChangeBranchPushed: mocks.verifyChangeBranchPushed,
+    classifyFinalizationRoute: mocks.classifyFinalizationRoute,
+    resolveReleaseReachability: mocks.resolveReleaseReachability,
   };
 });
 
@@ -264,6 +274,14 @@ describe("adv_change_archive Phase 9 behavior", () => {
         }
       },
     );
+    mocks.classifyFinalizationRoute.mockReturnValue({
+      route: "direct",
+      repo: "Sharper-Flow/Advance",
+    });
+    mocks.resolveReleaseReachability.mockReturnValue({
+      reachable: true,
+      proof: "origin_default",
+    });
   });
 
   test("completes release gate after finalization and before retiring the change", async () => {
@@ -343,6 +361,27 @@ describe("adv_change_archive Phase 9 behavior", () => {
     expect(parsed.success).toBe(true);
     expect(parsed.finalization).toBeUndefined();
     expect(mocks.finalizeRelease).not.toHaveBeenCalled();
+  });
+
+  test("blocks phase9=skip when origin/default release proof is missing", async () => {
+    mocks.resolveReleaseReachability.mockReturnValueOnce({
+      reachable: false,
+      proof: "origin_unmerged",
+      details: ["abc123 task commit"],
+    });
+    const store = createMockStore({ releaseDone: true });
+
+    const result = await changeTools.adv_change_archive.execute(
+      { changeId: "example", phase9: "skip" },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(false);
+    expect(parsed.requirement).toBe("rq-releaseFinalization01");
+    expect(parsed.error).toContain("Phase 9 skip blocked");
+    expect(store.changes.save).not.toHaveBeenCalled();
+    expect(mocks.closeLinkedIssue).not.toHaveBeenCalled();
   });
 
   test("does not archive when finalization is blocked", async () => {
@@ -435,14 +474,16 @@ describe("adv_change_archive Phase 9 behavior", () => {
     expect(mocks.archiveChange).not.toHaveBeenCalled();
     expect(mocks.finalizeRelease).not.toHaveBeenCalled();
     expect(mocks.validateChangeWorktree).not.toHaveBeenCalled();
-    expect(mocks.verifyChangeBranchReachable).toHaveBeenCalledWith(
+    expect(mocks.classifyFinalizationRoute).toHaveBeenCalledWith(
       "/tmp/main",
       "trunk",
-      "example",
     );
-    expect(mocks.verifyDefaultBranchPushed).toHaveBeenCalledWith(
-      "/tmp/main",
-      "trunk",
+    expect(mocks.resolveReleaseReachability).toHaveBeenCalledWith(
+      expect.objectContaining({
+        mainCheckout: "/tmp/main",
+        defaultBranch: "trunk",
+        changeId: "example",
+      }),
     );
     expect(mocks.workflow.handle.signal).toHaveBeenCalledWith(
       expect.anything(),
@@ -460,9 +501,10 @@ describe("adv_change_archive Phase 9 behavior", () => {
 
   test("blocks no-worktree reconciliation when Phase 9 evidence is missing", async () => {
     mocks.findArchiveBundle.mockResolvedValue("/tmp/archive/example");
-    mocks.verifyDefaultBranchPushed.mockReturnValueOnce({
-      pushed: false,
-      reason: "origin/trunk is behind",
+    mocks.resolveReleaseReachability.mockReturnValueOnce({
+      reachable: false,
+      proof: "origin_push_unverified",
+      details: ["origin/trunk is behind"],
     });
     const store = createMockStore();
 
@@ -739,7 +781,8 @@ describe("adv_change_archive Phase 9 behavior", () => {
     // Archive bundle should NOT be re-written
     expect(mocks.archiveChange).not.toHaveBeenCalled();
     // Finalization should verify evidence from main (no worktree needed)
-    expect(mocks.verifyChangeBranchReachable).toHaveBeenCalled();
+    expect(mocks.classifyFinalizationRoute).toHaveBeenCalled();
+    expect(mocks.resolveReleaseReachability).toHaveBeenCalled();
     // Status should remain archived (no redundant save)
     expect(store.changes.save).not.toHaveBeenCalled();
   });

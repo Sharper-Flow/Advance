@@ -34,6 +34,15 @@ const mocks = vi.hoisted(() => {
       pushed: false,
       reason: "origin/trunk behind local trunk",
     })),
+    classifyFinalizationRoute: vi.fn(() => ({
+      route: "direct",
+      repo: "Sharper-Flow/Advance",
+    })),
+    resolveReleaseReachability: vi.fn(() => ({
+      reachable: false,
+      proof: "origin_unmerged",
+      details: ["abc123 task commit"],
+    })),
   };
 });
 
@@ -61,6 +70,8 @@ vi.mock("./archive-helpers/git-finalize", async () => {
     verifyChangeBranchReachable: mocks.verifyChangeBranchReachable,
     verifyChangeBranchPushed: mocks.verifyChangeBranchPushed,
     verifyDefaultBranchPushed: mocks.verifyDefaultBranchPushed,
+    classifyFinalizationRoute: mocks.classifyFinalizationRoute,
+    resolveReleaseReachability: mocks.resolveReleaseReachability,
   };
 });
 
@@ -132,6 +143,15 @@ describe("release gate trunk-merge enforcement", () => {
     mocks.querySignal.mockReset();
     mocks.querySignal.mockResolvedValueOnce(releaseReadyGates());
     mocks.querySignal.mockResolvedValueOnce({ status: "done" });
+    mocks.classifyFinalizationRoute.mockReturnValue({
+      route: "direct",
+      repo: "Sharper-Flow/Advance",
+    });
+    mocks.resolveReleaseReachability.mockReturnValue({
+      reachable: false,
+      proof: "origin_unmerged",
+      details: ["abc123 task commit"],
+    });
   });
 
   test("rejects release completion when the change branch is not reachable from default branch (direct mode)", async () => {
@@ -152,6 +172,11 @@ describe("release gate trunk-merge enforcement", () => {
       reachable: true,
       unmergedCommits: [],
     });
+    mocks.resolveReleaseReachability.mockReturnValueOnce({
+      reachable: false,
+      proof: "origin_push_unverified",
+      details: ["origin/trunk behind local trunk"],
+    });
 
     const result = await gateTools.adv_gate_complete.execute(
       { changeId: "example", gateId: "release", completedBy: "user:signoff" },
@@ -163,6 +188,29 @@ describe("release gate trunk-merge enforcement", () => {
     expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
   });
 
+  test("rejects release completion when local merge is not reachable from origin/default", async () => {
+    mocks.verifyChangeBranchReachable.mockReturnValueOnce({
+      reachable: true,
+      unmergedCommits: [],
+    });
+    mocks.verifyDefaultBranchPushed.mockReturnValueOnce({ pushed: true });
+    mocks.resolveReleaseReachability.mockReturnValueOnce({
+      reachable: false,
+      proof: "origin_unmerged",
+      details: ["abc123 task commit"],
+    });
+
+    const result = await gateTools.adv_gate_complete.execute(
+      { changeId: "example", gateId: "release", completedBy: "user:signoff" },
+      createMockStore(),
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.error).toContain("RELEASE_REQUIRES_TRUNK_MERGE");
+    expect(parsed.unmergedCommits).toContain("abc123 task commit");
+    expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+  });
+
   test("allows release completion when the change branch is reachable and pushed (direct mode)", async () => {
     mocks.verifyChangeBranchReachable.mockReturnValueOnce({
       reachable: true,
@@ -170,6 +218,10 @@ describe("release gate trunk-merge enforcement", () => {
     });
     mocks.verifyDefaultBranchPushed.mockReturnValueOnce({
       pushed: true,
+    });
+    mocks.resolveReleaseReachability.mockReturnValueOnce({
+      reachable: true,
+      proof: "origin_default",
     });
 
     const result = await gateTools.adv_gate_complete.execute(
@@ -180,6 +232,35 @@ describe("release gate trunk-merge enforcement", () => {
     const parsed = JSON.parse(result);
     expect(parsed.success).toBe(true);
     expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
+  });
+
+  test("revalidates origin reachability before release gate recovery", async () => {
+    mocks.resolveReleaseReachability
+      .mockReturnValueOnce({ reachable: true, proof: "origin_default" })
+      .mockReturnValueOnce({
+        reachable: false,
+        proof: "origin_unmerged",
+        details: ["abc123 task commit"],
+      });
+    mocks.fireSignalAndRefresh.mockRejectedValueOnce(
+      new Error("workflow execution already completed"),
+    );
+
+    const result = await gateTools.adv_gate_complete.execute(
+      {
+        changeId: "example",
+        gateId: "release",
+        completedBy: "user:signoff",
+        compatibilityReason: "legacy completed workflow",
+        recoveryReason: "release gate recovery after completed workflow",
+        recoveryEvidence: "workflow execution already completed",
+      },
+      createMockStore(),
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.error).toContain("RELEASE_REQUIRES_TRUNK_MERGE");
+    expect(parsed.unmergedCommits).toContain("abc123 task commit");
   });
 
   test("rejects release completion when change branch is not pushed (pr mode)", async () => {

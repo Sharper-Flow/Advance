@@ -61,9 +61,9 @@ import {
   detectArchiveMode,
   detectDefaultBranch,
   resolveMainCheckout,
-  verifyChangeBranchReachable,
+  classifyFinalizationRoute,
+  resolveReleaseReachability,
   verifyChangeBranchPushed,
-  verifyDefaultBranchPushed,
 } from "./archive-helpers/git-finalize";
 import type { WorkflowHandleLike } from "../storage/store-temporal/shared";
 import {
@@ -209,6 +209,64 @@ function releaseRequiresDefaultBranchPushResponse(input: {
     requirement: "rq-releaseFinalization01",
     changeId: input.changeId,
     remediation: `Run /adv-archive ${input.changeId} to complete Phase 9 (merge + push ${input.defaultBranch} + verify), then retry release gate completion.`,
+  });
+}
+
+function getReleaseFinalizationBlocker(input: {
+  store: Store;
+  change: Change;
+  changeId: string;
+}): string | null {
+  const { archiveMode } = detectArchiveMode(input.store.config ?? {});
+  const mainCheckout = resolveMainCheckout(input.store.paths.root);
+  const { branch: defaultBranch } = detectDefaultBranch(mainCheckout);
+
+  if (archiveMode === "pr") {
+    const pushCheck = verifyChangeBranchPushed(mainCheckout, input.changeId);
+    if (!pushCheck.pushed) {
+      return releaseRequiresPrHandoffResponse({
+        changeId: input.changeId,
+        reason: pushCheck.reason ?? "change branch not pushed to origin",
+      });
+    }
+    return null;
+  }
+
+  const route = classifyFinalizationRoute(mainCheckout, defaultBranch);
+  const reachability = resolveReleaseReachability({
+    mainCheckout,
+    defaultBranch,
+    changeId: input.changeId,
+    route,
+    prNumber: input.change.phase9_status?.prNumber,
+  });
+  if (reachability.reachable) return null;
+
+  if (reachability.proof === "origin_push_unverified") {
+    return releaseRequiresDefaultBranchPushResponse({
+      changeId: input.changeId,
+      defaultBranch,
+      reason:
+        reachability.details?.join("; ") ??
+        `${defaultBranch} not pushed to origin`,
+    });
+  }
+
+  if (reachability.proof === "pr_unmerged") {
+    return releaseRequiresPrHandoffResponse({
+      changeId: input.changeId,
+      reason: [
+        reachability.autoMergeArmed ? "pending auto-merge" : "PR is not merged",
+        ...(reachability.details ?? []),
+      ].join("; "),
+    });
+  }
+
+  return releaseRequiresTrunkMergeResponse({
+    changeId: input.changeId,
+    defaultBranch:
+      route.route === "no_remote" ? defaultBranch : `origin/${defaultBranch}`,
+    unmergedCommits: reachability.details ?? [],
   });
 }
 
@@ -438,6 +496,15 @@ async function completeGateViaRecovery(input: {
       })),
       ...(input.extraPayload ?? {}),
     });
+  }
+
+  if (input.gateId === "release") {
+    const blocker = getReleaseFinalizationBlocker({
+      store: input.store,
+      change: recoveryChange,
+      changeId: input.changeId,
+    });
+    if (blocker) return blocker;
   }
 
   const recoveryState = buildRecoveryReadinessState({
@@ -1223,45 +1290,12 @@ export const gateTools = {
         }
 
         if (gateId === "release") {
-          const { archiveMode } = detectArchiveMode(activeStore.config ?? {});
-          const mainCheckout = resolveMainCheckout(activeStore.paths.root);
-          const { branch: defaultBranch } = detectDefaultBranch(mainCheckout);
-
-          if (archiveMode === "direct") {
-            const reachability = verifyChangeBranchReachable(
-              mainCheckout,
-              defaultBranch,
-              changeId,
-            );
-            if (!reachability.reachable) {
-              return releaseRequiresTrunkMergeResponse({
-                changeId,
-                defaultBranch,
-                unmergedCommits: reachability.unmergedCommits,
-              });
-            }
-            const pushCheck = verifyDefaultBranchPushed(
-              mainCheckout,
-              defaultBranch,
-            );
-            if (!pushCheck.pushed) {
-              return releaseRequiresDefaultBranchPushResponse({
-                changeId,
-                defaultBranch,
-                reason:
-                  pushCheck.reason ?? `${defaultBranch} not pushed to origin`,
-              });
-            }
-          } else if (archiveMode === "pr") {
-            const pushCheck = verifyChangeBranchPushed(mainCheckout, changeId);
-            if (!pushCheck.pushed) {
-              return releaseRequiresPrHandoffResponse({
-                changeId,
-                reason:
-                  pushCheck.reason ?? "change branch not pushed to origin",
-              });
-            }
-          }
+          const blocker = getReleaseFinalizationBlocker({
+            store: activeStore,
+            change,
+            changeId,
+          });
+          if (blocker) return blocker;
         }
 
         // Signal-driven mutation: fire gateCompletedSignal after
