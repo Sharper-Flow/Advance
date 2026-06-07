@@ -961,7 +961,7 @@ Fallback modes: `mode: "terminal"` returns path; MUST use as `workdir` for all l
 
 ### Worktree Cleanup
 
-`/adv-archive` Phase 9 owns structural git finalization: validate change worktree → commit `.adv/` archive/spec artifacts → detect default branch → `--ff-only` merge + push, or PR-mode branch-push handoff. Release gate enforcement: `adv_gate_complete gateId: "release"` rejects direct-mode completion unless `change/{change-id}` is reachable from and pushed with default branch (`rq-releaseFinalization01.5`). PR projects must set `archive_mode: "pr"` and complete PR branch-push handoff (`rq-releaseFinalization01.6`). × Never delete worktree with unmerged commits. Tools unavailable → `[ADV:BLOCKED] Worktree tools unavailable — hard block with error. Do not proceed in-place.`
+`/adv-archive` Phase 9 owns structural git finalization: validate change worktree → commit `.adv/` archive/spec artifacts → detect default branch → prove no-remote local merge, post-fetch `origin/{default-branch}` reachability, or merged PR state. Remote-backed protected/policy routes use PR + GitHub auto-merge: `Pending auto-merge.` leaves release/archive incomplete until PR state is `MERGED`; `Blocked.` leaves the change active when PR/auto-merge or origin proof is unavailable. `adv_gate_complete gateId: "release"`, `phase9:"skip"`, and release recovery all revalidate the same proof (`rq-releaseFinalization01`). `adv_archive_repair` scans/re-drives archived-but-unmerged remote `change/*` branches through idempotent PR auto-merge without force-push. × Never delete worktree with unmerged commits. Tools unavailable → `[ADV:BLOCKED] Worktree tools unavailable — hard block with error. Do not proceed in-place.`
 
 ## When to Use ADV
 
