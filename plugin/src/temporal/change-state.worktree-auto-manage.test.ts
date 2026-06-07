@@ -18,6 +18,7 @@ import { describe, expect, it } from "vitest";
 import {
   applyWorktreeAttachedToState,
   applyWorktreeAutoManagedToState,
+  applyWorktreeCreatedToState,
   createChangeWorkflowState,
 } from "./change-state";
 
@@ -30,6 +31,39 @@ function freshState() {
     createdAt: ISO,
   });
 }
+
+describe("applyWorktreeCreatedToState", () => {
+  // rq-worktreeMutationGuard01.4 regression: worktreeCreatedSignal is fired
+  // only at advWorktreeCreate Step 7 (AFTER setup hooks pass), so the stored
+  // record MUST carry setupReady:true. Otherwise worktreeExistsForChange (the
+  // isolation existing-worktree ALLOW probe, which requires setupReady===true)
+  // can never recognize the materialized worktree and main-checkout sessions
+  // can never mutate ADV state.
+  it("stamps setupReady:true so worktreeExistsForChange can recognize the worktree", () => {
+    const state = freshState();
+
+    applyWorktreeCreatedToState(state, {
+      branch: "change/tk-test",
+      path: "/tmp/wt/tk-test",
+      baseRef: "trunk",
+      headSha: "abc1234",
+      createdAt: ISO,
+    });
+
+    const record = (state.worktrees ?? {})["change/tk-test"] as Record<
+      string,
+      unknown
+    >;
+    expect(record).toMatchObject({
+      branch: "change/tk-test",
+      path: "/tmp/wt/tk-test",
+      setupReady: true,
+    });
+    expect(record.status).not.toBe("deleted");
+    expect(record.status).not.toBe("setup_failed");
+    expect(state.lastSignalAt).toBe(ISO);
+  });
+});
 
 describe("applyWorktreeAutoManagedToState", () => {
   it("stamps value when state.worktree_auto_managed is undefined", () => {

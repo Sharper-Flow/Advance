@@ -884,7 +884,14 @@ export function applyWorktreeCreatedToState(
 ): ChangeWorkflowState {
   state.worktrees = {
     ...(state.worktrees ?? {}),
-    [payload.branch]: { ...payload, status: "created" },
+    // worktreeCreatedSignal is fired only at advWorktreeCreate Step 7
+    // ("register in worktree_registry only after setup is ready"), i.e.
+    // after postCreate setup hooks pass. Stamp setupReady:true so
+    // worktreeExistsForChange (the isolation existing-worktree ALLOW probe,
+    // rq-worktreeMutationGuard01.4, which requires setupReady===true) can
+    // recognize the materialized worktree. Without this the probe is dead
+    // code and main-checkout sessions can never mutate ADV state.
+    [payload.branch]: { ...payload, status: "created", setupReady: true },
   };
   setLastSignalAt(state, payload.createdAt);
   return state;

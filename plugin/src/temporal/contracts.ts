@@ -301,6 +301,11 @@ export interface ChangeWorkflowState extends ChangeWorkflowInput {
       createdAt?: string;
       deletedAt?: string;
       deleteReason?: string;
+      // Stamped true by applyWorktreeCreatedToState because
+      // worktreeCreatedSignal fires only post-setup (advWorktreeCreate
+      // Step 7). worktreeExistsForChange requires setupReady===true for the
+      // isolation existing-worktree ALLOW probe (rq-worktreeMutationGuard01.4).
+      setupReady?: boolean;
     }
   >;
   conformance?: {
