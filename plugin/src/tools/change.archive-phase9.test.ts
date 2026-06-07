@@ -372,6 +372,51 @@ describe("adv_change_archive Phase 9 behavior", () => {
     expect(mocks.closeLinkedIssue).not.toHaveBeenCalled();
   });
 
+  test("keeps change active when finalization is pending auto-merge", async () => {
+    mocks.finalizeRelease.mockResolvedValueOnce({
+      status: "pending_merge",
+      mainCheckout: "/tmp/main",
+      defaultBranch: "trunk",
+      pushStatus: "pushed",
+      prBranch: "change/example",
+      prNumber: 42,
+      prUrl: "https://github.com/Sharper-Flow/Advance/pull/42",
+      autoMergeArmed: true,
+      route: "pr_auto_merge",
+    });
+
+    const store = createMockStore();
+    const result = await changeTools.adv_change_archive.execute(
+      { changeId: "example", worktreePath: "/tmp/worktree" },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(true);
+    expect(parsed.phase9).toBe("pending_merge");
+    expect(parsed.finalization).toMatchObject({
+      status: "pending_merge",
+      prNumber: 42,
+      autoMergeArmed: true,
+    });
+    expect(mocks.workflow.handle.signal).not.toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ gateId: "release" }),
+    );
+    expect(mocks.workflow.signalPayloads).toContainEqual(
+      expect.objectContaining({
+        phase9_status: expect.objectContaining({
+          status: "pending_merge",
+          prNumber: 42,
+          prUrl: "https://github.com/Sharper-Flow/Advance/pull/42",
+          autoMergeArmed: true,
+        }),
+      }),
+    );
+    expect(store.changes.save).not.toHaveBeenCalled();
+    expect(mocks.closeLinkedIssue).not.toHaveBeenCalled();
+  });
+
   test("reconciles release gate from existing bundle without worktree", async () => {
     // T10 (removePositionalArtifactApi): readArtifact in validation
     // context now calls findArchiveBundle as fallback before the archive
@@ -746,6 +791,49 @@ describe("adv_change_archive Phase 9 behavior", () => {
     expect(store.changes.save).toHaveBeenLastCalledWith(
       expect.objectContaining({ status: "archived" }),
     );
+  });
+
+  test("async phase9 callback records pending_merge without archiving", async () => {
+    mocks.finalizeRelease.mockResolvedValueOnce({
+      status: "pending_merge",
+      mainCheckout: "/tmp/main",
+      defaultBranch: "trunk",
+      pushStatus: "pushed",
+      prBranch: "change/example",
+      prNumber: 42,
+      prUrl: "https://github.com/Sharper-Flow/Advance/pull/42",
+      autoMergeArmed: true,
+      route: "pr_auto_merge",
+    });
+    const store = createMockStore();
+    let capturedRun: (() => Promise<void>) | undefined;
+    mocks.dispatchPhase9Finalization.mockImplementationOnce(
+      (params: { run: () => Promise<void> }) => {
+        capturedRun = params.run;
+      },
+    );
+
+    await changeTools.adv_change_archive.execute(
+      { changeId: "example", worktreePath: "/tmp/worktree", phase9: "run" },
+      store,
+    );
+
+    expect(capturedRun).toBeDefined();
+    await capturedRun!();
+
+    expect(mocks.workflow.signalPayloads).toContainEqual(
+      expect.objectContaining({
+        phase9_status: expect.objectContaining({
+          status: "pending_merge",
+          prNumber: 42,
+          autoMergeArmed: true,
+        }),
+      }),
+    );
+    expect(store.changes.save).not.toHaveBeenCalledWith(
+      expect.objectContaining({ status: "archived" }),
+    );
+    expect(mocks.closeLinkedIssue).not.toHaveBeenCalled();
   });
 
   test("async phase9 callback records failed status on blocked finalization", async () => {

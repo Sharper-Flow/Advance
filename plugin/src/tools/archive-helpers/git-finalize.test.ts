@@ -719,6 +719,238 @@ describe("git-finalize helpers", () => {
     expect(pushCalls.some((c) => c.args.includes("change/example"))).toBe(true);
   });
 
+  it("finalizeRelease turns protected default push rejection into pending auto-merge PR", async () => {
+    const main = join(tempRoot, "protected-main");
+    const worktree = join(tempRoot, "protected-wt");
+    await mkdir(main);
+    await initRepo(main);
+    git(main, [
+      "remote",
+      "add",
+      "origin",
+      "https://github.com/Sharper-Flow/Advance.git",
+    ]);
+    git(main, ["worktree", "add", "-b", "change/example", worktree]);
+    await writeFile(join(worktree, "feature.txt"), "feature\n");
+    git(worktree, ["add", "feature.txt"]);
+    git(worktree, ["commit", "-m", "feature"]);
+
+    const gitCalls: string[][] = [];
+    const ghCalls: string[][] = [];
+    let branchViewCount = 0;
+    const result = await finalizeRelease(
+      {
+        changeId: "example",
+        workdir: worktree,
+        archiveMode: "direct",
+        autoPush: true,
+      },
+      {
+        runGit: (cwd, args) => {
+          gitCalls.push(args);
+          if (args[0] === "fetch" && args[1] === "origin") {
+            return { status: 0, stdout: "", stderr: "" };
+          }
+          if (args[0] === "push" && args.includes("trunk")) {
+            return {
+              status: 1,
+              stdout: "",
+              stderr: "remote: protected branch hook declined",
+            };
+          }
+          if (args[0] === "push" && args.includes("change/example")) {
+            return { status: 0, stdout: "pushed branch", stderr: "" };
+          }
+          if (args[0] === "reset" && args[1] === "--hard") {
+            return { status: 0, stdout: "reset", stderr: "" };
+          }
+          return defaultRunGit(cwd, args);
+        },
+        runGh: (_cwd, args) => {
+          ghCalls.push(args);
+          if (args[0] === "api" && args[1].includes("/rules/branches/")) {
+            return {
+              status: 0,
+              stdout: JSON.stringify([{ type: "required_status_checks" }]),
+              stderr: "",
+            };
+          }
+          if (args[0] === "api" && args[1] === "repos/Sharper-Flow/Advance") {
+            return { status: 0, stdout: "true\n", stderr: "" };
+          }
+          if (args[0] === "pr" && args[1] === "view") {
+            const selector = args[2];
+            if (selector === "change/example") {
+              branchViewCount += 1;
+              if (branchViewCount === 1) {
+                return {
+                  status: 1,
+                  stdout: "",
+                  stderr: "no pull requests found",
+                };
+              }
+              return {
+                status: 0,
+                stdout: JSON.stringify({
+                  number: 42,
+                  url: "https://github.com/Sharper-Flow/Advance/pull/42",
+                  state: "OPEN",
+                  autoMergeRequest: null,
+                }),
+                stderr: "",
+              };
+            }
+            if (selector === "42") {
+              return {
+                status: 0,
+                stdout: JSON.stringify({
+                  state: "OPEN",
+                  mergedAt: null,
+                  mergeCommit: null,
+                  autoMergeRequest: { enabledAt: "2026-06-07T00:00:00Z" },
+                }),
+                stderr: "",
+              };
+            }
+          }
+          if (args[0] === "pr" && args[1] === "create") {
+            return {
+              status: 0,
+              stdout: "https://github.com/Sharper-Flow/Advance/pull/42\n",
+              stderr: "",
+            };
+          }
+          if (args[0] === "pr" && args[1] === "merge") {
+            return { status: 0, stdout: "Auto-merge enabled", stderr: "" };
+          }
+          return {
+            status: 1,
+            stdout: "",
+            stderr: `unexpected gh ${args.join(" ")}`,
+          };
+        },
+      },
+    );
+
+    expect(result).toMatchObject({
+      status: "pending_merge",
+      route: "pr_auto_merge",
+      prBranch: "change/example",
+      prNumber: 42,
+      prUrl: "https://github.com/Sharper-Flow/Advance/pull/42",
+      autoMergeArmed: true,
+      pushStatus: "pushed",
+    });
+    expect(gitCalls).toContainEqual(["reset", "--hard", "origin/trunk"]);
+    expect(ghCalls).toContainEqual([
+      "pr",
+      "merge",
+      "42",
+      "--repo",
+      "Sharper-Flow/Advance",
+      "--squash",
+      "--auto",
+    ]);
+  });
+
+  it("finalizeRelease collapses immediately merged auto-merge PR to shipped", async () => {
+    const main = join(tempRoot, "merged-pr-main");
+    const worktree = join(tempRoot, "merged-pr-wt");
+    await mkdir(main);
+    await initRepo(main);
+    git(main, [
+      "remote",
+      "add",
+      "origin",
+      "https://github.com/Sharper-Flow/Advance.git",
+    ]);
+    git(main, ["worktree", "add", "-b", "change/example", worktree]);
+    await writeFile(join(worktree, "feature.txt"), "feature\n");
+    git(worktree, ["add", "feature.txt"]);
+    git(worktree, ["commit", "-m", "feature"]);
+
+    const result = await finalizeRelease(
+      {
+        changeId: "example",
+        workdir: worktree,
+        archiveMode: "direct",
+        autoPush: true,
+      },
+      {
+        runGit: (cwd, args) => {
+          if (args[0] === "fetch" && args[1] === "origin") {
+            return { status: 0, stdout: "", stderr: "" };
+          }
+          if (args[0] === "push" && args.includes("trunk")) {
+            return { status: 1, stdout: "", stderr: "protected" };
+          }
+          if (args[0] === "push" && args.includes("change/example")) {
+            return { status: 0, stdout: "pushed branch", stderr: "" };
+          }
+          if (args[0] === "reset" && args[1] === "--hard") {
+            return { status: 0, stdout: "reset", stderr: "" };
+          }
+          return defaultRunGit(cwd, args);
+        },
+        runGh: (_cwd, args) => {
+          if (args[0] === "api" && args[1].includes("/rules/branches/")) {
+            return {
+              status: 0,
+              stdout: JSON.stringify([{ type: "required_status_checks" }]),
+              stderr: "",
+            };
+          }
+          if (args[0] === "api" && args[1] === "repos/Sharper-Flow/Advance") {
+            return { status: 0, stdout: "true\n", stderr: "" };
+          }
+          if (args[0] === "pr" && args[1] === "view") {
+            const selector = args[2];
+            if (selector === "change/example") {
+              return {
+                status: 0,
+                stdout: JSON.stringify({
+                  number: 42,
+                  url: "https://github.com/Sharper-Flow/Advance/pull/42",
+                  state: "OPEN",
+                  autoMergeRequest: null,
+                }),
+                stderr: "",
+              };
+            }
+            if (selector === "42") {
+              return {
+                status: 0,
+                stdout: JSON.stringify({
+                  state: "MERGED",
+                  mergedAt: "2026-06-07T00:00:00Z",
+                  mergeCommit: { oid: "merge-sha" },
+                  autoMergeRequest: null,
+                }),
+                stderr: "",
+              };
+            }
+          }
+          if (args[0] === "pr" && args[1] === "merge") {
+            return { status: 0, stdout: "Merged", stderr: "" };
+          }
+          return {
+            status: 1,
+            stdout: "",
+            stderr: `unexpected gh ${args.join(" ")}`,
+          };
+        },
+      },
+    );
+
+    expect(result).toMatchObject({
+      status: "shipped",
+      route: "pr_auto_merge",
+      prNumber: 42,
+      mergeCommitSha: "merge-sha",
+      pushStatus: "pushed",
+    });
+  });
+
   it("finalizeRelease in PR mode blocks when branch push is skipped", async () => {
     const main = join(tempRoot, "main");
     const worktree = join(tempRoot, "wt");

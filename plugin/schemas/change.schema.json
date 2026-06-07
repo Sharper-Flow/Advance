@@ -2184,10 +2184,32 @@
     "phase9_status": {
       "additionalProperties": false,
       "properties": {
+        "autoMergeArmed": {
+          "type": "boolean"
+        },
         "completedAt": {
           "type": "string"
         },
         "error": {
+          "type": "string"
+        },
+        "prNumber": {
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991,
+          "type": "integer"
+        },
+        "prUrl": {
+          "format": "uri",
+          "type": "string"
+        },
+        "route": {
+          "enum": [
+            "no_remote",
+            "direct",
+            "pr_auto_merge",
+            "pr_manual",
+            "blocked"
+          ],
           "type": "string"
         },
         "startedAt": {
@@ -2196,6 +2218,7 @@
         "status": {
           "enum": [
             "pending",
+            "pending_merge",
             "done",
             "failed"
           ],

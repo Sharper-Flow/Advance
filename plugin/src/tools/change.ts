@@ -1222,8 +1222,25 @@ function buildReleaseCompletionEvidence(
       ? `mainCheckpointCommitSha=${finalization.mainCheckpointCommitSha}`
       : null,
     finalization.prBranch ? `prBranch=${finalization.prBranch}` : null,
+    finalization.prNumber ? `prNumber=${finalization.prNumber}` : null,
+    finalization.prUrl ? `prUrl=${finalization.prUrl}` : null,
+    finalization.route ? `route=${finalization.route}` : null,
   ].filter(Boolean);
   return `Phase 9 finalization ${finalization.status}; ${details.join("; ")}`;
+}
+
+function buildPendingMergePhase9Status(input: {
+  finalization: GitFinalizeOutcome;
+  startedAt: string;
+}): Phase9FinalizationStatus {
+  return {
+    status: "pending_merge",
+    startedAt: input.startedAt,
+    prNumber: input.finalization.prNumber,
+    prUrl: input.finalization.prUrl,
+    autoMergeArmed: input.finalization.autoMergeArmed,
+    route: input.finalization.route,
+  };
 }
 
 async function recordPhase9Status(input: {
@@ -3897,6 +3914,18 @@ export const changeTools = {
                 );
               }
 
+              if (currentFinalization.status === "pending_merge") {
+                await recordPhase9Status({
+                  store,
+                  changeId,
+                  status: buildPendingMergePhase9Status({
+                    finalization: currentFinalization,
+                    startedAt: currentChange.phase9_status?.startedAt ?? now,
+                  }),
+                });
+                return;
+              }
+
               const releaseResult = await completeReleaseGateAfterFinalization({
                 store,
                 change: currentChange,
@@ -3957,6 +3986,7 @@ export const changeTools = {
               if (
                 currentFinalization?.status === "shipped" &&
                 currentFinalization.mainCheckout &&
+                currentFinalization.route !== "pr_auto_merge" &&
                 archiveMode === "direct"
               ) {
                 try {
@@ -4049,6 +4079,48 @@ export const changeTools = {
               version: `${s.originalVersion} → ${s.newVersion}`,
               deltas: s.deltaResults.length,
             })),
+          });
+        }
+
+        if (finalization.status === "pending_merge") {
+          await recordPhase9Status({
+            store,
+            changeId,
+            status: buildPendingMergePhase9Status({
+              finalization,
+              startedAt:
+                change.phase9_status?.startedAt ?? new Date().toISOString(),
+            }),
+          });
+          return formatToolOutput({
+            success: true,
+            specsUpdated: archiveResult.specsUpdated.map((s) => ({
+              capability: s.capability,
+              version: `${s.originalVersion} → ${s.newVersion}`,
+              deltas: s.deltaResults.length,
+            })),
+            docsGenerated: archiveResult.docsGenerated,
+            archivePath: archiveResult.archivePath,
+            errors: archiveResult.errors,
+            dryRun: false,
+            ...(archiveResult.multiRepo
+              ? { multiRepo: archiveResult.multiRepo }
+              : {}),
+            phase9: "pending_merge",
+            finalization,
+            continueFrom: {
+              path: finalization.mainCheckout,
+              branch: finalization.defaultBranch,
+            },
+            ...(validationResult.warnings.length > 0
+              ? {
+                  validationWarnings: validationResult.warnings.map((w) => ({
+                    code: w.code,
+                    message: w.message,
+                    path: w.path,
+                  })),
+                }
+              : {}),
           });
         }
 
@@ -4268,6 +4340,7 @@ export const changeTools = {
         if (
           finalization?.status === "shipped" &&
           finalization.mainCheckout &&
+          finalization.route !== "pr_auto_merge" &&
           archiveMode === "direct"
         ) {
           try {
