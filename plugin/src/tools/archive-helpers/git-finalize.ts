@@ -6,7 +6,7 @@ import { spawnSyncGit } from "../../utils/git-binary";
 export type ArchiveMode = "direct" | "pr";
 
 export interface GitFinalizeOutcome {
-  status: "shipped" | "blocked" | "pr_pushed" | "pending_merge";
+  status: "shipped" | "blocked" | "pending_merge";
   mainCheckout: string;
   defaultBranch: string;
   route?: ReleaseFinalizationRouteName;
@@ -1771,7 +1771,7 @@ export function resolveReleaseReachability(
 export function detectArchiveMode(
   config: Record<string, unknown> | undefined,
 ): { archiveMode: ArchiveMode; autoPush: boolean } {
-  const archiveMode = (config?.archive_mode ?? "direct") as unknown;
+  const archiveMode = config?.archive_mode ?? "direct";
   if (archiveMode !== "direct" && archiveMode !== "pr") {
     throw new Error(`Invalid archive_mode: ${String(archiveMode)}`);
   }

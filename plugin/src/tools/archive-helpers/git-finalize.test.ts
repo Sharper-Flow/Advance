@@ -794,8 +794,7 @@ describe("git-finalize helpers", () => {
       mainCheckpointCommitSha: expect.any(String),
     });
     // Verify the checkpoint commit actually happened on main
-    const checkpointSha = (result as any).mainCheckpointCommitSha;
-    expect(checkpointSha).toBeTruthy();
+    expect(result.mainCheckpointCommitSha).toBeTruthy();
   });
 
   it("finalizeRelease commits archive artifacts before merge", async () => {
