@@ -1,0 +1,33 @@
+{
+  "entries": [
+    {
+      "id": "ws-ODmpwB",
+      "type": "gotcha",
+      "content": "When task mutations are routed through target_path worktree, root-scope adv_change_validate may show stale NO_TASKS/CONTRACT_AC_UNCOVERED even while adv_task_list and target adv_change_show show tasks. Use target-state reads for continuity and track root validation mismatch separately (agenda ag-i48YQyDl).",
+      "source_task": "tk-d2a5776f8c61",
+      "recorded_at": "2026-06-07T04:22:58.673Z"
+    },
+    {
+      "id": "ws-pAgHtc",
+      "type": "success",
+      "content": "Focused worktree lifecycle verification can cover both reducer projection and guard safety without broad suites: pair `change-state.worktree-auto-manage.test.ts` with `state-record-probe.test.ts`, `workflows.signal-handlers.test.ts`, and `workflow-bundle-boundary.test.ts`; static-check signal schema separately for no derived fields.",
+      "source_task": "tk-f21723ab4b8a",
+      "recorded_at": "2026-06-07T04:25:21.604Z"
+    },
+    {
+      "id": "ws-b7GTzV",
+      "type": "gotcha",
+      "content": "Temporal SDK WorkflowClient.getHandle is `this`-dependent (calls this.getOrMakeInterceptors()). NEVER extract it into a bare variable: `const gh = client.workflow.getHandle; gh(id)` throws \"Cannot read properties of undefined (reading 'getOrMakeInterceptors')\". Always call bound: `client.workflow.getHandle(id)`. getWorktreeRecord (state.ts) did the unbound extraction and swallowed the throw in a try/catch → returned null → worktreeExistsForChange always false → the worktree-isolation existing-worktree ALLOW probe never fired → ALL main-checkout ADV mutations were blocked regardless of setupReady/restarts/deploys. This was the true root cause behind \"worktree isolation keeps blocking, restarts don't help.\"",
+      "source_task": "tk-e334636cf865",
+      "recorded_at": "2026-06-07T13:30:15.171Z"
+    },
+    {
+      "id": "ws-gZVkcN",
+      "type": "gotcha",
+      "content": "Test mocks that don't model `this` hide unbound-method bugs. state-record-probe.test.ts mocked getService → client.workflow.getHandle as a free vi.fn() that ignores `this`, so the unbound extraction in getWorktreeRecord passed all tests while throwing against the real SDK. When a dependency's method relies on `this` (Temporal getHandle, many SDK clients), the fake MUST also rely on `this` (e.g. getHandle(){ this.getOrMakeInterceptors() }) so unbound call sites fail in unit tests. Also: pnpm run build (tsup/esbuild) and vitest skip full tsc — a latent type error (WorktreeRecordStatus missing \"created\") survived until `pnpm run typecheck`/`pnpm run check`. Run the full static gate, not just build+focused tests, before claiming done.",
+      "source_task": "tk-e334636cf865",
+      "recorded_at": "2026-06-07T13:30:24.918Z"
+    }
+  ],
+  "count": 4
+}
