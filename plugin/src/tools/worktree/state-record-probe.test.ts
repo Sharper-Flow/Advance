@@ -79,6 +79,22 @@ describe("getWorktreeRecord", () => {
     expect(getHandleFn).toHaveBeenCalledWith("adv/change/proj-123/myChange");
   });
 
+  it("normalizes legacy created records with a path as setup-ready", async () => {
+    queryFn.mockResolvedValueOnce(
+      stateWithWorktree("myChange", "change/myChange", {
+        branch: "change/myChange",
+        path: "/wt/change/myChange",
+        status: "created",
+        createdAt: "2026-01-01T00:00:00Z",
+        baseRef: "trunk",
+        headSha: "abc123",
+      }),
+    );
+
+    const record = await getWorktreeRecord(access, "change/myChange");
+    expect(record?.setupReady).toBe(true);
+  });
+
   it("returns null for a non-change branch", async () => {
     const record = await getWorktreeRecord(access, "feature/foo");
     expect(record).toBeNull();
@@ -129,6 +145,18 @@ describe("worktreeExistsForChange (GFD-2 predicate)", () => {
 
   it("returns true for a materialized setup-ready worktree", async () => {
     mockRecord(ready);
+    expect(await worktreeExistsForChange(access, "c")).toBe(true);
+  });
+
+  it("returns true for a legacy created record with path and missing setupReady", async () => {
+    mockRecord({
+      branch: "change/c",
+      path: "/wt/change/c",
+      status: "created",
+      createdAt: "2026-01-01T00:00:00Z",
+      baseRef: "trunk",
+      headSha: "abc",
+    });
     expect(await worktreeExistsForChange(access, "c")).toBe(true);
   });
 

@@ -157,6 +157,20 @@ export interface ResolvedWorktreeAccess {
 // HELPERS
 // =============================================================================
 
+function setupReadyFromRecord(r: WorktreeRecord): boolean | undefined {
+  if (typeof r.setupReady === "boolean") return r.setupReady;
+
+  // Back-compat for change-workflow records written before
+  // applyWorktreeCreatedToState stamped setupReady:true. In that map,
+  // status:"created" is produced only by worktreeCreatedSignal, which fires
+  // after setup succeeds. Preserve explicit false and missing-path records.
+  if (r.status === "created" && typeof r.path === "string" && r.path) {
+    return true;
+  }
+
+  return undefined;
+}
+
 function _recordToWorktree(r: WorktreeRecord): Worktree {
   return {
     branch: r.branch,
@@ -168,7 +182,7 @@ function _recordToWorktree(r: WorktreeRecord): Worktree {
     headSha: r.headSha,
     source: r.source,
     sourceVersion: r.sourceVersion,
-    setupReady: r.setupReady,
+    setupReady: setupReadyFromRecord(r),
     setupFailureReason: r.setupFailureReason,
     dirty: r.dirty,
     merged: r.merged,
