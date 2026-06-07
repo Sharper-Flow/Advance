@@ -784,17 +784,14 @@ describe("git-finalize helpers", () => {
       autoPush: false,
     });
 
-    // Dirty main on default branch is now checkpointed instead of blocking.
-    // After checkpoint, merge proceeds and push is skipped (no remote).
+    // Dirty main on default branch is checkpointed. With no remote, local
+    // release proof is enough and the terminal is Merged locally.
     expect(result).toMatchObject({
-      status: "blocked",
+      status: "shipped",
       defaultBranch: "trunk",
+      route: "no_remote",
       pushStatus: "skipped",
       mainCheckpointCommitSha: expect.any(String),
-      blocked: {
-        reason: "DEFAULT_BRANCH_PUSH_SKIPPED",
-        remediation: expect.stringContaining("rq-releaseFinalization01"),
-      },
     });
     // Verify the checkpoint commit actually happened on main
     const checkpointSha = (result as any).mainCheckpointCommitSha;
@@ -835,7 +832,7 @@ describe("git-finalize helpers", () => {
     expect(git(main, ["show", "HEAD:.adv/archive/bundle.txt"])).toBe("bundle");
   });
 
-  it("finalizeRelease blocks when default-branch push is skipped or fails", async () => {
+  it("finalizeRelease completes no-remote local archive", async () => {
     const main = join(tempRoot, "main");
     const worktree = join(tempRoot, "wt");
     await mkdir(main);
@@ -852,21 +849,30 @@ describe("git-finalize helpers", () => {
       autoPush: false,
     });
 
-    expect(skipped.status).toBe("blocked");
-    expect(skipped.blocked?.reason).toBe("DEFAULT_BRANCH_PUSH_SKIPPED");
+    expect(skipped.status).toBe("shipped");
+    expect(skipped.route).toBe("no_remote");
+    expect(skipped.pushStatus).toBe("skipped");
+    expect(skipped.pushFailureReason).toContain("origin");
   });
 
-  it("finalizeRelease in PR mode pushes branch and returns pr_pushed", async () => {
+  it("finalizeRelease in PR mode opens PR and returns pending auto-merge", async () => {
     const main = join(tempRoot, "main");
     const worktree = join(tempRoot, "wt");
     await mkdir(main);
     await initRepo(main);
+    git(main, [
+      "remote",
+      "add",
+      "origin",
+      "https://github.com/Sharper-Flow/Advance.git",
+    ]);
     git(main, ["worktree", "add", "-b", "change/example", worktree]);
     await writeFile(join(worktree, "feature.txt"), "feature\n");
     git(worktree, ["add", "feature.txt"]);
     git(worktree, ["commit", "-m", "feature"]);
 
     const pushCalls: { cwd: string; args: string[] }[] = [];
+    let branchViewCount = 0;
     const result = await finalizeRelease(
       {
         changeId: "example",
@@ -877,16 +883,82 @@ describe("git-finalize helpers", () => {
       {
         runGit: (cwd, args) => {
           pushCalls.push({ cwd, args });
+          if (args[0] === "fetch" && args[1] === "origin") {
+            return { status: 0, stdout: "", stderr: "" };
+          }
+          if (args[0] === "reset" && args[1] === "--hard") {
+            return { status: 0, stdout: "reset", stderr: "" };
+          }
           if (args[0] === "push" && args.includes("change/example")) {
             return { status: 0, stdout: "remote: create PR...", stderr: "" };
           }
           return defaultRunGit(cwd, args);
         },
+        runGh: (_cwd, args) => {
+          if (args[0] === "api" && args[1].includes("/rules/branches/")) {
+            return { status: 0, stdout: "[]", stderr: "" };
+          }
+          if (args[0] === "pr" && args[1] === "view") {
+            const selector = args[2];
+            if (selector === "change/example") {
+              branchViewCount += 1;
+              if (branchViewCount === 1) {
+                return {
+                  status: 1,
+                  stdout: "",
+                  stderr: "no pull requests found",
+                };
+              }
+              return {
+                status: 0,
+                stdout: JSON.stringify({
+                  number: 42,
+                  url: "https://github.com/Sharper-Flow/Advance/pull/42",
+                  state: "OPEN",
+                  autoMergeRequest: null,
+                }),
+                stderr: "",
+              };
+            }
+            if (selector === "42") {
+              return {
+                status: 0,
+                stdout: JSON.stringify({
+                  state: "OPEN",
+                  mergedAt: null,
+                  mergeCommit: null,
+                  autoMergeRequest: { enabledAt: "2026-06-07T00:00:00Z" },
+                }),
+                stderr: "",
+              };
+            }
+          }
+          if (args[0] === "pr" && args[1] === "create") {
+            return {
+              status: 0,
+              stdout: "https://github.com/Sharper-Flow/Advance/pull/42\n",
+              stderr: "",
+            };
+          }
+          if (args[0] === "pr" && args[1] === "merge") {
+            return { status: 0, stdout: "Auto-merge enabled", stderr: "" };
+          }
+          return {
+            status: 1,
+            stdout: "",
+            stderr: `unexpected gh ${args.join(" ")}`,
+          };
+        },
       },
     );
 
-    expect(result.status).toBe("pr_pushed");
+    expect(result.status).toBe("pending_merge");
     expect(result.prBranch).toBe("change/example");
+    expect(result.prNumber).toBe(42);
+    expect(result.prUrl).toBe(
+      "https://github.com/Sharper-Flow/Advance/pull/42",
+    );
+    expect(result.autoMergeArmed).toBe(true);
     expect(result.pushStatus).toBe("pushed");
     expect(pushCalls.some((c) => c.args.includes("change/example"))).toBe(true);
   });
@@ -1123,7 +1195,7 @@ describe("git-finalize helpers", () => {
     });
   });
 
-  it("finalizeRelease in PR mode blocks when branch push is skipped", async () => {
+  it("finalizeRelease in PR mode blocks when origin is missing", async () => {
     const main = join(tempRoot, "main");
     const worktree = join(tempRoot, "wt");
     await mkdir(main);
@@ -1138,7 +1210,7 @@ describe("git-finalize helpers", () => {
     });
 
     expect(result.status).toBe("blocked");
-    expect(result.blocked?.reason).toBe("PR_BRANCH_PUSH_SKIPPED");
+    expect(result.blocked?.reason).toBe("PR_WORKFLOW_REQUIRES_ORIGIN");
   });
 
   it("verifyDefaultBranchPushed compares local HEAD with origin branch", () => {
@@ -1424,7 +1496,6 @@ describe("git-finalize helpers", () => {
     await writeFile(join(main, "dirty.txt"), "dirty content\n");
     git(main, ["worktree", "add", "-b", "change/example", worktree]);
 
-    // Add remote so push is attempted (will be skipped since no actual remote)
     const result = await finalizeRelease({
       changeId: "example",
       workdir: worktree,
@@ -1432,9 +1503,11 @@ describe("git-finalize helpers", () => {
       autoPush: false,
     });
 
-    // Push is skipped (no remote), but checkpoint should have happened
+    // Push is skipped because no remote exists, but no-remote local proof is
+    // release-complete and checkpoint evidence is preserved.
     expect(result).toMatchObject({
-      status: "blocked",
+      status: "shipped",
+      route: "no_remote",
       pushStatus: "skipped",
       mainCheckpointCommitSha: expect.any(String),
     });

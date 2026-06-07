@@ -416,6 +416,19 @@ export function classifyFinalizationRoute(
   };
 }
 
+export function coercePrWorkflowRoute(
+  route: FinalizationRoute,
+): FinalizationRoute {
+  if (route.route === "blocked" || route.route === "no_remote") return route;
+  if (!route.repo) return route;
+  if (route.route === "pr_manual") return route;
+  return {
+    ...route,
+    route: "pr_auto_merge",
+    protected: route.protected ?? true,
+  };
+}
+
 export function resolveMainCheckout(
   workdir: string,
   deps: GitFinalizeDeps = {},
@@ -1991,38 +2004,39 @@ export async function finalizeRelease(
   }
 
   if (ctx.archiveMode === "pr") {
-    const branchPush = pushChangeBranch(ctx.workdir, ctx.changeId, {
-      autoPush: ctx.autoPush,
-      skipPush: ctx.skipPush,
-      runGit: deps.runGit,
-    });
-
-    if (branchPush.status === "pushed") {
+    const route = coercePrWorkflowRoute(
+      classifyFinalizationRoute(mainCheckout, defaultBranch, deps),
+    );
+    if (route.route === "no_remote" || route.route === "blocked") {
       return {
-        status: "pr_pushed",
+        status: "blocked",
         mainCheckout,
         defaultBranch,
+        route: route.route,
         prBranch: `change/${ctx.changeId}`,
-        pushStatus: "pushed",
+        pushStatus: "not_attempted",
+        blocked: {
+          reason:
+            route.route === "no_remote"
+              ? "PR_WORKFLOW_REQUIRES_ORIGIN"
+              : (route.reason ?? "PR_WORKFLOW_ROUTE_BLOCKED"),
+          remediation: `PR archive mode requires an origin-backed GitHub repository and merged PR proof before release completion (rq-releaseFinalization01).`,
+          details: route.details ?? (route.reason ? [route.reason] : undefined),
+        },
       };
     }
 
-    return {
-      status: "blocked",
-      mainCheckout,
-      defaultBranch,
-      prBranch: `change/${ctx.changeId}`,
-      pushStatus: branchPush.status,
-      pushFailureReason: branchPush.reason,
-      blocked: {
-        reason:
-          branchPush.status === "failed"
-            ? "PR_BRANCH_PUSH_FAILED"
-            : "PR_BRANCH_PUSH_SKIPPED",
-        remediation: `Change branch change/${ctx.changeId} must be pushed for PR-mode handoff before release completion (rq-releaseFinalization01).`,
-        details: [branchPush.reason],
+    return completeProtectedBranchViaPullRequest(
+      {
+        mainCheckout,
+        defaultBranch,
+        workdir: ctx.workdir,
+        changeId: ctx.changeId,
+        route,
+        pushFailureReason: "archive_mode_pr",
       },
-    };
+      deps,
+    );
   }
 
   // rq-releaseFinalization01.7/.8: Readiness check replaces old invariant gate.
@@ -2143,6 +2157,25 @@ export async function finalizeRelease(
     mergeCommitSha = merge.mergeCommitSha;
   } else {
     mergeCommitSha = runGitOrThrow(mainCheckout, ["rev-parse", "HEAD"], deps);
+  }
+
+  const routeAfterMerge = classifyFinalizationRoute(
+    mainCheckout,
+    defaultBranch,
+    deps,
+  );
+  if (routeAfterMerge.route === "no_remote") {
+    return {
+      status: "shipped",
+      mainCheckout,
+      defaultBranch,
+      route: "no_remote",
+      mergeCommitSha,
+      mainCheckpointCommitSha,
+      pushStatus: "skipped",
+      pushFailureReason:
+        routeAfterMerge.reason ?? "origin remote not configured",
+    };
   }
 
   const push = pushToOrigin(mainCheckout, defaultBranch, {

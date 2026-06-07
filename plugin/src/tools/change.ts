@@ -331,10 +331,10 @@ import {
   finalizeRelease,
   validateChangeWorktree,
   classifyFinalizationRoute,
+  coercePrWorkflowRoute,
   resolveReleaseReachability,
   detectArchivedUnmergedBranches,
   redriveArchivedUnmergedBranch,
-  verifyChangeBranchPushed,
   type GitFinalizeOutcome,
 } from "./archive-helpers/git-finalize";
 import { dispatchPhase9Finalization } from "./archive-helpers/phase9-queue";
@@ -1286,33 +1286,15 @@ function verifyReleaseEvidenceFromMain(input: {
   const mainCheckout = input.store.paths.root;
   const { branch: defaultBranch } = detectDefaultBranch(mainCheckout);
 
-  if (input.archiveMode === "pr") {
-    const branchPush = verifyChangeBranchPushed(mainCheckout, input.changeId);
-    if (branchPush.pushed) {
-      return {
-        status: "pr_pushed",
-        mainCheckout,
-        defaultBranch,
-        prBranch: `change/${input.changeId}`,
-        pushStatus: "pushed",
-      };
-    }
-    return {
-      status: "blocked",
-      mainCheckout,
-      defaultBranch,
-      prBranch: `change/${input.changeId}`,
-      pushStatus: "failed",
-      pushFailureReason: branchPush.reason,
-      blocked: {
-        reason: "PR_BRANCH_PUSH_NOT_VERIFIED",
-        remediation: `Change branch change/${input.changeId} must be pushed for PR-mode handoff before release completion (rq-releaseFinalization01).`,
-        details: [branchPush.reason ?? "change branch push not verified"],
-      },
-    };
-  }
-
-  const route = classifyFinalizationRoute(mainCheckout, defaultBranch);
+  const classifiedRoute = classifyFinalizationRoute(
+    mainCheckout,
+    defaultBranch,
+  );
+  const route =
+    input.archiveMode === "pr" ||
+    input.change?.phase9_status?.status === "pending_merge"
+      ? coercePrWorkflowRoute(classifiedRoute)
+      : classifiedRoute;
   const reachability = resolveReleaseReachability({
     mainCheckout,
     defaultBranch,
@@ -1509,7 +1491,7 @@ async function verifyReleaseGateDurableForArchive(input: {
 }
 
 /**
- * Record the release gate after Phase 9 returns shipped/pr_pushed evidence and
+ * Record the release gate after Phase 9 returns shipped evidence and
  * before archive status retires the workflow. Each Temporal interaction can
  * race a completed workflow, so query, signal, and confirmation poll all route
  * completed-workflow failures through disk-projection recovery.
@@ -1520,10 +1502,7 @@ async function completeReleaseGateAfterFinalization(input: {
   changeId: string;
   finalization: GitFinalizeOutcome;
 }): Promise<ArchiveReleaseGateResult> {
-  if (
-    input.finalization.status !== "shipped" &&
-    input.finalization.status !== "pr_pushed"
-  ) {
+  if (input.finalization.status !== "shipped") {
     return {
       ok: false,
       error: `Release gate requires successful Phase 9 finalization, got ${input.finalization.status}`,
@@ -4432,17 +4411,14 @@ export const changeTools = {
       }
 
       // Issue closure — after archive state is durable (or previewed in dryRun)
-      const issueClosure =
-        finalization?.status === "pr_pushed"
-          ? { issue_closed: [], close_eligible: false }
-          : await closeLinkedIssue({
-              change,
-              store,
-              noCloseIssue,
-              dryRun,
-              existingBundlePath: existingBundlePath ?? undefined,
-              worktreePath,
-            });
+      const issueClosure = await closeLinkedIssue({
+        change,
+        store,
+        noCloseIssue,
+        dryRun,
+        existingBundlePath: existingBundlePath ?? undefined,
+        worktreePath,
+      });
 
       return formatToolOutput({
         success: archiveResult.success,

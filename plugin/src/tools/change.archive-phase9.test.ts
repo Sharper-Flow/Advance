@@ -649,7 +649,7 @@ describe("adv_change_archive Phase 9 behavior", () => {
     expect(store.changes.save).not.toHaveBeenCalled();
   });
 
-  test("returns pr_pushed outcome in PR mode", async () => {
+  test("rejects legacy pr_pushed outcome before release completion", async () => {
     mocks.detectArchiveMode.mockReturnValueOnce({
       archiveMode: "pr",
       autoPush: true,
@@ -669,11 +669,11 @@ describe("adv_change_archive Phase 9 behavior", () => {
     );
 
     const parsed = JSON.parse(result);
-    expect(parsed.success).toBe(true);
-    expect(parsed.finalization).toMatchObject({
-      status: "pr_pushed",
-      prBranch: "change/example",
-    });
+    expect(parsed.success).toBe(false);
+    expect(parsed.error).toContain("Archive release gate completion blocked");
+    expect(parsed.error).toContain("pr_pushed");
+    expect(parsed.requirement).toBe("rq-releaseFinalization01");
+    expect(store.changes.save).not.toHaveBeenCalled();
     expect(mocks.closeLinkedIssue).not.toHaveBeenCalled();
   });
 
