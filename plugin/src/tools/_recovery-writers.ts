@@ -11,9 +11,20 @@
  *
  * The disk-direct writers structurally require an authorization reason and
  * evidence. Callers remain responsible for proving that evidence before
- * invoking the writer; the writers ensure the disk write is atomic. They do
- * not refresh the Temporal-backed cache because a completed-but-queryable
- * workflow can project stale workflow state back over the recovery write.
+ * invoking the writer; the writers ensure the disk write is atomic.
+ *
+ * Cache refresh policy:
+ * - Task writers (mutation/add) use `store.changes.save` + `bestEffortRefresh`.
+ *   `store.changes.save` already routes through Temporal on the regular path.
+ * - Gate completion (`saveRecoveredGateCompletion`) and artifact metadata
+ *   (`saveRecoveredArtifactMetadata`) use disk-direct `saveChange` WITHOUT
+ *   `bestEffortRefresh`. These target workflows that may still be actively
+ *   processing; refreshing could pull in an intermediate state that overwrites
+ *   the disk repair.
+ * - Status transition (`saveRecoveredChangeStatus`) uses disk-direct
+ *   `saveChange` + `bestEffortRefresh`. The workflow is already in a terminal
+ *   state (completed or poisoned); the in-memory cache must be invalidated
+ *   so subsequent `store.changes.get()` calls re-seed from the corrected disk.
  */
 import type { Store } from "../storage/store-types";
 import type { Change, Gates } from "../types";
@@ -174,5 +185,10 @@ export async function saveRecoveredChangeStatus(input: {
     ...(input.closure ? { closure: input.closure } : {}),
   } as Change;
   await saveChange(input.store.paths.changes, updated);
+  // fixStatusRepairCache AC1: invalidate in-memory changeCache and memo so
+  // the next store.changes.get() re-seeds from the corrected disk projection.
+  // The workflow is terminal (completed or poisoned) so there is no risk of
+  // a running workflow projecting stale state back over the repair.
+  await bestEffortRefresh(input.store, input.change.id);
   return updated;
 }

@@ -277,9 +277,28 @@ describe("saveRecoveredChangeStatus", () => {
       "/tmp/test/.adv/changes",
       expect.objectContaining({ status: "archived" }),
     );
-    // Completed-but-queryable workflows can project stale state back over the
-    // disk repair, so disk-direct recovery deliberately skips refresh.
-    expect(store.changes.refresh).not.toHaveBeenCalled();
+  });
+
+  it("calls store.changes.refresh after disk write to invalidate stale cache", async () => {
+    const { store } = createMockStore();
+    const change = baseChange();
+    (mockedSaveChange as unknown as ReturnType<typeof vi.fn>).mockClear();
+
+    await saveRecoveredChangeStatus({
+      store,
+      change,
+      authorization: {
+        reason: "operator_status_repair",
+        evidence: "WorkflowNotFoundError + operator approved",
+      },
+      status: "archived",
+    });
+
+    // fixStatusRepairCache AC1: bestEffortRefresh is called after the disk
+    // write so the in-memory changeCache and memo are invalidated. Next
+    // store.changes.get() will re-seed from the corrected disk projection.
+    expect(store.changes.refresh).toHaveBeenCalledTimes(1);
+    expect(store.changes.refresh).toHaveBeenCalledWith("test-change");
   });
 
   it("requires recovery authorization for disk-direct status writes", async () => {
