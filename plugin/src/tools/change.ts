@@ -4798,4 +4798,139 @@ export const changeTools = {
       }
     },
   },
+
+  adv_change_status_repair: {
+    description:
+      "Repair a change whose archive bundle is written and whose gates are all done, but whose status field is wedged at non-archived because the terminating workflow signal could not be processed (completed/poisoned workflow → WorkflowNotFoundError) and the phase-9 PR-merged finalization cannot re-detect a squash-merged or deleted release branch. This is a targeted, audited disk-projection status flip (→ archived) gated on the real shipped invariant (all 7 gates done + archive bundle present on disk). It does NOT push branches, create PRs, or run phase-9 finalization. Use only after adv_change_archive has written the bundle but left status wedged. Unblocks adv_reflect.",
+    args: {
+      changeId: z.string().describe("Change ID whose status is wedged"),
+      approvedByUser: z
+        .literal(true)
+        .describe(
+          "Must be true — confirms operator explicitly approved the disk-projection status repair",
+        ),
+      approvalEvidence: z
+        .string()
+        .describe(
+          "Audited evidence: cite the wedged-state proof (e.g. WorkflowNotFoundError / phase9_status.failed) and operator approval.",
+        ),
+      dryRun: z
+        .boolean()
+        .optional()
+        .describe(
+          "Preview the repair (gate + bundle checks) without writing the status flip.",
+        ),
+    },
+    execute: async (
+      {
+        changeId,
+        approvedByUser: _approvedByUser,
+        approvalEvidence,
+        dryRun,
+      }: {
+        changeId: string;
+        approvedByUser: true;
+        approvalEvidence: string;
+        dryRun?: boolean;
+      },
+      store: Store,
+    ) => {
+      if (!approvalEvidence || approvalEvidence.trim().length === 0) {
+        return formatToolOutput({
+          error: "approvalEvidence is required for change status repair",
+          changeId,
+          hint: "Cite the wedged-state evidence (WorkflowNotFoundError / phase9_status.failed) and operator approval.",
+        });
+      }
+
+      const result = await store.changes.get(changeId);
+      if (!result.success) {
+        return formatToolOutput({ error: result.error });
+      }
+      if (!result.data) {
+        return formatToolOutput({ error: `Change not found: ${changeId}` });
+      }
+      const change = result.data;
+
+      // Idempotent: already archived → nothing to repair.
+      if (change.status === "archived") {
+        return formatToolOutput({
+          success: true,
+          changeId,
+          status: "archived",
+          message: `Change ${changeId} is already archived; no repair needed.`,
+        });
+      }
+
+      // Invariant 1: every gate must be done. Repair only finalizes the status
+      // field; it must never substitute for incomplete gate work.
+      const gates = change.gates ?? createDefaultGates();
+      const incompleteGates = GATE_ORDER.filter(
+        (gateId) => gates[gateId]?.status !== "done",
+      );
+      if (incompleteGates.length > 0) {
+        return formatToolOutput({
+          success: false,
+          error: `Cannot repair status: gate(s) not done: ${incompleteGates.join(", ")}.`,
+          changeId,
+          incompleteGates,
+          hint: "Status repair only finalizes a fully-gated, already-archived-on-disk change. Complete the gates via the normal workflow.",
+        });
+      }
+
+      // Invariant 2: the archive bundle must already exist on disk. This proves
+      // adv_change_archive wrote the bundle and only the status flip is missing.
+      const bundlePath = await findArchiveBundle(store.paths.archive, changeId);
+      if (!bundlePath) {
+        return formatToolOutput({
+          success: false,
+          error: `Cannot repair status: no archive bundle found for ${changeId}.`,
+          changeId,
+          hint: "Run adv_change_archive first so the archive bundle is written, then repair the wedged status.",
+        });
+      }
+
+      if (dryRun) {
+        return formatToolOutput({
+          success: true,
+          dryRun: true,
+          changeId,
+          fromStatus: change.status,
+          toStatus: "archived",
+          archivePath: bundlePath,
+          message: `Would flip ${changeId} status ${change.status} → archived (all gates done, bundle present).`,
+        });
+      }
+
+      try {
+        const { saveRecoveredChangeStatus } =
+          await import("./_recovery-writers");
+        await saveRecoveredChangeStatus({
+          store,
+          change,
+          authorization: {
+            reason: "operator_status_repair",
+            evidence: approvalEvidence.trim(),
+          },
+          status: "archived",
+        });
+      } catch (error) {
+        return formatToolOutput({
+          success: false,
+          error: `Failed to repair change status: ${error instanceof Error ? error.message : String(error)}`,
+          changeId,
+        });
+      }
+
+      return formatToolOutput({
+        success: true,
+        changeId,
+        fromStatus: change.status,
+        status: "archived",
+        archivePath: bundlePath,
+        _recoveryMutation: true,
+        message: `Repaired ${changeId} status → archived (disk-projection). adv_reflect can now run.`,
+      });
+    },
+  },
 };
