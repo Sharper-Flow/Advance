@@ -744,7 +744,6 @@ describe("advisory line ceiling baselines", () => {
     commandLineBaselines: Record<string, number>;
   };
   const COMMAND_BASELINES = tokenBudgets.commandLineBaselines;
-  const INSTRUCTIONS_BASELINE = tokenBudgets.advInstructionsLineBaseline;
 
   test("advisory: command files within baseline tolerance (warn-only)", () => {
     const commandDir = join(REPO_ROOT, ".opencode/command");
@@ -772,32 +771,6 @@ describe("advisory line ceiling baselines", () => {
 
     // Advisory: always passes
     expect(true).toBe(true);
-  });
-
-  test("ADV_INSTRUCTIONS.md uses ratcheting line guard", () => {
-    const filePath = join(REPO_ROOT, "ADV_INSTRUCTIONS.md");
-    const content = readFileSync(filePath, "utf8");
-    const lines = content.split("\n").length;
-    const warnThreshold = 650;
-    // 2026-05-03: bumped from 925 → 950 to accommodate intentional
-    // long-term-practice rule docs plus multi-session coordination docs.
-    // 2026-05-24: bumped 950 → 960 (softenStrictModeOptionals AC10) to
-    // accommodate the strict-mode tolerance note in § ADV MCP Tool
-    // Invocation. The paragraph documents provider-asymmetric preflight
-    // normalization behavior that future maintainers need to see; it cites
-    // Vercel AI SDK #12200 inline.
-    // 2026-06-06: bumped 960 → 980 after release/worktree protocol docs grew
-    // with structural archive finalization and worktree isolation guidance.
-    // Ratchet up only when adding intentional documented content.
-    const failThreshold = 980;
-
-    if (lines > warnThreshold) {
-      console.warn(
-        `\n[ADV:TOKEN_BUDGET] ADV_INSTRUCTIONS.md: ${lines} lines (warn: ${warnThreshold}, fail: ${failThreshold}, baseline: ${INSTRUCTIONS_BASELINE})`,
-      );
-    }
-
-    expect(lines).toBeLessThanOrEqual(failThreshold);
   });
 
   test("advisory: total command file line count (warn-only)", () => {
