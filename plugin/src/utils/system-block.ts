@@ -193,6 +193,7 @@ export const PROVIDER_HINTS: Readonly<Record<ProviderHintKey, string>> = {
     "- For ADV apply tasks, when delegation routing marks work `delegate_allowed` or `delegate_preferred`, prefer spawning `adv-engineer`; execute inline only when context-bound",
     "- For local code exploration, use lgrep tools (lgrep_search_semantic, lgrep_search_symbols) as the FIRST choice — do not start with glob or grep for concept or symbol queries",
     "- Sequential tool dependencies must be executed one at a time in order — never parallelize dependent calls",
+    "- Parallel tool calls are for independent operations only — never run the same command multiple times in parallel; make one call, wait for the result, then decide next steps",
     "- When a tool choice exists, pick the most specific one; prefer lgrep over grep, prefer read over cat, prefer ADV MCP tools over direct file access",
     "- Before calling any tool, verify that every required parameter is present and matches the schema — do not guess or invent parameter values",
   ].join("\n"),
