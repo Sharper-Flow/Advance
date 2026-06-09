@@ -231,10 +231,6 @@ interface PluginState extends StatusFlags {
 
   /** Last detected session-resume hazard to surface in system context. */
   lastSessionHealthIssue: SessionHealthIssue | null;
-  /** Provider ID seen on the previous turn — drives provider-switch hint
-   *  in the assembled system block. Updated each turn after the
-   *  experimental.chat.system.transform hook runs. */
-  lastProviderID: string | null;
 }
 
 /**
@@ -385,7 +381,6 @@ const advancePluginImpl: Plugin = async (input) => {
     isMainCheckout,
 
     lastSessionHealthIssue: null,
-    lastProviderID: null,
   };
 
   // AC6 — reset session-scoped metrics on every plugin init. JC-1 keeps
@@ -783,9 +778,6 @@ const advancePluginImpl: Plugin = async (input) => {
   // calls for session-scoped status/todo handling.
   let mainSessionId: string | null = null;
 
-  // Provider-switch detection lives in `state.lastProviderID` — see
-  // applyAdvSystemBlock invocation in the system.transform hook below.
-
   // Register process-level shutdown handlers (tolerates init failure).
   const { removeProcessListeners } = registerShutdownHandlers(store);
 
@@ -923,13 +915,9 @@ const advancePluginImpl: Plugin = async (input) => {
           debugLog(`Captured mainSessionId: ${mainSessionId}`);
         }
 
-        const currentProviderID =
-          input.model?.providerID?.toLowerCase() ?? null;
-
         const beforeBytes = output.system[0]?.length ?? 0;
         const result = applyAdvSystemBlock(output, {
           state,
-          currentProviderID,
           initError,
           storeAvailable: !!store,
         });
@@ -938,12 +926,6 @@ const advancePluginImpl: Plugin = async (input) => {
         if (result.emitted) {
           const afterBytes = output.system[0]?.length ?? 0;
           recordSystemBlockBytes(afterBytes - beforeBytes);
-        }
-
-        // Update lastProviderID after assembly (so the next turn detects
-        // the switch). Track regardless of whether this turn emitted.
-        if (currentProviderID) {
-          state.lastProviderID = currentProviderID;
         }
 
         // Wisdom prompt is volatile: clear lastCompletedTask once it has
