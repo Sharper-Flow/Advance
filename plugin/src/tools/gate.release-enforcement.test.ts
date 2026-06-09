@@ -234,6 +234,24 @@ describe("release gate trunk-merge enforcement", () => {
     expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
   });
 
+  test("allows release completion when direct route ancestry fails but PR is squash-merged", async () => {
+    mocks.resolveReleaseReachability.mockReturnValueOnce({
+      reachable: true,
+      proof: "pr_merged",
+      prNumber: 159,
+      mergeCommitOid: "squash-merge-sha",
+    });
+
+    const result = await gateTools.adv_gate_complete.execute(
+      { changeId: "example", gateId: "release", completedBy: "user:signoff" },
+      createMockStore(),
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(true);
+    expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
+  });
+
   test("revalidates origin reachability before release gate recovery", async () => {
     mocks.resolveReleaseReachability
       .mockReturnValueOnce({ reachable: true, proof: "origin_default" })
