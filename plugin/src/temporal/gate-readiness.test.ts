@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { createDefaultGates } from "../types";
 import {
   ARTIFACT_BACKED_GATES,
+  artifactCascadeWarnings,
   evaluateGateReadiness,
   gateArtifactEvidenceSchema,
   stateBackedArtifactEvidence,
@@ -532,5 +533,101 @@ describe("gate readiness", () => {
         non_whitespace_chars: 120,
       }),
     ).toMatchObject({ kind: "design", path: "/tmp/design.md" });
+  });
+
+  describe("artifact cascade warnings", () => {
+    it("emits cascade reminder when prior artifact-backed gates are done", () => {
+      const gates = createDefaultGates();
+      gates.proposal.status = "done";
+      gates.discovery.status = "done";
+
+      const warnings = artifactCascadeWarnings(
+        makeState({
+          gates,
+          documents: {
+            proposal: "# Proposal with substantive content for testing.",
+            agreement: "# Agreement with substantive content for testing.",
+            design: "# Design with substantive content for testing.",
+          },
+        }),
+        "design",
+      );
+
+      expect(warnings).toContainEqual(
+        expect.objectContaining({
+          code: "CASCADE_REMINDER",
+          message: expect.stringContaining("proposal"),
+        }),
+      );
+    });
+
+    it("detects contradiction keywords in current artifact", () => {
+      const warnings = artifactCascadeWarnings(
+        makeState({
+          documents: {
+            design:
+              "# Design\n\nThis design TODO needs review and FIXME before shipping.",
+          },
+        }),
+        "design",
+      );
+
+      expect(warnings).toContainEqual(
+        expect.objectContaining({
+          code: "ARTIFACT_CONTRADICTION_KEYWORDS",
+          artifactKind: "design",
+          message: expect.stringContaining("TODO"),
+        }),
+      );
+    });
+
+    it("returns no warnings when no prior artifacts or keywords exist", () => {
+      const warnings = artifactCascadeWarnings(
+        makeState({
+          documents: {
+            design: "# Design\n\nClean design content without any markers.",
+          },
+        }),
+        "design",
+      );
+
+      expect(warnings).toEqual([]);
+    });
+
+    it("does not affect ready status in evaluateGateReadiness", () => {
+      const gates = createDefaultGates();
+      gates.proposal.status = "done";
+      gates.discovery.status = "done";
+
+      const result = evaluateGateReadiness(
+        makeState({
+          gates,
+          documents: {
+            proposal: "# Proposal with substantive content for testing.",
+            agreement: "# Agreement with substantive content for testing.",
+            design: "# Design TODO review this before shipping.",
+          },
+        }),
+        "design",
+      );
+
+      expect(result.ready).toBe(true);
+      expect(result.warnings).toBeDefined();
+      expect(result.warnings!.length).toBeGreaterThan(0);
+    });
+
+    it("omits warnings field when no warnings exist", () => {
+      const result = evaluateGateReadiness(
+        makeState({
+          documents: {
+            proposal:
+              "# Proposal with clean substantive content for testing here.",
+          },
+        }),
+        "proposal",
+      );
+
+      expect(result.warnings).toBeUndefined();
+    });
   });
 });

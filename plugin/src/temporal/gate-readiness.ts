@@ -26,10 +26,17 @@ export interface GateReadinessOptions {
   enforceDiscoveryContract?: boolean;
 }
 
+export interface GateReadinessWarning {
+  code: string;
+  message: string;
+  artifactKind?: GateArtifactKind;
+}
+
 export interface GateReadinessResult {
   ready: boolean;
   blockers: GateReadinessBlocker[];
   evidence?: GateArtifactEvidence;
+  warnings?: GateReadinessWarning[];
 }
 
 function makeBlocker(
@@ -92,6 +99,71 @@ function artifactStoreBlocker(
 
 function nonWhitespaceCount(text: string): number {
   return text.replace(/\s/g, "").length;
+}
+
+/**
+ * Non-blocking advisory warnings for truth ordering cascade consistency.
+ *
+ * Checks prior artifact-backed gates for cascade reminders and scans the
+ * current artifact for contradiction indicators. Warnings do NOT block
+ * gate completion — they surface potential inconsistencies for human review.
+ *
+ * Inspired by OpenAI Model Spec truth ordering cascade: later artifacts
+ * must not contradict earlier ones without explicit amendment.
+ */
+export function artifactCascadeWarnings(
+  state: ChangeWorkflowState,
+  gateId: GateId,
+): GateReadinessWarning[] {
+  const warnings: GateReadinessWarning[] = [];
+  const gateIndex = GATE_ORDER.indexOf(gateId);
+
+  // Cascade reminder: when completing an artifact-backed gate with prior
+  // artifact-backed gates done, remind about truth ordering consistency.
+  const currentArtifactKind = ARTIFACT_BACKED_GATES[gateId];
+  if (currentArtifactKind && gateIndex > 0) {
+    const priorArtifactKinds = GATE_ORDER.slice(0, gateIndex)
+      .filter(
+        (gid) =>
+          ARTIFACT_BACKED_GATES[gid] && state.gates[gid]?.status === "done",
+      )
+      .map((gid) => ARTIFACT_BACKED_GATES[gid]!)
+      .filter((kind) => state.documents?.[kind]?.trim());
+
+    if (priorArtifactKinds.length > 0) {
+      warnings.push({
+        code: "CASCADE_REMINDER",
+        message: `Prior artifacts (${priorArtifactKinds.join(", ")}) should be consistent with ${currentArtifactKind}. Verify no contradictions in truth ordering cascade before proceeding.`,
+      });
+    }
+  }
+
+  // Keyword scan: detect contradiction indicators in current artifact.
+  if (currentArtifactKind) {
+    const content = state.documents?.[currentArtifactKind] ?? "";
+    if (content.trim().length > 0) {
+      const contradictionKeywords = [
+        "TODO",
+        "TBD",
+        "FIXME",
+        "HACK",
+        "contradicts",
+        "overrides",
+      ];
+      const found = contradictionKeywords.filter((kw) =>
+        content.toLowerCase().includes(kw.toLowerCase()),
+      );
+      if (found.length > 0) {
+        warnings.push({
+          code: "ARTIFACT_CONTRADICTION_KEYWORDS",
+          message: `${currentArtifactKind} contains potential contradiction indicators: ${found.join(", ")}. Review before proceeding.`,
+          artifactKind: currentArtifactKind,
+        });
+      }
+    }
+  }
+
+  return warnings;
 }
 
 export function stateBackedArtifactEvidence(
@@ -423,9 +495,12 @@ export function evaluateGateReadiness(
     }
   }
 
+  const warnings = artifactCascadeWarnings(state, gateId);
+
   return {
     ready: blockers.length === 0,
     blockers,
     ...(evidence ? { evidence } : {}),
+    ...(warnings.length > 0 ? { warnings } : {}),
   };
 }
