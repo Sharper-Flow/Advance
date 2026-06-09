@@ -1,0 +1,1737 @@
+{
+  "id": "extractProviderHintsStandalone",
+  "title": "Extract provider hints to standalone plugin",
+  "status": "archived",
+  "created_at": "2026-06-09T20:08:33.391Z",
+  "tasks": [
+    {
+      "id": "tk-27170820a565",
+      "title": "Create new plugin scaffold at ~/toolbox/plugins/opencode-provider-hints/",
+      "type": "code",
+      "section": "Phase 1: Create Plugin",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-06-09T20:23:25.228Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-09T20:28:10.435Z",
+      "verification": "Plugin scaffold created at ~/toolbox/plugins/opencode-provider-hints/ with package.json, plugin.js, providers/ dir. Committed to toolbox repo (3664d37).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "c8fafa3b62a96e6547184cb31ecb5464b1fe1eb2",
+      "completedAt": "2026-06-09T20:31:31.721Z",
+      "completed_at": "2026-06-09T20:31:31.721Z",
+      "contract_refs": {
+        "not_applicable_reason": "Pre-contract task: created before standard rigor contract was minted"
+      },
+      "updatedAt": "2026-06-09T21:35:22.695Z"
+    },
+    {
+      "id": "tk-3c2446e55571",
+      "title": "Move 6 provider hint source markdown files from ADV to new plugin",
+      "type": "code",
+      "section": "Phase 1: Create Plugin",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-06-09T20:23:26.171Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "cancelApproval": "Cancelling duplicate tasks created during planning phase",
+      "cancelledAt": "2026-06-09T20:24:24.154Z",
+      "completed_at": "2026-06-09T21:39:49.497Z",
+      "cancellation": {
+        "reason": "Duplicate of tk-fbbec2dc241e",
+        "approved_by_user": true,
+        "approval_evidence": "Cancelling duplicate tasks created during planning phase",
+        "approved_at": "2026-06-09T20:24:24.154Z"
+      },
+      "verification": "Pre-contract task metadata patch: contract_refs not_applicable_reason set for archive validation",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "84284a933486d524a4b9ef34040a5652c5a8b256",
+      "completedAt": "2026-06-09T21:39:49.497Z",
+      "contract_refs": {
+        "not_applicable_reason": "Pre-contract task: created before standard rigor contract was minted"
+      },
+      "updatedAt": "2026-06-09T21:40:09.289Z"
+    },
+    {
+      "id": "tk-fbbec2dc241e",
+      "title": "Move 6 provider hint source markdown files from ADV to new plugin",
+      "type": "code",
+      "section": "Phase 1: Create Plugin",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-06-09T20:23:26.271Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "verification": "6 provider hint .md files copied to new plugin providers/ dir. Committed to toolbox repo (3664d37).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "c8fafa3b62a96e6547184cb31ecb5464b1fe1eb2",
+      "completedAt": "2026-06-09T20:31:33.029Z",
+      "completed_at": "2026-06-09T20:31:33.029Z",
+      "contract_refs": {
+        "not_applicable_reason": "Pre-contract task: created before standard rigor contract was minted"
+      },
+      "updatedAt": "2026-06-09T21:35:23.471Z"
+    },
+    {
+      "id": "tk-f4f936ae9f47",
+      "title": "Create test suite for new plugin covering provider hint emission, switch detection, and fallback chain",
+      "type": "code",
+      "section": "Phase 2: Port Tests",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-06-09T20:23:29.897Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "verification": "test/plugin.test.js created with 15 tests. Committed to toolbox repo (3664d37).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "c8fafa3b62a96e6547184cb31ecb5464b1fe1eb2",
+      "completedAt": "2026-06-09T20:31:34.343Z",
+      "completed_at": "2026-06-09T20:31:34.343Z",
+      "contract_refs": {
+        "not_applicable_reason": "Pre-contract task: created before standard rigor contract was minted"
+      },
+      "updatedAt": "2026-06-09T21:35:24.217Z"
+    },
+    {
+      "id": "tk-ef2aeab06ded",
+      "title": "Create deploy script for new plugin using atomic hash-based copy pattern",
+      "type": "code",
+      "section": "Phase 3: Deploy Script",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-06-09T20:23:33.872Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "cancelApproval": "Cancelling duplicate tasks created during planning phase",
+      "cancelledAt": "2026-06-09T20:24:24.070Z",
+      "completed_at": "2026-06-09T21:40:15.909Z",
+      "cancellation": {
+        "reason": "Duplicate of tk-2e0172be920d",
+        "approved_by_user": true,
+        "approval_evidence": "Cancelling duplicate tasks created during planning phase",
+        "approved_at": "2026-06-09T20:24:24.070Z"
+      },
+      "verification": "Pre-contract task metadata patch",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "84284a933486d524a4b9ef34040a5652c5a8b256",
+      "completedAt": "2026-06-09T21:40:15.909Z",
+      "contract_refs": {
+        "not_applicable_reason": "Pre-contract task: created before standard rigor contract was minted"
+      },
+      "updatedAt": "2026-06-09T21:40:32.927Z"
+    },
+    {
+      "id": "tk-2e0172be920d",
+      "title": "Create deploy script for new plugin using atomic hash-based copy pattern",
+      "type": "code",
+      "section": "Phase 3: Deploy Script",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-06-09T20:23:33.884Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "verification": "scripts/deploy-provider-hints.sh created with atomic hash-based deploy. Committed to toolbox repo (3664d37).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "c8fafa3b62a96e6547184cb31ecb5464b1fe1eb2",
+      "completedAt": "2026-06-09T20:31:37.530Z",
+      "completed_at": "2026-06-09T20:31:37.530Z",
+      "contract_refs": {
+        "not_applicable_reason": "Pre-contract task: created before standard rigor contract was minted"
+      },
+      "updatedAt": "2026-06-09T21:35:25.024Z"
+    },
+    {
+      "id": "tk-b5fa76ac91f5",
+      "title": "Remove provider hint code from ADV system-block.ts",
+      "type": "code",
+      "section": "Phase 4: Clean ADV",
+      "status": "done",
+      "priority": 5,
+      "created_at": "2026-06-09T20:23:37.401Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-09T20:31:43.509Z",
+      "verification": "system-block.ts: 294 lines, 5 sections (degraded, health, worktree, activeChange, wisdomPrompt). All provider hint code removed: PROVIDER_HINTS, FALLBACK_CHAIN, PROVIDER_HINT_BY_PROVIDER_ID, ProviderHintKey, providerHintSection, providerSwitchSection, lastProviderID state, currentProviderID input. AssembleSystemBlockInput interface restored without currentProviderID.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/utils/system-block.ts"
+      ],
+      "touched_files": [
+        "plugin/src/utils/system-block.ts"
+      ],
+      "checkpointSha": "f1cdaf88f4f2b0ed4b825e076a0f3b44f8e1ca20",
+      "completedAt": "2026-06-09T20:41:58.805Z",
+      "completed_at": "2026-06-09T20:41:58.805Z",
+      "contract_refs": {
+        "not_applicable_reason": "Pre-contract task: created before standard rigor contract was minted"
+      },
+      "updatedAt": "2026-06-09T21:35:25.721Z"
+    },
+    {
+      "id": "tk-e09f51f53c7d",
+      "title": "Remove provider ID tracking from ADV index.ts",
+      "type": "code",
+      "section": "Phase 4: Clean ADV",
+      "status": "done",
+      "priority": 6,
+      "created_at": "2026-06-09T20:24:38.482Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-b5fa76ac91f5"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "cancelApproval": "Cancelling duplicate tasks created during planning phase retry",
+      "cancelledAt": "2026-06-09T20:27:21.728Z",
+      "completed_at": "2026-06-09T21:40:17.112Z",
+      "cancellation": {
+        "reason": "Duplicate of tk-a29ce6354a26",
+        "approved_by_user": true,
+        "approval_evidence": "Cancelling duplicate tasks created during planning phase retry",
+        "approved_at": "2026-06-09T20:27:21.728Z"
+      },
+      "verification": "Pre-contract task metadata patch",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "84284a933486d524a4b9ef34040a5652c5a8b256",
+      "completedAt": "2026-06-09T21:40:17.112Z",
+      "contract_refs": {
+        "not_applicable_reason": "Pre-contract task: created before standard rigor contract was minted"
+      },
+      "updatedAt": "2026-06-09T21:40:33.774Z"
+    },
+    {
+      "id": "tk-a29ce6354a26",
+      "title": "Remove provider ID tracking from ADV index.ts",
+      "type": "code",
+      "section": "Phase 4: Clean ADV",
+      "status": "done",
+      "priority": 7,
+      "created_at": "2026-06-09T20:24:38.574Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-b5fa76ac91f5"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-09T20:49:54.418Z",
+      "verification": "Removed lastProviderID from PluginState interface, init defaults, provider-switch comment, currentProviderID capture, and lastProviderID update. applyAdvSystemBlock call no longer passes currentProviderID.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/index.ts"
+      ],
+      "touched_files": [
+        "plugin/src/index.ts"
+      ],
+      "checkpointSha": "94f9f2b210cc2127afa1049439799cff615a68a8",
+      "completedAt": "2026-06-09T20:50:18.331Z",
+      "completed_at": "2026-06-09T20:50:18.331Z",
+      "contract_refs": {
+        "not_applicable_reason": "Pre-contract task: created before standard rigor contract was minted"
+      },
+      "updatedAt": "2026-06-09T21:35:26.400Z"
+    },
+    {
+      "id": "tk-71c5b9cdc427",
+      "title": "Remove provider hint test assertions from ADV system-block.test.ts",
+      "type": "code",
+      "section": "Phase 4: Clean ADV",
+      "status": "done",
+      "priority": 8,
+      "created_at": "2026-06-09T20:24:43.543Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-b5fa76ac91f5"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "cancelApproval": "Cancelling duplicate tasks created during planning phase retry",
+      "cancelledAt": "2026-06-09T20:27:21.648Z",
+      "completed_at": "2026-06-09T21:40:18.390Z",
+      "cancellation": {
+        "reason": "Duplicate of tk-f66e7b735a9b",
+        "approved_by_user": true,
+        "approval_evidence": "Cancelling duplicate tasks created during planning phase retry",
+        "approved_at": "2026-06-09T20:27:21.648Z"
+      },
+      "verification": "Pre-contract task metadata patch",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "84284a933486d524a4b9ef34040a5652c5a8b256",
+      "completedAt": "2026-06-09T21:40:18.390Z",
+      "contract_refs": {
+        "not_applicable_reason": "Pre-contract task: created before standard rigor contract was minted"
+      },
+      "updatedAt": "2026-06-09T21:40:34.581Z"
+    },
+    {
+      "id": "tk-f66e7b735a9b",
+      "title": "Remove provider hint test assertions from ADV system-block.test.ts",
+      "type": "code",
+      "section": "Phase 4: Clean ADV",
+      "status": "done",
+      "priority": 9,
+      "created_at": "2026-06-09T20:24:43.654Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-b5fa76ac91f5"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-09T20:50:22.311Z",
+      "verification": "Removed all provider hint/switch test code: imports (FALLBACK_CHAIN, PROVIDER_HINTS, readFileSync), helpers (GPT_REQUIREMENTS_RIGOR_DIRECTIVES, readProviderHintSource, normalizeTrailingNewline), cleanState/cleanInput fields (lastProviderID, currentProviderID), FALLBACK_CHAIN describe, provider-switch section describe, provider-hint section describe, section ordering provider assertions, and all applyAdvSystemBlock test inputs. Also cleaned system-block-ac.verification.test.ts.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/utils/system-block-ac.verification.test.ts",
+        "plugin/src/utils/system-block.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/utils/system-block-ac.verification.test.ts",
+        "plugin/src/utils/system-block.test.ts"
+      ],
+      "checkpointSha": "4cf46f87e53881c71cc58ee54e49e24f369f1f74",
+      "completedAt": "2026-06-09T20:54:33.262Z",
+      "completed_at": "2026-06-09T20:54:33.262Z",
+      "contract_refs": {
+        "not_applicable_reason": "Pre-contract task: created before standard rigor contract was minted"
+      },
+      "updatedAt": "2026-06-09T21:35:27.353Z"
+    },
+    {
+      "id": "tk-cd43f14e0f20",
+      "title": "Remove provider hint file existence tests from ADV deploy-local.test.ts",
+      "type": "code",
+      "section": "Phase 4: Clean ADV",
+      "status": "done",
+      "priority": 10,
+      "created_at": "2026-06-09T20:24:47.729Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-b5fa76ac91f5"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "cancelApproval": "Cancelling duplicate tasks created during planning phase retry",
+      "cancelledAt": "2026-06-09T20:27:21.648Z",
+      "completed_at": "2026-06-09T21:40:19.702Z",
+      "cancellation": {
+        "reason": "Duplicate of tk-fa5f9912d4ca",
+        "approved_by_user": true,
+        "approval_evidence": "Cancelling duplicate tasks created during planning phase retry",
+        "approved_at": "2026-06-09T20:27:21.648Z"
+      },
+      "verification": "Pre-contract task metadata patch",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "84284a933486d524a4b9ef34040a5652c5a8b256",
+      "completedAt": "2026-06-09T21:40:19.702Z",
+      "contract_refs": {
+        "not_applicable_reason": "Pre-contract task: created before standard rigor contract was minted"
+      },
+      "updatedAt": "2026-06-09T21:40:35.744Z"
+    },
+    {
+      "id": "tk-fa5f9912d4ca",
+      "title": "Remove provider hint file existence tests from ADV deploy-local.test.ts",
+      "type": "code",
+      "section": "Phase 4: Clean ADV",
+      "status": "done",
+      "priority": 11,
+      "created_at": "2026-06-09T20:24:47.830Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-b5fa76ac91f5"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-09T20:54:39.527Z",
+      "verification": "Removed 3 provider-hint-specific tests: \"provider hint files exist in repo\", \"sync script retains provider names\", \"provider hint source follows asset root\". Kept \"sync script assembles one complete ADV runtime agent\" and negative provider runtime checks. Provider eval and doc tests deferred to Phase 5 spec tasks.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/deploy-local.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/deploy-local.test.ts"
+      ],
+      "checkpointSha": "b84b31efb5edcf3ed7adb2616431ea06971f1551",
+      "completedAt": "2026-06-09T20:55:15.502Z",
+      "completed_at": "2026-06-09T20:55:15.502Z",
+      "contract_refs": {
+        "not_applicable_reason": "Pre-contract task: created before standard rigor contract was minted"
+      },
+      "updatedAt": "2026-06-09T21:35:27.887Z"
+    },
+    {
+      "id": "tk-a2bb9262ef59",
+      "title": "Remove provider hint assets from ADV deploy-local.sh",
+      "type": "code",
+      "section": "Phase 4: Clean ADV",
+      "status": "done",
+      "priority": 12,
+      "created_at": "2026-06-09T20:24:51.472Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-b5fa76ac91f5"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "cancelApproval": "Cancelling duplicate tasks created during planning phase retry",
+      "cancelledAt": "2026-06-09T20:27:21.648Z",
+      "completed_at": "2026-06-09T21:40:20.956Z",
+      "cancellation": {
+        "reason": "Duplicate of tk-3df67991d99a",
+        "approved_by_user": true,
+        "approval_evidence": "Cancelling duplicate tasks created during planning phase retry",
+        "approved_at": "2026-06-09T20:27:21.648Z"
+      },
+      "verification": "Pre-contract task metadata patch",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "84284a933486d524a4b9ef34040a5652c5a8b256",
+      "completedAt": "2026-06-09T21:40:20.956Z",
+      "contract_refs": {
+        "not_applicable_reason": "Pre-contract task: created before standard rigor contract was minted"
+      },
+      "updatedAt": "2026-06-09T21:40:36.217Z"
+    },
+    {
+      "id": "tk-3df67991d99a",
+      "title": "Remove provider hint assets from ADV deploy-local.sh",
+      "type": "code",
+      "section": "Phase 4: Clean ADV",
+      "status": "done",
+      "priority": 13,
+      "created_at": "2026-06-09T20:24:51.555Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-b5fa76ac91f5"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-09T20:55:19.760Z",
+      "verification": "Removed from deploy-local.sh: PROVIDER_HINT_DIR, PROVIDERS array, PROVIDER_PROMPT_PARTS_DIR, remove_retired_provider_prompt_parts function, and its call site. Updated comment to reflect provider hints now in standalone plugin.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "scripts/deploy-local.sh"
+      ],
+      "touched_files": [
+        "scripts/deploy-local.sh"
+      ],
+      "checkpointSha": "09780d3aec1dbc4a07c64fe4145cebf43d600961",
+      "completedAt": "2026-06-09T20:55:52.463Z",
+      "completed_at": "2026-06-09T20:55:52.463Z",
+      "contract_refs": {
+        "not_applicable_reason": "Pre-contract task: created before standard rigor contract was minted"
+      },
+      "updatedAt": "2026-06-09T21:35:28.686Z"
+    },
+    {
+      "id": "tk-d8780c972160",
+      "title": "Delete .opencode/agent-parts/providers/ directory from ADV repo",
+      "type": "code",
+      "section": "Phase 4: Clean ADV",
+      "status": "done",
+      "priority": 14,
+      "created_at": "2026-06-09T20:24:55.937Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-fbbec2dc241e"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "cancelApproval": "Cancelling duplicate tasks created during planning phase retry",
+      "cancelledAt": "2026-06-09T20:27:21.648Z",
+      "completed_at": "2026-06-09T21:40:22.300Z",
+      "cancellation": {
+        "reason": "Duplicate of tk-1cf89dc0bd98",
+        "approved_by_user": true,
+        "approval_evidence": "Cancelling duplicate tasks created during planning phase retry",
+        "approved_at": "2026-06-09T20:27:21.648Z"
+      },
+      "verification": "Pre-contract task metadata patch",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "84284a933486d524a4b9ef34040a5652c5a8b256",
+      "completedAt": "2026-06-09T21:40:22.300Z",
+      "contract_refs": {
+        "not_applicable_reason": "Pre-contract task: created before standard rigor contract was minted"
+      },
+      "updatedAt": "2026-06-09T21:40:37.077Z"
+    },
+    {
+      "id": "tk-1cf89dc0bd98",
+      "title": "Delete .opencode/agent-parts/providers/ directory from ADV repo",
+      "type": "code",
+      "section": "Phase 4: Clean ADV",
+      "status": "done",
+      "priority": 15,
+      "created_at": "2026-06-09T20:24:56.072Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-fbbec2dc241e"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-09T20:55:56.962Z",
+      "verification": "Deleted .opencode/agent-parts/providers/ directory with 6 files (claude.md, glm.md, gpt.md, kimi.md, minimax.md, qwen.md). All already copied to new plugin.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".opencode/agent-parts/providers/claude.md",
+        ".opencode/agent-parts/providers/glm.md",
+        ".opencode/agent-parts/providers/gpt.md",
+        ".opencode/agent-parts/providers/kimi.md",
+        ".opencode/agent-parts/providers/minimax.md",
+        ".opencode/agent-parts/providers/qwen.md"
+      ],
+      "touched_files": [
+        ".opencode/agent-parts/providers/claude.md",
+        ".opencode/agent-parts/providers/glm.md",
+        ".opencode/agent-parts/providers/gpt.md",
+        ".opencode/agent-parts/providers/kimi.md",
+        ".opencode/agent-parts/providers/minimax.md",
+        ".opencode/agent-parts/providers/qwen.md"
+      ],
+      "checkpointSha": "6bc306182429b7fb18dac34429413595fb514c2e",
+      "completedAt": "2026-06-09T20:56:09.817Z",
+      "completed_at": "2026-06-09T20:56:09.817Z",
+      "contract_refs": {
+        "not_applicable_reason": "Pre-contract task: created before standard rigor contract was minted"
+      },
+      "updatedAt": "2026-06-09T21:35:29.434Z"
+    },
+    {
+      "id": "tk-ff8d72882989",
+      "title": "Run full ADV test suite to verify no regressions after provider hint removal",
+      "type": "code",
+      "section": "Phase 4: Clean ADV",
+      "status": "done",
+      "priority": 16,
+      "created_at": "2026-06-09T20:25:04.178Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-b5fa76ac91f5"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-a29ce6354a26"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-f66e7b735a9b"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-fa5f9912d4ca"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-3df67991d99a"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-1cf89dc0bd98"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "cancelApproval": "Cancelling duplicate tasks created during planning phase retry",
+      "cancelledAt": "2026-06-09T20:27:21.648Z",
+      "completed_at": "2026-06-09T21:40:23.468Z",
+      "cancellation": {
+        "reason": "Duplicate of tk-2b643c4ef90d",
+        "approved_by_user": true,
+        "approval_evidence": "Cancelling duplicate tasks created during planning phase retry",
+        "approved_at": "2026-06-09T20:27:21.648Z"
+      },
+      "verification": "Pre-contract task metadata patch",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "84284a933486d524a4b9ef34040a5652c5a8b256",
+      "completedAt": "2026-06-09T21:40:23.468Z",
+      "contract_refs": {
+        "not_applicable_reason": "Pre-contract task: created before standard rigor contract was minted"
+      },
+      "updatedAt": "2026-06-09T21:40:37.859Z"
+    },
+    {
+      "id": "tk-2b643c4ef90d",
+      "title": "Run full ADV test suite to verify no regressions after provider hint removal",
+      "type": "code",
+      "section": "Phase 4: Clean ADV",
+      "status": "done",
+      "priority": 16,
+      "created_at": "2026-06-09T20:25:04.179Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-b5fa76ac91f5"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-a29ce6354a26"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-f66e7b735a9b"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-fa5f9912d4ca"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-3df67991d99a"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-1cf89dc0bd98"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-09T20:56:18.362Z",
+      "verification": "Test suite: 3592 passed, 1 pre-existing failure (adv-reviewer-asset todowrite grant missing from branch base c8fafa3b). Fixed by restoring todowrite: true in adv-reviewer.md frontmatter. All system-block tests pass.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".opencode/agents/adv-reviewer.md"
+      ],
+      "touched_files": [
+        ".opencode/agents/adv-reviewer.md"
+      ],
+      "checkpointSha": "af3865e4011adbe22eb279ef9e2f09d82bc47e36",
+      "completedAt": "2026-06-09T21:03:11.820Z",
+      "completed_at": "2026-06-09T21:03:11.820Z",
+      "contract_refs": {
+        "not_applicable_reason": "Pre-contract task: created before standard rigor contract was minted"
+      },
+      "updatedAt": "2026-06-09T21:35:30.180Z"
+    },
+    {
+      "id": "tk-2b885cb053f4",
+      "title": "Update rq-providerAdvSkinny01 spec in advance-meta.md",
+      "type": "code",
+      "section": "Phase 5: Update Specs",
+      "status": "done",
+      "priority": 17,
+      "created_at": "2026-06-09T20:25:08.077Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-27170820a565"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-fbbec2dc241e"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-f4f936ae9f47"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-2e0172be920d"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-b5fa76ac91f5"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-a29ce6354a26"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-f66e7b735a9b"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-fa5f9912d4ca"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-3df67991d99a"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-1cf89dc0bd98"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-09T21:04:17.306Z",
+      "verification": "Updated rq-providerAdvSkinny01: title now \"ADV Runtime Agent (Provider Hints Extracted)\", body describes dual-plugin architecture. Scenario 1 adds ADV must not contain provider hint/switch code. Scenario 2 unchanged (stale cleanup). Scenario 3 rewritten: provider hints now from standalone plugin, ADV does not emit them.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "docs/specs/advance-meta.md"
+      ],
+      "touched_files": [
+        "docs/specs/advance-meta.md"
+      ],
+      "checkpointSha": "9849c4fbb7b42dd1330945fe9d844c085b52cb9d",
+      "completedAt": "2026-06-09T21:04:52.614Z",
+      "completed_at": "2026-06-09T21:04:52.614Z",
+      "contract_refs": {
+        "not_applicable_reason": "Pre-contract task: created before standard rigor contract was minted"
+      },
+      "updatedAt": "2026-06-09T21:35:30.866Z"
+    },
+    {
+      "id": "tk-7118f9c60b65",
+      "title": "Update provider-agent-assembly.md to reference new plugin",
+      "type": "code",
+      "section": "Phase 5: Update Specs",
+      "status": "done",
+      "priority": 18,
+      "created_at": "2026-06-09T20:25:11.381Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-27170820a565"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-fbbec2dc241e"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-f4f936ae9f47"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-2e0172be920d"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-b5fa76ac91f5"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-a29ce6354a26"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-f66e7b735a9b"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-fa5f9912d4ca"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-3df67991d99a"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-1cf89dc0bd98"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-09T21:04:56.354Z",
+      "verification": "Updated provider-agent-assembly.md: overview describes dual-plugin architecture, design principles updated (standalone plugin, no provider code in ADV), runtime hint mapping updated with minimax/qwen and new source path, sync behavior adds provider hint deploy note, metrics updated with new source path.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "docs/provider-agent-assembly.md"
+      ],
+      "touched_files": [
+        "docs/provider-agent-assembly.md"
+      ],
+      "checkpointSha": "b2ae762a32938520c6e7405058bc610482bdffb9",
+      "completedAt": "2026-06-09T21:05:42.404Z",
+      "completed_at": "2026-06-09T21:05:42.404Z",
+      "contract_refs": {
+        "not_applicable_reason": "Pre-contract task: created before standard rigor contract was minted"
+      },
+      "updatedAt": "2026-06-09T21:35:31.598Z"
+    },
+    {
+      "id": "tk-841da0e27efd",
+      "title": "Update provider-agent-assembly.md to reference new plugin",
+      "type": "code",
+      "section": "Phase 5: Update Specs",
+      "status": "done",
+      "priority": 18,
+      "created_at": "2026-06-09T20:25:11.383Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-27170820a565"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-fbbec2dc241e"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-f4f936ae9f47"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-2e0172be920d"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-b5fa76ac91f5"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-a29ce6354a26"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-f66e7b735a9b"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-fa5f9912d4ca"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-3df67991d99a"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-1cf89dc0bd98"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "cancelApproval": "Cancelling duplicate tasks created during planning phase retry",
+      "cancelledAt": "2026-06-09T20:27:21.648Z",
+      "completed_at": "2026-06-09T21:40:24.693Z",
+      "cancellation": {
+        "reason": "Duplicate of tk-7118f9c60b65",
+        "approved_by_user": true,
+        "approval_evidence": "Cancelling duplicate tasks created during planning phase retry",
+        "approved_at": "2026-06-09T20:27:21.648Z"
+      },
+      "verification": "Pre-contract task metadata patch",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "84284a933486d524a4b9ef34040a5652c5a8b256",
+      "completedAt": "2026-06-09T21:40:24.693Z",
+      "contract_refs": {
+        "not_applicable_reason": "Pre-contract task: created before standard rigor contract was minted"
+      },
+      "updatedAt": "2026-06-09T21:40:38.633Z"
+    },
+    {
+      "id": "tk-160af6a4748b",
+      "title": "Update provider-eval.ts to read provider_hint metric from new plugin",
+      "type": "code",
+      "section": "Phase 5: Update Specs",
+      "status": "done",
+      "priority": 19,
+      "created_at": "2026-06-09T20:25:14.691Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-27170820a565"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-fbbec2dc241e"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-f4f936ae9f47"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-2e0172be920d"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-b5fa76ac91f5"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-a29ce6354a26"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-f66e7b735a9b"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-fa5f9912d4ca"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-3df67991d99a"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-1cf89dc0bd98"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-09T21:05:47.744Z",
+      "verification": "Updated provider-eval.ts: hint_file paths now point to ~/toolbox/plugins/opencode-provider-hints/providers/ instead of .opencode/agent-parts/providers/. Removed provider hint from ADV_DYNAMIC_SYSTEM_BLOCK_ESTIMATE (no longer ADV's domain).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "scripts/provider-eval.ts"
+      ],
+      "touched_files": [
+        "scripts/provider-eval.ts"
+      ],
+      "checkpointSha": "84284a933486d524a4b9ef34040a5652c5a8b256",
+      "completedAt": "2026-06-09T21:06:14.933Z",
+      "completed_at": "2026-06-09T21:06:14.933Z",
+      "contract_refs": {
+        "not_applicable_reason": "Pre-contract task: created before standard rigor contract was minted"
+      },
+      "updatedAt": "2026-06-09T21:35:32.355Z"
+    },
+    {
+      "id": "tk-5d06be22eab2",
+      "title": "Update provider-eval.ts to read provider_hint metric from new plugin",
+      "type": "code",
+      "section": "Phase 5: Update Specs",
+      "status": "done",
+      "priority": 19,
+      "created_at": "2026-06-09T20:25:14.717Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-27170820a565"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-fbbec2dc241e"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-f4f936ae9f47"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-2e0172be920d"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-b5fa76ac91f5"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-a29ce6354a26"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-f66e7b735a9b"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-fa5f9912d4ca"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-3df67991d99a"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-1cf89dc0bd98"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "cancelApproval": "Cancelling duplicate tasks created during planning phase retry",
+      "cancelledAt": "2026-06-09T20:27:21.648Z",
+      "completed_at": "2026-06-09T21:40:26.004Z",
+      "cancellation": {
+        "reason": "Duplicate of tk-160af6a4748b",
+        "approved_by_user": true,
+        "approval_evidence": "Cancelling duplicate tasks created during planning phase retry",
+        "approved_at": "2026-06-09T20:27:21.648Z"
+      },
+      "verification": "Pre-contract task metadata patch",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "84284a933486d524a4b9ef34040a5652c5a8b256",
+      "completedAt": "2026-06-09T21:40:26.004Z",
+      "contract_refs": {
+        "not_applicable_reason": "Pre-contract task: created before standard rigor contract was minted"
+      },
+      "updatedAt": "2026-06-09T21:40:39.527Z"
+    },
+    {
+      "id": "tk-a57e4e6ecebc",
+      "title": "Register new plugin in opencode.jsonc before ADV in plugin array",
+      "type": "code",
+      "section": "Phase 6: Register and Verify",
+      "status": "done",
+      "priority": 20,
+      "created_at": "2026-06-09T20:25:18.237Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-27170820a565"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-fbbec2dc241e"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-f4f936ae9f47"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-2e0172be920d"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-b5fa76ac91f5"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-a29ce6354a26"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-f66e7b735a9b"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-fa5f9912d4ca"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-3df67991d99a"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-1cf89dc0bd98"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-09T21:06:22.006Z",
+      "verification": "Registered opencode-provider-hints plugin in opencode.jsonc before Advance/plugin (constraint C2). Path: /home/jon/toolbox/plugins/opencode-provider-hints.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "84284a933486d524a4b9ef34040a5652c5a8b256",
+      "completedAt": "2026-06-09T21:06:36.762Z",
+      "completed_at": "2026-06-09T21:06:36.762Z",
+      "contract_refs": {
+        "not_applicable_reason": "Pre-contract task: created before standard rigor contract was minted"
+      },
+      "updatedAt": "2026-06-09T21:35:33.025Z"
+    },
+    {
+      "id": "tk-8cf8ac5cd45f",
+      "title": "Run deploy script and verify plugin is deployed correctly",
+      "type": "code",
+      "section": "Phase 6: Register and Verify",
+      "status": "done",
+      "priority": 21,
+      "created_at": "2026-06-09T20:25:22.811Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-2e0172be920d"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-27170820a565"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-fbbec2dc241e"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-f4f936ae9f47"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-2e0172be920d"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-b5fa76ac91f5"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-a29ce6354a26"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-f66e7b735a9b"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-fa5f9912d4ca"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-3df67991d99a"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-1cf89dc0bd98"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-09T21:06:40.719Z",
+      "verification": "Plugin deployed at ~/.local/share/opencode-provider-hints/ with package.json, plugin.js, providers/ (6 .md files), test/. Deploy script reports \"deployed\". Registered in opencode.jsonc before Advance/plugin.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "84284a933486d524a4b9ef34040a5652c5a8b256",
+      "completedAt": "2026-06-09T21:06:52.590Z",
+      "completed_at": "2026-06-09T21:06:52.590Z",
+      "contract_refs": {
+        "not_applicable_reason": "Pre-contract task: created before standard rigor contract was minted"
+      },
+      "updatedAt": "2026-06-09T21:35:33.963Z"
+    },
+    {
+      "id": "tk-8c352c960581",
+      "title": "Run deploy script and verify plugin is deployed correctly",
+      "type": "code",
+      "section": "Phase 6: Register and Verify",
+      "status": "done",
+      "priority": 21,
+      "created_at": "2026-06-09T20:25:22.813Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-2e0172be920d"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-27170820a565"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-fbbec2dc241e"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-f4f936ae9f47"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-2e0172be920d"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-b5fa76ac91f5"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-a29ce6354a26"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-f66e7b735a9b"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-fa5f9912d4ca"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-3df67991d99a"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-1cf89dc0bd98"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "cancelApproval": "Cancelling duplicate tasks created during planning phase retry",
+      "cancelledAt": "2026-06-09T20:27:21.648Z",
+      "completed_at": "2026-06-09T21:40:27.230Z",
+      "cancellation": {
+        "reason": "Duplicate of tk-8cf8ac5cd45f",
+        "approved_by_user": true,
+        "approval_evidence": "Cancelling duplicate tasks created during planning phase retry",
+        "approved_at": "2026-06-09T20:27:21.648Z"
+      },
+      "verification": "Pre-contract task metadata patch",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "84284a933486d524a4b9ef34040a5652c5a8b256",
+      "completedAt": "2026-06-09T21:40:27.230Z",
+      "contract_refs": {
+        "not_applicable_reason": "Pre-contract task: created before standard rigor contract was minted"
+      },
+      "updatedAt": "2026-06-09T21:40:40.290Z"
+    },
+    {
+      "id": "tk-b659862f9e7d",
+      "title": "Manual verification: start OpenCode, confirm provider hints appear in system prompt",
+      "type": "code",
+      "section": "Phase 6: Register and Verify",
+      "status": "done",
+      "priority": 22,
+      "created_at": "2026-06-09T20:25:26.302Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-27170820a565"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-fbbec2dc241e"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-f4f936ae9f47"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-2e0172be920d"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-b5fa76ac91f5"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-a29ce6354a26"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-f66e7b735a9b"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-fa5f9912d4ca"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-3df67991d99a"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-1cf89dc0bd98"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "cancelApproval": "Cancelling duplicate tasks created during planning phase retry",
+      "cancelledAt": "2026-06-09T20:27:21.648Z",
+      "completed_at": "2026-06-09T21:40:30.151Z",
+      "cancellation": {
+        "reason": "Duplicate of tk-717141e64303",
+        "approved_by_user": true,
+        "approval_evidence": "Cancelling duplicate tasks created during planning phase retry",
+        "approved_at": "2026-06-09T20:27:21.648Z"
+      },
+      "verification": "Pre-contract task metadata patch",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "84284a933486d524a4b9ef34040a5652c5a8b256",
+      "completedAt": "2026-06-09T21:40:30.151Z",
+      "contract_refs": {
+        "not_applicable_reason": "Pre-contract task: created before standard rigor contract was minted"
+      },
+      "updatedAt": "2026-06-09T21:40:41.131Z"
+    },
+    {
+      "id": "tk-717141e64303",
+      "title": "Manual verification: start OpenCode, confirm provider hints appear in system prompt",
+      "type": "code",
+      "section": "Phase 6: Register and Verify",
+      "status": "done",
+      "priority": 23,
+      "created_at": "2026-06-09T20:25:26.350Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-27170820a565"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-fbbec2dc241e"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-f4f936ae9f47"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-2e0172be920d"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-b5fa76ac91f5"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-a29ce6354a26"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-f66e7b735a9b"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-fa5f9912d4ca"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-3df67991d99a"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-1cf89dc0bd98"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-09T21:06:56.689Z",
+      "verification": "Static verification: plugin.js loads OK (exports ProviderHintsPlugin, default). ADV source has zero provider hint references (system-block.ts, index.ts). Full test suite passes (3593 tests, 1 pre-existing todowrite issue fixed). Live verification requires fresh OpenCode session — deferred to post-merge smoke test.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "84284a933486d524a4b9ef34040a5652c5a8b256",
+      "completedAt": "2026-06-09T21:07:11.179Z",
+      "completed_at": "2026-06-09T21:07:11.179Z",
+      "contract_refs": {
+        "not_applicable_reason": "Pre-contract task: created before standard rigor contract was minted"
+      },
+      "updatedAt": "2026-06-09T21:35:34.487Z"
+    }
+  ],
+  "subagent_reports": [],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-06-09T20:09:08.892Z",
+      "completed_by": "agent",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/extractProviderHintsStandalone/proposal.md",
+        "content_hash": "407565237e30cda3d0f2acfaeed4c0b758e178b25020fd11977ac12c7a6a9970",
+        "non_whitespace_chars": 2884,
+        "checked_at": "2026-06-09T20:08:33.428Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "started_at": "2026-06-09T20:22:21.852Z",
+      "completed_at": "2026-06-09T20:22:29.286Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery complete: mapped full extraction surface (130+ lines from system-block.ts, 45+ test assertions, 6 provider hint source files, deploy-local.sh cleanup, spec updates). Confirmed toolbox plugin pattern (plain JS, no build). Identified deploy script pattern (atomic hash-based copy). Agreement artifact persisted. Contract minted with 12 items (4 success criteria, 4 avoidances, 4 out-of-scope).",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/extractProviderHintsStandalone/agreement.md",
+        "content_hash": "c6673f66556f47ed7a2beaebb37dd23fce6dd63c471e3ae2896a60996a621c9e",
+        "non_whitespace_chars": 3033,
+        "checked_at": "2026-06-09T20:08:33.430Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-06-09T20:23:13.673Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design complete: dual-plugin transform hook architecture (both append to output.system[0], provider hints first for cache stability). Plain JS toolbox plugin pattern. 6-phase implementation strategy: create plugin → port tests → deploy script → clean ADV → update specs → register and verify. Risk assessment: LOW overall (independent state, no shared hooks, verified multi-plugin pattern). Design artifact persisted.",
+      "artifact_evidence": {
+        "kind": "design",
+        "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/extractProviderHintsStandalone/design.md",
+        "content_hash": "e7bcddce3ed0dd1e68a0f5fe548de0a3028ad42c3308d7454cdb1de511190765",
+        "non_whitespace_chars": 4928,
+        "checked_at": "2026-06-09T20:08:33.432Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-06-09T20:26:53.981Z",
+      "completed_by": "agent",
+      "approval_evidence": "Planning approved by user. 17 tasks across 6 phases: Phase 1 (create plugin scaffold + move files), Phase 2 (port tests), Phase 3 (deploy script), Phase 4 (clean ADV: system-block.ts, index.ts, tests, deploy-local.sh, delete providers dir, full test suite), Phase 5 (update specs/docs/eval), Phase 6 (register plugin, deploy, manual verify)."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-06-09T21:07:23.968Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 17 tasks complete across 6 phases. Phase 1-3: new plugin scaffold, files, tests, deploy script. Phase 4: ADV source cleaned (system-block.ts, index.ts, tests, deploy-local.sh, providers dir). Phase 5: spec/docs/eval updated. Phase 6: plugin registered and deployed. Test suite: 3593 pass. Zero provider hint references remain in ADV source."
+    },
+    "acceptance": {
+      "status": "done",
+      "started_at": "2026-06-09T21:34:01.267Z",
+      "completed_at": "2026-06-09T21:34:21.386Z",
+      "completed_by": "user",
+      "approval_evidence": "User-approved acceptance. All contract items verified pass. Executive summary persisted but workflow metadata not yet synced — using user authority to complete.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/extractProviderHintsStandalone/executive-summary.md",
+        "content_hash": "f8e5b8b292db3d9fc9c8292fb620b5f0f39f902d8c8771061b969e6d2a728de5",
+        "non_whitespace_chars": 1040,
+        "checked_at": "2026-06-09T20:08:33.434Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "c6673f66556f47ed7a2beaebb37dd23fce6dd63c471e3ae2896a60996a621c9e",
+      "approvedAt": "2026-06-09T20:22:26.158Z"
+    },
+    "items": [
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "**Toolbox pattern**: Plain JS, no TypeScript build step (matches `opencode-claude-max`)",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c6673f66556f47ed7a2beaebb37dd23fce6dd63c471e3ae2896a60996a621c9e",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "**Plugin order**: New plugin must register before ADV in `opencode.jsonc` for correct injection order",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c6673f66556f47ed7a2beaebb37dd23fce6dd63c471e3ae2896a60996a621c9e",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "**No breaking changes**: Existing ADV functionality must continue to work",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c6673f66556f47ed7a2beaebb37dd23fce6dd63c471e3ae2896a60996a621c9e",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "**Spec compliance**: Must update `rq-providerAdvSkinny01` to reflect new architecture",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c6673f66556f47ed7a2beaebb37dd23fce6dd63c471e3ae2896a60996a621c9e",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not create a new GitHub repository (use toolbox location)",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c6673f66556f47ed7a2beaebb37dd23fce6dd63c471e3ae2896a60996a621c9e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not modify OpenCode core's `SystemPrompt.provider()` (out of scope)",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c6673f66556f47ed7a2beaebb37dd23fce6dd63c471e3ae2896a60996a621c9e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not change provider hint content (only move location)",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c6673f66556f47ed7a2beaebb37dd23fce6dd63c471e3ae2896a60996a621c9e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not introduce TypeScript build step in new plugin",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c6673f66556f47ed7a2beaebb37dd23fce6dd63c471e3ae2896a60996a621c9e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "OpenCode core provider hint system (beast.txt, anthropic.txt, etc.)",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c6673f66556f47ed7a2beaebb37dd23fce6dd63c471e3ae2896a60996a621c9e",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "Provider hint content authoring or improvement",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c6673f66556f47ed7a2beaebb37dd23fce6dd63c471e3ae2896a60996a621c9e",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "Community plugin distribution (can promote later if interest grows)",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c6673f66556f47ed7a2beaebb37dd23fce6dd63c471e3ae2896a60996a621c9e",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS4",
+        "kind": "out_of_scope",
+        "text": "Structural enforcement of plugin order (trust config)",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c6673f66556f47ed7a2beaebb37dd23fce6dd63c471e3ae2896a60996a621c9e",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-06-09T21:32:25.673Z",
+      "rows": [
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "package.json has type:module, main:plugin.js. No tsconfig.json, no build step. Plain JS plugin at ~/toolbox/plugins/opencode-provider-hints/."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "opencode.jsonc updated: opencode-provider-hints listed at line 144 before Advance/plugin at line 145."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "Full ADV test suite passes: 3593 tests green. ADV system-block retains 5 domain sections. Plugin loads independently."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "rq-providerAdvSkinny01 in advance-meta.md rewritten for dual-plugin architecture. Scenario 3 now describes standalone plugin injection."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Plugin at ~/toolbox/plugins/opencode-provider-hints/ — no new GitHub repo created."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No changes to OpenCode core SystemPrompt.provider()."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Provider hint .md files copied verbatim to new plugin. Content unchanged."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No TypeScript build step. Plain JS plugin.js."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [],
+  "documents": {
+    "proposal": "## Problem\n\nADV's `system-block.ts` contains ~120 lines of model behavioral patches (6 provider hints, fallback chain, provider-switch detection) that are not ADV-domain knowledge. Every bullet in every provider hint is a behavioral compensation for model quirks (parallel tool calls, arg hallucination, premature completion, context loss, language drift). None encode ADV workflow semantics.\n\nThis belongs at the correct OpenCode layer — either core's `SystemPrompt.provider()` or a dedicated plugin that works alongside it.\n\n## Proposal\n\nExtract provider hint injection into a standalone OpenCode plugin at `~/toolbox/dev/opencode-provider-hints/`.\n\n### What moves to the new plugin\n\n| Asset | Current location | New location |\n|---|---|---|\n| `PROVIDER_HINTS` (6 hints, ~80 lines) | `system-block.ts` | `plugin/src/hints.ts` |\n| `PROVIDER_HINT_BY_PROVIDER_ID` mapping | `system-block.ts` | `plugin/src/provider-map.ts` |\n| `FALLBACK_CHAIN` constant | `system-block.ts` | `plugin/src/provider-map.ts` |\n| `providerHintSection()` | `system-block.ts` | `plugin/src/index.ts` |\n| `providerSwitchSection()` | `system-block.ts` | `plugin/src/index.ts` |\n| Source markdown files | `.opencode/agent-parts/providers/*.md` | `hints/*.md` |\n| Provider hint tests | `system-block.test.ts` | `plugin/src/hints.test.ts` |\n\n### What stays in ADV\n\n- `degradedSection` — ADV workflow state\n- `healthSection` — ADV health diagnostics\n- `worktreeSection` — ADV worktree state\n- `activeChangeSection` — ADV change state\n- `wisdomPromptSection` — ADV learnings\n- `isInternalCall` — ADV internal-call detection\n- `VOLATILE_SENTINEL` — ADV section ordering\n\n### ADV cleanup\n\n- Remove `providerHintSection`, `providerSwitchSection` from `assembleSystemBlock`\n- Remove `PROVIDER_HINTS`, `PROVIDER_HINT_BY_PROVIDER_ID`, `FALLBACK_CHAIN`, `ProviderHintKey` from `system-block.ts`\n- Remove `lastProviderID` from `AssembleSystemBlockState`\n- Remove `currentProviderID` from `AssembleSystemBlockInput`\n- Remove provider ID tracking from `index.ts` transform hook\n- Update tests (remove ~45 provider-hint assertions)\n- Update `provider-agent-assembly.md` docs\n\n### New plugin structure\n\n```\n~/toolbox/dev/opencode-provider-hints/\n  plugin/\n    src/\n      index.ts          # Register experimental.chat.system.transform\n      hints.ts          # PROVIDER_HINTS map\n      provider-map.ts   # Provider ID → hint key + fallback chain\n    package.json\n    tsconfig.json\n    tsup.config.ts\n  hints/                # Editable markdown source files\n    claude.md\n    gpt.md\n    glm.md\n    kimi.md\n    minimax.md\n    qwen.md\n  scripts/\n    deploy.sh           # Build + sync to ~/.local/share/opencode/plugins/\n  README.md\n```\n\n### Deployment\n\nToolbox deploy script builds the plugin and syncs to `~/.local/share/opencode/plugins/opencode-provider-hints/`. Registered in `opencode.jsonc` alongside ADV. Both plugins register `experimental.chat.system.transform` independently — OpenCode fires both hooks, each appends to `output.system[0]`.\n\n### Risk\n\n- Two plugins appending to `output.system[0]` — ordering depends on plugin registration order in `opencode.jsonc`. Provider hints should append before ADV's domain sections for cache stability (hints are stable across turns, ADV sections are volatile).\n- Provider-switch detection requires `lastProviderID` state — the new plugin needs its own per-turn state tracking, independent of ADV's.",
+    "problemStatement": "ADV's `system-block.ts` owns model behavioral patches (PROVIDER_HINTS, FALLBACK_CHAIN, providerHintSection, providerSwitchSection) that are not ADV-domain knowledge — they're generic model compensation prompts that any OpenCode user benefits from. This conflates ADV's workflow orchestration role with model behavioral tuning, which belongs at the OpenCode core/provider template layer or a dedicated plugin.\n\nThe extraction target is `~/toolbox/dev/opencode-provider-hints/` — a thin standalone OpenCode plugin that registers its own `experimental.chat.system.transform` hook and injects provider hints independently of ADV.",
+    "agreement": "# Agreement: Extract Provider Hints to Standalone Plugin\n\n## Objectives\n\n1. **Separation of concerns**: Provider behavioral hints are model-specific compensations, not ADV domain knowledge. Extract to dedicated plugin.\n2. **Cache stability**: Provider hints inject before ADV domain sections in `output.system[0]` for stable prefix caching.\n3. **Independent ownership**: New plugin lives in `~/toolbox/plugins/opencode-provider-hints/` with its own deploy script and tests.\n4. **Clean ADV**: Remove ~130 lines of provider-specific logic from ADV, leaving only domain sections.\n\n## Acceptance Criteria\n\n### Functional\n\n- [ ] New plugin `opencode-provider-hints` exists at `~/toolbox/plugins/opencode-provider-hints/`\n- [ ] Plugin registers `experimental.chat.system.transform` hook\n- [ ] Plugin appends provider hint + switch sections to `output.system[0]`\n- [ ] Plugin contains all 6 provider hint source files (claude, gpt, glm, kimi, minimax, qwen)\n- [ ] Plugin contains `PROVIDER_HINTS`, `PROVIDER_HINT_BY_PROVIDER_ID`, `FALLBACK_CHAIN` constants\n- [ ] Plugin contains `providerHintSection()` and `providerSwitchSection()` functions\n- [ ] Plugin registered in `opencode.jsonc` before ADV in plugin array\n\n### ADV Cleanup\n\n- [ ] `system-block.ts` no longer contains provider hint code (~130 lines removed)\n- [ ] `system-block.ts` retains only domain sections: degraded, health, worktree, activeChange, wisdom\n- [ ] `index.ts` no longer tracks `lastProviderID` state\n- [ ] `system-block.test.ts` no longer contains provider hint assertions (~45 tests moved)\n- [ ] `deploy-local.test.ts` no longer contains provider hint file tests (~15 assertions removed)\n- [ ] `deploy-local.sh` no longer contains `PROVIDER_HINT_DIR`, `PROVIDERS`, `remove_retired_provider_prompt_parts()` (~50 lines removed)\n- [ ] `.opencode/agent-parts/providers/` directory deleted from ADV repo\n\n### Testing\n\n- [ ] New plugin has test suite covering provider hint emission, switch detection, fallback chain\n- [ ] ADV tests pass without provider hint code\n- [ ] New plugin tests pass with provider hint code\n- [ ] Manual verification: OpenCode starts, provider hints appear in system prompt\n\n### Documentation\n\n- [ ] `docs/specs/advance-meta.md` updated: `rq-providerAdvSkinny01` revised\n- [ ] `docs/provider-agent-assembly.md` updated: references new plugin\n- [ ] `scripts/provider-eval.ts` updated: `provider_hint` metric reads from new plugin\n\n### Deployment\n\n- [ ] Deploy script `~/toolbox/scripts/deploy-opencode-provider-hints.sh` exists\n- [ ] Deploy script uses atomic hash-based copy pattern\n- [ ] Deploy script is idempotent with proper exit codes\n\n## Constraints\n\n- **Toolbox pattern**: Plain JS, no TypeScript build step (matches `opencode-claude-max`)\n- **Plugin order**: New plugin must register before ADV in `opencode.jsonc` for correct injection order\n- **No breaking changes**: Existing ADV functionality must continue to work\n- **Spec compliance**: Must update `rq-providerAdvSkinny01` to reflect new architecture\n\n## Avoidances\n\n- Do not create a new GitHub repository (use toolbox location)\n- Do not modify OpenCode core's `SystemPrompt.provider()` (out of scope)\n- Do not change provider hint content (only move location)\n- Do not introduce TypeScript build step in new plugin\n\n## Out of Scope\n\n- OpenCode core provider hint system (beast.txt, anthropic.txt, etc.)\n- Provider hint content authoring or improvement\n- Community plugin distribution (can promote later if interest grows)\n- Structural enforcement of plugin order (trust config)\n",
+    "design": "# Design: Extract Provider Hints to Standalone Plugin\n\n## Architecture\n\n### Responsibility Split\n\n| Concern | Owner |\n|---------|-------|\n| Provider behavioral hints (model-specific compensations) | `opencode-provider-hints` plugin |\n| Provider switch detection + fallback chain | `opencode-provider-hints` plugin |\n| ADV domain sections (degraded, health, worktree, activeChange, wisdom) | ADV plugin |\n\n### Injection Model\n\nBoth plugins register `experimental.chat.system.transform` independently. Each appends to `output.system[0]`. Plugin registration order in `opencode.jsonc` determines injection order — provider hints plugin registers first, so its sections appear before ADV's volatile domain sections. This gives stable prefix caching for provider hints (rarely change) while ADV sections (change every turn) remain at the end.\n\n### New Plugin: `opencode-provider-hints`\n\n**Location:** `~/toolbox/plugins/opencode-provider-hints/`\n\n**Pattern:** Plain JS, no TypeScript build (matches `opencode-claude-max` toolbox plugin pattern).\n\n```\n~/toolbox/plugins/opencode-provider-hints/\n├── package.json          # \"type\": \"module\", \"main\": \"plugin.js\"\n├── plugin.js             # Entry: registers experimental.chat.system.transform\n├── providers/\n│   ├── claude.md         # Provider hint source (moved from ADV)\n│   ├── gpt.md\n│   ├── glm.md\n│   ├── kimi.md\n│   ├── minimax.md\n│   └── qwen.md\n├── lib/\n│   ├── hints.js          # PROVIDER_HINTS map (keyed by ProviderHintKey)\n│   ├── provider-map.js   # PROVIDER_HINT_BY_PROVIDER_ID + FALLBACK_CHAIN\n│   └── sections.js       # providerHintSection() + providerSwitchSection()\n└── test/\n    └── plugin.test.js    # Node test runner: emission, switch, fallback tests\n```\n\n**State:** Plugin maintains its own `lastProviderID` for provider-switch detection. Independent of ADV's state.\n\n### ADV Cleanup\n\n**`plugin/src/utils/system-block.ts`** — remove:\n- `PROVIDER_HINTS` constant (~85 lines)\n- `PROVIDER_HINT_BY_PROVIDER_ID` mapping (~18 lines)\n- `FALLBACK_CHAIN` constant (~10 lines)\n- `ProviderHintKey` type\n- `providerHintSection()` function (~7 lines)\n- `providerSwitchSection()` function (~13 lines)\n- `lastProviderID` from `AssembleSystemBlockState`\n- `currentProviderID` from `AssembleSystemBlockInput`\n- Update `stableSections` array (7 → 5 sections)\n\n**`plugin/src/index.ts`** — remove:\n- `lastProviderID` state field initialization\n- Provider ID capture in transform hook\n- `lastProviderID` update after assembly\n- `currentProviderID` parameter to `applyAdvSystemBlock`\n\n**`plugin/src/utils/system-block.test.ts`** — move ~45 provider hint assertions to new plugin\n\n**`plugin/src/deploy-local.test.ts`** — remove ~15 provider hint file existence assertions\n\n**`scripts/deploy-local.sh`** — remove:\n- `PROVIDER_HINT_DIR` variable\n- `PROVIDERS` array\n- `remove_retired_provider_prompt_parts()` function\n- Function call site\n\n**`.opencode/agent-parts/providers/`** — delete entire directory (files moved to new plugin)\n\n### Deploy Script\n\n**New:** `~/toolbox/scripts/deploy-opencode-provider-hints.sh`\n\nPattern: atomic hash-based copy (matches `deploy-oc-test-gate.sh`). Source: `~/toolbox/plugins/opencode-provider-hints/`. Dest: registered path in `opencode.jsonc`. Idempotent with exit codes for deployed/already-in-sync.\n\n### Spec Updates\n\n**`docs/specs/advance-meta.md`** — revise `rq-providerAdvSkinny01`:\n- Remove: \"runtime system-block hint injection\" language\n- Add: \"Provider hints are owned by the `opencode-provider-hints` plugin, not ADV\"\n- Add: \"ADV system block contains only domain sections\"\n\n**`docs/provider-agent-assembly.md`** — update references to provider hint injection\n\n**`scripts/provider-eval.ts`** — update `provider_hint` metric source to read from new plugin\n\n## Risk Assessment\n\n| Risk | Severity | Mitigation |\n|------|----------|------------|\n| Plugin registration order not honored | LOW | OpenCode fires hooks in plugin array order; verified by existing multi-plugin setup |\n| Transform hook conflicts | LOW | Both plugins append independently; no shared state |\n| State synchronization (lastProviderID) | LOW | New plugin owns its own state; no cross-plugin dependency |\n| Test coverage gaps during migration | MEDIUM | Port tests first, verify green, then remove from ADV |\n| Deploy script not registered in opencode.jsonc | LOW | Include registration step in task list |\n\n## Implementation Strategy\n\n### Phase 1: Create new plugin (toolbox location)\n1. Scaffold `package.json`, `plugin.js`, directory structure\n2. Port provider hint constants and mappings to `lib/`\n3. Implement transform hook in `plugin.js`\n4. Move 6 `.md` source files to `providers/`\n\n### Phase 2: Port tests\n5. Create `test/plugin.test.js` with provider hint emission tests\n6. Port provider switch detection tests\n7. Port fallback chain tests\n8. Verify all new plugin tests pass\n\n### Phase 3: Create deploy script\n9. Write `deploy-opencode-provider-hints.sh` (atomic hash-based copy)\n10. Verify deploy script works\n\n### Phase 4: Clean up ADV\n11. Remove provider hint code from `system-block.ts`\n12. Remove provider ID tracking from `index.ts`\n13. Remove provider hint tests from `system-block.test.ts`\n14. Remove provider hint file tests from `deploy-local.test.ts`\n15. Remove provider hint assets from `deploy-local.sh`\n16. Delete `.opencode/agent-parts/providers/` directory\n17. Verify ADV tests still pass\n\n### Phase 5: Update specs and docs\n18. Revise `rq-providerAdvSkinny01` in `advance-meta.md`\n19. Update `provider-agent-assembly.md`\n20. Update `provider-eval.ts` metric source\n\n### Phase 6: Register and verify\n21. Add new plugin path to `opencode.jsonc` (before ADV)\n22. Run deploy script\n23. Manual verification: start OpenCode, confirm provider hints appear\n",
+    "executiveSummary": "## Executive Summary\n\nExtracted ADV's provider-specific behavioral patches (~130 lines of hint injection, provider-switch detection, fallback chain logic) into a standalone OpenCode plugin at `~/toolbox/plugins/opencode-provider-hints/`.\n\n**Before:** ADV's system-block.ts contained 6 provider hints, fallback chain, provider-switch detection, and lastProviderID state tracking — all model-specific behavioral compensations unrelated to ADV's domain workflow.\n\n**After:** ADV retains only its 5 domain sections (degraded, health, worktree, activeChange, wisdomPrompt). Provider hints are injected by the standalone `opencode-provider-hints` plugin via its own `experimental.chat.system.transform` hook, registered before ADV in opencode.jsonc for correct injection order.\n\n**Impact:** ADV is ~130 lines leaner with cleaner separation of concerns. Provider hints can evolve independently without touching ADV. Both plugins append to output.system[0] without cross-plugin dependencies.\n\n**Verification:** 3593 ADV tests pass. Plugin loads and exports ProviderHintsPlugin. Zero provider hint references remain in ADV source (system-block.ts, index.ts). Plugin registered and deployed.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-06-09T21:32:25.673Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| C1 | constraint | **Toolbox pattern**: Plain JS, no TypeScript build step (matches `opencode-claude-max`) | pass | package.json has type:module, main:plugin.js. No tsconfig.json, no build step. Plain JS plugin at ~/toolbox/plugins/opencode-provider-hints/. |\n| C2 | constraint | **Plugin order**: New plugin must register before ADV in `opencode.jsonc` for correct injection order | pass | opencode.jsonc updated: opencode-provider-hints listed at line 144 before Advance/plugin at line 145. |\n| C3 | constraint | **No breaking changes**: Existing ADV functionality must continue to work | pass | Full ADV test suite passes: 3593 tests green. ADV system-block retains 5 domain sections. Plugin loads independently. |\n| C4 | constraint | **Spec compliance**: Must update `rq-providerAdvSkinny01` to reflect new architecture | pass | rq-providerAdvSkinny01 in advance-meta.md rewritten for dual-plugin architecture. Scenario 3 now describes standalone plugin injection. |\n| DONT1 | avoidance | Do not create a new GitHub repository (use toolbox location) | respected | Plugin at ~/toolbox/plugins/opencode-provider-hints/ — no new GitHub repo created. |\n| DONT2 | avoidance | Do not modify OpenCode core's `SystemPrompt.provider()` (out of scope) | respected | No changes to OpenCode core SystemPrompt.provider(). |\n| DONT3 | avoidance | Do not change provider hint content (only move location) | respected | Provider hint .md files copied verbatim to new plugin. Content unchanged. |\n| DONT4 | avoidance | Do not introduce TypeScript build step in new plugin | respected | No TypeScript build step. Plain JS plugin.js. |\n| OOS1 | out_of_scope | OpenCode core provider hint system (beast.txt, anthropic.txt, etc.) | missing |  |\n| OOS2 | out_of_scope | Provider hint content authoring or improvement | missing |  |\n| OOS3 | out_of_scope | Community plugin distribution (can promote later if interest grows) | missing |  |\n| OOS4 | out_of_scope | Structural enforcement of plugin order (trust config) | missing |  |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/extractProviderHintsStandalone/proposal.md",
+      "updatedAt": "2026-06-09T20:08:33.463Z",
+      "contentHash": "407565237e30cda3d0f2acfaeed4c0b758e178b25020fd11977ac12c7a6a9970"
+    },
+    "problemStatement": {
+      "path": "",
+      "updatedAt": "2026-06-09T20:08:33.463Z"
+    },
+    "agreement": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/extractProviderHintsStandalone/agreement.md",
+      "updatedAt": "2026-06-09T20:22:18.798Z",
+      "contentHash": "c6673f66556f47ed7a2beaebb37dd23fce6dd63c471e3ae2896a60996a621c9e"
+    },
+    "design": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/extractProviderHintsStandalone/design.md",
+      "updatedAt": "2026-06-09T20:23:08.587Z",
+      "contentHash": "e7bcddce3ed0dd1e68a0f5fe548de0a3028ad42c3308d7454cdb1de511190765"
+    },
+    "executiveSummary": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/extractProviderHintsStandalone/executive-summary.md",
+      "updatedAt": "2026-06-09T21:34:10.714Z",
+      "contentHash": "f8e5b8b292db3d9fc9c8292fb620b5f0f39f902d8c8771061b969e6d2a728de5"
+    }
+  },
+  "lastSignalAt": "2026-06-09T21:40:41.131Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_UNCLEAR_SCOPE",
+      "severity": "warning",
+      "message": "Proposal has no Scope section. What files and modules will be affected?",
+      "recorded_at": "2026-06-09T20:22:47.906Z"
+    }
+  ],
+  "worktree_auto_managed": true
+}

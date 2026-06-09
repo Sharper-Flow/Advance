@@ -136,29 +136,32 @@ const SCRIPTS_DIR = SCRIPT_DIR;
 const PROMPTS_DIR = join(SCRIPTS_DIR, "provider-eval-prompts");
 const RESULTS_DIR = join(SCRIPTS_DIR, "provider-eval-results");
 
+const TOOLBOX_ROOT = resolve(REPO_ROOT, "..", "toolbox");
+const PROVIDER_HINTS_PLUGIN_DIR = join(TOOLBOX_ROOT, "plugins/opencode-provider-hints");
+
 const PROVIDERS: Record<string, ProviderConfig> = {
   glm: {
     model_id: "z-ai/glm-5.1",
     name: "GLM-5.1",
-    hint_file: join(REPO_ROOT, ".opencode/agent-parts/providers/glm.md"),
+    hint_file: join(PROVIDER_HINTS_PLUGIN_DIR, "providers/glm.md"),
     prompt_files: ["shared.yaml", "glm.yaml"],
   },
   kimi: {
     model_id: "moonshotai/kimi-k2.6",
     name: "Kimi K2.6",
-    hint_file: join(REPO_ROOT, ".opencode/agent-parts/providers/kimi.md"),
+    hint_file: join(PROVIDER_HINTS_PLUGIN_DIR, "providers/kimi.md"),
     prompt_files: ["shared.yaml", "kimi.yaml"],
   },
   claude: {
     model_id: "anthropic/claude-sonnet-4",
     name: "Claude Sonnet 4",
-    hint_file: join(REPO_ROOT, ".opencode/agent-parts/providers/claude.md"),
+    hint_file: join(PROVIDER_HINTS_PLUGIN_DIR, "providers/claude.md"),
     prompt_files: ["shared.yaml", "claude.yaml"],
   },
   gpt: {
     model_id: "openai/gpt-5.4",
     name: "GPT-5.4",
-    hint_file: join(REPO_ROOT, ".opencode/agent-parts/providers/gpt.md"),
+    hint_file: join(PROVIDER_HINTS_PLUGIN_DIR, "providers/gpt.md"),
     prompt_files: ["shared.yaml", "gpt.yaml"],
   },
 };
@@ -176,7 +179,6 @@ const FILLER_PATTERNS = [
 ];
 
 const ADV_DYNAMIC_SYSTEM_BLOCK_ESTIMATE = [
-  "[ADV:PROVIDER_HINT:{provider}] runtime provider hint when structured identity is known",
   "[ADV] Active change: {change-id}",
   "[ADV:WORKTREE_SESSION] Active worktree and change context",
 ].join("\n");

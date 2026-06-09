@@ -406,25 +406,6 @@ describe("deploy-local.sh", () => {
   // Single ADV runtime agent (providerAdvAgentAssemblySystem retired)
   // -----------------------------------------------------------------------
   describe("single ADV runtime agent sync", () => {
-    test("provider hint files exist in repo", () => {
-      const providers = ["claude", "gpt", "glm", "kimi", "minimax", "qwen"];
-      for (const p of providers) {
-        const path = join(REPO_ROOT, `.opencode/agent-parts/providers/${p}.md`);
-        expect(existsSync(path), `missing provider hint: ${p}.md`).toBe(true);
-      }
-    });
-
-    test("sync script retains provider names only for hint assets and stale cleanup", () => {
-      expect(content).toContain("PROVIDERS=(claude gpt glm kimi minimax qwen)");
-      expect(content).toContain("remove_retired_provider_prompt_parts");
-    });
-
-    test("provider hint source follows asset root for worktree-local edits", () => {
-      expect(content).toContain(
-        'PROVIDER_HINT_DIR="$ASSET_ROOT/.opencode/agent-parts/providers"',
-      );
-    });
-
     test("sync script assembles one complete ADV runtime agent", () => {
       expect(content).toContain("sync_adv_runtime_agent");
       expect(content).toContain("runtime_text");
