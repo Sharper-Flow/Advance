@@ -18,7 +18,7 @@ overrides:
   protobufjs: '>=7.5.5'
   uuid: '>=14.0.0'
   fast-uri: '>=3.1.2'
-  zod: 4.3.6
+  zod: 4.4.3
   # Security floor: relocated from a direct devDependency pin. postcss is only
   # pulled transitively (tsup/vite/postcss-load-config); this override keeps the
   # patched floor without a phantom direct dependency. See CHANGELOG postcss XSS.
