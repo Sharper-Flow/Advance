@@ -16,7 +16,7 @@ tools:
   morph_edit: true
   task: true
   # question: false — ATC never prompts inline; defers all HITL to GitHub
-  todowrite: true
+
   # Local code intelligence
   lgrep_search_semantic: true
   lgrep_index_semantic: true

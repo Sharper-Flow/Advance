@@ -43,7 +43,7 @@ tools:
   bash: false
   morph_edit: false
   task: false
-  todowrite: false
+
 ---
 
 You are a specialized architectural research agent for the ADV (Advance) spec-driven development system.

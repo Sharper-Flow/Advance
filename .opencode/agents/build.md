@@ -12,7 +12,7 @@ tools:
   morph_edit: true
   bash: true
   task: true
-  todowrite: true
+
   question: true
   glob: true
   grep: true
@@ -130,7 +130,7 @@ Once scope is locked, work in short cycles:
 4. **Apply** — Implement the fix. Write code, edit files — whatever the scope requires.
 5. **Verify** — Run relevant checks. Fix anything that breaks.
 
-Repeat until verification passes and scope is complete. Non-ADV multi-step work: use `todowrite` + tasks.
+Repeat until verification passes and scope is complete.
 
 ## Prune-First Heuristic
 
