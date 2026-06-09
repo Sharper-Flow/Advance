@@ -142,7 +142,6 @@ GLOBAL_AGENTS="$HOME/.config/opencode/agents"
 GLOBAL_SKILLS="$HOME/.config/opencode/skills"
 GLOBAL_CONFIG="$HOME/.config/opencode"
 GLOBAL_AGENT_PARTS="$GLOBAL_CONFIG/agent-parts"
-PROVIDER_PROMPT_PARTS_DIR="$GLOBAL_AGENT_PARTS/advance"
 
 # ---------------------------------------------------------------------------
 # Resolve config file: opencode.jsonc takes priority over opencode.json
@@ -447,13 +446,10 @@ PY
 # Provider ADV hint assets
 #
 # Provider-specific runtime agent generation was retired. ADV now syncs one
-# complete global adv.md runtime agent and injects provider hints at runtime via
-# plugin/src/utils/system-block.ts. Provider hint markdown remains repo data for
-# docs/evaluation only; sync no longer generates adv-{provider}.md agents or
-# provider prompt refs.
+# complete global adv.md runtime agent. Provider hints are now injected by
+# the standalone opencode-provider-hints plugin; sync no longer generates
+# adv-{provider}.md agents, provider prompt refs, or provider hint file copies.
 # ---------------------------------------------------------------------------
-PROVIDER_HINT_DIR="$ASSET_ROOT/.opencode/agent-parts/providers"
-PROVIDERS=(claude gpt glm kimi minimax qwen)
 
 sync_adv_runtime_agent() {
 	local runtime_agent="$REPO_AGENTS/adv.md"
@@ -480,20 +476,6 @@ tmp.write_text(runtime_text + "\n")
 tmp.replace(dest)
 PY
 	echo "    assembled ADV runtime agent: adv.md"
-}
-
-remove_retired_provider_prompt_parts() {
-	for provider in "${PROVIDERS[@]}"; do
-		local retired="$PROVIDER_PROMPT_PARTS_DIR/adv-${provider}.md"
-		if [ -f "$retired" ]; then
-			if [ "$DRY_RUN" = true ]; then
-				echo "    dry-run remove retired provider prompt: adv-${provider}.md"
-			else
-				rm -f "$retired"
-				echo "    removed retired provider prompt: adv-${provider}.md"
-			fi
-		fi
-	done
 }
 
 # Agent Frontmatter Structural Check
@@ -1356,9 +1338,8 @@ if [ ! -f "$GLOBAL_AGENTS/adv.md" ]; then
 fi
 echo "    $agents_copied agent(s) synced"
 
-# Assemble single ADV runtime agent and remove retired provider prompt files.
+# Assemble single ADV runtime agent.
 sync_adv_runtime_agent
-remove_retired_provider_prompt_parts
 
 # Apply repo-owned overlays to shared global agents without replacing the file.
 # `adv` is intentionally NOT in this list — see SHARED_OVERLAY_ONLY note above.
