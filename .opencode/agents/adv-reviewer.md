@@ -11,7 +11,7 @@ tools:
   patch: true
   morph_edit: true
   bash: true
-
+  todowrite: true
   question: true
   skill: true
   glob: true
