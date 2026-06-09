@@ -15,7 +15,7 @@ tools:
   glob: true
   grep: true
   task: true
-  todowrite: true
+
   question: true
   # ADV tools for proposal creation and gate completion
   adv_change_list: true

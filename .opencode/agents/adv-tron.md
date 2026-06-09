@@ -34,7 +34,7 @@ tools:
   bash: false
   morph_edit: false
   task: false
-  todowrite: false
+
   # Disabled - no ADV orchestration mutations beyond own optimized report submit
   adv_change_create: false
   adv_task_add: false
