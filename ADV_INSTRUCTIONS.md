@@ -226,6 +226,22 @@ Make correctness structural before heuristic: prefer types, schemas, parsers, st
 
 Heuristics MUST NOT be sole authority for correctness, security, persistence, workflow state, gate completion, or spec compliance. If unavoidable: isolate, document assumptions, add deterministic guardrails, test edge cases/properties.
 
+### Truth Ordering Cascade
+
+When artifacts conflict, later gates override earlier gates. Spec requirements override all artifacts.
+
+| Priority | Source | Authority |
+|----------|--------|-----------|
+| 1 (highest) | `.adv/specs/*.md` | Spec laws — immutable until spec delta archived |
+| 2 | `agreement.md` | Confirmed objectives, AC, constraints, avoidances |
+| 3 | `design.md` | Validated architecture decisions |
+| 4 | `proposal.md` | Problem statement, scope, user outcomes |
+| 5 (lowest) | Conversation | Current session context |
+
+**Conflict resolution:** If `proposal.md` says X but `agreement.md` says Y, follow Y. If `agreement.md` conflicts with a spec requirement, follow the spec. Gate sequence enforces this ordering structurally — later gates cannot complete without prior gates done.
+
+**Non-blocking warnings:** Gate readiness may emit advisory warnings when artifact conflicts are detected. These do not block gate completion but surface potential drift for agent awareness.
+
 ### ADV State Access
 
 × NEVER read ADV state files directly (`read`, `cat`, `ls`). Use ADV MCP tools exclusively.
@@ -687,6 +703,42 @@ Gate behaviors:
 - `discovery`/`planning` evaluate full change including completed tasks — completed work is evidence to validate, not acceptance proof. Add follow-up tasks where gaps found.
 - `acceptance` emits `REVIEW_FINDINGS` block (blocker, issue, suggestion, question) and records user acceptance.
 - `release` runs hardening, archive spec promotion, git finalization, worktree cleanup, and reflection.
+
+### Scope Boundaries & Negative Constraints
+
+Negative constraints flow through artifacts in a structured refinement path:
+
+| Artifact | Section | Purpose | Contract Kind |
+|----------|---------|---------|---------------|
+| `proposal.md` | `### Must Not` | Early negative constraints (seeds avoidances) | — (advisory, not parsed) |
+| `agreement.md` | `## Avoidances` | Refined, confirmed avoidances | `avoidance` (prefix `DONT`) |
+| `agreement.md` | `## Out of Scope` | Boundary exclusions | `out_of_scope` |
+
+**Refinement flow:** `Must Not` (proposal) seeds `Avoidances` (agreement) → parsed into `ChangeContract` items → checked by design validator + drift detection + review matrix.
+
+**Key infrastructure:**
+- `contract-mint.ts` parses `## Avoidances` heading via regex `/^(avoidances|avoidance|do not|do nots)$/i`
+- Avoidance items get `DONT` prefix in contract IDs
+- Design validator checks tasks don't violate avoidance constraints
+- Drift detection in `/adv-review` and `/adv-harden` flags avoidance violations as blockers
+
+### Gate Artifact Validators
+
+Each gate requires a minimum artifact before completion. Enforcement lives in `gate-readiness.ts`.
+
+| Gate | Required Artifact | Validator |
+|------|-------------------|-----------|
+| `proposal` | `proposal.md` | `ARTIFACT_BACKED_GATES` map |
+| `discovery` | `agreement.md` | `ARTIFACT_BACKED_GATES` map |
+| `design` | `design.md` | `ARTIFACT_BACKED_GATES` map |
+| `acceptance` | `acceptance.md` | `ARTIFACT_BACKED_GATES` map |
+
+**Validation checks** (`stateBackedArtifactEvidence()`):
+1. Artifact file exists in change state
+2. Content ≥ 20 non-whitespace characters (rejects stubs)
+3. Metadata present (creation timestamp)
+
+**Blocking conditions:** `ARTIFACT_MISSING` (file absent) or `ARTIFACT_UNDERSIZED` (< 20 chars) prevent gate completion. Compile-time `_gateArtifactKindCheck` in `types/gates.ts` ensures type safety of the gate→artifact mapping.
 
 ## Command Execution Model
 

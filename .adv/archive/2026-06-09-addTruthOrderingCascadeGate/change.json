@@ -1,0 +1,793 @@
+{
+  "id": "addTruthOrderingCascadeGate",
+  "title": "Add truth ordering cascade to gate readiness",
+  "status": "archived",
+  "created_at": "2026-06-09T20:20:23.252Z",
+  "tasks": [
+    {
+      "id": "tk-26650a073b54",
+      "title": "Add GateReadinessWarning type and warnings field to GateReadinessResult",
+      "type": "code",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-06-09T20:26:28.183Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-09T20:28:06.064Z",
+      "verification": "Typecheck passes, 25/25 tests pass",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "705baf814484ea3dd8cb6e2f4be76a1c52d88a24",
+      "completedAt": "2026-06-09T20:33:35.879Z",
+      "completed_at": "2026-06-09T20:33:35.879Z",
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4"
+        ],
+        "verifies": [],
+        "respects": [
+          "C1",
+          "C4"
+        ]
+      },
+      "updatedAt": "2026-06-09T20:39:50.520Z"
+    },
+    {
+      "id": "tk-d1580057b03c",
+      "title": "Add GateReadinessWarning type and warnings field to GateReadinessResult",
+      "type": "code",
+      "status": "cancelled",
+      "priority": 1,
+      "created_at": "2026-06-09T20:26:28.241Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "cancelApproval": "User approved archive sign-off. Re-cancelling superseded duplicate tasks after adding contract_refs metadata for archive validation.",
+      "cancelledAt": "2026-06-09T20:47:53.793Z",
+      "completed_at": "2026-06-09T20:47:53.793Z",
+      "cancellation": {
+        "reason": "Cancelled duplicate — superseded by tk-26650a073b54",
+        "approved_by_user": true,
+        "approval_evidence": "User approved archive sign-off. Re-cancelling superseded duplicate tasks after adding contract_refs metadata for archive validation.",
+        "approved_at": "2026-06-09T20:47:53.793Z"
+      },
+      "contract_refs": {
+        "not_applicable_reason": "Cancelled — superseded by consolidated task tk-26650a073b54"
+      },
+      "updatedAt": "2026-06-09T20:47:25.176Z"
+    },
+    {
+      "id": "tk-42bd61f0ba95",
+      "title": "Implement artifactCascadeWarnings() function",
+      "type": "code",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-06-09T20:27:04.058Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-26650a073b54"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "verification": "5 new cascade warning tests pass",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "705baf814484ea3dd8cb6e2f4be76a1c52d88a24",
+      "completedAt": "2026-06-09T20:33:37.344Z",
+      "completed_at": "2026-06-09T20:33:37.344Z",
+      "contract_refs": {
+        "implements": [
+          "AC5"
+        ],
+        "verifies": [],
+        "respects": [
+          "C2",
+          "C3",
+          "DONT1",
+          "DONT2"
+        ]
+      },
+      "updatedAt": "2026-06-09T20:39:51.691Z"
+    },
+    {
+      "id": "tk-e465ce5c9bba",
+      "title": "Implement artifactCascadeWarnings() function",
+      "type": "code",
+      "status": "cancelled",
+      "priority": 2,
+      "created_at": "2026-06-09T20:27:04.070Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-26650a073b54"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "cancelApproval": "User approved archive sign-off. Re-cancelling superseded duplicate tasks after adding contract_refs metadata for archive validation.",
+      "cancelledAt": "2026-06-09T20:47:53.669Z",
+      "completed_at": "2026-06-09T20:47:53.669Z",
+      "cancellation": {
+        "reason": "Cancelled duplicate — superseded by tk-42bd61f0ba95",
+        "approved_by_user": true,
+        "approval_evidence": "User approved archive sign-off. Re-cancelling superseded duplicate tasks after adding contract_refs metadata for archive validation.",
+        "approved_at": "2026-06-09T20:47:53.669Z"
+      },
+      "contract_refs": {
+        "not_applicable_reason": "Cancelled — superseded by consolidated task tk-42bd61f0ba95"
+      },
+      "updatedAt": "2026-06-09T20:47:33.768Z"
+    },
+    {
+      "id": "tk-857968d49e9a",
+      "title": "Implement artifactCascadeWarnings() function",
+      "type": "code",
+      "status": "cancelled",
+      "priority": 3,
+      "created_at": "2026-06-09T20:27:06.964Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-26650a073b54"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "cancelApproval": "User approved archive sign-off. Re-cancelling superseded duplicate tasks after adding contract_refs metadata for archive validation.",
+      "cancelledAt": "2026-06-09T20:47:53.669Z",
+      "completed_at": "2026-06-09T20:47:53.669Z",
+      "cancellation": {
+        "reason": "Cancelled duplicate — superseded by tk-42bd61f0ba95",
+        "approved_by_user": true,
+        "approval_evidence": "User approved archive sign-off. Re-cancelling superseded duplicate tasks after adding contract_refs metadata for archive validation.",
+        "approved_at": "2026-06-09T20:47:53.669Z"
+      },
+      "contract_refs": {
+        "not_applicable_reason": "Cancelled — superseded by consolidated task tk-42bd61f0ba95"
+      },
+      "updatedAt": "2026-06-09T20:47:39.484Z"
+    },
+    {
+      "id": "tk-8c5c8609324d",
+      "title": "Integrate warnings into evaluateGateReadiness() and update existing tests",
+      "type": "code",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-06-09T20:27:08.933Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-26650a073b54"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "verification": "All 25 gate-readiness tests pass, typecheck clean",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "705baf814484ea3dd8cb6e2f4be76a1c52d88a24",
+      "completedAt": "2026-06-09T20:33:40.807Z",
+      "completed_at": "2026-06-09T20:33:40.807Z",
+      "contract_refs": {
+        "implements": [
+          "AC5",
+          "AC6"
+        ],
+        "verifies": [
+          "AC7"
+        ],
+        "respects": [
+          "C1",
+          "DONT3",
+          "DONT4"
+        ]
+      },
+      "updatedAt": "2026-06-09T20:39:53.282Z"
+    },
+    {
+      "id": "tk-abe029813117",
+      "title": "Integrate warnings into evaluateGateReadiness() and update existing tests",
+      "type": "code",
+      "status": "cancelled",
+      "priority": 5,
+      "created_at": "2026-06-09T20:27:10.905Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-26650a073b54"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "cancelApproval": "User approved archive sign-off. Re-cancelling superseded duplicate tasks after adding contract_refs metadata for archive validation.",
+      "cancelledAt": "2026-06-09T20:47:53.669Z",
+      "completed_at": "2026-06-09T20:47:53.669Z",
+      "cancellation": {
+        "reason": "Cancelled duplicate — superseded by tk-8c5c8609324d",
+        "approved_by_user": true,
+        "approval_evidence": "User approved archive sign-off. Re-cancelling superseded duplicate tasks after adding contract_refs metadata for archive validation.",
+        "approved_at": "2026-06-09T20:47:53.669Z"
+      },
+      "contract_refs": {
+        "not_applicable_reason": "Cancelled — superseded by consolidated task tk-8c5c8609324d"
+      },
+      "updatedAt": "2026-06-09T20:47:40.621Z"
+    },
+    {
+      "id": "tk-3f171cf10830",
+      "title": "Integrate warnings into evaluateGateReadiness() and update existing tests",
+      "type": "code",
+      "status": "cancelled",
+      "priority": 6,
+      "created_at": "2026-06-09T20:27:11.046Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-26650a073b54"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "cancelApproval": "User approved archive sign-off. Re-cancelling superseded duplicate tasks after adding contract_refs metadata for archive validation.",
+      "cancelledAt": "2026-06-09T20:47:53.669Z",
+      "completed_at": "2026-06-09T20:47:53.669Z",
+      "cancellation": {
+        "reason": "Cancelled duplicate — superseded by tk-8c5c8609324d",
+        "approved_by_user": true,
+        "approval_evidence": "User approved archive sign-off. Re-cancelling superseded duplicate tasks after adding contract_refs metadata for archive validation.",
+        "approved_at": "2026-06-09T20:47:53.669Z"
+      },
+      "contract_refs": {
+        "not_applicable_reason": "Cancelled — superseded by consolidated task tk-8c5c8609324d"
+      },
+      "updatedAt": "2026-06-09T20:47:41.777Z"
+    },
+    {
+      "id": "tk-ba2277d90702",
+      "title": "Integrate warnings into evaluateGateReadiness() and update existing tests",
+      "type": "code",
+      "status": "cancelled",
+      "priority": 7,
+      "created_at": "2026-06-09T20:27:11.091Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-26650a073b54"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "cancelApproval": "User approved archive sign-off. Re-cancelling superseded duplicate tasks after adding contract_refs metadata for archive validation.",
+      "cancelledAt": "2026-06-09T20:47:53.669Z",
+      "completed_at": "2026-06-09T20:47:53.669Z",
+      "cancellation": {
+        "reason": "Cancelled duplicate — superseded by tk-8c5c8609324d",
+        "approved_by_user": true,
+        "approval_evidence": "User approved archive sign-off. Re-cancelling superseded duplicate tasks after adding contract_refs metadata for archive validation.",
+        "approved_at": "2026-06-09T20:47:53.669Z"
+      },
+      "contract_refs": {
+        "not_applicable_reason": "Cancelled — superseded by consolidated task tk-8c5c8609324d"
+      },
+      "updatedAt": "2026-06-09T20:47:42.690Z"
+    }
+  ],
+  "subagent_reports": [],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-06-09T20:20:28.321Z",
+      "completed_by": "agent",
+      "approval_evidence": "Problem statement confirmed: document truth ordering cascade + add non-blocking warnings to gate-readiness.ts. Quick /adv-task scope.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addTruthOrderingCascadeGate/proposal.md",
+        "content_hash": "6aea1e917978cc158706c4e3961b8c543a6f7c3bba06a2411cfc564b8ab3410d",
+        "non_whitespace_chars": 1427,
+        "checked_at": "2026-06-09T20:20:23.291Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "started_at": "2026-06-09T20:25:35.513Z",
+      "completed_at": "2026-06-09T20:26:01.936Z",
+      "completed_by": "agent",
+      "approval_evidence": "Research complete: gate-readiness.ts analyzed. GateReadinessResult needs warnings field. evaluateGateReadiness() is integration point. Approach: add non-blocking cascade reminder warnings for artifact-backed gates. No NLP required.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addTruthOrderingCascadeGate/agreement.md",
+        "content_hash": "9abf67e22c428fe4cd76827741bb2793a03b95bdde6fd2273731a334b6dc3b2c",
+        "non_whitespace_chars": 1544,
+        "checked_at": "2026-06-09T20:20:23.293Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-06-09T20:26:18.415Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design complete: GateReadinessResult extended with warnings field. artifactCascadeWarnings() function for cascade reminders + keyword scan. Integration in evaluateGateReadiness(). Backward compatible — warnings default to empty array.",
+      "artifact_evidence": {
+        "kind": "design",
+        "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addTruthOrderingCascadeGate/design.md",
+        "content_hash": "7f05ebbe74df595bdd22d5aae9873f4ef85d419fa251bc9985c00d53031a177f",
+        "non_whitespace_chars": 2126,
+        "checked_at": "2026-06-09T20:20:23.295Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-06-09T20:28:01.365Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved task graph: 3 tasks in gate-readiness.ts (type addition, warnings function, integration + tests). Documentation already committed."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-06-09T20:34:04.732Z",
+      "completed_by": "agent",
+      "approval_evidence": "3/3 tasks done, 3 stale duplicates cancelled. GateReadinessWarning type + artifactCascadeWarnings() + integration. 25/25 tests pass, typecheck clean. Commit 705baf81."
+    },
+    "acceptance": {
+      "status": "done",
+      "started_at": "2026-06-09T20:38:41.573Z",
+      "completed_at": "2026-06-09T20:38:54.597Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved acceptance. Executive summary persisted. Review matrix: 21/21 rows pass. All AC met.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addTruthOrderingCascadeGate/executive-summary.md",
+        "content_hash": "f2a94cd26af3a94d7eec0c5293a916ca6eada78f25ad42422ac7ed7f4f5bbf90",
+        "non_whitespace_chars": 1184,
+        "checked_at": "2026-06-09T20:20:23.297Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "9abf67e22c428fe4cd76827741bb2793a03b95bdde6fd2273731a334b6dc3b2c",
+      "approvedAt": "2026-06-09T20:25:58.596Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "ADV_INSTRUCTIONS.md contains explicit truth ordering cascade section",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9abf67e22c428fe4cd76827741bb2793a03b95bdde6fd2273731a334b6dc3b2c",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "Gate readiness emits advisory warnings (non-blocking) about artifact precedence",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9abf67e22c428fe4cd76827741bb2793a03b95bdde6fd2273731a334b6dc3b2c",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "Existing avoidances flow and gate validators are documented",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9abf67e22c428fe4cd76827741bb2793a03b95bdde6fd2273731a334b6dc3b2c",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "Truth Ordering Cascade section added to Critical Protocols in ADV_INSTRUCTIONS.md",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9abf67e22c428fe4cd76827741bb2793a03b95bdde6fd2273731a334b6dc3b2c",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Scope Boundaries & Negative Constraints section added to 7-Gate Quality Checklist",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9abf67e22c428fe4cd76827741bb2793a03b95bdde6fd2273731a334b6dc3b2c",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Gate Artifact Validators section added to 7-Gate Quality Checklist",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9abf67e22c428fe4cd76827741bb2793a03b95bdde6fd2273731a334b6dc3b2c",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "`GateReadinessResult` extended with optional `warnings` field",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9abf67e22c428fe4cd76827741bb2793a03b95bdde6fd2273731a334b6dc3b2c",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "`evaluateGateReadiness()` emits cascade reminder warnings for artifact-backed gates",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9abf67e22c428fe4cd76827741bb2793a03b95bdde6fd2273731a334b6dc3b2c",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Warnings do not block gate completion (advisory only)",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9abf67e22c428fe4cd76827741bb2793a03b95bdde6fd2273731a334b6dc3b2c",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "All existing tests pass",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9abf67e22c428fe4cd76827741bb2793a03b95bdde6fd2273731a334b6dc3b2c",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Warnings must be non-blocking (advisory only)",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9abf67e22c428fe4cd76827741bb2793a03b95bdde6fd2273731a334b6dc3b2c",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Must not slow down gate completion significantly",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9abf67e22c428fe4cd76827741bb2793a03b95bdde6fd2273731a334b6dc3b2c",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Must handle missing artifacts gracefully (no false positives)",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9abf67e22c428fe4cd76827741bb2793a03b95bdde6fd2273731a334b6dc3b2c",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Documentation changes are additive only (no restructuring)",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9abf67e22c428fe4cd76827741bb2793a03b95bdde6fd2273731a334b6dc3b2c",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not add NLP-based semantic conflict detection (out of scope, expensive)",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9abf67e22c428fe4cd76827741bb2793a03b95bdde6fd2273731a334b6dc3b2c",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not restructure existing gate-readiness.ts architecture",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9abf67e22c428fe4cd76827741bb2793a03b95bdde6fd2273731a334b6dc3b2c",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not change gate completion semantics (warnings are advisory)",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9abf67e22c428fe4cd76827741bb2793a03b95bdde6fd2273731a334b6dc3b2c",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not add new dependencies",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9abf67e22c428fe4cd76827741bb2793a03b95bdde6fd2273731a334b6dc3b2c",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "Semantic conflict detection between artifacts (requires NLP, future work)",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9abf67e22c428fe4cd76827741bb2793a03b95bdde6fd2273731a334b6dc3b2c",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "Authority tags on spec requirements (separate change, agenda item ag-9FaxhxNl)",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9abf67e22c428fe4cd76827741bb2793a03b95bdde6fd2273731a334b6dc3b2c",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "Changes to gate sequence or gate ownership",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9abf67e22c428fe4cd76827741bb2793a03b95bdde6fd2273731a334b6dc3b2c",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-06-09T20:36:42.872Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Truth Ordering Cascade section present in ADV_INSTRUCTIONS.md at commit 446dd2a3"
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "artifactCascadeWarnings() implemented in gate-readiness.ts at commit 705baf81, emits CASCADE_REMINDER and ARTIFACT_CONTRADICTION_KEYWORDS"
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Scope Boundaries & Negative Constraints + Gate Artifact Validators sections in ADV_INSTRUCTIONS.md at commit 446dd2a3"
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Section added and committed at 446dd2a3"
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Section added and committed at 446dd2a3"
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Section added and committed at 446dd2a3"
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "GateReadinessWarning interface + optional warnings field on GateReadinessResult — typecheck passes"
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "5 new tests verify cascade reminder emission for artifact-backed gates"
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Test 'does not affect ready status in evaluateGateReadiness' confirms ready=true with warnings present"
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "25/25 gate-readiness tests pass, pnpm run check clean (schemas, typecheck, lint, format)"
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "warnings field is optional on GateReadinessResult, not included in blockers array, omitted when empty"
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Only string.includes() and toLowerCase() operations — O(n) on artifact content length"
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Returns empty array when no prior artifacts exist or no keywords found — test 'returns no warnings' verifies"
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Three additive sections inserted into ADV_INSTRUCTIONS.md, no existing content removed or restructured"
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Only keyword string matching (TODO, TBD, FIXME, HACK, contradicts, overrides) — no NLP or ML"
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Added GateReadinessWarning type + artifactCascadeWarnings() function — existing architecture (makeBlocker, priorGateBlockers, etc.) unchanged"
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Gate completion logic unchanged — warnings are separate optional field, not in blockers"
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No new imports or package.json changes — only uses existing types from ../types"
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Out of scope — not implemented"
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Out of scope — deferred to agenda item ag-9FaxhxNl"
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Out of scope — gate sequence and ownership unchanged"
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "Truth Ordering Cascade section added to Critical Protocols in ADV_INSTRUCTIONS.md",
+    "Scope Boundaries & Negative Constraints section added to 7-Gate Quality Checklist",
+    "Gate Artifact Validators section added to 7-Gate Quality Checklist",
+    "`GateReadinessResult` extended with optional `warnings` field",
+    "`evaluateGateReadiness()` emits cascade reminder warnings for artifact-backed gates",
+    "Warnings do not block gate completion (advisory only)",
+    "All existing tests pass"
+  ],
+  "documents": {
+    "proposal": "# Add Truth Ordering Cascade to Gate Readiness\n\n## What Changes\n\n1. **Documentation** — Add \"Truth Ordering Cascade\" section to `ADV_INSTRUCTIONS.md` documenting artifact precedence when conflicts arise\n2. **Non-blocking warnings** — Extend `gate-readiness.ts` to emit advisory warnings (not blockers) when later artifacts appear to contradict earlier ones\n3. **Spec requirement** — Add requirement to `advance-meta` capability documenting the cascade\n\n## User Outcomes\n\n- Agents have explicit precedence rules when artifacts conflict\n- Gate readiness surfaces potential conflicts as warnings without blocking progress\n- Precedence is documented in one place, not inferred from gate sequence\n\n## Affected Code\n\n- `ADV_INSTRUCTIONS.md` — new section\n- `plugin/src/temporal/gate-readiness.ts` — add conflict detection (non-blocking)\n- `.adv/specs/advance-meta.md` — new requirement\n\n## Constraints\n\n- Warnings must be non-blocking (advisory only)\n- Must not slow down gate completion significantly\n- Must handle missing artifacts gracefully (no false positives)\n\n## Impact\n\n- Low risk: advisory warnings only, no gate blocking\n- Documentation change is additive\n- Spec requirement formalizes existing implicit behavior\n\n## Context\n\nDiscovered during Model Spec research (openai/model_spec). Model Spec uses explicit truth ordering cascade; ADV has implicit ordering via gate sequence but no documentation or conflict detection.\n\n## Discovery Agenda\n\n- What constitutes a \"conflict\" between artifacts? (semantic vs syntactic)\n- Should warnings be surfaced in gate completion output or only in context snapshot?\n- How to detect conflicts without expensive NLP comparison?",
+    "problemStatement": "## Why\n\nWhen artifacts conflict (e.g., proposal says X but agreement says Y), there is no documented precedence rule and no machine-readable warning. Agents must infer ordering from gate sequence. This creates ambiguity during autonomous phases (apply, review, harden) when the agent encounters conflicting guidance across artifacts.\n\nModel Spec uses an explicit \"truth ordering cascade\" — later instructions override earlier ones, with documented precedence. ADV has implicit ordering via gate sequence but no explicit documentation or non-blocking warnings when conflicts are detected.\n\n## Desired Outcome\n\n- Document truth ordering cascade in ADV_INSTRUCTIONS.md\n- Add non-blocking warnings to gate-readiness when artifact conflicts are detected\n- Make precedence explicit: spec > agreement > design > proposal > conversation",
+    "agreement": "# Agreement: Add Truth Ordering Cascade to Gate Readiness\n\n## Objectives\n\n1. Document artifact precedence rules (truth ordering cascade) in ADV_INSTRUCTIONS.md\n2. Add non-blocking advisory warnings to gate-readiness.ts when artifacts may conflict\n3. Document existing scope boundaries and gate artifact validator infrastructure\n\n## Success Criteria\n\n- ADV_INSTRUCTIONS.md contains explicit truth ordering cascade section\n- Gate readiness emits advisory warnings (non-blocking) about artifact precedence\n- Existing avoidances flow and gate validators are documented\n\n## Acceptance Criteria\n\n- AC1: Truth Ordering Cascade section added to Critical Protocols in ADV_INSTRUCTIONS.md\n- AC2: Scope Boundaries & Negative Constraints section added to 7-Gate Quality Checklist\n- AC3: Gate Artifact Validators section added to 7-Gate Quality Checklist\n- AC4: `GateReadinessResult` extended with optional `warnings` field\n- AC5: `evaluateGateReadiness()` emits cascade reminder warnings for artifact-backed gates\n- AC6: Warnings do not block gate completion (advisory only)\n- AC7: All existing tests pass\n\n## Constraints\n\n- Warnings must be non-blocking (advisory only)\n- Must not slow down gate completion significantly\n- Must handle missing artifacts gracefully (no false positives)\n- Documentation changes are additive only (no restructuring)\n\n## Avoidances\n\n- Do not add NLP-based semantic conflict detection (out of scope, expensive)\n- Do not restructure existing gate-readiness.ts architecture\n- Do not change gate completion semantics (warnings are advisory)\n- Do not add new dependencies\n\n## Out of Scope\n\n- Semantic conflict detection between artifacts (requires NLP, future work)\n- Authority tags on spec requirements (separate change, agenda item ag-9FaxhxNl)\n- Changes to gate sequence or gate ownership",
+    "design": "# Design: Truth Ordering Cascade Warnings\n\n## Architecture\n\n### Type Changes\n\nAdd `warnings` field to `GateReadinessResult`:\n\n```typescript\nexport interface GateReadinessWarning {\n  code: string;\n  message: string;\n  artifactKind?: GateArtifactKind;\n}\n\nexport interface GateReadinessResult {\n  ready: boolean;\n  blockers: GateReadinessBlocker[];\n  warnings: GateReadinessWarning[];  // NEW — advisory, non-blocking\n  evidence?: GateArtifactEvidence;\n}\n```\n\n### Detection Function\n\nNew `artifactCascadeWarnings()` function:\n\n```typescript\nfunction artifactCascadeWarnings(\n  state: ChangeWorkflowState,\n  gateId: GateId,\n): GateReadinessWarning[]\n```\n\nLogic:\n1. Only emit for artifact-backed gates (check `ARTIFACT_BACKED_GATES`)\n2. Check if prior artifacts exist in `state.documents`\n3. If prior artifact exists and current artifact exists, emit cascade reminder:\n   - \"Truth ordering cascade: {current} overrides {prior} on conflict\"\n4. Simple keyword scan for contradiction indicators in current artifact:\n   - Keywords: \"supersedes\", \"overrides\", \"changed from\", \"instead of\", \"no longer\"\n   - If found, emit: \"Potential artifact conflict detected — verify truth ordering cascade\"\n\n### Integration Point\n\nIn `evaluateGateReadiness()`, after computing blockers:\n\n```typescript\nconst warnings = artifactCascadeWarnings(state, gateId);\nreturn {\n  ready: blockers.length === 0,\n  blockers,\n  warnings,  // NEW\n  ...(evidence ? { evidence } : {}),\n};\n```\n\n### Backward Compatibility\n\n- `warnings` field defaults to `[]` — existing callers that don't read it are unaffected\n- `GateReadinessResult` callers that destructure `{ ready, blockers, evidence }` continue to work\n- No changes to gate completion semantics — warnings are advisory only\n\n## Implementation Strategy\n\n1. Add types to `gate-readiness.ts` (co-located with existing types)\n2. Implement `artifactCascadeWarnings()` function\n3. Integrate into `evaluateGateReadiness()`\n4. Update all existing test assertions that check `GateReadinessResult` shape\n5. Add new tests for warning emission\n\n## Test Plan\n\n- Unit: `artifactCascadeWarnings()` returns empty for non-artifact-backed gates\n- Unit: emits cascade reminder when prior artifact exists\n- Unit: emits conflict warning when contradiction keywords found\n- Unit: no warnings when artifacts are missing (graceful degradation)\n- Integration: `evaluateGateReadiness()` includes warnings in result\n- Regression: existing blocker tests still pass (warnings don't affect `ready`)",
+    "executiveSummary": "# Executive Summary: Truth Ordering Cascade Gate Warnings\n\n## Outcome\n\nNon-blocking truth ordering cascade warnings are now emitted by `evaluateGateReadiness()` for artifact-backed gates. Agents receive advisory reminders about artifact precedence (spec > agreement > design > proposal > conversation) and keyword-based conflict detection without any gate-blocking behavior.\n\n## What Shipped\n\n### Documentation (commit 446dd2a3)\n- **Truth Ordering Cascade** section in Critical Protocols — explicit precedence rules\n- **Scope Boundaries & Negative Constraints** section in 7-Gate Quality Checklist\n- **Gate Artifact Validators** section in 7-Gate Quality Checklist\n\n### Code (commit 705baf81)\n- `GateReadinessWarning` interface with `code`, `message`, `artifactKind?` fields\n- `artifactCascadeWarnings()` function — cascade reminders + keyword scan (TODO/TBD/FIXME/HACK/contradicts/overrides)\n- Integration into `evaluateGateReadiness()` — optional `warnings` field, backward compatible\n\n## Verification\n- 25/25 gate-readiness tests pass (5 new)\n- Full check clean: schemas, typecheck, lint, format\n- Review matrix: 21/21 contract items pass\n\n## What Was Not Done (by design)\n- Semantic conflict detection (NLP-based) — out of scope, deferred\n- Authority tags on spec requirements — separate change (agenda ag-9FaxhxNl)\n- Gate sequence/ownership changes — out of scope",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-06-09T20:36:42.872Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | ADV_INSTRUCTIONS.md contains explicit truth ordering cascade section | pass | Truth Ordering Cascade section present in ADV_INSTRUCTIONS.md at commit 446dd2a3 |\n| SC2 | success_criterion | Gate readiness emits advisory warnings (non-blocking) about artifact precedence | pass | artifactCascadeWarnings() implemented in gate-readiness.ts at commit 705baf81, emits CASCADE_REMINDER and ARTIFACT_CONTRADICTION_KEYWORDS |\n| SC3 | success_criterion | Existing avoidances flow and gate validators are documented | pass | Scope Boundaries & Negative Constraints + Gate Artifact Validators sections in ADV_INSTRUCTIONS.md at commit 446dd2a3 |\n| AC1 | acceptance_criterion | Truth Ordering Cascade section added to Critical Protocols in ADV_INSTRUCTIONS.md | pass | Section added and committed at 446dd2a3 |\n| AC2 | acceptance_criterion | Scope Boundaries & Negative Constraints section added to 7-Gate Quality Checklist | pass | Section added and committed at 446dd2a3 |\n| AC3 | acceptance_criterion | Gate Artifact Validators section added to 7-Gate Quality Checklist | pass | Section added and committed at 446dd2a3 |\n| AC4 | acceptance_criterion | `GateReadinessResult` extended with optional `warnings` field | pass | GateReadinessWarning interface + optional warnings field on GateReadinessResult — typecheck passes |\n| AC5 | acceptance_criterion | `evaluateGateReadiness()` emits cascade reminder warnings for artifact-backed gates | pass | 5 new tests verify cascade reminder emission for artifact-backed gates |\n| AC6 | acceptance_criterion | Warnings do not block gate completion (advisory only) | pass | Test 'does not affect ready status in evaluateGateReadiness' confirms ready=true with warnings present |\n| AC7 | acceptance_criterion | All existing tests pass | pass | 25/25 gate-readiness tests pass, pnpm run check clean (schemas, typecheck, lint, format) |\n| C1 | constraint | Warnings must be non-blocking (advisory only) | respected | warnings field is optional on GateReadinessResult, not included in blockers array, omitted when empty |\n| C2 | constraint | Must not slow down gate completion significantly | respected | Only string.includes() and toLowerCase() operations — O(n) on artifact content length |\n| C3 | constraint | Must handle missing artifacts gracefully (no false positives) | respected | Returns empty array when no prior artifacts exist or no keywords found — test 'returns no warnings' verifies |\n| C4 | constraint | Documentation changes are additive only (no restructuring) | respected | Three additive sections inserted into ADV_INSTRUCTIONS.md, no existing content removed or restructured |\n| DONT1 | avoidance | Do not add NLP-based semantic conflict detection (out of scope, expensive) | respected | Only keyword string matching (TODO, TBD, FIXME, HACK, contradicts, overrides) — no NLP or ML |\n| DONT2 | avoidance | Do not restructure existing gate-readiness.ts architecture | respected | Added GateReadinessWarning type + artifactCascadeWarnings() function — existing architecture (makeBlocker, priorGateBlockers, etc.) unchanged |\n| DONT3 | avoidance | Do not change gate completion semantics (warnings are advisory) | respected | Gate completion logic unchanged — warnings are separate optional field, not in blockers |\n| DONT4 | avoidance | Do not add new dependencies | respected | No new imports or package.json changes — only uses existing types from ../types |\n| OOS1 | out_of_scope | Semantic conflict detection between artifacts (requires NLP, future work) | not_applicable | Out of scope — not implemented |\n| OOS2 | out_of_scope | Authority tags on spec requirements (separate change, agenda item ag-9FaxhxNl) | not_applicable | Out of scope — deferred to agenda item ag-9FaxhxNl |\n| OOS3 | out_of_scope | Changes to gate sequence or gate ownership | not_applicable | Out of scope — gate sequence and ownership unchanged |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addTruthOrderingCascadeGate/proposal.md",
+      "updatedAt": "2026-06-09T20:20:23.303Z",
+      "contentHash": "6aea1e917978cc158706c4e3961b8c543a6f7c3bba06a2411cfc564b8ab3410d"
+    },
+    "problemStatement": {
+      "path": "",
+      "updatedAt": "2026-06-09T20:20:23.303Z"
+    },
+    "agreement": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addTruthOrderingCascadeGate/agreement.md",
+      "updatedAt": "2026-06-09T20:25:54.823Z",
+      "contentHash": "9abf67e22c428fe4cd76827741bb2793a03b95bdde6fd2273731a334b6dc3b2c"
+    },
+    "design": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addTruthOrderingCascadeGate/design.md",
+      "updatedAt": "2026-06-09T20:26:14.940Z",
+      "contentHash": "7f05ebbe74df595bdd22d5aae9873f4ef85d419fa251bc9985c00d53031a177f"
+    },
+    "executiveSummary": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addTruthOrderingCascadeGate/executive-summary.md",
+      "updatedAt": "2026-06-09T20:38:51.090Z",
+      "contentHash": "f2a94cd26af3a94d7eec0c5293a916ca6eada78f25ad42422ac7ed7f4f5bbf90"
+    }
+  },
+  "lastSignalAt": "2026-06-09T20:47:53.793Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true
+}
