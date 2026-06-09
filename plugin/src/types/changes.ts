@@ -379,6 +379,7 @@ export const ContractItemSchema = z.object({
   evidencePolicy: ContractEvidencePolicySchema,
   status: ContractItemStatusSchema.default("draft"),
   notRequiredReason: z.string().optional(),
+  requiredCritical: z.boolean().optional(),
 });
 export type ContractItem = z.infer<typeof ContractItemSchema>;
 

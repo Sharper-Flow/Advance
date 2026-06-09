@@ -110,6 +110,16 @@ export const ReviewerScopeDriftSchema = z
 
 export const EngineerScopeDriftSchema = ReviewerScopeDriftSchema;
 
+export const RequiredFollowUpSchema = z
+  .object({
+    text: z.string().min(1),
+    obligation_class: z.enum(["required_critical", "required_standard"]),
+    severity: z.enum(["critical", "high"]).default("high"),
+    source_contract_id: z.string().optional(),
+  })
+  .strict();
+export type RequiredFollowUp = z.infer<typeof RequiredFollowUpSchema>;
+
 export const SubagentConsumerWarningSchema = z
   .object({
     kind: z.enum([
@@ -131,6 +141,7 @@ export const EngineerSubagentReportSchema =
     blockers: z.array(SubagentBlockerSchema),
     scope_drift: EngineerScopeDriftSchema.nullable(),
     follow_ups: z.array(z.string().min(1)),
+    required_follow_ups: z.array(RequiredFollowUpSchema).optional(),
     required_main_agent_actions: z.array(z.string().min(1)),
     related_scan: z.string().min(1),
     context_update_for_adv: z
@@ -242,6 +253,7 @@ const ReviewerReportFields = {
   scope_drift: ReviewerScopeDriftSchema.nullable(),
   risks: z.array(z.string().min(1)),
   required_main_agent_actions: z.array(z.string().min(1)),
+  required_follow_ups: z.array(RequiredFollowUpSchema).optional(),
   consumer_warnings: z.array(SubagentConsumerWarningSchema).optional(),
 };
 

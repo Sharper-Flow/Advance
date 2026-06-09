@@ -88,6 +88,8 @@ export {
   SubagentDecisionSchema,
   SubagentBlockerSchema,
   SubagentConsumerWarningSchema,
+  RequiredFollowUpSchema,
+  type RequiredFollowUp,
   EngineerSubagentReportSchema,
   DesignerDesignDimensionSchema,
   DesignerDesignDimensionsSchema,
