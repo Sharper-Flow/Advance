@@ -83,6 +83,7 @@ export function runContractChecks(change: Change): ValidationIssue[] {
     if (
       contract.rigor !== "minimal" &&
       task.type === "code" &&
+      task.status !== "cancelled" &&
       !hasAnyTaskRef(refs) &&
       !refs?.not_applicable_reason
     ) {

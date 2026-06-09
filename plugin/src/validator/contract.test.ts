@@ -93,6 +93,32 @@ describe("contract validation", () => {
     );
   });
 
+  test("skips contract_refs check for cancelled tasks", async () => {
+    const result = await validate({
+      tasks: [
+        task({ id: "tk-done", status: "done", contract_refs: { implements: ["AC1"], verifies: ["AC1"] } }),
+        task({ id: "tk-cancelled", status: "cancelled", contract_refs: undefined }),
+      ],
+    });
+
+    expect(result.errors.map((error) => error.code)).not.toContain(
+      "CONTRACT_TASK_REFS_MISSING",
+    );
+  });
+
+  test("skips contract_refs check for cancelled tasks", async () => {
+    const result = await validate({
+      tasks: [
+        task({ id: "tk-done", status: "done", contract_refs: { implements: ["AC1"], verifies: ["AC1"] } }),
+        task({ id: "tk-cancelled", status: "cancelled", contract_refs: undefined }),
+      ],
+    });
+
+    expect(result.errors.map((error) => error.code)).not.toContain(
+      "CONTRACT_TASK_REFS_MISSING",
+    );
+  });
+
   test("errors when required AC lacks implementing or verifying task coverage", async () => {
     const result = await validate({
       tasks: [task({ contract_refs: { respects: ["AC1"] } })],
