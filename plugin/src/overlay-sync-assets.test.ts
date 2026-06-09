@@ -721,7 +721,7 @@ cp -a "$src/." "$dest/"
 
       expect(result.status).toBe(0);
       expect(existsSync(join(globalAgents, "adv.md"))).toBe(true);
-      for (const p of ["claude", "gpt", "glm", "kimi"]) {
+      for (const p of ["claude", "gpt", "glm", "kimi", "minimax", "qwen"]) {
         const variantPath = join(globalAgents, `adv-${p}.md`);
         expect(
           existsSync(variantPath),
@@ -799,7 +799,7 @@ cp -a "$src/." "$dest/"
         join(configDir, "opencode.json"),
         JSON.stringify({ plugin: [], instructions: [] }),
       );
-      for (const p of ["claude", "gpt", "glm", "kimi"]) {
+      for (const p of ["claude", "gpt", "glm", "kimi", "minimax", "qwen"]) {
         writeFileSync(join(globalAgents, `adv-${p}.md`), `stale ${p}\n`);
       }
 
@@ -810,7 +810,7 @@ cp -a "$src/." "$dest/"
       });
 
       expect(result.status).toBe(0);
-      for (const p of ["claude", "gpt", "glm", "kimi"]) {
+      for (const p of ["claude", "gpt", "glm", "kimi", "minimax", "qwen"]) {
         expect(existsSync(join(globalAgents, `adv-${p}.md`))).toBe(false);
       }
     } finally {
@@ -842,7 +842,7 @@ cp -a "$src/." "$dest/"
         readFileSync(join(configDir, "opencode.json"), "utf8"),
       );
       expect(config.agent?.adv?.disable).toBeUndefined();
-      for (const p of ["claude", "gpt", "glm", "kimi"]) {
+      for (const p of ["claude", "gpt", "glm", "kimi", "minimax", "qwen"]) {
         expect(config.agent?.[`adv-${p}`]?.prompt).toBeUndefined();
       }
     } finally {

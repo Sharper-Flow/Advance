@@ -100,10 +100,19 @@ export const FALLBACK_CHAIN: Readonly<Record<string, string[]>> = {
   openai: ["anthropic", "google"],
   anthropic: ["openai", "google"],
   google: ["openai", "anthropic"],
+  openrouter: ["anthropic", "openai"],
   "zai-coding-plan": [],
+  "minimax-coding-plan": ["anthropic", "openai"],
+  "kimi-for-coding": ["anthropic", "openai"],
 };
 
-export type ProviderHintKey = "claude" | "gpt" | "glm" | "kimi";
+export type ProviderHintKey =
+  | "claude"
+  | "gpt"
+  | "glm"
+  | "kimi"
+  | "minimax"
+  | "qwen";
 
 /** Provider hints formerly embedded in generated adv-{provider}.md agents.
  *
@@ -160,6 +169,33 @@ export const PROVIDER_HINTS: Readonly<Record<ProviderHintKey, string>> = {
     "- When multiple constraints apply, check each one individually before acting — do not collapse or merge distinct rules",
     "- Sequential tool dependencies must be executed one at a time in order — never parallelize dependent calls",
   ].join("\n"),
+  minimax: [
+    "<!-- PROVIDER_HINT:minimax -->",
+    "",
+    "## Provider Hint",
+    "",
+    "- Default model family: MiniMax M3",
+    "- Parallel tool calls may mis-attribute results by arrival order rather than tool_call_id — execute dependent tool calls sequentially, never parallelize when call results feed into each other",
+    "- Interleaved thinking is preserved in response content; do not strip or summarize reasoning_content from message history between turns",
+    "- For ADV apply tasks, when delegation routing marks work `delegate_allowed` or `delegate_preferred`, prefer spawning `adv-engineer`; execute inline only when context-bound",
+    "- For local code exploration, use lgrep tools (lgrep_search_semantic, lgrep_search_symbols) as the FIRST choice — do not start with glob or grep for concept or symbol queries",
+    "- When a tool choice exists, pick the most specific one; prefer lgrep over grep, prefer read over cat, prefer ADV MCP tools over direct file access",
+    "- Before calling any tool, verify that every required parameter is present and matches the schema — do not guess or invent parameter values",
+  ].join("\n"),
+  qwen: [
+    "<!-- PROVIDER_HINT:qwen -->",
+    "",
+    "## Provider Hint",
+    "",
+    "- Default model family: Qwen 3.7 Max",
+    "- Preserve thinking content across multi-turn agent workflows — the model relies on accumulated reasoning context for long-horizon task coherence",
+    "- For long-running ADV workflows, summarize intermediate state explicitly rather than relying on the model to infer from distant context",
+    "- For ADV apply tasks, when delegation routing marks work `delegate_allowed` or `delegate_preferred`, prefer spawning `adv-engineer`; execute inline only when context-bound",
+    "- For local code exploration, use lgrep tools (lgrep_search_semantic, lgrep_search_symbols) as the FIRST choice — do not start with glob or grep for concept or symbol queries",
+    "- Sequential tool dependencies must be executed one at a time in order — never parallelize dependent calls",
+    "- When a tool choice exists, pick the most specific one; prefer lgrep over grep, prefer read over cat, prefer ADV MCP tools over direct file access",
+    "- Before calling any tool, verify that every required parameter is present and matches the schema — do not guess or invent parameter values",
+  ].join("\n"),
 };
 
 /** Structured provider IDs observed/configured for provider hints.
@@ -171,12 +207,18 @@ export const PROVIDER_HINT_BY_PROVIDER_ID: Readonly<
 > = {
   anthropic: "claude",
   openai: "gpt",
+  openrouter: "qwen",
   "zai-coding-plan": "glm",
   zai: "glm",
   "z-ai": "glm",
   moonshot: "kimi",
   moonshotai: "kimi",
   kimi: "kimi",
+  "kimi-for-coding": "kimi",
+  "minimax-coding-plan": "minimax",
+  minimax: "minimax",
+  dashscope: "qwen",
+  qwen: "qwen",
 };
 
 // ─── Predicates ─────────────────────────────────────────────────────────────
