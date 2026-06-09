@@ -9,6 +9,7 @@ import { z } from "zod";
 import { ConformanceVerdictSchema } from "./conformance";
 import {
   GateArtifactEvidenceSchema,
+  GateCriterionSchema,
   GateIdSchema,
   GateReadinessBlockerSchema,
 } from "./gates";
@@ -208,6 +209,12 @@ export const GateCompletedSignalPayloadSchema = z.object({
   artifactEvidence: GateArtifactEvidenceSchema.optional(),
   completedBy: z.string(),
   completedAt: IsoTimestampSchema,
+  /**
+   * Advisory criteria evaluated at gate completion time.
+   * Optional for replay-safety — histories predating this field replay
+   * cleanly with criteria undefined.
+   */
+  criteria: z.array(GateCriterionSchema).optional(),
 });
 export type GateCompletedSignalPayload = z.infer<
   typeof GateCompletedSignalPayloadSchema

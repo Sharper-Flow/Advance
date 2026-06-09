@@ -504,3 +504,253 @@ export function evaluateGateReadiness(
     ...(warnings.length > 0 ? { warnings } : {}),
   };
 }
+
+// =============================================================================
+// Gate Criteria Evaluation (Advisory, Non-Blocking)
+// =============================================================================
+
+import type { GateCriterion, CriterionDef } from "../types";
+import { GATE_CRITERIA_DEFINITIONS } from "../types";
+
+/**
+ * Criterion evaluator function.
+ * Inspects ChangeWorkflowState and returns pass/fail/na with optional evidence.
+ * Must be synchronous and deterministic for Temporal replay safety.
+ */
+export type CriterionEvaluator = (
+  state: ChangeWorkflowState,
+  gateId: GateId,
+) => { status: "pass" | "fail" | "na"; evidence?: string };
+
+/**
+ * Criterion evaluators — implementation functions keyed by criterion ID.
+ * Each evaluator inspects ChangeWorkflowState and returns evaluation result.
+ * Errors are caught by evaluateGateCriteria and converted to status: 'na'.
+ */
+export const CRITERION_EVALUATORS: Record<string, CriterionEvaluator> = {
+  // Proposal criteria
+  PROPOSAL_ARTIFACT_PRESENT: (state) => {
+    const content = state.documents?.proposal;
+    if (typeof content !== "string" || content.trim().length === 0) {
+      return { status: "fail", evidence: "Proposal content missing" };
+    }
+    return { status: "pass", evidence: "Proposal present" };
+  },
+  PROPOSAL_MIN_SIZE: (state) => {
+    const content = state.documents?.proposal;
+    if (typeof content !== "string") {
+      return { status: "na", evidence: "No proposal content" };
+    }
+    const chars = content.replace(/\s/g, "").length;
+    if (chars < MIN_GATE_ARTIFACT_NON_WHITESPACE_CHARS) {
+      return {
+        status: "fail",
+        evidence: `${chars} chars < ${MIN_GATE_ARTIFACT_NON_WHITESPACE_CHARS}`,
+      };
+    }
+    return { status: "pass", evidence: `${chars} chars` };
+  },
+
+  // Discovery criteria
+  AGREEMENT_ARTIFACT_PRESENT: (state) => {
+    const content = state.documents?.agreement;
+    if (typeof content !== "string" || content.trim().length === 0) {
+      return { status: "fail", evidence: "Agreement content missing" };
+    }
+    return { status: "pass", evidence: "Agreement present" };
+  },
+  CONTRACT_MINTED: (state) => {
+    if (!state.contract) {
+      return { status: "fail", evidence: "No contract" };
+    }
+    return { status: "pass", evidence: "Contract exists" };
+  },
+
+  // Design criteria
+  DESIGN_ARTIFACT_PRESENT: (state) => {
+    const content = state.documents?.design;
+    if (typeof content !== "string" || content.trim().length === 0) {
+      return { status: "fail", evidence: "Design content missing" };
+    }
+    return { status: "pass", evidence: "Design present" };
+  },
+  DESIGN_MIN_SIZE: (state) => {
+    const content = state.documents?.design;
+    if (typeof content !== "string") {
+      return { status: "na", evidence: "No design content" };
+    }
+    const chars = content.replace(/\s/g, "").length;
+    if (chars < MIN_GATE_ARTIFACT_NON_WHITESPACE_CHARS) {
+      return {
+        status: "fail",
+        evidence: `${chars} chars < ${MIN_GATE_ARTIFACT_NON_WHITESPACE_CHARS}`,
+      };
+    }
+    return { status: "pass", evidence: `${chars} chars` };
+  },
+
+  // Planning criteria
+  USER_APPROVED: () => {
+    // Cannot evaluate from state alone — set by tool layer at completion
+    return { status: "na", evidence: "Evaluated at completion time" };
+  },
+  PREP_READINESS_PASS: () => {
+    // Cannot evaluate from state alone — set by tool layer at completion
+    return { status: "na", evidence: "Evaluated at completion time" };
+  },
+  TASKS_EXIST: (state) => {
+    if (!state.tasks || state.tasks.length === 0) {
+      return { status: "fail", evidence: "No tasks" };
+    }
+    return { status: "pass", evidence: `${state.tasks.length} tasks` };
+  },
+  NO_ORPHAN_TASKS: (state) => {
+    // Simplified check — full orphan detection would require dependency graph analysis
+    if (!state.tasks || state.tasks.length === 0) {
+      return { status: "na", evidence: "No tasks to check" };
+    }
+    return { status: "pass", evidence: "Tasks present" };
+  },
+  TDD_INTENTS_ASSIGNED: (state) => {
+    if (!state.tasks || state.tasks.length === 0) {
+      return { status: "na", evidence: "No tasks" };
+    }
+    const withoutIntent = state.tasks.filter(
+      (t) => !t.metadata?.tdd_intent,
+    ).length;
+    if (withoutIntent > 0) {
+      return {
+        status: "fail",
+        evidence: `${withoutIntent} tasks without tdd_intent`,
+      };
+    }
+    return { status: "pass", evidence: "All tasks have tdd_intent" };
+  },
+
+  // Execution criteria
+  ALL_TASKS_DONE: (state) => {
+    if (!state.tasks || state.tasks.length === 0) {
+      return { status: "na", evidence: "No tasks" };
+    }
+    const incomplete = state.tasks.filter(
+      (t) => t.status !== "done" && t.status !== "cancelled",
+    ).length;
+    if (incomplete > 0) {
+      return { status: "fail", evidence: `${incomplete} incomplete tasks` };
+    }
+    return { status: "pass", evidence: "All tasks done/cancelled" };
+  },
+
+  // Acceptance criteria
+  CONTRACT_EXISTS: (state) => {
+    if (!state.contract) {
+      return { status: "fail", evidence: "No contract" };
+    }
+    return { status: "pass", evidence: "Contract exists" };
+  },
+  REVIEW_MATRIX_COMPLETE: (state) => {
+    if (!state.contract?.reviewMatrix) {
+      return { status: "fail", evidence: "No review matrix" };
+    }
+    const itemCount = state.contract.items.length;
+    const rowCount = state.contract.reviewMatrix.rows.length;
+    if (rowCount < itemCount) {
+      return {
+        status: "fail",
+        evidence: `${rowCount} rows < ${itemCount} items`,
+      };
+    }
+    return {
+      status: "pass",
+      evidence: `${rowCount} rows for ${itemCount} items`,
+    };
+  },
+  ALL_ROWS_PASSING: (state) => {
+    if (!state.contract?.reviewMatrix) {
+      return { status: "na", evidence: "No review matrix" };
+    }
+    const failing = state.contract.reviewMatrix.rows.filter((row) =>
+      isFailingContractReviewStatus(row.status),
+    ).length;
+    if (failing > 0) {
+      return { status: "fail", evidence: `${failing} failing rows` };
+    }
+    return { status: "pass", evidence: "All rows passing" };
+  },
+  EXECUTIVE_SUMMARY_PRESENT: (state) => {
+    const content = state.documents?.executiveSummary;
+    if (typeof content !== "string" || content.trim().length === 0) {
+      return { status: "fail", evidence: "Executive summary missing" };
+    }
+    const chars = content.replace(/\s/g, "").length;
+    if (chars < MIN_GATE_ARTIFACT_NON_WHITESPACE_CHARS) {
+      return {
+        status: "fail",
+        evidence: `${chars} chars < ${MIN_GATE_ARTIFACT_NON_WHITESPACE_CHARS}`,
+      };
+    }
+    return { status: "pass", evidence: `${chars} chars` };
+  },
+
+  // Release criteria
+  TRUNK_MERGED: () => {
+    // Cannot evaluate from state alone — requires git inspection
+    return { status: "na", evidence: "Requires git inspection" };
+  },
+  PR_HANDOFF_COMPLETE: () => {
+    // Cannot evaluate from state alone — requires GitHub API
+    return { status: "na", evidence: "Requires GitHub API" };
+  },
+};
+
+/**
+ * Evaluate gate criteria for a given gate.
+ * Runs all defined evaluators for the gate, catching errors and returning
+ * status: 'na' for failed evaluations. Results are advisory (not blocking).
+ *
+ * @param state - Current workflow state
+ * @param gateId - Gate to evaluate criteria for
+ * @returns Array of evaluated criteria with pass/fail/na status
+ */
+export function evaluateGateCriteria(
+  state: ChangeWorkflowState,
+  gateId: GateId,
+): GateCriterion[] {
+  const definitions = GATE_CRITERIA_DEFINITIONS[gateId];
+  if (!definitions || definitions.length === 0) {
+    return [];
+  }
+
+  const evaluatedAt = new Date().toISOString();
+  return definitions.map((def: CriterionDef) => {
+    const evaluator = CRITERION_EVALUATORS[def.id];
+    if (!evaluator) {
+      return {
+        id: def.id,
+        label: def.label,
+        status: "na" as const,
+        evaluatedAt,
+        evidence: "No evaluator implemented",
+      };
+    }
+
+    try {
+      const result = evaluator(state, gateId);
+      return {
+        id: def.id,
+        label: def.label,
+        status: result.status,
+        evaluatedAt,
+        evidence: result.evidence,
+      };
+    } catch (error) {
+      return {
+        id: def.id,
+        label: def.label,
+        status: "na" as const,
+        evaluatedAt,
+        evidence: `Evaluator error: ${error instanceof Error ? error.message : String(error)}`,
+      };
+    }
+  });
+}

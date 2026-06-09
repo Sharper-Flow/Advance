@@ -86,6 +86,10 @@ export const getGateStatusQuery = wf.defineQuery<
   | ChangeWorkflowState["gates"][keyof ChangeWorkflowState["gates"]],
   [keyof ChangeWorkflowState["gates"] | undefined]
 >(CHANGE_WORKFLOW_QUERY_NAMES.getGateStatus);
+export const getGateCriteriaQuery = wf.defineQuery<
+  ChangeWorkflowState["gateCriteria"],
+  []
+>(CHANGE_WORKFLOW_QUERY_NAMES.getGateCriteria);
 export const getWorktreesQuery = wf.defineQuery<
   NonNullable<ChangeWorkflowState["worktrees"]>
 >(CHANGE_WORKFLOW_QUERY_NAMES.getWorktrees);

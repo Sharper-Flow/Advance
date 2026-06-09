@@ -95,6 +95,7 @@ const designQueryKeys = [
   "getState",
   "getTasks",
   "getGateStatus",
+  "getGateCriteria",
   "getWorktrees",
   "getConformanceState",
 ] as const;
@@ -112,7 +113,7 @@ describe("change workflow message contract", () => {
     }
   });
 
-  it("defines the six design query bindings", () => {
+  it("defines the seven design query bindings", () => {
     expect(Object.keys(CHANGE_WORKFLOW_QUERY_NAMES)).toEqual([
       ...designQueryKeys,
     ]);

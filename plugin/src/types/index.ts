@@ -161,6 +161,10 @@ export {
   getIncompleteGates,
   allGatesSatisfied,
   createDefaultGates,
+  GateCriterionSchema,
+  type GateCriterion,
+  type CriterionDef,
+  GATE_CRITERIA_DEFINITIONS,
 } from "./gates";
 
 // =============================================================================
