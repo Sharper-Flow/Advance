@@ -374,7 +374,7 @@ Load context in two tiers:
 3. Read relevant proposal/design sections only when task description references them
 
 × Do NOT call `adv_change_show` before every task — reserve for phase transitions.
-× Do NOT batch tasks into local todo list with descriptive blurbs.
+× Do NOT invent todo entries with prose descriptions instead of tk-ID projections. Use `_todoProjection` rows only.
 
 ### Worktree Context for Sub-Agents
 
@@ -548,6 +548,8 @@ The Designer Apply Context Packet uses the same identity anchors as the Apply Co
 
 **3a. Start:** Refresh context (MANDATORY) → `adv_task_update status: "in_progress"` fires `taskAssignedSignal`. On resume, query change workflow state and continue from the active task without adding a user pause.
 
+**3a.1. Seed TodoWrite:** Call `todowrite` with the `_todoProjection.rows` from the most recent `adv_task_ready` or `adv_change_show include.readyTasks:true` response. Map each row to a todo entry: `{ content: row.content, status: row.status }`. This gives the user a live at-a-glance view of the task graph. Copy `content` values exactly — do not invent prose descriptions.
+
 **3a.5. Route:** Evaluate delegation routing (above). If delegated and verified → skip to 3d.
 
 **3a.6. Clean Baseline Capture:** Verify `git status --porcelain` is clean and capture `baselineHeadSha = git rev-parse HEAD` and `baselineBranch = git branch --show-current`. If dirty → stop and remediate before Red Phase.
@@ -579,6 +581,8 @@ The Designer Apply Context Packet uses the same identity anchors as the Apply Co
 
 **3d. Complete:** assert `adv_task_checkpoint` returned `checkpointRecorded:true`; do not call `adv_task_update status: "done"` in normal apply flow. Show evidence from the checkpoint result and continue.
 
+**3d.1. Refresh TodoWrite:** Call `adv_task_ready` → use the returned `_todoProjection.rows` to update `todowrite` with the new ready queue. Mark the just-completed task as `completed`, keep remaining rows as `pending`/`in_progress`.
+
 **3e. Loop:** `adv_task_ready` → if ready tasks remain, **GOTO 3a**. REPEAT until the ready queue is empty.
 
 You MUST continue to the next ready task without pausing. You MUST NOT pause between tasks, between sections, or after progress displays. Auto-continue is mandatory per `rq-autonomy01` / `rq-autonomy01.4`.
@@ -608,7 +612,7 @@ After EACH task: run build/tests/lint → if fails: retry protocol → only mark
 
 ## Phase 4: Progress Tracking
 
-Task state is visible via `_contextSnapshot` and `adv_task_list` — do not emit a per-task status block.
+Task state is visible via `_contextSnapshot` and `adv_task_list` — do not emit a per-task status block. TodoWrite projection is exempt — it is a UI surface over the task graph, not a chat status block.
 
 ---
 
