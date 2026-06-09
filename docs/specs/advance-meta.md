@@ -498,21 +498,21 @@ ADV instruction surfaces (ADV_INSTRUCTIONS.md, docs/command-voice-standard.md, .
 
 ---
 
-### Single ADV Runtime Agent with Provider Hints
+### ADV Runtime Agent (Provider Hints Extracted)
 
 **ID:** `rq-providerAdvSkinny01` | **Priority:** **[MUST]**
 
-ADV must expose one canonical lean ADV runtime prompt while preserving provider-specific guidance through runtime system-block hint injection. deploy-local.sh must not append the full ADV_INSTRUCTIONS.md protocol reference into global adv.md, require generated adv-{provider}.md runtime agents, or create concatenated provider prompt files. Provider hints must be selected from structured provider/model context and emitted through the existing single-system-entry system block path.
+ADV must expose one canonical lean ADV runtime prompt without provider-specific guidance. Provider hints are injected by the standalone `opencode-provider-hints` plugin via its own `experimental.chat.system.transform` hook, independently from ADV's system block. deploy-local.sh must not append the full ADV_INSTRUCTIONS.md protocol reference into global adv.md, require generated adv-{provider}.md runtime agents, or create concatenated provider prompt files. ADV's system block must not contain provider hint or provider switch sections.
 
 **Tags:** `provider-adv`, `prompt-parts`, `sync`
 
 #### Scenarios
 
-**Single ADV runtime agent is complete without generated provider variants** (`rq-providerAdvSkinny01.1`)
+**Single ADV runtime agent is complete without provider hint code** (`rq-providerAdvSkinny01.1`)
 
 **Given:**
 
-- scripts/deploy-local.sh --fix runs with canonical ADV and provider hint assets present
+- scripts/deploy-local.sh --fix runs with canonical ADV assets present
 
 **When:** ADV runtime assets are synced
 
@@ -525,6 +525,8 @@ ADV must expose one canonical lean ADV runtime prompt while preserving provider-
 - Concatenated provider prompt files are not generated as required runtime artifacts at agent-parts/advance/adv-{provider}.md
 - agent.adv-{provider}.prompt refs are not written by deploy-local.sh
 - Generic adv visibility is not disabled because of retired provider variants
+- ADV's system-block.ts does not contain provider hint or provider switch sections
+- ADV's index.ts does not track currentProviderID or lastProviderID
 
 **Stale generated provider artifacts are removed or reported** (`rq-providerAdvSkinny01.1a`)
 
@@ -540,20 +542,20 @@ ADV must expose one canonical lean ADV runtime prompt while preserving provider-
 - Stale concatenated provider prompt files are removed or reported as retired artifacts with deterministic remediation
 - Running --fix is idempotent and does not recreate retired provider artifacts
 
-**Runtime provider hints use structured context and one system entry** (`rq-providerAdvSkinny01.2`)
+**Provider hints are injected by standalone plugin, not ADV** (`rq-providerAdvSkinny01.2`)
 
 **Given:**
 
-- The ADV plugin system prompt transform runs for a model with structured provider or model identity
+- The opencode-provider-hints plugin is registered before ADV in opencode.jsonc
 
-**When:** The ADV system block is assembled
+**When:** A chat system prompt transform runs for a model with structured provider identity
 
 **Then:**
 
-- A known provider or model identity emits exactly one matching provider hint
-- An unknown or missing provider/model identity emits no provider hint
-- Provider hints are appended through output.system[0] and no additional system entry is pushed
+- The opencode-provider-hints plugin emits exactly one matching provider hint through output.system[0]
+- ADV's system block does not emit provider hints or provider switch markers
 - No heuristic free-text provider guessing is required for correctness
+- Both plugins independently append to output.system[0] without cross-plugin dependencies
 
 ---
 
