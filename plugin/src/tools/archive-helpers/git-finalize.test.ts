@@ -362,6 +362,190 @@ describe("git-finalize helpers", () => {
     });
   });
 
+  it("direct route + squash-merged PR falls back to pr_merged when ancestry fails", () => {
+    const result = resolveReleaseReachability(
+      {
+        mainCheckout: "/repo",
+        defaultBranch: "trunk",
+        changeId: "fixSquashMergeRelease",
+        route: { route: "direct", repo: "Sharper-Flow/Advance" },
+        prNumber: 159,
+      },
+      {
+        runGit: (_cwd, args) => {
+          if (args[0] === "fetch")
+            return { status: 0, stdout: "", stderr: "" };
+          if (args[0] === "rev-parse")
+            return { status: 0, stdout: "abc123\n", stderr: "" };
+          if (args[0] === "ls-remote")
+            return {
+              status: 0,
+              stdout: "abc123\trefs/heads/trunk\n",
+              stderr: "",
+            };
+          if (args[0] === "log")
+            return {
+              status: 0,
+              stdout: "def456 squash orphan commit\n",
+              stderr: "",
+            };
+          return { status: 1, stdout: "", stderr: "unexpected" };
+        },
+        runGh: () => ({
+          status: 0,
+          stdout: JSON.stringify({
+            state: "MERGED",
+            mergedAt: "2026-06-09T00:00:00Z",
+            mergeCommit: { oid: "squash-merge-sha" },
+            autoMergeRequest: null,
+          }),
+          stderr: "",
+        }),
+      },
+    );
+
+    expect(result).toMatchObject({
+      reachable: true,
+      proof: "pr_merged",
+      prNumber: 159,
+      mergeCommitOid: "squash-merge-sha",
+    });
+  });
+
+  it("direct route + no prNumber returns origin_unmerged without gh call", () => {
+    let ghCalled = false;
+    const result = resolveReleaseReachability(
+      {
+        mainCheckout: "/repo",
+        defaultBranch: "trunk",
+        changeId: "fixSquashMergeRelease",
+        route: { route: "direct", repo: "Sharper-Flow/Advance" },
+      },
+      {
+        runGit: (_cwd, args) => {
+          if (args[0] === "fetch")
+            return { status: 0, stdout: "", stderr: "" };
+          if (args[0] === "rev-parse")
+            return { status: 0, stdout: "abc123\n", stderr: "" };
+          if (args[0] === "ls-remote")
+            return {
+              status: 0,
+              stdout: "abc123\trefs/heads/trunk\n",
+              stderr: "",
+            };
+          if (args[0] === "log")
+            return {
+              status: 0,
+              stdout: "def456 squash orphan commit\n",
+              stderr: "",
+            };
+          return { status: 1, stdout: "", stderr: "unexpected" };
+        },
+        runGh: () => {
+          ghCalled = true;
+          return { status: 0, stdout: "{}", stderr: "" };
+        },
+      },
+    );
+
+    expect(result).toMatchObject({
+      reachable: false,
+      proof: "origin_unmerged",
+    });
+    expect(ghCalled).toBe(false);
+  });
+
+  it("direct route + prNumber but PR not merged returns origin_unmerged", () => {
+    const result = resolveReleaseReachability(
+      {
+        mainCheckout: "/repo",
+        defaultBranch: "trunk",
+        changeId: "fixSquashMergeRelease",
+        route: { route: "direct", repo: "Sharper-Flow/Advance" },
+        prNumber: 159,
+      },
+      {
+        runGit: (_cwd, args) => {
+          if (args[0] === "fetch")
+            return { status: 0, stdout: "", stderr: "" };
+          if (args[0] === "rev-parse")
+            return { status: 0, stdout: "abc123\n", stderr: "" };
+          if (args[0] === "ls-remote")
+            return {
+              status: 0,
+              stdout: "abc123\trefs/heads/trunk\n",
+              stderr: "",
+            };
+          if (args[0] === "log")
+            return {
+              status: 0,
+              stdout: "def456 squash orphan commit\n",
+              stderr: "",
+            };
+          return { status: 1, stdout: "", stderr: "unexpected" };
+        },
+        runGh: () => ({
+          status: 0,
+          stdout: JSON.stringify({
+            state: "OPEN",
+            mergedAt: null,
+            mergeCommit: null,
+            autoMergeRequest: null,
+          }),
+          stderr: "",
+        }),
+      },
+    );
+
+    expect(result).toMatchObject({
+      reachable: false,
+      proof: "origin_unmerged",
+    });
+  });
+
+  it("direct route + prNumber but gh fails returns origin_unmerged", () => {
+    const result = resolveReleaseReachability(
+      {
+        mainCheckout: "/repo",
+        defaultBranch: "trunk",
+        changeId: "fixSquashMergeRelease",
+        route: { route: "direct", repo: "Sharper-Flow/Advance" },
+        prNumber: 159,
+      },
+      {
+        runGit: (_cwd, args) => {
+          if (args[0] === "fetch")
+            return { status: 0, stdout: "", stderr: "" };
+          if (args[0] === "rev-parse")
+            return { status: 0, stdout: "abc123\n", stderr: "" };
+          if (args[0] === "ls-remote")
+            return {
+              status: 0,
+              stdout: "abc123\trefs/heads/trunk\n",
+              stderr: "",
+            };
+          if (args[0] === "log")
+            return {
+              status: 0,
+              stdout: "def456 squash orphan commit\n",
+              stderr: "",
+            };
+          return { status: 1, stdout: "", stderr: "unexpected" };
+        },
+        runGh: () => ({
+          status: 1,
+          stdout: "",
+          stderr: "gh: API error",
+        }),
+      },
+    );
+
+    expect(result).toMatchObject({
+      reachable: false,
+      proof: "origin_unmerged",
+    });
+  });
+
   it("detectArchivedUnmergedBranches lists origin change branches not reachable from origin/default", () => {
     const calls: string[][] = [];
     const result = detectArchivedUnmergedBranches(
