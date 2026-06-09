@@ -47,6 +47,8 @@ import {
   changeTasksQuery,
   gateCompletedSignal,
   getGateStatusQuery,
+  getGateCriteriaQuery,
+  getStateQuery,
 } from "../temporal/messages";
 import {
   type WorktreeIsolationDeps,
@@ -68,8 +70,10 @@ import {
 import type { WorkflowHandleLike } from "../storage/store-temporal/shared";
 import {
   evaluateGateReadiness,
+  evaluateGateCriteria,
   renderAcceptanceProjection,
 } from "../temporal/gate-readiness";
+import { GATE_CRITERIA_DEFINITIONS } from "../types";
 import {
   inspectArtifactActivity,
   writeArtifactActivity,
@@ -904,6 +908,9 @@ export const gateTools = {
 
             // Get or create gates
             let gates = result.data.gates ?? createDefaultGates();
+            let gateCriteria:
+              | Partial<Record<GateId, import("../types").GateCriterion[]>>
+              | undefined;
             let poisonedFallback = false;
             const bundle = getService();
             const projectId = bundle
@@ -933,6 +940,10 @@ export const gateTools = {
                     poisonedFallback = true;
                   }
                 }
+                // Query persisted gate criteria
+                gateCriteria = await querySignal<
+                  Partial<Record<GateId, import("../types").GateCriterion[]>>
+                >(handle, getGateCriteriaQuery);
               } catch (queryError) {
                 // rq-fix-gate-tools-recovery AC1: poisoned-history fallback.
                 // The store's changes.get already returned a disk projection
@@ -957,6 +968,7 @@ export const gateTools = {
               incomplete,
               canArchive,
               nextGate,
+              ...(gateCriteria ? { gateCriteria } : {}),
               ...(poisonedFallback
                 ? { _recovery: { reason: "poisoned_history" } }
                 : {}),
@@ -1396,6 +1408,192 @@ export const gateTools = {
       }
 
       return runComplete(store);
+    },
+  },
+
+  adv_gate_criteria: {
+    description:
+      "Query or evaluate gate criteria for a change. Criteria are advisory checklists evaluated at gate completion. Use query mode to see persisted criteria from completed gates, or evaluate mode to run evaluators on current state without persisting.",
+    args: {
+      changeId: z
+        .string()
+        .describe(
+          "Change ID — must match an existing change from `adv_change_list`.",
+        ),
+      gateId: z
+        .enum([
+          "proposal",
+          "discovery",
+          "design",
+          "planning",
+          "execution",
+          "acceptance",
+          "release",
+        ])
+        .describe("Gate to query or evaluate criteria for."),
+      evaluate: z
+        .boolean()
+        .optional()
+        .describe(
+          "When true, runs evaluators on current state without persisting. When false or omitted, returns persisted criteria from completed gates.",
+        ),
+      target_path: z
+        .string()
+        .optional()
+        .describe(
+          "Optional absolute path to another ADV project. When provided, reads that project as a disk snapshot and returns _projectContext.",
+        ),
+    },
+    execute: async (
+      {
+        changeId,
+        gateId,
+        evaluate,
+        target_path,
+      }: {
+        changeId: string;
+        gateId: GateId;
+        evaluate?: boolean;
+        target_path?: string;
+      },
+      store: Store,
+    ) => {
+      return withOptionalTargetPathStore(
+        { store, target_path },
+        async (activeStore, projectContext) => {
+          try {
+            const result = await activeStore.changes.get(changeId);
+            if (!result.success) {
+              return formatToolOutput({ error: result.error });
+            }
+            if (!result.data) {
+              return formatToolOutput({
+                error: `Change not found: ${changeId}`,
+              });
+            }
+
+            const bundle = getService();
+            const projectId = bundle
+              ? await getProjectId(activeStore.paths.root)
+              : null;
+
+            // Evaluate mode: run evaluators on current state without persisting
+            if (evaluate) {
+              if (!bundle || !projectId) {
+                return formatToolOutput({
+                  error:
+                    "Temporal service unavailable for criteria evaluation.",
+                });
+              }
+
+              const handle = getChangeHandle(
+                bundle.client,
+                projectId,
+                changeId,
+              );
+              const state = await querySignal<ChangeWorkflowState>(
+                handle,
+                getStateQuery,
+                undefined,
+              );
+
+              if (!state) {
+                return formatToolOutput({
+                  error: "Failed to query workflow state.",
+                });
+              }
+
+              const criteria = evaluateGateCriteria(state, gateId);
+              const definitions = GATE_CRITERIA_DEFINITIONS[gateId];
+
+              return formatToolOutput({
+                changeId,
+                gateId,
+                mode: "evaluate",
+                criteria,
+                definitions,
+                summary: {
+                  total: criteria.length,
+                  pass: criteria.filter((c) => c.status === "pass").length,
+                  fail: criteria.filter((c) => c.status === "fail").length,
+                  na: criteria.filter((c) => c.status === "na").length,
+                },
+                ...(projectContext ? { _projectContext: projectContext } : {}),
+              });
+            }
+
+            // Query mode: return persisted criteria from completed gates
+            let gates = result.data.gates ?? createDefaultGates();
+            let gateCriteria:
+              | Partial<Record<GateId, import("../types").GateCriterion[]>>
+              | undefined;
+
+            if (bundle && projectId) {
+              const handle = getChangeHandle(
+                bundle.client,
+                projectId,
+                changeId,
+              );
+              try {
+                const queriedGates = await querySignal<Gates>(
+                  handle,
+                  getGateStatusQuery,
+                  undefined,
+                );
+                if (queriedGates && typeof queriedGates === "object") {
+                  gates = queriedGates;
+                }
+
+                const state = await querySignal<ChangeWorkflowState>(
+                  handle,
+                  getStateQuery,
+                  undefined,
+                );
+                if (state?.gateCriteria) {
+                  gateCriteria = state.gateCriteria;
+                }
+              } catch {
+                // Fall back to disk projection
+              }
+            }
+
+            const gateStatus = gates[gateId]?.status ?? "pending";
+            const persistedCriteria = gateCriteria?.[gateId] ?? [];
+
+            return formatToolOutput({
+              changeId,
+              gateId,
+              mode: "query",
+              gateStatus,
+              criteria: persistedCriteria,
+              definitions: GATE_CRITERIA_DEFINITIONS[gateId],
+              summary: {
+                total: persistedCriteria.length,
+                pass: persistedCriteria.filter((c) => c.status === "pass")
+                  .length,
+                fail: persistedCriteria.filter((c) => c.status === "fail")
+                  .length,
+                na: persistedCriteria.filter((c) => c.status === "na").length,
+              },
+              ...(projectContext ? { _projectContext: projectContext } : {}),
+            });
+          } catch (error) {
+            const err = error as Error;
+            if (err.name === "AdvProjectContextMismatch") {
+              const context = getContextMismatchFields(err);
+              return formatToolOutput({
+                error: err.message,
+                changeId,
+                errorClass: "AdvProjectContextMismatch",
+                owningProjectId: context.owningProjectId,
+                currentProjectId: context.currentProjectId,
+                hint: "Open the change in its owning project's context, or verify the linked-project configuration.",
+              });
+            }
+            throw error;
+          }
+        },
+      );
     },
   },
 };

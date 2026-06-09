@@ -29,6 +29,7 @@ export const CHANGE_WORKFLOW_QUERY_NAMES = {
   getState: "adv.change.getState",
   getTasks: "adv.change.getTasks",
   getGateStatus: "adv.change.getGateStatus",
+  getGateCriteria: "adv.change.getGateCriteria",
   getWorktrees: "adv.change.getWorktrees",
   getConformanceState: "adv.change.getConformanceState",
 } as const;
@@ -387,6 +388,15 @@ export interface ChangeWorkflowState extends ChangeWorkflowInput {
    */
   signal_rejections?: SignalRejection[];
   signal_rejections_total?: number;
+  /**
+   * Per-gate criteria evaluated at completion time.
+   * Advisory audit trail — criteria are not blocking.
+   * Optional for replay-safety — histories predating this field replay
+   * cleanly with gateCriteria undefined.
+   */
+  gateCriteria?: Partial<
+    Record<import("../types").GateId, import("../types").GateCriterion[]>
+  >;
 }
 
 /**

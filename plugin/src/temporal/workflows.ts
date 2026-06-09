@@ -5,6 +5,7 @@ import { applyAndUpsertSearchAttributes } from "./search-attributes";
 import {
   ARTIFACT_BACKED_GATES,
   evaluateGateReadiness,
+  evaluateGateCriteria,
   MIN_GATE_ARTIFACT_NON_WHITESPACE_CHARS,
   renderAcceptanceProjection,
   stateBackedAcceptanceProof,
@@ -174,6 +175,10 @@ const getGateStatusQuery = wf.defineQuery<
   | ChangeWorkflowState["gates"][keyof ChangeWorkflowState["gates"]],
   [keyof ChangeWorkflowState["gates"] | undefined]
 >(CHANGE_WORKFLOW_QUERY_NAMES.getGateStatus);
+const getGateCriteriaQuery = wf.defineQuery<
+  ChangeWorkflowState["gateCriteria"],
+  []
+>(CHANGE_WORKFLOW_QUERY_NAMES.getGateCriteria);
 const getWorktreesQuery = wf.defineQuery<
   NonNullable<ChangeWorkflowState["worktrees"]>
 >(CHANGE_WORKFLOW_QUERY_NAMES.getWorktrees);
@@ -539,6 +544,7 @@ export async function changeWorkflow(
   wf.setHandler(getGateStatusQuery, (gateId) =>
     gateId ? state.gates[gateId] : state.gates,
   );
+  wf.setHandler(getGateCriteriaQuery, () => state.gateCriteria);
   wf.setHandler(getWorktreesQuery, () => ({ ...(state.worktrees ?? {}) }));
   wf.setHandler(getConformanceStateQuery, () => state.conformance);
   wf.setHandler(
@@ -1039,9 +1045,23 @@ export async function changeWorkflow(
       }
     }
 
+    // Evaluate gate criteria (advisory, non-blocking). Errors are isolated
+    // and logged but never block gate completion.
+    let criteria: import("../types").GateCriterion[] | undefined;
+    try {
+      criteria = evaluateGateCriteria(state, payload.gateId);
+    } catch (err) {
+      // Error isolation: criteria evaluation failures never block gate completion
+      wf.log.warn("Criteria evaluation failed", {
+        gateId: payload.gateId,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+
     applyGateCompletedToState(state, {
       ...payload,
       artifactEvidence,
+      criteria,
     });
   };
 

@@ -839,6 +839,13 @@ export function applyGateCompletedToState(
     approval_evidence: payload.approvalEvidence,
     artifact_evidence: payload.artifactEvidence,
   };
+  // Persist gate criteria if present (advisory audit trail)
+  if (payload.criteria) {
+    state.gateCriteria = {
+      ...(state.gateCriteria ?? {}),
+      [payload.gateId]: payload.criteria,
+    };
+  }
   setLastSignalAt(state, payload.completedAt);
   return state;
 }

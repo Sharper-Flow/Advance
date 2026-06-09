@@ -125,6 +125,160 @@ export const GateRecoveryAuditSchema = z.object({
 
 export type GateRecoveryAudit = z.infer<typeof GateRecoveryAuditSchema>;
 
+/**
+ * Gate criterion — structured checklist item evaluated at gate completion.
+ * Criteria are advisory (not blocking) and provide audit trail for what
+ * was verified when a gate completed.
+ */
+export const GateCriterionSchema = z.object({
+  /** Unique criterion identifier (e.g., "PROPOSAL_ARTIFACT_PRESENT") */
+  id: z.string(),
+  /** Human-readable label */
+  label: z.string(),
+  /** Evaluation result: pass, fail, or na (not applicable/evaluation failed) */
+  status: z.enum(["pass", "fail", "na"]),
+  /** ISO8601 timestamp when criterion was evaluated */
+  evaluatedAt: z.string(),
+  /** Optional evidence or detail about the evaluation */
+  evidence: z.string().optional(),
+});
+
+export type GateCriterion = z.infer<typeof GateCriterionSchema>;
+
+/**
+ * Criterion definition — static metadata for a gate criterion.
+ * Evaluators are separate functions that inspect ChangeWorkflowState.
+ */
+export interface CriterionDef {
+  /** Unique criterion identifier */
+  id: string;
+  /** Human-readable label */
+  label: string;
+  /** Description of what this criterion checks */
+  description: string;
+}
+
+/**
+ * Gate criteria definitions — declarative checklist per gate.
+ * Evaluators are implemented separately in gate-readiness.ts.
+ */
+export const GATE_CRITERIA_DEFINITIONS: Record<GateId, CriterionDef[]> = {
+  proposal: [
+    {
+      id: "PROPOSAL_ARTIFACT_PRESENT",
+      label: "Proposal artifact present",
+      description: "Proposal markdown content exists in workflow state",
+    },
+    {
+      id: "PROPOSAL_MIN_SIZE",
+      label: "Proposal minimum size",
+      description: "Proposal has sufficient non-whitespace content",
+    },
+  ],
+  discovery: [
+    {
+      id: "AGREEMENT_ARTIFACT_PRESENT",
+      label: "Agreement artifact present",
+      description: "Agreement markdown content exists in workflow state",
+    },
+    {
+      id: "CONTRACT_MINTED",
+      label: "Contract minted",
+      description: "Typed ChangeContract exists for this change",
+    },
+  ],
+  design: [
+    {
+      id: "DESIGN_ARTIFACT_PRESENT",
+      label: "Design artifact present",
+      description: "Design markdown content exists in workflow state",
+    },
+    {
+      id: "DESIGN_MIN_SIZE",
+      label: "Design minimum size",
+      description: "Design has sufficient non-whitespace content",
+    },
+  ],
+  planning: [
+    {
+      id: "USER_APPROVED",
+      label: "User approved",
+      description: "Planning gate was explicitly approved by user",
+    },
+    {
+      id: "PREP_READINESS_PASS",
+      label: "Prep readiness pass",
+      description: "Prep readiness checks passed",
+    },
+    {
+      id: "TASKS_EXIST",
+      label: "Tasks exist",
+      description: "At least one task has been created",
+    },
+    {
+      id: "NO_ORPHAN_TASKS",
+      label: "No orphan tasks",
+      description: "All tasks have valid dependencies or are unblocked",
+    },
+    {
+      id: "TDD_INTENTS_ASSIGNED",
+      label: "TDD intents assigned",
+      description: "All tasks have tdd_intent metadata",
+    },
+  ],
+  execution: [
+    {
+      id: "ALL_TASKS_DONE",
+      label: "All tasks done",
+      description: "All tasks are in done or cancelled status",
+    },
+  ],
+  acceptance: [
+    {
+      id: "CONTRACT_EXISTS",
+      label: "Contract exists",
+      description: "Typed ChangeContract exists for this change",
+    },
+    {
+      id: "REVIEW_MATRIX_COMPLETE",
+      label: "Review matrix complete",
+      description: "Contract review matrix has rows for all items",
+    },
+    {
+      id: "ALL_ROWS_PASSING",
+      label: "All rows passing",
+      description: "All contract review matrix rows have passing status",
+    },
+    {
+      id: "EXECUTIVE_SUMMARY_PRESENT",
+      label: "Executive summary present",
+      description: "Executive summary artifact exists with sufficient content",
+    },
+    {
+      id: "ALL_TASKS_DONE",
+      label: "All tasks done",
+      description: "All tasks are in done or cancelled status",
+    },
+  ],
+  release: [
+    {
+      id: "TRUNK_MERGED",
+      label: "Trunk merged",
+      description: "Change branch has been merged to trunk",
+    },
+    {
+      id: "PR_HANDOFF_COMPLETE",
+      label: "PR handoff complete",
+      description: "Pull request has been created and merged",
+    },
+    {
+      id: "ALL_TASKS_DONE",
+      label: "All tasks done",
+      description: "All tasks are in done or cancelled status",
+    },
+  ],
+};
+
 export const GateReadinessBlockerSchema = z.object({
   code: z.string(),
   gateId: GateIdSchema,
