@@ -407,7 +407,7 @@ describe("deploy-local.sh", () => {
   // -----------------------------------------------------------------------
   describe("single ADV runtime agent sync", () => {
     test("provider hint files exist in repo", () => {
-      const providers = ["claude", "gpt", "glm", "kimi"];
+      const providers = ["claude", "gpt", "glm", "kimi", "minimax", "qwen"];
       for (const p of providers) {
         const path = join(REPO_ROOT, `.opencode/agent-parts/providers/${p}.md`);
         expect(existsSync(path), `missing provider hint: ${p}.md`).toBe(true);
@@ -415,7 +415,7 @@ describe("deploy-local.sh", () => {
     });
 
     test("sync script retains provider names only for hint assets and stale cleanup", () => {
-      expect(content).toContain("PROVIDERS=(claude gpt glm kimi)");
+      expect(content).toContain("PROVIDERS=(claude gpt glm kimi minimax qwen)");
       expect(content).toContain("remove_retired_provider_prompt_parts");
     });
 

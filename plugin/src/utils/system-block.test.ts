@@ -348,6 +348,46 @@ describe("assembleSystemBlock", () => {
       expect(PROVIDER_HINTS.gpt).toBe(readProviderHintSource("gpt"));
     });
 
+    it("emits a MiniMax provider hint from minimax-coding-plan provider ID", () => {
+      const block = assembleSystemBlock(
+        cleanInput({ currentProviderID: "minimax-coding-plan" }),
+      );
+      expect(block).toContain("[ADV:PROVIDER_HINT:minimax]");
+      expect(block).toContain("<!-- PROVIDER_HINT:minimax -->");
+      expect(block).toContain("Default model family: MiniMax M3");
+    });
+
+    it("emits a MiniMax provider hint from bare minimax provider ID", () => {
+      const block = assembleSystemBlock(
+        cleanInput({ currentProviderID: "minimax" }),
+      );
+      expect(block).toContain("[ADV:PROVIDER_HINT:minimax]");
+    });
+
+    it("emits a Qwen provider hint from openrouter provider ID", () => {
+      const block = assembleSystemBlock(
+        cleanInput({ currentProviderID: "openrouter" }),
+      );
+      expect(block).toContain("[ADV:PROVIDER_HINT:qwen]");
+      expect(block).toContain("<!-- PROVIDER_HINT:qwen -->");
+      expect(block).toContain("Default model family: Qwen 3.7 Max");
+    });
+
+    it("emits a Qwen provider hint from dashscope provider ID", () => {
+      const block = assembleSystemBlock(
+        cleanInput({ currentProviderID: "dashscope" }),
+      );
+      expect(block).toContain("[ADV:PROVIDER_HINT:qwen]");
+    });
+
+    it("keeps minimax runtime hint aligned with source markdown", () => {
+      expect(PROVIDER_HINTS.minimax).toBe(readProviderHintSource("minimax"));
+    });
+
+    it("keeps qwen runtime hint aligned with source markdown", () => {
+      expect(PROVIDER_HINTS.qwen).toBe(readProviderHintSource("qwen"));
+    });
+
     it("emits no provider hint for unknown provider IDs", () => {
       const block = assembleSystemBlock(
         cleanInput({ currentProviderID: "unknown-provider" }),
@@ -412,13 +452,44 @@ describe("assembleSystemBlock", () => {
         "- When multiple constraints apply, check each one individually before acting — do not collapse or merge distinct rules",
         "- Sequential tool dependencies must be executed one at a time in order — never parallelize dependent calls",
       ].join("\n");
+      const expectedMinimax = [
+        "<!-- PROVIDER_HINT:minimax -->",
+        "",
+        "## Provider Hint",
+        "",
+        "- Default model family: MiniMax M3",
+        "- Parallel tool calls may mis-attribute results by arrival order rather than tool_call_id — execute dependent tool calls sequentially, never parallelize when call results feed into each other",
+        "- Interleaved thinking is preserved in response content; do not strip or summarize reasoning_content from message history between turns",
+        "- For ADV apply tasks, when delegation routing marks work `delegate_allowed` or `delegate_preferred`, prefer spawning `adv-engineer`; execute inline only when context-bound",
+        "- For local code exploration, use lgrep tools (lgrep_search_semantic, lgrep_search_symbols) as the FIRST choice — do not start with glob or grep for concept or symbol queries",
+        "- When a tool choice exists, pick the most specific one; prefer lgrep over grep, prefer read over cat, prefer ADV MCP tools over direct file access",
+        "- Before calling any tool, verify that every required parameter is present and matches the schema — do not guess or invent parameter values",
+      ].join("\n");
+      const expectedQwen = [
+        "<!-- PROVIDER_HINT:qwen -->",
+        "",
+        "## Provider Hint",
+        "",
+        "- Default model family: Qwen 3.7 Max",
+        "- Preserve thinking content across multi-turn agent workflows — the model relies on accumulated reasoning context for long-horizon task coherence",
+        "- For long-running ADV workflows, summarize intermediate state explicitly rather than relying on the model to infer from distant context",
+        "- For ADV apply tasks, when delegation routing marks work `delegate_allowed` or `delegate_preferred`, prefer spawning `adv-engineer`; execute inline only when context-bound",
+        "- For local code exploration, use lgrep tools (lgrep_search_semantic, lgrep_search_symbols) as the FIRST choice — do not start with glob or grep for concept or symbol queries",
+        "- Sequential tool dependencies must be executed one at a time in order — never parallelize dependent calls",
+        "- When a tool choice exists, pick the most specific one; prefer lgrep over grep, prefer read over cat, prefer ADV MCP tools over direct file access",
+        "- Before calling any tool, verify that every required parameter is present and matches the schema — do not guess or invent parameter values",
+      ].join("\n");
 
       expect(PROVIDER_HINTS.claude).toBe(expectedClaude);
       expect(PROVIDER_HINTS.glm).toBe(expectedGlm);
       expect(PROVIDER_HINTS.kimi).toBe(expectedKimi);
+      expect(PROVIDER_HINTS.minimax).toBe(expectedMinimax);
+      expect(PROVIDER_HINTS.qwen).toBe(expectedQwen);
       expect(readProviderHintSource("claude")).toBe(expectedClaude);
       expect(readProviderHintSource("glm")).toBe(expectedGlm);
       expect(readProviderHintSource("kimi")).toBe(expectedKimi);
+      expect(readProviderHintSource("minimax")).toBe(expectedMinimax);
+      expect(readProviderHintSource("qwen")).toBe(expectedQwen);
     });
 
     it("does not duplicate provider hints when switch and hint sections both emit", () => {

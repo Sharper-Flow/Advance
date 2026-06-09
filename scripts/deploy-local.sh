@@ -453,7 +453,7 @@ PY
 # provider prompt refs.
 # ---------------------------------------------------------------------------
 PROVIDER_HINT_DIR="$ASSET_ROOT/.opencode/agent-parts/providers"
-PROVIDERS=(claude gpt glm kimi)
+PROVIDERS=(claude gpt glm kimi minimax qwen)
 
 sync_adv_runtime_agent() {
 	local runtime_agent="$REPO_AGENTS/adv.md"
