@@ -41,7 +41,6 @@ const cleanInput = (
   ...overrides,
 });
 
-
 // ─── Constants ──────────────────────────────────────────────────────────────
 
 describe("VOLATILE_SENTINEL", () => {

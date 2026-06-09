@@ -373,8 +373,7 @@ describe("git-finalize helpers", () => {
       },
       {
         runGit: (_cwd, args) => {
-          if (args[0] === "fetch")
-            return { status: 0, stdout: "", stderr: "" };
+          if (args[0] === "fetch") return { status: 0, stdout: "", stderr: "" };
           if (args[0] === "rev-parse")
             return { status: 0, stdout: "abc123\n", stderr: "" };
           if (args[0] === "ls-remote")
@@ -423,8 +422,7 @@ describe("git-finalize helpers", () => {
       },
       {
         runGit: (_cwd, args) => {
-          if (args[0] === "fetch")
-            return { status: 0, stdout: "", stderr: "" };
+          if (args[0] === "fetch") return { status: 0, stdout: "", stderr: "" };
           if (args[0] === "rev-parse")
             return { status: 0, stdout: "abc123\n", stderr: "" };
           if (args[0] === "ls-remote")
@@ -466,8 +464,7 @@ describe("git-finalize helpers", () => {
       },
       {
         runGit: (_cwd, args) => {
-          if (args[0] === "fetch")
-            return { status: 0, stdout: "", stderr: "" };
+          if (args[0] === "fetch") return { status: 0, stdout: "", stderr: "" };
           if (args[0] === "rev-parse")
             return { status: 0, stdout: "abc123\n", stderr: "" };
           if (args[0] === "ls-remote")
@@ -514,8 +511,7 @@ describe("git-finalize helpers", () => {
       },
       {
         runGit: (_cwd, args) => {
-          if (args[0] === "fetch")
-            return { status: 0, stdout: "", stderr: "" };
+          if (args[0] === "fetch") return { status: 0, stdout: "", stderr: "" };
           if (args[0] === "rev-parse")
             return { status: 0, stdout: "abc123\n", stderr: "" };
           if (args[0] === "ls-remote")
