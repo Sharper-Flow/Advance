@@ -12,3 +12,6 @@
 - Parallel tool calls are for independent operations only — never run the same command multiple times in parallel; make one call, wait for the result, then decide next steps
 - When a tool choice exists, pick the most specific one; prefer lgrep over grep, prefer read over cat, prefer ADV MCP tools over direct file access
 - Before calling any tool, verify that every required parameter is present and matches the schema — do not guess or invent parameter values
+- Call each tool exactly once per distinct operation — never duplicate identical calls in parallel or sequentially
+- Parallel batches: every file path, search query, and command must be unique across the batch — no exceptions
+- Tool call failed or returned unexpected results? Diagnose root cause before retrying — never blindly repeat
