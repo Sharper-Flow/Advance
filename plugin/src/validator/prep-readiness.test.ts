@@ -10,7 +10,7 @@
  */
 
 import { describe, expect, test } from "vitest";
-import { runPrepReadinessChecks } from "./prep-readiness";
+import { runPrepReadinessChecks, checkCriticalOpsCoverage } from "./prep-readiness";
 import type { Change } from "../types";
 
 /**
@@ -76,5 +76,138 @@ describe("checkTaskGraphIntegrity — TDD inversion severity (rq-PR003tdd.1, AC4
       expect(inversion).toHaveLength(1);
       expect(inversion[0].severity).toBe("warning");
     }
+  });
+});
+
+// =============================================================================
+// Critical-Ops Coverage (rq-PR007cro)
+// =============================================================================
+
+function buildChangeWithContract(
+  items: Array<{
+    id: string;
+    requiredCritical?: boolean;
+    notRequiredReason?: string;
+    kind?: string;
+    verificationRequired?: boolean;
+  }>,
+  tasks: Array<{
+    id: string;
+    status: string;
+    contract_refs?: {
+      implements?: string[];
+      verifies?: string[];
+    };
+  }>,
+): Change {
+  return {
+    id: "c-critical",
+    title: "Critical ops fixture",
+    status: "active",
+    created_at: "2026-06-02T00:00:00.000Z",
+    deltas: {},
+    contract: {
+      version: 1,
+      rigor: "standard",
+      source: { artifact: "agreement", approvedAt: "2026-06-02T00:00:00.000Z" },
+      items: items.map((it) => ({
+        id: it.id,
+        kind: (it.kind as any) ?? "acceptance_criterion",
+        text: it.id,
+        sourceArtifact: "agreement",
+        evidencePolicy: "test",
+        verificationRequired: it.verificationRequired !== false,
+        ...(it.requiredCritical !== undefined && { requiredCritical: it.requiredCritical }),
+        ...(it.notRequiredReason !== undefined && { notRequiredReason: it.notRequiredReason }),
+      })),
+    },
+    tasks: tasks.map((t) => ({
+      id: t.id,
+      title: t.id,
+      status: t.status,
+      deps: [],
+      metadata: {},
+      ...(t.contract_refs && { contract_refs: t.contract_refs }),
+    })),
+  } as unknown as Change;
+}
+
+describe("checkCriticalOpsCoverage", () => {
+  test("requiredCritical item with task coverage produces no issues", () => {
+    const change = buildChangeWithContract(
+      [{ id: "AC-1", requiredCritical: true }],
+      [{ id: "tk-1", status: "pending", contract_refs: { implements: ["AC-1"] } }],
+    );
+    const issues = checkCriticalOpsCoverage(change);
+    expect(issues).toHaveLength(0);
+  });
+
+  test("requiredCritical item without task coverage produces CRITICAL_OPS_UNCOVERED error", () => {
+    const change = buildChangeWithContract(
+      [{ id: "AC-1", requiredCritical: true }],
+      [],
+    );
+    const issues = checkCriticalOpsCoverage(change);
+    expect(issues).toHaveLength(1);
+    expect(issues[0].code).toBe("CRITICAL_OPS_UNCOVERED");
+    expect(issues[0].severity).toBe("error");
+  });
+
+  test("requiredCritical item with notRequiredReason is exempt (alternate route)", () => {
+    const change = buildChangeWithContract(
+      [{ id: "AC-1", requiredCritical: true, notRequiredReason: "Covered by upstream contract" }],
+      [],
+    );
+    const issues = checkCriticalOpsCoverage(change);
+    expect(issues).toHaveLength(0);
+  });
+
+  test("non-requiredCritical item without coverage produces no error from this check", () => {
+    const change = buildChangeWithContract(
+      [{ id: "AC-1", requiredCritical: false }],
+      [],
+    );
+    const issues = checkCriticalOpsCoverage(change);
+    expect(issues).toHaveLength(0);
+  });
+
+  test("requiredCritical item with cancelled task coverage is still uncovered", () => {
+    const change = buildChangeWithContract(
+      [{ id: "AC-1", requiredCritical: true }],
+      [{ id: "tk-1", status: "cancelled", contract_refs: { verifies: ["AC-1"] } }],
+    );
+    const issues = checkCriticalOpsCoverage(change);
+    expect(issues).toHaveLength(1);
+    expect(issues[0].code).toBe("CRITICAL_OPS_UNCOVERED");
+    expect(issues[0].severity).toBe("error");
+  });
+
+  test("requiredCritical item with verifies coverage produces no issues", () => {
+    const change = buildChangeWithContract(
+      [{ id: "SC-1", requiredCritical: true, kind: "success_criterion" }],
+      [{ id: "tk-1", status: "pending", contract_refs: { verifies: ["SC-1"] } }],
+    );
+    const issues = checkCriticalOpsCoverage(change);
+    expect(issues).toHaveLength(0);
+  });
+
+  test("requiredCritical item with verificationRequired:false still needs coverage", () => {
+    const change = buildChangeWithContract(
+      [{ id: "AC-1", requiredCritical: true, verificationRequired: false }],
+      [],
+    );
+    const issues = checkCriticalOpsCoverage(change);
+    expect(issues).toHaveLength(1);
+    expect(issues[0].code).toBe("CRITICAL_OPS_UNCOVERED");
+    expect(issues[0].severity).toBe("error");
+  });
+
+  test("runPrepReadinessChecks includes checkCriticalOpsCoverage in checksPerformed", () => {
+    const change = buildChangeWithContract(
+      [{ id: "AC-1", requiredCritical: true }],
+      [],
+    );
+    const result = runPrepReadinessChecks(change, "strict");
+    expect(result.checksPerformed).toContain("checkCriticalOpsCoverage");
   });
 });

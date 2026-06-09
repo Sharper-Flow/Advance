@@ -555,6 +555,124 @@ describe("subagentReportTools", () => {
     );
   });
 
+  test("required_follow_ups with obligation_class required_critical creates agenda item with priority critical", async () => {
+    const store = storeFor(change());
+    const report = engineerReport({
+      follow_ups: [],
+      required_follow_ups: [
+        {
+          text: "Fix security vulnerability",
+          obligation_class: "required_critical",
+          severity: "critical",
+          source_contract_id: "contract-sec-1",
+        },
+      ],
+    });
+
+    const output = parse(
+      await subagentReportTools.adv_subagent_report_submit.execute(
+        { report },
+        store,
+      ),
+    );
+
+    expect(output.success).toBe(true);
+    expect(mocks.addAgendaItem).toHaveBeenCalledTimes(1);
+    expect(mocks.addAgendaItem).toHaveBeenCalledWith(
+      "/repo",
+      "Fix security vulnerability",
+      expect.objectContaining({
+        priority: "critical",
+        category: "required-obligation",
+        description: expect.stringContaining("Obligation: required_critical"),
+        agendaPath: "/state/agenda.jsonl",
+      }),
+    );
+    expect(
+      mocks.addAgendaItem.mock.calls[0][2].description,
+    ).toContain("Contract: contract-sec-1");
+  });
+
+  test("required_follow_ups with severity high creates agenda item with priority high", async () => {
+    const store = storeFor(change());
+    const report = engineerReport({
+      follow_ups: [],
+      required_follow_ups: [
+        {
+          text: "Update documentation",
+          obligation_class: "required_standard",
+          severity: "high",
+        },
+      ],
+    });
+
+    const output = parse(
+      await subagentReportTools.adv_subagent_report_submit.execute(
+        { report },
+        store,
+      ),
+    );
+
+    expect(output.success).toBe(true);
+    expect(mocks.addAgendaItem).toHaveBeenCalledTimes(1);
+    expect(mocks.addAgendaItem).toHaveBeenCalledWith(
+      "/repo",
+      "Update documentation",
+      expect.objectContaining({
+        priority: "high",
+        category: "required-obligation",
+      }),
+    );
+  });
+
+  test("report without required_follow_ups creates no required agenda items", async () => {
+    const store = storeFor(change());
+    const report = engineerReport({ follow_ups: ["Regular follow-up"] });
+
+    const output = parse(
+      await subagentReportTools.adv_subagent_report_submit.execute(
+        { report },
+        store,
+      ),
+    );
+
+    expect(output.success).toBe(true);
+    expect(mocks.addAgendaItem).toHaveBeenCalledTimes(1);
+    expect(mocks.addAgendaItem).toHaveBeenCalledWith(
+      "/repo",
+      "Regular follow-up",
+      expect.objectContaining({
+        category: "subagent-followup",
+      }),
+    );
+  });
+
+  test("existing follow_ups still get priority medium (backward compat)", async () => {
+    const store = storeFor(change());
+    const report = engineerReport({
+      follow_ups: ["Backward compat follow-up"],
+      required_follow_ups: [],
+    });
+
+    const output = parse(
+      await subagentReportTools.adv_subagent_report_submit.execute(
+        { report },
+        store,
+      ),
+    );
+
+    expect(output.success).toBe(true);
+    expect(mocks.addAgendaItem).toHaveBeenCalledTimes(1);
+    expect(mocks.addAgendaItem).toHaveBeenCalledWith(
+      "/repo",
+      "Backward compat follow-up",
+      expect.objectContaining({
+        priority: "medium",
+        category: "subagent-followup",
+      }),
+    );
+  });
+
   test("rejects malformed reports at the Zod boundary and records task error_recovery", async () => {
     const store = storeFor(change());
 
@@ -770,5 +888,131 @@ describe("subagentReportTools", () => {
       expect.any(Function),
     );
     expect(mocks.fireSignalAndRefresh.mock.calls[0][1]).toBe(targetStore);
+  });
+
+  test("required_follow_ups with obligation_class required_critical creates agenda item with priority critical", async () => {
+    const store = storeFor(change());
+    const report = engineerReport({
+      follow_ups: [],
+      required_follow_ups: [
+        {
+          text: "Fix contract coverage",
+          obligation_class: "required_critical",
+          severity: "critical",
+          source_contract_id: "contract-1",
+        },
+      ],
+    });
+
+    const output = parse(
+      await subagentReportTools.adv_subagent_report_submit.execute(
+        { report },
+        store,
+      ),
+    );
+
+    expect(output.success).toBe(true);
+    expect(output.consumerResults.requiredFollowUps.previewCount).toBe(1);
+    expect(mocks.addAgendaItem).toHaveBeenCalledTimes(1);
+    expect(mocks.addAgendaItem).toHaveBeenCalledWith(
+      "/repo",
+      "Fix contract coverage",
+      expect.objectContaining({
+        priority: "critical",
+        category: "required-obligation",
+        description: expect.stringContaining("Obligation: required_critical"),
+      }),
+    );
+    expect(mocks.addAgendaItem).toHaveBeenCalledWith(
+      "/repo",
+      "Fix contract coverage",
+      expect.objectContaining({
+        description: expect.stringContaining("Contract: contract-1"),
+      }),
+    );
+  });
+
+  test("required_follow_ups with severity high creates agenda item with priority high", async () => {
+    const store = storeFor(change());
+    const report = engineerReport({
+      follow_ups: [],
+      required_follow_ups: [
+        {
+          text: "Update tests",
+          obligation_class: "required_standard",
+          severity: "high",
+        },
+      ],
+    });
+
+    const output = parse(
+      await subagentReportTools.adv_subagent_report_submit.execute(
+        { report },
+        store,
+      ),
+    );
+
+    expect(output.success).toBe(true);
+    expect(output.consumerResults.requiredFollowUps.previewCount).toBe(1);
+    expect(mocks.addAgendaItem).toHaveBeenCalledTimes(1);
+    expect(mocks.addAgendaItem).toHaveBeenCalledWith(
+      "/repo",
+      "Update tests",
+      expect.objectContaining({
+        priority: "high",
+        category: "required-obligation",
+      }),
+    );
+  });
+
+  test("report without required_follow_ups produces no required agenda items", async () => {
+    const store = storeFor(change());
+    const report = engineerReport({
+      follow_ups: ["Regular follow-up"],
+      required_follow_ups: undefined,
+    });
+
+    const output = parse(
+      await subagentReportTools.adv_subagent_report_submit.execute(
+        { report },
+        store,
+      ),
+    );
+
+    expect(output.success).toBe(true);
+    expect(output.consumerResults.requiredFollowUps.previewCount).toBe(0);
+    expect(output.consumerResults.requiredFollowUps.created).toEqual([]);
+    expect(mocks.addAgendaItem).toHaveBeenCalledTimes(1);
+    expect(mocks.addAgendaItem).toHaveBeenCalledWith(
+      "/repo",
+      "Regular follow-up",
+      expect.objectContaining({
+        category: "subagent-followup",
+      }),
+    );
+  });
+
+  test("existing follow_ups still get priority medium", async () => {
+    const store = storeFor(change());
+    const report = engineerReport({
+      follow_ups: ["Regular follow-up"],
+    });
+
+    const output = parse(
+      await subagentReportTools.adv_subagent_report_submit.execute(
+        { report },
+        store,
+      ),
+    );
+
+    expect(output.success).toBe(true);
+    expect(mocks.addAgendaItem).toHaveBeenCalledWith(
+      "/repo",
+      "Regular follow-up",
+      expect.objectContaining({
+        priority: "medium",
+        category: "subagent-followup",
+      }),
+    );
   });
 });

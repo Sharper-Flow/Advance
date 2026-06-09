@@ -693,6 +693,9 @@ export const CRITERION_EVALUATORS: Record<string, CriterionEvaluator> = {
   },
 
   // Release criteria
+  // rq-requiredObligation01: Required-critical contract items without verified
+  // completion evidence block release. Evaluated via acceptance contract blockers
+  // and release gate readiness checks.
   TRUNK_MERGED: () => {
     // Cannot evaluate from state alone — requires git inspection
     return { status: "na", evidence: "Requires git inspection" };

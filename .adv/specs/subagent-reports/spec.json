@@ -3,8 +3,8 @@
   "name": "subagent-reports",
   "title": "Sub-Agent Reports",
   "purpose": "Typed, durable ADV sub-agent report ingestion and readback. Replaces ADV worker final-message fenced JSON with Zod-validated tool-call submission, sidecar report persistence, deterministic scope-aware dedupe, and machine-readable downstream consumers.",
-  "version": "1.0.0",
-  "updated_at": "2026-05-26T00:00:00.000Z",
+  "version": "1.1.0",
+  "updated_at": "2026-06-09T00:00:00.000Z",
   "conformance_required": false,
   "requirements": [
     {
@@ -422,6 +422,40 @@
             "Task examples include kind task and task_id",
             "Independent review or harden examples include kind change and scope_key",
             "String scope is described only as compatibility-only"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-subagentReports14",
+      "title": "Required Follow-Up Preservation",
+      "body": "Report ingestion MUST preserve the required-obligation classification and severity of follow-ups when creating agenda items. A follow-up tagged as required_critical MUST receive elevated priority. Standard follow-ups without required classification receive medium priority.",
+      "priority": "must",
+      "tags": ["subagents", "reports", "follow-ups", "required-obligation", "agenda"],
+      "scenarios": [
+        {
+          "id": "rq-subagentReports14.1",
+          "title": "Required-critical follow-up gets elevated priority",
+          "given": [
+            "An engineer report contains a follow-up with required_critical classification"
+          ],
+          "when": "The follow-up is ingested into the agenda",
+          "then": [
+            "The agenda item priority is set to high",
+            "The item category is subagent-followup with required_critical severity tag",
+            "The source metadata preserves the original report agent and scope"
+          ]
+        },
+        {
+          "id": "rq-subagentReports14.2",
+          "title": "Standard follow-up gets medium priority",
+          "given": [
+            "An engineer report contains a follow-up without required classification"
+          ],
+          "when": "The follow-up is ingested into the agenda",
+          "then": [
+            "The agenda item priority is set to medium",
+            "The item category is subagent-followup without elevated severity"
           ]
         }
       ]

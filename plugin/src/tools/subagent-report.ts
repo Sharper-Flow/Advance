@@ -16,6 +16,7 @@ import {
   type ErrorRecovery,
   type ScopedSubagentReport,
   type Task,
+  type RequiredFollowUp,
 } from "../types";
 import { getProjectId } from "../utils/project-id";
 import { formatToolOutput } from "../utils/tool-output";
@@ -300,6 +301,10 @@ function reportFollowUps(report: ScopedSubagentReport): string[] {
   return "follow_ups" in report ? report.follow_ups : [];
 }
 
+function reportRequiredFollowUps(report: ScopedSubagentReport): RequiredFollowUp[] {
+  return "required_follow_ups" in report ? (report.required_follow_ups ?? []) : [];
+}
+
 /** Build the human-readable source token used on report-created agenda items. */
 function reportSourceDescription(report: ScopedSubagentReport): string {
   const taskId = reportTaskId(report);
@@ -507,6 +512,62 @@ async function consumeFollowUps(input: {
   };
 }
 
+// rq-subagentReports14: Required Follow-Up Preservation
+async function consumeRequiredFollowUps(input: {
+  store: Store;
+  report: ScopedSubagentReport;
+  dryRun?: boolean;
+}): Promise<{
+  previewCount: number;
+  created: unknown[];
+  warnings: ConsumerWarning[];
+}> {
+  const requiredFollowUps = reportRequiredFollowUps(input.report);
+  if (input.dryRun) {
+    return {
+      previewCount: requiredFollowUps.length,
+      created: [],
+      warnings: [],
+    };
+  }
+
+  const created: unknown[] = [];
+  const warnings: ConsumerWarning[] = [];
+  for (const followUp of requiredFollowUps) {
+    try {
+      const description = [
+        reportSourceDescription(input.report),
+        `Obligation: ${followUp.obligation_class}`,
+        ...(followUp.source_contract_id
+          ? [`Contract: ${followUp.source_contract_id}`]
+          : []),
+      ].join("\n");
+      created.push(
+        await addAgendaItem(input.store.paths.root, followUp.text, {
+          description,
+          priority: followUp.severity,
+          category: "required-obligation",
+          agendaPath: input.store.paths.agenda,
+        }),
+      );
+    } catch (error) {
+      warnings.push({
+        kind: "consumer_failure",
+        message:
+          error instanceof Error
+            ? `Failed to add required-obligation agenda item: ${error.message}`
+            : "Failed to add required-obligation agenda item",
+      });
+    }
+  }
+
+  return {
+    previewCount: requiredFollowUps.length,
+    created,
+    warnings: validateConsumerWarnings(warnings),
+  };
+}
+
 function appendProjectContext(
   output: string,
   projectContext?: TargetProjectOutputContext,
@@ -569,6 +630,7 @@ async function executeSubmit(
         reportId: id,
         consumerResults: {
           followUps: { previewCount: 0, created: [] },
+          requiredFollowUps: { previewCount: 0, created: [] },
           verification: { warnings: [] },
         },
       }),
@@ -621,7 +683,16 @@ async function executeSubmit(
     report,
     dryRun: args.dryRun,
   });
-  const warnings = [...initialWarnings, ...followUps.warnings];
+  const requiredFollowUps = await consumeRequiredFollowUps({
+    store,
+    report,
+    dryRun: args.dryRun,
+  });
+  const warnings = [
+    ...initialWarnings,
+    ...followUps.warnings,
+    ...requiredFollowUps.warnings,
+  ];
 
   return appendProjectContext(
     formatToolOutput({
@@ -634,6 +705,10 @@ async function executeSubmit(
         followUps: {
           previewCount: followUps.previewCount,
           created: followUps.created,
+        },
+        requiredFollowUps: {
+          previewCount: requiredFollowUps.previewCount,
+          created: requiredFollowUps.created,
         },
         verification: { warnings },
       },

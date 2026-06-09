@@ -3,8 +3,8 @@
   "name": "prep-readiness",
   "title": "Prep Readiness",
   "purpose": "Machine-enforced readiness checks that gate the prep phase. Answers: 'Do we have everything we need ready to make the full change?'",
-  "version": "1.3.0",
-  "updated_at": "2026-04-07T01:00:55.462Z",
+  "version": "1.4.0",
+  "updated_at": "2026-06-09T00:00:00.000Z",
   "requirements": [
     {
       "id": "rq-PR001sml",
@@ -412,6 +412,49 @@
             "A TASK_TDD_INTENT_MISSING error is returned for that task",
             "The error message indicates the invalid value"
           ]
+        }
+      ]
+    },
+    {
+      "id": "rq-PR007coc",
+      "title": "Critical Operations Coverage",
+      "body": "Planning readiness MUST verify that every required-critical contract item (priority required, class critical-ops) has at least one implementing or verifying task in the task graph. A required-critical item without task coverage represents an unplanned obligation and blocks the prep gate. Items with an explicit notRequiredReason are exempt from coverage checks.",
+      "priority": "must",
+      "tags": ["prep", "critical-ops", "contract", "coverage"],
+      "scenarios": [
+        {
+          "id": "rq-PR007coc.1",
+          "title": "Required-critical item with task coverage passes",
+          "given": [
+            "A change contract contains a required-critical item",
+            "At least one task in the task graph references that item via contract_refs.implements or contract_refs.verifies"
+          ],
+          "when": "runPrepReadinessChecks is called",
+          "then": ["No CRITICAL_OPS_MISSING_COVERAGE error is returned for that item"]
+        },
+        {
+          "id": "rq-PR007coc.2",
+          "title": "Required-critical item without task coverage fails",
+          "given": [
+            "A change contract contains a required-critical item",
+            "No task references that item via contract_refs"
+          ],
+          "when": "runPrepReadinessChecks is called",
+          "then": [
+            "A CRITICAL_OPS_MISSING_COVERAGE issue with severity 'error' is returned",
+            "The prep gate is blocked"
+          ]
+        },
+        {
+          "id": "rq-PR007coc.3",
+          "title": "Required-critical item with notRequiredReason passes",
+          "given": [
+            "A change contract contains a required-critical item",
+            "The item has an explicit notRequiredReason set",
+            "No task references that item via contract_refs"
+          ],
+          "when": "runPrepReadinessChecks is called",
+          "then": ["No CRITICAL_OPS_MISSING_COVERAGE error is returned for that item"]
         }
       ]
     }

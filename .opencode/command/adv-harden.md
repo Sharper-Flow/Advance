@@ -8,6 +8,8 @@ phaseGoal: "Verify production-readiness. Auto-fix scoped issues. Stop on drift."
 
 # ADV Harden — Release-Stage Quality Analysis
 
+<!-- rq-requiredObligation01 rq-requiredObligation02 -->
+
 Orchestrate multi-dimensional hardening via sub-agents. Command is part of the release stage and **blocks archive if actionable `REVIEW_FINDINGS` are unresolved.**
 
 ## Exits

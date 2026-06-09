@@ -5,6 +5,7 @@ phaseGoal: "Execute the approved plan autonomously. Add discovered tasks within 
 ---
 
 <!-- manifest: adv-apply · gate: execution · requiresChangeId: true · prereqs: [adv-prep] · scope: reads[specs, proposal, tasks, codebase] · modifies[tasks, codebase] -->
+<!-- rq-subagentReports14 -->
 
 # ADV Apply — Produce Deliverables with TDD and Retry
 
