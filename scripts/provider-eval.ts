@@ -21,7 +21,7 @@ import {
   readFileSync,
   statSync,
 } from "node:fs";
-import { join, basename, dirname } from "node:path";
+import { join, basename, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 // ---------------------------------------------------------------------------

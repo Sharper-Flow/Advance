@@ -1718,13 +1718,37 @@ export function resolveReleaseReachability(
       input.changeId,
       deps,
     );
-    return originReachability.reachable
-      ? { reachable: true, proof: "origin_default" }
-      : {
-          reachable: false,
-          proof: "origin_unmerged",
-          details: originReachability.unmergedCommits,
+    if (originReachability.reachable) {
+      return { reachable: true, proof: "origin_default" };
+    }
+
+    // Squash-merge fallback: check PR state when ancestry fails
+    if (input.prNumber && route.repo) {
+      const prState = readPrMergeState(
+        input.mainCheckout,
+        route.repo,
+        input.prNumber,
+        deps,
+      );
+      if (
+        !("error" in prState) &&
+        prState.state === "MERGED" &&
+        prState.mergedAt
+      ) {
+        return {
+          reachable: true,
+          proof: "pr_merged",
+          prNumber: input.prNumber,
+          mergeCommitOid: prState.mergeCommitOid,
         };
+      }
+    }
+
+    return {
+      reachable: false,
+      proof: "origin_unmerged",
+      details: originReachability.unmergedCommits,
+    };
   }
 
   if (!route.repo || !input.prNumber) {
