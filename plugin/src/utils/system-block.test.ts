@@ -7,14 +7,10 @@
  * and JC-3 (strict regex internal-call detection).
  */
 
-import { readFileSync } from "node:fs";
-
 import { describe, expect, it } from "vitest";
 
 import {
-  FALLBACK_CHAIN,
   INTERNAL_CALL_PATTERNS,
-  PROVIDER_HINTS,
   VOLATILE_SENTINEL,
   applyAdvSystemBlock,
   assembleSystemBlock,
@@ -32,7 +28,6 @@ const cleanState = (
   lastCompletedTask: null,
   isWorktree: false,
   lastSessionHealthIssue: null,
-  lastProviderID: null,
   ...overrides,
 });
 
@@ -40,32 +35,12 @@ const cleanInput = (
   overrides: Partial<AssembleSystemBlockInput> = {},
 ): AssembleSystemBlockInput => ({
   state: cleanState(),
-  currentProviderID: null,
   initError: null,
   storeAvailable: true,
   existingSystem: null,
   ...overrides,
 });
 
-const GPT_REQUIREMENTS_RIGOR_DIRECTIVES = [
-  "Requirements artifacts (problem statements, clarifying questions, acceptance criteria, agreements) are exempt from brevity/compression when detail is required; keep them complete, specific, and testable, not verbose.",
-  "Acceptance criteria must be pass/fail, name an observable signal, and be bounded by a number, threshold, or explicit state. Rewrite subjective terms like fast/easy/robust/clean before presenting.",
-  'During idea/problem/proposal/discovery, ask narrow clarifying questions when missing information would materially change outcome, acceptance boundary, or risk. This is required work, not "shall I continue?", so no-pause/auto-continue rules do not suppress it.',
-] as const;
-
-const normalizeTrailingNewline = (content: string): string =>
-  content.replace(/\n$/, "");
-
-const readProviderHintSource = (provider: string): string =>
-  normalizeTrailingNewline(
-    readFileSync(
-      new URL(
-        `../../../.opencode/agent-parts/providers/${provider}.md`,
-        import.meta.url,
-      ),
-      "utf8",
-    ),
-  );
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -98,14 +73,6 @@ describe("INTERNAL_CALL_PATTERNS", () => {
         re.test("You are an ADV agent. Use the tools..."),
       ),
     ).toBe(false);
-  });
-});
-
-describe("FALLBACK_CHAIN", () => {
-  it("provides alternatives for openai, anthropic, google", () => {
-    expect(FALLBACK_CHAIN.openai).toContain("anthropic");
-    expect(FALLBACK_CHAIN.anthropic).toContain("openai");
-    expect(FALLBACK_CHAIN.google).toContain("anthropic");
   });
 });
 
@@ -265,251 +232,6 @@ describe("assembleSystemBlock", () => {
     });
   });
 
-  describe("provider-switch section", () => {
-    it("emits hint when provider changes between turns", () => {
-      const block = assembleSystemBlock(
-        cleanInput({
-          currentProviderID: "anthropic",
-          state: cleanState({ lastProviderID: "openai" }),
-        }),
-      );
-      expect(block).toContain("[ADV:PROVIDER_SWITCH]");
-      expect(block).toContain("openai");
-      expect(block).toContain("anthropic");
-    });
-
-    it("does NOT emit when same provider as last turn", () => {
-      const block = assembleSystemBlock(
-        cleanInput({
-          currentProviderID: "google",
-          state: cleanState({ lastProviderID: "google" }),
-        }),
-      );
-      expect(block).toBeNull();
-    });
-
-    it("does NOT emit on first turn (no lastProviderID)", () => {
-      const block = assembleSystemBlock(
-        cleanInput({
-          currentProviderID: "google",
-          state: cleanState({ lastProviderID: null }),
-        }),
-      );
-      expect(block).toBeNull();
-    });
-
-    it("does NOT emit provider switch when fallback chain has no alternatives", () => {
-      const block = assembleSystemBlock(
-        cleanInput({
-          currentProviderID: "zai-coding-plan",
-          state: cleanState({ lastProviderID: "anthropic" }),
-        }),
-      );
-      expect(block).not.toContain("[ADV:PROVIDER_SWITCH]");
-      expect(block).toContain("[ADV:PROVIDER_HINT:glm]");
-    });
-  });
-
-  describe("provider-hint section", () => {
-    it("emits a Claude provider hint from structured anthropic provider ID", () => {
-      const block = assembleSystemBlock(
-        cleanInput({ currentProviderID: "anthropic" }),
-      );
-      expect(block).toContain("[ADV:PROVIDER_HINT:claude]");
-      expect(block).toContain("<!-- PROVIDER_HINT:claude -->");
-      expect(block).toContain("Default model family: Claude");
-    });
-
-    it("emits a GPT provider hint from structured openai provider ID", () => {
-      const block = assembleSystemBlock(
-        cleanInput({ currentProviderID: "openai" }),
-      );
-      expect(block).toContain("[ADV:PROVIDER_HINT:gpt]");
-      expect(block).toContain("<!-- PROVIDER_HINT:gpt -->");
-      for (const directive of GPT_REQUIREMENTS_RIGOR_DIRECTIVES) {
-        expect(block).toContain(directive);
-      }
-      expect(PROVIDER_HINTS.gpt).toContain(
-        "If user asked to continue/ship, keep going after interim findings unless a stop condition above is met",
-      );
-      expect(PROVIDER_HINTS.gpt).toContain(
-        GPT_REQUIREMENTS_RIGOR_DIRECTIVES[2],
-      );
-      expect(
-        PROVIDER_HINTS.gpt.indexOf(GPT_REQUIREMENTS_RIGOR_DIRECTIVES[2]),
-      ).toBeGreaterThan(
-        PROVIDER_HINTS.gpt.indexOf(
-          "If user asked to continue/ship, keep going after interim findings unless a stop condition above is met",
-        ),
-      );
-    });
-
-    it("keeps GPT runtime hint aligned with source markdown", () => {
-      expect(PROVIDER_HINTS.gpt).toBe(readProviderHintSource("gpt"));
-    });
-
-    it("emits a MiniMax provider hint from minimax-coding-plan provider ID", () => {
-      const block = assembleSystemBlock(
-        cleanInput({ currentProviderID: "minimax-coding-plan" }),
-      );
-      expect(block).toContain("[ADV:PROVIDER_HINT:minimax]");
-      expect(block).toContain("<!-- PROVIDER_HINT:minimax -->");
-      expect(block).toContain("Default model family: MiniMax M3");
-    });
-
-    it("emits a MiniMax provider hint from bare minimax provider ID", () => {
-      const block = assembleSystemBlock(
-        cleanInput({ currentProviderID: "minimax" }),
-      );
-      expect(block).toContain("[ADV:PROVIDER_HINT:minimax]");
-    });
-
-    it("emits a Qwen provider hint from openrouter provider ID", () => {
-      const block = assembleSystemBlock(
-        cleanInput({ currentProviderID: "openrouter" }),
-      );
-      expect(block).toContain("[ADV:PROVIDER_HINT:qwen]");
-      expect(block).toContain("<!-- PROVIDER_HINT:qwen -->");
-      expect(block).toContain("Default model family: Qwen 3.7 Max");
-    });
-
-    it("emits a Qwen provider hint from dashscope provider ID", () => {
-      const block = assembleSystemBlock(
-        cleanInput({ currentProviderID: "dashscope" }),
-      );
-      expect(block).toContain("[ADV:PROVIDER_HINT:qwen]");
-    });
-
-    it("keeps minimax runtime hint aligned with source markdown", () => {
-      expect(PROVIDER_HINTS.minimax).toBe(readProviderHintSource("minimax"));
-    });
-
-    it("keeps qwen runtime hint aligned with source markdown", () => {
-      expect(PROVIDER_HINTS.qwen).toBe(readProviderHintSource("qwen"));
-    });
-
-    it("emits no provider hint for unknown provider IDs", () => {
-      const block = assembleSystemBlock(
-        cleanInput({ currentProviderID: "unknown-provider" }),
-      );
-      expect(block).toBeNull();
-    });
-
-    it("emits no provider hint when provider identity is missing", () => {
-      const block = assembleSystemBlock(
-        cleanInput({ currentProviderID: null }),
-      );
-      expect(block).toBeNull();
-    });
-
-    it("keeps requirements-rigor directives GPT-only", () => {
-      const blocks = [
-        assembleSystemBlock(cleanInput({ currentProviderID: "anthropic" })),
-        assembleSystemBlock(
-          cleanInput({ currentProviderID: "unknown-provider" }),
-        ),
-        assembleSystemBlock(cleanInput({ currentProviderID: null })),
-      ].map((block) => block ?? "");
-      for (const directive of GPT_REQUIREMENTS_RIGOR_DIRECTIVES) {
-        for (const block of blocks) {
-          expect(block).not.toContain(directive);
-        }
-      }
-    });
-
-    it("keeps non-GPT provider hints byte-pinned", () => {
-      const expectedClaude = [
-        "<!-- PROVIDER_HINT:claude -->",
-        "",
-        "## Provider Hint",
-        "",
-        "- Default model family: Claude",
-        "- When a user or workflow implies execution, act directly via tools — do not suggest or describe what you would do",
-        "- For ADV apply tasks, when delegation routing marks work `delegate_allowed` or `delegate_preferred`, prefer spawning `adv-engineer`; execute inline only when context-bound",
-      ].join("\n");
-      const expectedGlm = [
-        "<!-- PROVIDER_HINT:glm -->",
-        "",
-        "## Provider Hint",
-        "",
-        "- Default model family: GLM",
-        "- Do not generalize rules beyond their stated scope — if a rule applies to a specific gate or tool, do not silently extend it",
-        "- Keep all instructions and tool args in English even when context contains Chinese; validate tool args against schema before calling",
-        "- For ADV apply tasks, when delegation routing marks work `delegate_allowed` or `delegate_preferred`, prefer spawning `adv-engineer`; execute inline only when context-bound",
-        "- For local code exploration, use lgrep tools (lgrep_search_semantic, lgrep_search_symbols) as the FIRST choice — do not start with glob or grep for concept or symbol queries",
-        "- When a tool choice exists, pick the most specific one; prefer lgrep over grep, prefer read over cat, prefer ADV MCP tools over direct file access",
-        "- Before calling any tool, verify that every required parameter is present and matches the schema — do not guess or invent parameter values",
-      ].join("\n");
-      const expectedKimi = [
-        "<!-- PROVIDER_HINT:kimi -->",
-        "",
-        "## Provider Hint",
-        "",
-        "- Default model family: Kimi",
-        "- Critical instructions (gate rules, state access policy, NEVER/ONLY constraints) are non-negotiable even in long contexts — re-verify before every gate transition",
-        "- If you notice repeated phrases or looping output, stop and summarize current state before continuing",
-        "- For local code exploration, use lgrep tools (lgrep_search_semantic, lgrep_search_symbols) as the FIRST choice — do not start with glob or grep for concept or symbol queries",
-        "- When multiple constraints apply, check each one individually before acting — do not collapse or merge distinct rules",
-        "- Sequential tool dependencies must be executed one at a time in order — never parallelize dependent calls",
-      ].join("\n");
-      const expectedMinimax = [
-        "<!-- PROVIDER_HINT:minimax -->",
-        "",
-        "## Provider Hint",
-        "",
-        "- Default model family: MiniMax M3",
-        "- Parallel tool calls may mis-attribute results by arrival order rather than tool_call_id — execute dependent tool calls sequentially, never parallelize when call results feed into each other",
-        "- Interleaved thinking is preserved in response content; do not strip or summarize reasoning_content from message history between turns",
-        "- For ADV apply tasks, when delegation routing marks work `delegate_allowed` or `delegate_preferred`, prefer spawning `adv-engineer`; execute inline only when context-bound",
-        "- For local code exploration, use lgrep tools (lgrep_search_semantic, lgrep_search_symbols) as the FIRST choice — do not start with glob or grep for concept or symbol queries",
-        "- When a tool choice exists, pick the most specific one; prefer lgrep over grep, prefer read over cat, prefer ADV MCP tools over direct file access",
-        "- Before calling any tool, verify that every required parameter is present and matches the schema — do not guess or invent parameter values",
-      ].join("\n");
-      const expectedQwen = [
-        "<!-- PROVIDER_HINT:qwen -->",
-        "",
-        "## Provider Hint",
-        "",
-        "- Default model family: Qwen 3.7 Max",
-        "- Preserve thinking content across multi-turn agent workflows — the model relies on accumulated reasoning context for long-horizon task coherence. Loss of prior reasoning degrades task coherence",
-        "- For long-running ADV workflows, summarize intermediate state explicitly rather than relying on the model to infer from distant context",
-        "- ALWAYS emit a tool call after reasoning about needing one in a thinking block. NEVER describe what the tool would return or fabricate results from reasoning alone",
-        "- For ADV apply tasks, when delegation routing marks work `delegate_allowed` or `delegate_preferred`, prefer spawning `adv-engineer`; execute inline only when context-bound",
-        "- For local code exploration, use lgrep tools (lgrep_search_semantic, lgrep_search_symbols) as the FIRST choice — do not start with glob or grep for concept or symbol queries",
-        "- NEVER parallelize dependent tool calls — if tool B needs tool A's output, wait for A's result before calling B",
-        "- Parallel tool calls are for independent operations only — never run the same command multiple times in parallel; make one call, wait for the result, then decide next steps",
-        "- When a tool choice exists, pick the most specific one; prefer lgrep over grep, prefer read over cat, prefer ADV MCP tools over direct file access",
-        "- Before calling any tool, verify that every required parameter is present and matches the schema — do not guess or invent parameter values",
-        "- Call each tool exactly once per distinct operation — never duplicate identical calls in parallel or sequentially",
-        "- Parallel batches: every file path, search query, and command must be unique across the batch — no exceptions",
-        "- Tool call failed or returned unexpected results? Diagnose root cause before retrying — never blindly repeat",
-      ].join("\n");
-
-      expect(PROVIDER_HINTS.claude).toBe(expectedClaude);
-      expect(PROVIDER_HINTS.glm).toBe(expectedGlm);
-      expect(PROVIDER_HINTS.kimi).toBe(expectedKimi);
-      expect(PROVIDER_HINTS.minimax).toBe(expectedMinimax);
-      expect(PROVIDER_HINTS.qwen).toBe(expectedQwen);
-      expect(readProviderHintSource("claude")).toBe(expectedClaude);
-      expect(readProviderHintSource("glm")).toBe(expectedGlm);
-      expect(readProviderHintSource("kimi")).toBe(expectedKimi);
-      expect(readProviderHintSource("minimax")).toBe(expectedMinimax);
-      expect(readProviderHintSource("qwen")).toBe(expectedQwen);
-    });
-
-    it("does not duplicate provider hints when switch and hint sections both emit", () => {
-      const block = assembleSystemBlock(
-        cleanInput({
-          currentProviderID: "anthropic",
-          state: cleanState({ lastProviderID: "openai" }),
-        }),
-      );
-      expect(block).toContain("[ADV:PROVIDER_HINT:claude]");
-      expect(block).toContain("[ADV:PROVIDER_SWITCH]");
-      expect(block!.match(/<!-- PROVIDER_HINT:claude -->/g)).toHaveLength(1);
-    });
-  });
-
   describe("worktree section", () => {
     it("emits worktree marker when in worktree with active change", () => {
       const block = assembleSystemBlock(
@@ -665,18 +387,16 @@ describe("assembleSystemBlock", () => {
   });
 
   describe("section ordering (stable header)", () => {
-    it("orders sections: degraded → health → providerHint → providerSwitch → worktree → activeChange", () => {
+    it("orders sections: degraded → health → worktree → activeChange", () => {
       const block = assembleSystemBlock(
         cleanInput({
           initError: new Error("boom"),
-          currentProviderID: "anthropic",
           state: cleanState({
             lastSessionHealthIssue: {
               kind: "session.error",
               message: "session error",
               detectedAt: 0,
             },
-            lastProviderID: "openai",
             isWorktree: true,
             activeChange: { id: "c1", objective: null },
           }),
@@ -687,12 +407,6 @@ describe("assembleSystemBlock", () => {
       expect(idx("[ADV:DEGRADED]")).toBeGreaterThanOrEqual(0);
       expect(idx("[ADV:DEGRADED]")).toBeLessThan(idx("[ADV:SESSION_HEALTH]"));
       expect(idx("[ADV:SESSION_HEALTH]")).toBeLessThan(
-        idx("[ADV:PROVIDER_HINT:claude]"),
-      );
-      expect(idx("[ADV:PROVIDER_HINT:claude]")).toBeLessThan(
-        idx("[ADV:PROVIDER_SWITCH]"),
-      );
-      expect(idx("[ADV:PROVIDER_SWITCH]")).toBeLessThan(
         idx("[ADV:WORKTREE_SESSION]"),
       );
       expect(idx("[ADV:WORKTREE_SESSION]")).toBeLessThan(
@@ -726,7 +440,6 @@ describe("applyAdvSystemBlock", () => {
     const output = { system: [] as string[] };
     const result = applyAdvSystemBlock(output, {
       state: cleanState({ activeChange: { id: "c1", objective: null } }),
-      currentProviderID: null,
       initError: null,
       storeAvailable: true,
     });
@@ -750,14 +463,6 @@ describe("applyAdvSystemBlock", () => {
           activeChange: { id: "c1", objective: "build feature" },
         }),
       }),
-      // Provider switch + active change
-      cleanInput({
-        currentProviderID: "anthropic",
-        state: cleanState({
-          activeChange: { id: "c1", objective: null },
-          lastProviderID: "openai",
-        }),
-      }),
       // Active change + just-completed task (volatile suffix)
       cleanInput({
         state: cleanState({
@@ -778,7 +483,6 @@ describe("applyAdvSystemBlock", () => {
     const output = { system: ["You are an agent."] };
     applyAdvSystemBlock(output, {
       state: cleanState({ activeChange: { id: "c1", objective: null } }),
-      currentProviderID: null,
       initError: null,
       storeAvailable: true,
     });
@@ -794,7 +498,6 @@ describe("applyAdvSystemBlock", () => {
     const output = { system: ["Generate a short title for this conversation"] };
     const result = applyAdvSystemBlock(output, {
       state: cleanState({ activeChange: { id: "c1", objective: null } }),
-      currentProviderID: null,
       initError: null,
       storeAvailable: true,
     });
@@ -807,8 +510,7 @@ describe("applyAdvSystemBlock", () => {
   it("returns emitted: false when no section produces content", () => {
     const output = { system: [] as string[] };
     const result = applyAdvSystemBlock(output, {
-      state: cleanState(),
-      currentProviderID: null,
+      state: cleanState({ activeChange: { id: "c1", objective: null } }),
       initError: null,
       storeAvailable: true,
     });
@@ -823,7 +525,6 @@ describe("applyAdvSystemBlock", () => {
         activeChange: { id: "c1", objective: null },
         lastCompletedTask: { id: "tk-1", title: "Foo" },
       }),
-      currentProviderID: null,
       initError: null,
       storeAvailable: true,
     });
@@ -836,7 +537,6 @@ describe("applyAdvSystemBlock", () => {
     const output = { system: [] as string[] };
     const result = applyAdvSystemBlock(output, {
       state: cleanState({ activeChange: { id: "c1", objective: null } }),
-      currentProviderID: null,
       initError: null,
       storeAvailable: true,
     });
@@ -848,7 +548,6 @@ describe("applyAdvSystemBlock", () => {
     const output = { system: [] as string[] };
     applyAdvSystemBlock(output, {
       state: cleanState(),
-      currentProviderID: null,
       initError: null,
       storeAvailable: false,
     });
