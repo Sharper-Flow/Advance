@@ -510,7 +510,7 @@ describe("applyAdvSystemBlock", () => {
   it("returns emitted: false when no section produces content", () => {
     const output = { system: [] as string[] };
     const result = applyAdvSystemBlock(output, {
-      state: cleanState({ activeChange: { id: "c1", objective: null } }),
+      state: cleanState(),
       initError: null,
       storeAvailable: true,
     });
