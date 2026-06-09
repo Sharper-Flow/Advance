@@ -1808,6 +1808,3 @@ function defaultRunGit(cwd: string, args: string[]) {
     stderr: result.stderr ?? "",
   };
 }
-
-
-
