@@ -631,13 +631,19 @@ describe("git-finalize helpers", () => {
               stdout: "abc123\trefs/heads/trunk\n",
               stderr: "",
             };
-          if (args[0] === "log" && args[2] === "origin/trunk..change/fixSquashMergeRelease")
+          if (
+            args[0] === "log" &&
+            args[2] === "origin/trunk..change/fixSquashMergeRelease"
+          )
             return {
               status: 0,
               stdout: "def456 squash orphan commit\n",
               stderr: "",
             };
-          if (args[0] === "rev-parse" && args[1] === "change/fixSquashMergeRelease^{tree}")
+          if (
+            args[0] === "rev-parse" &&
+            args[1] === "change/fixSquashMergeRelease^{tree}"
+          )
             return { status: 0, stdout: "matching-tree-sha\n", stderr: "" };
           if (args[0] === "log" && args[1] === "--format=%H %T")
             return {
@@ -645,7 +651,11 @@ describe("git-finalize helpers", () => {
               stdout: "mergeCommitOid123 matching-tree-sha\n",
               stderr: "",
             };
-          return { status: 1, stdout: "", stderr: `unexpected git ${args.join(" ")}` };
+          return {
+            status: 1,
+            stdout: "",
+            stderr: `unexpected git ${args.join(" ")}`,
+          };
         },
         runGh: (_cwd, args) => {
           if (args[0] === "pr" && args[1] === "list") {
@@ -717,7 +727,10 @@ describe("git-finalize helpers", () => {
       },
       {
         runGit: (_cwd, args) => {
-          if (args[0] === "log" && args[2] === "trunk..change/fixSquashMergeRelease")
+          if (
+            args[0] === "log" &&
+            args[2] === "trunk..change/fixSquashMergeRelease"
+          )
             return { status: 0, stdout: "", stderr: "" };
           return { status: 1, stdout: "", stderr: "unexpected" };
         },
@@ -751,13 +764,19 @@ describe("git-finalize helpers", () => {
               stdout: "abc123\trefs/heads/trunk\n",
               stderr: "",
             };
-          if (args[0] === "log" && args[2] === "origin/trunk..change/fixSquashMergeRelease")
+          if (
+            args[0] === "log" &&
+            args[2] === "origin/trunk..change/fixSquashMergeRelease"
+          )
             return {
               status: 0,
               stdout: "def456 orphan commit\n",
               stderr: "",
             };
-          if (args[0] === "rev-parse" && args[1] === "change/fixSquashMergeRelease^{tree}")
+          if (
+            args[0] === "rev-parse" &&
+            args[1] === "change/fixSquashMergeRelease^{tree}"
+          )
             return { status: 0, stdout: "change-tree-sha\n", stderr: "" };
           if (args[0] === "log" && args[1] === "--format=%H %T")
             return {
@@ -765,7 +784,11 @@ describe("git-finalize helpers", () => {
               stdout: "trunk-sha different-tree-sha\n",
               stderr: "",
             };
-          return { status: 1, stdout: "", stderr: `unexpected git ${args.join(" ")}` };
+          return {
+            status: 1,
+            stdout: "",
+            stderr: `unexpected git ${args.join(" ")}`,
+          };
         },
         runGh: (_cwd, args) => {
           if (args[0] === "pr" && args[1] === "list") {

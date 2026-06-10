@@ -1018,7 +1018,9 @@ export function discoverMergedPr(
   repo: string,
   changeId: string,
   deps: Pick<GitFinalizeDeps, "runGh"> = {},
-): { prNumber: number; mergeCommitOid?: string } | { error: string; details?: string[] } {
+):
+  | { prNumber: number; mergeCommitOid?: string }
+  | { error: string; details?: string[] } {
   const runGh = deps.runGh ?? defaultRunGh;
   const result = runGh(mainCheckout, [
     "pr",
@@ -1044,7 +1046,10 @@ export function discoverMergedPr(
   if (!Array.isArray(parsed) || parsed.length === 0) {
     return { error: "NO_MERGED_PR_FOUND" };
   }
-  const pr = parsed[0] as { number?: unknown; mergeCommit?: { oid?: unknown } | null };
+  const pr = parsed[0] as {
+    number?: unknown;
+    mergeCommit?: { oid?: unknown } | null;
+  };
   if (typeof pr.number !== "number" || !Number.isInteger(pr.number)) {
     return { error: "PR_NUMBER_UNPARSEABLE" };
   }
@@ -1067,7 +1072,8 @@ export function detectSquashMergeByTree(
 
   // Get tree SHA of change branch HEAD
   const changeTree = runGit(mainCheckout, [
-    "rev-parse", `change/${changeId}^{tree}`,
+    "rev-parse",
+    `change/${changeId}^{tree}`,
   ]);
   if (changeTree.status !== 0) {
     return { reachable: false };
@@ -1079,7 +1085,10 @@ export function detectSquashMergeByTree(
 
   // Get recent trunk commits (last 50) with tree SHAs
   const trunkCommits = runGit(mainCheckout, [
-    "log", "--format=%H %T", "-50", defaultBranch,
+    "log",
+    "--format=%H %T",
+    "-50",
+    defaultBranch,
   ]);
   if (trunkCommits.status !== 0) {
     return { reachable: false };
