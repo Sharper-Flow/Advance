@@ -36,6 +36,7 @@ import {
   verifyChangeBranchReachableFromOrigin,
   detectArchivedUnmergedBranches,
   redriveArchivedUnmergedBranch,
+  detectSquashMergeByTree,
 } from "./git-finalize";
 
 function git(cwd: string, args: string[]): string {
@@ -1796,6 +1797,89 @@ describe("git-finalize helpers", () => {
       // Will fail because the directory doesn't exist — that's expected
       expect(result.localDeleted).toBe(false);
       expect(result.error).toBeDefined();
+    });
+  });
+
+  describe("detectSquashMergeByTree", () => {
+    it("returns reachable:true when tree SHA matches a trunk commit", async () => {
+      const main = join(tempRoot, "squash-match");
+      await mkdir(main);
+      await initRepo(main);
+
+      // Create initial commit on trunk
+      await writeFile(join(main, "file.txt"), "initial\n");
+      git(main, ["add", "file.txt"]);
+      git(main, ["commit", "-m", "initial"]);
+
+      // Create change branch with same tree as a future trunk commit
+      git(main, ["checkout", "-b", "change/squash-test"]);
+      await writeFile(join(main, "file.txt"), "modified\n");
+      git(main, ["add", "file.txt"]);
+      git(main, ["commit", "-m", "change commit"]);
+
+      // Get the change tree SHA
+      const changeTreeSha = git(main, ["rev-parse", "change/squash-test^{tree}"]);
+
+      // Switch back to trunk and create a squash-like commit with the same tree
+      git(main, ["checkout", "trunk"]);
+      await writeFile(join(main, "file.txt"), "modified\n");
+      git(main, ["add", "file.txt"]);
+      git(main, ["commit", "-m", "squash merged change"]);
+      const squashCommitSha = git(main, ["rev-parse", "HEAD"]);
+
+      const result = detectSquashMergeByTree(main, "trunk", "squash-test");
+      expect(result.reachable).toBe(true);
+      expect(result.mergeCommitOid).toBe(squashCommitSha);
+    });
+
+    it("returns reachable:false when tree SHA does not match any trunk commit", async () => {
+      const main = join(tempRoot, "squash-no-match");
+      await mkdir(main);
+      await initRepo(main);
+
+      // Create initial commit on trunk
+      await writeFile(join(main, "trunk.txt"), "trunk content\n");
+      git(main, ["add", "trunk.txt"]);
+      git(main, ["commit", "-m", "initial"]);
+
+      // Create change branch with different tree
+      git(main, ["checkout", "-b", "change/no-match"]);
+      await writeFile(join(main, "change.txt"), "change content\n");
+      git(main, ["add", "change.txt"]);
+      git(main, ["commit", "-m", "change commit"]);
+
+      // Switch back to trunk, no squash merge
+      git(main, ["checkout", "trunk"]);
+
+      const result = detectSquashMergeByTree(main, "trunk", "no-match");
+      expect(result.reachable).toBe(false);
+      expect(result.mergeCommitOid).toBeUndefined();
+    });
+
+    it("returns reachable:false when change branch does not exist", async () => {
+      const main = join(tempRoot, "squash-missing-branch");
+      await mkdir(main);
+      await initRepo(main);
+
+      // Create a commit on trunk
+      await writeFile(join(main, "file.txt"), "content\n");
+      git(main, ["add", "file.txt"]);
+      git(main, ["commit", "-m", "initial"]);
+
+      const result = detectSquashMergeByTree(main, "trunk", "nonexistent");
+      expect(result.reachable).toBe(false);
+      expect(result.mergeCommitOid).toBeUndefined();
+    });
+
+    it("returns reachable:false when trunk has no commits", async () => {
+      const main = join(tempRoot, "squash-empty-trunk");
+      await mkdir(main);
+      await initRepo(main);
+      // No commits on trunk
+
+      const result = detectSquashMergeByTree(main, "trunk", "any-change");
+      expect(result.reachable).toBe(false);
+      expect(result.mergeCommitOid).toBeUndefined();
     });
   });
 });
