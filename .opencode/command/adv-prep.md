@@ -10,7 +10,7 @@ phaseGoal: "Complete the flight-check: every gap closed, every dependency mapped
 
 Analyze change for implementation-readiness gaps (tasks, sequencing, cross-cutting concerns, contract traceability) → add them via ADV tools. Uses 4-Step Gap Analysis to map approved criteria/design into tasks; prep does not firm criteria. Runs **inline** — no sub-agents.
 
-<!-- rq-prep-out1 rq-prep-neg1 rq-prep-scope1 rq-stagePrepNoCriteriaFirming01 rq-prepArtifactExcerpt01 -->
+<!-- rq-prep-out1 rq-prep-neg1 rq-prep-scope1 rq-stagePrepNoCriteriaFirming01 rq-prepArtifactExcerpt01 rq-PR007coc -->
 
 ## Command Boundary
 

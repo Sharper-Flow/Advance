@@ -850,6 +850,9 @@ export function applyGateCompletedToState(
   return state;
 }
 
+// rq-requiredObligation02: Out-of-scope required obligations require explicit
+// routing via re-enter or split; the re-enter path clears review matrix to force
+// re-evaluation of contract items that may have changed scope.
 export function applyGateReenteredToState(
   state: ChangeWorkflowState,
   payload: GateReenteredSignalPayload,

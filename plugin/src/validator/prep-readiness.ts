@@ -43,6 +43,10 @@ const PrepReadinessCodes = {
   // Cross-repo routing
   CROSS_REPO_MISSING_METADATA: "CROSS_REPO_MISSING_METADATA", // must (error)
   CROSS_REPO_HINT_UNROUTED: "CROSS_REPO_HINT_UNROUTED", // warning
+
+  // Critical-ops coverage (rq-PR007cro)
+  CRITICAL_OPS_UNCOVERED: "CRITICAL_OPS_UNCOVERED", // must (error)
+  CRITICAL_OPS_DEFERRED: "CRITICAL_OPS_DEFERRED", // must (error)
 } as const;
 
 type _PrepReadinessCode =
@@ -412,6 +416,55 @@ export function checkTddIntentAssigned(
 }
 
 // =============================================================================
+// Check: Critical-Ops Coverage (rq-PR007coc)
+// =============================================================================
+
+/**
+ * Ensure every contract item marked `requiredCritical: true` has active task
+ * coverage (implements or verifies) by a non-cancelled task, or an explicit
+ * policy-approved alternate route via `notRequiredReason`.
+ *
+ * Items with `verificationRequired: false` are NOT exempt — requiredCritical
+ * is a correctness/release-safety obligation that must not be silently deferred.
+ */
+export function checkCriticalOpsCoverage(change: Change): ValidationIssue[] {
+  const contract = change.contract;
+  if (!contract) return [];
+
+  const issues: ValidationIssue[] = [];
+
+  // Collect IDs covered by non-cancelled tasks
+  const coveredIds = new Set<string>();
+  for (const task of change.tasks ?? []) {
+    if (task.status === "cancelled") continue;
+    const refs = task.contract_refs;
+    if (!refs) continue;
+    for (const id of refs.implements ?? []) coveredIds.add(id);
+    for (const id of refs.verifies ?? []) coveredIds.add(id);
+  }
+
+  for (const item of contract.items) {
+    if (item.requiredCritical !== true) continue;
+    if (item.notRequiredReason) continue; // policy-approved alternate route
+    if (!coveredIds.has(item.id)) {
+      issues.push({
+        code: PrepReadinessCodes.CRITICAL_OPS_UNCOVERED,
+        severity: "error",
+        message: `Required-critical contract item "${item.id}" has no active task coverage (implements or verifies)`,
+        path: `contract.items.${item.id}`,
+        details: {
+          contractId: item.id,
+          remediation:
+            "Add a non-cancelled task that implements or verifies this contract item, or set notRequiredReason to document an approved alternate route.",
+        },
+      });
+    }
+  }
+
+  return issues;
+}
+
+// =============================================================================
 // runPrepReadinessChecks
 // =============================================================================
 
@@ -439,6 +492,7 @@ export function runPrepReadinessChecks(
     ...checkScenarioAdequacy(change),
     ...checkTaskGraphIntegrity(change),
     ...checkCrossRepoRouting(change),
+    ...checkCriticalOpsCoverage(change),
     ...(tddEnforcement !== "off"
       ? checkTddIntentAssigned(
           change,
@@ -459,6 +513,7 @@ export function runPrepReadinessChecks(
       "checkScenarioAdequacy",
       "checkTaskGraphIntegrity",
       "checkCrossRepoRouting",
+      "checkCriticalOpsCoverage",
       "checkTddIntentAssigned",
     ],
     checkedAt: new Date().toISOString(),

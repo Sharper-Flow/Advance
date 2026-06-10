@@ -8,6 +8,7 @@ import {
   getSubagentReportPacketAnchors,
   normalizePersistedSubagentReportState,
   type PersistedSubagentReportAgent,
+  RequiredFollowUpSchema,
   ResearcherSubagentReportSchema,
   ReviewerSubagentReportSchema,
   ScannerBundleSubagentReportSchema,
@@ -417,6 +418,62 @@ describe("Subagent report schemas", () => {
       "harden:release",
     );
     expect(() => ChangeReportScopeKeySchema.parse("freeform")).toThrow();
+  });
+
+  it("parses engineer report with required_follow_ups", () => {
+    const parsed = EngineerSubagentReportSchema.parse({
+      ...engineerReport,
+      required_follow_ups: [
+        {
+          text: "Add acceptance test for required-critical defaulting",
+          obligation_class: "required_critical",
+          severity: "critical",
+          source_contract_id: "AC1",
+        },
+      ],
+    });
+
+    expect(parsed.required_follow_ups).toHaveLength(1);
+    expect(parsed.required_follow_ups![0].obligation_class).toBe(
+      "required_critical",
+    );
+    expect(parsed.required_follow_ups![0].severity).toBe("critical");
+  });
+
+  it("parses reviewer report with required_follow_ups", () => {
+    const parsed = ReviewerSubagentReportSchema.parse({
+      ...reviewerReport,
+      required_follow_ups: [
+        {
+          text: "Harden boundary validation before release",
+          obligation_class: "required_standard",
+          severity: "high",
+        },
+      ],
+    });
+
+    expect(parsed.required_follow_ups).toHaveLength(1);
+    expect(parsed.required_follow_ups![0].obligation_class).toBe(
+      "required_standard",
+    );
+    expect(parsed.required_follow_ups![0].severity).toBe("high");
+  });
+
+  it("defaults required_follow_up severity to high", () => {
+    const followUp = RequiredFollowUpSchema.parse({
+      text: "Update docs",
+      obligation_class: "required_standard",
+    });
+
+    expect(followUp.severity).toBe("high");
+  });
+
+  it("preserves backward compat without required_follow_ups", () => {
+    const parsedEngineer = EngineerSubagentReportSchema.parse(engineerReport);
+    const parsedReviewer = ReviewerSubagentReportSchema.parse(reviewerReport);
+
+    expect(parsedEngineer.required_follow_ups).toBeUndefined();
+    expect(parsedReviewer.required_follow_ups).toBeUndefined();
   });
 
   describe("context packet anchor contract", () => {

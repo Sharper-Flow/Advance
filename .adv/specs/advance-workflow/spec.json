@@ -3,8 +3,8 @@
   "name": "advance-workflow",
   "title": "Advance Workflow",
   "purpose": "Capability: Workflow contract layer for ADV \u2014 gate model, autonomy boundaries, design validation, scope management, releases, approvals, handoff voice, review remediation, and touched-scope quality. Split from `advance` capability.",
-  "version": "1.15.0",
-  "updated_at": "2026-06-05T00:00:00.000Z",
+  "version": "1.16.0",
+  "updated_at": "2026-06-09T00:00:00.000Z",
   "requirements": [
     {
       "id": "rq-problemSpecLaw01",
@@ -3175,6 +3175,99 @@
             "The existing design validator runs unchanged",
             "The validator validates the design including any scout-adopted improvements",
             "The scout and validator serve different purposes (opportunity vs correctness)"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-requiredObligation01",
+      "title": "Required Obligation Release Block",
+      "body": "The review/harden flow MUST block release when required in-scope obligations remain unresolved. A required-critical contract item that is in-scope, has no notRequiredReason, and lacks verified completion evidence MUST prevent the release gate from completing. This is a structural safety invariant: unresolved required obligations represent unshipped work that cannot be silently released.",
+      "priority": "must",
+      "tags": ["workflow", "release", "required-obligation", "safety", "contract"],
+      "scenarios": [
+        {
+          "id": "rq-requiredObligation01.1",
+          "title": "Unresolved required-critical item blocks release",
+          "given": [
+            "A change has a required-critical contract item in-scope",
+            "The item has no notRequiredReason",
+            "The contract review matrix shows the item as unverified or failed"
+          ],
+          "when": "The release gate is evaluated",
+          "then": [
+            "The release gate is NOT marked done",
+            "A REQUIRED_OBLIGATION_UNRESOLVED blocker is surfaced",
+            "The response identifies the specific contract item and required evidence"
+          ]
+        },
+        {
+          "id": "rq-requiredObligation01.2",
+          "title": "Verified required-critical item allows release",
+          "given": [
+            "A change has a required-critical contract item in-scope",
+            "The contract review matrix shows the item as pass with evidence"
+          ],
+          "when": "The release gate is evaluated",
+          "then": ["The release gate may proceed if all other conditions are met"]
+        },
+        {
+          "id": "rq-requiredObligation01.3",
+          "title": "Not-required reason exempts item from release block",
+          "given": [
+            "A change has a required-critical contract item",
+            "The item has an explicit notRequiredReason set"
+          ],
+          "when": "The release gate is evaluated",
+          "then": ["The item does not block release"]
+        }
+      ]
+    },
+    {
+      "id": "rq-requiredObligation02",
+      "title": "Required Obligation Explicit Routing",
+      "body": "Out-of-scope required obligations MUST NOT be silently dropped or auto-resolved. When a required-critical contract item is classified as out-of-scope during execution or review, the workflow MUST require explicit routing: either re-enter the item into scope via adv_change_reenter with a rationale, or split the obligation into a new change with a tracking reference. Silent deferral or implicit postponement of required obligations is prohibited.",
+      "priority": "must",
+      "tags": ["workflow", "required-obligation", "routing", "scope", "split"],
+      "scenarios": [
+        {
+          "id": "rq-requiredObligation02.1",
+          "title": "Out-of-scope required item requires explicit routing",
+          "given": [
+            "A required-critical contract item is marked out-of-scope during execution or review"
+          ],
+          "when": "The workflow evaluates release readiness",
+          "then": [
+            "The release gate is NOT marked done",
+            "A REQUIRED_OBLIGATION_ROUTING_MISSING blocker is surfaced",
+            "The response demands explicit re-enter or split action with rationale"
+          ]
+        },
+        {
+          "id": "rq-requiredObligation02.2",
+          "title": "Re-enter with rationale resolves routing blocker",
+          "given": [
+            "An out-of-scope required-critical item is re-entered via adv_change_reenter",
+            "The re-enter rationale explains why the item is now in-scope"
+          ],
+          "when": "The release gate is re-evaluated",
+          "then": [
+            "The REQUIRED_OBLIGATION_ROUTING_MISSING blocker is cleared",
+            "The item is treated as in-scope for release checks"
+          ]
+        },
+        {
+          "id": "rq-requiredObligation02.3",
+          "title": "Split into new change resolves routing blocker",
+          "given": [
+            "An out-of-scope required-critical item is split into a new tracked change",
+            "The original change records the split reference (new change ID and rationale)"
+          ],
+          "when": "The release gate is re-evaluated",
+          "then": [
+            "The REQUIRED_OBLIGATION_ROUTING_MISSING blocker is cleared",
+            "The original change may proceed to release",
+            "The new change carries the required obligation forward"
           ]
         }
       ]

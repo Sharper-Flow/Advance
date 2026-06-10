@@ -119,4 +119,33 @@ describe("change contract schemas", () => {
 
     expect(contract.version).toBe(1);
   });
+
+  test("accepts requiredCritical on contract item", () => {
+    const item = ContractItemSchema.parse({
+      id: "RC1",
+      kind: "success_criterion",
+      text: "Must preserve backward compatibility.",
+      sourceArtifact: "agreement",
+      verificationRequired: true,
+      evidencePolicy: "test",
+      status: "approved",
+      requiredCritical: true,
+    });
+
+    expect(item.requiredCritical).toBe(true);
+  });
+
+  test("preserves backward compat without requiredCritical", () => {
+    const item = ContractItemSchema.parse({
+      id: "RC2",
+      kind: "acceptance_criterion",
+      text: "No required-critical flag.",
+      sourceArtifact: "agreement",
+      verificationRequired: true,
+      evidencePolicy: "review",
+      status: "draft",
+    });
+
+    expect(item.requiredCritical).toBeUndefined();
+  });
 });
