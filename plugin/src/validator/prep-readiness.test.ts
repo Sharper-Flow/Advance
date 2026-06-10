@@ -10,7 +10,10 @@
  */
 
 import { describe, expect, test } from "vitest";
-import { runPrepReadinessChecks, checkCriticalOpsCoverage } from "./prep-readiness";
+import {
+  runPrepReadinessChecks,
+  checkCriticalOpsCoverage,
+} from "./prep-readiness";
 import type { Change } from "../types";
 
 /**
@@ -117,8 +120,12 @@ function buildChangeWithContract(
         sourceArtifact: "agreement",
         evidencePolicy: "test",
         verificationRequired: it.verificationRequired !== false,
-        ...(it.requiredCritical !== undefined && { requiredCritical: it.requiredCritical }),
-        ...(it.notRequiredReason !== undefined && { notRequiredReason: it.notRequiredReason }),
+        ...(it.requiredCritical !== undefined && {
+          requiredCritical: it.requiredCritical,
+        }),
+        ...(it.notRequiredReason !== undefined && {
+          notRequiredReason: it.notRequiredReason,
+        }),
       })),
     },
     tasks: tasks.map((t) => ({
@@ -136,7 +143,13 @@ describe("checkCriticalOpsCoverage", () => {
   test("requiredCritical item with task coverage produces no issues", () => {
     const change = buildChangeWithContract(
       [{ id: "AC-1", requiredCritical: true }],
-      [{ id: "tk-1", status: "pending", contract_refs: { implements: ["AC-1"] } }],
+      [
+        {
+          id: "tk-1",
+          status: "pending",
+          contract_refs: { implements: ["AC-1"] },
+        },
+      ],
     );
     const issues = checkCriticalOpsCoverage(change);
     expect(issues).toHaveLength(0);
@@ -155,7 +168,13 @@ describe("checkCriticalOpsCoverage", () => {
 
   test("requiredCritical item with notRequiredReason is exempt (alternate route)", () => {
     const change = buildChangeWithContract(
-      [{ id: "AC-1", requiredCritical: true, notRequiredReason: "Covered by upstream contract" }],
+      [
+        {
+          id: "AC-1",
+          requiredCritical: true,
+          notRequiredReason: "Covered by upstream contract",
+        },
+      ],
       [],
     );
     const issues = checkCriticalOpsCoverage(change);
@@ -174,7 +193,13 @@ describe("checkCriticalOpsCoverage", () => {
   test("requiredCritical item with cancelled task coverage is still uncovered", () => {
     const change = buildChangeWithContract(
       [{ id: "AC-1", requiredCritical: true }],
-      [{ id: "tk-1", status: "cancelled", contract_refs: { verifies: ["AC-1"] } }],
+      [
+        {
+          id: "tk-1",
+          status: "cancelled",
+          contract_refs: { verifies: ["AC-1"] },
+        },
+      ],
     );
     const issues = checkCriticalOpsCoverage(change);
     expect(issues).toHaveLength(1);
@@ -185,7 +210,13 @@ describe("checkCriticalOpsCoverage", () => {
   test("requiredCritical item with verifies coverage produces no issues", () => {
     const change = buildChangeWithContract(
       [{ id: "SC-1", requiredCritical: true, kind: "success_criterion" }],
-      [{ id: "tk-1", status: "pending", contract_refs: { verifies: ["SC-1"] } }],
+      [
+        {
+          id: "tk-1",
+          status: "pending",
+          contract_refs: { verifies: ["SC-1"] },
+        },
+      ],
     );
     const issues = checkCriticalOpsCoverage(change);
     expect(issues).toHaveLength(0);

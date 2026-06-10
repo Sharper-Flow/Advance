@@ -588,9 +588,9 @@ describe("subagentReportTools", () => {
         agendaPath: "/state/agenda.jsonl",
       }),
     );
-    expect(
-      mocks.addAgendaItem.mock.calls[0][2].description,
-    ).toContain("Contract: contract-sec-1");
+    expect(mocks.addAgendaItem.mock.calls[0][2].description).toContain(
+      "Contract: contract-sec-1",
+    );
   });
 
   test("required_follow_ups with severity high creates agenda item with priority high", async () => {

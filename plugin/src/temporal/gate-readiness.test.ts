@@ -3,8 +3,6 @@ import { createDefaultGates } from "../types";
 import {
   ARTIFACT_BACKED_GATES,
   artifactCascadeWarnings,
-  checkRequiredObligationReleaseBlockers,
-  checkRequiredObligationRouting,
   evaluateGateReadiness,
   gateArtifactEvidenceSchema,
   stateBackedArtifactEvidence,
@@ -698,9 +696,7 @@ describe("gate readiness", () => {
 
       expect(result.ready).toBe(true);
       expect(
-        result.blockers.some((b) =>
-          b.code.startsWith("REQUIRED_OBLIGATION"),
-        ),
+        result.blockers.some((b) => b.code.startsWith("REQUIRED_OBLIGATION")),
       ).toBe(false);
     });
 
@@ -794,9 +790,7 @@ describe("gate readiness", () => {
       );
 
       expect(
-        result.blockers.some((b) =>
-          b.code.startsWith("REQUIRED_OBLIGATION"),
-        ),
+        result.blockers.some((b) => b.code.startsWith("REQUIRED_OBLIGATION")),
       ).toBe(false);
       // acceptance still blocked by normal acceptance contract check
       expect(result.blockers).toContainEqual(
@@ -831,8 +825,8 @@ describe("gate readiness", () => {
       );
 
       expect(
-        result.blockers.some((b) =>
-          b.code === "REQUIRED_OBLIGATION_NOT_ROUTED",
+        result.blockers.some(
+          (b) => b.code === "REQUIRED_OBLIGATION_NOT_ROUTED",
         ),
       ).toBe(false);
     });
@@ -857,8 +851,8 @@ describe("gate readiness", () => {
       );
 
       expect(
-        result.blockers.some((b) =>
-          b.code === "REQUIRED_OBLIGATION_NOT_ROUTED",
+        result.blockers.some(
+          (b) => b.code === "REQUIRED_OBLIGATION_NOT_ROUTED",
         ),
       ).toBe(false);
     });

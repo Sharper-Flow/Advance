@@ -301,8 +301,12 @@ function reportFollowUps(report: ScopedSubagentReport): string[] {
   return "follow_ups" in report ? report.follow_ups : [];
 }
 
-function reportRequiredFollowUps(report: ScopedSubagentReport): RequiredFollowUp[] {
-  return "required_follow_ups" in report ? (report.required_follow_ups ?? []) : [];
+function reportRequiredFollowUps(
+  report: ScopedSubagentReport,
+): RequiredFollowUp[] {
+  return "required_follow_ups" in report
+    ? (report.required_follow_ups ?? [])
+    : [];
 }
 
 /** Build the human-readable source token used on report-created agenda items. */
