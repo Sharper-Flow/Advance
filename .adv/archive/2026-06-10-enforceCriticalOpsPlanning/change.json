@@ -1,0 +1,1588 @@
+{
+  "id": "enforceCriticalOpsPlanning",
+  "title": "Enforce critical ops planning",
+  "status": "archived",
+  "created_at": "2026-06-09T22:42:23.523Z",
+  "tasks": [
+    {
+      "id": "tk-cd137739b371",
+      "title": "Define required-critical obligation typed model",
+      "type": "code",
+      "section": "Core Model",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-06-09T23:25:51.492Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C4",
+          "DONT1"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-09T23:30:35.900Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "enforceCriticalOpsPlanning",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/enforceCriticalOpsPlanning",
+          "task_id": "tk-cd137739b371",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-cd137739b371"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/types/changes.ts",
+            "plugin/src/types/subagent-reports.ts",
+            "plugin/src/types/index.ts",
+            "plugin/src/types/contract.test.ts",
+            "plugin/src/types/subagent-reports.test.ts",
+            "plugin/schemas/change.schema.json",
+            "plugin/schemas/task.schema.json"
+          ],
+          "verification": [
+            {
+              "command": "pnpm test -- src/types/contract.test.ts src/types/subagent-reports.test.ts src/schema-registry.test.ts",
+              "exit_code": 0,
+              "summary": "All 3610 tests pass across 269 test files, including targeted schema tests and schema-registry drift check"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Placed RequiredFollowUpSchema before SubagentConsumerWarningSchema in subagent-reports.ts",
+              "why": "Keeps new obligation-type schema near the top with other base schemas, before report-specific schemas"
+            },
+            {
+              "what": "Added required_follow_ups to ReviewerReportFields shared object",
+              "why": "Covers both task-scoped ReviewerSubagentReportSchema and change-scoped ChangeScopedReviewerSubagentReportSchema in one addition"
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "none",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Typed model for required-critical obligations is implemented: ContractItemSchema has optional requiredCritical boolean; RequiredFollowUpSchema is defined with obligation_class enum, severity defaulting to high, and optional source_contract_id; EngineerSubagentReportSchema and both reviewer report variants accept optional required_follow_ups array. All tests pass. JSON schemas were regenerated to match.",
+            "suggested_next_action": "Proceed to next task that depends on this typed model (e.g. obligation tracking, report ingestion, or gate enforcement)"
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm test -- src/types/contract.test.ts src/types/subagent-reports.test.ts src/schema-registry.test.ts"
+            }
+          ]
+        }
+      ],
+      "verification": "All 3610 tests pass. ContractItemSchema has requiredCritical field. RequiredFollowUpSchema defined and exported. Engineer/reviewer reports accept required_follow_ups.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/schemas/change.schema.json",
+        "plugin/schemas/task.schema.json",
+        "plugin/src/types/changes.ts",
+        "plugin/src/types/contract.test.ts",
+        "plugin/src/types/index.ts",
+        "plugin/src/types/subagent-reports.test.ts",
+        "plugin/src/types/subagent-reports.ts"
+      ],
+      "touched_files": [
+        "plugin/schemas/change.schema.json",
+        "plugin/schemas/task.schema.json",
+        "plugin/src/types/changes.ts",
+        "plugin/src/types/contract.test.ts",
+        "plugin/src/types/index.ts",
+        "plugin/src/types/subagent-reports.test.ts",
+        "plugin/src/types/subagent-reports.ts"
+      ],
+      "checkpointSha": "85b121a3e4b5b1f3f2c2dc2a941f6e588eb05bdd",
+      "completedAt": "2026-06-09T23:39:39.645Z",
+      "completed_at": "2026-06-09T23:39:39.645Z"
+    },
+    {
+      "id": "tk-0c8dfac2255e",
+      "title": "Enforce required-obligation coverage in prep readiness",
+      "type": "code",
+      "section": "Planning Enforcement",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-06-09T23:25:57.609Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-cd137739b371"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC2"
+        ],
+        "verifies": [
+          "AC6"
+        ],
+        "respects": [
+          "C2",
+          "C3"
+        ]
+      },
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "enforceCriticalOpsPlanning",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/enforceCriticalOpsPlanning",
+          "task_id": "tk-0c8dfac2255e",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-0c8dfac2255e"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/validator/prep-readiness.ts",
+            "plugin/src/validator/prep-readiness.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "npx vitest run --reporter=verbose src/validator/prep-readiness.test.ts",
+              "exit_code": 0,
+              "summary": "11 tests passed (3 existing + 8 new)"
+            },
+            {
+              "command": "npx vitest run --reporter=verbose src/validator/",
+              "exit_code": 0,
+              "summary": "143 tests passed across all validator modules, no regressions"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Used a Set to collect covered IDs from non-cancelled tasks before iterating contract items",
+              "why": "O(n*m) → O(n+m), simpler logic, easier to test in isolation"
+            },
+            {
+              "what": "Added both CRITICAL_OPS_UNCOVERED and CRITICAL_OPS_DEFERRED codes but only emit UNCOVERED",
+              "why": "Task spec requested both codes; UNCOVERED is the concrete condition implemented; DEFERRED reserved for future policy if needed"
+            },
+            {
+              "what": "Exported checkCriticalOpsCoverage for direct unit testing",
+              "why": "Enables fast, focused tests without running the full pipeline each time"
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "None — new check isolated to prep-readiness pipeline",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "checkCriticalOpsCoverage is live in prep-readiness. Required-critical contract items without active task coverage (implements/verifies) now block the prep gate with CRITICAL_OPS_UNCOVERED. Items with notRequiredReason are exempt. All 143 validator tests pass.",
+            "suggested_next_action": "Proceed to next task or run full test suite via bin/oc-test if desired"
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: npx vitest run --reporter=verbose src/validator/prep-readiness.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: npx vitest run --reporter=verbose src/validator/"
+            }
+          ]
+        }
+      ],
+      "verification": "checkCriticalOpsCoverage registered in runPrepReadinessChecks. 8 new tests pass. 143 validator tests pass with zero regressions.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".adv/specs/advance-workflow/spec.json",
+        ".adv/specs/prep-readiness/spec.json",
+        ".adv/specs/subagent-reports/spec.json",
+        ".opencode/command/adv-apply.md",
+        ".opencode/command/adv-harden.md",
+        ".opencode/command/adv-prep.md",
+        "plugin/src/adv-skill-backed-commands-assets.test.ts",
+        "plugin/src/subagent-reports-spec-assets.test.ts",
+        "plugin/src/temporal/change-state.ts",
+        "plugin/src/temporal/gate-readiness.ts",
+        "plugin/src/tools/subagent-report.test.ts",
+        "plugin/src/tools/subagent-report.ts",
+        "plugin/src/validator/prep-readiness.test.ts",
+        "plugin/src/validator/prep-readiness.ts"
+      ],
+      "touched_files": [
+        ".adv/specs/advance-workflow/spec.json",
+        ".adv/specs/prep-readiness/spec.json",
+        ".adv/specs/subagent-reports/spec.json",
+        ".opencode/command/adv-apply.md",
+        ".opencode/command/adv-harden.md",
+        ".opencode/command/adv-prep.md",
+        "plugin/src/adv-skill-backed-commands-assets.test.ts",
+        "plugin/src/subagent-reports-spec-assets.test.ts",
+        "plugin/src/temporal/change-state.ts",
+        "plugin/src/temporal/gate-readiness.ts",
+        "plugin/src/tools/subagent-report.test.ts",
+        "plugin/src/tools/subagent-report.ts",
+        "plugin/src/validator/prep-readiness.test.ts",
+        "plugin/src/validator/prep-readiness.ts"
+      ],
+      "checkpointSha": "9bb6e932f5758fcb416f0d00bb373f6210139ec6",
+      "completedAt": "2026-06-09T23:59:04.320Z",
+      "completed_at": "2026-06-09T23:59:04.320Z"
+    },
+    {
+      "id": "tk-196ae616f512",
+      "title": "Preserve required-obligation class through report ingestion",
+      "type": "code",
+      "section": "Ingestion Enforcement",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-06-09T23:26:03.787Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-cd137739b371"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC3"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "DONT1"
+        ],
+        "verifies": [
+          "AC6"
+        ]
+      },
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "enforceCriticalOpsPlanning",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/enforceCriticalOpsPlanning",
+          "task_id": "tk-196ae616f512",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-196ae616f512"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/tools/subagent-report.ts",
+            "plugin/src/tools/subagent-report.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "npx vitest run src/tools/subagent-report.test.ts",
+              "exit_code": 0,
+              "summary": "All 25 tests pass (21 existing + 4 new)"
+            },
+            {
+              "command": "pnpm run typecheck",
+              "exit_code": 0,
+              "summary": "TypeScript typecheck passes with no errors"
+            },
+            {
+              "command": "pnpm run lint",
+              "exit_code": 0,
+              "summary": "ESLint passes with no errors"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Used concise description format 'Obligation: {class}' and 'Contract: {id}' instead of raw field names",
+              "why": "More human-readable agenda item descriptions align with existing reportSourceDescription style"
+            },
+            {
+              "what": "Included requiredFollowUps in duplicate-check output shape",
+              "why": "Maintains output schema consistency for consumers"
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "none",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Report ingestion pathway now preserves required-obligation classification. consumeRequiredFollowUps creates agenda items with priority mapped from severity (critical/high), category 'required-obligation', and description including obligation_class + source_contract_id. Existing follow_ups path unchanged (priority medium). All tests pass.",
+            "suggested_next_action": "Proceed to next task or run full test suite if needed"
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: npx vitest run src/tools/subagent-report.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run typecheck"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run lint"
+            }
+          ]
+        }
+      ],
+      "verification": "consumeRequiredFollowUps preserves obligation class/severity. 25 subagent-report tests pass. Typecheck and lint clean.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "9bb6e932f5758fcb416f0d00bb373f6210139ec6",
+      "completedAt": "2026-06-09T23:59:05.379Z",
+      "completed_at": "2026-06-09T23:59:05.379Z"
+    },
+    {
+      "id": "tk-8cfe07800fdd",
+      "title": "Enforce no-silent-defer rules in review/harden release path",
+      "type": "code",
+      "section": "Release Safety Enforcement",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-06-09T23:26:12.392Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-cd137739b371"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-196ae616f512"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC4",
+          "AC5"
+        ],
+        "respects": [
+          "C3",
+          "DONT2",
+          "DONT3"
+        ],
+        "verifies": [
+          "AC6"
+        ]
+      },
+      "verification": "32 gate-readiness tests pass. checkRequiredObligationReleaseBlockers and checkRequiredObligationRouting integrated into evaluateGateReadiness for release gate. Fixed sub-agent arrow syntax errors in tests.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/temporal/gate-readiness.test.ts",
+        "plugin/src/temporal/gate-readiness.ts"
+      ],
+      "touched_files": [
+        "plugin/src/temporal/gate-readiness.test.ts",
+        "plugin/src/temporal/gate-readiness.ts"
+      ],
+      "checkpointSha": "5f32fe10c948ad6e1e37b574811b2d7b7c47164b",
+      "completedAt": "2026-06-10T00:05:27.327Z",
+      "completed_at": "2026-06-10T00:05:27.327Z",
+      "errorRecovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "SEMANTIC"
+      },
+      "updatedAt": "2026-06-10T00:05:27.755Z"
+    },
+    {
+      "id": "tk-4ed335cfcedf",
+      "title": "Update specs with new required-obligation laws and scenarios",
+      "type": "code",
+      "section": "Spec Law",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-06-09T23:26:18.704Z",
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC6"
+        ],
+        "respects": [
+          "C2",
+          "C3",
+          "C4"
+        ],
+        "not_applicable_reason": "Spec artifact authoring task; executable verification handled by downstream validation and schema/spec checks."
+      },
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "enforceCriticalOpsPlanning",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/enforceCriticalOpsPlanning",
+          "task_id": "tk-4ed335cfcedf",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-4ed335cfcedf"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            ".adv/specs/prep-readiness/spec.json",
+            ".adv/specs/subagent-reports/spec.json",
+            ".adv/specs/advance-workflow/spec.json",
+            ".opencode/command/adv-prep.md",
+            ".opencode/command/adv-apply.md",
+            ".opencode/command/adv-harden.md",
+            "plugin/src/subagent-reports-spec-assets.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "npx vitest run src/validator/",
+              "exit_code": 0,
+              "summary": "11 test files, 143 tests passed"
+            },
+            {
+              "command": "npx vitest run src/subagent-reports-spec-assets.test.ts src/__tests__/spec-citation-invariant.test.ts",
+              "exit_code": 0,
+              "summary": "2 test files, 14 tests passed"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Added markdown citation comments in .opencode/command/*.md files to satisfy spec-citation-invariant test",
+              "why": "Task says spec authoring only; markdown citations satisfy the invariant without touching implementation TypeScript"
+            },
+            {
+              "what": "Updated subagent-reports-spec-assets.test.ts expected IDs list",
+              "why": "Asset test validates exact spec structure; adding a new requirement requires updating the expected list or the test fails"
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "none",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Three specs updated with new required-obligation requirements: prep-readiness (rq-PR007coc), subagent-reports (rq-subagentReports14), advance-workflow (rq-requiredObligation01/02). Versions bumped and updated_at refreshed. Citation comments added to command markdown files. Asset test updated for new requirement ID. All targeted tests pass.",
+            "suggested_next_action": "Run full test suite (pnpm test) to confirm no regressions across the entire plugin"
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: npx vitest run src/validator/"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: npx vitest run src/subagent-reports-spec-assets.test.ts src/__tests__/spec-citation-invariant.test.ts"
+            }
+          ]
+        }
+      ],
+      "verification": "Three specs updated with new requirements and scenarios. Spec-assets and citation invariant tests pass (14 tests). Validator tests pass (143 tests).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "9bb6e932f5758fcb416f0d00bb373f6210139ec6",
+      "completedAt": "2026-06-09T23:59:06.566Z",
+      "completed_at": "2026-06-09T23:59:06.566Z"
+    },
+    {
+      "id": "tk-702cbe14b00a",
+      "title": "Add and update regression tests for required-obligation enforcement",
+      "type": "code",
+      "section": "Verification",
+      "status": "done",
+      "priority": 5,
+      "created_at": "2026-06-09T23:26:25.924Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-0c8dfac2255e"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-196ae616f512"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-8cfe07800fdd"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-4ed335cfcedf"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "DONT2",
+          "DONT3"
+        ]
+      },
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "enforceCriticalOpsPlanning",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/enforceCriticalOpsPlanning",
+          "task_id": "tk-702cbe14b00a",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-702cbe14b00a"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/validator/required-obligation-regression.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "pnpm test -- src/validator/required-obligation-regression.test.ts --run",
+              "exit_code": 0,
+              "summary": "31 new tests pass, 3664 total tests pass across 270 test files"
+            },
+            {
+              "command": "pnpm test -- src/validator/ --run",
+              "exit_code": 0,
+              "summary": "Full validator suite passes with no regressions"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Test report ingestion through adv_subagent_report_submit.execute rather than directly testing the non-exported consumeRequiredFollowUps",
+              "why": "consumeRequiredFollowUps is private; testing through the public tool surface validates the full pipeline including validation, signaling, and agenda creation"
+            },
+            {
+              "what": "Reused the mock pattern from subagent-report.test.ts for storage/temporal dependencies",
+              "why": "Ensures consistent test isolation and avoids needing to re-implement complex mock infrastructure"
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Verified all existing prep-readiness and gate-readiness tests still pass; no same-pattern issues found in validator/",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Created comprehensive required-obligation regression test file (798 lines, 31 tests) covering: full pipeline (prep→coverage→review→release), negative paths (silently deferred items), report ingestion (required_follow_ups → agenda items with correct priority/severity), and edge cases (mixed contracts, notRequiredReason, verificationRequired:false, cancelled tasks, backward compatibility). All tests pass. Full validator suite passes with no regressions.",
+            "suggested_next_action": "Proceed to next task or run full test suite (bin/oc-test full) for final validation before archive"
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm test -- src/validator/required-obligation-regression.test.ts --run"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm test -- src/validator/ --run"
+            }
+          ]
+        }
+      ],
+      "verification": "31 regression tests pass in required-obligation-regression.test.ts. Full validator suite (3664 tests) passes with no regressions.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/temporal/gate-readiness.test.ts",
+        "plugin/src/tools/subagent-report.test.ts",
+        "plugin/src/tools/subagent-report.ts",
+        "plugin/src/validator/prep-readiness.test.ts",
+        "plugin/src/validator/required-obligation-regression.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/temporal/gate-readiness.test.ts",
+        "plugin/src/tools/subagent-report.test.ts",
+        "plugin/src/tools/subagent-report.ts",
+        "plugin/src/validator/prep-readiness.test.ts",
+        "plugin/src/validator/required-obligation-regression.test.ts"
+      ],
+      "checkpointSha": "71efbbf9a2de4c611ebe501ad76b4600de4c5c23",
+      "completedAt": "2026-06-10T00:38:17.740Z",
+      "completed_at": "2026-06-10T00:38:17.740Z",
+      "errorRecovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "SEMANTIC"
+      },
+      "updatedAt": "2026-06-10T00:38:18.206Z"
+    },
+    {
+      "id": "tk-6d1645b80eb4",
+      "title": "Run full validation suite and prep readiness signoff evidence",
+      "type": "code",
+      "section": "Readiness",
+      "status": "done",
+      "priority": 6,
+      "created_at": "2026-06-09T23:26:31.906Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-702cbe14b00a"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "contract_refs": {
+        "not_applicable_reason": "Cross-cutting verification/signoff task; verifies entire contract matrix rather than implementing a single item.",
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4"
+        ],
+        "verifies": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-10T00:38:31.913Z",
+      "verification": "Full check suite passes (schemas:check, typecheck, lint, format:check). Full test suite: 270 files, 3664 tests, all pass in 70s.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "71efbbf9a2de4c611ebe501ad76b4600de4c5c23",
+      "completedAt": "2026-06-10T00:40:22.006Z",
+      "completed_at": "2026-06-10T00:40:22.006Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "enforceCriticalOpsPlanning",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:discovery-opportunity-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Discovery opportunity scout: critical-ops obligation enforcement leverage points",
+      "sources": [
+        {
+          "label": "ContractItem model (typed required obligations already exist)",
+          "locator": "plugin/src/types/changes.ts:319-379",
+          "summary": "ContractItemKindSchema enum + verificationRequired flag + evidencePolicy — typed obligation model with kind taxonomy already shipped."
+        },
+        {
+          "label": "Contract enforcement: task coverage + proof blocking",
+          "locator": "plugin/src/validator/contract.ts:100-156",
+          "summary": "CONTRACT_AC_UNCOVERED blocks required acceptance criteria without task coverage; CONTRACT_PROOF_MISSING/CONTRACT_PROOF_FAILED block unresolved required items. Exactly the enforcement shape the proposal needs."
+        },
+        {
+          "label": "Planning gate runs only prep-readiness + clarify, not contract checks",
+          "locator": "plugin/src/tools/gate.ts:741-804",
+          "summary": "handlePlanningGateCompletion calls runPrepReadinessChecks + runClarifyReadinessChecks only; runContractChecks flows via completeness.ts:222 into validate/archive paths, not planning gate. Identifies single clean insertion point."
+        },
+        {
+          "label": "Hardcoded medium priority on follow-up ingestion",
+          "locator": "plugin/src/tools/subagent-report.ts:299-301,452-508 (487)",
+          "summary": "follow_ups are string[] only; consumeFollowUps assigns priority:'medium' unconditionally. No severity field exists to preserve."
+        },
+        {
+          "label": "required_main_agent_actions typed but never consumed",
+          "locator": "plugin/src/types/subagent-reports.ts:134,178,244,362-394; plugin/src/tools/subagent-report.ts (no consumer)",
+          "summary": "All report schemas require required_main_agent_actions, with a legacy normalization layer already present, but report ingestion has zero structural consumer for the field — required actions are stored, never tracked to resolution."
+        },
+        {
+          "label": "Shipped gateCriteria layer is contractually advisory-only",
+          "locator": "adv_change_show addFirstClassGateCriteriaState: contract DONT3 + reviewMatrix; plugin/src/temporal/gate-readiness.ts evaluateGateCriteria",
+          "summary": "Active change addFirstClassGateCriteriaState (release-pending) shipped GATE_CRITERIA_DEFINITIONS + evaluateGateCriteria under contract avoidance DONT3 'Don't make criteria a hard gate — advisory + audit, not a new blocking layer'."
+        },
+        {
+          "label": "Harden report-created agenda audit is prose-only",
+          "locator": ".opencode/command/adv-harden.md:116-127",
+          "summary": "Rationale-only closure of report-created agenda items relies on agent prose compliance; no typed audit record or machine check."
+        }
+      ],
+      "architecture_assessment": "Trigger: RUN — cross-cutting enforcement change with rich opportunity surface. Five candidates, payoff/risk sorted: (1) Reuse ChangeContract item model for critical-ops obligations (new kind or criticality flag) instead of a parallel obligation subsystem — task-coverage and proof-blocking enforcement already exist structurally (contract.ts:100-156); payoff high/risk low; adopt_now. (2) Insert contract/obligation coverage check into planning gate path (runPrepReadinessChecks or handlePlanningGateCompletion) — currently contract checks run only at validate/archive, resolving proposal unknown #2 with one insertion point; payoff high/risk low; adopt_now. (3) Use existing required_main_agent_actions field as the report-side required-obligation carrier — it is typed, mandatory in all report schemas, has a compat normalization layer, and currently has NO consumer; enforcing it avoids overloading follow_ups; payoff high/risk low; design_around (channel-choice wording in agreement). (4) Alignment constraint with addFirstClassGateCriteriaState: its shipped contract (DONT3) forbids making gateCriteria blocking — obligation blocking must live in readiness checks/gate handlers, with criteria used only for advisory surfacing; resolves integration unknown #1; payoff medium-high/risk low; adopt_now. (5) Make harden's report-created agenda audit machine-checkable (typed rationale/closure metadata) instead of prose-only; payoff medium/risk medium (scope expansion into agenda tooling); surface_to_user.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "No contradictory evidence. One alignment constraint discovered: blocking enforcement must not be implemented via gateCriteria (would violate addFirstClassGateCriteriaState contract DONT3)."
+      },
+      "recommendation": "Auto-adopt candidates 1, 2, 4 into agreement (contract-tied, low risk, no user-value tradeoff); auto-adopt 3 as design_around with explicit agreement wording on follow_ups-vs-required_main_agent_actions channel policy; surface candidate 5 (typed harden audit records) to user as optional scope decision.",
+      "follow_ups": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "enforceCriticalOpsPlanning",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-leverage-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design leverage scout: critical-ops planning enforcement",
+      "sources": [
+        {
+          "label": "Contract coverage + proof enforcement already shipped",
+          "locator": "plugin/src/validator/contract.ts:31-39,100-116,134-156",
+          "summary": "hasTaskCoverage + CONTRACT_AC_UNCOVERED (error) for required items without task coverage; CONTRACT_PROOF_MISSING/CONTRACT_PROOF_FAILED (error) for unresolved required review-matrix rows. Exactly the required-obligation enforcement shape the design needs."
+        },
+        {
+          "label": "Archive already blocks on contract errors (release safety path)",
+          "locator": "plugin/src/tools/change.ts:3758-3795; plugin/src/validator/completeness.ts:222",
+          "summary": "rq-archiveValidate01: validateChange runs runCompletenessChecks → runContractChecks before bundle creation; any error blocks archive. AC4 release-blocking rail largely exists once obligations are contract items."
+        },
+        {
+          "label": "Planning gate blocking pattern is generic over mustFailures",
+          "locator": "plugin/src/tools/gate.ts:714-761",
+          "summary": "handlePlanningGateCompletion blocks on readiness.mustFailures and formats readinessFailures generically — a new error-severity check added to runPrepReadinessChecks blocks planning with zero handler change."
+        },
+        {
+          "label": "Prep-readiness pure-check framework fits contract coverage",
+          "locator": "plugin/src/validator/prep-readiness.ts:24-46,433-466",
+          "summary": "PrepReadinessCodes + pure functions over Change; contract lives on Change, so a checkCriticalOpsCoverage check slots into runPrepReadinessChecks without I/O or new framework."
+        },
+        {
+          "label": "required_main_agent_actions typed, mandatory, normalized, unconsumed",
+          "locator": "plugin/src/types/subagent-reports.ts:134,178,244,362-394; plugin/src/tools/subagent-report.ts:452-508 (487 hardcoded priority 'medium')",
+          "summary": "All report schemas require required_main_agent_actions with legacy normalization; no consumer exists. follow_ups is string[] with unconditional medium priority — no severity field to preserve, so the required-obligation carrier should be a typed channel, not follow_ups mutation."
+        },
+        {
+          "label": "Re-enter + fast-follow lineage rails already exist for out-of-scope routing",
+          "locator": "plugin/src/types/changes.ts:303-310 (FastFollowOfSchema); adv_change_reenter tool; adv_change_create parent_change_id",
+          "summary": "Explicit re-enter and split (fast-follow lineage) machinery is shipped; AC5 needs only a typed routing-decision record tied to the obligation, not new workflow machinery."
+        },
+        {
+          "label": "ContractItem extension surface",
+          "locator": "plugin/src/types/changes.ts:319-383",
+          "summary": "ContractItemKindSchema enum + verificationRequired + evidencePolicy. Adding a criticality marker (new kind value or boolean flag) requires schemas:generate regen — established low-risk pipeline."
+        }
+      ],
+      "architecture_assessment": "Design mode scout, 5 candidates sorted by payoff/risk. (1) Represent required critical-ops obligations as ChangeContract items with verificationRequired:true — release blocking (AC4) is already structurally enforced at archive via runContractChecks errors (change.ts:3758-3795, contract.ts:134-156); design needs representation, not a new blocking layer; high/low; adopt_now; respects DONT2 since this is readiness/contract checks, not gateCriteria. (2) Implement planning enforcement (AC2) as a pure checkCriticalOpsCoverage added to runPrepReadinessChecks reusing hasTaskCoverage — handlePlanningGateCompletion blocks generically on mustFailures, so zero gate-handler change; high/low; adopt_now. (3) Carry report-side required obligations through a typed channel anchored on required_main_agent_actions (currently unconsumed) or an additive typed sibling field carrying class/severity, leaving follow_ups string[] + consumeFollowUps untouched for optional items — satisfies AC3 + C1 backward compat without breaking existing report state; high/low; design_around (decide strings-with-consumer vs additive structured field in design.md). (4) Route out-of-scope required obligations (AC5) over existing adv_change_reenter + parent_change_id fast-follow lineage, adding only a typed routing-decision record; medium-high/low; adopt_now. (5) Task-lane parallelism: after the shared type change lands, validator (prep-readiness), report ingest (subagent-report.ts + types), and command/spec surfaces are disjoint and can be planned as parallel lanes; medium/low but untied to a specific contract item; follow_up for prep phase, not auto-adopt. No contradiction with prior considerations: all blocking lives in readiness/contract paths, never gateCriteria (conflict:addFirstClassGateCriteriaState DONT3 respected).",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "No blockers. One design-level decision to record (not a blocker): criticality representation as new ContractItemKind value vs boolean flag on ContractItem — both require pnpm run schemas:generate; flag is lower-churn for existing kind-keyed logic (contract.ts:103 keys on kind === 'acceptance_criterion')."
+      },
+      "recommendation": "Auto-adopt candidates 1, 2, 4 (contract-tied, low risk, adopt_now). Auto-adopt 3 as design_around with explicit design.md decision on carrier shape (consume required_main_agent_actions strings vs additive typed required_obligations field with class enum — typed field better satisfies C2 structural/typed constraint). Record candidate 5 as prep-phase planning note (follow_up), not design content. Record the kind-vs-flag criticality decision in design.md; prefer boolean criticality flag to avoid perturbing kind-keyed contract logic.",
+      "follow_ups": [
+        "Prep-phase note: plan validator, report-ingest, and command/spec task lanes in parallel after shared ContractItem/obligation type change lands first"
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "enforceCriticalOpsPlanning",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation for enforceCriticalOpsPlanning (critical-ops planning enforcement)",
+      "sources": [
+        {
+          "label": "Planning gate insertion point",
+          "locator": "plugin/src/tools/gate.ts:714-761 (handlePlanningGateCompletion)",
+          "summary": "Planning gate already calls runPrepReadinessChecks and hard-blocks on mustFailures with per-failure remediation payload — design decision 2 (insert checkCriticalOpsCoverage there) is verified against the real enforcement seam."
+        },
+        {
+          "label": "Prep-readiness pipeline",
+          "locator": "plugin/src/validator/prep-readiness.ts:433-466 (runPrepReadinessChecks)",
+          "summary": "Pure-function check pipeline with error=must-failure / warning=advisory semantics; contract is available on the Change object so a new check preserves the module's no-I/O purity contract."
+        },
+        {
+          "label": "Ingest demotion evidence",
+          "locator": "plugin/src/tools/subagent-report.ts:452-508 (consumeFollowUps), line 487",
+          "summary": "follow_ups ingestion hardcodes priority:\"medium\" on agenda items — confirms the design's diagnosis that the existing channel cannot preserve required severity and a typed carrier is needed (AC3)."
+        },
+        {
+          "label": "Existing required-coverage precedent",
+          "locator": "plugin/src/validator/contract.ts:100-116 (CONTRACT_AC_UNCOVERED), 31-39 (hasTaskCoverage)",
+          "summary": "Contract model already implements required-item task-coverage enforcement (verificationRequired + implements/verifies refs) and rationale-proof blocking (CONTRACT_PROOF_FAILED) — design's reuse strategy rides proven rails."
+        },
+        {
+          "label": "Contract checks run at validate/archive, not planning",
+          "locator": "plugin/src/validator/completeness.ts:222; plugin/src/tools/change.ts:3758 (rq-archiveValidate01)",
+          "summary": "runContractChecks currently fires via completeness validation (validate/archive path), not the planning gate — new planning-stage coverage check partially overlaps; stage ownership of codes must be explicit to avoid contradictory duplicate failures (design Risk 3 acknowledges)."
+        },
+        {
+          "label": "Release-stage enforcement rail",
+          "locator": "plugin/src/temporal/gate-readiness.ts (acceptanceContractBlockers); plugin/src/archive/archive.ts (isRequiredContractItem, getArchiveContractProofErrors)",
+          "summary": "Acceptance/archive already block on unresolved required contract proof — AC4 (no rationale-only closure for required in-scope obligations) extends an existing structural rail rather than inventing one."
+        },
+        {
+          "label": "Public schema regeneration obligation",
+          "locator": "plugin/src/schema-registry.ts:27-68 (ChangeSchema in PUBLIC_JSON_SCHEMAS); plugin/src/types/changes.ts:524; AGENTS.md § Schema source of truth",
+          "summary": "ChangeSchema is a published JSON schema and embeds ScopedSubagentReportSchema; contract/report field additions require pnpm run schemas:generate and will fail CI schemas:check otherwise — missing from design's affected-components list."
+        },
+        {
+          "label": "Strict report schemas + agent contract alignment",
+          "locator": "plugin/src/types/subagent-reports.ts:124-359 (.strict() report schemas); skill adv-agent-tool-contracts",
+          "summary": "Report schemas are .strict(); a new typed required-obligation carrier must be optional for legacy compat, and per the agent-tool-contracts checklist the agent prompt files (.opencode/agents/adv-engineer.md, adv-reviewer.md) and tool-registry schema must be updated in lockstep — agent prompt files absent from affected components."
+        },
+        {
+          "label": "Advisory-heuristic precedent (P33)",
+          "locator": "plugin/src/validator/prep-readiness.ts:226-233 (rq-PR003tdd.1 comment)",
+          "summary": "Repo law: title heuristics must not solely own a hard gate-block; design's C2 typed-marker enforcement and rejection of heuristic-only classification is consistent."
+        },
+        {
+          "label": "Gate-criteria advisory constraint cross-check",
+          "locator": "adv_change_list: addFirstClassGateCriteriaState (in-flight, draft)",
+          "summary": "Related active change exists; design constraint 6 (gate-criteria stays advisory, blocking lives in readiness/contract/release rules) avoids conflict with it and satisfies DONT2."
+        }
+      ],
+      "architecture_assessment": "Design is structurally sound and evidence-backed at all four pipeline points. (1) Planning insertion is correct: gate.ts handlePlanningGateCompletion already blocks on runPrepReadinessChecks mustFailures. (2) Contract-model reuse is the right call: CONTRACT_AC_UNCOVERED + verificationRequired + hasTaskCoverage already implement the exact required-coverage pattern, and acceptance/archive proof blockers already prevent rationale-only closure — the design extends proven rails additively rather than building a parallel obligation engine. (3) The ingest diagnosis is verified: consumeFollowUps hardcodes priority:medium, so a typed carrier is genuinely necessary for AC3. (4) Out-of-scope routing reuses adv_change_reenter/fast-follow split, consistent with the approved user decision. Two alignment gaps: stage ownership between the new prep-readiness checkCriticalOpsCoverage and the existing completeness-path runContractChecks should be made explicit (duplicate-failure risk acknowledged but not resolved into code ownership), and the affected-components list omits mandatory schema-registry/plugin/schemas regeneration plus agent prompt-contract files required by the .strict() report schemas and the adv-agent-tool-contracts alignment checklist.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "No agreement/spec conflicts. Cautions: (a) clarify code-level stage ownership vs existing CONTRACT_AC_UNCOVERED at validate/archive; (b) add plugin/src/schema-registry.ts + plugin/schemas/*.schema.json regeneration and .opencode/agents/adv-engineer.md / adv-reviewer.md prompt contracts to affected components; (c) new report carrier field must be optional to satisfy .strict() legacy parsing (C1)."
+      },
+      "recommendation": "VALIDATED with cautions. Proceed to planning. During prep: (1) decide whether checkCriticalOpsCoverage delegates to/reuses the contract.ts coverage helpers and document which codes own planning vs validate/archive stages; (2) extend affected components with schema regeneration artifacts and agent prompt contract files; (3) keep the new report/contract fields optional-additive and add legacy-normalization tests as designed.",
+      "follow_ups": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "enforceCriticalOpsPlanning",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/enforceCriticalOpsPlanning",
+      "task_id": "tk-cd137739b371",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-cd137739b371"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/types/changes.ts",
+        "plugin/src/types/subagent-reports.ts",
+        "plugin/src/types/index.ts",
+        "plugin/src/types/contract.test.ts",
+        "plugin/src/types/subagent-reports.test.ts",
+        "plugin/schemas/change.schema.json",
+        "plugin/schemas/task.schema.json"
+      ],
+      "verification": [
+        {
+          "command": "pnpm test -- src/types/contract.test.ts src/types/subagent-reports.test.ts src/schema-registry.test.ts",
+          "exit_code": 0,
+          "summary": "All 3610 tests pass across 269 test files, including targeted schema tests and schema-registry drift check"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Placed RequiredFollowUpSchema before SubagentConsumerWarningSchema in subagent-reports.ts",
+          "why": "Keeps new obligation-type schema near the top with other base schemas, before report-specific schemas"
+        },
+        {
+          "what": "Added required_follow_ups to ReviewerReportFields shared object",
+          "why": "Covers both task-scoped ReviewerSubagentReportSchema and change-scoped ChangeScopedReviewerSubagentReportSchema in one addition"
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "none",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Typed model for required-critical obligations is implemented: ContractItemSchema has optional requiredCritical boolean; RequiredFollowUpSchema is defined with obligation_class enum, severity defaulting to high, and optional source_contract_id; EngineerSubagentReportSchema and both reviewer report variants accept optional required_follow_ups array. All tests pass. JSON schemas were regenerated to match.",
+        "suggested_next_action": "Proceed to next task that depends on this typed model (e.g. obligation tracking, report ingestion, or gate enforcement)"
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm test -- src/types/contract.test.ts src/types/subagent-reports.test.ts src/schema-registry.test.ts"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "enforceCriticalOpsPlanning",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/enforceCriticalOpsPlanning",
+      "task_id": "tk-0c8dfac2255e",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-0c8dfac2255e"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/validator/prep-readiness.ts",
+        "plugin/src/validator/prep-readiness.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "npx vitest run --reporter=verbose src/validator/prep-readiness.test.ts",
+          "exit_code": 0,
+          "summary": "11 tests passed (3 existing + 8 new)"
+        },
+        {
+          "command": "npx vitest run --reporter=verbose src/validator/",
+          "exit_code": 0,
+          "summary": "143 tests passed across all validator modules, no regressions"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Used a Set to collect covered IDs from non-cancelled tasks before iterating contract items",
+          "why": "O(n*m) → O(n+m), simpler logic, easier to test in isolation"
+        },
+        {
+          "what": "Added both CRITICAL_OPS_UNCOVERED and CRITICAL_OPS_DEFERRED codes but only emit UNCOVERED",
+          "why": "Task spec requested both codes; UNCOVERED is the concrete condition implemented; DEFERRED reserved for future policy if needed"
+        },
+        {
+          "what": "Exported checkCriticalOpsCoverage for direct unit testing",
+          "why": "Enables fast, focused tests without running the full pipeline each time"
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "None — new check isolated to prep-readiness pipeline",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "checkCriticalOpsCoverage is live in prep-readiness. Required-critical contract items without active task coverage (implements/verifies) now block the prep gate with CRITICAL_OPS_UNCOVERED. Items with notRequiredReason are exempt. All 143 validator tests pass.",
+        "suggested_next_action": "Proceed to next task or run full test suite via bin/oc-test if desired"
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: npx vitest run --reporter=verbose src/validator/prep-readiness.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: npx vitest run --reporter=verbose src/validator/"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "enforceCriticalOpsPlanning",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/enforceCriticalOpsPlanning",
+      "task_id": "tk-196ae616f512",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-196ae616f512"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/tools/subagent-report.ts",
+        "plugin/src/tools/subagent-report.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "npx vitest run src/tools/subagent-report.test.ts",
+          "exit_code": 0,
+          "summary": "All 25 tests pass (21 existing + 4 new)"
+        },
+        {
+          "command": "pnpm run typecheck",
+          "exit_code": 0,
+          "summary": "TypeScript typecheck passes with no errors"
+        },
+        {
+          "command": "pnpm run lint",
+          "exit_code": 0,
+          "summary": "ESLint passes with no errors"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Used concise description format 'Obligation: {class}' and 'Contract: {id}' instead of raw field names",
+          "why": "More human-readable agenda item descriptions align with existing reportSourceDescription style"
+        },
+        {
+          "what": "Included requiredFollowUps in duplicate-check output shape",
+          "why": "Maintains output schema consistency for consumers"
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "none",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Report ingestion pathway now preserves required-obligation classification. consumeRequiredFollowUps creates agenda items with priority mapped from severity (critical/high), category 'required-obligation', and description including obligation_class + source_contract_id. Existing follow_ups path unchanged (priority medium). All tests pass.",
+        "suggested_next_action": "Proceed to next task or run full test suite if needed"
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: npx vitest run src/tools/subagent-report.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run typecheck"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run lint"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "enforceCriticalOpsPlanning",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/enforceCriticalOpsPlanning",
+      "task_id": "tk-4ed335cfcedf",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-4ed335cfcedf"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        ".adv/specs/prep-readiness/spec.json",
+        ".adv/specs/subagent-reports/spec.json",
+        ".adv/specs/advance-workflow/spec.json",
+        ".opencode/command/adv-prep.md",
+        ".opencode/command/adv-apply.md",
+        ".opencode/command/adv-harden.md",
+        "plugin/src/subagent-reports-spec-assets.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "npx vitest run src/validator/",
+          "exit_code": 0,
+          "summary": "11 test files, 143 tests passed"
+        },
+        {
+          "command": "npx vitest run src/subagent-reports-spec-assets.test.ts src/__tests__/spec-citation-invariant.test.ts",
+          "exit_code": 0,
+          "summary": "2 test files, 14 tests passed"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Added markdown citation comments in .opencode/command/*.md files to satisfy spec-citation-invariant test",
+          "why": "Task says spec authoring only; markdown citations satisfy the invariant without touching implementation TypeScript"
+        },
+        {
+          "what": "Updated subagent-reports-spec-assets.test.ts expected IDs list",
+          "why": "Asset test validates exact spec structure; adding a new requirement requires updating the expected list or the test fails"
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "none",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Three specs updated with new required-obligation requirements: prep-readiness (rq-PR007coc), subagent-reports (rq-subagentReports14), advance-workflow (rq-requiredObligation01/02). Versions bumped and updated_at refreshed. Citation comments added to command markdown files. Asset test updated for new requirement ID. All targeted tests pass.",
+        "suggested_next_action": "Run full test suite (pnpm test) to confirm no regressions across the entire plugin"
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: npx vitest run src/validator/"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: npx vitest run src/subagent-reports-spec-assets.test.ts src/__tests__/spec-citation-invariant.test.ts"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "enforceCriticalOpsPlanning",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/enforceCriticalOpsPlanning",
+      "task_id": "tk-702cbe14b00a",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-702cbe14b00a"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/validator/required-obligation-regression.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "pnpm test -- src/validator/required-obligation-regression.test.ts --run",
+          "exit_code": 0,
+          "summary": "31 new tests pass, 3664 total tests pass across 270 test files"
+        },
+        {
+          "command": "pnpm test -- src/validator/ --run",
+          "exit_code": 0,
+          "summary": "Full validator suite passes with no regressions"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Test report ingestion through adv_subagent_report_submit.execute rather than directly testing the non-exported consumeRequiredFollowUps",
+          "why": "consumeRequiredFollowUps is private; testing through the public tool surface validates the full pipeline including validation, signaling, and agenda creation"
+        },
+        {
+          "what": "Reused the mock pattern from subagent-report.test.ts for storage/temporal dependencies",
+          "why": "Ensures consistent test isolation and avoids needing to re-implement complex mock infrastructure"
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Verified all existing prep-readiness and gate-readiness tests still pass; no same-pattern issues found in validator/",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Created comprehensive required-obligation regression test file (798 lines, 31 tests) covering: full pipeline (prep→coverage→review→release), negative paths (silently deferred items), report ingestion (required_follow_ups → agenda items with correct priority/severity), and edge cases (mixed contracts, notRequiredReason, verificationRequired:false, cancelled tasks, backward compatibility). All tests pass. Full validator suite passes with no regressions.",
+        "suggested_next_action": "Proceed to next task or run full test suite (bin/oc-test full) for final validation before archive"
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm test -- src/validator/required-obligation-regression.test.ts --run"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm test -- src/validator/ --run"
+        }
+      ]
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-06-09T22:46:27.312Z",
+      "completed_by": "agent",
+      "approval_evidence": "Proposal approved by user reply: \"approve\" after proposal checkpoint summary.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/enforceCriticalOpsPlanning/proposal.md",
+        "content_hash": "3ebad82bfa55179dba97c421d89fe4865201817cbf9ec2bdff9e83f355576692",
+        "non_whitespace_chars": 4370,
+        "checked_at": "2026-06-09T22:42:23.551Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-06-09T23:18:25.049Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery complete: findings recorded in proposal, agreement captured with user-approved criteria, and contract minted (16 items).",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/enforceCriticalOpsPlanning/agreement.md",
+        "content_hash": "1ccc52868c128c43d58ff2ec4b47863484ec35719b0b2e62476e3a7c76cd9973",
+        "non_whitespace_chars": 3184,
+        "checked_at": "2026-06-09T22:42:23.552Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-06-09T23:25:13.199Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design artifact persisted with architecture, implementation strategy, leverage scout results, and validator result INCONCLUSIVE per degradation rules; no unresolved contract-compromise conflict surfaced.",
+      "artifact_evidence": {
+        "kind": "design",
+        "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/enforceCriticalOpsPlanning/design.md",
+        "content_hash": "4ae2bfb572a5cc85003562f3e34b2e38a13d05be8415452e73caf8d065429f62",
+        "non_whitespace_chars": 6233,
+        "checked_at": "2026-06-09T22:42:23.553Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-06-09T23:30:26.776Z",
+      "completed_by": "agent",
+      "approval_evidence": "Prep checkpoint approved by user reply: \"approve\". 7 tasks across 6 sections covering 16 contract items. Execution order: core model + spec law (parallel) → planning + ingestion enforcement (parallel) → release safety → regression tests → full validation."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-06-10T00:40:34.957Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 7 tasks complete. Full validation: 270 test files, 3664 tests pass. Check suite (schemas, typecheck, lint, format) green. Implementation covers: typed requiredCritical model, prep-readiness coverage enforcement, report ingestion preservation, release-gate obligation blockers, spec updates, and 31 regression tests."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-06-10T01:16:35.041Z",
+      "completed_by": "agent",
+      "approval_evidence": "Acceptance approved by user reply: \"approve\". 16/16 contract items pass review matrix. 3664 tests pass. Executive summary persisted.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/enforceCriticalOpsPlanning/executive-summary.md",
+        "content_hash": "3522818ca273925059700ac3b3c8245df69300af98960c9573baaa8db0408adf",
+        "non_whitespace_chars": 2420,
+        "checked_at": "2026-06-09T22:42:23.555Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "discovery"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "1ccc52868c128c43d58ff2ec4b47863484ec35719b0b2e62476e3a7c76cd9973",
+      "approvedAt": "2026-06-09T22:53:00.000Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "Required critical-ops obligations are no longer silently deferred into generic backlog flow.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1ccc52868c128c43d58ff2ec4b47863484ec35719b0b2e62476e3a7c76cd9973",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "Users can see explicit required-vs-optional obligation status before planning and release completion.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1ccc52868c128c43d58ff2ec4b47863484ec35719b0b2e62476e3a7c76cd9973",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "Out-of-scope required obligations always produce an explicit re-enter/split decision path.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1ccc52868c128c43d58ff2ec4b47863484ec35719b0b2e62476e3a7c76cd9973",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "Required critical-ops classification is defined as correctness/release-safety obligations, not all high-priority follow-ups.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1ccc52868c128c43d58ff2ec4b47863484ec35719b0b2e62476e3a7c76cd9973",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Planning gate readiness fails when required obligations are not mapped to in-change task coverage (unless a policy-approved alternate route is recorded).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1ccc52868c128c43d58ff2ec4b47863484ec35719b0b2e62476e3a7c76cd9973",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Report ingestion preserves required-obligation class/severity and does not unconditionally demote required items to medium-priority backlog.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1ccc52868c128c43d58ff2ec4b47863484ec35719b0b2e62476e3a7c76cd9973",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Review/harden flow blocks release when required in-scope obligations remain unresolved.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1ccc52868c128c43d58ff2ec4b47863484ec35719b0b2e62476e3a7c76cd9973",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Required obligations outside current scope require explicit re-enter or split routing, not silent agenda-only defer.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1ccc52868c128c43d58ff2ec4b47863484ec35719b0b2e62476e3a7c76cd9973",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Specs and tests cover classification, planning enforcement, ingest preservation, and release-block behavior.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1ccc52868c128c43d58ff2ec4b47863484ec35719b0b2e62476e3a7c76cd9973",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Preserve backward compatibility for existing report/change state where feasible.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1ccc52868c128c43d58ff2ec4b47863484ec35719b0b2e62476e3a7c76cd9973",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Keep enforcement structural and typed; do not rely on heuristic title/priority inference as sole authority.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1ccc52868c128c43d58ff2ec4b47863484ec35719b0b2e62476e3a7c76cd9973",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Preserve existing human checkpoints and approval boundaries.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1ccc52868c128c43d58ff2ec4b47863484ec35719b0b2e62476e3a7c76cd9973",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Do not convert optional advisory obligations into hard blockers unless explicitly classified as required-critical-ops.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1ccc52868c128c43d58ff2ec4b47863484ec35719b0b2e62476e3a7c76cd9973",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not treat every high-priority follow-up as required-critical-ops.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1ccc52868c128c43d58ff2ec4b47863484ec35719b0b2e62476e3a7c76cd9973",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not implement hard-gate blocking via advisory-only gate-criteria surfaces.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1ccc52868c128c43d58ff2ec4b47863484ec35719b0b2e62476e3a7c76cd9973",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not allow rationale-only closure for required in-scope release-safety obligations.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1ccc52868c128c43d58ff2ec4b47863484ec35719b0b2e62476e3a7c76cd9973",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-06-10T00:41:00.000Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "checkCriticalOpsCoverage blocks planning when requiredCritical items lack coverage; checkRequiredObligationRouting blocks release for silently deferred items. 31 regression tests verify."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "requiredCritical field on ContractItemSchema provides explicit typed marker. Review matrix rows track requiredCritical items separately. Gate readiness blockers surface obligation status."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "checkRequiredObligationRouting emits REQUIRED_OBLIGATION_NOT_ROUTED blocker with remediation: 'Route via adv_change_reenter or fast-follow split'. Tests verify."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "ContractItemSchema.requiredCritical: z.boolean().optional() in types/changes.ts. RequiredFollowUpSchema with obligation_class enum in subagent-reports.ts. Schema tests pass."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "checkCriticalOpsCoverage in prep-readiness.ts emits CRITICAL_OPS_UNCOVERED error when requiredCritical items lack task coverage. Registered in runPrepReadinessChecks. 8 tests pass."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "consumeRequiredFollowUps in subagent-report.ts preserves obligation_class and severity. Required follow-ups get category 'required-obligation' with mapped priority. 4 tests pass."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "checkRequiredObligationReleaseBlockers in gate-readiness.ts blocks release when requiredCritical items have failing review status. 7 gate-readiness tests pass."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "checkRequiredObligationRouting blocks release for requiredCritical items with no task coverage and no review matrix row. Remediation directs to reenter/split. Tests pass."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Specs updated: prep-readiness rq-PR007coc, subagent-reports rq-subagentReports14, advance-workflow rq-requiredObligation01/02. 31 regression tests in required-obligation-regression.test.ts. Full suite 3664 tests pass."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "All new fields optional (requiredCritical, required_follow_ups). Existing contracts without requiredCritical parse unchanged. Backward compat tests pass."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "All enforcement uses Zod schemas and typed fields (requiredCritical boolean, RequiredFollowUpSchema). No title/priority heuristics used for classification."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No new human checkpoints added. Machine checks (prep readiness, gate readiness) integrate into existing gate completion flow. Approval boundaries unchanged."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Only items with requiredCritical: true trigger blockers. Non-requiredCritical items with failing status are not affected by new checks. Tests verify isolation."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "required_follow_ups is a separate typed channel from follow_ups. Only explicitly typed required items get elevated treatment. Advisory follow_ups remain medium priority."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Release blocking uses structural gate-readiness blocker path (REQUIRED_OBLIGATION_UNRESOLVED, REQUIRED_OBLIGATION_NOT_ROUTED), not advisory gate-criteria surfaces."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "REQUIRED_OBLIGATION_UNRESOLVED blockers require actual resolution (pass review status), not just rationale. notRequiredReason serves as alternate route only for routing check, not for failing reviews."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "Required critical-ops classification is defined as correctness/release-safety obligations, not all high-priority follow-ups.",
+    "Planning gate readiness fails when required obligations are not mapped to in-change task coverage (unless a policy-approved alternate route is recorded).",
+    "Report ingestion preserves required-obligation class/severity and does not unconditionally demote required items to medium-priority backlog.",
+    "Review/harden flow blocks release when required in-scope obligations remain unresolved.",
+    "Required obligations outside current scope require explicit re-enter or split routing, not silent agenda-only defer.",
+    "Specs and tests cover classification, planning enforcement, ingest preservation, and release-block behavior."
+  ],
+  "documents": {
+    "proposal": "# Enforce Critical Ops Planning\n\n## Why\n\nADV currently allows critical ops obligations to be deferred from active change execution into agenda follow-ups, which can let release-risk work escape required gates. We need structural enforcement so critical ops work is captured and completed inside the change lifecycle (or explicitly re-entered/split with user decision), not silently downgraded to deferred backlog.\n\n## What Changes\n\n1. Add a typed **critical-ops obligation model** for work that is required for correctness/release safety.\n2. Extend planning readiness so required critical-ops obligations must map to in-change tasks before planning can complete.\n3. Prevent automatic severity downgrade when sub-agent follow-ups are ingested (no unconditional `medium` for required obligations).\n4. Add review/harden enforcement so unresolved required obligations cannot be silently closed as rationale-only backlog when they remain in touched scope.\n5. Add explicit operator paths when required obligations are out-of-scope for current change: re-enter from earliest invalidated gate or split to a linked fast-follow with clear handoff.\n\n## User Outcomes\n\n- Users can rely on ADV to keep required release-safety work inside the active change lifecycle.\n- Users get explicit visibility when required obligations block progress versus when optional follow-up work can be deferred.\n- Users can make explicit scope decisions (re-enter, split, or stop) instead of discovering hidden deferred risk after release.\n\n## Affected Code\n\n- `.opencode/command/adv-prep.md`\n- `.opencode/command/adv-apply.md`\n- `.opencode/command/adv-review.md`\n- `.opencode/command/adv-harden.md`\n- `.opencode/agents/adv-engineer.md`\n- `.opencode/agents/adv-designer.md`\n- `plugin/src/tools/subagent-report.ts`\n- `plugin/src/validator/prep-readiness.ts`\n- `plugin/src/tools/gate.ts`\n- `plugin/src/types/*` (report + readiness types if required)\n- `.adv/specs/advance-workflow/spec.md`\n- `.adv/specs/prep-readiness/spec.md`\n- `.adv/specs/subagent-reports/spec.md`\n\n## Related Repositories\n\n- Current repository only (`advance`)\n\n## Constraints\n\n- Preserve backward compatibility for existing reports and change state where possible.\n- Keep structural correctness primary: typed/stateful enforcement over title heuristics.\n- Do not bypass existing human checkpoints or approval boundaries.\n- Do not convert optional advisory items into hard blockers unless explicitly classified as required obligations.\n\n## Impact\n\n- Reduces risk of shipping changes with silently deferred critical ops work.\n- Increases planning/review clarity by showing required-vs-optional obligation status.\n- May introduce stricter prep/review blocking behavior for required obligations.\n\n## Context\n\nCurrent behavior allows `follow_ups` from worker reports to become agenda items with fixed medium priority, which can demote criticality during ingestion. Existing prep readiness checks validate task graph quality, TDD intent, and routing, but do not enforce that required ops obligations are explicitly planned as in-change tasks. Harden audits report-created agenda items, but allows rationale-only closure for non-adjacent or out-of-scope items.\n\n## Discovery Agenda\n\n### Codebase unknowns\n\n1. Exact set of obligation sources that must be considered “required critical ops” (task metadata, report findings, contract rows, gate criteria, other sources).\n2. Best insertion point for blocking enforcement to avoid duplicate logic (`prep-readiness`, `adv_gate_complete`, or both).\n3. Existing compatibility constraints in `subagent-report` ingest/read paths for adding obligation severity/classification fields.\n\n### Ecosystem unknowns\n\n1. None identified for external libraries; this appears to be internal workflow/state logic.\n\n### Domain unknowns\n\n1. Final policy line for “required” vs “optional” obligation classes.\n2. Whether some required obligations may be deferred only with explicit user sign-off and typed audit evidence.\n\n### Integration unknowns\n\n1. Interaction with active change `addFirstClassGateCriteriaState` (release-pending): should required obligation checks align with that new gate-criteria model.\n2. Interaction with scope re-entry and split flows to avoid dead-end blocking behavior.\n\n## Scope\n\n### In Scope\n\n- Define and enforce required critical-ops obligation handling in planning/apply/review/harden flow.\n- Preserve obligation severity/classification through report ingestion and downstream enforcement.\n- Add spec updates and tests that lock the new behavior.\n\n### Out of Scope\n\n- Rewriting ADV’s full gate architecture.\n- Repo-wide migration of all historical agenda items.\n- New external services or dependencies.\n\n### Must Not\n\n- Must not silently defer required critical-ops obligations to generic backlog treatment.\n- Must not demote required obligations to medium priority by default during report ingestion.\n- Must not mark gates complete while required in-scope obligations remain unresolved without explicit policy-approved path (re-enter/split/approved exception).\n\n---\n\n## Discovery Findings\n\n### Discovery Checklist\n\n| Step | Result | Notes |\n|---|---|---|\n| Skill Discovery | PASS | Matched and loaded `adv-opportunity-scout`; no pending-review skill frontmatter found |\n| Prior Research Extension | PASS | Extended `docs/adv-run-test-prep.md` and `docs/repo-improve-prep.md` with new findings for this change |\n| Conflict & Related-Work Scan | PASS | Active/archived scan run; own-change warnings (`NO_TASKS`, `NO_DELTAS`) treated as expected pre-prep |\n| Edge Case Investigation | PASS | 2+ edge cases captured per identified gap |\n| Design Question Depth | PASS | Trust model + blast radius + alternatives captured per question |\n| Draft Spec Delta Shapes | PASS | Draft `rq-*` delta candidates with Given/When/Then listed |\n| P25 Related Pattern Scan | PASS | Same-pattern scan captured runtime + contract + command-path patterns |\n| LBP Check | PASS | Internal-change path; external-solution check explicitly skipped with rationale |\n\n### Skills Considered\n\n- `adv-opportunity-scout` — **match** (strategic cross-cutting discovery). Loaded and used through researcher scout pass.\n- `adv-clarify` — **partial** (useful fallback if ambiguity trigger trips), not loaded in this pass.\n- `adv-agent-tool-contracts` — **partial** (likely useful in design/apply when mutating report schemas/tool contracts), deferred to design phase.\n\n### Extends\n\n- `docs/adv-run-test-prep.md`\n  - Prior pattern: shift from heuristic text parsing to typed structural classifications.\n  - **New finding for this change:** critical-ops severity should be structurally typed and preserved end-to-end; otherwise fixed-priority agenda ingestion can erase risk class.\n- `docs/repo-improve-prep.md`\n  - Prior pattern: keep hot-path reads lazy and deterministic; avoid unnecessary heavy work in default paths.\n  - **New finding for this change:** planning enforcement should piggyback existing prep-readiness/gate path (`runPrepReadinessChecks` + `handlePlanningGateCompletion`) rather than introducing a new heavy side channel.\n\n### Conflict Scan\n\n- Active related changes:\n  - `addFirstClassGateCriteriaState` (release pending): related because it introduces gate criteria state and advisory gate-evaluation behavior.\n- Archived related changes:\n  - `sharpenWorkflowStageBoundaries` (archived): stage boundary hardening precedent relevant to no-silent-defer behavior.\n- Own-change validation:\n  - `adv_change_validate`: PASS with warnings `NO_TASKS`, `NO_DELTAS` (expected at discovery stage).\n- Agenda overlap:\n  - Large backlog of `subagent-followup` items indicates existing defer-to-agenda pressure.\n\n### Current State\n\n- Planning enforcement exists, but does not model critical-ops obligation coverage:\n  - `plugin/src/validator/prep-readiness.ts:433` (`runPrepReadinessChecks`)\n  - `plugin/src/tools/gate.ts:710,741` (`handlePlanningGateCompletion` calling readiness)\n- Report follow-ups are bounded but default to medium priority:\n  - `plugin/src/tools/subagent-report.ts:31` (`MAX_REPORT_FOLLOW_UPS = 10`)\n  - `plugin/src/tools/subagent-report.ts:487` (`priority: \"medium\"`)\n- Review contract already states validated in-scope findings cannot be deferred:\n  - `.adv/specs/advance-workflow/spec.json:144`\n  - `.opencode/command/adv-review.md:386`\n- Harden audit is present but rationale path can keep items deferred:\n  - `.opencode/command/adv-harden.md:116-127`\n\n### Edge Cases\n\n#### Gap A — Required obligations missing from planning task graph\n\n1. Obligation discovered only during review/harden after execution finished (late blocker churn).\n2. Obligation linked to cross-repo dependency where task exists but not mapped as required.\n\n#### Gap B — Severity downgrade during follow-up ingestion\n\n1. Worker reports high-risk release safety follow-up, ingest writes it as medium agenda item.\n2. Truncation at follow-up cap (`MAX_REPORT_FOLLOW_UPS`) drops a required obligation from first 10.\n\n#### Gap C — Rationale-only closure in harden for unresolved required work\n\n1. Required obligation marked \"not adjacent\" despite directly affecting release safety.\n2. Multiple required obligations split across agenda + tasks create false \"all clear\" for release.\n\n### Open Design Questions\n\n1. **Required-obligation source of truth**\n   - Trust model: **joint** (agent proposes + user approves policy line)\n   - Blast radius: **high** (wrong source model causes false pass/block)\n   - Alternatives:\n     - A) Contract-tied required obligations only\n     - B) Contract + typed report channel (`required_main_agent_actions`) + mapped task refs (**recommended**)\n     - C) Heuristic title/priority inference (not recommended)\n\n2. **Enforcement insertion point**\n   - Trust model: **agent-only** (implementation architecture)\n   - Blast radius: **high** (duplicate/conflicting blockers if split)\n   - Alternatives:\n     - A) Enforce only in planning gate readiness (**recommended primary**) and propagate to review/harden checks\n     - B) Enforce only in harden (too late)\n     - C) Enforce in multiple gates with shared typed evaluator (possible, but complexity higher)\n\n3. **Harden closure model for required obligations**\n   - Trust model: **joint** (policy + UX impact)\n   - Blast radius: **medium-high** (release friction vs risk containment)\n   - Alternatives:\n     - A) Required obligations cannot be rationale-closed; must be fixed or explicitly routed via re-enter/split (**recommended**)\n     - B) Keep rationale closure with typed exception approvals\n     - C) Keep current behavior (not recommended)\n\n### Draft Spec Deltas\n\n1. **prep-readiness** — `rq-PR007ops` (draft)\n   - Given a change has one or more required critical-ops obligations\n   - When planning gate readiness runs\n   - Then planning fails unless each required obligation is mapped to in-change task coverage or an explicit policy-approved alternate path.\n\n2. **subagent-reports** — `rq-subagentReports14` (draft)\n   - Given a worker report contains required obligations\n   - When report consumers ingest follow-ups\n   - Then required obligations retain typed severity/classification and are not downgraded to generic medium-priority backlog entries.\n\n3. **advance-workflow** — `rq-criticalOpsNoSilentDefer01` (draft)\n   - Given a required in-scope critical-ops obligation exists\n   - When review/harden evaluates release readiness\n   - Then the obligation cannot be deferred as report-only or rationale-only backlog; resolution must be fix, re-enter, split, or explicit approved exception path.\n\n### Related Pattern Scan\n\n- Pattern 1: Defer channel from workers to agenda (`follow_ups[]` consumer) is structurally present and bounded.\n- Pattern 2: Contract/spec layer already codifies no-deferral intent for validated in-scope findings, but enforcement is uneven across phases.\n- Pattern 3: Hardcoded medium priority appears in runtime ingestion path and benchmark fixture (`plugin/scripts/benchmark-temporal.ts`), indicating drift risk when evolving severity semantics.\n\n### LBP Check\n\n- Direction fit: **yes**, best-practice is structural state + typed enforcement, not heuristic severity inference.\n- External-solution check: **skipped intentionally** (purely internal workflow/state correctness change; no external tool/library decision needed).\n- Opportunity scout integration:\n  - Auto-adopted now: contract-model reuse, planning-gate insertion, alignment with advisory-only gate-criteria model.\n  - Candidate to surface during agreement: typed harden closure behavior for required obligations.\n\n### Discovery Opportunity Scout\n\n- Trigger decision: **run** (cross-cutting strategic workflow change)\n- Candidates considered: 5\n- Auto-adopted: 4\n- Surfaced to user: 1 (typed harden closure policy choice)\n- Inconclusive: 0\n\n### Recommended Objectives\n\n1. Define required-vs-optional critical-ops obligation semantics in agreement.\n2. Enforce required-obligation task coverage at planning readiness.\n3. Preserve required-obligation severity/classification through report ingestion.\n4. Enforce no-silent-defer behavior for required in-scope obligations in review/harden.\n5. Provide explicit policy-approved alternate routes (re-enter/split/approved exception) when required obligations exceed current scope.\n\n### AMBIGUITY ANALYSIS\n\nM1  MEDIUM  Missing Information  Required-obligation policy boundary still open.\n- Evidence: \"Final policy line for “required” vs “optional” obligation classes.\"\n- Reason: unresolved policy can alter block/no-block behavior.\n\nCoverage: B:C F:C S:C M:P\n\nTrigger evaluation result: **no blocking ambiguity** (CRITICAL=0, HIGH=0). Discovery proceeds.\n",
+    "problemStatement": "ADV currently allows critical ops obligations to be deferred from active change execution into agenda follow-ups, which can let release-risk work escape required gates. We need structural enforcement so critical ops work is captured and completed inside the change lifecycle (or explicitly re-entered/split with user decision), not silently downgraded to deferred backlog.",
+    "agreement": "# Agreement\n\n## Objectives\n\n1. Define a structural required-critical-ops classification boundary for correctness and release-safety obligations.\n2. Enforce planning-readiness coverage so required obligations are mapped to in-change task execution paths.\n3. Preserve required-obligation classification through sub-agent report ingestion and downstream enforcement.\n4. Prevent silent defer of required in-scope obligations during review/harden and release decisions.\n5. Route out-of-scope required obligations through explicit re-entry or split flows.\n\n## Success Criteria\n\n1. Required critical-ops obligations are no longer silently deferred into generic backlog flow.\n2. Users can see explicit required-vs-optional obligation status before planning and release completion.\n3. Out-of-scope required obligations always produce an explicit re-enter/split decision path.\n\n## Acceptance Criteria\n\n1. Required critical-ops classification is defined as correctness/release-safety obligations, not all high-priority follow-ups.\n2. Planning gate readiness fails when required obligations are not mapped to in-change task coverage (unless a policy-approved alternate route is recorded).\n3. Report ingestion preserves required-obligation class/severity and does not unconditionally demote required items to medium-priority backlog.\n4. Review/harden flow blocks release when required in-scope obligations remain unresolved.\n5. Required obligations outside current scope require explicit re-enter or split routing, not silent agenda-only defer.\n6. Specs and tests cover classification, planning enforcement, ingest preservation, and release-block behavior.\n\n## Constraints\n\n1. Preserve backward compatibility for existing report/change state where feasible.\n2. Keep enforcement structural and typed; do not rely on heuristic title/priority inference as sole authority.\n3. Preserve existing human checkpoints and approval boundaries.\n4. Do not convert optional advisory obligations into hard blockers unless explicitly classified as required-critical-ops.\n\n## Avoidances\n\n1. Do not treat every high-priority follow-up as required-critical-ops.\n2. Do not implement hard-gate blocking via advisory-only gate-criteria surfaces.\n3. Do not allow rationale-only closure for required in-scope release-safety obligations.\n\n## Preview Applicability\n\n- `visual_surface: false`\n- Rationale: workflow/state/policy behavior change; no browser-visible output surface is expected.\n\n## Decisions\n\n### User Decisions\n\n1. **Out-of-scope required obligations default route**\n   - Decision: Re-enter or split.\n   - Why it matters: prevents hidden risk transfer to backlog and forces explicit scope control.\n\n2. **Release strictness for required in-scope obligations**\n   - Decision: Must resolve before release.\n   - Why it matters: preserves release safety by preventing rationale-only deferral of known required work.\n\n3. **Required-critical-ops classification boundary**\n   - Decision: Correctness + release safety.\n   - Why it matters: keeps blocking strict enough for risk control without over-blocking all urgent follow-ups.\n\n### Agent Decisions (LBP)\n\n1. Reuse existing planning gate readiness path (`runPrepReadinessChecks` + planning gate completion handler) as primary enforcement insertion point.\n2. Keep gate-criteria alignment advisory-only; do not violate existing advisory contract in active related work.\n3. Use typed channels and schema-backed fields for required obligation state propagation rather than text/priority heuristics.\n\n## Deferred Questions\n\n- None.\n\n## Sign-Off\n\n- Criteria checkpoint approved by user reply: `approve`.\n- Agreement persisted from approved criteria and discovery findings.",
+    "design": "# Design\n\n## Architecture Overview\n\nThis change adds a **structural obligation-enforcement pipeline** across four points:\n\n1. **Classification source** — required critical-ops obligations are represented in typed contract/report structures.\n2. **Planning enforcement** — prep-readiness fails when required obligations lack in-change task coverage.\n3. **Ingest preservation** — report ingestion preserves required-obligation class instead of collapsing into generic medium-priority follow-ups.\n4. **Release enforcement** — review/harden and release checks prevent unresolved required in-scope obligations from shipping.\n\nDesign principle: reuse existing typed rails (contract checks, prep-readiness checks, re-enter/split routing) instead of introducing parallel ad-hoc state.\n\n## Key Decisions\n\n1. **Required-critical-ops boundary**\n   - Scope: correctness + release safety only.\n   - Rationale: aligns with approved agreement and avoids over-blocking all urgent work.\n\n2. **Planning gate insertion point**\n   - Add `checkCriticalOpsCoverage` to `runPrepReadinessChecks` pipeline.\n   - Rationale: existing planning handler already blocks on `mustFailures`; this keeps enforcement centralized and testable.\n\n3. **Representation strategy**\n   - Use existing contract model as primary obligation truth, with additive required-critical marker on relevant items.\n   - Rationale: `contract.ts` already provides structural task-coverage/proof checks; avoids duplicative obligation subsystem.\n\n4. **Report ingestion channel policy**\n   - `follow_ups` remains optional/defer-capable advisory channel.\n   - Required obligations use typed carrier path (additive structured field or consumed typed required-action path), preserving class/severity.\n   - Rationale: current `follow_ups` path hardcodes `medium`; cannot preserve required severity without typed structure.\n\n5. **Out-of-scope required obligations**\n   - Route via explicit `adv_change_reenter` or fast-follow split.\n   - Rationale: consistent with approved user decision; prevents silent risk burial.\n\n6. **Gate-criteria compatibility constraint**\n   - Do not make advisory gate-criteria surface the blocking authority.\n   - Rationale: respects active related change contract that gate criteria remain advisory.\n\n## ADR Drafts\n\n- None. Decisions are important but remain localized to existing workflow/validator/report surfaces and do not yet meet hard-to-reverse + surprising + broad tradeoff threshold for ADR drafting.\n\n## Implementation Strategy\n\n1. **Types and contract model extension**\n   - Add additive typed marker for required-critical obligations in contract/report pathways.\n   - Keep backward compatibility defaults for legacy records.\n\n2. **Prep-readiness enforcement**\n   - Implement `checkCriticalOpsCoverage(change)`.\n   - Register it inside `runPrepReadinessChecks`.\n   - Return `error` severity when required obligations lack task coverage.\n\n3. **Report ingestion preservation**\n   - Add/consume typed required-obligation carrier during report ingestion.\n   - Prevent demotion of required items into unconditional `priority:\"medium\"` queueing logic.\n\n4. **Review/harden enforcement**\n   - Add structural rule path for required in-scope obligations: unresolved required obligations cannot be rationale-closed for release.\n   - Out-of-scope required obligations must produce explicit re-enter/split route records.\n\n5. **Spec + tests**\n   - Update `prep-readiness`, `subagent-reports`, `advance-workflow` specs.\n   - Add unit/integration coverage for classification, planning fail/pass, ingest preservation, release blocking, and out-of-scope routing.\n\n## Design Leverage Scout\n\n- Candidates considered: 5\n- Auto-adopted: 4 (contract-tied, low-risk)\n- Surfaced/deferred: 1 untied parallelism idea (deferred)\n\nAdopted leverage:\n1. Reuse contract-check rails as core required-obligation model.\n2. Insert planning enforcement in validator pipeline (not gate handler branching).\n3. Preserve required class through typed ingest channel.\n4. Reuse existing re-enter/split routing rails for out-of-scope required obligations.\n\nConstraint kept: no hard blocking delegated to advisory gate-criteria channel.\n\n## LBP Analysis\n\nThis approach is long-term best practice because it:\n- uses **structural correctness** (typed state + deterministic checks),\n- extends existing enforcement seams instead of introducing duplicate policy engines,\n- keeps stage responsibilities aligned (planning coverage at prep, ship safety at review/harden/release),\n- preserves compatibility by making extensions additive.\n\nAlternative rejected:\n- Heuristic/title/priority inference-only required detection — rejected for false positives/negatives and inability to safely gate release.\n\n## Affected Components\n\n- `plugin/src/validator/prep-readiness.ts`\n- `plugin/src/tools/gate.ts` (integration surface, likely minimal)\n- `plugin/src/tools/subagent-report.ts`\n- `plugin/src/types/subagent-reports.ts`\n- `plugin/src/types/changes.ts` and/or contract-related types\n- `.opencode/command/adv-prep.md`\n- `.opencode/command/adv-review.md`\n- `.opencode/command/adv-harden.md`\n- `.adv/specs/prep-readiness/spec.json`\n- `.adv/specs/subagent-reports/spec.json`\n- `.adv/specs/advance-workflow/spec.json`\n\n## Design-Derived Criteria\n\n1. Required-obligation checks must be machine-checkable and typed; no gate-critical reliance on free-text follow-up strings.\n2. Planning gate must emit actionable remediation for each missing required-obligation coverage failure.\n3. Legacy reports/changes must remain readable; missing new fields normalize safely.\n4. Required in-scope obligations cannot pass release through rationale-only closure.\n5. Out-of-scope required obligations must record explicit route decisions (re-enter or split).\n6. Any new enforcement must preserve existing advisory-only semantics for gate-criteria surfacing.\n\n## Risks / Mitigations\n\n1. **Risk:** Over-blocking due to misclassification.\n   - Mitigation: strict boundary definition (correctness + release safety), typed markers, explicit route exceptions.\n\n2. **Risk:** Backward-compat regressions in report parsing.\n   - Mitigation: additive fields + legacy normalization tests.\n\n3. **Risk:** Duplicate enforcement causing contradictory failures.\n   - Mitigation: single primary planning insertion (`runPrepReadinessChecks`) plus stage-specific release checks.\n\n4. **Risk:** Scope creep by pulling all agenda debt into release blockers.\n   - Mitigation: keep optional advisory path (`follow_ups`) separate from required-obligation path.\n\n5. **Risk:** Drift with related active gate-criteria change.\n   - Mitigation: explicit constraint: gate criteria remains advisory; blocking stays in readiness/contract/release rules.\n\n## Validator Result\n\n- Verdict: **INCONCLUSIVE**\n- Validation attempt: independent `adv-researcher` design-validation lane invoked twice.\n- Outcome: both attempts returned empty payload (no `DESIGN_VALIDATION` object).\n- Handling: per design-phase degradation rules, record inconclusive status and proceed without blocking.\n- Safety note: no explicit contract-compromise conflict was surfaced during design synthesis; compromise checkpoint not triggered at this phase.",
+    "executiveSummary": "# Executive Summary: Enforce Critical Ops Planning\n\n## Problem\nRequired critical-ops obligations (correctness and release-safety items) were silently deferred into generic medium-priority backlog flow. No structural enforcement prevented shipping with unresolved required obligations or silently burying them in agenda items.\n\n## Solution\nAdded a **structural required-critical-ops classification boundary** with enforcement at four pipeline points:\n\n### 1. Typed Classification Model\n- `ContractItemSchema.requiredCritical: boolean` — optional field marking correctness/release-safety obligations\n- `RequiredFollowUpSchema` — typed carrier for sub-agent reports with `obligation_class` and `severity` fields\n- `required_follow_ups` array on engineer/reviewer report schemas — separate typed channel from advisory `follow_ups`\n\n### 2. Planning Readiness Enforcement\n- `checkCriticalOpsCoverage()` in prep-readiness pipeline — blocks planning when `requiredCritical` items lack task coverage\n- `CRITICAL_OPS_UNCOVERED` error code — must-failure that prevents prep gate completion\n- `notRequiredReason` serves as policy-approved alternate route exemption\n\n### 3. Report Ingestion Preservation\n- `consumeRequiredFollowUps()` in subagent-report.ts — creates agenda items with preserved priority (not hardcoded medium)\n- `obligation_class: \"required_critical\"` → `priority: \"critical\"` mapping\n- Category `\"required-obligation\"` distinct from advisory `\"subagent-followup\"`\n\n### 4. Release Safety Enforcement\n- `checkRequiredObligationReleaseBlockers()` — blocks release when `requiredCritical` items have failing review status\n- `checkRequiredObligationRouting()` — blocks release when `requiredCritical` items are silently deferred (no coverage, no routing)\n- Remediation directs to `adv_change_reenter` or fast-follow split\n\n## Verification\n- **3664 tests pass** across 270 test files (full suite)\n- **31 regression tests** in `required-obligation-regression.test.ts` covering full pipeline, negative paths, edge cases\n- **Check suite green**: schemas:check, typecheck, lint, format:check\n- **16/16 contract items pass** review matrix (3 success criteria, 6 acceptance criteria, 4 constraints, 3 avoidances)\n\n## Specs Updated\n- `prep-readiness` v1.4.0 — rq-PR007coc (Critical Operations Coverage)\n- `subagent-reports` v1.1.0 — rq-subagentReports14 (Required Follow-Up Preservation)\n- `advance-workflow` v1.16.0 — rq-requiredObligation01 (Release Block), rq-requiredObligation02 (Explicit Routing)\n\n## Backward Compatibility\nAll new fields are optional. Existing contracts without `requiredCritical` parse unchanged. Existing `follow_ups` path remains advisory with medium priority. No breaking changes to report ingestion or gate completion flows.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-06-10T00:41:00.000Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | Required critical-ops obligations are no longer silently deferred into generic backlog flow. | pass | checkCriticalOpsCoverage blocks planning when requiredCritical items lack coverage; checkRequiredObligationRouting blocks release for silently deferred items. 31 regression tests verify. |\n| SC2 | success_criterion | Users can see explicit required-vs-optional obligation status before planning and release completion. | pass | requiredCritical field on ContractItemSchema provides explicit typed marker. Review matrix rows track requiredCritical items separately. Gate readiness blockers surface obligation status. |\n| SC3 | success_criterion | Out-of-scope required obligations always produce an explicit re-enter/split decision path. | pass | checkRequiredObligationRouting emits REQUIRED_OBLIGATION_NOT_ROUTED blocker with remediation: 'Route via adv_change_reenter or fast-follow split'. Tests verify. |\n| AC1 | acceptance_criterion | Required critical-ops classification is defined as correctness/release-safety obligations, not all high-priority follow-ups. | pass | ContractItemSchema.requiredCritical: z.boolean().optional() in types/changes.ts. RequiredFollowUpSchema with obligation_class enum in subagent-reports.ts. Schema tests pass. |\n| AC2 | acceptance_criterion | Planning gate readiness fails when required obligations are not mapped to in-change task coverage (unless a policy-approved alternate route is recorded). | pass | checkCriticalOpsCoverage in prep-readiness.ts emits CRITICAL_OPS_UNCOVERED error when requiredCritical items lack task coverage. Registered in runPrepReadinessChecks. 8 tests pass. |\n| AC3 | acceptance_criterion | Report ingestion preserves required-obligation class/severity and does not unconditionally demote required items to medium-priority backlog. | pass | consumeRequiredFollowUps in subagent-report.ts preserves obligation_class and severity. Required follow-ups get category 'required-obligation' with mapped priority. 4 tests pass. |\n| AC4 | acceptance_criterion | Review/harden flow blocks release when required in-scope obligations remain unresolved. | pass | checkRequiredObligationReleaseBlockers in gate-readiness.ts blocks release when requiredCritical items have failing review status. 7 gate-readiness tests pass. |\n| AC5 | acceptance_criterion | Required obligations outside current scope require explicit re-enter or split routing, not silent agenda-only defer. | pass | checkRequiredObligationRouting blocks release for requiredCritical items with no task coverage and no review matrix row. Remediation directs to reenter/split. Tests pass. |\n| AC6 | acceptance_criterion | Specs and tests cover classification, planning enforcement, ingest preservation, and release-block behavior. | pass | Specs updated: prep-readiness rq-PR007coc, subagent-reports rq-subagentReports14, advance-workflow rq-requiredObligation01/02. 31 regression tests in required-obligation-regression.test.ts. Full suite 3664 tests pass. |\n| C1 | constraint | Preserve backward compatibility for existing report/change state where feasible. | respected | All new fields optional (requiredCritical, required_follow_ups). Existing contracts without requiredCritical parse unchanged. Backward compat tests pass. |\n| C2 | constraint | Keep enforcement structural and typed; do not rely on heuristic title/priority inference as sole authority. | respected | All enforcement uses Zod schemas and typed fields (requiredCritical boolean, RequiredFollowUpSchema). No title/priority heuristics used for classification. |\n| C3 | constraint | Preserve existing human checkpoints and approval boundaries. | respected | No new human checkpoints added. Machine checks (prep readiness, gate readiness) integrate into existing gate completion flow. Approval boundaries unchanged. |\n| C4 | constraint | Do not convert optional advisory obligations into hard blockers unless explicitly classified as required-critical-ops. | respected | Only items with requiredCritical: true trigger blockers. Non-requiredCritical items with failing status are not affected by new checks. Tests verify isolation. |\n| DONT1 | avoidance | Do not treat every high-priority follow-up as required-critical-ops. | respected | required_follow_ups is a separate typed channel from follow_ups. Only explicitly typed required items get elevated treatment. Advisory follow_ups remain medium priority. |\n| DONT2 | avoidance | Do not implement hard-gate blocking via advisory-only gate-criteria surfaces. | respected | Release blocking uses structural gate-readiness blocker path (REQUIRED_OBLIGATION_UNRESOLVED, REQUIRED_OBLIGATION_NOT_ROUTED), not advisory gate-criteria surfaces. |\n| DONT3 | avoidance | Do not allow rationale-only closure for required in-scope release-safety obligations. | respected | REQUIRED_OBLIGATION_UNRESOLVED blockers require actual resolution (pass review status), not just rationale. notRequiredReason serves as alternate route only for routing check, not for failing reviews. |\n\n"
+  },
+  "artifacts": {
+    "problemStatement": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/enforceCriticalOpsPlanning/problem-statement.md",
+      "updatedAt": "2026-06-09T22:42:58.893Z",
+      "contentHash": "532b17611ffebae0b129f40004482df533c7b78088b8b1e969bda5107b30a555"
+    },
+    "proposal": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/enforceCriticalOpsPlanning/proposal.md",
+      "updatedAt": "2026-06-09T22:52:51.587Z",
+      "contentHash": "e745ec4d28619c486a3913a7a4ac6597b6b91276f6cf7709e1c02d22d3e7a36c"
+    },
+    "agreement": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/enforceCriticalOpsPlanning/agreement.md",
+      "updatedAt": "2026-06-09T23:18:16.932Z",
+      "contentHash": "1ccc52868c128c43d58ff2ec4b47863484ec35719b0b2e62476e3a7c76cd9973"
+    },
+    "design": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/enforceCriticalOpsPlanning/design.md",
+      "updatedAt": "2026-06-09T23:25:06.479Z",
+      "contentHash": "4ae2bfb572a5cc85003562f3e34b2e38a13d05be8415452e73caf8d065429f62"
+    },
+    "executiveSummary": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/enforceCriticalOpsPlanning/executive-summary.md",
+      "updatedAt": "2026-06-10T00:41:03.347Z",
+      "contentHash": "3522818ca273925059700ac3b3c8245df69300af98960c9573baaa8db0408adf"
+    }
+  },
+  "lastSignalAt": "2026-06-10T01:16:35.041Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d"
+}
