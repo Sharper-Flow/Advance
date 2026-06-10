@@ -36,6 +36,7 @@ import {
   verifyChangeBranchReachableFromOrigin,
   detectArchivedUnmergedBranches,
   redriveArchivedUnmergedBranch,
+  detectSquashMergeByTree,
 } from "./git-finalize";
 
 function git(cwd: string, args: string[]): string {
@@ -411,7 +412,7 @@ describe("git-finalize helpers", () => {
     });
   });
 
-  it("direct route + no prNumber returns origin_unmerged without gh call", () => {
+  it("direct route + no prNumber tries auto-discovery then returns origin_unmerged", () => {
     let ghCalled = false;
     const result = resolveReleaseReachability(
       {
@@ -441,7 +442,7 @@ describe("git-finalize helpers", () => {
         },
         runGh: () => {
           ghCalled = true;
-          return { status: 0, stdout: "{}", stderr: "" };
+          return { status: 0, stdout: "[]", stderr: "" };
         },
       },
     );
@@ -450,7 +451,7 @@ describe("git-finalize helpers", () => {
       reachable: false,
       proof: "origin_unmerged",
     });
-    expect(ghCalled).toBe(false);
+    expect(ghCalled).toBe(true);
   });
 
   it("direct route + prNumber but PR not merged returns origin_unmerged", () => {
@@ -533,6 +534,268 @@ describe("git-finalize helpers", () => {
           stdout: "",
           stderr: "gh: API error",
         }),
+      },
+    );
+
+    expect(result).toMatchObject({
+      reachable: false,
+      proof: "origin_unmerged",
+    });
+  });
+
+  it("direct route + auto-discovered PR merged returns pr_merged", () => {
+    const result = resolveReleaseReachability(
+      {
+        mainCheckout: "/repo",
+        defaultBranch: "trunk",
+        changeId: "fixSquashMergeRelease",
+        route: { route: "direct", repo: "Sharper-Flow/Advance" },
+        // no prNumber — should be auto-discovered
+      },
+      {
+        runGit: (_cwd, args) => {
+          if (args[0] === "fetch") return { status: 0, stdout: "", stderr: "" };
+          if (args[0] === "rev-parse")
+            return { status: 0, stdout: "abc123\n", stderr: "" };
+          if (args[0] === "ls-remote")
+            return {
+              status: 0,
+              stdout: "abc123\trefs/heads/trunk\n",
+              stderr: "",
+            };
+          if (args[0] === "log")
+            return {
+              status: 0,
+              stdout: "def456 squash orphan commit\n",
+              stderr: "",
+            };
+          if (args[0] === "rev-parse" && args[1].startsWith("change/"))
+            return { status: 0, stdout: "change-tree-sha\n", stderr: "" };
+          if (args[0] === "log" && args[1] === "--format=%H %T")
+            return { status: 0, stdout: "trunk-sha trunk-tree\n", stderr: "" };
+          return { status: 1, stdout: "", stderr: "unexpected" };
+        },
+        runGh: (_cwd, args) => {
+          if (args[0] === "pr" && args[1] === "list") {
+            return {
+              status: 0,
+              stdout: JSON.stringify([
+                { number: 200, mergeCommit: { oid: "discovered-sha" } },
+              ]),
+              stderr: "",
+            };
+          }
+          if (args[0] === "pr" && args[1] === "view") {
+            return {
+              status: 0,
+              stdout: JSON.stringify({
+                state: "MERGED",
+                mergedAt: "2026-06-09T00:00:00Z",
+                mergeCommit: { oid: "discovered-sha" },
+                autoMergeRequest: null,
+              }),
+              stderr: "",
+            };
+          }
+          return { status: 1, stdout: "", stderr: "unexpected" };
+        },
+      },
+    );
+
+    expect(result).toMatchObject({
+      reachable: true,
+      proof: "pr_merged",
+      prNumber: 200,
+      mergeCommitOid: "discovered-sha",
+    });
+  });
+
+  it("direct route + tree fallback returns pr_merged when ancestry and PR discovery fail", () => {
+    const result = resolveReleaseReachability(
+      {
+        mainCheckout: "/repo",
+        defaultBranch: "trunk",
+        changeId: "fixSquashMergeRelease",
+        route: { route: "direct", repo: "Sharper-Flow/Advance" },
+      },
+      {
+        runGit: (_cwd, args) => {
+          if (args[0] === "fetch") return { status: 0, stdout: "", stderr: "" };
+          if (args[0] === "rev-parse" && args[1] === "HEAD")
+            return { status: 0, stdout: "abc123\n", stderr: "" };
+          if (args[0] === "rev-parse" && args[1] === "origin/trunk")
+            return { status: 0, stdout: "abc123\n", stderr: "" };
+          if (args[0] === "ls-remote")
+            return {
+              status: 0,
+              stdout: "abc123\trefs/heads/trunk\n",
+              stderr: "",
+            };
+          if (
+            args[0] === "log" &&
+            args[2] === "origin/trunk..change/fixSquashMergeRelease"
+          )
+            return {
+              status: 0,
+              stdout: "def456 squash orphan commit\n",
+              stderr: "",
+            };
+          if (
+            args[0] === "rev-parse" &&
+            args[1] === "change/fixSquashMergeRelease^{tree}"
+          )
+            return { status: 0, stdout: "matching-tree-sha\n", stderr: "" };
+          if (args[0] === "log" && args[1] === "--format=%H %T")
+            return {
+              status: 0,
+              stdout: "mergeCommitOid123 matching-tree-sha\n",
+              stderr: "",
+            };
+          return {
+            status: 1,
+            stdout: "",
+            stderr: `unexpected git ${args.join(" ")}`,
+          };
+        },
+        runGh: (_cwd, args) => {
+          if (args[0] === "pr" && args[1] === "list") {
+            // PR discovery returns no results
+            return { status: 0, stdout: "[]", stderr: "" };
+          }
+          return { status: 1, stdout: "", stderr: "unexpected" };
+        },
+      },
+    );
+
+    expect(result).toMatchObject({
+      reachable: true,
+      proof: "pr_merged",
+      mergeCommitOid: "mergeCommitOid123",
+    });
+  });
+
+  it("direct route + merge-commit ancestry returns origin_default", () => {
+    const result = resolveReleaseReachability(
+      {
+        mainCheckout: "/repo",
+        defaultBranch: "trunk",
+        changeId: "fixSquashMergeRelease",
+        route: { route: "direct", repo: "Sharper-Flow/Advance" },
+        prNumber: 159,
+      },
+      {
+        runGit: (_cwd, args) => {
+          if (args[0] === "fetch") return { status: 0, stdout: "", stderr: "" };
+          if (args[0] === "rev-parse")
+            return { status: 0, stdout: "abc123\n", stderr: "" };
+          if (args[0] === "ls-remote")
+            return {
+              status: 0,
+              stdout: "abc123\trefs/heads/trunk\n",
+              stderr: "",
+            };
+          if (args[0] === "log")
+            return {
+              // Empty means change branch IS reachable from origin/trunk
+              status: 0,
+              stdout: "",
+              stderr: "",
+            };
+          return { status: 1, stdout: "", stderr: "unexpected" };
+        },
+        runGh: () => ({
+          status: 1,
+          stdout: "",
+          stderr: "gh: should not be called when ancestry succeeds",
+        }),
+      },
+    );
+
+    expect(result).toMatchObject({
+      reachable: true,
+      proof: "origin_default",
+    });
+  });
+
+  it("no_remote route returns local_merge when change branch reachable locally", () => {
+    const result = resolveReleaseReachability(
+      {
+        mainCheckout: "/repo",
+        defaultBranch: "trunk",
+        changeId: "fixSquashMergeRelease",
+        route: { route: "no_remote" },
+      },
+      {
+        runGit: (_cwd, args) => {
+          if (
+            args[0] === "log" &&
+            args[2] === "trunk..change/fixSquashMergeRelease"
+          )
+            return { status: 0, stdout: "", stderr: "" };
+          return { status: 1, stdout: "", stderr: "unexpected" };
+        },
+      },
+    );
+
+    expect(result).toMatchObject({
+      reachable: true,
+      proof: "local_merge",
+    });
+  });
+
+  it("direct route + all fallbacks fail returns origin_unmerged", () => {
+    const result = resolveReleaseReachability(
+      {
+        mainCheckout: "/repo",
+        defaultBranch: "trunk",
+        changeId: "fixSquashMergeRelease",
+        route: { route: "direct", repo: "Sharper-Flow/Advance" },
+      },
+      {
+        runGit: (_cwd, args) => {
+          if (args[0] === "fetch") return { status: 0, stdout: "", stderr: "" };
+          if (args[0] === "rev-parse" && args[1] === "HEAD")
+            return { status: 0, stdout: "abc123\n", stderr: "" };
+          if (args[0] === "rev-parse" && args[1] === "origin/trunk")
+            return { status: 0, stdout: "abc123\n", stderr: "" };
+          if (args[0] === "ls-remote")
+            return {
+              status: 0,
+              stdout: "abc123\trefs/heads/trunk\n",
+              stderr: "",
+            };
+          if (
+            args[0] === "log" &&
+            args[2] === "origin/trunk..change/fixSquashMergeRelease"
+          )
+            return {
+              status: 0,
+              stdout: "def456 orphan commit\n",
+              stderr: "",
+            };
+          if (
+            args[0] === "rev-parse" &&
+            args[1] === "change/fixSquashMergeRelease^{tree}"
+          )
+            return { status: 0, stdout: "change-tree-sha\n", stderr: "" };
+          if (args[0] === "log" && args[1] === "--format=%H %T")
+            return {
+              status: 0,
+              stdout: "trunk-sha different-tree-sha\n",
+              stderr: "",
+            };
+          return {
+            status: 1,
+            stdout: "",
+            stderr: `unexpected git ${args.join(" ")}`,
+          };
+        },
+        runGh: (_cwd, args) => {
+          if (args[0] === "pr" && args[1] === "list") {
+            return { status: 0, stdout: "[]", stderr: "" };
+          }
+          return { status: 1, stdout: "", stderr: "unexpected" };
+        },
       },
     );
 
@@ -1796,6 +2059,89 @@ describe("git-finalize helpers", () => {
       // Will fail because the directory doesn't exist — that's expected
       expect(result.localDeleted).toBe(false);
       expect(result.error).toBeDefined();
+    });
+  });
+
+  describe("detectSquashMergeByTree", () => {
+    it("returns reachable:true when tree SHA matches a trunk commit", async () => {
+      const main = join(tempRoot, "squash-match");
+      await mkdir(main);
+      await initRepo(main);
+
+      // Create initial commit on trunk
+      await writeFile(join(main, "file.txt"), "initial\n");
+      git(main, ["add", "file.txt"]);
+      git(main, ["commit", "-m", "initial"]);
+
+      // Create change branch with same tree as a future trunk commit
+      git(main, ["checkout", "-b", "change/squash-test"]);
+      await writeFile(join(main, "file.txt"), "modified\n");
+      git(main, ["add", "file.txt"]);
+      git(main, ["commit", "-m", "change commit"]);
+
+      // Get the change tree SHA (used implicitly by detectSquashMergeByTree)
+      git(main, ["rev-parse", "change/squash-test^{tree}"]);
+
+      // Switch back to trunk and create a squash-like commit with the same tree
+      git(main, ["checkout", "trunk"]);
+      await writeFile(join(main, "file.txt"), "modified\n");
+      git(main, ["add", "file.txt"]);
+      git(main, ["commit", "-m", "squash merged change"]);
+      const squashCommitSha = git(main, ["rev-parse", "HEAD"]);
+
+      const result = detectSquashMergeByTree(main, "trunk", "squash-test");
+      expect(result.reachable).toBe(true);
+      expect(result.mergeCommitOid).toBe(squashCommitSha);
+    });
+
+    it("returns reachable:false when tree SHA does not match any trunk commit", async () => {
+      const main = join(tempRoot, "squash-no-match");
+      await mkdir(main);
+      await initRepo(main);
+
+      // Create initial commit on trunk
+      await writeFile(join(main, "trunk.txt"), "trunk content\n");
+      git(main, ["add", "trunk.txt"]);
+      git(main, ["commit", "-m", "initial"]);
+
+      // Create change branch with different tree
+      git(main, ["checkout", "-b", "change/no-match"]);
+      await writeFile(join(main, "change.txt"), "change content\n");
+      git(main, ["add", "change.txt"]);
+      git(main, ["commit", "-m", "change commit"]);
+
+      // Switch back to trunk, no squash merge
+      git(main, ["checkout", "trunk"]);
+
+      const result = detectSquashMergeByTree(main, "trunk", "no-match");
+      expect(result.reachable).toBe(false);
+      expect(result.mergeCommitOid).toBeUndefined();
+    });
+
+    it("returns reachable:false when change branch does not exist", async () => {
+      const main = join(tempRoot, "squash-missing-branch");
+      await mkdir(main);
+      await initRepo(main);
+
+      // Create a commit on trunk
+      await writeFile(join(main, "file.txt"), "content\n");
+      git(main, ["add", "file.txt"]);
+      git(main, ["commit", "-m", "initial"]);
+
+      const result = detectSquashMergeByTree(main, "trunk", "nonexistent");
+      expect(result.reachable).toBe(false);
+      expect(result.mergeCommitOid).toBeUndefined();
+    });
+
+    it("returns reachable:false when trunk has no commits", async () => {
+      const main = join(tempRoot, "squash-empty-trunk");
+      await mkdir(main);
+      await initRepo(main);
+      // No commits on trunk
+
+      const result = detectSquashMergeByTree(main, "trunk", "any-change");
+      expect(result.reachable).toBe(false);
+      expect(result.mergeCommitOid).toBeUndefined();
     });
   });
 });

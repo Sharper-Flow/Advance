@@ -1013,6 +1013,99 @@ export function readPrMergeState(
   };
 }
 
+export function discoverMergedPr(
+  mainCheckout: string,
+  repo: string,
+  changeId: string,
+  deps: Pick<GitFinalizeDeps, "runGh"> = {},
+):
+  | { prNumber: number; mergeCommitOid?: string }
+  | { error: string; details?: string[] } {
+  const runGh = deps.runGh ?? defaultRunGh;
+  const result = runGh(mainCheckout, [
+    "pr",
+    "list",
+    "--repo",
+    repo,
+    "--state",
+    "merged",
+    "--head",
+    `change/${changeId}`,
+    "--json",
+    "number,mergeCommit",
+    "--limit",
+    "1",
+  ]);
+  if (result.status !== 0) {
+    return {
+      error: ghFailureReason(result),
+      details: splitLines(result.stderr || result.stdout),
+    };
+  }
+  const parsed = parseJson(result.stdout);
+  if (!Array.isArray(parsed) || parsed.length === 0) {
+    return { error: "NO_MERGED_PR_FOUND" };
+  }
+  const pr = parsed[0] as {
+    number?: unknown;
+    mergeCommit?: { oid?: unknown } | null;
+  };
+  if (typeof pr.number !== "number" || !Number.isInteger(pr.number)) {
+    return { error: "PR_NUMBER_UNPARSEABLE" };
+  }
+  return {
+    prNumber: pr.number,
+    mergeCommitOid:
+      pr.mergeCommit && typeof pr.mergeCommit.oid === "string"
+        ? pr.mergeCommit.oid
+        : undefined,
+  };
+}
+
+export function detectSquashMergeByTree(
+  mainCheckout: string,
+  defaultBranch: string,
+  changeId: string,
+  deps: Pick<GitFinalizeDeps, "runGit"> = {},
+): { reachable: boolean; mergeCommitOid?: string } {
+  const runGit = deps.runGit ?? defaultRunGit;
+
+  // Get tree SHA of change branch HEAD
+  const changeTree = runGit(mainCheckout, [
+    "rev-parse",
+    `change/${changeId}^{tree}`,
+  ]);
+  if (changeTree.status !== 0) {
+    return { reachable: false };
+  }
+  const changeTreeSha = changeTree.stdout.trim();
+  if (!changeTreeSha) {
+    return { reachable: false };
+  }
+
+  // Get recent trunk commits (last 50) with tree SHAs
+  const trunkCommits = runGit(mainCheckout, [
+    "log",
+    "--format=%H %T",
+    "-50",
+    defaultBranch,
+  ]);
+  if (trunkCommits.status !== 0) {
+    return { reachable: false };
+  }
+
+  // Parse and compare tree SHAs
+  const lines = splitLines(trunkCommits.stdout);
+  for (const line of lines) {
+    const [commitSha, treeSha] = line.split(/\s+/, 2);
+    if (treeSha === changeTreeSha && commitSha) {
+      return { reachable: true, mergeCommitOid: commitSha };
+    }
+  }
+
+  return { reachable: false };
+}
+
 function parsePullRequestSummary(
   value: unknown,
 ): PullRequestSummary | { error: string; details?: string[] } {
@@ -1722,12 +1815,26 @@ export function resolveReleaseReachability(
       return { reachable: true, proof: "origin_default" };
     }
 
-    // Squash-merge fallback: check PR state when ancestry fails
-    if (input.prNumber && route.repo) {
+    // NEW: Auto-discover PR if prNumber missing
+    let effectivePrNumber = input.prNumber;
+    if (!effectivePrNumber && route.repo) {
+      const discovered = discoverMergedPr(
+        input.mainCheckout,
+        route.repo,
+        input.changeId,
+        deps,
+      );
+      if (!("error" in discovered)) {
+        effectivePrNumber = discovered.prNumber;
+      }
+    }
+
+    // Existing PR merge state check (now with auto-discovered PR)
+    if (effectivePrNumber && route.repo) {
       const prState = readPrMergeState(
         input.mainCheckout,
         route.repo,
-        input.prNumber,
+        effectivePrNumber,
         deps,
       );
       if (
@@ -1738,10 +1845,25 @@ export function resolveReleaseReachability(
         return {
           reachable: true,
           proof: "pr_merged",
-          prNumber: input.prNumber,
+          prNumber: effectivePrNumber,
           mergeCommitOid: prState.mergeCommitOid,
         };
       }
+    }
+
+    // NEW: Tree-based fallback
+    const treeMatch = detectSquashMergeByTree(
+      input.mainCheckout,
+      `origin/${input.defaultBranch}`,
+      input.changeId,
+      deps,
+    );
+    if (treeMatch.reachable) {
+      return {
+        reachable: true,
+        proof: "pr_merged",
+        mergeCommitOid: treeMatch.mergeCommitOid,
+      };
     }
 
     return {
