@@ -1806,12 +1806,26 @@ export function resolveReleaseReachability(
       return { reachable: true, proof: "origin_default" };
     }
 
-    // Squash-merge fallback: check PR state when ancestry fails
-    if (input.prNumber && route.repo) {
+    // NEW: Auto-discover PR if prNumber missing
+    let effectivePrNumber = input.prNumber;
+    if (!effectivePrNumber && route.repo) {
+      const discovered = discoverMergedPr(
+        input.mainCheckout,
+        route.repo,
+        input.changeId,
+        deps,
+      );
+      if (!("error" in discovered)) {
+        effectivePrNumber = discovered.prNumber;
+      }
+    }
+
+    // Existing PR merge state check (now with auto-discovered PR)
+    if (effectivePrNumber && route.repo) {
       const prState = readPrMergeState(
         input.mainCheckout,
         route.repo,
-        input.prNumber,
+        effectivePrNumber,
         deps,
       );
       if (
@@ -1822,10 +1836,25 @@ export function resolveReleaseReachability(
         return {
           reachable: true,
           proof: "pr_merged",
-          prNumber: input.prNumber,
+          prNumber: effectivePrNumber,
           mergeCommitOid: prState.mergeCommitOid,
         };
       }
+    }
+
+    // NEW: Tree-based fallback
+    const treeMatch = detectSquashMergeByTree(
+      input.mainCheckout,
+      `origin/${input.defaultBranch}`,
+      input.changeId,
+      deps,
+    );
+    if (treeMatch.reachable) {
+      return {
+        reachable: true,
+        proof: "pr_merged",
+        mergeCommitOid: treeMatch.mergeCommitOid,
+      };
     }
 
     return {
