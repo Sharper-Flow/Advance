@@ -428,6 +428,80 @@ function acceptanceContractBlockers(
   );
 }
 
+function contractItemsCoveredByTasks(state: ChangeWorkflowState): Set<string> {
+  const covered = new Set<string>();
+  for (const task of state.tasks) {
+    if (task.status === "cancelled") continue;
+    const refs = task.contract_refs;
+    if (!refs) continue;
+    for (const id of refs.implements ?? []) covered.add(id);
+    for (const id of refs.verifies ?? []) covered.add(id);
+  }
+  return covered;
+}
+
+export function checkRequiredObligationReleaseBlockers(
+  state: ChangeWorkflowState,
+  gateId: GateId,
+): GateReadinessBlocker[] {
+  if (gateId !== "release") return [];
+  if (!state.contract) return [];
+
+  const rowsByContractId = new Map(
+    state.contract.reviewMatrix?.rows.map((row) => [row.contractId, row]) ?? [],
+  );
+
+  return state.contract.items
+    .filter((item) => item.requiredCritical === true)
+    .flatMap((item) => {
+      const row = rowsByContractId.get(item.id);
+      if (row && isFailingContractReviewStatus(row.status)) {
+        return [
+          makeBlocker({
+            code: "REQUIRED_OBLIGATION_UNRESOLVED",
+            gateId,
+            contractId: item.id,
+            message: `Required-critical obligation ${item.id} has failing review status ${row.status}.`,
+            remediation:
+              "Resolve the failing required-critical contract review row before releasing.",
+          }),
+        ];
+      }
+      return [];
+    });
+}
+
+export function checkRequiredObligationRouting(
+  state: ChangeWorkflowState,
+  gateId: GateId,
+): GateReadinessBlocker[] {
+  if (gateId !== "release") return [];
+  if (!state.contract) return [];
+
+  const rowsByContractId = new Map(
+    state.contract.reviewMatrix?.rows.map((row) => [row.contractId, row]) ?? [],
+  );
+  const coveredIds = contractItemsCoveredByTasks(state);
+
+  return state.contract.items
+    .filter((item) => item.requiredCritical === true)
+    .flatMap((item) => {
+      if (item.notRequiredReason) return [];
+      if (rowsByContractId.has(item.id)) return [];
+      if (coveredIds.has(item.id)) return [];
+      return [
+        makeBlocker({
+          code: "REQUIRED_OBLIGATION_NOT_ROUTED",
+          gateId,
+          contractId: item.id,
+          message: `Required-critical obligation ${item.id} has no task coverage and no review matrix row.`,
+          remediation:
+            "Route via adv_change_reenter or fast-follow split, or add task coverage and complete review.",
+        }),
+      ];
+    });
+}
+
 export function renderAcceptanceProjection(state: ChangeWorkflowState): string {
   const contract = state.contract;
   if (!contract?.reviewMatrix) {
@@ -493,6 +567,11 @@ export function evaluateGateReadiness(
     } else {
       blockers.push(...acceptanceContractBlockers(state, gateId));
     }
+  }
+
+  if (gateId === "release") {
+    blockers.push(...checkRequiredObligationReleaseBlockers(state, gateId));
+    blockers.push(...checkRequiredObligationRouting(state, gateId));
   }
 
   const warnings = artifactCascadeWarnings(state, gateId);

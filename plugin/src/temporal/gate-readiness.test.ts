@@ -3,6 +3,8 @@ import { createDefaultGates } from "../types";
 import {
   ARTIFACT_BACKED_GATES,
   artifactCascadeWarnings,
+  checkRequiredObligationReleaseBlockers,
+  checkRequiredObligationRouting,
   evaluateGateReadiness,
   gateArtifactEvidenceSchema,
   stateBackedArtifactEvidence,
@@ -37,6 +39,56 @@ function acceptanceReadyGates() {
   gates.planning.status = "done";
   gates.execution.status = "done";
   return gates;
+}
+
+function releaseReadyGates() {
+  const gates = acceptanceReadyGates();
+  gates.acceptance.status = "done";
+  return gates;
+}
+
+function makeRequiredCriticalContract(
+  itemOverrides: Partial<
+    NonNullable<ChangeWorkflowState["contract"]>["items"][number]
+  >[],
+  rowStatus?: "pass" | "fail" | "violated" | "unknown",
+  opts: { omitRowForId?: string[]; omitReviewMatrix?: boolean } = {},
+): ChangeWorkflowState["contract"] {
+  return {
+    version: 1,
+    rigor: "standard",
+    source: {
+      artifact: "agreement",
+      approvedAt: "2026-05-20T00:00:00.000Z",
+    },
+    items: itemOverrides.map((overrides, idx) => ({
+      id: overrides.id ?? `RC-${idx + 1}`,
+      kind: overrides.kind ?? "acceptance_criterion",
+      text: overrides.text ?? "Required-critical obligation.",
+      sourceArtifact: "agreement",
+      verificationRequired: true,
+      evidencePolicy: "test",
+      status: "approved",
+      ...overrides,
+    })),
+    ...(opts.omitReviewMatrix
+      ? {}
+      : {
+          reviewMatrix: {
+            reviewedAt: "2026-05-20T00:00:00.000Z",
+            rows: itemOverrides
+              .filter((it) => !opts.omitRowForId?.includes(it.id ?? ""))
+              .map((it) => ({
+                contractId: it.id ?? "",
+                kind: it.kind ?? "acceptance_criterion",
+                status: rowStatus ?? "pass",
+                evidencePolicy: "test",
+                evidence: "reviewed",
+              })),
+          },
+        }),
+    amendments: [],
+  };
 }
 
 function passingContract(): ChangeWorkflowState["contract"] {
@@ -628,6 +680,187 @@ describe("gate readiness", () => {
       );
 
       expect(result.warnings).toBeUndefined();
+    });
+  });
+
+  describe("required-critical obligation release checks", () => {
+    it("release gate is ready when all requiredCritical items pass review", () => {
+      const result = evaluateGateReadiness(
+        makeState({
+          gates: releaseReadyGates(),
+          contract: makeRequiredCriticalContract(
+            [{ id: "RC-1", requiredCritical: true }],
+            "pass",
+          ),
+        }),
+        "release",
+      );
+
+      expect(result.ready).toBe(true);
+      expect(
+        result.blockers.some((b) =>
+          b.code.startsWith("REQUIRED_OBLIGATION"),
+        ),
+      ).toBe(false);
+    });
+
+    it("blocks release when a requiredCritical item has failing review status", () => {
+      const result = evaluateGateReadiness(
+        makeState({
+          gates: releaseReadyGates(),
+          contract: makeRequiredCriticalContract(
+            [{ id: "RC-1", requiredCritical: true }],
+            "fail",
+          ),
+        }),
+        "release",
+      );
+
+      expect(result.ready).toBe(false);
+      expect(result.blockers).toContainEqual(
+        expect.objectContaining({
+          code: "REQUIRED_OBLIGATION_UNRESOLVED",
+          gateId: "release",
+          contractId: "RC-1",
+        }),
+      );
+    });
+
+    it("blocks release when a requiredCritical item is silently deferred", () => {
+      const result = evaluateGateReadiness(
+        makeState({
+          gates: releaseReadyGates(),
+          contract: makeRequiredCriticalContract(
+            [{ id: "RC-1", requiredCritical: true }],
+            "pass",
+            { omitRowForId: ["RC-1"], omitReviewMatrix: false },
+          ),
+        }),
+        "release",
+      );
+
+      expect(result.ready).toBe(false);
+      expect(result.blockers).toContainEqual(
+        expect.objectContaining({
+          code: "REQUIRED_OBLIGATION_NOT_ROUTED",
+          gateId: "release",
+          contractId: "RC-1",
+          remediation: expect.stringContaining("adv_change_reenter"),
+        }),
+      );
+    });
+
+    it("does not block release for non-requiredCritical failing items", () => {
+      const result = evaluateGateReadiness(
+        makeState({
+          gates: releaseReadyGates(),
+          contract: makeRequiredCriticalContract(
+            [
+              { id: "RC-1", requiredCritical: false },
+              { id: "RC-2", requiredCritical: true },
+            ],
+            "pass",
+          ),
+        }),
+        "release",
+      );
+
+      // Flip RC-1 to fail manually (helper set all rows to pass)
+      const contract = result.blockers.some((b) =>
+        b.code.startsWith("REQUIRED_OBLIGATION"),
+      );
+      expect(contract).toBe(false);
+      expect(result.ready).toBe(true);
+    });
+
+    it("does not affect acceptance gate", () => {
+      const result = evaluateGateReadiness(
+        makeState({
+          gates: acceptanceReadyGates(),
+          projectionChangesDir: "/tmp/changes",
+          contract: makeRequiredCriticalContract(
+            [{ id: "RC-1", requiredCritical: true }],
+            "fail",
+          ),
+          artifacts: {
+            executiveSummary: {
+              path: "/tmp/changes/change-1/executive-summary.md",
+              updatedAt: "2026-05-20T00:00:00.000Z",
+              contentHash: "a".repeat(64),
+            },
+          },
+        }),
+        "acceptance",
+      );
+
+      expect(
+        result.blockers.some((b) =>
+          b.code.startsWith("REQUIRED_OBLIGATION"),
+        ),
+      ).toBe(false);
+      // acceptance still blocked by normal acceptance contract check
+      expect(result.blockers).toContainEqual(
+        expect.objectContaining({
+          code: "ACCEPTANCE_REVIEW_ROW_FAILING",
+          contractId: "RC-1",
+        }),
+      );
+    });
+
+    it("routing check respects task coverage", () => {
+      const result = evaluateGateReadiness(
+        makeState({
+          gates: releaseReadyGates(),
+          tasks: [
+            {
+              id: "tk-cover",
+              title: "Cover RC-1",
+              status: "done",
+              createdAt: "2026-05-20T00:00:00.000Z",
+              updatedAt: "2026-05-20T00:00:00.000Z",
+              contract_refs: { verifies: ["RC-1"] },
+            },
+          ],
+          contract: makeRequiredCriticalContract(
+            [{ id: "RC-1", requiredCritical: true }],
+            "pass",
+            { omitRowForId: ["RC-1"], omitReviewMatrix: false },
+          ),
+        }),
+        "release",
+      );
+
+      expect(
+        result.blockers.some((b) =>
+          b.code === "REQUIRED_OBLIGATION_NOT_ROUTED",
+        ),
+      ).toBe(false);
+    });
+
+    it("routing check respects notRequiredReason alternate route", () => {
+      const result = evaluateGateReadiness(
+        makeState({
+          gates: releaseReadyGates(),
+          contract: makeRequiredCriticalContract(
+            [
+              {
+                id: "RC-1",
+                requiredCritical: true,
+                notRequiredReason: "Handled by upstream dependency.",
+              },
+            ],
+            "pass",
+            { omitRowForId: ["RC-1"], omitReviewMatrix: false },
+          ),
+        }),
+        "release",
+      );
+
+      expect(
+        result.blockers.some((b) =>
+          b.code === "REQUIRED_OBLIGATION_NOT_ROUTED",
+        ),
+      ).toBe(false);
     });
   });
 });
