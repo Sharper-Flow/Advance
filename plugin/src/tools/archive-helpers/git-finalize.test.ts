@@ -37,7 +37,6 @@ import {
   detectArchivedUnmergedBranches,
   redriveArchivedUnmergedBranch,
   detectSquashMergeByTree,
-  discoverMergedPr,
 } from "./git-finalize";
 
 function git(cwd: string, args: string[]): string {
@@ -2057,8 +2056,8 @@ describe("git-finalize helpers", () => {
       git(main, ["add", "file.txt"]);
       git(main, ["commit", "-m", "change commit"]);
 
-      // Get the change tree SHA
-      const changeTreeSha = git(main, ["rev-parse", "change/squash-test^{tree}"]);
+      // Get the change tree SHA (used implicitly by detectSquashMergeByTree)
+      git(main, ["rev-parse", "change/squash-test^{tree}"]);
 
       // Switch back to trunk and create a squash-like commit with the same tree
       git(main, ["checkout", "trunk"]);
