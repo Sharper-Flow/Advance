@@ -8,7 +8,7 @@
  * Convention: $XDG_DATA_HOME/opencode/plugins/advance/{project-id}/
  * Worktrees default to $XDG_DATA_HOME/opencode/worktree/{project-id}/, with
  * ADV_WORKTREE_HOME as an absolute-path override for developer-visible
- * worktree roots (for example ~/dev/worktrees).
+ * worktree roots.
  * Matches kdcokenny's worktree plugin pattern.
  *
  * Test-mode override:

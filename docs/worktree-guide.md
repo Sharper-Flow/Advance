@@ -6,18 +6,20 @@ publish to trunk through verified merge/archive flows.
 
 ## Worktree Location
 
+ADV-managed worktree paths are resolved by ADV tooling, not by agents. Use
+`adv_worktree_resume` for an existing change and `adv_worktree_create` only when
+the ADV workflow explicitly needs a new worktree, then use the returned `workdir`
+for all reads, edits, tests, git operations, and sub-agent packets.
+
 Default ADV-managed worktrees live under the OpenCode data home:
 
 ```text
 $XDG_DATA_HOME/opencode/worktree/{project-id}/{branch}
 ```
 
-For heavy local development, prefer a visible source/worktree split:
-
-```text
-~/dev/repos/<owner>/<repo>        # canonical trunk checkout
-~/dev/worktrees/<project-id>/*    # ADV-created worktrees
-```
+Changing `XDG_DATA_HOME` changes the default worktree root. Set
+`ADV_WORKTREE_HOME` when worktree checkouts should stay outside that data-home
+tree.
 
 Set an absolute `ADV_WORKTREE_HOME` to move only worktree checkouts while keeping
 ADV state under `$XDG_DATA_HOME/opencode/plugins/advance/{project-id}`:
@@ -31,6 +33,11 @@ Then ADV creates worktrees at:
 ```text
 $ADV_WORKTREE_HOME/{project-id}/{branch}
 ```
+
+Agents must not create repo-specific paths such as `~/dev/<repo>-wt` for
+ADV-managed changes unless the process was intentionally launched with
+`ADV_WORKTREE_HOME` set to that parent. Manual `git worktree add` is only for
+non-ADV ad-hoc work and must stay separate from ADV-managed paths.
 
 Use an absolute path. Relative `ADV_WORKTREE_HOME` values are rejected so cleanup
 and namespace guards cannot accidentally target the wrong directory.

@@ -271,6 +271,12 @@ Multi-session is the supported design center. Temporal serializes ADV state writ
 - Each mutating execution session owns its own worktree; read-only/status sessions may run from the main checkout.
 - ADV state mutations are serialized by Temporal — no client-side locks needed
 - Git filesystem ops (`git worktree add/remove`) coordinate via narrow per-repo flock (~50ms hold)
+- ADV-managed worktree paths are tool-owned. Agents must not invent repo-specific
+  directories such as `~/dev/<repo>-wt` for ADV changes. Use
+  `adv_worktree_resume` / `adv_worktree_create` and then use the returned
+  `workdir`. The canonical path shape is
+  `$ADV_WORKTREE_HOME/{project-id}/{branch}` when `ADV_WORKTREE_HOME` is set,
+  otherwise `$XDG_DATA_HOME/opencode/worktree/{project-id}/{branch}`.
 
 **Plugin behavior:** At init, the plugin scans peer `opencode` processes sharing project (`git rev-parse --git-common-dir` OR ADV project-id). Peer found → emits `[ADV:PEER_SESSIONS] N peer session(s) active in this project.` Informational only; peers supported.
 
