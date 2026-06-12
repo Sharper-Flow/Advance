@@ -168,7 +168,7 @@
             "The finding object includes nestingDepth (number or null)",
             "The finding object includes complexity (number or null)",
             "The finding object includes confidence ('high' | 'medium' | 'low')",
-            "The finding object includes detectionMethod ('ast' | 'regex' | 'heuristic' | 'degraded')"
+            "The finding object includes detectionMethod ('ast' | 'regex' | 'heuristic' | 'degraded' | 'tool' | 'external')"
           ]
         },
         {
@@ -443,18 +443,18 @@
     {
       "id": "rq-ss012",
       "title": "Slop Scanner Coverage Report",
-      "body": "/adv-slop-scan must summarize skipped, degraded, timed-out, absent, and missing detectors in normal text output, and expose detailed scanner coverage in JSON metadata.",
+      "body": "/adv-slop-scan must summarize run, skipped, degraded, failed, timed-out, unavailable, and externally covered detectors in normal text output, and expose detailed scanner coverage in JSON metadata.",
       "priority": "must",
       "tags": ["coverage", "output", "json", "degraded"],
       "scenarios": [
         {
           "id": "rq-ss012.1",
           "title": "Text output summarizes coverage gaps",
-          "given": ["A detector is skipped, absent, timed out, degraded, or missing for a deletion-candidate subtype"],
+          "given": ["A detector is skipped, failed, timed out, unavailable, degraded, or externally covered for the detected language set"],
           "when": "Text output is generated",
           "then": [
             "The report includes a scanner coverage summary",
-            "Skipped and degraded detectors are visible without verbose mode",
+            "Skipped, failed, timed-out, unavailable, degraded, and externally covered detectors are visible without verbose mode",
             "Missing detector coverage is surfaced as a coverage gap, not hidden"
           ]
         },
@@ -464,8 +464,8 @@
           "given": ["--json output is requested"],
           "when": "Report output is generated",
           "then": [
-            "The JSON object includes coverage.skippedDetectors",
-            "The JSON object includes coverage.degradedDetectors",
+            "The JSON object includes coverage.detectors[]",
+            "Each detector includes a state of run, skipped, degraded, failed, timed_out, unavailable, or externally_covered",
             "The JSON object includes coverage.falsePositiveProtections"
           ]
         }
