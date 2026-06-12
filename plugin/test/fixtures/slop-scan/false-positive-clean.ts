@@ -15,4 +15,4 @@ export function parseBoundaryRequest(
   }
 }
 
-export const documentedExample = `LOW_CONFIDENCE_EXAMPLE_ONLY: example text used in scanner docs, not product code`;
+export const documentedExample = `example text used in scanner docs, not product code`;

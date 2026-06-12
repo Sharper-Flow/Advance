@@ -8,7 +8,6 @@ interface UserRecord {
 export function normalizeDirtyUser(
   user: UserRecord | null | undefined,
 ): string | null {
-  // DIRTY_REDUNDANT_GUARD_CHAIN
   if (!user) return null;
   if (user === null) return null;
   if (user === undefined) return null;
@@ -18,7 +17,6 @@ export function normalizeDirtyUser(
 }
 
 export function deeplyNestedDirtyPath(user: UserRecord | null): string | null {
-  // DIRTY_DEEP_NESTING
   if (user) {
     if (user.profile) {
       if (user.profile.email) {
