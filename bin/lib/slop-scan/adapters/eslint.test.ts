@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
 import { normalizeEslintJson } from "./eslint";
+import { buildEslintCommand } from "./eslint";
 
 describe("ESLint slop adapter", () => {
   test("normalizes complexity and max-depth messages into MAINT-004 findings", () => {
@@ -37,5 +38,12 @@ describe("ESLint slop adapter", () => {
       complexity: 12,
     });
     expect(findings[1].nestingDepth).toBe(5);
+  });
+
+  test("builds commands with configured thresholds", () => {
+    const command = buildEslintCommand("src", { complexity: 13, maxDepth: 6 });
+
+    expect(command).toContain("complexity: [warn, 13]");
+    expect(command).toContain("max-depth: [warn, 6]");
   });
 });

@@ -18,7 +18,8 @@ function findingForMessage(
   file: string,
   message: EslintMessage,
 ): SlopScanFinding | null {
-  if (message.ruleId !== "complexity" && message.ruleId !== "max-depth") return null;
+  if (message.ruleId !== "complexity" && message.ruleId !== "max-depth")
+    return null;
   const value = parseFirstNumber(message.message ?? "");
   const isComplexity = message.ruleId === "complexity";
 
@@ -29,7 +30,8 @@ function findingForMessage(
     category: "Code Quality",
     file,
     line: message.line ?? null,
-    description: message.message ?? (isComplexity ? "Complex function" : "Deep nesting"),
+    description:
+      message.message ?? (isComplexity ? "Complex function" : "Deep nesting"),
     fix: isComplexity
       ? "Reduce cyclomatic complexity or split the function."
       : "Flatten control flow or extract smaller functions.",
@@ -43,7 +45,10 @@ function findingForMessage(
   };
 }
 
-export function normalizeEslintJson(raw: string, repoRoot: string): SlopScanFinding[] {
+export function normalizeEslintJson(
+  raw: string,
+  repoRoot: string,
+): SlopScanFinding[] {
   const parsed = JSON.parse(raw) as EslintFileResult[];
   const findings: SlopScanFinding[] = [];
   for (const result of parsed) {
@@ -56,7 +61,10 @@ export function normalizeEslintJson(raw: string, repoRoot: string): SlopScanFind
   return findings;
 }
 
-export function buildEslintCommand(targetPath: string): string[] {
+export function buildEslintCommand(
+  targetPath: string,
+  thresholds = { complexity: 10, maxDepth: 4 },
+): string[] {
   return [
     "pnpm",
     "exec",
@@ -64,9 +72,9 @@ export function buildEslintCommand(targetPath: string): string[] {
     "--format",
     "json",
     "--rule",
-    "complexity: [warn, 10]",
+    `complexity: [warn, ${thresholds.complexity}]`,
     "--rule",
-    "max-depth: [warn, 4]",
+    `max-depth: [warn, ${thresholds.maxDepth}]`,
     targetPath,
   ];
 }

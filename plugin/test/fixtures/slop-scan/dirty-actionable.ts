@@ -22,7 +22,15 @@ export function deeplyNestedDirtyPath(user: UserRecord | null): string | null {
       if (user.profile.email) {
         if (user.profile.email.includes("@")) {
           if (user.profile.email.endsWith(".com")) {
-            return user.profile.email.toLowerCase();
+            if (user.profile.email.length > 5) {
+              if (!user.profile.email.includes("example.invalid")) {
+                if (user.profile.email.trim() === user.profile.email) {
+                  if (user.profile.email.toLowerCase() === user.profile.email) {
+                    return user.profile.email;
+                  }
+                }
+              }
+            }
           }
         }
       }
