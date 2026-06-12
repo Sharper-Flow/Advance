@@ -89,7 +89,9 @@ describe("adv-slop-scan anti-recursion assets", () => {
     expect(content).toContain(
       "Low-confidence findings are not blocking by default",
     );
-    expect(content).toContain("grouping: 'actionable' | 'low-confidence' | 'user-review'");
+    expect(content).toContain(
+      "grouping: 'actionable' | 'low-confidence' | 'user-review'",
+    );
     expect(content).toContain(
       "actionability: 'blocking' | 'actionable' | 'review_required' | 'non_blocking'",
     );
