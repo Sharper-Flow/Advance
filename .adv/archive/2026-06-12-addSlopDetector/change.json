@@ -1,0 +1,1235 @@
+{
+  "id": "addSlopDetector",
+  "title": "Add slop detector",
+  "status": "archived",
+  "created_at": "2026-06-12T04:09:04.538Z",
+  "tasks": [
+    {
+      "id": "tk-5f1d7c32b693",
+      "title": "Add typed slop-scan report and config contract",
+      "type": "code",
+      "section": "Core contract",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-06-12T04:24:35.237Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC4",
+          "AC1",
+          "AC6",
+          "C4",
+          "C5"
+        ],
+        "verifies": [
+          "AC1",
+          "AC6"
+        ],
+        "respects": [
+          "DONT3",
+          "DONT4"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-12T04:27:41.745Z",
+      "verification": "RED: bun test failed because ./schema and ./config did not exist. GREEN/VERIFY: bun test bin/lib/slop-scan/schema.test.ts bin/lib/slop-scan/config.test.ts passed (9 tests, 19 assertions).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "bin/lib/slop-scan/config.test.ts",
+        "bin/lib/slop-scan/config.ts",
+        "bin/lib/slop-scan/schema.test.ts",
+        "bin/lib/slop-scan/schema.ts"
+      ],
+      "touched_files": [
+        "bin/lib/slop-scan/config.test.ts",
+        "bin/lib/slop-scan/config.ts",
+        "bin/lib/slop-scan/schema.test.ts",
+        "bin/lib/slop-scan/schema.ts"
+      ],
+      "checkpointSha": "d808d62ecc773ab7b879c31af8726df7a792030d",
+      "completedAt": "2026-06-12T04:30:25.939Z",
+      "completed_at": "2026-06-12T04:30:25.939Z"
+    },
+    {
+      "id": "tk-773079931682",
+      "title": "Add detector registry, bounded runner, and report renderer",
+      "type": "code",
+      "section": "Core runner",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-06-12T04:24:46.593Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-5f1d7c32b693"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC4",
+          "AC1",
+          "AC2",
+          "AC7",
+          "C3",
+          "C4"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC7"
+        ],
+        "respects": [
+          "DONT3",
+          "DONT4"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-12T04:30:50.643Z",
+      "verification": "RED: runner/registry/render tests failed because modules did not exist. GREEN: bun test bin/lib/slop-scan/registry.test.ts bin/lib/slop-scan/runner.test.ts bin/lib/slop-scan/render.test.ts bin/lib/slop-scan/schema.test.ts bin/lib/slop-scan/config.test.ts passed (15 tests, 31 assertions). VERIFY: bun test bin/lib/slop-scan/*.test.ts passed (15 tests, 31 assertions).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "bin/lib/slop-scan/registry.test.ts",
+        "bin/lib/slop-scan/registry.ts",
+        "bin/lib/slop-scan/render.test.ts",
+        "bin/lib/slop-scan/render.ts",
+        "bin/lib/slop-scan/runner.test.ts",
+        "bin/lib/slop-scan/runner.ts"
+      ],
+      "touched_files": [
+        "bin/lib/slop-scan/registry.test.ts",
+        "bin/lib/slop-scan/registry.ts",
+        "bin/lib/slop-scan/render.test.ts",
+        "bin/lib/slop-scan/render.ts",
+        "bin/lib/slop-scan/runner.test.ts",
+        "bin/lib/slop-scan/runner.ts"
+      ],
+      "checkpointSha": "dbaa8ad7f5a8c851f32498822b0fdc5b37d1bac4",
+      "completedAt": "2026-06-12T04:32:50.644Z",
+      "completed_at": "2026-06-12T04:32:50.644Z"
+    },
+    {
+      "id": "tk-83bb0aa15c0a",
+      "title": "Add TypeScript and JavaScript detector adapters",
+      "type": "code",
+      "section": "Detector adapters",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-06-12T04:24:57.789Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-773079931682"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC2",
+          "SC5",
+          "AC2",
+          "AC5",
+          "C2"
+        ],
+        "verifies": [
+          "AC2",
+          "AC5"
+        ],
+        "respects": [
+          "DONT1",
+          "DONT5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-12T04:33:21.435Z",
+      "verification": "RED: adapter tests failed because ./eslint and ./knip did not exist. GREEN: bun test TS/JS adapter tests plus core slop tests passed (17 tests, 38 assertions). VERIFY: bun test bin/lib/slop-scan/adapters/*.test.ts bin/lib/slop-scan/*.test.ts passed (17 tests, 38 assertions).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "bin/lib/slop-scan/adapters/_paths.ts",
+        "bin/lib/slop-scan/adapters/eslint.test.ts",
+        "bin/lib/slop-scan/adapters/eslint.ts",
+        "bin/lib/slop-scan/adapters/knip.test.ts",
+        "bin/lib/slop-scan/adapters/knip.ts"
+      ],
+      "touched_files": [
+        "bin/lib/slop-scan/adapters/_paths.ts",
+        "bin/lib/slop-scan/adapters/eslint.test.ts",
+        "bin/lib/slop-scan/adapters/eslint.ts",
+        "bin/lib/slop-scan/adapters/knip.test.ts",
+        "bin/lib/slop-scan/adapters/knip.ts"
+      ],
+      "checkpointSha": "815564a4d893419ad78d3c6a3ca3f12a2414c916",
+      "completedAt": "2026-06-12T04:34:50.360Z",
+      "completed_at": "2026-06-12T04:34:50.360Z"
+    },
+    {
+      "id": "tk-219ab4a4a387",
+      "title": "Add Python and Go detector adapters",
+      "type": "code",
+      "section": "Detector adapters",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-06-12T04:25:09.457Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-773079931682"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC2",
+          "SC5",
+          "AC2",
+          "AC5",
+          "AC7",
+          "C2",
+          "C3"
+        ],
+        "verifies": [
+          "AC2",
+          "AC5",
+          "AC7"
+        ],
+        "respects": [
+          "DONT1",
+          "DONT5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-12T04:35:14.379Z",
+      "verification": "RED: bun test bin/lib/slop-scan/adapters/python-go.test.ts failed because ./radon did not exist. GREEN: Python/Go adapter tests passed (4 tests, 6 assertions). VERIFY: bun test bin/lib/slop-scan/adapters/*.test.ts bin/lib/slop-scan/*.test.ts passed (23 tests, 61 assertions). Docs evidence: Radon --json/cc command docs, Vulture confidence/output docs, gocyclo output format docs, Go deadcode output format docs.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "bin/lib/slop-scan/adapters/_findings.ts",
+        "bin/lib/slop-scan/adapters/go-deadcode.ts",
+        "bin/lib/slop-scan/adapters/gocyclo.ts",
+        "bin/lib/slop-scan/adapters/knip.ts",
+        "bin/lib/slop-scan/adapters/python-go.test.ts",
+        "bin/lib/slop-scan/adapters/radon.ts",
+        "bin/lib/slop-scan/adapters/vulture.ts"
+      ],
+      "touched_files": [
+        "bin/lib/slop-scan/adapters/_findings.ts",
+        "bin/lib/slop-scan/adapters/go-deadcode.ts",
+        "bin/lib/slop-scan/adapters/gocyclo.ts",
+        "bin/lib/slop-scan/adapters/knip.ts",
+        "bin/lib/slop-scan/adapters/python-go.test.ts",
+        "bin/lib/slop-scan/adapters/radon.ts",
+        "bin/lib/slop-scan/adapters/vulture.ts"
+      ],
+      "checkpointSha": "e6783db070a24dadfb7a7fc2d250f34adb10f03c",
+      "completedAt": "2026-06-12T04:39:04.214Z",
+      "completed_at": "2026-06-12T04:39:04.214Z"
+    },
+    {
+      "id": "tk-e0360ff20dc6",
+      "title": "Add polyglot structural, duplication, and external CI coverage adapters",
+      "type": "code",
+      "section": "Detector adapters",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-06-12T04:25:20.867Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-773079931682"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC2",
+          "SC3",
+          "AC2",
+          "AC3",
+          "C1"
+        ],
+        "verifies": [
+          "AC2",
+          "AC3"
+        ],
+        "respects": [
+          "DONT2",
+          "DONT6"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-12T04:39:25.771Z",
+      "verification": "RED: bun test bin/lib/slop-scan/adapters/polyglot.test.ts failed because ./ast-grep did not exist. GREEN: polyglot adapter tests passed (4 tests, 13 assertions). VERIFY: bun test bin/lib/slop-scan/adapters/*.test.ts bin/lib/slop-scan/*.test.ts passed (27 tests, 74 assertions). Docs evidence: ast-grep scan --json docs, jscpd JSON reporter docs, local GitHub Actions Semgrep workflow evidence.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "bin/lib/slop-scan/adapters/ast-grep.ts",
+        "bin/lib/slop-scan/adapters/external-ci.ts",
+        "bin/lib/slop-scan/adapters/jscpd.ts",
+        "bin/lib/slop-scan/adapters/polyglot.test.ts"
+      ],
+      "touched_files": [
+        "bin/lib/slop-scan/adapters/ast-grep.ts",
+        "bin/lib/slop-scan/adapters/external-ci.ts",
+        "bin/lib/slop-scan/adapters/jscpd.ts",
+        "bin/lib/slop-scan/adapters/polyglot.test.ts"
+      ],
+      "checkpointSha": "d78d0de8fa93f7c57c08b75332261cf1d9e8e5d5",
+      "completedAt": "2026-06-12T04:42:04.664Z",
+      "completed_at": "2026-06-12T04:42:04.664Z"
+    },
+    {
+      "id": "tk-668e1a9e1d75",
+      "title": "Wire `bin/adv slop-scan` command surface",
+      "type": "code",
+      "section": "CLI integration",
+      "status": "done",
+      "priority": 5,
+      "created_at": "2026-06-12T04:25:33.203Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-83bb0aa15c0a"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-219ab4a4a387"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-e0360ff20dc6"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "SC4",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC7",
+          "C4"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC7"
+        ],
+        "respects": [
+          "DONT2",
+          "DONT3",
+          "DONT4"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-12T04:42:26.804Z",
+      "verification": "RED: bun test bin/adv.test.ts failed because slop-scan was an unknown command (exit 1). GREEN: bin/adv.test.ts passed after adding slop-scan CLI surface (12 tests, 35 assertions). VERIFY: bun test bin/adv.test.ts bin/lib/slop-scan/adapters/*.test.ts bin/lib/slop-scan/*.test.ts passed (39 tests, 109 assertions).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "bin/adv",
+        "bin/adv.test.ts",
+        "bin/lib/slop-scan/scan.ts"
+      ],
+      "touched_files": [
+        "bin/adv",
+        "bin/adv.test.ts",
+        "bin/lib/slop-scan/scan.ts"
+      ],
+      "checkpointSha": "7cb657ab8bb5bc972c08a314df2778d7007c12a8",
+      "completedAt": "2026-06-12T04:45:50.931Z",
+      "completed_at": "2026-06-12T04:45:50.931Z"
+    },
+    {
+      "id": "tk-401dc54e4ec1",
+      "title": "Update slop-scan specs, command, skill, and docs for runner source-of-truth",
+      "type": "code",
+      "section": "Specs and docs",
+      "status": "done",
+      "priority": 6,
+      "created_at": "2026-06-12T04:25:43.635Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-5f1d7c32b693"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-773079931682"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC6",
+          "C2",
+          "C4",
+          "C5"
+        ],
+        "verifies": [
+          "AC6"
+        ],
+        "respects": [
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-12T04:46:13.456Z",
+      "verification": "RED: bin/oc-test targeted -- src/adv-slop-scan-assets.test.ts failed after adding assertions because command/skill still documented legacy threshold keys and coverage.skippedDetectors/degradedDetectors. GREEN: targeted asset test passed after updating command, skill, specs, and rendered docs. VERIFY: bin/oc-test targeted -- src/adv-slop-scan-assets.test.ts passed (13 tests); bun test bin/adv.test.ts bin/lib/slop-scan/adapters/*.test.ts bin/lib/slop-scan/*.test.ts passed (39 tests, 109 assertions).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".adv/specs/slop-scan/spec.json",
+        ".opencode/command/adv-slop-scan.md",
+        "docs/specs/slop-scan.md",
+        "plugin/src/adv-slop-scan-assets.test.ts",
+        "skills/adv-slop-detection/SKILL.md"
+      ],
+      "touched_files": [
+        ".adv/specs/slop-scan/spec.json",
+        ".opencode/command/adv-slop-scan.md",
+        "docs/specs/slop-scan.md",
+        "plugin/src/adv-slop-scan-assets.test.ts",
+        "skills/adv-slop-detection/SKILL.md"
+      ],
+      "checkpointSha": "4135df441942ccba6b043caecd6700708ad47027",
+      "completedAt": "2026-06-12T04:49:29.346Z",
+      "completed_at": "2026-06-12T04:49:29.346Z"
+    },
+    {
+      "id": "tk-294938f910cc",
+      "title": "Replace sentinel-only slop fixtures with executable golden verification",
+      "type": "code",
+      "section": "Verification",
+      "status": "done",
+      "priority": 7,
+      "created_at": "2026-06-12T04:25:54.394Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-668e1a9e1d75"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-401dc54e4ec1"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [],
+        "verifies": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "SC4",
+          "SC5",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7"
+        ],
+        "respects": [
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "DONT6"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-12T04:49:54.925Z",
+      "verification": "Acceptance reviewer verdict READY and applied scoped fixes: ESLint thresholds wired to features.slop_scan, package-root command execution, richer text report, and executable dirty fixture. VERIFY after fixes: bun test bin/lib/slop-scan bin/adv.test.ts passed (41 tests, 116 assertions); bin/oc-test targeted -- src/adv-slop-scan-assets.test.ts src/slop-scan-false-positive-fixtures.test.ts passed (17 tests); bin/oc-test smoke passed schemas:check, typecheck, lint, format:check, and 47 tests.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "bin/lib/slop-scan/adapters/eslint.test.ts",
+        "bin/lib/slop-scan/adapters/eslint.ts",
+        "bin/lib/slop-scan/render.test.ts",
+        "bin/lib/slop-scan/render.ts",
+        "bin/lib/slop-scan/scan.ts",
+        "plugin/test/fixtures/slop-scan/dirty-actionable.ts"
+      ],
+      "touched_files": [
+        "bin/lib/slop-scan/adapters/eslint.test.ts",
+        "bin/lib/slop-scan/adapters/eslint.ts",
+        "bin/lib/slop-scan/render.test.ts",
+        "bin/lib/slop-scan/render.ts",
+        "bin/lib/slop-scan/scan.ts",
+        "plugin/test/fixtures/slop-scan/dirty-actionable.ts"
+      ],
+      "checkpointSha": "362d147751fd517fa954cf11e06c07c6a32912df",
+      "completedAt": "2026-06-12T05:05:24.483Z",
+      "completed_at": "2026-06-12T05:05:24.483Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "addSlopDetector",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:discovery-opportunity-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Opportunity scout: deterministic slop-scan runner leverage points + Semgrep CI accounting",
+      "sources": [
+        {
+          "label": "Research pack (prep doc)",
+          "locator": "docs/adv-slop-scan-prep.md:90-141",
+          "summary": "LBP table already classifies Knip/ESLint/ast-grep/jscpd adapters and CLI surface; open questions Q1-Q5 enumerate runner-home, schema-owner, and per-detector threshold gaps."
+        },
+        {
+          "label": "Existing CLI surface",
+          "locator": "bin/adv:14-34, bin/lib/*",
+          "summary": "bin/adv is Bun-based with bin/lib/* modules + co-located tests and shared emitJson/formatTable render helpers — an existing subcommand pattern (status, roadmap) the runner can reuse."
+        },
+        {
+          "label": "CLI surface matrix",
+          "locator": "docs/cli-surface-matrix.md:25",
+          "summary": "/adv-slop-scan already dispositioned mcp+cli-additive — additive CLI JSON is pre-approved direction, not new product surface."
+        },
+        {
+          "label": "Security gates workflow",
+          "locator": ".github/workflows/security-gates-pilot.yml:29-37",
+          "summary": "Reusable Sharper-Flow/sharperflow-security-gates@v0 runs Semgrep p/javascript p/typescript over plugin/src plugin/scripts + trivy-fs; non-blocking pilot (not in branch protection)."
+        },
+        {
+          "label": "Semgrep CE output docs",
+          "locator": "https://semgrep.dev/docs/customize-semgrep-ce",
+          "summary": "Semgrep CE emits SARIF and JSON (--sarif / --json); SARIF is the standard interchange format and the natural 'account-for' reference point rather than re-running Semgrep locally."
+        },
+        {
+          "label": "Slop spec requirements",
+          "locator": "docs/specs/slop-scan.md:12-150",
+          "summary": "rq-ss001 AST-first + degraded fallback, rq-ss002 threshold defaults (nesting_depth_threshold/defensive_guard_threshold/complexity_threshold/ast_timeout_ms), rq-ss007 report shape, rq-ss008 context boundary already define the contract the runner must satisfy."
+        },
+        {
+          "label": "Command Phase 1 contract",
+          "locator": ".opencode/command/adv-slop-scan.md:57-150",
+          "summary": "Phase 1 already names ESLint/radon/gocyclo + dead-code tools and a normalized finding schema (id..phase) plus coverage report fields; runner just makes prose deterministic."
+        }
+      ],
+      "architecture_assessment": "Approved scope is well-bounded and the boring path is mostly pre-decided by existing evidence: a deterministic Phase 1 runner that shells out to already-named tools (ESLint --format json for complexity/max-depth, optional Knip --reporter json, optional ast-grep/jscpd) and normalizes into the existing finding schema, fronted by a bin/adv slop-scan --json subcommand following the established bin/lib/* + emitJson pattern. The single most leveraged missed opportunity is a shared typed schema module consumed by BOTH the CLI and any future MCP tool/asset tests, so JSON, chat report, coverage metadata, and golden fixtures are all views over one Zod-validated contract — this directly fixes the sentinel-test, shallow-coverage, and config-drift findings at once. Semgrep accounting should be design-around: slop-scan must NOT re-run or duplicate Semgrep; the by-the-book move is to reference SARIF (the standard Semgrep CE export) as an external coverage source and mark security as 'covered-by-CI', deferring any actual artifact ingestion (the private reusable workflow's export contract is unverified and cross-repo changes are default-no per proposal). No anti-patterns proposed; risk is scope creep into adopting too many optional scanners at once.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "All candidates sit inside approved In-Scope and respect Must-Not constraints (no auto-delete, no Semgrep duplication, no agent-as-authority, no hidden coverage gaps). One uncertainty surfaced for orchestrator: whether sharperflow-security-gates@v0 exports a consumable SARIF/JSON artifact is unverified (private repo) — recommend treating Semgrep as referenced/covered-by-CI, not ingested, this change."
+      },
+      "recommendation": "Adopt now (auto): (1) shared Zod-typed slop-finding + coverage schema as single source of truth feeding CLI JSON, chat report, metadata, and golden fixtures; (2) bin/adv slop-scan [path] --json --phase 1 subcommand on the existing bin/lib pattern; (3) ESLint --format json adapter for complexity/max-depth -> MAINT-004 (only local AST tool confirmed installed, eslint v10.4.1); (4) fix threshold naming drift by making the typed schema the only field-name source (nesting_depth_threshold/defensive_guard_threshold/complexity_threshold/ast_timeout_ms) and updating docs/skill/command prose. Design-around: account for Semgrep by referencing it as an external 'covered-by-CI' security coverage entry (SARIF as the interchange reference) — do NOT re-run or duplicate it locally; defer real SARIF ingestion and any sharperflow-security-gates change. Surface to user only the staging question (which optional detectors — Knip/ast-grep/jscpd — ship in this change vs deferred) since 'fix all prep findings' can be satisfied by registry + coverage-gap reporting even if some adapters land as explicit 'skipped' detectors initially.",
+      "follow_ups": [
+        "Orchestrator decision: confirm Semgrep is referenced (covered-by-CI), not ingested, for this change; verify sharperflow-security-gates export contract only if ingestion is desired later.",
+        "Discovery should resolve prep Q1 (Knip devDependency vs pnpm dlx/optional) and Q3 (runner home: bin/adv vs plugin tool vs shared module) before prep gate.",
+        "Confirm golden-fixture tests replace sentinel-string tests in plugin/src/slop-scan-false-positive-fixtures.test.ts as part of this change's Testing scope."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addSlopDetector",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addSlopDetector",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [
+        {
+          "id": "coverage-1",
+          "label": "praise",
+          "file": "bin/lib/slop-scan/render.ts",
+          "line": 20,
+          "what": "Important failed/unavailable detectors are rendered before summary in PROMINENT COVERAGE WARNINGS.",
+          "why": "Satisfies acceptance requirement that missing/failed important detectors stay prominent in normal text output.",
+          "fix": "n/a"
+        },
+        {
+          "id": "coverage-2",
+          "label": "praise",
+          "file": "bin/lib/slop-scan/registry.ts",
+          "line": 17,
+          "what": "Registry covers TypeScript/JavaScript, Python, Go, polyglot detectors, and Semgrep as externally covered.",
+          "why": "Matches agreement coverage expectations without duplicating Semgrep local scanning.",
+          "fix": "n/a"
+        }
+      ],
+      "changes_made": [
+        {
+          "file": "bin/lib/slop-scan/adapters/eslint.ts",
+          "summary": "Wired ESLint command construction to accept configured complexity and nesting thresholds instead of fixed defaults.",
+          "verification": "bun test \"bin/lib/slop-scan\" passed; executable dirty fixture scan showed ESLint command using complexity 12 and max-depth 8 from project.json."
+        },
+        {
+          "file": "bin/lib/slop-scan/scan.ts",
+          "summary": "Passed configured thresholds into ESLint, ran TS/JS package tools from nearest package.json root so repo-root checkouts with nested plugin packages execute correctly, and corrected detector coverage reason when parsed findings exist despite exit code 0.",
+          "verification": "bun test \"bin/lib/slop-scan\" passed; bun \"bin/adv\" slop-scan \"plugin/test/fixtures/slop-scan/dirty-actionable.ts\" --json emitted MAINT-004 with nestingDepth 9 and ESLint coverage reason \"completed with findings\"."
+        },
+        {
+          "file": "bin/lib/slop-scan/render.ts",
+          "summary": "Added category summary, separated actionable/user-review/low-confidence finding groups, rendered low-confidence non-blocking text, and included nestingDepth/complexity diagnostics when present.",
+          "verification": "bun test \"bin/lib/slop-scan\" passed; bun \"bin/adv\" slop-scan \"plugin/test/fixtures/slop-scan/dirty-actionable.ts\" --no-color showed category summary, prominent coverage warnings, grouped actionable finding, and nestingDepth evidence."
+        },
+        {
+          "file": "bin/lib/slop-scan/adapters/eslint.test.ts",
+          "summary": "Added regression coverage for configured ESLint thresholds.",
+          "verification": "bun test \"bin/lib/slop-scan\" passed."
+        },
+        {
+          "file": "bin/lib/slop-scan/render.test.ts",
+          "summary": "Added regression coverage for category summary, diagnostic fields, and low-confidence/non-blocking text grouping.",
+          "verification": "bun test \"bin/lib/slop-scan\" passed."
+        },
+        {
+          "file": "plugin/test/fixtures/slop-scan/dirty-actionable.ts",
+          "summary": "Deepened dirty fixture so executable scans exceed the repository's configured nesting threshold, not just sentinel-style/local simulated threshold.",
+          "verification": "bin/oc-test targeted -- src/adv-slop-scan-assets.test.ts src/slop-scan-false-positive-fixtures.test.ts passed; executable dirty fixture scan emitted one MAINT-004 finding while clean fixture scan emitted zero findings."
+        }
+      ],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "When an ADV repo has no root package.json but buildable code under plugin/, CLI tools that use pnpm exec must run from the nearest package.json root while still reporting paths relative to the repository root."
+        },
+        {
+          "type": "pattern",
+          "content": "For detector reports, distinguish command exit status from parsed finding count: tools like ESLint can exit 0 while JSON output contains warnings/findings."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "test -e preflight for bin/lib/slop-scan, bin/adv, command/spec/docs/skill/fixtures paths",
+          "bun test \"bin/lib/slop-scan\"",
+          "bin/oc-test targeted -- src/adv-slop-scan-assets.test.ts src/slop-scan-false-positive-fixtures.test.ts",
+          "bun \"bin/adv\" slop-scan \"plugin/test/fixtures/slop-scan/dirty-actionable.ts\" --json",
+          "bun \"bin/adv\" slop-scan \"plugin/test/fixtures/slop-scan/false-positive-clean.ts\" --json",
+          "bun \"bin/adv\" slop-scan \"plugin/test/fixtures/slop-scan/dirty-actionable.ts\" --no-color"
+        ],
+        "results": "pass",
+        "evidence": "Path preflight OK. Bin slop tests: 29 passed, 0 failed. Targeted plugin slop tests: 2 files/17 tests passed. Executable dirty fixture JSON emitted schema_version slop_scan_report.v1, summary total 1, MAINT-004 deep_nesting with confidence high, detectionMethod ast, nestingDepth 9, coverage including Semgrep externally_covered. Executable clean fixture JSON emitted total 0. Text output displayed PROMINENT COVERAGE WARNINGS for Knip/ast-grep/jscpd, severity/category summary, detector coverage, and actionable finding evidence."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Local executable scans still show Knip failed and ast-grep/jscpd unavailable in this environment; this is contract-compliant because coverage warnings are prominent, but full detector breadth depends on installed tools.",
+        "Phase 2 semantic detection remains command-orchestrated/documented rather than fully executable in bin/adv; reviewed scope found no new blocker because agreement allowed deterministic adapters plus visible unavailable coverage."
+      ],
+      "required_main_agent_actions": [],
+      "required_follow_ups": [],
+      "consumer_warnings": []
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-06-12T04:12:06.870Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved proposal via inline Tier A reply: \"approve\".",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addSlopDetector/proposal.md",
+        "content_hash": "2e3be2e6ea9294c650dcef080f1ca05fedcc80fefeafaa699b19b2f29117f995",
+        "non_whitespace_chars": 7116,
+        "checked_at": "2026-06-12T04:09:04.600Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-06-12T04:19:16.569Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery agreement approved via inline Tier A reply: \"approve\". Agreement persisted and contract minted.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addSlopDetector/agreement.md",
+        "content_hash": "f161bfc1aa51e478dcf39c55340b056018759a01b89a476178c1ea8ca59cdf5d",
+        "non_whitespace_chars": 4296,
+        "checked_at": "2026-06-12T04:09:04.601Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-06-12T04:23:59.629Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design recorded. Design leverage scout and independent validator were attempted with adv-researcher but returned empty output; result INCONCLUSIVE. No conflict or contract-compromise evidence found; proceeded per design workflow.",
+      "artifact_evidence": {
+        "kind": "design",
+        "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addSlopDetector/design.md",
+        "content_hash": "3afd550377711e03990660473941bd65872f0649823917f951fd9eedddf36809",
+        "non_whitespace_chars": 10183,
+        "checked_at": "2026-06-12T04:09:04.602Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-06-12T04:26:43.506Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved prep plan via inline Tier A reply: \"approve\". Task graph has 8 tasks with contract refs and TDD metadata."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-06-12T04:55:13.186Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 8 planned tasks are done with checkpoint commits. Final smoke verification passed: bin/oc-test smoke completed schemas:check, typecheck, lint, format:check, and 47 tests. Worktree clean at HEAD 2ab846e002357ea05d6307cc100e999898e00fdc."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-06-12T05:08:35.579Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved acceptance via inline reply: \"approve\". Acceptance review verdict READY; contract review matrix has 23 passing rows and 0 failing rows; smoke verification passed.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addSlopDetector/executive-summary.md",
+        "content_hash": "c2146018c6f5807a61b9beced7bdf56087a7735270da7fdfc9bc8035b9b757cc",
+        "non_whitespace_chars": 1254,
+        "checked_at": "2026-06-12T04:09:04.603Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "adhoc"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "f161bfc1aa51e478dcf39c55340b056018759a01b89a476178c1ea8ca59cdf5d",
+      "approvedAt": "2026-06-12T04:19:11.324Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "`/adv-slop-scan` produces repeatable evidence-backed results without relying on agent judgment for deterministic scanner facts.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f161bfc1aa51e478dcf39c55340b056018759a01b89a476178c1ea8ca59cdf5d",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "Slop scan covers frontend and backend codebases, including TS/JS, Python, Go, and polyglot duplication/structural signals where supported.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f161bfc1aa51e478dcf39c55340b056018759a01b89a476178c1ea8ca59cdf5d",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "Security checks already covered by continuous PR gates are not duplicated as local slop-scan-owned findings.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f161bfc1aa51e478dcf39c55340b056018759a01b89a476178c1ea8ca59cdf5d",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC4",
+        "kind": "success_criterion",
+        "text": "A no-finding result remains trustworthy because detector coverage clearly shows what ran, skipped, degraded, failed, or was externally covered.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f161bfc1aa51e478dcf39c55340b056018759a01b89a476178c1ea8ca59cdf5d",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC5",
+        "kind": "success_criterion",
+        "text": "Dead-code/deletion candidates remain review inputs only, never automatic removal proof.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f161bfc1aa51e478dcf39c55340b056018759a01b89a476178c1ea8ca59cdf5d",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "Given a repo with supported source files, when slop scan runs, then output includes a machine-readable result with `findings[]`, severity summary, category summary, and detector coverage.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f161bfc1aa51e478dcf39c55340b056018759a01b89a476178c1ea8ca59cdf5d",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Given TS/JS, Python, Go, and duplicated-code fixture targets, when slop scan runs, then each relevant detector is either run or reported as skipped/degraded/failed/unavailable with a prominent warning.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f161bfc1aa51e478dcf39c55340b056018759a01b89a476178c1ea8ca59cdf5d",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Given Semgrep/security-gate coverage exists in PR CI config, when slop scan reports security coverage, then overlapping checks are marked externally covered and not duplicated as local slop-scan findings.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f161bfc1aa51e478dcf39c55340b056018759a01b89a476178c1ea8ca59cdf5d",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Given clean and dirty fixture projects, when tests run, then detector execution produces expected normalized findings/coverage without sentinel-string-only simulation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f161bfc1aa51e478dcf39c55340b056018759a01b89a476178c1ea8ca59cdf5d",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Given dead-code or unused-export candidates, when findings are reported, then actionability states review/verification required and does not claim safe automatic deletion.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f161bfc1aa51e478dcf39c55340b056018759a01b89a476178c1ea8ca59cdf5d",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Given configured slop-scan thresholds, when docs/config/schema are checked, then threshold field names are consistent and invalid/missing detector config is surfaced.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f161bfc1aa51e478dcf39c55340b056018759a01b89a476178c1ea8ca59cdf5d",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "Given any important detector fails, times out, or is absent, when text output is rendered, then report includes a prominent coverage warning and does not silently imply complete clean coverage.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f161bfc1aa51e478dcf39c55340b056018759a01b89a476178c1ea8ca59cdf5d",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Existing PR CI/CD security coverage must be recognized, not overwritten by duplicate local policy.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f161bfc1aa51e478dcf39c55340b056018759a01b89a476178c1ea8ca59cdf5d",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Slop scan must preserve false-positive protections and deletion-safety boundaries from the existing `slop-scan` spec.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f161bfc1aa51e478dcf39c55340b056018759a01b89a476178c1ea8ca59cdf5d",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Scanner/tool failures must surface as explicit coverage gaps; a failed detector must not produce a misleading clean scan.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f161bfc1aa51e478dcf39c55340b056018759a01b89a476178c1ea8ca59cdf5d",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "CLI JSON and chat report must be views over typed scanner evidence, not separate truth sources.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f161bfc1aa51e478dcf39c55340b056018759a01b89a476178c1ea8ca59cdf5d",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Discovery/design must choose exact implementation shape; agreement does not mandate internal module boundaries.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f161bfc1aa51e478dcf39c55340b056018759a01b89a476178c1ea8ca59cdf5d",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not treat heuristic-only, regex-only, text-only, single-tool, or agent-only unused-code guesses as safe removal proof.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f161bfc1aa51e478dcf39c55340b056018759a01b89a476178c1ea8ca59cdf5d",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not duplicate Semgrep/security-gate findings as if slop scan owns those checks when CI already owns them.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f161bfc1aa51e478dcf39c55340b056018759a01b89a476178c1ea8ca59cdf5d",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not make agents or prompts the authority for deterministic Phase 1 scanner facts.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f161bfc1aa51e478dcf39c55340b056018759a01b89a476178c1ea8ca59cdf5d",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not hide skipped, degraded, timed-out, absent, or missing detectors behind a clean result.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f161bfc1aa51e478dcf39c55340b056018759a01b89a476178c1ea8ca59cdf5d",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "Do not automatically delete code.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f161bfc1aa51e478dcf39c55340b056018759a01b89a476178c1ea8ca59cdf5d",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT6",
+        "kind": "avoidance",
+        "text": "Do not replace existing PR CI/CD security-gate workflow or change branch protection as part of this change.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f161bfc1aa51e478dcf39c55340b056018759a01b89a476178c1ea8ca59cdf5d",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-06-12T05:06:14.339Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Typed slop_scan_report.v1 schema, bin/adv slop-scan --json, and runner/adapters implemented. Reviewer verdict READY.",
+          "notes": "Deterministic scanner facts come from runner output, not chat."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Adapters present/tested for ESLint+Knip, Radon+Vulture, gocyclo+deadcode, ast-grep+jscpd. Tests: bun test bin/lib/slop-scan bin/adv.test.ts passed 41 tests.",
+          "notes": "Unavailable tools surface coverage states."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "external-ci adapter marks Semgrep PR gate externally_covered. polyglot.test validates no local duplicate finding for Semgrep coverage.",
+          "notes": ""
+        },
+        {
+          "contractId": "SC4",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Coverage schema and renderer include run/skipped/degraded/failed/timed_out/unavailable/externally_covered; important warnings shown prominently. render tests passed.",
+          "notes": ""
+        },
+        {
+          "contractId": "SC5",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Deletion candidates from Knip/Vulture/Go deadcode use MAINT-003, grouping user-review, actionability review_required, fix requires verification. Adapter tests passed.",
+          "notes": "No auto-delete path added."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "bin/adv.test.ts validates slop-scan --json emits slop_scan_report.v1 with findings, severity/category summary, languages, and detector coverage. bun test bin/lib/slop-scan bin/adv.test.ts passed 41 tests.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Adapter tests cover TS/JS, Python, Go, ast-grep, jscpd; renderer tests cover prominent warnings for unavailable/failed important detectors. bun test bin/lib/slop-scan passed.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "external-ci polyglot test validates Semgrep workflow text produces coverage state externally_covered with p/javascript p/typescript evidence.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "slop-scan-false-positive-fixtures.test now rejects sentinel markers and uses executable source-structure checks. Targeted plugin tests passed 17 tests.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Knip, Vulture, and Go deadcode tests assert review_required/user-review deletion candidates; _findings deletionCandidate fix text requires verification before removal.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Config parser tests validate canonical threshold keys, legacy warnings, invalid values; asset tests validate command/skill docs use canonical keys. Smoke passed schemas:check/typecheck/lint/format.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "render.test covers PROMINENT COVERAGE WARNINGS; reviewer added category/grouping/evidence text tests. bun test bin/lib/slop-scan passed.",
+          "notes": ""
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No branch-protection or CI workflow replacement. Semgrep represented via external-ci coverage adapter only.",
+          "notes": ""
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Slop spec/docs updated; deletion safety and false-positive controls preserved in schema, docs, and adapter behavior.",
+          "notes": ""
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Tool runner maps failed/timed_out/unavailable states into coverage; renderer warns on important warning states; smoke passed.",
+          "notes": ""
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "CLI JSON and text renderer both consume SlopScanReport from bin/lib/slop-scan/schema and runSlopScan.",
+          "notes": ""
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "design_proof",
+          "evidence": "Design chose bin/adv CLI runner plus typed modules; implementation followed that shape without adding unrelated boundaries.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Deletion candidates remain review_required; no heuristic-only safe-removal path or auto-delete path introduced.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Semgrep local findings not emitted; security gate is external-ci-semgrep coverage state externally_covered.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Deterministic facts use CLI runner, typed schema, adapter parsers, and tests; prompt/agent text updated to cite runner as source-of-truth.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Coverage.detectors[] includes non-run states and renderer prints prominent warnings; no clean-result-only suppression.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No deletion automation added; deletion fixes say verify before removal.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT6",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Existing security-gates workflow left unchanged; no branch protection changes.",
+          "notes": ""
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "Given a repo with supported source files, when slop scan runs, then output includes a machine-readable result with `findings[]`, severity summary, category summary, and detector coverage.",
+    "Given TS/JS, Python, Go, and duplicated-code fixture targets, when slop scan runs, then each relevant detector is either run or reported as skipped/degraded/failed/unavailable with a prominent warning.",
+    "Given Semgrep/security-gate coverage exists in PR CI config, when slop scan reports security coverage, then overlapping checks are marked externally covered and not duplicated as local slop-scan findings.",
+    "Given clean and dirty fixture projects, when tests run, then detector execution produces expected normalized findings/coverage without sentinel-string-only simulation.",
+    "Given dead-code or unused-export candidates, when findings are reported, then actionability states review/verification required and does not claim safe automatic deletion.",
+    "Given configured slop-scan thresholds, when docs/config/schema are checked, then threshold field names are consistent and invalid/missing detector config is surfaced.",
+    "Given any important detector fails, times out, or is absent, when text output is rendered, then report includes a prominent coverage warning and does not silently imply complete clean coverage."
+  ],
+  "documents": {
+    "proposal": "# Add Slop Detector\n\n## Why\n\n`/adv-slop-scan` has strong documented intent but still relies too much on slash-command prose, asset tests, and agent execution. The command needs a reproducible, tool-backed scanner surface that fixes every finding captured in `docs/adv-slop-scan-prep.md`, while recognizing that some security scanning already exists in the PR CI/CD pipeline through reusable security gates such as Semgrep.\n\n## Problem Statement\n\n`/adv-slop-scan` should produce reliable, repeatable evidence for code slop — overengineering, dead code, bad abstractions, unneeded flexibility, complexity cost, duplication, and missing detector coverage — without depending on agents and prompting to discover real data. Current evidence shows the command contract names deterministic checks, JSON output, and coverage reporting, but the repo lacks a first-class runner/CLI surface; tests simulate findings with sentinel strings; coverage metadata is too shallow; docs/config field names drift; and existing CI scanners are not integrated or accounted for.\n\n## What Changes\n\n- Establish a deterministic slop-scan execution surface for Phase 1 findings and JSON output.\n- Fix all findings from `docs/adv-slop-scan-prep.md`:\n  - Security: remove checks already continuously covered by PR CI/CD tools such as Semgrep from local slop-scan ownership; report those as externally covered security-gate coverage instead.\n  - Reliability: replace prose-only detector execution with a first-class, reproducible runner surface.\n  - Testing: replace sentinel-string-only fixture tests with executable golden/fixture verification.\n  - Observability: expose skipped, degraded, timed-out, absent, and missing detector coverage in normal output and JSON metadata.\n  - Developer Experience: make the documented CLI/JSON slop-scan path real and usable outside chat.\n  - Code Quality: eliminate threshold naming drift between command docs, skill docs, config, and typed schema.\n- Ensure scanner/tool failures are visible outcomes: failed, unavailable, timed-out, or unsupported detectors must be surfaced as coverage gaps rather than collapsed into a clean result.\n- Support frontend and backend codebases: TypeScript/JavaScript, Python, Go, and polyglot duplication/structural tools where viable.\n- Include all detector adapters in the initial delivery unless discovery/design proves a specific adapter unsafe or unavailable; unsafe/unavailable adapters must still appear as explicit coverage gaps.\n- Keep deletion findings as review inputs only; no automatic deletion.\n- Preserve Phase 2 agent review as advisory context, not the source of truth for deterministic facts.\n\n## User Outcomes\n\n- Users can run slop scan and get repeatable evidence-backed findings, not agent-only judgment.\n- Users see the full list of actionable slop categories requested: overengineering, dead code, bad abstractions, needless flexibility, complexity, duplication, and detector gaps.\n- Users can trust “no findings” only when detector coverage says important scanners actually ran or were explicitly skipped/degraded.\n- Users do not receive duplicate or conflicting security findings for checks already covered by PR CI/CD; existing Semgrep/security-gate coverage is visible in the scanner story.\n- Users get safer cleanup recommendations: deletion candidates are clearly labeled, evidence-backed, and require verification before removal.\n\n## Scope\n\n### In Scope\n\n- `/adv-slop-scan` command behavior and backing methodology.\n- Deterministic Phase 1 scanner surface and JSON report contract.\n- CLI/CI-accessible slop-scan output matching the existing CLI surface direction.\n- Normalized finding schema for slop findings and coverage metadata.\n- Removal of local slop-scan ownership for checks already continuously covered by PR security gates such as Semgrep, with explicit “covered externally” reporting.\n- Detector coverage reporting for skipped/degraded/missing tools.\n- Golden fixture tests for clean/dirty samples and false-positive controls.\n- Threshold/config naming consistency across docs, project config, and typed schema.\n- TypeScript/JavaScript, Python, Go, and polyglot detector support where tools are viable.\n- Research-pack findings from `docs/adv-slop-scan-prep.md`.\n\n### Out of Scope\n\n- Automatic code deletion or automatic cleanup.\n- Replacing the existing PR CI/CD security gate workflow.\n- Re-running local checks that are already continuously covered by PR CI gates unless needed only as optional coverage evidence.\n- Adopting an enterprise dashboard such as SonarQube unless discovery proves it is necessary.\n- Changing branch protection policy for security gates.\n- Reworking unrelated ADV scanner commands outside interactions needed for consistency.\n\n### Must Not\n\n- Must not treat heuristic-only, regex-only, text-only, single-tool, or agent-only unused-code guesses as safe removal proof.\n- Must not duplicate Semgrep/security-gate findings as if slop scan owns those checks when CI already owns them.\n- Must not make agents or prompts the authority for deterministic Phase 1 scanner facts.\n- Must not hide skipped, degraded, timed-out, absent, or missing detectors behind a clean result.\n- Must not create implementation tasks during proposal.\n\n## Affected Code\n\nExpected areas to inspect during discovery:\n\n- `.opencode/command/adv-slop-scan.md`\n- `skills/adv-slop-detection/*`\n- `slop-smells.yaml`\n- `.adv/specs/slop-scan/spec.json`\n- `docs/specs/slop-scan.md`\n- `plugin/src/adv-slop-scan-assets.test.ts`\n- `plugin/src/slop-scan-false-positive-fixtures.test.ts`\n- `plugin/src/types/project.ts`\n- `bin/adv`, `bin/lib/*`, and related CLI tests if CLI becomes the chosen execution surface\n- `.github/workflows/security-gates-pilot.yml` for existing Semgrep/security-gate coverage context\n\n## Related Repositories\n\nCurrent evidence points to this repo only. The CI security gate references `Sharper-Flow/sharperflow-security-gates`, but this change should consume/account for that integration from Advance unless discovery proves a cross-repo change is required.\n\n## Constraints\n\n- Proposal stays implementation-free where discovery must choose exact design.\n- Specs remain the law: `slop-scan` requirements `rq-ss001` through `rq-ss012` are affected.\n- Existing PR CI/CD security coverage must be recognized, not overwritten by duplicate local policy.\n- Slop scan must preserve false-positive protections and deletion-safety boundaries.\n- Scanner/tool failures must surface as explicit coverage gaps; a failed detector must not produce a misleading clean scan.\n- CLI JSON and chat report should be views over typed scanner evidence, not separate truth sources.\n\n## Impact\n\n- Higher confidence in `/adv-slop-scan` findings.\n- Lower agent/prompt dependence for scanner facts.\n- Better CI/local reproducibility.\n- Clearer separation between deterministic scanner data and advisory semantic review.\n- Safer dead-code cleanup by preserving review-oriented deletion candidates.\n\n## Context\n\nEvidence source: `docs/adv-slop-scan-prep.md`.\n\nExisting overlap:\n\n- ROADMAP `#84 Sweep unused type exports flagged by knip` is related but narrower; it is cleanup work, not scanner infrastructure.\n- `.github/workflows/security-gates-pilot.yml` already configures reusable security gates with `semgrep-configs: \"p/javascript p/typescript\"` over `plugin/src plugin/scripts`.\n- No active ADV change clearly owns the slop-scan runner work.\n\n## Discovery Agenda\n\nCodebase unknowns to resolve in discovery:\n\n- Exact best home for the deterministic runner: `bin/adv`, plugin tool code, shared module, or layered combination.\n- Whether current CLI helpers can share normalized result/schema code without duplicating plugin internals.\n- Which existing tests should become golden fixture tests vs asset-contract tests.\n\nEcosystem/tooling unknowns to resolve in discovery:\n\n- Whether `knip` should become a devDependency or remain optional/externally invoked.\n- Which structural overengineering checks are reliable enough for deterministic AST rules.\n- Whether `ast-grep`, `jscpd`, or another tool is mature enough for repo-local use.\n- How to consume/account for Semgrep and reusable security-gate results without duplicating PR CI responsibilities.\n\nDomain unknowns to resolve in discovery:\n\n- False-positive thresholds per detector category.\n- Which slop categories should be blocking vs low-confidence/user-review.\n- How much “all findings” requires immediate implementation vs staged delivery while still fixing every prep-pack finding.\n\nIntegration unknowns to resolve in discovery:\n\n- Whether any update is needed in `Sharper-Flow/sharperflow-security-gates`; default assumption is no.\n- Whether slop-scan metadata should remain project metadata only or gain a richer persisted scan artifact.\n- Whether existing CLI surface parity tests already provide enough structure for a new `slop-scan` subcommand.\n\n## Discovery Findings\n\n### Skills Considered\n\n- `adv-slop-detection`: matched core slop-scan methodology; loaded and applied.\n- `adv-agent-tool-contracts`: matched schema/tool/CLI/report-contract work; loaded and applied.\n- Pending skill review scan: no actionable pending-review frontmatter found; the only `review_status: \"pending\"` match was an instructional example in `adv-skill-author`.\n\n### Extends\n\n- Extends `docs/adv-slop-scan-prep.md`.\n- New findings beyond prep pack:\n  - `.github/workflows/security-gates-pilot.yml` already delegates Semgrep security scanning to `Sharper-Flow/sharperflow-security-gates`; slop scan should remove overlapping local ownership for those security checks and report them as externally covered.\n  - Backend support must be first-class: existing spec already names Python `radon`, Go `gocyclo`, and Go `deadcode`; user confirmed frontend-only scope is insufficient.\n  - Related CLI pattern exists in `bin/adv` status/roadmap dispatch, so adding `slop-scan` should follow the existing Bun CLI module shape.\n\n### Conflict Scan\n\n- Active related change: `addSlopDetector` only. No active change clearly owns slop-scan runner infrastructure.\n- `adv_change_validate` passed. Expected pre-prep warnings only: no tasks and no deltas.\n- Archived-change listing timed out; discovery proceeds with current active-change and roadmap evidence, and records archive scan as degraded.\n- Agenda contains many scanner/CLI follow-ups, but no single pending item supersedes this change.\n\n### Current State\n\n- `slop-scan` spec already requires AST-first detection, structured JSON fields, Knip preference, false-positive control, deletion safety, and coverage reporting.\n- `/adv-slop-scan` command names detector categories and coverage output, but implementation evidence is command/skill prose plus asset tests.\n- `bin/adv` currently supports `status` and `roadmap`; `slop-scan` is not implemented.\n- `docs/cli-surface-matrix.md` already classifies `/adv-slop-scan` as `mcp+cli-additive` with CLI JSON output.\n- Existing Semgrep security gate runs in PR/push pilot workflow; local slop scan should not duplicate its ownership.\n\n### Edge Cases\n\n- Detector unavailable on a repo language: output must show prominent coverage warning, not a clean result.\n- Detector exits non-zero because findings were found vs tool failure: runner must distinguish finding status from execution failure.\n- Public API/export surfaces: deletion candidate must remain review-only unless structural evidence and entrypoint/config checks support actionability.\n- Backend repo without TypeScript: Python/Go detector registry must still produce coverage and findings rather than TS-only behavior.\n- CI-covered security checks: slop scan must avoid duplicate local Semgrep findings while still making external coverage visible.\n- Prompt/fixture text: scanner must not report prompt examples or dirty fixtures as product findings unless explicitly in target scope.\n\n### Open Design Questions\n\n- Runner home: `bin/adv`, plugin shared module, or layered shared core. Trust model: agent-resolved LBP. Blast radius: duplicate truth sources or hard-to-test CLI. Alternatives: CLI-only, plugin-only, shared module.\n- Tool dependency model: devDependency vs optional external invocation. Trust model: agent-resolved LBP with user scope input. Blast radius: offline CI failures or unstable `dlx` behavior. Alternatives: pinned dev deps, optional adapters, repo-local config.\n- Semgrep handling: user-resolved. User chose removing checks already continually scanned in PR gates. Blast radius: duplicate/security noise if wrong. Alternatives: reference CI coverage, ingest artifacts, rerun locally.\n- Detector breadth: user-resolved. User chose all adapters now and backend support. Blast radius: larger implementation. Alternatives: staged registry, all initial adapters, core-only.\n- Missing detector output: user-resolved. User chose prominent warning. Blast radius: false confidence if hidden. Alternatives: block clean result, warning, JSON-only detail.\n\n### Draft Spec Deltas\n\n- `rq-ss013` — Deterministic runner / CLI JSON surface.\n  - Given `/adv-slop-scan` is run in a repo with supported files.\n  - When deterministic Phase 1 runs.\n  - Then the scanner produces a typed JSON result without requiring agent judgment.\n- `rq-ss014` — Externally covered security-gate accounting.\n  - Given a repo has PR CI security gates for Semgrep or equivalent checks.\n  - When slop scan reports security coverage.\n  - Then overlapping checks are marked externally covered instead of duplicated as local findings.\n- `rq-ss015` — Multi-language detector registry.\n  - Given TS/JS, Python, Go, or polyglot files are present.\n  - When slop scan resolves detectors.\n  - Then each relevant detector is run, skipped, degraded, or marked unavailable with explicit coverage metadata.\n- `rq-ss016` — Golden fixture execution.\n  - Given clean and dirty fixture projects.\n  - When slop-scan tests run.\n  - Then tests execute detector paths and assert normalized findings/coverage, not sentinel-only simulation.\n\n### Related Pattern Scan\n\n- Similar CLI/matrix drift exists for `/adv-arch-scan`: matrix says additive CLI JSON output, but `bin/adv` currently lists only `status` and `roadmap`.\n- Similar shallow metadata pattern exists in project metadata tests: metadata records count/summary, not detector-level details.\n- Similar scanner coverage concepts exist in `adv-arch-scan`; slop-scan should reuse the coverage shape where possible but not expand this change into arch-scan implementation.\n\n### LBP Check\n\n- Best direction: shared typed detector registry + normalized schema, exposed through `bin/adv slop-scan --json`, with chat report as a view.\n- External pack findings remain applicable: Knip for TS/JS dead code, ESLint for TS/JS complexity/depth, ast-grep for structural patterns, jscpd for polyglot duplication, Vulture/Radon for Python, deadcode/gocyclo for Go.\n- Discovery user decisions refine prep recommendation: Semgrep-like CI-owned security checks should be removed from local slop-scan ownership and represented as external coverage.\n\n### Discovery Opportunity Scout\n\n- Scout run: yes.\n- Auto-adopted: shared Zod finding/coverage schema, `bin/adv slop-scan --json`, ESLint JSON adapter, typed threshold naming source.\n- User-surfaced and resolved: Semgrep handling and detector breadth.\n- Deferred/reframed: staged optional detector registry was rejected by user in favor of all adapters now, with unavailable tools shown as prominent warnings.\n\n### Ambiguity Analysis\n\n- Advisory: proposal had missing error-handling detail; resolved by adding prominent coverage-gap behavior for scanner failures/unavailable tools.\n- Coverage: B:C F:C S:C M:C\n\n### Recommended Objectives\n\n1. Deliver a deterministic, typed slop-scan runner and CLI JSON surface.\n2. Normalize all slop findings and coverage gaps through one schema.\n3. Support TS/JS, Python, Go, and polyglot duplication/structural scanning where viable.\n4. Remove local ownership of checks already continuously covered by PR CI gates such as Semgrep; report those as external coverage.\n5. Replace sentinel/prose-only tests with executable golden fixtures.\n6. Preserve deletion safety and false-positive controls.\n7. Surface missing/failed detectors as prominent warnings.\n",
+    "problemStatement": "`/adv-slop-scan` should produce reliable, repeatable evidence for code slop — overengineering, dead code, bad abstractions, unneeded flexibility, complexity cost, duplication, and missing detector coverage — without depending on agents and prompting to discover real data. Current evidence shows the command contract names deterministic checks, JSON output, and coverage reporting, but the repo lacks a first-class runner/CLI surface; tests simulate findings with sentinel strings; coverage metadata is too shallow; docs/config field names drift; and existing CI scanners are not integrated or accounted for.",
+    "agreement": "# Agreement\n\n## Objectives\n\n1. Deliver a deterministic, typed slop-scan runner and CLI JSON surface.\n2. Normalize all slop findings and coverage gaps through one schema.\n3. Support TS/JS, Python, Go, and polyglot duplication/structural scanning where viable.\n4. Remove local ownership of checks already continuously covered by PR CI gates such as Semgrep; report those checks as externally covered.\n5. Replace sentinel/prose-only tests with executable golden fixtures.\n6. Preserve deletion safety and false-positive controls.\n7. Surface missing, failed, unavailable, or timed-out detectors as prominent warnings.\n\n## Success Criteria\n\n1. `/adv-slop-scan` produces repeatable evidence-backed results without relying on agent judgment for deterministic scanner facts.\n2. Slop scan covers frontend and backend codebases, including TS/JS, Python, Go, and polyglot duplication/structural signals where supported.\n3. Security checks already covered by continuous PR gates are not duplicated as local slop-scan-owned findings.\n4. A no-finding result remains trustworthy because detector coverage clearly shows what ran, skipped, degraded, failed, or was externally covered.\n5. Dead-code/deletion candidates remain review inputs only, never automatic removal proof.\n\n## Acceptance Criteria\n\n1. Given a repo with supported source files, when slop scan runs, then output includes a machine-readable result with `findings[]`, severity summary, category summary, and detector coverage.\n2. Given TS/JS, Python, Go, and duplicated-code fixture targets, when slop scan runs, then each relevant detector is either run or reported as skipped/degraded/failed/unavailable with a prominent warning.\n3. Given Semgrep/security-gate coverage exists in PR CI config, when slop scan reports security coverage, then overlapping checks are marked externally covered and not duplicated as local slop-scan findings.\n4. Given clean and dirty fixture projects, when tests run, then detector execution produces expected normalized findings/coverage without sentinel-string-only simulation.\n5. Given dead-code or unused-export candidates, when findings are reported, then actionability states review/verification required and does not claim safe automatic deletion.\n6. Given configured slop-scan thresholds, when docs/config/schema are checked, then threshold field names are consistent and invalid/missing detector config is surfaced.\n7. Given any important detector fails, times out, or is absent, when text output is rendered, then report includes a prominent coverage warning and does not silently imply complete clean coverage.\n\n## Constraints\n\n1. Existing PR CI/CD security coverage must be recognized, not overwritten by duplicate local policy.\n2. Slop scan must preserve false-positive protections and deletion-safety boundaries from the existing `slop-scan` spec.\n3. Scanner/tool failures must surface as explicit coverage gaps; a failed detector must not produce a misleading clean scan.\n4. CLI JSON and chat report must be views over typed scanner evidence, not separate truth sources.\n5. Discovery/design must choose exact implementation shape; agreement does not mandate internal module boundaries.\n\n## Avoidances\n\n1. Do not treat heuristic-only, regex-only, text-only, single-tool, or agent-only unused-code guesses as safe removal proof.\n2. Do not duplicate Semgrep/security-gate findings as if slop scan owns those checks when CI already owns them.\n3. Do not make agents or prompts the authority for deterministic Phase 1 scanner facts.\n4. Do not hide skipped, degraded, timed-out, absent, or missing detectors behind a clean result.\n5. Do not automatically delete code.\n6. Do not replace existing PR CI/CD security-gate workflow or change branch protection as part of this change.\n\n## Preview Applicability\n\nvisual_surface: false\n\nRationale: This change affects CLI/chat/reporting surfaces and developer workflow, not browser-visible UI or visual product output.\n\n## Decisions\n\n### User Decisions\n\n1. Semgrep/security overlap: remove local slop-scan checks already continuously covered by PR gates like Semgrep; represent them as externally covered.\n2. Detector breadth: initial delivery should cover all adapters now, including backend code like Python/Go, unless discovery/design proves a specific adapter unsafe or unavailable.\n3. Coverage failures: missing or failed important detectors should show prominent warnings.\n\n### Agent Decisions (LBP)\n\n1. Use a typed finding/coverage contract as the source of truth for CLI JSON, chat reports, metadata, and golden tests.\n2. Prefer existing `bin/adv` CLI patterns for a reproducible `slop-scan --json` surface.\n3. Treat detector registry coverage as first-class output: run, skipped, degraded, failed, unavailable, and externally covered are distinct states.\n4. Keep deletion findings review-oriented, matching existing slop-scan spec requirements.\n\n## Deferred Questions\n\nNone.\n\n## Sign-Off\n\nUser approved discovery criteria and agreement via inline reply: \"approve\".\n",
+    "design": "# Design\n\n## Architecture Overview\n\nBuild `/adv-slop-scan` around a deterministic scanner core, then expose that core through the existing `bin/adv` CLI surface and the slash-command report flow.\n\nCore shape:\n\n```text\nbin/adv slop-scan [path] --json|--no-color\n        │\n        ▼\nbin/lib/slop-scan/*\n  ├─ schema.ts          typed finding/report/coverage contract\n  ├─ config.ts          project.json threshold parser + defaults\n  ├─ registry.ts        language/tool detector registry\n  ├─ runner.ts          bounded command execution + result normalization\n  ├─ render.ts          text report from typed report\n  └─ adapters/*         ESLint, Knip, Radon, Vulture, gocyclo, deadcode, ast-grep, jscpd, external-ci coverage\n```\n\n`/adv-slop-scan` becomes a report/orchestration layer over typed scanner output. Deterministic Phase 1 facts come from the runner; Phase 2 agent/scanner work remains advisory and cannot create deterministic findings without source/tool evidence.\n\n## Key Decisions\n\n### KD1 — Single typed slop report contract\n\nUse one TypeScript/Zod-shaped contract for:\n\n- CLI JSON output\n- text report rendering\n- project metadata summary\n- golden fixture assertions\n- future MCP/tool integration\n\nThe report contract includes:\n\n- `scope`: repo root, requested path, language stack summary\n- `summary`: `bySeverity`, `byCategory`, total findings\n- `findings[]`: existing slop finding fields (`id`, `name`, `severity`, `file`, `line`, `description`, `fix`, `confidence`, `detectionMethod`, `grouping`, `actionability`, `phase`, `nestingDepth`, `complexity`)\n- `coverage`: detector states: `run`, `skipped`, `degraded`, `failed`, `timed_out`, `unavailable`, `externally_covered`\n- `falsePositiveProtections`: protected surfaces and suppression rationale\n\nRationale: fixes shallow coverage, sentinel-only tests, and separate-truth risk in one place.\n\n### KD2 — CLI owns deterministic execution surface\n\nAdd `slop-scan` to `bin/adv`, following current `status`/`roadmap` dispatcher style and `bin/lib/*` module locality.\n\nRequired modes:\n\n- `bin/adv slop-scan [path] --json`\n- `bin/adv slop-scan [path] --no-color`\n- optional `--phase 1` kept compatible with command docs; initial deterministic runner is Phase 1.\n\nRationale: `docs/cli-surface-matrix.md` already marks `/adv-slop-scan` as `mcp+cli-additive`; CLI JSON is the reproducible surface needed for CI/local use.\n\n### KD3 — Detector registry separates adapter implementation from tool availability\n\nEvery supported detector has a registry entry even when the binary is not installed. The registry reports explicit coverage states instead of silently omitting detectors.\n\nDetector coverage model:\n\n| State | Meaning | Report behavior |\n|---|---|---|\n| `run` | Tool executed and output normalized | Findings/zero findings trusted for that detector |\n| `skipped` | Not applicable to current stack/scope | Listed in coverage detail |\n| `degraded` | Fallback ran because primary unavailable/timed out | Prominent warning when important |\n| `failed` | Tool invocation failed unexpectedly | Prominent warning |\n| `timed_out` | Tool exceeded budget | Prominent warning |\n| `unavailable` | Tool not found / no project dependency / no PATH binary | Prominent warning for relevant stack |\n| `externally_covered` | Existing CI gate owns this check | Coverage note, no duplicate local finding |\n\nRationale: satisfies “all adapters now” by implementing all registry/adapters, while preserving honest behavior when repo/tool environment lacks a binary.\n\n### KD4 — Multi-language detector matrix\n\nInitial detector adapters:\n\n| Domain | TS/JS | Python | Go | Polyglot |\n|---|---|---|---|---|\n| Complexity/depth | ESLint `complexity`, `max-depth` JSON | Radon `cc` | gocyclo | degraded brace/indent fallback |\n| Dead code | Knip JSON; ts-prune legacy fallback only if needed | Vulture with confidence threshold | `deadcode` from `golang.org/x/tools/cmd/deadcode` | N/A |\n| Structural overengineering | ast-grep rules | ast-grep rules where viable | ast-grep rules where viable | rule coverage state |\n| Duplication | jscpd JSON | jscpd JSON | jscpd JSON | jscpd JSON |\n| PR-gate security overlap | externally covered when CI config shows Semgrep/security gate | externally covered only if matching CI coverage exists | externally covered only if matching CI coverage exists | N/A |\n\nRationale: user explicitly rejected frontend-only scope and requested all adapters now.\n\n### KD5 — Existing PR security gates are external coverage, not local slop findings\n\nWhen repo config shows continuous PR security gates such as `.github/workflows/security-gates-pilot.yml` with Semgrep configs, slop scan removes overlapping local security checks from its owned detector set and records them as `externally_covered`.\n\nNo local re-run of Semgrep is part of this change. No cross-repo change to `Sharper-Flow/sharperflow-security-gates` is part of this design.\n\nRationale: matches user decision: “remove checks that already exist in tools like semgrep that are continually scanned in our pr gates.”\n\n### KD6 — No network auto-install during scans\n\nThe scanner resolves tools in this order:\n\n1. project-local executable (`plugin/node_modules/.bin`, workspace package manager path when applicable)\n2. PATH executable\n3. mark `unavailable`\n\nIt does not run `pnpm dlx`, `npx`, `go install`, `pip install`, or other network/install commands during a scan.\n\nRationale: deterministic scanner results should not depend on network state or mutate developer environments.\n\n### KD7 — Metadata stays compact; full report stays CLI output\n\nProject metadata remains a count/summary surface, but the summary includes coverage status, for example:\n\n- `3 findings; 2 warnings: knip unavailable, jscpd timed out`\n- `no findings; externally covered: semgrep; warnings: vulture unavailable`\n\nThe full structured report is CLI JSON output, not squeezed into existing metadata.\n\nRationale: avoids expanding metadata schema before a durable scan-artifact requirement exists.\n\n## ADR Drafts\n\nNone. Decisions are important but not hard-to-reverse enough to require an ADR. The runner can evolve by adding/removing adapters behind the registry.\n\n## Implementation Strategy\n\n1. Add `bin/lib/slop-scan/schema.ts` with report/finding/coverage types and runtime validators.\n2. Add `bin/lib/slop-scan/config.ts` to parse `project.json features.slop_scan` using canonical field names:\n   - `nesting_depth_threshold`\n   - `defensive_guard_threshold`\n   - `complexity_threshold`\n   - `ast_timeout_ms`\n3. Add detector registry and bounded process runner:\n   - command timeout uses `ast_timeout_ms` where applicable\n   - classify exit codes as findings vs tool failure per adapter\n   - stdout/stderr captured with bounded output\n4. Implement adapters:\n   - ESLint JSON adapter for TS/JS complexity/depth\n   - Knip JSON adapter for TS/JS dead code; ts-prune legacy fallback only when explicitly configured/available\n   - Radon adapter for Python complexity\n   - Vulture adapter for Python dead code\n   - gocyclo adapter for Go complexity\n   - Go deadcode adapter for unreachable functions\n   - ast-grep adapter for structural overengineering patterns\n   - jscpd JSON adapter for duplication\n   - external CI coverage adapter for Semgrep/security gates\n5. Add `bin/adv slop-scan` dispatch and help text.\n6. Update `/adv-slop-scan` command/skill/docs to treat CLI JSON as Phase 1 source of truth.\n7. Replace or supplement sentinel tests with executable golden fixtures:\n   - clean TS/JS fixture\n   - dirty TS/JS fixture\n   - Python fixture\n   - Go fixture\n   - duplication fixture\n   - missing-tool fixture\n   - externally-covered Semgrep fixture\n8. Update `docs/specs/slop-scan.md` and `.adv/specs/slop-scan/spec.json` with runner/coverage/security-overlap requirements.\n9. Keep asset tests for command/skill/spec alignment, but no longer use them as sole proof of detector behavior.\n\n## LBP Analysis\n\nThis design follows the long-term best practice already encoded in ADV rules:\n\n- structural correctness before heuristics\n- source/tool evidence before agent judgment\n- typed schemas before prose-only contracts\n- explicit degraded/coverage reporting instead of silent omission\n- no automatic deletion from dead-code guesses\n\nTool choices align with current references:\n\n- ESLint provides JSON output and existing local availability for TS/JS complexity/depth.\n- Knip is the current preferred TS/JS dead-code/dependency analyzer in the existing slop spec.\n- Radon and gocyclo are already named by the slop spec for Python/Go complexity.\n- Vulture and Go `deadcode` provide language-native dead-code evidence with known false-positive constraints.\n- ast-grep and jscpd provide polyglot structural/duplication coverage and JSON outputs.\n\n## Affected Components\n\n- `bin/adv`\n- `bin/lib/slop-scan/*` (new)\n- `bin/adv.test.ts`\n- `bin/lib/*` tests for slop-scan modules\n- `.opencode/command/adv-slop-scan.md`\n- `skills/adv-slop-detection/*`\n- `slop-smells.yaml` if detector mappings need updated source references\n- `.adv/specs/slop-scan/spec.json`\n- `docs/specs/slop-scan.md`\n- `plugin/src/adv-slop-scan-assets.test.ts`\n- `plugin/src/slop-scan-false-positive-fixtures.test.ts`\n- `plugin/test/fixtures/slop-scan/*`\n- `.github/workflows/security-gates-pilot.yml` read-only fixture/reference; no workflow behavior change intended\n\n## Design-Derived Criteria\n\n1. CLI JSON must parse through the shared report validator before being emitted.\n2. Text output must be rendered from the same report object as JSON output.\n3. Important relevant detector states `failed`, `timed_out`, or `unavailable` must render as prominent warnings in text output.\n4. Scanner execution must not perform network installs or mutate dependency manifests.\n5. Every adapter must include at least one golden fixture test for: findings path, no-findings path, and unavailable/degraded path when applicable.\n6. External security coverage must be represented as `externally_covered` and must not emit duplicate local findings for the covered check family.\n7. Deletion-candidate findings must default to review/verification actionability unless structural source/tool evidence and entrypoint/config checks support stronger actionability.\n\n## Risks / Mitigations\n\n| Risk | Mitigation |\n|---|---|\n| Scope grows because all adapters are included | Implement adapter registry first; each adapter can return `unavailable` with tests while still making coverage honest. |\n| Tool output formats vary or change | Keep adapter-specific normalizers with fixture snapshots; avoid parsing human text where JSON or structured output exists. |\n| Missing tools make report look weak | Prominent warnings make unavailable detectors visible instead of pretending clean coverage. |\n| Semgrep overlap becomes confusing | External CI adapter reports `externally_covered`; no local Semgrep findings. |\n| Python/Go tools unavailable in this repo | Golden tests use controlled fixture doubles or mocked runner outputs where installing language tools is not part of repo setup. |\n| CLI and plugin schemas drift | Keep slop-scan schema local to CLI for first implementation and add parity/asset tests; promote to public schema only when external consumers need it. |\n| Deletion false positives | Preserve current deletion-safety rules and require verification-oriented wording. |\n\n## Design Leverage Scout\n\nScout attempted twice with `adv-researcher` (`researcher:design-leverage-scout`) but returned empty output both times. Result: inconclusive. No blocking conflict or contract-compromise evidence found from the empty responses; proceed with validator per design workflow.\n\n## Validator Result\n\nValidation attempted twice with `adv-researcher` (`researcher:design-validation`) but returned empty output both times. Result: INCONCLUSIVE.\n\nNo validator conflict or contract-compromise evidence was returned. The design remains aligned with the approved agreement and existing `slop-scan` requirements based on orchestrator-checked evidence.\n",
+    "executiveSummary": "# Executive Summary\n\nImplemented deterministic slop-scan runner and CLI surface.\n\n## Delivered\n\n- Added `slop_scan_report.v1` typed report contract with finding summary and detector coverage.\n- Added `bin/adv slop-scan [path] --json|--no-color` command.\n- Added bounded detector runner and text renderer with prominent warnings for failed, timed-out, unavailable, or degraded important detectors.\n- Added adapters for ESLint, Knip, Radon, Vulture, gocyclo, Go deadcode, ast-grep, jscpd, and Semgrep PR-gate external coverage.\n- Marked Semgrep/security-gate overlap as `externally_covered`, not local findings.\n- Kept deletion candidates as `user-review` / `review_required`; no auto-delete behavior.\n- Updated slop-scan specs, command contract, skill docs, and rendered docs to use canonical threshold keys and typed coverage shape.\n- Replaced sentinel-only fixture checks with executable source-structure verification.\n\n## Verified\n\n- `bun test bin/lib/slop-scan bin/adv.test.ts` → 41 passed, 116 assertions.\n- `bin/oc-test targeted -- src/adv-slop-scan-assets.test.ts src/slop-scan-false-positive-fixtures.test.ts` → 17 passed.\n- `bin/oc-test smoke` → schemas:check, typecheck, lint, format:check, and 47 tests passed.\n- Acceptance reviewer verdict: READY.\n\n## Remaining Concerns\n\n- Optional external detector binaries may be absent in some repos; this is intentional and reported via detector coverage instead of hidden behind clean output.\n",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-06-12T05:06:14.339Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | `/adv-slop-scan` produces repeatable evidence-backed results without relying on agent judgment for deterministic scanner facts. | pass | Typed slop_scan_report.v1 schema, bin/adv slop-scan --json, and runner/adapters implemented. Reviewer verdict READY. |\n| SC2 | success_criterion | Slop scan covers frontend and backend codebases, including TS/JS, Python, Go, and polyglot duplication/structural signals where supported. | pass | Adapters present/tested for ESLint+Knip, Radon+Vulture, gocyclo+deadcode, ast-grep+jscpd. Tests: bun test bin/lib/slop-scan bin/adv.test.ts passed 41 tests. |\n| SC3 | success_criterion | Security checks already covered by continuous PR gates are not duplicated as local slop-scan-owned findings. | pass | external-ci adapter marks Semgrep PR gate externally_covered. polyglot.test validates no local duplicate finding for Semgrep coverage. |\n| SC4 | success_criterion | A no-finding result remains trustworthy because detector coverage clearly shows what ran, skipped, degraded, failed, or was externally covered. | pass | Coverage schema and renderer include run/skipped/degraded/failed/timed_out/unavailable/externally_covered; important warnings shown prominently. render tests passed. |\n| SC5 | success_criterion | Dead-code/deletion candidates remain review inputs only, never automatic removal proof. | pass | Deletion candidates from Knip/Vulture/Go deadcode use MAINT-003, grouping user-review, actionability review_required, fix requires verification. Adapter tests passed. |\n| AC1 | acceptance_criterion | Given a repo with supported source files, when slop scan runs, then output includes a machine-readable result with `findings[]`, severity summary, category summary, and detector coverage. | pass | bin/adv.test.ts validates slop-scan --json emits slop_scan_report.v1 with findings, severity/category summary, languages, and detector coverage. bun test bin/lib/slop-scan bin/adv.test.ts passed 41 tests. |\n| AC2 | acceptance_criterion | Given TS/JS, Python, Go, and duplicated-code fixture targets, when slop scan runs, then each relevant detector is either run or reported as skipped/degraded/failed/unavailable with a prominent warning. | pass | Adapter tests cover TS/JS, Python, Go, ast-grep, jscpd; renderer tests cover prominent warnings for unavailable/failed important detectors. bun test bin/lib/slop-scan passed. |\n| AC3 | acceptance_criterion | Given Semgrep/security-gate coverage exists in PR CI config, when slop scan reports security coverage, then overlapping checks are marked externally covered and not duplicated as local slop-scan findings. | pass | external-ci polyglot test validates Semgrep workflow text produces coverage state externally_covered with p/javascript p/typescript evidence. |\n| AC4 | acceptance_criterion | Given clean and dirty fixture projects, when tests run, then detector execution produces expected normalized findings/coverage without sentinel-string-only simulation. | pass | slop-scan-false-positive-fixtures.test now rejects sentinel markers and uses executable source-structure checks. Targeted plugin tests passed 17 tests. |\n| AC5 | acceptance_criterion | Given dead-code or unused-export candidates, when findings are reported, then actionability states review/verification required and does not claim safe automatic deletion. | pass | Knip, Vulture, and Go deadcode tests assert review_required/user-review deletion candidates; _findings deletionCandidate fix text requires verification before removal. |\n| AC6 | acceptance_criterion | Given configured slop-scan thresholds, when docs/config/schema are checked, then threshold field names are consistent and invalid/missing detector config is surfaced. | pass | Config parser tests validate canonical threshold keys, legacy warnings, invalid values; asset tests validate command/skill docs use canonical keys. Smoke passed schemas:check/typecheck/lint/format. |\n| AC7 | acceptance_criterion | Given any important detector fails, times out, or is absent, when text output is rendered, then report includes a prominent coverage warning and does not silently imply complete clean coverage. | pass | render.test covers PROMINENT COVERAGE WARNINGS; reviewer added category/grouping/evidence text tests. bun test bin/lib/slop-scan passed. |\n| C1 | constraint | Existing PR CI/CD security coverage must be recognized, not overwritten by duplicate local policy. | respected | No branch-protection or CI workflow replacement. Semgrep represented via external-ci coverage adapter only. |\n| C2 | constraint | Slop scan must preserve false-positive protections and deletion-safety boundaries from the existing `slop-scan` spec. | respected | Slop spec/docs updated; deletion safety and false-positive controls preserved in schema, docs, and adapter behavior. |\n| C3 | constraint | Scanner/tool failures must surface as explicit coverage gaps; a failed detector must not produce a misleading clean scan. | respected | Tool runner maps failed/timed_out/unavailable states into coverage; renderer warns on important warning states; smoke passed. |\n| C4 | constraint | CLI JSON and chat report must be views over typed scanner evidence, not separate truth sources. | respected | CLI JSON and text renderer both consume SlopScanReport from bin/lib/slop-scan/schema and runSlopScan. |\n| C5 | constraint | Discovery/design must choose exact implementation shape; agreement does not mandate internal module boundaries. | respected | Design chose bin/adv CLI runner plus typed modules; implementation followed that shape without adding unrelated boundaries. |\n| DONT1 | avoidance | Do not treat heuristic-only, regex-only, text-only, single-tool, or agent-only unused-code guesses as safe removal proof. | respected | Deletion candidates remain review_required; no heuristic-only safe-removal path or auto-delete path introduced. |\n| DONT2 | avoidance | Do not duplicate Semgrep/security-gate findings as if slop scan owns those checks when CI already owns them. | respected | Semgrep local findings not emitted; security gate is external-ci-semgrep coverage state externally_covered. |\n| DONT3 | avoidance | Do not make agents or prompts the authority for deterministic Phase 1 scanner facts. | respected | Deterministic facts use CLI runner, typed schema, adapter parsers, and tests; prompt/agent text updated to cite runner as source-of-truth. |\n| DONT4 | avoidance | Do not hide skipped, degraded, timed-out, absent, or missing detectors behind a clean result. | respected | Coverage.detectors[] includes non-run states and renderer prints prominent warnings; no clean-result-only suppression. |\n| DONT5 | avoidance | Do not automatically delete code. | respected | No deletion automation added; deletion fixes say verify before removal. |\n| DONT6 | avoidance | Do not replace existing PR CI/CD security-gate workflow or change branch protection as part of this change. | respected | Existing security-gates workflow left unchanged; no branch protection changes. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addSlopDetector/proposal.md",
+      "updatedAt": "2026-06-12T04:17:51.454Z",
+      "contentHash": "d8e538db43206199257d26f9c64c37f9b3402f6f33341423f0c610dc3bf9af2b"
+    },
+    "problemStatement": {
+      "path": "",
+      "updatedAt": "2026-06-12T04:09:04.619Z"
+    },
+    "agreement": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addSlopDetector/agreement.md",
+      "updatedAt": "2026-06-12T04:19:04.488Z",
+      "contentHash": "f161bfc1aa51e478dcf39c55340b056018759a01b89a476178c1ea8ca59cdf5d"
+    },
+    "design": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addSlopDetector/design.md",
+      "updatedAt": "2026-06-12T04:23:51.613Z",
+      "contentHash": "3afd550377711e03990660473941bd65872f0649823917f951fd9eedddf36809"
+    },
+    "executiveSummary": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addSlopDetector/executive-summary.md",
+      "updatedAt": "2026-06-12T05:06:28.473Z",
+      "contentHash": "c2146018c6f5807a61b9beced7bdf56087a7735270da7fdfc9bc8035b9b757cc"
+    }
+  },
+  "lastSignalAt": "2026-06-12T05:08:35.579Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_MISSING_ERROR_HANDLING",
+      "severity": "warning",
+      "message": "Proposal describes behavior that could fail but doesn't mention error handling or rollback. What happens when things go wrong?",
+      "recorded_at": "2026-06-12T04:10:03.289Z",
+      "resolved": true,
+      "resolved_at": "2026-06-12T04:19:38.820Z"
+    }
+  ],
+  "worktree_auto_managed": true
+}
