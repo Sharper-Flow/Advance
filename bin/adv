@@ -26,6 +26,8 @@ import {
   emitJson,
 } from "./lib/render";
 import { readSnapshotFile, renderRoadmap, roadmapJson } from "./lib/roadmap";
+import { runSlopScan } from "./lib/slop-scan/scan";
+import { renderSlopScanReport } from "./lib/slop-scan/render";
 import {
   buildLiveStatusFailure,
   buildLiveStatusPayloadFromSummaries,
@@ -167,6 +169,18 @@ async function runRoadmap(
   return 0;
 }
 
+async function runSlopScanCommand(
+  noColor: boolean,
+  json: boolean,
+  requestedPath: string,
+): Promise<number> {
+  const repoRoot = await resolveRepoRoot(process.cwd());
+  const report = await runSlopScan({ repoRoot, requestedPath });
+  if (json) process.stdout.write(emitJson(report) + "\n");
+  else process.stdout.write(renderSlopScanReport(report, shouldUseColor(noColor)));
+  return 0;
+}
+
 function runHelp(): number {
   process.stdout.write(
     `adv — ADV (Advance) status CLI
@@ -177,12 +191,13 @@ USAGE:
 SUBCOMMANDS:
   status      (default)  Show active changes table
   roadmap              Show prioritized backlog from file snapshot
+  slop-scan            Run deterministic slop scanner
 
 FLAGS (global):
   -h, --help              Show this help
   -v, --version           Print version
       --no-color          Disable ANSI colors (also: NO_COLOR=1)
-      --json              Output JSON for status or roadmap
+      --json              Output JSON for status, roadmap, or slop-scan
 
 FLAGS (roadmap only):
       --kind {bug|feature|all}
@@ -326,6 +341,35 @@ async function main(argv: string[]): Promise<number> {
       kind,
       top,
       priority,
+    );
+  }
+
+  if (subcommand === "slop-scan") {
+    const slopArgv = argv.slice(1);
+    let slopValues: Record<string, unknown>;
+    let slopPositionals: string[];
+    try {
+      const parsed = parseArgs({
+        args: slopArgv,
+        options: {
+          "no-color": { type: "boolean" },
+          json: { type: "boolean" },
+        },
+        allowPositionals: true,
+        strict: true,
+      });
+      slopValues = parsed.values as Record<string, unknown>;
+      slopPositionals = parsed.positionals;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      process.stderr.write(`slop-scan: ${msg}\n`);
+      return 2;
+    }
+
+    return runSlopScanCommand(
+      (slopValues["no-color"] as boolean) ?? false,
+      (slopValues.json as boolean) ?? false,
+      slopPositionals[0] ?? ".",
     );
   }
 

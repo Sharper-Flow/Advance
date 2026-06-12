@@ -201,7 +201,7 @@ Every finding in JSON output must include nestingDepth, complexity, confidence, 
 - The finding object includes nestingDepth (number or null)
 - The finding object includes complexity (number or null)
 - The finding object includes confidence ('high' | 'medium' | 'low')
-- The finding object includes detectionMethod ('ast' | 'regex' | 'heuristic' | 'degraded')
+- The finding object includes detectionMethod ('ast' | 'regex' | 'heuristic' | 'degraded' | 'tool' | 'external')
 
 **Text output surfaces diagnostic fields inline** (`rq-ss004.2`)
 
@@ -529,7 +529,7 @@ Phase 2 heuristic scanners must treat ADV context packets, examples, task summar
 
 **ID:** `rq-ss012` | **Priority:** **[MUST]**
 
-/adv-slop-scan must summarize skipped, degraded, timed-out, absent, and missing detectors in normal text output, and expose detailed scanner coverage in JSON metadata.
+/adv-slop-scan must summarize run, skipped, degraded, failed, timed-out, unavailable, and externally covered detectors in normal text output, and expose detailed scanner coverage in JSON metadata.
 
 **Tags:** `coverage`, `output`, `json`, `degraded`
 
@@ -539,14 +539,14 @@ Phase 2 heuristic scanners must treat ADV context packets, examples, task summar
 
 **Given:**
 
-- A detector is skipped, absent, timed out, degraded, or missing for a deletion-candidate subtype
+- A detector is skipped, failed, timed out, unavailable, degraded, or externally covered for the detected language set
 
 **When:** Text output is generated
 
 **Then:**
 
 - The report includes a scanner coverage summary
-- Skipped and degraded detectors are visible without verbose mode
+- Skipped, failed, timed-out, unavailable, degraded, and externally covered detectors are visible without verbose mode
 - Missing detector coverage is surfaced as a coverage gap, not hidden
 
 **JSON output includes coverage details** (`rq-ss012.2`)
@@ -559,6 +559,6 @@ Phase 2 heuristic scanners must treat ADV context packets, examples, task summar
 
 **Then:**
 
-- The JSON object includes coverage.skippedDetectors
-- The JSON object includes coverage.degradedDetectors
+- The JSON object includes coverage.detectors[]
+- Each detector includes a state of run, skipped, degraded, failed, timed_out, unavailable, or externally_covered
 - The JSON object includes coverage.falsePositiveProtections

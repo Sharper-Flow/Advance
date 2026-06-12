@@ -39,10 +39,14 @@ Default thresholds from `features.slop_scan`:
 
 | Key | Default |
 |---|---:|
-| `nesting_depth` | 4 |
-| `defensive_guard` | 3 |
-| `complexity` | 10 |
+| `nesting_depth_threshold` | 4 |
+| `defensive_guard_threshold` | 3 |
+| `complexity_threshold` | 10 |
 | `ast_timeout_ms` | 10000 |
+
+Deprecated aliases (`nesting_depth`, `defensive_guard`, `complexity`) may be accepted with warnings, but canonical docs/config/schema use only the threshold-suffixed names above.
+
+`bin/adv slop-scan [path] --json` emits `slop_scan_report.v1`; deterministic Phase 1 facts and detector coverage come from that typed report. Semgrep/security-gate overlap is reported as `externally_covered`, not duplicated as local findings.
 
 Deletion candidates are `MAINT-003 deletion_candidate` findings. Subtypes: unused dependency, unused export, unused file, unreachable branch, uncallable private symbol, impossible feature-flag path.
 
@@ -84,7 +88,7 @@ Each finding includes: `id`, `name`, `severity`, `file`, `line`, `description`, 
 | MEDIUM | Maintainability debt, e.g. `STRUCT-004`, `QUAL-006` |
 | LOW | Style/minor inefficiency, e.g. `STRUCT-003` |
 
-High/medium confidence + source evidence → actionable/blocking. Low confidence or fixture/context uncertainty → low-confidence/non-blocking.
+High/medium confidence + source evidence → actionable/blocking. Low confidence or fixture/context uncertainty → low-confidence/non_blocking. Deletion/protected-surface uncertainty → user-review/review_required.
 
 Cross-scanner label mapping: slop scan keeps severity labels `CRITICAL|HIGH|MEDIUM|LOW`; architecture scan uses review-style labels `blocker|major|minor|nit`. Treat `CRITICAL≈blocker`, `HIGH≈major`, `MEDIUM≈minor`, and `LOW≈nit` when comparing scanner reports, but keep each scanner's native labels in its own output schema.
 
@@ -97,11 +101,11 @@ Cross-scanner label mapping: slop scan keeps severity labels `CRITICAL|HIGH|MEDI
 5. Group by severity and category; note scanner convergence.
 6. Keep low-confidence findings separate.
 
-Text report includes `SLOP SCAN REPORT`, scope, phase counts, severity summary, category summary, actionable findings, low-confidence section, next steps. No findings → `[OK] No slop detected.`
+Text report includes `SLOP SCAN REPORT`, scope, languages, prominent coverage warnings, severity summary, category summary, detector coverage, findings, and evidence fields. No findings → `[OK] No slop detected.` only when important detector coverage is complete.
 
 <!-- rq-ss012 -->
 
-Text report includes a scanner coverage summary for skipped, timed-out, missing, and degraded detectors. JSON report includes `scope`, `phases`, `summary.bySeverity`, `summary.byCategory`, `findings[]` with diagnostic fields, and `coverage.skippedDetectors`, `coverage.degradedDetectors`, and `coverage.falsePositiveProtections`.
+Text report includes a scanner coverage summary for skipped, failed, timed-out, unavailable, externally_covered, and degraded detectors. JSON report includes `scope`, `summary.bySeverity`, `summary.byCategory`, `findings[]` with diagnostic fields, `coverage.detectors[]`, and `coverage.falsePositiveProtections`.
 
 ## False-Positive Control
 
@@ -115,7 +119,7 @@ Confidence anchors: AST-backed structural findings default to `confidence: high`
 
 Report `QUAL-012 structural_correctness_bypass` when Heuristic/fuzzy/LLM decisions owning correctness boundaries decide security, persistence, workflow state, gate completion, spec compliance, or input recognition/classification. Evidence must cite boundary + missing structural guard.
 
-Coverage output uses `coverage.skippedDetectors`, `coverage.degradedDetectors`, and `coverage.falsePositiveProtections`.
+Coverage output uses `coverage.detectors[]` with states `run`, `skipped`, `degraded`, `failed`, `timed_out`, `unavailable`, and `externally_covered`, plus `coverage.falsePositiveProtections`.
 
 ## Constraints
 

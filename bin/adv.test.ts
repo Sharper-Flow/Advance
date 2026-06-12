@@ -163,6 +163,24 @@ describe("adv roadmap dispatcher", () => {
   });
 });
 
+describe("adv slop-scan dispatcher", () => {
+  test("--json outputs typed report with detector coverage", async () => {
+    const tmp = mkdtempSync(join(tmpdir(), "adv-slop-scan-"));
+    await mkdir(join(tmp, "src"), { recursive: true });
+    await writeFile(join(tmp, "src/app.ts"), "export function ok() { return 1; }\n");
+
+    const { exitCode, stdout } = await runAdv(["slop-scan", "src", "--json", "--no-color"], tmp);
+
+    expect(exitCode).toBe(0);
+    const parsed = JSON.parse(stdout);
+    expect(parsed.schema_version).toBe("slop_scan_report.v1");
+    expect(parsed.scope.requestedPath).toBe("src");
+    expect(parsed.scope.languages).toContain("typescript");
+    expect(parsed.coverage.detectors.length).toBeGreaterThan(0);
+    expect(parsed.summary.total).toBe(parsed.findings.length);
+  });
+});
+
 describe("adv status live default", () => {
   test("status does not require a disk ADV state directory", async () => {
     const tmp = mkdtempSync(join(tmpdir(), "adv-dispatch-"));

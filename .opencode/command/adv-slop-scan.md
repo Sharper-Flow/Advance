@@ -38,7 +38,7 @@ Fallback: run AST/regex checks from `slop-smells.yaml`, then first-level `explor
 2. Load `slop-smells.yaml`; stop if missing/malformed.
 3. Validate `<path>` resolves inside the repository root, then enumerate `git ls-files <path>` plus `--others --exclude-standard` when `--include-untracked`.
 4. Filter source files; exclude minified, lock, generated, binary.
-5. Load `features.slop_scan` from `project.json`; defaults: `nesting_depth=4`, `defensive_guard=3`, `complexity=10`, `ast_timeout_ms=10000`.
+5. Load `features.slop_scan` from `project.json`; canonical defaults: `nesting_depth_threshold=4`, `defensive_guard_threshold=3`, `complexity_threshold=10`, `ast_timeout_ms=10000`. Deprecated aliases (`nesting_depth`, `defensive_guard`, `complexity`) are warnings, not source-of-truth field names.
 6. Record `{workdir}` via `pwd`. Include `WORKING DIRECTORY: {workdir}` in Phase 1 commands and sub-agent prompts.
 7. Display scope: file count, path, phases, options. Stop if 0 files.
 ## Phase 1: Automatable Detection
@@ -54,11 +54,15 @@ Fallback: run AST/regex checks from `slop-smells.yaml`, then first-level `explor
 <!-- rq-ss011 -->
 <!-- rq-ss012 -->
 
-Run deterministic checks from skill:
+Run deterministic checks through the typed `bin/adv slop-scan [path] --json` runner when CLI execution is available. The runner owns Phase 1 JSON facts, detector coverage, threshold parsing, and prominent warnings; chat output is a view over `slop_scan_report.v1`, not a separate truth source.
+
+Runner adapters:
 
 - AST structural: deep nesting, complexity (`ESLint`, `radon`, `gocyclo`; brace/indent fallback with `detectionMethod: degraded`)
-- Regex signal layer: defensive overkill, debug artifacts, type evasion, incomplete work, error suppression, hardcoded env, AI signatures, security, `QUAL-012`
-- Dead code / deletion candidates: `vulture`, `knip`, `deadcode` when available; otherwise note skipped detector
+- Polyglot structural and duplication: `ast-grep`, `jscpd` when available
+- Dead code / deletion candidates: `vulture`, `knip`, `deadcode` when available; otherwise record detector coverage gap
+- External security ownership: Semgrep PR-gate coverage is `externally_covered`; do not duplicate as local slop findings
+- Regex/heuristic signal layer remains Phase 2/advisory unless backed by deterministic runner evidence
 
 Each finding MUST include `id`, `name`, `severity`, `file`, `line`, `description`, `fix`, `confidence`, `detectionMethod`, `grouping`, `actionability`, `phase: 1`; include `nestingDepth`/`complexity` where applicable.
 
@@ -136,18 +140,18 @@ Timeout → `TIMEOUT`; failure → `INCOMPLETE`; all fail → report Phase 1 fin
 
 1. Combine Phase 1 + Phase 2.
 2. Deduplicate same `file:line` + smell ID; prefer Phase 2 description when richer.
-3. Assign `grouping` and `actionability` before sort: high/medium + source evidence → `actionable` / `blocking`; low confidence or context/fixture/deletion uncertainty → `low-confidence` / `non-blocking`. Low-confidence findings are not blocking by default.
+3. Assign `grouping` and `actionability` before sort: high/medium + source evidence → `actionable` / `blocking` or `actionable`; low confidence → `low-confidence` / `non_blocking`; deletion or protected-surface uncertainty → `user-review` / `review_required`. Low-confidence findings are not blocking by default.
 4. Sort actionable findings: CRITICAL > HIGH > MEDIUM > LOW.
 5. Group by severity, category, scanner convergence.
 
 ### Scanner Coverage Report
 
-Always include compact coverage in text output: skipped, degraded, timed-out, missing detectors; phase coverage; method coverage. Empty findings still report coverage.
+Always include compact coverage in text output: `run`, `skipped`, `degraded`, `failed`, `timed_out`, `unavailable`, and `externally_covered` detectors; phase coverage; method coverage. Empty findings still report coverage.
 
 <!-- rq-ss007 -->
-Text output: `SLOP SCAN REPORT`, scope, phase counts, severity/category summaries, actionable findings (`id`, `file:line`, description, fix), `Low-confidence / non-blocking findings`, next steps. No findings → `[OK] No slop detected.`
+Text output: `SLOP SCAN REPORT`, scope, languages, prominent coverage warnings for important failed/missing detectors, severity/category summaries, detector coverage, findings (`id`, `file:line`, description, fix, evidence). No findings + complete coverage → `[OK] No slop detected.` No findings + coverage warnings → state that warnings require review.
 
-JSON output: `scope`, `phases`, `summary.bySeverity`, `summary.byCategory`, `findings[]` with diagnostic fields + `grouping` + `actionability`, `coverage.skippedDetectors`, `coverage.degradedDetectors`, `coverage.falsePositiveProtections`. `grouping: 'actionable' | 'low-confidence'`; `actionability: 'blocking' | 'non-blocking'`.
+JSON output: `schema_version: "slop_scan_report.v1"`, `generated_at`, `scope`, `summary.bySeverity`, `summary.byCategory`, `findings[]` with diagnostic fields + `grouping` + `actionability`, `coverage.detectors[]`, and `coverage.falsePositiveProtections`. `coverage.detectors[].state: 'run' | 'skipped' | 'degraded' | 'failed' | 'timed_out' | 'unavailable' | 'externally_covered'`. `grouping: 'actionable' | 'low-confidence' | 'user-review'`; `actionability: 'blocking' | 'actionable' | 'review_required' | 'non_blocking'`.
 ## Phase 4: Write Metadata
 
 After successful completion, call `adv_project_metadata action:"write"`:

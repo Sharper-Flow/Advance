@@ -5,23 +5,60 @@ import { join, resolve } from "node:path";
 const FIXTURE_ROOT = join(resolve(__dirname, ".."), "test/fixtures/slop-scan");
 
 type Confidence = "high" | "medium" | "low";
-type Grouping = "actionable" | "low-confidence";
-type Actionability = "blocking" | "non-blocking";
+type Grouping = "actionable" | "low-confidence" | "user-review";
+type Actionability =
+  | "blocking"
+  | "actionable"
+  | "review_required"
+  | "non_blocking";
 
 interface FixtureFinding {
   id: "QUAL-011" | "MAINT-004" | "DOC-003";
   confidence: Confidence;
   grouping: Grouping;
   actionability: Actionability;
-  detectionMethod: "ast" | "regex" | "heuristic" | "degraded";
+  detectionMethod:
+    | "ast"
+    | "regex"
+    | "heuristic"
+    | "degraded"
+    | "tool"
+    | "external";
   nestingDepth: number | null;
   complexity: number | null;
+}
+
+function hasRedundantNullishGuard(source: string): boolean {
+  const guardLines = source
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) =>
+      ["if (!user)", "if (user === null)", "if (user === undefined)"].some(
+        (guard) => line.startsWith(guard),
+      ),
+    );
+  return guardLines.length >= 3;
+}
+
+function maxIfNesting(source: string): number {
+  let current = 0;
+  let max = 0;
+  for (const line of source.split("\n").map((item) => item.trim())) {
+    if (line === "}" || line.startsWith("} ")) {
+      current = Math.max(0, current - 1);
+    }
+    if (/^if\s*\(.*\)\s*\{/.test(line)) {
+      current += 1;
+      max = Math.max(max, current);
+    }
+  }
+  return max;
 }
 
 function analyzeFixture(source: string): FixtureFinding[] {
   const findings: FixtureFinding[] = [];
 
-  if (source.includes("DIRTY_REDUNDANT_GUARD_CHAIN")) {
+  if (hasRedundantNullishGuard(source)) {
     findings.push({
       id: "QUAL-011",
       confidence: "high",
@@ -33,24 +70,25 @@ function analyzeFixture(source: string): FixtureFinding[] {
     });
   }
 
-  if (source.includes("DIRTY_DEEP_NESTING")) {
+  const nestingDepth = maxIfNesting(source);
+  if (nestingDepth >= 5) {
     findings.push({
       id: "MAINT-004",
       confidence: "high",
       grouping: "actionable",
       actionability: "blocking",
       detectionMethod: "ast",
-      nestingDepth: 5,
+      nestingDepth,
       complexity: 12,
     });
   }
 
-  if (source.includes("LOW_CONFIDENCE_EXAMPLE_ONLY")) {
+  if (source.includes("example text used in scanner docs")) {
     findings.push({
       id: "DOC-003",
       confidence: "low",
       grouping: "low-confidence",
-      actionability: "non-blocking",
+      actionability: "non_blocking",
       detectionMethod: "heuristic",
       nestingDepth: null,
       complexity: null,
@@ -88,6 +126,21 @@ function renderTextReport(findings: FixtureFinding[]): string {
 }
 
 describe("slop-scan false-positive fixture contracts", () => {
+  test("fixtures do not use sentinel marker strings", () => {
+    const clean = readFileSync(
+      join(FIXTURE_ROOT, "false-positive-clean.ts"),
+      "utf8",
+    );
+    const dirty = readFileSync(
+      join(FIXTURE_ROOT, "dirty-actionable.ts"),
+      "utf8",
+    );
+
+    expect(`${clean}\n${dirty}`).not.toMatch(
+      /DIRTY_|LOW_CONFIDENCE_EXAMPLE_ONLY/,
+    );
+  });
+
   test("clean false-positive sample has no actionable QUAL-011 or MAINT-004 findings", () => {
     const clean = readFileSync(
       join(FIXTURE_ROOT, "false-positive-clean.ts"),
@@ -142,7 +195,7 @@ describe("slop-scan false-positive fixture contracts", () => {
         expect.objectContaining({
           confidence: "low",
           grouping: "low-confidence",
-          actionability: "non-blocking",
+          actionability: "non_blocking",
         }),
       ]),
     );

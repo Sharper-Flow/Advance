@@ -49,6 +49,23 @@ describe("adv-slop-scan anti-recursion assets", () => {
     );
   });
 
+  test("documents canonical slop-scan threshold keys", () => {
+    const command = readFileSync(COMMAND_PATH, "utf8");
+    const skill = readFileSync(SLOP_SKILL_PATH, "utf8");
+
+    for (const key of [
+      "nesting_depth_threshold",
+      "defensive_guard_threshold",
+      "complexity_threshold",
+      "ast_timeout_ms",
+    ]) {
+      expect(command).toContain(key);
+      expect(skill).toContain(key);
+    }
+    expect(command).not.toContain("defaults: `nesting_depth=4`");
+    expect(skill).not.toContain("| `nesting_depth` | 4 |");
+  });
+
   test("documents non-scannable context packet boundaries", () => {
     const content = readFileSync(COMMAND_PATH, "utf8");
 
@@ -67,12 +84,17 @@ describe("adv-slop-scan anti-recursion assets", () => {
   test("documents low-confidence report grouping and JSON metadata", () => {
     const content = readFileSync(COMMAND_PATH, "utf8");
 
-    expect(content).toContain("Low-confidence / non-blocking findings");
+    expect(content).toContain("low-confidence");
+    expect(content).toContain("non_blocking");
     expect(content).toContain(
       "Low-confidence findings are not blocking by default",
     );
-    expect(content).toContain("grouping: 'actionable' | 'low-confidence'");
-    expect(content).toContain("actionability: 'blocking' | 'non-blocking'");
+    expect(content).toContain(
+      "grouping: 'actionable' | 'low-confidence' | 'user-review'",
+    );
+    expect(content).toContain(
+      "actionability: 'blocking' | 'actionable' | 'review_required' | 'non_blocking'",
+    );
   });
 
   test("documents P33 structural-correctness bypass detection", () => {
@@ -195,11 +217,11 @@ describe("adv-slop-scan anti-recursion assets", () => {
     expect(spec.requirements.map((rq) => rq.id)).toContain("rq-ss012");
     expect(command).toContain("<!-- rq-ss012 -->");
     expect(command).toContain("Scanner Coverage Report");
-    expect(command).toContain("coverage.skippedDetectors");
-    expect(command).toContain("coverage.degradedDetectors");
+    expect(command).toContain("coverage.detectors[]");
+    expect(command).toContain("externally_covered");
     expect(command).toContain("coverage.falsePositiveProtections");
-    expect(skill).toContain("coverage.skippedDetectors");
-    expect(skill).toContain("coverage.degradedDetectors");
+    expect(skill).toContain("coverage.detectors[]");
+    expect(skill).toContain("externally_covered");
   });
 
   test("documents single-level scanner orchestration in shared ADV instructions", () => {
