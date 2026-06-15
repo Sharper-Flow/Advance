@@ -353,13 +353,18 @@ function applyContentWithSizeGuard(
   text: string,
   at: string,
 ): ChangeWorkflowState {
+  const temporalOnlyMetadata = (): ArtifactMetadata => ({
+    updatedAt: at,
+    source: "temporal",
+    readable: false,
+  });
   // Per-artifact hard cap check
   const perCheck = checkPerArtifactSize(kind, text, at);
   if (!perCheck.ok && perCheck.rejection) {
     state.artifacts = {
       ...state.artifacts,
       [kind]: {
-        ...(state.artifacts[kind] ?? { path: "", updatedAt: at }),
+        ...(state.artifacts[kind] ?? temporalOnlyMetadata()),
         rejection: perCheck.rejection,
       },
     };
@@ -373,7 +378,7 @@ function applyContentWithSizeGuard(
     state.artifacts = {
       ...state.artifacts,
       [kind]: {
-        ...(state.artifacts[kind] ?? { path: "", updatedAt: at }),
+        ...(state.artifacts[kind] ?? temporalOnlyMetadata()),
         rejection: aggCheck.rejection,
       },
     };
@@ -383,10 +388,7 @@ function applyContentWithSizeGuard(
 
   // Caps passed — apply content. Clear any prior rejection; record warning
   // if soft cap exceeded.
-  const existingArtifact = state.artifacts[kind] ?? {
-    path: "",
-    updatedAt: at,
-  };
+  const existingArtifact = state.artifacts[kind] ?? temporalOnlyMetadata();
   const nextArtifact = {
     ...existingArtifact,
     rejection: undefined,
@@ -1266,7 +1268,13 @@ export function updateArtifactMetadataInChangeState(
   kind: ArtifactKind,
   metadata: ArtifactMetadata,
 ): void {
-  state.artifacts[kind] = metadata;
+  const normalized: ArtifactMetadata = { ...metadata };
+  if (normalized.path?.trim() === "") {
+    delete normalized.path;
+    normalized.readable = false;
+    normalized.source ??= "temporal";
+  }
+  state.artifacts[kind] = normalized;
 }
 
 export function closeChangeInChangeState(

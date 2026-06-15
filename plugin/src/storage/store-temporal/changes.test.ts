@@ -664,10 +664,19 @@ describe("createChangeOps", () => {
       expect.objectContaining({
         kind: "executiveSummary",
         metadata: expect.objectContaining({
-          path: "/tmp/changes/summaryChange/executive-summary.md",
+          source: "temporal",
+          readable: false,
           contentHash: createHash("sha256")
             .update("# Executive Summary")
             .digest("hex"),
+        }),
+      }),
+    );
+    expect(signalMock).not.toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        metadata: expect.objectContaining({
+          path: "/tmp/changes/summaryChange/executive-summary.md",
         }),
       }),
     );
