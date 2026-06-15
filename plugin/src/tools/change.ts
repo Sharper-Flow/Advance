@@ -2436,7 +2436,7 @@ export const changeTools = {
 
             if (requestedKinds.length > 0) {
               const artifactContent = await readArtifacts(
-                store,
+                activeStore,
                 changeId,
                 requestedKinds,
               );

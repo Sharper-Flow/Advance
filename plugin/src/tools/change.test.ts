@@ -447,6 +447,48 @@ describe("change tools — signal-driven lifecycle", () => {
       }
     });
 
+    test("returns Temporal document content without exposing phantom artifact paths", async () => {
+      const { mkdtemp, mkdir, rm } = await import("fs/promises");
+      const { tmpdir } = await import("os");
+      const { join: pathJoin } = await import("path");
+      const tempRoot = await mkdtemp(pathJoin(tmpdir(), "adv-temporal-doc-"));
+      const changesDir = pathJoin(tempRoot, ".adv/changes");
+      await mkdir(pathJoin(changesDir, "test-change"), { recursive: true });
+
+      try {
+        const phantomPath = pathJoin(changesDir, "test-change", "design.md");
+        const designContent = "# Design\n\nTemporal-only design content.";
+        const store = createMockStore({
+          documents: { design: designContent },
+          artifacts: {
+            design: {
+              path: phantomPath,
+              updatedAt: "2026-06-15T00:00:00.000Z",
+              source: "temporal",
+              readable: false,
+            },
+          },
+        });
+        (store.paths as { changes: string }).changes = changesDir;
+        (store.paths as { root: string }).root = tempRoot;
+
+        const result = await changeTools.adv_change_show.execute(
+          { changeId: "test-change", include: { design: true } },
+          store,
+        );
+
+        const parsed = JSON.parse(result);
+        expect(parsed._design).toBe(designContent);
+        expect(parsed.artifacts.design).toMatchObject({
+          source: "temporal",
+          readable: false,
+        });
+        expect(parsed.artifacts.design).not.toHaveProperty("path");
+      } finally {
+        await rm(tempRoot, { recursive: true, force: true });
+      }
+    });
+
     test("preserves readable artifact paths that exist on disk", async () => {
       const { mkdtemp, mkdir, writeFile, rm } = await import("fs/promises");
       const { tmpdir } = await import("os");
