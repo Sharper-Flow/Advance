@@ -27,6 +27,7 @@ import {
   isGateSatisfied,
   GATE_ORDER,
   GateIdSchema,
+  ARTIFACT_FILENAME,
   ChangeListStatusFilterSchema,
   ChangeOriginKindSchema,
   ChangeRepoScopeSchema,
@@ -73,21 +74,6 @@ function subagentReportReadbackKey(report: ScopedSubagentReport): string {
 }
 
 /**
- * Canonical kebab-case filename per `ArtifactKind`. Matches the filesystem
- * boundary map in `temporal/activities.ts`. Single source of truth for the
- * disk fallback paths in `readArtifact` / `readArtifacts` — kept in lockstep
- * with the activities module.
- */
-const ARTIFACT_KIND_FILENAME: Record<ArtifactKind, string> = {
-  proposal: "proposal.md",
-  problemStatement: "problem-statement.md",
-  agreement: "agreement.md",
-  design: "design.md",
-  executiveSummary: "executive-summary.md",
-  acceptance: "acceptance.md",
-};
-
-/**
  * Read a single artifact content by canonical kind. Temporal-first per
  * KD-6: queries `state.documents[kind]` via `store.changes.get()` (which
  * uses `mapTemporalChangeStateToChange` to surface documents). Falls back
@@ -115,7 +101,7 @@ export async function readArtifact(
 
   // 2. Disk active directory.
   const changeDir = join(store.paths.changes, changeId);
-  const filename = ARTIFACT_KIND_FILENAME[kind];
+  const filename = ARTIFACT_FILENAME[kind];
   try {
     const text = await readFile(join(changeDir, filename), "utf-8");
     if (text.trim().length > 0) return text;
@@ -218,7 +204,7 @@ export async function readArtifacts(
 
     // Disk fallback per kind.
     const changeDir = join(store.paths.changes, changeId);
-    const filename = ARTIFACT_KIND_FILENAME[kind];
+    const filename = ARTIFACT_FILENAME[kind];
     try {
       const text = await readFile(join(changeDir, filename), "utf-8");
       if (text.trim().length > 0) {

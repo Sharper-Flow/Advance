@@ -17,6 +17,7 @@ import { describe, expect, it } from "vitest";
 import {
   AGGREGATE_HARD_CAP,
   AGGREGATE_SOFT_CAP,
+  ARTIFACT_FILENAME,
   ARTIFACT_HARD_CAP,
   ARTIFACT_SOFT_CAP,
   ArtifactKindSchema,
@@ -118,6 +119,25 @@ describe("ArtifactKind / ArtifactPayload compile-time alignment", () => {
       Object.keys(ArtifactPayloadSchema.shape),
     );
     expect(payloadKeys).toEqual(kinds);
+  });
+});
+
+describe("ARTIFACT_FILENAME", () => {
+  it("maps every canonical artifact kind to its disk filename", () => {
+    expect(ARTIFACT_FILENAME).toEqual({
+      proposal: "proposal.md",
+      problemStatement: "problem-statement.md",
+      agreement: "agreement.md",
+      design: "design.md",
+      executiveSummary: "executive-summary.md",
+      acceptance: "acceptance.md",
+    });
+  });
+
+  it("has exactly one filename for every ArtifactKind", () => {
+    expect(new Set(Object.keys(ARTIFACT_FILENAME))).toEqual(
+      new Set(ArtifactKindSchema.options),
+    );
   });
 });
 

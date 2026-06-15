@@ -7,7 +7,7 @@
  *
  * Naming standard: **camelCase at type/payload/signal layers**.
  * Filesystem kebab-case (problem-statement.md, executive-summary.md)
- * lives only inside the `ARTIFACT_FILENAME` map in `temporal/activities.ts`.
+ * lives only inside the `ARTIFACT_FILENAME` map below.
  *
  * Compile-time invariant: `keyof ArtifactPayload === ArtifactKind`.
  * See `types/artifacts.test.ts` for the structural test.
@@ -34,6 +34,16 @@ export const ArtifactKindSchema = z.enum([
 ]);
 
 export type ArtifactKind = z.infer<typeof ArtifactKindSchema>;
+
+/** Canonical disk filename for each artifact kind at filesystem boundaries. */
+export const ARTIFACT_FILENAME: Record<ArtifactKind, string> = {
+  proposal: "proposal.md",
+  problemStatement: "problem-statement.md",
+  agreement: "agreement.md",
+  design: "design.md",
+  executiveSummary: "executive-summary.md",
+  acceptance: "acceptance.md",
+};
 
 // =============================================================================
 // ArtifactPayload — typed shape carried by Store.changes.create() and

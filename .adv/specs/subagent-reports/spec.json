@@ -3,8 +3,8 @@
   "name": "subagent-reports",
   "title": "Sub-Agent Reports",
   "purpose": "Typed, durable ADV sub-agent report ingestion and readback. Replaces ADV worker final-message fenced JSON with Zod-validated tool-call submission, sidecar report persistence, deterministic scope-aware dedupe, and machine-readable downstream consumers.",
-  "version": "1.1.0",
-  "updated_at": "2026-06-09T00:00:00.000Z",
+  "version": "1.2.0",
+  "updated_at": "2026-06-15T00:00:00.000Z",
   "conformance_required": false,
   "requirements": [
     {
@@ -456,6 +456,51 @@
           "then": [
             "The agenda item priority is set to medium",
             "The item category is subagent-followup without elevated severity"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-subagentArtifactAccess01",
+      "title": "Artifact-Wide Sub-Agent State Access Policy",
+      "body": "ADV worker prompts and command packets MUST instruct sub-agents to access ADV artifacts through ADV tools or packet-provided content, not by direct reads of external ADV state paths. The forbidden artifact list includes proposal, problem statement, agreement, design, executive summary, acceptance, change, agenda, wisdom, and conformance state files.",
+      "priority": "must",
+      "tags": ["subagents", "artifacts", "prompts", "state-access"],
+      "scenarios": [
+        {
+          "id": "rq-subagentArtifactAccess01.1",
+          "title": "Design validator uses inline or tool-provided artifacts",
+          "given": [
+            "An adv-researcher design-validation packet needs design or agreement context"
+          ],
+          "when": "The worker receives the packet and needs artifact content",
+          "then": [
+            "The packet or agent instructions direct it to inline content or adv_change_show include flags",
+            "The worker is not instructed to dereference artifacts.*.path under external ADV state"
+          ]
+        },
+        {
+          "id": "rq-subagentArtifactAccess01.2",
+          "title": "Direct read failure recovers through ADV tools",
+          "given": [
+            "A worker attempts to read an external ADV state artifact path and the read fails"
+          ],
+          "when": "The worker recovers from the failed direct read",
+          "then": [
+            "It stops retrying alternate filesystem paths",
+            "It uses the ADV tool read path or packet-provided content instead"
+          ]
+        },
+        {
+          "id": "rq-subagentArtifactAccess01.3",
+          "title": "Worker policy covers every change artifact kind",
+          "given": [
+            "ADV worker agent files or command packets define state-access policy"
+          ],
+          "when": "Asset tests inspect the policy text",
+          "then": [
+            "The policy covers proposal, problem statement, agreement, design, executive summary, and acceptance artifacts",
+            "The policy also covers change, agenda, wisdom, and conformance state files"
           ]
         }
       ]

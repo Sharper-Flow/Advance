@@ -31,23 +31,13 @@
 import { readFile, stat } from "node:fs/promises";
 import { join } from "node:path";
 
-import { ArtifactKindSchema, type ArtifactKind } from "../../types";
+import { ARTIFACT_FILENAME, ArtifactKindSchema, type ArtifactKind } from "../../types";
 import { createLogger } from "../../utils/debug-log";
 
 const logger = createLogger("hydrate-documents");
 
 /** Per-artifact minimum non-whitespace character count for hydration. */
 const MIN_HYDRATABLE_CHARS = 1;
-
-/** Mapping from canonical `ArtifactKind` to disk filename. */
-const ARTIFACT_FILENAME: Record<ArtifactKind, string> = {
-  proposal: "proposal.md",
-  problemStatement: "problem-statement.md",
-  agreement: "agreement.md",
-  design: "design.md",
-  executiveSummary: "executive-summary.md",
-  acceptance: "acceptance.md",
-};
 
 function nonWhitespaceCount(text: string): number {
   return text.replace(/\s/g, "").length;

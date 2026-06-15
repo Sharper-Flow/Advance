@@ -28,6 +28,7 @@
 // =============================================================================
 export {
   ArtifactKindSchema,
+  ARTIFACT_FILENAME,
   type ArtifactKind,
   ArtifactPayloadSchema,
   type ArtifactPayload,

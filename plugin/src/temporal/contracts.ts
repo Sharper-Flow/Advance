@@ -275,7 +275,7 @@ export interface ChangeWorkflowState extends ChangeWorkflowInput {
    *
    * Naming standard: camelCase keys mirror `ArtifactKind` and `ArtifactPayload`
    * (`types/artifacts.ts`). Kebab-case appears only at the filesystem boundary
-   * in `ARTIFACT_FILENAME` (`temporal/activities.ts`).
+   * through `ARTIFACT_FILENAME` from `types/artifacts.ts`.
    *
    * Additive optional fields — Temporal replay-safe per safe-deployments
    * contract (https://docs.temporal.io/develop/safe-deployments). Histories

@@ -39,19 +39,11 @@ import { execGit } from "../utils/git";
  * Canonical source: `plugin/src/types/artifacts.ts`. Kept in lockstep with
  * the artifact set in `createChangeScaffold` / `updateChangeArtifacts`
  * (`storage/json.ts`). Naming standard: camelCase at the type/signal layer;
- * kebab-case appears ONLY as the filesystem filename in `ARTIFACT_FILENAME`.
+ * kebab-case appears only at this filesystem boundary through
+ * `ARTIFACT_FILENAME` from the canonical artifact type module.
  */
 export type { ArtifactKind } from "../types/artifacts";
-import type { ArtifactKind } from "../types/artifacts";
-
-const ARTIFACT_FILENAME: Record<ArtifactKind, string> = {
-  proposal: "proposal.md",
-  problemStatement: "problem-statement.md",
-  agreement: "agreement.md",
-  design: "design.md",
-  acceptance: "acceptance.md",
-  executiveSummary: "executive-summary.md",
-};
+import { ARTIFACT_FILENAME, type ArtifactKind } from "../types/artifacts";
 
 export interface ReadArtifactInput {
   changesDir: string;

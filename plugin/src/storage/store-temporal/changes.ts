@@ -1,10 +1,11 @@
 import type { Store } from "../store-types";
-import type {
-  ArtifactKind,
-  ArtifactPayload,
-  ChangeClosure,
-  BulkCloseResult,
-  Change,
+import {
+  ARTIFACT_FILENAME,
+  type ArtifactKind,
+  type ArtifactPayload,
+  type ChangeClosure,
+  type BulkCloseResult,
+  type Change,
 } from "../../types";
 import { createHash } from "crypto";
 import {
@@ -673,14 +674,6 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
       // do NOT call legacy.changes.updateArtifacts (which would write
       // artifact .md files to disk).
       const changeDir = `${legacy.paths.changes}/${changeId}`;
-      const ARTIFACT_FILENAME: Record<keyof ArtifactPayload, string> = {
-        proposal: "proposal.md",
-        problemStatement: "problem-statement.md",
-        agreement: "agreement.md",
-        design: "design.md",
-        executiveSummary: "executive-summary.md",
-        acceptance: "acceptance.md",
-      };
       const metadataPaths: Partial<Record<ArtifactKind, string>> = {};
       for (const kind of Object.keys(ARTIFACT_FILENAME) as ArtifactKind[]) {
         if (artifacts[kind] === undefined) continue;

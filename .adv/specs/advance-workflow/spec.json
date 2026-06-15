@@ -3,8 +3,8 @@
   "name": "advance-workflow",
   "title": "Advance Workflow",
   "purpose": "Capability: Workflow contract layer for ADV \u2014 gate model, autonomy boundaries, design validation, scope management, releases, approvals, handoff voice, review remediation, and touched-scope quality. Split from `advance` capability.",
-  "version": "1.16.0",
-  "updated_at": "2026-06-09T00:00:00.000Z",
+  "version": "1.17.0",
+  "updated_at": "2026-06-15T00:00:00.000Z",
   "requirements": [
     {
       "id": "rq-problemSpecLaw01",
@@ -3268,6 +3268,53 @@
             "The REQUIRED_OBLIGATION_ROUTING_MISSING blocker is cleared",
             "The original change may proceed to release",
             "The new change carries the required obligation forward"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-artifactPathTruth01",
+      "title": "Truthful Artifact Path Read Surfaces",
+      "body": "ADV read surfaces MUST NOT expose nonexistent active artifact filesystem paths as readable source-of-truth. When artifact content lives in Temporal state.documents, tools MUST expose content via ADV read/include fields and either omit filesystem paths or mark them machine-readably non-readable/source-tagged. Legacy disk and archive-bundle fallback reads MUST remain supported.",
+      "priority": "must",
+      "tags": ["workflow", "artifacts", "temporal", "read-surface"],
+      "scenarios": [
+        {
+          "id": "rq-artifactPathTruth01.1",
+          "title": "Temporal-only artifact content does not expose fake readable path",
+          "given": [
+            "An active change has state.documents.design populated",
+            "No active design.md file exists on disk for the change"
+          ],
+          "when": "adv_change_show is called with include.design true",
+          "then": [
+            "The response includes the design content in _design",
+            "The response does not present artifacts.design.path as a readable existing file",
+            "Artifact metadata is machine-readable enough to distinguish Temporal content from a materialized file"
+          ]
+        },
+        {
+          "id": "rq-artifactPathTruth01.2",
+          "title": "Legacy and archive artifact fallbacks remain readable",
+          "given": [
+            "Artifact content exists only as a legacy active disk artifact or a materialized archive bundle artifact"
+          ],
+          "when": "Artifact readback runs for that change",
+          "then": [
+            "The fallback content is returned",
+            "A filesystem path is exposed only when the file is actually materialized and readable"
+          ]
+        },
+        {
+          "id": "rq-artifactPathTruth01.3",
+          "title": "Recovery and archive evidence keeps verified real paths",
+          "given": [
+            "A recovery or archive path intentionally writes or verifies an artifact file"
+          ],
+          "when": "Gate or archive evidence is emitted",
+          "then": [
+            "The real verified filesystem path may be included in evidence",
+            "The behavior does not reintroduce active artifact-content disk writes as the primary source of truth"
           ]
         }
       ]
