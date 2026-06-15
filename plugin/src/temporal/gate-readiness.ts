@@ -101,6 +101,13 @@ function nonWhitespaceCount(text: string): number {
   return text.replace(/\s/g, "").length;
 }
 
+function readableArtifactPath(
+  metadata: ChangeWorkflowState["artifacts"][GateArtifactKind] | undefined,
+): string | undefined {
+  if (!metadata?.path) return undefined;
+  return metadata.readable === true ? metadata.path : undefined;
+}
+
 /**
  * Non-blocking advisory warnings for truth ordering cascade consistency.
  *
@@ -207,9 +214,10 @@ export function stateBackedArtifactEvidence(
   }
 
   const metadata = state.artifacts[artifactKind];
+  const path = readableArtifactPath(metadata);
   const evidence: GateArtifactEvidence = {
     kind: artifactKind,
-    ...(metadata?.path ? { path: metadata.path } : {}),
+    ...(path ? { path } : {}),
     ...(metadata?.contentHash ? { content_hash: metadata.contentHash } : {}),
     non_whitespace_chars: nonWhitespaceChars,
     checked_at: checkedAt,
@@ -279,9 +287,10 @@ export function stateBackedAcceptanceProof(
   }
 
   const metadata = state.artifacts.executiveSummary;
+  const path = readableArtifactPath(metadata);
   const evidence: GateArtifactEvidence = {
     kind: "acceptance",
-    ...(metadata?.path ? { path: metadata.path } : {}),
+    ...(path ? { path } : {}),
     ...(metadata?.contentHash ? { content_hash: metadata.contentHash } : {}),
     non_whitespace_chars: nonWhitespaceChars,
     checked_at: checkedAt,

@@ -48,7 +48,10 @@ import { isSyntheticValidationDraftPattern } from "../utils/synthetic-fixture-de
 import { validateChange } from "../validator";
 import { createLogger } from "../utils/debug-log";
 import { queryClaimsByIssueNumber } from "../temporal/visibility-claim-queries";
-import { subagentReportKey } from "../temporal/contracts";
+import {
+  subagentReportKey,
+  type ArtifactMetadata,
+} from "../temporal/contracts";
 import { advWorktreeCleanup } from "./worktree";
 import { initStateDb as initWorktreeStateDb } from "./worktree/state";
 
@@ -71,6 +74,51 @@ function subagentReportReadbackKey(report: ScopedSubagentReport): string {
     agent: report.agent,
     attempt: report.attempt,
   });
+}
+
+async function normalizeArtifactMetadataForReadback(
+  artifacts: Change["artifacts"],
+): Promise<Change["artifacts"]> {
+  if (!artifacts) return artifacts;
+  const normalized: NonNullable<Change["artifacts"]> = {};
+  for (const [kind, rawMetadata] of Object.entries(artifacts) as Array<
+    [string, ArtifactMetadata]
+  >) {
+    const metadata: ArtifactMetadata = { ...rawMetadata };
+    if (metadata.path) {
+      const readable =
+        metadata.source !== "temporal" &&
+        metadata.readable !== false &&
+        (await fileExists(metadata.path));
+      if (readable) {
+        metadata.readable = true;
+      } else {
+        delete metadata.path;
+        metadata.readable = false;
+      }
+    }
+    normalized[kind as keyof NonNullable<Change["artifacts"]>] = metadata;
+  }
+  return normalized;
+}
+
+async function normalizeGateArtifactEvidenceForReadback(
+  gates: Gates | undefined,
+): Promise<Gates | undefined> {
+  if (!gates) return gates;
+  const normalized = { ...gates } as Gates;
+  for (const gateId of GATE_ORDER) {
+    const gate = normalized[gateId];
+    const evidence = gate?.artifact_evidence;
+    if (!evidence?.path) continue;
+    if (await fileExists(evidence.path)) continue;
+    const { path: _path, ...evidenceWithoutPath } = evidence;
+    normalized[gateId] = {
+      ...gate,
+      artifact_evidence: evidenceWithoutPath,
+    } as GateCompletion;
+  }
+  return normalized;
 }
 
 /**
@@ -2214,6 +2262,13 @@ export const changeTools = {
             return formatToolOutput({ error: `Change not found: ${changeId}` });
           }
           const change = result.data;
+          const displayChange: Change = {
+            ...change,
+            artifacts: await normalizeArtifactMetadataForReadback(
+              change.artifacts,
+            ),
+            gates: await normalizeGateArtifactEvidenceForReadback(change.gates),
+          };
           const { content: proposalText } = await loadProposalForContext(
             activeStore,
             changeId,
@@ -2227,7 +2282,7 @@ export const changeTools = {
           });
 
           const output: Record<string, unknown> = {
-            ...change,
+            ...displayChange,
             tasks: paged.items,
             _taskPagination: paged.pagination,
             ...(projectContext ? { _projectContext: projectContext } : {}),
@@ -2299,7 +2354,7 @@ export const changeTools = {
                   // best-effort: missing gates → snapshot still useful
                 }
                 output._contextSnapshot = buildChangeContextSnapshot({
-                  change,
+                  change: displayChange,
                   proposalText,
                   gates: gates ?? undefined,
                   workdir: activeStore.paths.root,
@@ -3033,6 +3088,8 @@ export const changeTools = {
               contentHash: createHash("sha256")
                 .update(executiveSummary)
                 .digest("hex"),
+              source: "recovery",
+              readable: true,
             },
           });
           return formatToolOutput({

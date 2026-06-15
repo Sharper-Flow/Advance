@@ -387,6 +387,108 @@ describe("change tools — signal-driven lifecycle", () => {
       expect(parsed.tasks[0].subagent_reports).toHaveLength(1);
     });
 
+    test("omits unreadable artifact paths from change show output and gate evidence", async () => {
+      const { mkdtemp, mkdir, rm } = await import("fs/promises");
+      const { tmpdir } = await import("os");
+      const { join: pathJoin } = await import("path");
+      const tempRoot = await mkdtemp(pathJoin(tmpdir(), "adv-phantom-path-"));
+      const changesDir = pathJoin(tempRoot, ".adv/changes");
+      await mkdir(pathJoin(changesDir, "test-change"), { recursive: true });
+
+      try {
+        const phantomPath = pathJoin(changesDir, "test-change", "proposal.md");
+        const store = createMockStore({
+          artifacts: {
+            proposal: {
+              path: phantomPath,
+              updatedAt: "2026-06-15T00:00:00.000Z",
+              source: "temporal",
+              readable: false,
+            },
+          },
+          gates: {
+            discovery: { status: "done" },
+            design: { status: "done" },
+            planning: { status: "done" },
+            execution: { status: "done" },
+            acceptance: { status: "done" },
+            release: { status: "pending" },
+            proposal: {
+              status: "done",
+              artifact_evidence: {
+                kind: "proposal",
+                path: phantomPath,
+                checked_at: "2026-06-15T00:00:01.000Z",
+                non_whitespace_chars: 42,
+              },
+            },
+          } as Change["gates"],
+        });
+        (store.paths as { changes: string }).changes = changesDir;
+        (store.paths as { root: string }).root = tempRoot;
+
+        const result = await changeTools.adv_change_show.execute(
+          { changeId: "test-change" },
+          store,
+        );
+
+        const parsed = JSON.parse(result);
+        expect(parsed.artifacts.proposal).toMatchObject({
+          updatedAt: "2026-06-15T00:00:00.000Z",
+          source: "temporal",
+          readable: false,
+        });
+        expect(parsed.artifacts.proposal).not.toHaveProperty("path");
+        expect(parsed.gates.proposal.artifact_evidence).not.toHaveProperty(
+          "path",
+        );
+      } finally {
+        await rm(tempRoot, { recursive: true, force: true });
+      }
+    });
+
+    test("preserves readable artifact paths that exist on disk", async () => {
+      const { mkdtemp, mkdir, writeFile, rm } = await import("fs/promises");
+      const { tmpdir } = await import("os");
+      const { join: pathJoin } = await import("path");
+      const tempRoot = await mkdtemp(pathJoin(tmpdir(), "adv-readable-path-"));
+      const changesDir = pathJoin(tempRoot, ".adv/changes");
+      const changeDir = pathJoin(changesDir, "test-change");
+      await mkdir(changeDir, { recursive: true });
+      const realPath = pathJoin(changeDir, "proposal.md");
+      await writeFile(
+        realPath,
+        "# Proposal\n\nReadable disk artifact.",
+        "utf-8",
+      );
+
+      try {
+        const store = createMockStore({
+          artifacts: {
+            proposal: {
+              path: realPath,
+              updatedAt: "2026-06-15T00:00:00.000Z",
+              source: "disk",
+              readable: true,
+            },
+          },
+        });
+        (store.paths as { changes: string }).changes = changesDir;
+        (store.paths as { root: string }).root = tempRoot;
+
+        const result = await changeTools.adv_change_show.execute(
+          { changeId: "test-change" },
+          store,
+        );
+
+        const parsed = JSON.parse(result);
+        expect(parsed.artifacts.proposal.path).toBe(realPath);
+        expect(parsed.artifacts.proposal.readable).toBe(true);
+      } finally {
+        await rm(tempRoot, { recursive: true, force: true });
+      }
+    });
+
     test("returns _executiveSummary content when include.executiveSummary is set and file exists", async () => {
       const { mkdtemp, mkdir, writeFile, rm } = await import("fs/promises");
       const { tmpdir } = await import("os");

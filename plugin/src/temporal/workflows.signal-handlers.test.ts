@@ -627,12 +627,14 @@ describe("changeWorkflow signal handlers", () => {
           expect(state.gates.proposal.status).toBe("done");
           expect(state.gates.proposal.artifact_evidence).toMatchObject({
             kind: "proposal",
-            path: join(changesDir, "valid-artifact", "proposal.md"),
             content_hash: createHash("sha256")
               .update(proposalContent)
               .digest("hex"),
             non_whitespace_chars: expect.any(Number),
           });
+          expect(state.gates.proposal.artifact_evidence).not.toHaveProperty(
+            "path",
+          );
         },
       );
     } finally {
@@ -710,12 +712,14 @@ describe("changeWorkflow signal handlers", () => {
           expect(state.gates.discovery.status).toBe("done");
           expect(state.gates.discovery.artifact_evidence).toMatchObject({
             kind: "agreement",
-            path: join(changesDir, "state-agreement-discovery", "agreement.md"),
             content_hash: createHash("sha256")
               .update(agreementContent)
               .digest("hex"),
             non_whitespace_chars: expect.any(Number),
           });
+          expect(state.gates.discovery.artifact_evidence).not.toHaveProperty(
+            "path",
+          );
         },
       );
     } finally {
