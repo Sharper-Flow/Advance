@@ -125,6 +125,34 @@ export function createTemporalStoreBackend(
     return mapped;
   };
 
+  const setCachedProjection = (change: Change): Change => {
+    changeCache.set(change.id, change);
+    memo.set(change.id, {
+      id: change.id,
+      title: change.title,
+      status: change.status,
+      gateProgress: {
+        proposal: asGateStatus(change.gates?.proposal?.status),
+        discovery: asGateStatus(change.gates?.discovery?.status),
+        design: asGateStatus(change.gates?.design?.status),
+        planning: asGateStatus(change.gates?.planning?.status),
+        execution: asGateStatus(change.gates?.execution?.status),
+        acceptance: asGateStatus(change.gates?.acceptance?.status),
+        release: asGateStatus(change.gates?.release?.status),
+      },
+      taskCounts: {
+        total: change.tasks?.length ?? 0,
+        done: (change.tasks ?? []).filter((t) => t.status === "done").length,
+        pending: (change.tasks ?? []).filter((t) => t.status === "pending")
+          .length,
+      },
+      lastActivityAt: change.created_at,
+      fast_follow_of: change.fast_follow_of,
+    });
+    indexTasksFromChange(change);
+    return change;
+  };
+
   /**
    * Dual-write the latest workflow state to the disk snapshot
    * (`change.json`). Best-effort, fire-and-forget.
@@ -397,6 +425,32 @@ export function createTemporalStoreBackend(
     return null;
   };
 
+  const loadArchiveBundleDominantProjection = async (
+    changeId: string,
+    reason: ProjectionRecoveryReason,
+  ): Promise<Change | null> => {
+    if (!legacy.paths.archive) return null;
+    if (!(await hasArchiveBundle(legacy.paths.archive, changeId))) return null;
+
+    const archivedProjection = await loadArchiveProjection(changeId, reason);
+    if (archivedProjection) {
+      return setCachedProjection({ ...archivedProjection, status: "archived" });
+    }
+
+    const diskProjection = await legacy.changes.get(changeId);
+    if (diskProjection.success && diskProjection.data?.id === changeId) {
+      return setCachedProjection(
+        withProjectionRecovery(
+          { ...diskProjection.data, status: "archived" },
+          "disk",
+          reason,
+        ),
+      );
+    }
+
+    return null;
+  };
+
   const reseedChangeFromDisk = async (
     changeId: string,
     reason: ProjectionRecoveryReason = "missing_workflow",
@@ -494,6 +548,15 @@ export function createTemporalStoreBackend(
   ): Promise<ReturnType<Store["changes"]["get"]>> => {
     const cached = changeCache.get(changeId);
     if (cached) {
+      if (cached.status !== "archived" && cached.status !== "closed") {
+        const archiveProjection = await loadArchiveBundleDominantProjection(
+          changeId,
+          "missing_workflow",
+        );
+        if (archiveProjection) {
+          return { success: true, data: archiveProjection };
+        }
+      }
       indexTasksFromChange(cached);
       return { success: true, data: cached };
     }
@@ -509,7 +572,17 @@ export function createTemporalStoreBackend(
         state.worktree_auto_managed,
         undefined,
       );
-      return { success: true, data: setCachedChange(state) };
+      const change = setCachedChange(state);
+      if (change.status !== "archived" && change.status !== "closed") {
+        const archiveProjection = await loadArchiveBundleDominantProjection(
+          changeId,
+          "missing_workflow",
+        );
+        if (archiveProjection) {
+          return { success: true, data: archiveProjection };
+        }
+      }
+      return { success: true, data: change };
     } catch (error) {
       // P1.5 — orphan-tolerant changes.get with re-seed. When the
       // workflow is missing but a disk snapshot exists, seed a fresh

@@ -22,9 +22,10 @@
  *   processing; refreshing could pull in an intermediate state that overwrites
  *   the disk repair.
  * - Status transition (`saveRecoveredChangeStatus`) uses disk-direct
- *   `saveChange` + `bestEffortRefresh`. The workflow is already in a terminal
- *   state (completed or poisoned); the in-memory cache must be invalidated
- *   so subsequent `store.changes.get()` calls re-seed from the corrected disk.
+ *   `saveChange` only. `store.changes.refresh()` re-queries Temporal, which can
+ *   still contain stale non-terminal state for a wedged release workflow and
+ *   overwrite the disk repair. The Temporal read path treats archive bundles as
+ *   terminal/dominant and invalidates stale active cache entries there.
  */
 import type { Store } from "../storage/store-types";
 import type { Change, Gates } from "../types";
@@ -185,10 +186,5 @@ export async function saveRecoveredChangeStatus(input: {
     ...(input.closure ? { closure: input.closure } : {}),
   } as Change;
   await saveChange(input.store.paths.changes, updated);
-  // fixStatusRepairCache AC1: invalidate in-memory changeCache and memo so
-  // the next store.changes.get() re-seeds from the corrected disk projection.
-  // The workflow is terminal (completed or poisoned) so there is no risk of
-  // a running workflow projecting stale state back over the repair.
-  await bestEffortRefresh(input.store, input.change.id);
   return updated;
 }

@@ -279,7 +279,7 @@ describe("saveRecoveredChangeStatus", () => {
     );
   });
 
-  it("calls store.changes.refresh after disk write to invalidate stale cache", async () => {
+  it("does not refresh stale workflow state back over the disk repair", async () => {
     const { store } = createMockStore();
     const change = baseChange();
     (mockedSaveChange as unknown as ReturnType<typeof vi.fn>).mockClear();
@@ -294,11 +294,10 @@ describe("saveRecoveredChangeStatus", () => {
       status: "archived",
     });
 
-    // fixStatusRepairCache AC1: bestEffortRefresh is called after the disk
-    // write so the in-memory changeCache and memo are invalidated. Next
-    // store.changes.get() will re-seed from the corrected disk projection.
-    expect(store.changes.refresh).toHaveBeenCalledTimes(1);
-    expect(store.changes.refresh).toHaveBeenCalledWith("test-change");
+    // store.changes.refresh() re-queries Temporal for the temporal store. A
+    // wedged release workflow can still return stale draft state, so status
+    // repair must not call it after writing the disk projection.
+    expect(store.changes.refresh).not.toHaveBeenCalled();
   });
 
   it("requires recovery authorization for disk-direct status writes", async () => {
