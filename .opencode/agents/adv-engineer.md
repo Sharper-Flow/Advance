@@ -192,8 +192,16 @@ When scope is complete:
 **NEVER** read ADV state files directly using `read`, `bash cat`, `ls`, or any filesystem tool. This includes any path matching:
 - `~/.local/share/opencode/plugins/advance/**/change.json`
 - `~/.local/share/opencode/plugins/advance/**/proposal.md`
+- `~/.local/share/opencode/plugins/advance/**/problem-statement.md`
+- `~/.local/share/opencode/plugins/advance/**/agreement.md`
+- `~/.local/share/opencode/plugins/advance/**/design.md`
+- `~/.local/share/opencode/plugins/advance/**/executive-summary.md`
+- `~/.local/share/opencode/plugins/advance/**/acceptance.md`
 - `~/.local/share/opencode/plugins/advance/**/agenda.jsonl`
 - `~/.local/share/opencode/plugins/advance/**/wisdom.jsonl`
+- `~/.local/share/opencode/plugins/advance/**/conformance.json`
+
+Artifact content comes from packet inline content or `adv_change_show include: { proposal/problemStatement/agreement/design/executiveSummary/acceptance: true }`. Do not dereference `artifacts.*.path` unless metadata explicitly says `readable: true` and the task truly needs a real file path.
 
 **ALWAYS** use the ADV MCP tools instead:
 
