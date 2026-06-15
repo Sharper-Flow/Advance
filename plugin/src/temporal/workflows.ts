@@ -850,11 +850,12 @@ export async function changeWorkflow(
         // State-backed acceptance (completeStateBackedGate AC1/AC2/AC7).
         // Proof comes from workflow state, NOT disk inspection. The L1
         // readiness check (acceptanceContractBlockers) already verified that
-        // state.artifacts.executiveSummary.{path,contentHash} are present and
-        // the contract review matrix passes; here we validate the
-        // state.documents.executiveSummary CONTENT (size + hash) and derive
-        // the acceptance evidence from state. The recovery path in gate.ts
-        // (poisoned_history) is untouched and still inspects disk per C2/C4.
+        // executive-summary content or metadata (contentHash/source/readable;
+        // path only when materialized) is usable and the contract review matrix
+        // passes; here we validate state.documents.executiveSummary content and
+        // derive readable acceptance evidence from state. The recovery path in
+        // gate.ts (poisoned_history) is untouched and still inspects disk per
+        // C2/C4.
         const stateProof = stateBackedAcceptanceProof(state, workflowNow());
         if (!stateProof.ready) {
           markGateStuckForBlockers(payload, stateProof.blockers);

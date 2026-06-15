@@ -353,6 +353,8 @@ function applyContentWithSizeGuard(
   text: string,
   at: string,
 ): ChangeWorkflowState {
+  // Active content is Temporal-first; metadata intentionally omits active
+  // filesystem paths until an archive/recovery/materialization step creates one.
   const temporalOnlyMetadata = (): ArtifactMetadata => ({
     updatedAt: at,
     source: "temporal",
@@ -1269,6 +1271,8 @@ export function updateArtifactMetadataInChangeState(
   metadata: ArtifactMetadata,
 ): void {
   const normalized: ArtifactMetadata = { ...metadata };
+  // Workflow state may preserve legacy path-bearing metadata for replay; tool
+  // readback remains responsible for re-validating readability before display.
   if (normalized.path?.trim() === "") {
     delete normalized.path;
     normalized.readable = false;

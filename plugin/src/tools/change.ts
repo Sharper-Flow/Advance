@@ -86,6 +86,8 @@ async function normalizeArtifactMetadataForReadback(
   >) {
     const metadata: ArtifactMetadata = { ...rawMetadata };
     if (metadata.path) {
+      // Readback re-validates paths because workflow state can retain legacy
+      // path metadata after active artifacts moved to Temporal-only content.
       const readable =
         metadata.source !== "temporal" &&
         metadata.readable !== false &&
@@ -111,6 +113,8 @@ async function normalizeGateArtifactEvidenceForReadback(
     const gate = normalized[gateId];
     const evidence = gate?.artifact_evidence;
     if (!evidence?.path) continue;
+    // Gate evidence may come from older state that recorded active artifact
+    // paths; suppress phantom paths unless the file is still materialized.
     if (await fileExists(evidence.path)) continue;
     const { path: _path, ...evidenceWithoutPath } = evidence;
     normalized[gateId] = {
@@ -2356,7 +2360,9 @@ export const changeTools = {
                 output._contextSnapshot = buildChangeContextSnapshot({
                   change: displayChange,
                   proposalText,
-                  gates: gates ?? undefined,
+                  gates: gates
+                    ? await normalizeGateArtifactEvidenceForReadback(gates)
+                    : undefined,
                   workdir: activeStore.paths.root,
                 });
               } catch (e) {
@@ -3074,6 +3080,8 @@ export const changeTools = {
             changeId,
             "executive-summary.md",
           );
+          const executiveSummaryReadable =
+            await fileExists(executiveSummaryPath);
           await saveRecoveredArtifactMetadata({
             store: activeStore,
             change: existing.data,
@@ -3083,18 +3091,21 @@ export const changeTools = {
             },
             kind: "executiveSummary",
             metadata: {
-              path: executiveSummaryPath,
+              ...(executiveSummaryReadable
+                ? { path: executiveSummaryPath }
+                : {}),
               updatedAt: new Date().toISOString(),
               contentHash: createHash("sha256")
                 .update(executiveSummary)
                 .digest("hex"),
               source: "recovery",
-              readable: true,
+              readable: executiveSummaryReadable,
             },
           });
           return formatToolOutput({
             changeId,
-            executiveSummaryPath,
+            ...(executiveSummaryReadable ? { executiveSummaryPath } : {}),
+            executiveSummaryReadable,
             _recoveryMutation: true,
             recoveryReason,
             priorApprovalEvidence,

@@ -231,12 +231,12 @@ export function stateBackedArtifactEvidence(
  * Derives acceptance gate evidence from workflow state WITHOUT inspecting
  * disk. The executive-summary proof is the gating artifact for acceptance:
  * its content lives in `state.documents.executiveSummary` and its
- * server-computed metadata (path + contentHash) lives in
- * `state.artifacts.executiveSummary`. The L1 readiness check
- * (`acceptanceContractBlockers`) already verifies the metadata is present and
- * the contract review matrix passes; this function additionally validates the
- * in-state executive-summary CONTENT (presence + minimum size) and emits
- * acceptance evidence keyed to the executive-summary metadata.
+ * server-computed metadata (contentHash/source/readable, plus path only when
+ * materialized) lives in `state.artifacts.executiveSummary`. The L1 readiness
+ * check (`acceptanceContractBlockers`) already verifies usable metadata or
+ * content is present and the contract review matrix passes; this function
+ * additionally validates the in-state executive-summary CONTENT (presence +
+ * minimum size) and emits acceptance evidence keyed to readable metadata.
  *
  * The contentHash is NOT recomputed here — recomputation would require a
  * non-deterministic hashing primitive inside the workflow bundle. The metadata
@@ -354,14 +354,16 @@ function acceptanceContractBlockers(
   const executiveSummary = state.artifacts.executiveSummary;
   const executiveSummaryContent = state.documents?.executiveSummary;
   const executiveSummaryBlockers: GateReadinessBlocker[] = [];
-  // Resilience: when state.artifacts.executiveSummary metadata is missing
-  // but state.documents.executiveSummary has content, the metadata signal
-  // may not have been processed yet (signal delivery timing). In this case,
-  // synthesize the metadata from the content and conventional path so the
-  // acceptance gate can proceed. The L2 check (stateBackedAcceptanceProof)
-  // validates the content itself.
-  const hasMetadata =
-    executiveSummary?.path && executiveSummary?.contentHash?.trim();
+  // Resilience: Temporal-only metadata intentionally omits path. Legacy state
+  // may still have a path, so metadata readiness keys off hash plus source /
+  // readability signals instead of requiring filesystem path evidence.
+  const hasContentHash = Boolean(executiveSummary?.contentHash?.trim());
+  const hasMetadataContext = Boolean(
+    executiveSummary?.source ||
+    executiveSummary?.path ||
+    executiveSummary?.readable !== undefined,
+  );
+  const hasMetadata = hasContentHash && hasMetadataContext;
   const hasContent =
     typeof executiveSummaryContent === "string" &&
     executiveSummaryContent.trim().length > 0;
@@ -381,11 +383,7 @@ function acceptanceContractBlockers(
     // Metadata signal not yet processed but content exists — not a blocker.
     // The L2 check (stateBackedAcceptanceProof) will validate content size.
   }
-  if (!hasMetadata && hasContent) {
-    // Content exists but metadata hash is missing — not a blocker since
-    // stateBackedAcceptanceProof will validate content and derive evidence
-    // from available metadata (path/contentHash are optional in evidence).
-  } else if (!executiveSummary?.contentHash?.trim() && !hasContent) {
+  if (!hasContentHash && !hasContent) {
     executiveSummaryBlockers.push(
       makeBlocker({
         code: "ACCEPTANCE_EXECUTIVE_SUMMARY_HASH_MISSING",
