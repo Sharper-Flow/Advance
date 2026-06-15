@@ -31,7 +31,11 @@
 import { readFile, stat } from "node:fs/promises";
 import { join } from "node:path";
 
-import { ARTIFACT_FILENAME, ArtifactKindSchema, type ArtifactKind } from "../../types";
+import {
+  ARTIFACT_FILENAME,
+  ArtifactKindSchema,
+  type ArtifactKind,
+} from "../../types";
 import { createLogger } from "../../utils/debug-log";
 
 const logger = createLogger("hydrate-documents");
