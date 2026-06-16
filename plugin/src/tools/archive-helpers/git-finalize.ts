@@ -425,6 +425,26 @@ export function classifyFinalizationRoute(
     `repos/${origin.repo}/rules/branches/${encodeURIComponent(defaultBranch)}`,
   ]);
   if (rules.status !== 0) {
+    const rulesErrText = (rules.stderr || rules.stdout || "").toLowerCase();
+    // Private repos without GitHub Pro return 403 on the branch-rules API.
+    // The rules API is unavailable on this plan — not a policy detection
+    // failure. Treat as "no rules detectable → direct route" so the release
+    // gate can proceed with git-based reachability verification.
+    const isPlanRestriction =
+      rulesErrText.includes("upgrade to github pro") ||
+      rulesErrText.includes("make this repository public");
+    if (isPlanRestriction) {
+      return {
+        route: "direct",
+        repo: origin.repo,
+        remoteUrl: origin.remoteUrl,
+        protected: false,
+        parsedRules: [],
+        details: [
+          "branch-rules API unavailable on private repo (GitHub Pro required); treating as unprotected",
+        ],
+      };
+    }
     return {
       route: "blocked",
       repo: origin.repo,
