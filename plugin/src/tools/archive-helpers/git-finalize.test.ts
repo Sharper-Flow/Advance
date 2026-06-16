@@ -14,9 +14,11 @@ import { createTempDir } from "../../__tests__/setup";
 import {
   classifyFinalizationRoute,
   coercePrWorkflowRoute,
+  completeMergeQueueHandoff,
   detectArchiveMode,
   detectDefaultBranch,
   deleteChangeBranch,
+  executePullRequestHandoff,
   finalizeRelease,
   mergeChangeBranch,
   mergeToTrunk,
@@ -2383,6 +2385,462 @@ describe("git-finalize helpers", () => {
       expect(result).toEqual({ status: "ok" });
       const afterHead = git(worktree, ["rev-parse", "HEAD"]);
       expect(afterHead).toBe(beforeHead);
+    });
+  });
+
+  describe("merge queue handoff", () => {
+    function queueGhMock(
+      opts: {
+        finalState?: "OPEN" | "MERGED";
+        armingFails?: boolean;
+        existingPr?: boolean;
+      } = {},
+    ) {
+      const {
+        finalState = "OPEN",
+        armingFails = false,
+        existingPr = false,
+      } = opts;
+      let branchViewCount = 0;
+      return {
+        runGh: (_cwd: string, args: string[]) => {
+          if (
+            args[0] === "pr" &&
+            args[1] === "view" &&
+            args[2] === "change/example"
+          ) {
+            branchViewCount += 1;
+            if (existingPr) {
+              return {
+                status: 0,
+                stdout: JSON.stringify({
+                  number: 42,
+                  url: "https://github.com/Sharper-Flow/Advance/pull/42",
+                  state: finalState,
+                  autoMergeRequest:
+                    finalState === "OPEN"
+                      ? { enabledAt: "2026-06-07T00:00:00Z" }
+                      : null,
+                }),
+                stderr: "",
+              };
+            }
+            if (branchViewCount === 1) {
+              return {
+                status: 1,
+                stdout: "",
+                stderr: "no pull requests found",
+              };
+            }
+            return {
+              status: 0,
+              stdout: JSON.stringify({
+                number: 42,
+                url: "https://github.com/Sharper-Flow/Advance/pull/42",
+                state: "OPEN",
+                autoMergeRequest: null,
+              }),
+              stderr: "",
+            };
+          }
+          if (args[0] === "pr" && args[1] === "create") {
+            return {
+              status: 0,
+              stdout: "https://github.com/Sharper-Flow/Advance/pull/42\n",
+              stderr: "",
+            };
+          }
+          if (args[0] === "pr" && args[1] === "merge") {
+            if (armingFails) {
+              return {
+                status: 1,
+                stdout: "",
+                stderr: "auto-merge could not be enabled",
+              };
+            }
+            return { status: 0, stdout: "Auto-merge enabled", stderr: "" };
+          }
+          if (args[0] === "pr" && args[1] === "view" && args[2] === "42") {
+            return {
+              status: 0,
+              stdout: JSON.stringify({
+                state: finalState,
+                mergedAt:
+                  finalState === "MERGED" ? "2026-06-07T00:00:00Z" : null,
+                mergeCommit:
+                  finalState === "MERGED" ? { oid: "merge-sha" } : null,
+                autoMergeRequest:
+                  finalState === "OPEN"
+                    ? { enabledAt: "2026-06-07T00:00:00Z" }
+                    : null,
+              }),
+              stderr: "",
+            };
+          }
+          return {
+            status: 1,
+            stdout: "",
+            stderr: `unexpected gh ${args.join(" ")}`,
+          };
+        },
+      };
+    }
+
+    function queueGitMock() {
+      const calls: string[][] = [];
+      return {
+        calls,
+        runGit: (_cwd: string, args: string[]) => {
+          calls.push(args);
+          if (
+            args[0] === "fetch" &&
+            args[1] === "origin" &&
+            args[2] === "trunk"
+          ) {
+            return { status: 0, stdout: "", stderr: "" };
+          }
+          if (args[0] === "reset" && args[1] === "--hard") {
+            return { status: 0, stdout: "reset", stderr: "" };
+          }
+          if (args[0] === "push" && args.includes("change/example")) {
+            return { status: 0, stdout: "pushed branch", stderr: "" };
+          }
+          return {
+            status: 1,
+            stdout: "",
+            stderr: `unexpected git ${args.join(" ")}`,
+          };
+        },
+      };
+    }
+
+    it("completeMergeQueueHandoff returns pending_merge when auto-merge is armed", () => {
+      const gitMock = queueGitMock();
+      const ghMock = queueGhMock({ finalState: "OPEN" });
+
+      const result = completeMergeQueueHandoff(
+        {
+          mainCheckout: "/main",
+          workdir: "/workdir",
+          defaultBranch: "trunk",
+          changeId: "example",
+          route: {
+            route: "merge_queue",
+            repo: "Sharper-Flow/Advance",
+            mergeQueueRequired: true,
+          },
+        },
+        {
+          runGit: gitMock.runGit,
+          runGh: ghMock.runGh,
+        },
+      );
+
+      expect(result).toMatchObject({
+        status: "pending_merge",
+        route: "merge_queue",
+        prBranch: "change/example",
+        prNumber: 42,
+        prUrl: "https://github.com/Sharper-Flow/Advance/pull/42",
+        autoMergeArmed: true,
+        pushStatus: "pushed",
+      });
+      expect(gitMock.calls).toContainEqual(["fetch", "origin", "trunk"]);
+      expect(gitMock.calls).toContainEqual(["reset", "--hard", "origin/trunk"]);
+    });
+
+    it("completeMergeQueueHandoff collapses to shipped when PR is already merged", () => {
+      const gitMock = queueGitMock();
+      const ghMock = queueGhMock({ finalState: "MERGED" });
+
+      const result = completeMergeQueueHandoff(
+        {
+          mainCheckout: "/main",
+          workdir: "/workdir",
+          defaultBranch: "trunk",
+          changeId: "example",
+          route: {
+            route: "merge_queue",
+            repo: "Sharper-Flow/Advance",
+            mergeQueueRequired: true,
+          },
+        },
+        {
+          runGit: gitMock.runGit,
+          runGh: ghMock.runGh,
+        },
+      );
+
+      expect(result).toMatchObject({
+        status: "shipped",
+        route: "merge_queue",
+        prNumber: 42,
+        mergeCommitSha: "merge-sha",
+        pushStatus: "pushed",
+      });
+    });
+
+    it("completeMergeQueueHandoff blocks when auto-merge arming fails", () => {
+      const gitMock = queueGitMock();
+      const ghMock = queueGhMock({ armingFails: true });
+
+      const result = completeMergeQueueHandoff(
+        {
+          mainCheckout: "/main",
+          workdir: "/workdir",
+          defaultBranch: "trunk",
+          changeId: "example",
+          route: {
+            route: "merge_queue",
+            repo: "Sharper-Flow/Advance",
+            mergeQueueRequired: true,
+          },
+        },
+        {
+          runGit: gitMock.runGit,
+          runGh: ghMock.runGh,
+        },
+      );
+
+      expect(result.status).toBe("blocked");
+      expect(result.blocked?.reason).toBe("AUTO_MERGE_ARM_FAILED");
+    });
+
+    it("executePullRequestHandoff runs push → ensure PR → arm auto-merge → reachability in sequence", () => {
+      const gitCalls: string[][] = [];
+      const ghCalls: string[][] = [];
+      let branchViewCount = 0;
+
+      const result = executePullRequestHandoff(
+        {
+          mainCheckout: "/main",
+          workdir: "/workdir",
+          repo: "Sharper-Flow/Advance",
+          branch: "change/example",
+          defaultBranch: "trunk",
+          changeId: "example",
+          route: {
+            route: "pr_auto_merge",
+            repo: "Sharper-Flow/Advance",
+            protected: true,
+            autoMergeAllowed: true,
+          },
+        },
+        {
+          runGit: (_cwd, args) => {
+            gitCalls.push(args);
+            if (args[0] === "push" && args.includes("change/example")) {
+              return { status: 0, stdout: "pushed branch", stderr: "" };
+            }
+            return {
+              status: 1,
+              stdout: "",
+              stderr: `unexpected git ${args.join(" ")}`,
+            };
+          },
+          runGh: (_cwd, args) => {
+            ghCalls.push(args);
+            if (
+              args[0] === "pr" &&
+              args[1] === "view" &&
+              args[2] === "change/example"
+            ) {
+              branchViewCount += 1;
+              if (branchViewCount === 1) {
+                return {
+                  status: 1,
+                  stdout: "",
+                  stderr: "no pull requests found",
+                };
+              }
+              return {
+                status: 0,
+                stdout: JSON.stringify({
+                  number: 42,
+                  url: "https://github.com/Sharper-Flow/Advance/pull/42",
+                  state: "OPEN",
+                  autoMergeRequest: null,
+                }),
+                stderr: "",
+              };
+            }
+            if (args[0] === "pr" && args[1] === "create") {
+              return {
+                status: 0,
+                stdout: "https://github.com/Sharper-Flow/Advance/pull/42\n",
+                stderr: "",
+              };
+            }
+            if (args[0] === "pr" && args[1] === "merge") {
+              return { status: 0, stdout: "Auto-merge enabled", stderr: "" };
+            }
+            if (args[0] === "pr" && args[1] === "view" && args[2] === "42") {
+              return {
+                status: 0,
+                stdout: JSON.stringify({
+                  state: "OPEN",
+                  mergedAt: null,
+                  mergeCommit: null,
+                  autoMergeRequest: { enabledAt: "2026-06-07T00:00:00Z" },
+                }),
+                stderr: "",
+              };
+            }
+            return {
+              status: 1,
+              stdout: "",
+              stderr: `unexpected gh ${args.join(" ")}`,
+            };
+          },
+        },
+      );
+
+      expect(result).toMatchObject({
+        status: "pending_merge",
+        route: "pr_auto_merge",
+        prNumber: 42,
+        autoMergeArmed: true,
+        pushStatus: "pushed",
+      });
+      expect(gitCalls[0]).toEqual(["push", "origin", "change/example"]);
+      const prOps = ghCalls.map((a) => a.slice(0, 2).join(" "));
+      expect(prOps).toEqual([
+        "pr view",
+        "pr create",
+        "pr view",
+        "pr merge",
+        "pr view",
+      ]);
+    });
+
+    it("armPullRequestAutoMerge never passes -d or --delete-branch", () => {
+      const allMergeCalls: string[][] = [];
+      function instrumentedGh(
+        base: (
+          _cwd: string,
+          args: string[],
+        ) => { status: number; stdout: string; stderr: string },
+      ) {
+        return (_cwd: string, args: string[]) => {
+          if (args[0] === "pr" && args[1] === "merge") {
+            allMergeCalls.push(args);
+          }
+          return base(_cwd, args);
+        };
+      }
+
+      const queueGit = queueGitMock();
+      const queueGh = queueGhMock({ finalState: "OPEN" });
+      completeMergeQueueHandoff(
+        {
+          mainCheckout: "/main",
+          workdir: "/workdir",
+          defaultBranch: "trunk",
+          changeId: "example",
+          route: {
+            route: "merge_queue",
+            repo: "Sharper-Flow/Advance",
+            mergeQueueRequired: true,
+          },
+        },
+        {
+          runGit: queueGit.runGit,
+          runGh: instrumentedGh(queueGh.runGh),
+        },
+      );
+
+      const prAutoGitCalls: string[][] = [];
+      const prAutoGhCalls: string[][] = [];
+      let branchViewCount = 0;
+      executePullRequestHandoff(
+        {
+          mainCheckout: "/main",
+          workdir: "/workdir",
+          repo: "Sharper-Flow/Advance",
+          branch: "change/example",
+          defaultBranch: "trunk",
+          changeId: "example",
+          route: {
+            route: "pr_auto_merge",
+            repo: "Sharper-Flow/Advance",
+            protected: true,
+            autoMergeAllowed: true,
+          },
+        },
+        {
+          runGit: (_cwd, args) => {
+            prAutoGitCalls.push(args);
+            if (args[0] === "push" && args.includes("change/example")) {
+              return { status: 0, stdout: "pushed branch", stderr: "" };
+            }
+            return {
+              status: 1,
+              stdout: "",
+              stderr: `unexpected git ${args.join(" ")}`,
+            };
+          },
+          runGh: instrumentedGh((_cwd, args) => {
+            prAutoGhCalls.push(args);
+            if (
+              args[0] === "pr" &&
+              args[1] === "view" &&
+              args[2] === "change/example"
+            ) {
+              branchViewCount += 1;
+              if (branchViewCount === 1) {
+                return {
+                  status: 1,
+                  stdout: "",
+                  stderr: "no pull requests found",
+                };
+              }
+              return {
+                status: 0,
+                stdout: JSON.stringify({
+                  number: 42,
+                  url: "https://github.com/Sharper-Flow/Advance/pull/42",
+                  state: "OPEN",
+                  autoMergeRequest: null,
+                }),
+                stderr: "",
+              };
+            }
+            if (args[0] === "pr" && args[1] === "create") {
+              return {
+                status: 0,
+                stdout: "https://github.com/Sharper-Flow/Advance/pull/42\n",
+                stderr: "",
+              };
+            }
+            if (args[0] === "pr" && args[1] === "merge") {
+              return { status: 0, stdout: "Auto-merge enabled", stderr: "" };
+            }
+            if (args[0] === "pr" && args[1] === "view" && args[2] === "42") {
+              return {
+                status: 0,
+                stdout: JSON.stringify({
+                  state: "OPEN",
+                  mergedAt: null,
+                  mergeCommit: null,
+                  autoMergeRequest: { enabledAt: "2026-06-07T00:00:00Z" },
+                }),
+                stderr: "",
+              };
+            }
+            return {
+              status: 1,
+              stdout: "",
+              stderr: `unexpected gh ${args.join(" ")}`,
+            };
+          }),
+        },
+      );
+
+      expect(allMergeCalls.length).toBeGreaterThanOrEqual(2);
+      for (const call of allMergeCalls) {
+        expect(call).not.toContain("-d");
+        expect(call).not.toContain("--delete-branch");
+      }
     });
   });
 });
