@@ -1,0 +1,19 @@
+{
+  "entries": [
+    {
+      "id": "ws-5Rvgoz",
+      "type": "pattern",
+      "content": "CLI-bridge testing split (Advance repo): bin/ is Bun-runtime and is NOT in plugin/tsconfig (rootDir:./src). Importing bin/lib/*.ts into a plugin/src vitest test breaks `pnpm run typecheck` (TS6059 file-not-under-rootDir). Pattern: (1) unit-test bin logic with Bun's runner — `bin/lib/*.test.ts` run via `bun test bin/`, wired as a dedicated CI step (Bun already installed in CI via oven-sh/setup-bun); (2) cross-boundary contract/parity/coverage tests live in plugin/src as vitest and read bin files as TEXT (readFileSync + regex), importing only in-tree plugin constants — exactly how plugin/src/adv-status-cli-assets.test.ts works. Never import bin/lib into plugin tests.",
+      "source_task": "tk-4781868e7a81",
+      "recorded_at": "2026-06-05T17:19:58.120Z"
+    },
+    {
+      "id": "ws-Xqwj0r",
+      "type": "convention",
+      "content": "New CLI slash-command bridges in Advance follow the rq-statusCliBridge01 template by construction: (a) command body is a pure shell-output bridge `!`adv <subcmd> --no-color`` with verbatim/no-analysis/no-recommendations instructions and ZERO adv_* MCP tool mentions; (b) any \"use the MCP tool for X\" pointer goes in the CLI's own stdout, never the command file (otherwise the no-fanout asset test flags it); (c) a cloned advance-meta spec rq-<cmd>CliBridge01 (.1 inject/.2 no-fanout/.3 no-MCP-fallback); (d) coverage added to the parameterized plugin/src/cli-bridge-contract.test.ts table; (e) a registry no-removal guard (frozen ADV_TOOL_NAMES) ensures additive CLI work never silently drops an agent tool.",
+      "source_task": "tk-375810084ef4",
+      "recorded_at": "2026-06-05T17:20:03.295Z"
+    }
+  ],
+  "count": 2
+}
