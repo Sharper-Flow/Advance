@@ -6,11 +6,13 @@ import {
   applySubagentReportSubmittedToState,
   applyContractAmendedToState,
   applyGateReenteredToState,
+  applyProposalUpdatedToState,
   applyTaskAddedToState,
   applyTaskCompletedToState,
   changeSeedStateFromChange,
   completeGateInChangeState,
   createChangeWorkflowState,
+  updateArtifactMetadataInChangeState,
 } from "./change-state";
 import type { Change, ChangeOrigin } from "../types";
 import type { ChangeWorkflowInput } from "./contracts";
@@ -85,6 +87,49 @@ describe("change-state pure mutation helpers", () => {
     expect(source).toContain("function assertNeverSubagentReport");
     expect(source).toContain("switch (report.agent)");
     expect(source).toContain("default:");
+  });
+
+  it("records Temporal-only content metadata without empty artifact paths", () => {
+    const state = createChangeWorkflowState({
+      changeId: "temporal-artifact-metadata",
+      title: "Temporal artifact metadata",
+      createdAt: "2026-06-15T00:00:00.000Z",
+    });
+
+    applyProposalUpdatedToState(state, {
+      text: "# Proposal\n\nTemporal-only content.",
+      updatedAt: "2026-06-15T00:00:01.000Z",
+    });
+
+    expect(state.artifacts.proposal).toEqual(
+      expect.objectContaining({
+        updatedAt: "2026-06-15T00:00:01.000Z",
+        source: "temporal",
+        readable: false,
+      }),
+    );
+    expect(state.artifacts.proposal).not.toHaveProperty("path");
+  });
+
+  it("normalizes blank artifact metadata paths as unreadable Temporal metadata", () => {
+    const state = createChangeWorkflowState({
+      changeId: "blank-artifact-path",
+      title: "Blank artifact path",
+      createdAt: "2026-06-15T00:00:00.000Z",
+    });
+
+    updateArtifactMetadataInChangeState(state, "proposal", {
+      path: "",
+      updatedAt: "2026-06-15T00:00:01.000Z",
+      contentHash: "abc123",
+    });
+
+    expect(state.artifacts.proposal).toEqual({
+      updatedAt: "2026-06-15T00:00:01.000Z",
+      contentHash: "abc123",
+      source: "temporal",
+      readable: false,
+    });
   });
 
   it("persists task-scoped sub-agent reports to sidecar and legacy task storage", () => {

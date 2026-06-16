@@ -286,8 +286,9 @@ Runtime helper outcomes:
 
 - **no_remote / local fast path** — no `origin` remote and branch is on current default-branch basis → `git -C "$MAIN" merge --ff-only change/{change-id}`; release may complete as `Merged locally.` after local proof.
 - **direct / remote fast path** — `origin` exists, direct push is allowed, local merge succeeds, `git push origin {default-branch}` succeeds, and post-fetch `origin/{default-branch}` reachability is proven → release may complete as `Shipped.`.
-- **pr_auto_merge / pending path** — default branch is protected or publish risk requires PR workflow → push `change/{change-id}`, open/reuse one PR, arm GitHub auto-merge, and report `Pending auto-merge.` while release remains incomplete until PR state is `MERGED`.
-- **pr_manual / blocked path** — PR creation or auto-merge cannot be established (`gh` unavailable, auth failure, allow_auto_merge disabled, checks missing, PR not armable) → report `Blocked.`; release remains incomplete.
+- **merge_queue / queue path** — branch rules require merge queue → push `change/{change-id}`, open/reuse one PR, queue via documented GitHub `merge_group` semantics, and report `Pending auto-merge.` while release remains incomplete until PR state is `MERGED` or origin/default reachability is proven. This path skips local reconciliation because the queue provides freshness via `merge_group`.
+- **pr_auto_merge / pending path** — default branch is protected or publish risk requires PR workflow and merge queue is not required → push `change/{change-id}`, open/reuse one PR, arm GitHub auto-merge, and report `Pending auto-merge.` while release remains incomplete until PR state is `MERGED`.
+- **pr_manual / blocked path** — PR creation, queuing, or auto-merge cannot be established (`gh` unavailable, auth failure, allow_auto_merge disabled, merge queue unavailable, checks missing, PR not armable) → report `Blocked.`; release remains incomplete.
 - **blocked / reconcile externally** — if merge, fetch, or proof checks fail, runtime reports diagnostics and keeps cleanup blocked.
 
 ### Step 4 — Conflict-recovery flow (post-J3 expansion)

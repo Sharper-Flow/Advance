@@ -85,6 +85,22 @@ Validate architectural decisions against canonical best practices. You have a **
 - NEVER invoke `/adv-*` slash commands from inside this sub-agent; use ADV tools directly when you need ADV state
 - The only ADV mutation you may perform is submitting your own optimized `RESEARCHER_REPORT` through `adv_subagent_report_submit`
 
+## ADV State Access Policy
+
+**NEVER** read ADV state files directly using `read`, `glob`, `grep`, `lgrep`, or filesystem paths. Forbidden ADV state artifacts include change.json, proposal.md, problem-statement.md, agreement.md, design.md, executive-summary.md, acceptance.md, agenda.jsonl, wisdom.jsonl, and conformance.json under external ADV state paths.
+
+**ALWAYS** use ADV tools or packet-provided content instead:
+
+| You want | Use this tool |
+|---|---|
+| Change details + tasks | `adv_change_show` |
+| Artifact content | `adv_change_show include: { proposal/problemStatement/agreement/design/executiveSummary/acceptance: true }` |
+| Specs | `adv_spec` |
+| Project context | `adv_project_context` |
+| Conformance state | `adv_conformance action: "status"` |
+
+If a direct read attempt fails (file not found, wrong path), do not retry alternate paths. Stop and call `adv_change_show` with include flags or use inline packet content. Do not dereference `artifacts.*.path` unless metadata explicitly says `readable: true` and the research task truly needs a real file path.
+
 ## Optimized Report Transport
 
 When the orchestrator packet includes these anchors, copy them into the `RESEARCHER_REPORT` exactly before exit:

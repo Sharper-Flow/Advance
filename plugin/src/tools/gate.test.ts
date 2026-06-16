@@ -7,6 +7,9 @@
  */
 
 import { describe, test, expect, vi, beforeEach, afterEach } from "vitest";
+import { mkdtemp, rm, writeFile } from "fs/promises";
+import { join } from "path";
+import { tmpdir } from "os";
 import { COMMAND_MANIFEST } from "../manifest";
 import { gateTools, validateGateBoundary } from "./gate";
 import type { Store } from "../storage/store";
@@ -979,6 +982,58 @@ describe("gate tools — signal-driven lifecycle", () => {
       const parsed = JSON.parse(result);
       expect(parsed.gates.discovery.status).toBe("done");
       expect(parsed._recovery).toBeUndefined();
+    });
+
+    test("strips phantom artifact evidence paths while preserving readable materialized paths", async () => {
+      const tmp = await mkdtemp(join(tmpdir(), "adv-gate-status-paths-"));
+      const materializedPath = join(tmp, "design.md");
+      const phantomPath = join(tmp, "missing.md");
+      await writeFile(materializedPath, "# Design\n\nmaterialized artifact\n");
+
+      try {
+        const gates = {
+          proposal: { status: "done" },
+          discovery: {
+            status: "done",
+            artifact_evidence: {
+              kind: "agreement",
+              path: phantomPath,
+              checked_at: "2026-01-01T00:00:00Z",
+            },
+          },
+          design: {
+            status: "done",
+            artifact_evidence: {
+              kind: "design",
+              path: materializedPath,
+              checked_at: "2026-01-01T00:00:00Z",
+            },
+          },
+          planning: { status: "pending" },
+          execution: { status: "pending" },
+          acceptance: { status: "pending" },
+          release: { status: "pending" },
+        } as import("../types").Gates;
+        const store = createMockStore({ gates });
+
+        mocks.querySignal.mockResolvedValueOnce(gates);
+
+        const result = await gateTools.adv_gate_status.execute(
+          { changeId: "test-change" },
+          store,
+        );
+
+        const parsed = JSON.parse(result);
+        expect(parsed.gates.discovery.artifact_evidence).toEqual({
+          kind: "agreement",
+          checked_at: "2026-01-01T00:00:00Z",
+        });
+        expect(parsed.gates.design.artifact_evidence.path).toBe(
+          materializedPath,
+        );
+      } finally {
+        await rm(tmp, { recursive: true, force: true });
+      }
     });
   });
 });

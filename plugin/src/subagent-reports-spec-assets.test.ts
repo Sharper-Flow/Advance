@@ -12,6 +12,19 @@ const DELEGATION_DEFAULTS_SPEC = join(
   REPO_ROOT,
   ".adv/specs/delegation-defaults/spec.json",
 );
+const AGENT_PATHS = [
+  ".opencode/agents/adv.md",
+  ".opencode/agents/adv-engineer.md",
+  ".opencode/agents/adv-reviewer.md",
+  ".opencode/agents/adv-designer.md",
+  ".opencode/agents/adv-researcher.md",
+  ".opencode/agents/build.md",
+].map((path) => join(REPO_ROOT, path));
+const ARTIFACT_ACCESS_COMMANDS = [
+  ".opencode/command/adv-design.md",
+  ".opencode/command/adv-research.md",
+  ".opencode/command/adv-refactor.md",
+].map((path) => join(REPO_ROOT, path));
 
 function readJson(path: string): unknown {
   return JSON.parse(readFileSync(path, "utf8"));
@@ -41,7 +54,55 @@ describe("subagent reports spec assets", () => {
       "rq-subagentReports12",
       "rq-subagentReports13",
       "rq-subagentReports14",
+      "rq-subagentArtifactAccess01",
     ]);
+  });
+
+  test("worker agent policies cover artifact-wide ADV state access", () => {
+    for (const agentPath of AGENT_PATHS) {
+      const content = readFileSync(agentPath, "utf8");
+      for (const anchor of [
+        "ADV State Access Policy",
+        "change.json",
+        "proposal",
+        "problem-statement",
+        "agreement",
+        "design",
+        "executive-summary",
+        "acceptance",
+        "agenda",
+        "wisdom",
+        "conformance",
+        "adv_change_show",
+      ]) {
+        expect(content, `${agentPath} missing ${anchor}`).toContain(anchor);
+      }
+      expect(content, `${agentPath} missing include guidance`).toMatch(
+        /include:?.*(proposal|problemStatement).*agreement.*design/s,
+      );
+      expect(content, `${agentPath} must warn about artifact paths`).toContain(
+        "artifacts.*.path",
+      );
+      expect(
+        content,
+        `${agentPath} must require readable path metadata`,
+      ).toContain("readable");
+    }
+  });
+
+  test("research/design/refactor command packets use included content, not artifact paths", () => {
+    for (const commandPath of ARTIFACT_ACCESS_COMMANDS) {
+      const content = readFileSync(commandPath, "utf8");
+      expect(content, `${commandPath} missing adv_change_show`).toContain(
+        "adv_change_show",
+      );
+      expect(content, `${commandPath} missing include guidance`).toContain(
+        "include",
+      );
+      expect(content, `${commandPath} missing artifact path warning`).toContain(
+        "artifacts.*.path",
+      );
+    }
   });
 
   test("subagent-reports law pins sidecar report persistence and legacy short-circuit", () => {

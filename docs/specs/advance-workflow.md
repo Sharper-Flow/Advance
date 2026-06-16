@@ -585,6 +585,75 @@ Phase 9 Git Finalization must refresh the current default-branch basis before de
 - Re-drive opens or reuses exactly one PR for the branch and arms GitHub auto-merge when possible
 - Re-drive never force-pushes and does not mark release complete until origin/default reachability or merged PR state is proven
 
+**PR handoff freshness** (`rq-releaseFinalization01.12`)
+
+**Given:**
+
+- `origin` exists and Phase 9 chooses a PR route
+
+**When:** The change branch is not current enough for repository policy
+
+**Then:**
+
+- ADV performs only safe non-force reconciliation or blocks with diagnostics before PR handoff
+- Force-push is never used to make the branch appear fresh
+
+**Merge queue is freshness, not proof** (`rq-releaseFinalization01.13`)
+
+**Given:**
+
+- Branch rules require merge queue and PR is queued or auto-merge armed
+
+**When:** Archive finalization reports outcome
+
+**Then:**
+
+- Status is `Pending` until PR state is `MERGED` or origin/default reachability is proven
+- Being queued or armed is not treated as release completion
+- Issue closure, branch deletion, and worktree cleanup do not run until merged proof exists
+
+**Unknown policy fails closed** (`rq-releaseFinalization01.14`)
+
+**Given:**
+
+- `gh` is unavailable, unauthenticated, rules are unreadable, or rules are unparseable
+
+**When:** Phase 9 would choose PR/queue handoff
+
+**Then:**
+
+- Archive reports `Blocked`
+- ADV does not arm the PR, record release, close issues, or clean up the worktree
+- Diagnostics direct the user to authenticate `gh` with a local user token that has `write` repo access
+
+**Merge queue detection uses structural evidence** (`rq-releaseFinalization01.15`)
+
+**Given:**
+
+- Branch rules response contains a `merge_queue` rule
+
+**When:** Phase 9 classifies finalization route
+
+**Then:**
+
+- The route records queue-required behavior
+- ADV uses documented GitHub queue handoff semantics (push `change/{change-id}`, open/reuse one PR, queue via `merge_group`)
+- Local reconciliation is skipped because the queue provides freshness via `merge_group`
+
+**Queue/auto-merge branch deletion guard** (`rq-releaseFinalization01.16`)
+
+**Given:**
+
+- Phase 9 arms or queues a PR
+
+**When:** Invoking GitHub CLI or API
+
+**Then:**
+
+- ADV must not pass delete-branch options
+- ADV must not delete the local or remote `change/{change-id}` branch before merged proof
+- Branch deletion is allowed only after merged PR state or origin/default reachability is verified
+
 ---
 
 ### Archive Success Requires Durable Release Projection

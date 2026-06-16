@@ -137,9 +137,17 @@ export interface ChangeSummaryPayload {
 export type { ArtifactKind } from "../types/artifacts";
 
 export interface ArtifactMetadata {
-  path: string;
+  /**
+   * Real, readable artifact path when one exists. Omitted for Temporal-only
+   * content so agent/tool output never exposes phantom filesystem paths.
+   */
+  path?: string;
   updatedAt: string;
   contentHash?: string;
+  /** Origin of the metadata record. Temporal-only active content is canonical. */
+  source?: "temporal" | "disk" | "archive" | "recovery";
+  /** Whether `path` is expected to be directly readable by filesystem tools. */
+  readable?: boolean;
   /**
    * Recorded when a content signal was rejected by Layer 2 size-guard
    * (signal handler) per KD-8. State-mutation rejection — the workflow
@@ -275,7 +283,7 @@ export interface ChangeWorkflowState extends ChangeWorkflowInput {
    *
    * Naming standard: camelCase keys mirror `ArtifactKind` and `ArtifactPayload`
    * (`types/artifacts.ts`). Kebab-case appears only at the filesystem boundary
-   * in `ARTIFACT_FILENAME` (`temporal/activities.ts`).
+   * through `ARTIFACT_FILENAME` from `types/artifacts.ts`.
    *
    * Additive optional fields — Temporal replay-safe per safe-deployments
    * contract (https://docs.temporal.io/develop/safe-deployments). Histories

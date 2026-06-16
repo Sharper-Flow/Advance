@@ -1,0 +1,1639 @@
+{
+  "id": "fixPhantomArtifactPaths",
+  "title": "Fix phantom artifact paths",
+  "status": "archived",
+  "created_at": "2026-06-15T19:43:08.304Z",
+  "tasks": [
+    {
+      "id": "tk-e5a98cdf1080",
+      "title": "Add spec law and central artifact filename contract",
+      "type": "code",
+      "section": "Spec and Contract",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-06-15T20:45:35.233Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC3",
+          "SC4",
+          "AC3",
+          "AC4",
+          "AC5",
+          "C5"
+        ],
+        "verifies": [
+          "AC4"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "DONT1",
+          "DONT3",
+          "DONT4",
+          "DONT5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-15T20:48:20.389Z",
+      "verification": "RED bin/oc-test targeted -- src/types/artifacts.test.ts failed before ARTIFACT_FILENAME export; GREEN same command passed (19 tests). Specs JSON validated with python -m json.tool.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added spec-law requirements rq-artifactPathTruth01 and rq-subagentArtifactAccess01. Promoted ARTIFACT_FILENAME to the canonical types/artifacts module and replaced duplicated filename maps in change readback, Temporal activities, hydration, and temporal store changes. Added artifact filename unit coverage. Verified JSON validity and targeted artifact tests.",
+      "filesTouched": [
+        ".adv/specs/advance-workflow/spec.json",
+        ".adv/specs/subagent-reports/spec.json",
+        "plugin/src/storage/store-temporal/changes.ts",
+        "plugin/src/storage/store-temporal/hydrate-documents.ts",
+        "plugin/src/temporal/activities.ts",
+        "plugin/src/temporal/contracts.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/types/artifacts.test.ts",
+        "plugin/src/types/artifacts.ts",
+        "plugin/src/types/index.ts"
+      ],
+      "touched_files": [
+        ".adv/specs/advance-workflow/spec.json",
+        ".adv/specs/subagent-reports/spec.json",
+        "plugin/src/storage/store-temporal/changes.ts",
+        "plugin/src/storage/store-temporal/hydrate-documents.ts",
+        "plugin/src/temporal/activities.ts",
+        "plugin/src/temporal/contracts.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/types/artifacts.test.ts",
+        "plugin/src/types/artifacts.ts",
+        "plugin/src/types/index.ts"
+      ],
+      "checkpointSha": "d2a9871463730b527a2fd56dce817022471eb9a5",
+      "completedAt": "2026-06-15T20:51:58.567Z",
+      "completed_at": "2026-06-15T20:51:58.567Z",
+      "notes": "Completed. Checkpoint d2a9871463730b527a2fd56dce817022471eb9a5.",
+      "error_recovery": {
+        "last_error": "Initial RED test failed because ARTIFACT_FILENAME was undefined before implementation.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "Proceed to dependent metadata model task.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "src/types/artifacts.test.ts failed: expected ARTIFACT_FILENAME to equal filename map, received undefined.",
+            "diagnosis": "Central artifact filename map was not exported yet; RED failure expected for TDD.",
+            "fix_tried": "Exported ARTIFACT_FILENAME and replaced duplicate local maps with imports.",
+            "strategy_label": "export central filename map",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-15T20:52:00.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-15T20:52:12.896Z"
+    },
+    {
+      "id": "tk-43dc2438c083",
+      "title": "Implement Temporal artifact metadata source model without fake paths",
+      "type": "code",
+      "section": "Metadata Model",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-06-15T20:45:47.763Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-e5a98cdf1080"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC2",
+          "AC1",
+          "AC5",
+          "C1",
+          "C2",
+          "C5"
+        ],
+        "verifies": [
+          "AC1",
+          "AC5"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C5",
+          "DONT1",
+          "DONT5"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-15T20:52:48.007Z",
+      "verification": "94 tests pass across changes.test.ts, change-state.test.ts, gate-readiness.test.ts, workflows.signal-handlers.test.ts, no-disk-writes-invariant.test.ts. ArtifactMetadata now path-optional with source/readable; Temporal-only writes omit phantom paths.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "contracts.ts ArtifactMetadata: path optional, added source (\"temporal\"|\"disk\"|\"archive\"|\"recovery\") + readable. changes.ts fireContentSignalsSequentially fires metadata signal with source:temporal/readable:false, no path. change-state.ts seeds non-readable metadata + normalizes path:\"\" to unreadable. gate-readiness.ts readableArtifactPath helper gates path exposure on readable===true.",
+      "filesTouched": [
+        "plugin/src/tools/change.test.ts",
+        "plugin/src/tools/change.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/change.test.ts",
+        "plugin/src/tools/change.ts"
+      ],
+      "checkpointSha": "cedc34e16b93aa8c43cd1e2c5814d43889441ae4",
+      "completedAt": "2026-06-15T21:38:48.084Z",
+      "completed_at": "2026-06-15T21:38:48.084Z",
+      "notes": "Temporal artifact metadata source model complete. ArtifactMetadata path-optional + source/readable; fireContentSignalsSequentially omits phantom paths; change-state seeds source:temporal/readable:false and normalizes blank paths. 94 tests green.",
+      "error_recovery": {
+        "last_error": "Initial RED/format checks failed as expected: store-temporal test exposed old phantom path metadata; prettier check flagged changes.ts formatting.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "Continue with next planned task: normalize adv_change_show readback and gate evidence.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "bin/oc-test targeted -- src/storage/store-temporal/changes.test.ts failed after test inversion because metadata still carried /tmp/changes/.../executive-summary.md.",
+            "diagnosis": "Temporal store synthesized artifact paths in metadata and only signaled metadata when a path existed.",
+            "fix_tried": "Made Temporal metadata pathless/source-aware and changed content fan-out to always signal metadata with source/readable/contentHash.",
+            "strategy_label": "source-aware metadata model",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-15T20:57:38.000Z"
+          },
+          {
+            "attempt_number": 2,
+            "error": "prettier --check flagged src/storage/store-temporal/changes.ts formatting.",
+            "diagnosis": "Patch left multiline call not matching Prettier style.",
+            "fix_tried": "Ran prettier --write on changes.ts and reran format check.",
+            "strategy_label": "format remediation",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-15T20:59:20.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-15T21:38:57.865Z"
+    },
+    {
+      "id": "tk-a338b86baa6d",
+      "title": "Normalize artifact metadata in change readback and gate evidence",
+      "type": "code",
+      "section": "Readback and Evidence",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-06-15T20:46:00.980Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-43dc2438c083"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC2",
+          "AC1",
+          "AC2",
+          "AC5",
+          "AC6",
+          "C4",
+          "C6"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC5",
+          "AC6"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "DONT1",
+          "DONT2",
+          "DONT5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-15T21:00:40.005Z",
+      "verification": "Harden remediation verified: bin/oc-test targeted -- src/tools/gate.test.ts src/tools/change.test.ts passed (87 tests); pnpm run typecheck passed; Prettier check passed for change.ts, gate.ts, gate.test.ts. adv_gate_status now normalizes gate artifact evidence paths and regression covers phantom stripping + materialized path preservation.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/gate.test.ts",
+        "plugin/src/tools/gate.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/gate.test.ts",
+        "plugin/src/tools/gate.ts"
+      ],
+      "checkpointSha": "8fcfc63a40f2e5c4d4c731dbebff8f627c305d96",
+      "completedAt": "2026-06-16T00:15:44.132Z",
+      "completed_at": "2026-06-16T00:15:44.132Z",
+      "notes": "Review remediation checkpoint 820ee736a8efeb0deb5eaf7305352f83e3f7d1b2. Retry count corrected: review remediation was a successful review fix, not a new failed strategy.",
+      "error_recovery": {
+        "last_error": "Review findings remediated and verified; no active failure.",
+        "retry_count": 2,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "Proceed to acceptance after review remediation verification.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "RED tests failed because gate evidence and adv_change_show still surfaced paths for non-readable Temporal metadata/missing files.",
+            "diagnosis": "Readback and state-backed evidence trusted metadata.path without a readability contract or filesystem proof.",
+            "fix_tried": "Added path normalization for adv_change_show and readable-only evidence emission in gate-readiness.",
+            "strategy_label": "readback normalization",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-15T21:04:50.000Z"
+          },
+          {
+            "attempt_number": 2,
+            "error": "pnpm run typecheck failed: ArtifactKind missing in gate-readiness and normalizeGateArtifactEvidenceForReadback did not accept undefined gates.",
+            "diagnosis": "Helper used wrong local type and Change.gates can be undefined by type.",
+            "fix_tried": "Switched helper index to GateArtifactKind and accepted Gates | undefined.",
+            "strategy_label": "type correction",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-15T21:08:00.000Z"
+          },
+          {
+            "attempt_number": 3,
+            "error": "Review surfaced secondary edge cases: _contextSnapshot raw gates, path-required acceptance metadata readiness, and recovery readable metadata without file proof.",
+            "diagnosis": "Secondary readback/recovery paths needed the same structural readability rules.",
+            "fix_tried": "Normalized snapshot gates, keyed acceptance metadata readiness on contentHash/source/readable instead of path, derived recovery readable/path from fileExists, added targeted tests and comments.",
+            "strategy_label": "review remediation",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-15T23:45:00.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-15T23:44:28.270Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixPhantomArtifactPaths",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixPhantomArtifactPaths",
+          "task_id": "tk-a338b86baa6d",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-a338b86baa6d"
+          },
+          "agent": "adv-reviewer",
+          "phase": "review",
+          "verdict": "READY",
+          "blocking_findings": [],
+          "nonblocking_findings": [
+            {
+              "id": "review-praise-1",
+              "label": "praise",
+              "file": "plugin/src/tools/change.ts",
+              "line": 105,
+              "what": "Readback normalization now covers both top-level gate output and included context snapshot input.",
+              "why": "This closes the phantom path leak without changing workflow state or artifact materialization semantics.",
+              "fix": "applied"
+            },
+            {
+              "id": "review-praise-2",
+              "label": "praise",
+              "file": "plugin/src/temporal/gate-readiness.ts",
+              "line": 363,
+              "what": "Acceptance metadata readiness no longer requires an active filesystem path.",
+              "why": "Temporal-only artifact metadata intentionally distinguishes contentHash/source/readable from materialized file paths.",
+              "fix": "applied"
+            }
+          ],
+          "changes_made": [
+            {
+              "file": "plugin/src/tools/change.ts",
+              "summary": "Normalized include.snapshot gate evidence before buildChangeContextSnapshot; added readback boundary comments; made recovery executive-summary metadata readable/path depend on actual materialized file existence.",
+              "verification": "bin/oc-test targeted -- src/tools/change.test.ts src/temporal/gate-readiness.test.ts src/temporal/workflows.signal-handlers.test.ts passed (3 files, 116 tests); pnpm run typecheck passed; prettier --check passed."
+            },
+            {
+              "file": "plugin/src/temporal/gate-readiness.ts",
+              "summary": "Updated acceptanceContractBlockers to accept Temporal-only executive-summary metadata based on contentHash plus source/readable/path context instead of requiring path; refreshed state-backed acceptance proof comments.",
+              "verification": "gate-readiness targeted tests passed, including new Temporal-only metadata and non-readable path suppression coverage."
+            },
+            {
+              "file": "plugin/src/temporal/workflows.ts",
+              "summary": "Updated stale state-backed acceptance comment to describe contentHash/source/readable semantics and path-only-when-materialized behavior.",
+              "verification": "workflows.signal-handlers targeted tests passed."
+            },
+            {
+              "file": "plugin/src/temporal/change-state.ts",
+              "summary": "Added concise comments documenting Temporal-only path omission and legacy path retention/readback revalidation boundary.",
+              "verification": "prettier --check and typecheck passed."
+            },
+            {
+              "file": "plugin/src/tools/change.test.ts",
+              "summary": "Added regression coverage for include.snapshot readback path suppression and recovery metadata readable/path behavior with and without materialized executive-summary file.",
+              "verification": "change.test targeted tests passed."
+            },
+            {
+              "file": "plugin/src/temporal/gate-readiness.test.ts",
+              "summary": "Added regression coverage for pathless Temporal executive-summary metadata and acceptance proof omission of non-readable Temporal paths.",
+              "verification": "gate-readiness.test targeted tests passed."
+            }
+          ],
+          "wisdom_candidates": [
+            {
+              "type": "gotcha",
+              "content": "Temporal-only artifact metadata should not imply active filesystem readability: use contentHash/source/readable as structural metadata, and re-validate any legacy path on readback before exposing it to agents."
+            }
+          ],
+          "verification": {
+            "tests_run": [
+              "bin/oc-test targeted -- src/tools/change.test.ts src/temporal/gate-readiness.test.ts src/temporal/workflows.signal-handlers.test.ts",
+              "pnpm exec prettier --check src/tools/change.ts src/tools/change.test.ts src/temporal/gate-readiness.ts src/temporal/gate-readiness.test.ts src/temporal/workflows.ts src/temporal/change-state.ts",
+              "pnpm run typecheck"
+            ],
+            "results": "pass",
+            "evidence": "Targeted tests passed after changes: 3 test files, 116 tests. Prettier check reported all touched files formatted. TypeScript typecheck completed with tsc --noEmit exit 0."
+          },
+          "scope_drift": null,
+          "risks": [],
+          "required_main_agent_actions": [],
+          "required_follow_ups": [],
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/change.test.ts src/temporal/gate-readiness.test.ts src/temporal/workflows.signal-handlers.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec prettier --check src/tools/change.ts src/tools/change.test.ts src/temporal/gate-readiness.ts src/temporal/gate-readiness.test.ts src/temporal/workflows.ts src/temporal/change-state.ts"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tk-b1ce593abfaa",
+      "title": "Update ADV agent and command artifact access policies",
+      "type": "code",
+      "section": "Agent Contracts",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-06-15T20:46:13.897Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-e5a98cdf1080"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC2",
+          "SC3",
+          "AC3",
+          "AC4",
+          "C3"
+        ],
+        "verifies": [
+          "AC3",
+          "AC4"
+        ],
+        "respects": [
+          "C3",
+          "DONT1",
+          "DONT3",
+          "DONT4",
+          "DONT5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-15T21:09:56.973Z",
+      "verification": "VERIFY: bin/oc-test targeted -- src/subagent-reports-spec-assets.test.ts src/adv-engineer-assets.test.ts src/adv-designer-assets.test.ts src/deploy-local.test.ts passed (139 tests); pnpm run typecheck passed; prettier check passed. Note: asset assertions were added alongside prompt updates, so no separate RED failure was captured for this documentation/prompt task.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Extended artifact-wide ADV state access policy across ADV worker agents, adding problem statement/agreement/design/executive-summary/acceptance/conformance coverage and explicit instructions to use packet inline content or adv_change_show include flags instead of artifacts.*.path unless readable:true. Added the missing ADV State Access Policy to adv-researcher. Updated adv-design, adv-research, and adv-refactor command packets to load artifact content through adv_change_show include fields and inject content inline for workers/validators. Added asset tests pinning the worker policy and command packet guidance, and updated subagent-reports spec asset expectations for rq-subagentArtifactAccess01.",
+      "filesTouched": [
+        ".opencode/agents/adv-designer.md",
+        ".opencode/agents/adv-engineer.md",
+        ".opencode/agents/adv-researcher.md",
+        ".opencode/agents/adv-reviewer.md",
+        ".opencode/agents/adv.md",
+        ".opencode/agents/build.md",
+        ".opencode/command/adv-design.md",
+        ".opencode/command/adv-refactor.md",
+        ".opencode/command/adv-research.md",
+        "plugin/src/subagent-reports-spec-assets.test.ts"
+      ],
+      "touched_files": [
+        ".opencode/agents/adv-designer.md",
+        ".opencode/agents/adv-engineer.md",
+        ".opencode/agents/adv-researcher.md",
+        ".opencode/agents/adv-reviewer.md",
+        ".opencode/agents/adv.md",
+        ".opencode/agents/build.md",
+        ".opencode/command/adv-design.md",
+        ".opencode/command/adv-refactor.md",
+        ".opencode/command/adv-research.md",
+        "plugin/src/subagent-reports-spec-assets.test.ts"
+      ],
+      "checkpointSha": "c92832b77de438485f5552d368cbe1a14df5ca63",
+      "completedAt": "2026-06-15T21:14:43.314Z",
+      "completed_at": "2026-06-15T21:14:43.314Z",
+      "notes": "Checkpoint c92832b77de438485f5552d368cbe1a14df5ca63. Verification: prompt/asset test sweep passed, typecheck passed, prettier check passed.",
+      "error_recovery": {
+        "last_error": "prettier --check flagged subagent-reports-spec-assets.test.ts after adding asset assertions.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "Continue with final verification sweep task.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "prettier --check failed for src/subagent-reports-spec-assets.test.ts.",
+            "diagnosis": "New test assertions needed repository Prettier formatting.",
+            "fix_tried": "Ran prettier --write on the asset test, reran asset tests and format check.",
+            "strategy_label": "format remediation",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-15T21:14:21.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-15T21:14:56.079Z"
+    },
+    {
+      "id": "tk-8017cce437b5",
+      "title": "Run compatibility and contract verification sweep",
+      "type": "code",
+      "section": "Verification",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-06-15T20:46:25.605Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-a338b86baa6d"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-b1ce593abfaa"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [],
+        "verifies": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "SC4",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-15T21:15:16.530Z",
+      "verification": "Harden final verification: final bin/oc-test full passed after adv_gate_status remediation; docs/temporal-recovery.md stale proof metadata wording updated and Prettier check passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Ran final compatibility sweep, review verification, and harden release-readiness checks. Fixed remaining formatting drift in hydrate-documents.ts caused by central ARTIFACT_FILENAME import change. Updated adv-skill-backed-commands asset expectation to match advance-workflow spec version 1.17.0 and require rq-artifactPathTruth01. After review remediation, confirmed targeted readback/gate/workflow tests pass, typecheck passes, smoke passes, and full suite passes. Harden remediation additionally normalized adv_gate_status gate artifact evidence using the shared readback normalizer, added gate tool regression coverage, updated temporal-recovery docs for optional path/source/readable metadata, and re-verified with targeted tests, typecheck, Prettier, final full suite, and merge dry-run.",
+      "filesTouched": [
+        "docs/temporal-recovery.md"
+      ],
+      "touched_files": [
+        "docs/temporal-recovery.md"
+      ],
+      "checkpointSha": "f23f7bab6b68fce037afde0711ed2744f0c25200",
+      "completedAt": "2026-06-16T00:18:00.228Z",
+      "completed_at": "2026-06-16T00:18:00.228Z",
+      "notes": "Harden verification complete. Final bin/oc-test full passed after harden remediation. Merge dry-run into origin/trunk passed. Hardening scanners found one in-scope medium gap (adv_gate_status raw artifact evidence) and one low stale doc reference; both remediated, checkpointed, and re-verified. Worktree clean.",
+      "error_recovery": {
+        "last_error": "All harden findings remediated and verified; no active failure.",
+        "retry_count": 2,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "Release readiness achieved; proceed to archive sign-off boundary.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "pnpm run check failed: prettier --check flagged src/storage/store-temporal/hydrate-documents.ts.",
+            "diagnosis": "Central ARTIFACT_FILENAME import introduced earlier needed repository formatting.",
+            "fix_tried": "Ran prettier --write on hydrate-documents.ts and reran pnpm run check.",
+            "strategy_label": "format verification fix",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-15T21:17:00.000Z"
+          },
+          {
+            "attempt_number": 2,
+            "error": "bin/oc-test full failed: adv-skill-backed-commands-assets expected advance-workflow version 1.16.0 but spec is 1.17.0 after rq-artifactPathTruth01; no-psw/concurrent tests also appeared in full failure output.",
+            "diagnosis": "Spec-version assertion was stale and related to this change's spec delta. The no-psw/concurrent failures passed in isolated targeted rerun, indicating full-suite interaction rather than code-specific failure.",
+            "fix_tried": "Updated asset test to expect 1.17.0 and rq-artifactPathTruth01; reran targeted failing tests, then reran full suite.",
+            "strategy_label": "stale asset expectation fix",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-15T21:23:00.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-16T00:20:01.612Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "fixPhantomArtifactPaths",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:discovery-opportunity-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Discovery opportunity scout — phantom artifact path semantics under Temporal-only storage",
+      "sources": [
+        {
+          "label": "changes.ts updateArtifacts metadataPaths (phantom path origin)",
+          "locator": "plugin/src/storage/store-temporal/changes.ts:684-687",
+          "summary": "metadataPaths[kind] = `${changeDir}/${ARTIFACT_FILENAME[kind]}` computes a disk path for every defined artifact even though T15/AC8 forbids artifact-content disk writes. This synthetic path is signalled into state.artifacts[kind].path and surfaced by adv_change_show — the structural source of phantom paths."
+        },
+        {
+          "label": "create() scaffold writes real proposal.md only",
+          "locator": "plugin/src/storage/store-temporal/changes.ts:154-181",
+          "summary": "createChangeScaffold writes a real proposal.md placeholder + change.json to disk, but design/agreement/executiveSummary are never disk-written. Explains the observed asymmetry: proposal.path resolves, design.path/agreement.path are phantom."
+        },
+        {
+          "label": "readArtifact / readArtifacts Temporal-first chain",
+          "locator": "plugin/src/tools/change.ts:100-234",
+          "summary": "Canonical artifact read is Temporal-first (state.documents) → disk active dir → archive bundle. Confirms content lives in workflow state and include fields (_design, _agreement) are the safe access path; raw artifacts.*.path is metadata only."
+        },
+        {
+          "label": "adv-researcher.md missing ADV State Access Policy section",
+          "locator": ".opencode/agents/adv-researcher.md:77-86",
+          "summary": "Constraints section has no 'NEVER read ADV state files directly' block. adv-engineer.md:190-209, build.md:205, adv-designer.md:237, adv-reviewer.md:209, adv.md:339 all carry the explicit policy + tool-mapping table; researcher is the one delegated worker without it."
+        },
+        {
+          "label": "Command packets restrict only proposal.md, not all artifacts",
+          "locator": ".opencode/command/adv-research.md:43 and .opencode/command/adv-refactor.md:34",
+          "summary": "Both say '× Do not read proposal.md directly' — proposal-only, not artifact-wide. Confirms proposal's claim that guidance fails to cover design/agreement/acceptance."
+        },
+        {
+          "label": "Design validator packet has no artifact access rule",
+          "locator": ".opencode/command/adv-design.md:138-167",
+          "summary": "Validator packet injects {design.md content} inline and lists agreement context, but never tells the validator how to fetch artifacts if not injected, nor forbids direct ADV-state filesystem reads — the exact gap that produced the triggering File-not-found incident."
+        },
+        {
+          "label": "No spec law governs artifact path semantics",
+          "locator": "adv_spec search (artifact path/state.documents/disk fallback) → 0 results; grep .adv/specs → no matches",
+          "summary": "Neither advance-workflow nor subagent-reports specs encode Temporal-first artifact source-of-truth or path-readability semantics. Spec-law gap confirmed (Discovery Agenda item)."
+        },
+        {
+          "label": "ARTIFACT_FILENAME duplicated across modules",
+          "locator": "plugin/src/types/artifacts.ts:9-10, plugin/src/tools/change.ts:81, plugin/src/storage/store-temporal/changes.ts:676, plugin/src/storage/store-temporal/hydrate-documents.ts:43",
+          "summary": "types/artifacts.ts declares the ARTIFACT_FILENAME map in temporal/activities.ts as single source of truth, yet the kebab filename map is re-declared in 3+ other modules. Any path-shape fix risks drift across copies."
+        }
+      ],
+      "architecture_assessment": "Root cause is structural, not prompt-only. changes.ts unconditionally synthesizes a disk path for every artifact (proposal-scaffold-write masks it for proposal; design/agreement have no backing file), then signals it into state.artifacts[kind].path which adv_change_show surfaces. The canonical, safe artifact-content path already exists (readArtifact/readArtifacts Temporal-first + include fields _design/_agreement), so the fix is primarily (a) stop presenting unbacked synthetic paths as readable, and (b) close the worker-contract gap so workers consume content via ADV tools/include fields, never raw paths. Two missed opportunities the proposal under-specifies: the researcher agent file lacks the same ADV State Access Policy block every other worker has (cheapest highest-leverage prompt fix, contract-tied to the Must-Not 'must not require sub-agents to read advance files directly'), and the ARTIFACT_FILENAME duplication means a path-shape change has a real drift hazard the test plan should pin. No spec law currently encodes the Temporal-first source-of-truth invariant, so the durable fix should add one rather than rely on prose. No security/release blockers. Evidence is code-grounded and internally consistent with the proposal Context section.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "5 scout candidates surfaced within approved proposal scope. No contradictory evidence, no source-access blockage, no out-of-scope expansion required. All candidates cite file:line evidence."
+      },
+      "recommendation": "Carry these 5 ScoutCandidates into /adv-discover agreement formation. Auto-adopt C1 (researcher ADV State Access Policy parity) and C2 (artifact-wide packet rule) — both low-risk, contract-tied to the 'must not require direct advance-file reads' Must-Not. Design-around C3 (ARTIFACT_FILENAME single-source-of-truth) and C4 (regression coverage for unbacked design/agreement paths). Surface C5 (path output-shape decision: omit vs label source:temporal vs availability flag) to the user — it is a user-facing wording/contract tradeoff already flagged as a Domain unknown. ROWS BELOW.\n\n--- ScoutCandidate rows ---\nC1 | candidate: adv-researcher.md lacks the 'ADV State Access Policy' block (NEVER read ADV state files; use adv_change_show) that adv-engineer/build/designer/reviewer/adv all carry | evidence: .opencode/agents/adv-researcher.md:77-86 vs adv-engineer.md:190-209 | payoff: high | risk: low | contract_tie: Must-Not 'must not require sub-agents to read ~/.local/share/.../advance files directly' + objective 'access artifacts through ADV tools' | prior_consideration: new | fate: adopt_now | route: auto-adopt | rationale: Cheapest highest-leverage fix; closes the exact gap that produced the triggering incident; pattern already proven in 5 sibling agent files.\nC2 | candidate: Command packets (adv-research:43, adv-refactor:34) and the adv-design validator packet (adv-design.md:138-167) restrict only proposal.md / inject only design.md content; no artifact-wide 'access via ADV tools/include fields, never raw paths' rule | evidence: .opencode/command/adv-research.md:43, adv-refactor.md:34, adv-design.md:159-167 | payoff: high | risk: low | contract_tie: objective 'align researcher/design-validation packet guidance with ADV state access rules for all artifacts' | prior_consideration: new | fate: design_around | route: auto-adopt | rationale: Generalize the proposal-only rule to all artifacts in worker packets; design adjustment but no user-value tradeoff.\nC3 | candidate: ARTIFACT_FILENAME kebab map duplicated in 4+ modules despite types/artifacts.ts naming temporal/activities.ts as single source of truth | evidence: types/artifacts.ts:9-10, change.ts:81, changes.ts:676, hydrate-documents.ts:43 | payoff: medium | risk: low | contract_tie: constraint 'any read-surface change must be backward-compatible' (drift across copies breaks this) | prior_consideration: new | fate: design_around | route: auto-adopt | rationale: Any path-shape fix must touch one canonical map or the test plan must pin all copies; surfacing now prevents a partial fix.\nC4 | candidate: no-disk-writes-invariant.test.ts asserts no disk writes but NO test asserts adv_change_show output does not present unbacked design/agreement paths as readable | evidence: plugin/src/storage/store-temporal/no-disk-writes-invariant.test.ts:30-71 (write-side only) | payoff: medium | risk: low | contract_tie: objective 'add regression coverage for Temporal-only artifact content with nonexistent disk sidecar files' | prior_consideration: new | fate: design_around | route: auto-adopt | rationale: Names the precise missing regression: assert the read-surface (change_show) for design/agreement when only state.documents has content and no disk file exists.\nC5 | candidate: Output-shape decision for unbacked paths (omit path | label source:'temporal' | add readable:false availability flag) is a user-facing/backward-compat contract choice, not purely internal | evidence: proposal Domain unknowns + Knowledge Gap Analysis (adv_change_show output shape deferred to /adv-discover) | payoff: high | risk: medium | contract_tie: Must-Not 'must not hide useful artifact metadata without machine-readable replacement' | prior_consideration: new | fate: surface_to_user | route: user-surface | rationale: Medium risk + user-value/back-compat tradeoff for existing callers; must be decided with the user, not auto-adopted.",
+      "follow_ups": [
+        "Discovery should decide whether to encode the Temporal-first artifact source-of-truth invariant as new spec law (advance-workflow or subagent-reports) — currently no spec covers it (0 search hits).",
+        "Confirm whether any existing test snapshots assert artifacts.*.path values that would break under a path-shape change before choosing C5's output shape.",
+        "Verify gate.ts acceptance artifact_evidence.path (gate.ts:394-396) uses inspectArtifactActivity against a real on-disk file — appears to be a genuine disk path, so the phantom-path fix must not regress acceptance-gate evidence."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixPhantomArtifactPaths",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation for fixPhantomArtifactPaths",
+      "sources": [
+        {
+          "label": "changes.ts phantom path synthesis",
+          "locator": "plugin/src/storage/store-temporal/changes.ts:675-688",
+          "summary": "Confirms the bug: metadataPaths[kind] = `${changeDir}/${ARTIFACT_FILENAME[kind]}` is synthesized for Temporal-only writes despite comment 'no artifact-content disk writes'. These paths are never materialized → phantom."
+        },
+        {
+          "label": "ArtifactMetadata.path required",
+          "locator": "plugin/src/temporal/contracts.ts:139-140",
+          "summary": "path: string is currently required. Design's 'make path optional' is additive/tolerant at TS boundary and does not poison replay (no signal contract change)."
+        },
+        {
+          "label": "GateArtifactEvidence path already optional",
+          "locator": "plugin/src/temporal/gate-readiness.ts:212,284",
+          "summary": "Conditional spread ...(metadata?.path ? {path} : {}) confirms design's claim that gate evidence path is already optional; minimal change there."
+        },
+        {
+          "label": "Filename map duplication",
+          "locator": "changes.ts:676, hydrate-documents.ts:45, activities.ts:49, tools/change.ts:83",
+          "summary": "ARTIFACT_FILENAME duplicated in 4 sites; types/artifacts.ts:10 doc comment falsely claims it lives 'only' in activities.ts. KD-4 centralization is correct and reduces drift."
+        },
+        {
+          "label": "state-backed evidence functions exist",
+          "locator": "plugin/src/temporal/gate-readiness.ts:169,242",
+          "summary": "stateBackedArtifactEvidence and stateBackedAcceptanceProof exist and derive from state.documents — KD-3's targets are real."
+        },
+        {
+          "label": "Existing test locks buggy behavior",
+          "locator": "plugin/src/storage/store-temporal/changes.test.ts:662-673",
+          "summary": "Test asserts metadata.path = synthesized '/tmp/changes/summaryChange/executive-summary.md'. KD-1 will invert this assertion; design test plan must update it explicitly."
+        },
+        {
+          "label": "second metadata path-seed site",
+          "locator": "plugin/src/temporal/change-state.ts:362,376,387",
+          "summary": "applyContent state mutation seeds path:'' default in 3 places, independent of changes.ts synthesis. Making path optional must keep these '' sentinels tolerant; design notes legacy tolerance but does not name these sites."
+        },
+        {
+          "label": "Temporal-first read path established",
+          "locator": "plugin/src/tools/change.read-artifact.test.ts:1-13",
+          "summary": "readArtifact/readArtifacts already implement Temporal-first → disk → archive fallback. AC2 (legacy/archive fallback) is supported by existing architecture; design preserves it."
+        }
+      ],
+      "architecture_assessment": "Design is correct, structural, and architecturally aligned. The phantom-path bug is verified at changes.ts:687 — paths are synthesized for content that is only written to Temporal state.documents, then surfaced through updateArtifactMetadataSignal → state.artifacts → adv_change_show. Fixing at the tool-contract boundary (KD-1 write-layer + KD-2 readback normalization) is the long-term-best-practice fix and satisfies DONT1 (no prompt-only fix) and DONT5 (do not hide content). Making ArtifactMetadata.path optional is additive and replay-safe (no signal contract change; histories with path:string still deserialize). Gate-evidence path is already optional, archive/recovery real-path materialization (workflows.signal-handlers.test.ts AC7) is untouched, satisfying C4/AC6/DONT2. Filename-map centralization (KD-4) is justified — 4 live duplicates exist and an outdated doc comment proves drift already occurred. No simpler approach achieves AC5 (machine-readable readable/source distinction) since the misleading field is structurally embedded in tool output, not prose. No spec-law conflict: rq-artifactPathTruth01 and rq-subagentArtifactAccess01 are new additive invariants consistent with the Temporal-only source-of-truth and no-disk-writes invariants.",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "VALIDATED with two implementation cautions (not design defects): (1) changes.test.ts:662-673 currently asserts the phantom path and MUST be updated by KD-1 — design test plan should name it explicitly to avoid a false RED. (2) change-state.ts:362/376/387 seed path:'' as a second metadata-write site independent of changes.ts synthesis; the optional-path change and readback normalization must treat empty-string path as non-readable, not just absent path. Both are covered in spirit by the design's tolerance/normalization language but are not called out by location."
+      },
+      "recommendation": "Proceed to planning. Design is VALIDATED on all four dimensions: CORRECTNESS (solves all 6 ACs structurally; verified bug locus and fix surfaces), SIMPLICITY (no simpler approach reaches AC5's machine-readable distinction since the fake path is embedded in tool output), SPEC-LAW COMPLIANCE (new invariants are additive and consistent with Temporal-only/no-disk-writes laws; gate-evidence path already optional), and KEY ALTERNATIVES (prompt-only and disk-write alternatives both correctly rejected per DONT1/C2). Two non-blocking cautions for planning: (a) explicitly enumerate the existing changes.test.ts metadata-path assertion as a test that flips from asserting-present to asserting-absent; (b) ensure readback normalization treats both absent path AND empty-string path ('' sentinel from change-state.ts) as non-readable, since two independent code paths seed metadata. Recommend normalization centralizes the readable/source derivation in one helper applied at adv_change_show and reused for target_path reads (C6).",
+      "follow_ups": [
+        "Planning: name changes.test.ts:662-673 as a test requiring inversion under KD-1.",
+        "Planning: ensure normalizeArtifactMetadataForRead treats path==='' (change-state.ts sentinel) as non-readable, equivalent to absent path.",
+        "Planning: confirm target_path readback uses target store paths for fileExists checks (C6) — design mentions this but verify the existing cross-project read helper is reused."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixPhantomArtifactPaths",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-leverage-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design leverage scout — truthful artifact path semantics",
+      "sources": [
+        {
+          "label": "Phantom path synthesis (updateArtifacts production path)",
+          "locator": "plugin/src/storage/store-temporal/changes.ts:670-688",
+          "summary": "T15/AC8 comment says no disk writes, yet inline ARTIFACT_FILENAME map synthesizes metadataPaths[kind]=`${changeDir}/${ARTIFACT_FILENAME[kind]}` for every defined artifact. This is the single root cause of phantom paths. Same pattern at changes.ts:273-280 for the create path."
+        },
+        {
+          "label": "ArtifactMetadata interface — path currently required",
+          "locator": "plugin/src/temporal/contracts.ts:139-164",
+          "summary": "`path: string` is required today. Design's plan to make it optional + add source/readable is correct and additive (replay-tolerant)."
+        },
+        {
+          "label": "Gate evidence already guards path conditionally",
+          "locator": "plugin/src/temporal/gate-readiness.ts:209-217",
+          "summary": "stateBackedArtifactEvidence already does `...(metadata?.path ? { path } : {})`. GateArtifactEvidenceSchema.path is already optional (types/gates.ts:111). So killing path synthesis at the source automatically removes phantom paths from gate evidence — Decision 3 is largely subsumed by Decision 1."
+        },
+        {
+          "label": "Existing ADV State Access Policy blocks (5 agents)",
+          "locator": ".opencode/agents/{adv,build,adv-engineer,adv-designer,adv-reviewer}.md (e.g. adv-engineer.md:190-209)",
+          "summary": "Identical policy block already exists in 5 files with forbidden-list + tool-table + 'If a direct read attempt fails... do not retry' recovery rule. Forbidden list omits agreement.md, design.md, problem-statement.md, executive-summary.md, acceptance.md, conformance.json. AC4 recovery-rule is already present; just needs list extension."
+        },
+        {
+          "label": "adv-researcher.md lacks the policy block entirely",
+          "locator": ".opencode/agents/adv-researcher.md (no 'State Access' / 'plugins/advance' match)",
+          "summary": "adv-researcher has adv_change_show:true in its tools but no ADV State Access Policy section. Net-new block needed here; parity with peer agents."
+        },
+        {
+          "label": "adv_change_show readback spread + existing fileExists pattern",
+          "locator": "plugin/src/tools/change.ts:2243-2256",
+          "summary": "Handler spreads `...change` (carrying change.artifacts with phantom path) into output, and already computes changeDir + uses fileExists() right here. normalizeArtifactMetadataForRead() lands cleanly at this exact site with the existence-check helper already in scope."
+        },
+        {
+          "label": "Duplicated filename map confirmed",
+          "locator": "plugin/src/storage/store-temporal/hydrate-documents.ts:43, changes.ts:676; types/artifacts.ts:10 doc references activities.ts map",
+          "summary": "ARTIFACT_FILENAME duplicated across hydrate-documents.ts, changes.ts, and activities.ts. types/artifacts.ts is workflow-safe and already the canonical ArtifactKind home — natural host for the shared map (Decision 4)."
+        }
+      ],
+      "architecture_assessment": "Draft design is structurally sound and correctly Temporal-first. Evidence confirms all six Key Decisions map to real code. Two leverage points materially reduce risk/scope vs. the design's prose: (1) Decision 3 (gate-evidence cleanup) is mostly already done — gate-readiness.ts:212 and GateArtifactEvidenceSchema.path are already path-optional, so fixing synthesis at the source (Decision 1) cascades through gate evidence with no separate gate change beyond a regression test; (2) Decision 5 (prompt updates) is an extend-existing-block job, not net-new authoring — 5 of 6 agent files already carry the policy block with the AC4 recovery rule, needing only forbidden-list extension, plus one net-new block in adv-researcher.md. The readback normalization site (change.ts:2244) already has fileExists + changeDir in scope, lowering Decision 2 implementation risk. No architecture revision needed; these are tightening/sequencing refinements.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "No contract compromise, security, or release blocker. All candidates contract-tied and low-to-medium risk. Design proceeds to validator."
+      },
+      "recommendation": "Adopt the source-fix-first sequencing: land Decision 1 (kill path synthesis at changes.ts:687 + :274) and Decision 4 (central ARTIFACT_FILENAME in types/artifacts.ts) first; gate evidence (AC5/Decision 3) then needs only a regression test, not new conditional logic. Treat Decision 5 as 'extend forbidden list + add recovery-rule parity' across the 5 existing blocks plus a net-new block in adv-researcher.md, reusing the existing block's exact wording/structure for asset-test consistency. Land normalization (Decision 2) at change.ts:2244 reusing the in-scope fileExists helper.",
+      "follow_ups": [
+        "Verify activities.ts ARTIFACT_FILENAME is the third duplicate before centralizing (design names it; confirm during impl).",
+        "Confirm create-path metadataPaths at changes.ts:273-280 is also covered by the source fix, not just the updateArtifacts path at :687."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixPhantomArtifactPaths",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixPhantomArtifactPaths",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [
+        {
+          "id": "review-praise-1",
+          "label": "praise",
+          "file": "plugin/src/storage/store-temporal/changes.ts",
+          "line": 92,
+          "what": "Temporal artifact updates now store contentHash/source/readable metadata without synthesizing active disk paths.",
+          "why": "Matches AC1/AC5: active Temporal-only artifacts remain accessible by content while read surfaces no longer imply a fake readable file.",
+          "fix": "n/a"
+        },
+        {
+          "id": "review-praise-2",
+          "label": "praise",
+          "file": "plugin/src/temporal/gate-readiness.ts",
+          "line": 216,
+          "what": "Gate evidence only includes a path when metadata is explicitly readable; state-backed acceptance evidence derives from workflow content.",
+          "why": "Preserves real path evidence for materialized recovery/archive paths while avoiding phantom active paths.",
+          "fix": "n/a"
+        },
+        {
+          "id": "review-praise-3",
+          "label": "praise",
+          "file": ".opencode/command/adv-research.md",
+          "line": 43,
+          "what": "Research/design/refactor command packets and worker agents now instruct workers to use include fields or inline content instead of dereferencing artifacts.*.path.",
+          "why": "Covers AC3/AC4 and prevents recurrence of direct external ADV state artifact reads by sub-agents.",
+          "fix": "n/a"
+        }
+      ],
+      "changes_made": [
+        {
+          "file": "plugin/src/tools/change.ts",
+          "summary": "Fixed adv_change_show artifact include readback to use the target-aware activeStore inside withOptionalTargetPathStore, preserving artifact include semantics for target_path reads instead of accidentally reading the caller project store.",
+          "verification": "bin/oc-test targeted -- src/tools/change.test.ts passed (57 tests); bin/oc-test smoke passed; pnpm run format:check passed."
+        },
+        {
+          "file": "plugin/src/tools/change.test.ts",
+          "summary": "Added regression coverage that Temporal state.documents design content is returned through include.design while Temporal/unreadable artifact metadata omits the phantom path.",
+          "verification": "bin/oc-test targeted -- src/tools/change.test.ts passed (57 tests); bin/oc-test smoke passed; pnpm run format:check passed."
+        }
+      ],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "Inside target_path-aware ADV tools, artifact include/fallback helpers must receive the target-aware activeStore from withOptionalTargetPathStore; using the outer caller store silently breaks cross-project artifact include fields."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "Path preflight for all context-packet referenced files: all OK",
+          "Inspected git diff 23e72677..df133559 and touched code/tests/specs/prompts",
+          "Reviewed execution gate evidence: pnpm run check, bin/oc-test smoke, final bin/oc-test full, and adv_change_validate strict passed with nonblocking NO_DELTAS warning",
+          "bin/oc-test targeted -- src/tools/change.test.ts",
+          "pnpm run format:check",
+          "bin/oc-test smoke"
+        ],
+        "results": "pass",
+        "evidence": "Preflight found all referenced paths. Source review matched agreement AC1-AC6 across artifact metadata, include readback, gate evidence, prompt/spec asset tests, and archive/recovery materialization. Post-review fix verification: change.test.ts 57/57 passed; prettier format check passed; smoke suite passed including schemas:check, typecheck, isolation checks, lockfile policy, lint, format:check, and 47 smoke tests. Prior execution gate recorded pnpm run check, bin/oc-test smoke, final bin/oc-test full, and adv_change_validate strict passed with nonblocking NO_DELTAS warning before reviewer micro-fix."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Full suite evidence from execution gate predates the reviewer micro-fix; post-fix targeted and smoke verification passed, but orchestrator may choose to rerun full if acceptance policy requires full-suite evidence after every review edit.",
+        "Live ADV tool behavior still requires build/deploy/restart per repo Source-vs-Dist reload gotcha; source-level tests verify behavior in this session."
+      ],
+      "required_main_agent_actions": [
+        "Checkpoint or otherwise preserve reviewer-applied changes in plugin/src/tools/change.ts and plugin/src/tools/change.test.ts before acceptance gate work continues.",
+        "If strict final-suite freshness is required after reviewer edits, rerun bin/oc-test full once; otherwise targeted + smoke evidence is sufficient for the scoped micro-fix."
+      ],
+      "required_follow_ups": [],
+      "consumer_warnings": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixPhantomArtifactPaths",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixPhantomArtifactPaths",
+      "task_id": "tk-a338b86baa6d",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-a338b86baa6d"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [
+        {
+          "id": "review-praise-1",
+          "label": "praise",
+          "file": "plugin/src/tools/change.ts",
+          "line": 105,
+          "what": "Readback normalization now covers both top-level gate output and included context snapshot input.",
+          "why": "This closes the phantom path leak without changing workflow state or artifact materialization semantics.",
+          "fix": "applied"
+        },
+        {
+          "id": "review-praise-2",
+          "label": "praise",
+          "file": "plugin/src/temporal/gate-readiness.ts",
+          "line": 363,
+          "what": "Acceptance metadata readiness no longer requires an active filesystem path.",
+          "why": "Temporal-only artifact metadata intentionally distinguishes contentHash/source/readable from materialized file paths.",
+          "fix": "applied"
+        }
+      ],
+      "changes_made": [
+        {
+          "file": "plugin/src/tools/change.ts",
+          "summary": "Normalized include.snapshot gate evidence before buildChangeContextSnapshot; added readback boundary comments; made recovery executive-summary metadata readable/path depend on actual materialized file existence.",
+          "verification": "bin/oc-test targeted -- src/tools/change.test.ts src/temporal/gate-readiness.test.ts src/temporal/workflows.signal-handlers.test.ts passed (3 files, 116 tests); pnpm run typecheck passed; prettier --check passed."
+        },
+        {
+          "file": "plugin/src/temporal/gate-readiness.ts",
+          "summary": "Updated acceptanceContractBlockers to accept Temporal-only executive-summary metadata based on contentHash plus source/readable/path context instead of requiring path; refreshed state-backed acceptance proof comments.",
+          "verification": "gate-readiness targeted tests passed, including new Temporal-only metadata and non-readable path suppression coverage."
+        },
+        {
+          "file": "plugin/src/temporal/workflows.ts",
+          "summary": "Updated stale state-backed acceptance comment to describe contentHash/source/readable semantics and path-only-when-materialized behavior.",
+          "verification": "workflows.signal-handlers targeted tests passed."
+        },
+        {
+          "file": "plugin/src/temporal/change-state.ts",
+          "summary": "Added concise comments documenting Temporal-only path omission and legacy path retention/readback revalidation boundary.",
+          "verification": "prettier --check and typecheck passed."
+        },
+        {
+          "file": "plugin/src/tools/change.test.ts",
+          "summary": "Added regression coverage for include.snapshot readback path suppression and recovery metadata readable/path behavior with and without materialized executive-summary file.",
+          "verification": "change.test targeted tests passed."
+        },
+        {
+          "file": "plugin/src/temporal/gate-readiness.test.ts",
+          "summary": "Added regression coverage for pathless Temporal executive-summary metadata and acceptance proof omission of non-readable Temporal paths.",
+          "verification": "gate-readiness.test targeted tests passed."
+        }
+      ],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "Temporal-only artifact metadata should not imply active filesystem readability: use contentHash/source/readable as structural metadata, and re-validate any legacy path on readback before exposing it to agents."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/tools/change.test.ts src/temporal/gate-readiness.test.ts src/temporal/workflows.signal-handlers.test.ts",
+          "pnpm exec prettier --check src/tools/change.ts src/tools/change.test.ts src/temporal/gate-readiness.ts src/temporal/gate-readiness.test.ts src/temporal/workflows.ts src/temporal/change-state.ts",
+          "pnpm run typecheck"
+        ],
+        "results": "pass",
+        "evidence": "Targeted tests passed after changes: 3 test files, 116 tests. Prettier check reported all touched files formatted. TypeScript typecheck completed with tsc --noEmit exit 0."
+      },
+      "scope_drift": null,
+      "risks": [],
+      "required_main_agent_actions": [],
+      "required_follow_ups": [],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/change.test.ts src/temporal/gate-readiness.test.ts src/temporal/workflows.signal-handlers.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec prettier --check src/tools/change.ts src/tools/change.test.ts src/temporal/gate-readiness.ts src/temporal/gate-readiness.test.ts src/temporal/workflows.ts src/temporal/change-state.ts"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixPhantomArtifactPaths",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixPhantomArtifactPaths",
+      "scope": {
+        "kind": "change",
+        "scope_key": "scanner-bundle:review"
+      },
+      "agent": "adv-scanner-bundle",
+      "phase": "review",
+      "scanner_count": 4,
+      "dimensions": [
+        "contract-traceability",
+        "correctness-edge-cases",
+        "security",
+        "tests-tdd-evidence",
+        "scope-conformance",
+        "architecture-quality",
+        "remediation-status"
+      ],
+      "summary": "Review scanners found strong contract coverage and no blockers. Secondary path-truth edge cases were remediated and re-verified: context snapshot gate evidence normalization, pathless acceptance metadata readiness, file-existence-backed recovery readability, acceptance proof path suppression coverage, and normalization boundary comments. Final verdict clean after remediation.",
+      "findings": [
+        {
+          "scanner": "contract-scope",
+          "severity": "suggestion",
+          "summary": "Initial suggestion: gate-readiness trusted readable:true without filesystem verification; covered by later recovery/readback remediation and comments.",
+          "evidence": [
+            {
+              "label": "contract scanner",
+              "locator": "plugin/src/temporal/gate-readiness.ts",
+              "summary": "No unresolved contract/scope gaps after remediation."
+            }
+          ]
+        },
+        {
+          "scanner": "correctness-security",
+          "severity": "issue",
+          "summary": "Resolved issue: _contextSnapshot built from raw gate state could bypass gate evidence path normalization.",
+          "evidence": [
+            {
+              "label": "fix",
+              "locator": "plugin/src/tools/change.ts",
+              "summary": "Snapshot gates now pass through normalizeGateArtifactEvidenceForReadback before buildChangeContextSnapshot; regression test added."
+            }
+          ]
+        },
+        {
+          "scanner": "correctness-security",
+          "severity": "issue",
+          "summary": "Resolved issue: acceptance metadata readiness required path and recovery metadata claimed readable without materialized file proof.",
+          "evidence": [
+            {
+              "label": "fix",
+              "locator": "plugin/src/temporal/gate-readiness.ts; plugin/src/tools/change.ts",
+              "summary": "Acceptance readiness uses contentHash/source/readable context; recovery path/readable derived from fileExists; targeted tests pass."
+            }
+          ]
+        },
+        {
+          "scanner": "tests-architecture",
+          "severity": "suggestion",
+          "summary": "Resolved coverage/comment suggestions: added acceptance proof path suppression tests and boundary comments.",
+          "evidence": [
+            {
+              "label": "verification",
+              "locator": "plugin/src/temporal/gate-readiness.test.ts; plugin/src/temporal/change-state.ts",
+              "summary": "116 targeted tests pass plus typecheck and Prettier check."
+            }
+          ]
+        }
+      ],
+      "follow_ups": [],
+      "consumer_warnings": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixPhantomArtifactPaths",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixPhantomArtifactPaths",
+      "scope": {
+        "kind": "change",
+        "scope_key": "scanner-bundle:harden"
+      },
+      "agent": "adv-scanner-bundle",
+      "phase": "harden",
+      "scanner_count": 4,
+      "dimensions": [
+        "test-coverage",
+        "ai-slop",
+        "documentation-hygiene",
+        "cleanup-readiness",
+        "production-readiness",
+        "deployment-readiness",
+        "remediation-status"
+      ],
+      "summary": "Harden release-readiness completed. Initial scanners found one in-scope medium ADV read-surface gap (adv_gate_status raw gate artifact evidence) and low documentation drift; both remediated and re-verified. Final full suite and merge dry-run passed. Remaining low/optional items are non-blocking and outside release gate requirements.",
+      "findings": [
+        {
+          "scanner": "docs-cleanup",
+          "severity": "info",
+          "summary": "Documentation hygiene and cleanup mostly clean; stale temporal-recovery proof metadata wording remediated.",
+          "evidence": [
+            {
+              "label": "fix",
+              "locator": "docs/temporal-recovery.md",
+              "summary": "Updated state-backed acceptance metadata wording to contentHash/source/readability context; path only when materialized."
+            }
+          ]
+        },
+        {
+          "scanner": "prod-deploy",
+          "severity": "info",
+          "summary": "Production/deployment READY; source-vs-dist reload remains release note, not code blocker.",
+          "evidence": [
+            {
+              "label": "ops note",
+              "locator": "AGENTS.md source-vs-dist policy",
+              "summary": "Live tool validation requires pnpm build, deploy-local --fix, and OpenCode restart; source/full-suite verification passed."
+            }
+          ]
+        },
+        {
+          "scanner": "slop-tests",
+          "severity": "issue",
+          "summary": "Resolved medium: adv_gate_status returned raw gate artifact evidence; now normalizes paths and has regression test.",
+          "evidence": [
+            {
+              "label": "fix",
+              "locator": "plugin/src/tools/gate.ts; plugin/src/tools/gate.test.ts",
+              "summary": "adv_gate_status uses shared normalizeGateArtifactEvidenceForReadback; test strips phantom path and preserves materialized path."
+            }
+          ]
+        },
+        {
+          "scanner": "cleanup",
+          "severity": "info",
+          "summary": "No temp/debug/dead-import cleanup candidates found; worktree clean after checkpoints.",
+          "evidence": [
+            {
+              "label": "verification",
+              "locator": "git status --short --branch",
+              "summary": "Clean change/fixPhantomArtifactPaths worktree."
+            }
+          ]
+        }
+      ],
+      "follow_ups": [],
+      "consumer_warnings": []
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-ftpyjU",
+      "type": "pattern",
+      "content": "When centralizing artifact filename maps in Advance, `types/artifacts.ts` is workflow-safe and already imported by workflow/tool/storage code. Add a unit test that asserts exact `ARTIFACT_FILENAME` keys/values before replacing duplicated maps; this catches drift without needing broader integration tests.",
+      "source_task": "tk-e5a98cdf1080",
+      "recorded_at": "2026-06-15T20:52:24.392Z"
+    },
+    {
+      "id": "ws-b1dF_4",
+      "type": "pattern",
+      "content": "For artifact metadata, separate content authority from filesystem readability: workflow/state code should emit path only when metadata.readable === true, while tool-layer readback can additionally verify path existence before exposing it. This prevents phantom paths without blocking Temporal-only content access via include flags.",
+      "source_task": "tk-a338b86baa6d",
+      "recorded_at": "2026-06-15T21:09:41.072Z"
+    },
+    {
+      "id": "ws-0UJ-4Q",
+      "type": "gotcha",
+      "content": "Temporal-only artifact metadata can safely preserve legacy path-bearing state for replay, but every agent-facing read surface must re-validate readability before exposing paths. Snapshot/context builders need the same normalization as top-level tool output or phantom paths can leak through secondary surfaces.",
+      "source_task": "tk-a338b86baa6d",
+      "recorded_at": "2026-06-15T23:44:37.579Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-06-15T19:46:33.298Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved proposal in chat: \"approve\".",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixPhantomArtifactPaths/proposal.md",
+        "content_hash": "91a15b88dfc1e944459436b7bf1cc057a344a062d761390e5f2d1af21fc907b2",
+        "non_whitespace_chars": 6291,
+        "checked_at": "2026-06-15T19:43:08.361Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-06-15T20:38:59.572Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved discovery criteria/agreement in chat: \"approve\". Agreement persisted and contract minted with SC/AC/C/DONT items.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixPhantomArtifactPaths/agreement.md",
+        "content_hash": "6266fc64813097be3e4bbc046a077272847b55a96c5689c18a4af57abae33ea0",
+        "non_whitespace_chars": 5682,
+        "checked_at": "2026-06-15T19:43:08.362Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-06-15T20:44:44.984Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design artifact persisted. Design leverage scout ran and auto-adopted low-risk refinements. Independent adv-researcher validator returned VALIDATED with non-blocking planning cautions; no user-value tradeoff, unresolved conflict, or contract-compromise risk.",
+      "artifact_evidence": {
+        "kind": "design",
+        "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixPhantomArtifactPaths/design.md",
+        "content_hash": "51206d201a40253be65aaad96d942f6867632c20ccbeb258f40dc9e2a6d72f71",
+        "non_whitespace_chars": 9319,
+        "checked_at": "2026-06-15T19:43:08.363Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-06-15T20:47:52.866Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved prep task graph in chat: \"approve\". Task graph has 5 tasks with contract refs and TDD intent assigned."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-06-15T21:28:58.661Z",
+      "completed_by": "agent",
+      "approval_evidence": "All five planned execution tasks completed with checkpoints. Verification evidence: targeted tests, pnpm run check, bin/oc-test smoke, final bin/oc-test full, and adv_change_validate strict passed (nonblocking NO_DELTAS warning). Source edits require rebuild/deploy/restart for live ADV tool behavior per repo Source-vs-Dist reload gotcha."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-06-15T23:58:36.850Z",
+      "completed_by": "agent",
+      "approval_evidence": "User accepted delivered work after review report: \"approve\". Contract review matrix persisted (21/21 pass/respected, 0 failing/unknown) and executive summary persisted before approval. Review verdict APPROVED after remediation; final targeted, smoke, full verification passed.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixPhantomArtifactPaths/executive-summary.md",
+        "content_hash": "60047f169332fc1273cb5820af20f68a1263cd887655e69703ab119eb7651713",
+        "non_whitespace_chars": 1986,
+        "checked_at": "2026-06-15T19:43:08.364Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "discovery",
+    "source_artifact": "adv-problem transcript: sub-agent dereferenced missing design/agreement artifact paths"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "6266fc64813097be3e4bbc046a077272847b55a96c5689c18a4af57abae33ea0",
+      "approvedAt": "2026-06-15T20:38:52.728Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "`adv_change_show` never implies a nonexistent active artifact file is readable for Temporal-only artifact content.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6266fc64813097be3e4bbc046a077272847b55a96c5689c18a4af57abae33ea0",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "Agents can retrieve proposal/problem/agreement/design/executive-summary/acceptance content through ADV tool output or packet-provided content.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6266fc64813097be3e4bbc046a077272847b55a96c5689c18a4af57abae33ea0",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "Worker instructions consistently forbid direct reads of external ADV state artifact files.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6266fc64813097be3e4bbc046a077272847b55a96c5689c18a4af57abae33ea0",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC4",
+        "kind": "success_criterion",
+        "text": "Regression tests cover active Temporal-only artifacts, legacy disk fallback, archive fallback, and prompt/agent asset guidance.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6266fc64813097be3e4bbc046a077272847b55a96c5689c18a4af57abae33ea0",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "Given active artifact content exists in Temporal `state.documents` and no matching active `.md` file exists, when `adv_change_show include.<artifact>` runs, then artifact content is returned via the include field and no response field presents a nonexistent active file path as readable.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6266fc64813097be3e4bbc046a077272847b55a96c5689c18a4af57abae33ea0",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Given legacy disk-backed or archived artifact content exists, when artifact readback runs, then legacy disk and archive-bundle fallback content still works.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6266fc64813097be3e4bbc046a077272847b55a96c5689c18a4af57abae33ea0",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Given a sub-agent receives a design/research/review packet needing ADV artifacts, when it follows instructions, then it uses inline content or ADV tools and does not read `~/.local/share/.../plugins/advance/**/{proposal,problem-statement,agreement,design,executive-summary,acceptance,change}.md/json` directly.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6266fc64813097be3e4bbc046a077272847b55a96c5689c18a4af57abae33ea0",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Given `adv-researcher` and peer ADV agents are inspected, when asset tests run, then each relevant agent/command contract contains the artifact-wide ADV state access rule and direct-read failure recovery rule.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6266fc64813097be3e4bbc046a077272847b55a96c5689c18a4af57abae33ea0",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Given artifact metadata/evidence is emitted by gate or change read surfaces, when tests inspect active Temporal-only changes, then metadata distinguishes readable materialized paths from non-file/Temporal sources.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6266fc64813097be3e4bbc046a077272847b55a96c5689c18a4af57abae33ea0",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Given recovery or archive paths intentionally materialize artifact files, when those paths produce artifact evidence, then real filesystem paths remain available and verified.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6266fc64813097be3e4bbc046a077272847b55a96c5689c18a4af57abae33ea0",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Temporal `state.documents` remains canonical for active artifact content.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6266fc64813097be3e4bbc046a077272847b55a96c5689c18a4af57abae33ea0",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Active artifact-content disk writes must not be reintroduced as the primary source of truth.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6266fc64813097be3e4bbc046a077272847b55a96c5689c18a4af57abae33ea0",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Agents and sub-agents must not be required to read external ADV state files directly.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6266fc64813097be3e4bbc046a077272847b55a96c5689c18a4af57abae33ea0",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Legacy disk and archive-bundle fallback reads must remain supported.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6266fc64813097be3e4bbc046a077272847b55a96c5689c18a4af57abae33ea0",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "The read-surface behavior change must be machine-readable and testable, not prose-only.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6266fc64813097be3e4bbc046a077272847b55a96c5689c18a4af57abae33ea0",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C6",
+        "kind": "constraint",
+        "text": "Cross-project `target_path` reads must follow the same artifact semantics as current-project reads.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6266fc64813097be3e4bbc046a077272847b55a96c5689c18a4af57abae33ea0",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not fix the symptom only with prompt text while leaving misleading tool output unchanged.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6266fc64813097be3e4bbc046a077272847b55a96c5689c18a4af57abae33ea0",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not break recovery/archive evidence paths that intentionally materialize real files.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6266fc64813097be3e4bbc046a077272847b55a96c5689c18a4af57abae33ea0",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not change app-repo worktree routing or ADV worktree lifecycle behavior as part of this change.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6266fc64813097be3e4bbc046a077272847b55a96c5689c18a4af57abae33ea0",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not broaden into unrelated sub-agent prompt quality cleanup.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6266fc64813097be3e4bbc046a077272847b55a96c5689c18a4af57abae33ea0",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "Do not hide artifact content from agents; replace fake file paths with reliable tool/payload access.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6266fc64813097be3e4bbc046a077272847b55a96c5689c18a4af57abae33ea0",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-06-15T23:51:10.000Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Review/remediation verified no agent-facing active Temporal artifact path is exposed as readable: change_show artifact metadata, gates, and _contextSnapshot gate evidence normalize missing/non-readable paths; targeted tests and final full suite pass.",
+          "notes": "Resolved secondary snapshot/recovery edge cases before acceptance."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Artifact content remains accessible through adv_change_show include fields and worker packet guidance; change.test verifies Temporal document content returned without path; commands inject inline content/include guidance.",
+          "notes": "No content hiding; only false readability removed."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Agent/command policy blocks direct external ADV artifact reads across ADV workers; asset tests enforce artifact-wide filenames, include guidance, readable caveat, and artifacts.*.path warning.",
+          "notes": "adv-researcher received missing policy section."
+        },
+        {
+          "contractId": "SC4",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Regression coverage spans types/artifacts, store-temporal changes, change-state, gate-readiness, workflows signal handlers, change tools, specs/assets, and command/agent asset tests. Final bin/oc-test full passed after review remediation.",
+          "notes": "Final full suite passed 2026-06-15T23:50Z."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "change.test covers Temporal document content returned via include without artifact path and snapshot/top-level gate path stripping; changes.test verifies Temporal metadata signal source:temporal/readable:false/no path.",
+          "notes": "Post-review remediation added _contextSnapshot coverage."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "change.ts preserves Temporal-first then disk/archive fallback read paths; change.test verifies existing readable disk path preserved; full suite passed.",
+          "notes": "Legacy disk/archive fallback not removed."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "adv-design, adv-research, and adv-refactor commands now load artifacts via include fields/inline packets and forbid dereferencing external artifacts.*.path; subagent-reports asset test enforces anchors.",
+          "notes": "No direct state-file read requirement."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "subagent-reports-spec-assets plus agent asset tests verify adv-researcher and peer agents contain artifact-wide state access policy, direct-read recovery rule, readable caveat, and include guidance.",
+          "notes": "All relevant worker agents covered."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "ArtifactMetadata has optional path plus source/readable; change-state normalizes blank paths; gate-readiness emits path only for readable metadata; change_show re-validates path existence. Targeted tests and final full suite pass.",
+          "notes": "Machine-readable source/readable fields implemented."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Recovery/archive/disk paths are preserved only when materialized/readable: review remediation derives recovery readable/path from fileExists and adds tests for materialized and non-materialized cases; archive/disk fallback unchanged.",
+          "notes": "DONT2 preserved."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Temporal state.documents remains canonical for active artifact content; changes.ts emits content signals to documents and metadata source:temporal/readable:false with no active path.",
+          "notes": "No active artifact content disk primary source reintroduced."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "store-temporal changes path no longer passes artifacts to legacy disk writes or synthesizes active paths; no-disk-writes invariant test remains green.",
+          "notes": "Legacy scaffold/fallback untouched."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Workers/commands route artifact access through ADV tools and inline content; direct external ADV state file reads forbidden and recovery tells agents to stop retrying filesystem paths.",
+          "notes": "Policy enforced by asset tests."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "readArtifact/readArtifacts fallback behavior retained, ARTIFACT_FILENAME centralized, readable disk path preservation test passes, full suite passes.",
+          "notes": "Archive/recovery path support maintained."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Behavior is represented by typed ArtifactMetadata source/readable/path? contract, readback normalizers, gate-readiness helper, specs, and regression tests; not prose-only.",
+          "notes": "Structural correctness satisfied."
+        },
+        {
+          "contractId": "C6",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "change_show readArtifacts now uses activeStore for target_path include reads; normalization applies to activeStore readback and absolute metadata paths. Review scanner identified this as corrected latent target_path issue.",
+          "notes": "No cross-project mutation changes."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Structural tool output/state fixes implemented in types, store signals, change-state, gate-readiness, and change_show; prompt updates are secondary, not sole mitigation.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Recovery readable/path now file-existence-backed; materialized recovery path test passes; disk/archive fallback unchanged; final full suite passes.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No ADV/app worktree lifecycle code changed; git diff limited to specs, tool/storage/temporal artifact handling, prompts/commands, and tests.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Prompt edits scoped to artifact state access policy; review scanner found no unrelated prompt cleanup or out-of-scope files.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Content remains available via include fields and packet guidance; tests verify _design/Temporal content returned while false filesystem paths are omitted.",
+          "notes": ""
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "Given active artifact content exists in Temporal `state.documents` and no matching active `.md` file exists, when `adv_change_show include.<artifact>` runs, then artifact content is returned via the include field and no response field presents a nonexistent active file path as readable.",
+    "Given legacy disk-backed or archived artifact content exists, when artifact readback runs, then legacy disk and archive-bundle fallback content still works.",
+    "Given a sub-agent receives a design/research/review packet needing ADV artifacts, when it follows instructions, then it uses inline content or ADV tools and does not read `~/.local/share/.../plugins/advance/**/{proposal,problem-statement,agreement,design,executive-summary,acceptance,change}.md/json` directly.",
+    "Given `adv-researcher` and peer ADV agents are inspected, when asset tests run, then each relevant agent/command contract contains the artifact-wide ADV state access rule and direct-read failure recovery rule.",
+    "Given artifact metadata/evidence is emitted by gate or change read surfaces, when tests inspect active Temporal-only changes, then metadata distinguishes readable materialized paths from non-file/Temporal sources.",
+    "Given recovery or archive paths intentionally materialize artifact files, when those paths produce artifact evidence, then real filesystem paths remain available and verified."
+  ],
+  "documents": {
+    "proposal": "# Proposal: Fix phantom artifact paths\n\n## Why\n\nADV currently exposes artifact metadata paths from `adv_change_show` that may look filesystem-readable, but under Temporal-only storage those files can be missing while artifact content lives in workflow state. Sub-agents can dereference `artifacts.*.path`, hit `File not found`, and waste investigation time or misdiagnose the issue as a wrong worktree or missing context problem.\n\nDesired outcome: ADV artifact access semantics are unambiguous and structurally safe, so agents and sub-agents reliably consume artifact content through ADV tools / included fields instead of direct filesystem reads of phantom paths.\n\n## What Changes\n\n- Clarify or repair `adv_change_show` artifact metadata semantics so missing disk files are not presented as authoritative readable artifact paths.\n- Align researcher/design-validation packet guidance with ADV state access rules for all artifacts, not only `proposal.md`.\n- Add regression coverage for Temporal-only artifact content with nonexistent disk sidecar files.\n- Audit nearby gate/read surfaces for the same phantom-path class.\n\n## User Outcomes\n\n- Sub-agents no longer lose time chasing nonexistent artifact files.\n- Worktree/context failures are easier to distinguish from artifact access failures.\n- ADV read surfaces communicate where canonical artifact content actually lives.\n- Orchestrators can pass artifact content to workers without relying on brittle filesystem projections.\n\n## Scope\n\n### In Scope\n\n- `adv_change_show` artifact path/readback behavior for proposal, agreement, design, acceptance, and related artifacts.\n- Sub-agent and command packet instructions that tell workers how to access ADV artifacts.\n- Tests that lock the intended Temporal-first artifact behavior.\n- Related local consumers that copy artifact path metadata into gate evidence or worker prompts.\n\n### Out of Scope\n\n- Reworking all ADV artifact persistence or archive bundle materialization.\n- Changing app-repo worktree routing.\n- Changing ADV worktree creation/resume semantics.\n- Rewriting sub-agent report transport.\n- Fixing unrelated prompt quality issues.\n\n### Must Not\n\n- Must not reintroduce production artifact-content disk writes as the primary source of truth.\n- Must not require sub-agents to read `~/.local/share/.../plugins/advance` files directly.\n- Must not break legacy disk/archive fallback reads for old or archived changes.\n- Must not hide useful artifact metadata without providing a clear machine-readable replacement.\n\n## Affected Code\n\n- `plugin/src/tools/change.ts` — `adv_change_show` output shape and artifact include/read behavior.\n- `plugin/src/storage/store-temporal/changes.ts` — artifact metadata path creation under Temporal-only storage.\n- `plugin/src/temporal/workflows.ts` and `plugin/src/tools/gate.ts` — gate artifact evidence path propagation candidates.\n- `.opencode/agents/adv-researcher.md` — sub-agent state access constraints.\n- `.opencode/command/adv-design.md` and related command packet templates — design validator artifact access guidance.\n- Tests near `plugin/src/tools/change.*.test.ts`, `plugin/src/storage/store-temporal/no-disk-writes-invariant.test.ts`, and command/agent asset tests.\n\n## Related Repositories\n\n- Primary repo: `advance`.\n- No cross-repo implementation expected. The triggering transcript came from another project (`pokeedge`), but the failure mode is in ADV tooling and agent contracts.\n\n## Constraints\n\n- Temporal `state.documents` remains canonical for active artifact content.\n- Disk artifact files remain derived/legacy/archive surfaces, not the primary active source.\n- Sub-agent prompts must remain terse but explicit enough to prevent direct ADV state reads.\n- Any read-surface behavior change must be backward-compatible or clearly versioned for existing callers.\n\n## Impact\n\n- Reduces false worktree diagnoses in sub-agent research/design validation.\n- Prevents direct reads of external ADV state paths that may be absent, stale, or implementation details.\n- Makes artifact source-of-truth behavior more consistent with existing Temporal-only architecture.\n\n## Context\n\nEvidence from triage:\n\n- A design-validator sub-agent was given `WORKING DIRECTORY: /home/jon/dev/pokeedge` and successfully read code from that repo, so workdir routing was not the primary failure.\n- `adv_change_show` returned `artifacts.design.path` / `artifacts.agreement.path` under `~/.local/share/opencode-projects/...`, while the actual directory held only `change.json` and `proposal.md`.\n- `plugin/src/storage/store-temporal/changes.ts` documents that `updateArtifacts()` performs no artifact-content disk writes while still computing metadata paths.\n- `plugin/src/tools/change.ts` reads artifact content Temporal-first through `readArtifact` / `readArtifacts` and only attaches content via include fields such as `_design` and `_agreement`.\n- `ADV_INSTRUCTIONS.md` and `project.md` forbid direct ADV state file reads, but `adv-researcher.md` and design-validator packets do not make this artifact-wide rule sufficiently explicit for workers.\n\n## Knowledge Gap Analysis\n\n### Codebase unknowns\n\n- Exact output-shape change for `adv_change_show`: remove nonexistent paths, mark them non-readable, add availability metadata, or expose source kind. Resolved in discovery as: no fake readable paths; agents must still have proper artifact access through ADV tools/included content.\n- Full list of consumers that rely on `artifactEvidence.path` or `artifacts.*.path`. Initial audit found primary propagation in store-temporal, shared mapper, gate-readiness, gate evidence, recovery writers, and tests.\n- Whether tests already assert artifact paths in snapshots. Discovery found multiple tests likely requiring updates.\n\n### Ecosystem unknowns\n\n- None expected. This is an internal ADV architecture and prompt-contract issue with no meaningful external library alternative.\n\n### Domain unknowns\n\n- Manual debugging preference resolved: user does not require active filesystem paths as long as agents have proper artifact access.\n- Prompt scope resolved: update all ADV prompts/command state-access instructions, not only researcher.\n\n### Integration unknowns\n\n- Compatibility with archived changes whose artifact files are materialized in `.adv/archive` remains in scope for design.\n- Cross-project target-path reads and per-project shard behavior for `adv_change_show` remain in scope for design.\n\n## Discovery Findings\n\n### Discovery Checklist\n\n| Step | Status | Reason |\n|---|---|---|\n| Skill Discovery | PASS | Loaded `adv-agent-tool-contracts`; issue touches agent-callable tool and sub-agent packet contracts. |\n| Prior Research Extension | PASS | No `temp/*.md`; `docs/*-prep.md` files found but unrelated (`repo-improve`, `adv-slop-scan`, `adv-run-test`). New findings came from code audit and scout. |\n| Conflict & Related-Work Scan | PASS | `adv_change_validate` passed with expected pre-prep warnings; active-change scan found no direct overlap; agenda has related historical artifact-path warning `ag-eTTd2IaW`. Archived list with `includeArchived` timed out, so no archived conflict adopted. |\n| Edge Case Investigation | PASS | Edge cases listed below. |\n| Design Question Depth | PASS | Open design questions include trust model, blast radius, and alternatives. |\n| Draft Spec Delta Shapes | PASS | Draft `rq-artifactPathTruth01` and `rq-subagentArtifactAccess01` provided. |\n| P25 Related Pattern Scan | PASS | Related path propagation and prompt gaps identified. |\n| LBP Check | PASS | Internal structural fix; no external alternatives apply. |\n\n### Skills Considered\n\n- `adv-agent-tool-contracts` — loaded. Relevant because the change modifies an agent-callable read surface and sub-agent packet/prompt contract.\n- Other domain skills — not loaded; no external framework, backend stack, browser, or competitive-research dimension applies.\n\n### Extends\n\n- Prior `/adv-problem` triage transcript — extended with concrete source citations, wider related-pattern audit, and user preference resolution.\n- `docs/*-prep.md` — scanned; no relevant prep pack found for this internal artifact-path bug.\n- No `temp/*.md` prior artifact found.\n\n### Conflict Scan\n\n- `adv_change_validate fixPhantomArtifactPaths` passed. Warnings `NO_TASKS` and `NO_DELTAS` are expected before prep/discovery finalization.\n- Active changes reviewed: no direct overlap with artifact-path semantics or sub-agent artifact access.\n- Agenda overlap: `ag-eTTd2IaW` reports a stale canonical-vs-legacy design.md path issue. This supports the broader symptom class but does not block this change.\n- Archived-change scan with `includeArchived:true` timed out once; no archived conflict was adopted from incomplete evidence.\n\n### Current State\n\n- `plugin/src/storage/store-temporal/changes.ts` computes artifact metadata paths during create/update while comments state artifact content is not written to disk in Temporal production writes.\n- `plugin/src/temporal/contracts.ts` requires `ArtifactMetadata.path: string`, so the path field appears authoritative at the type boundary.\n- `plugin/src/temporal/change-state.ts` stores metadata wholesale in workflow state.\n- `plugin/src/storage/store-temporal/shared.ts` maps `safeState.artifacts` verbatim into `Change`, so `adv_change_show` exposes those paths.\n- `plugin/src/tools/change.ts` already has the safe content path: `readArtifact` / `readArtifacts` read Temporal `state.documents` first and attach `_proposal`, `_agreement`, `_design`, `_acceptance`, etc. when include flags are set.\n- `plugin/src/temporal/gate-readiness.ts`, `plugin/src/temporal/workflows.ts`, and `plugin/src/tools/gate.ts` propagate artifact evidence paths into gate evidence.\n- `.opencode/agents/adv-researcher.md` has `read:true` and `adv_change_show:true` but lacks the explicit ADV State Access Policy block present in peer agents.\n- `ADV_INSTRUCTIONS.md` forbids direct reads of some ADV state files, but the forbidden list omits `agreement.md`, `design.md`, `executive-summary.md`, and `acceptance.md`.\n\n### Edge Cases\n\n- Active Temporal-only agreement/design exists in `state.documents`, but no disk file exists; `adv_change_show` must not expose a path that agents treat as readable.\n- Legacy disk-backed or archived bundle artifact exists; fallback reads must still work and path metadata must not be broken for real files.\n- `problemStatement.path` may be an empty string; output normalization must distinguish empty/unknown path from verified readable path.\n- Acceptance/release recovery paths may intentionally write real artifacts before evidence inspection; fix must not erase those audited paths.\n- Cross-project `target_path` read must apply the same semantics for target store artifacts, not caller-project paths.\n- Truncated tool output can omit `_design`/`_agreement` content; workers need clear retry/include guidance rather than path dereference.\n\n### Open Design Questions\n\n1. Output shape for active Temporal-only artifacts.\n   - Trust model: agent-only, bounded by tool schema/spec.\n   - Blast radius: callers/tests expecting `artifacts.*.path` may break or need migration.\n   - Alternatives: omit nonexistent paths; keep path but add `readable:false`; add `source:\"temporal\"`. User preference favors no fake readable paths while preserving proper artifact access.\n\n2. Scope of prompt/doc updates.\n   - Trust model: joint, user preference resolved.\n   - Blast radius: too narrow leaves other agents vulnerable; too broad risks doc churn.\n   - Alternatives: researcher-only vs all ADV prompts. User preference: all ADV prompts.\n\n3. Spec home for artifact source-of-truth law.\n   - Trust model: agent-only, spec-law decision.\n   - Blast radius: wrong home creates fragmented law across workflow/subagent specs.\n   - Alternatives: `advance-workflow` for tool/read-state invariant; `subagent-reports` for worker packet/access invariant; likely both with cross-reference.\n\n### Draft Spec Deltas\n\n- `rq-artifactPathTruth01` (`advance-workflow`) — ADV read surfaces MUST NOT expose nonexistent active artifact filesystem paths as readable source-of-truth. When artifact content lives in Temporal `state.documents`, tools MUST expose content via ADV read/include fields and either omit filesystem paths or mark them machine-readably non-readable/source-tagged. Legacy disk and archive-bundle fallback reads must remain supported.\n  - Given an active change has `state.documents.design` populated and no `design.md` active disk file, when `adv_change_show include.design` runs, then the response includes `_design` content and does not present `artifacts.design.path` as a readable existing file.\n  - Given an archived change has a materialized archive bundle artifact, when artifact readback runs, then the archive fallback still returns artifact content.\n\n- `rq-subagentArtifactAccess01` (`subagent-reports` or `advance-workflow`) — ADV worker prompts and command packets MUST instruct sub-agents to access ADV artifacts through ADV tools or packet-provided content, not by direct reads of external ADV state paths; the forbidden artifact list includes proposal, problem statement, agreement, design, executive summary, acceptance, change, agenda, wisdom, and conformance state files.\n  - Given an `adv-researcher` design-validation packet needs design/agreement context, when the worker receives the packet, then the packet or agent instructions tell it to use inline content / `adv_change_show include.*` and not dereference `artifacts.*.path` under external state.\n  - Given a worker direct-read attempt fails for an ADV state path, when it recovers, then it stops retrying filesystem paths and uses the ADV tool read path instead.\n\n### Related Pattern Scan\n\n- Primary: `plugin/src/storage/store-temporal/changes.ts` computes non-empty metadata paths without disk writes.\n- Propagation: `plugin/src/storage/store-temporal/shared.ts`, `plugin/src/temporal/change-state.ts`, `plugin/src/temporal/gate-readiness.ts`, `plugin/src/temporal/workflows.ts`, and `plugin/src/tools/gate.ts` preserve or expose those paths.\n- Prompt gap: `.opencode/agents/adv-researcher.md`, `.opencode/command/adv-design.md`, `.opencode/command/adv-research.md`, `.opencode/command/adv-refactor.md`, and `ADV_INSTRUCTIONS.md` need artifact-wide direct-read policy alignment.\n- Tests likely affected: `store-temporal/changes.test.ts`, `signal-integration.test.ts`, `change.test.ts`, `change.read-artifact.test.ts`, `gate-readiness.test.ts`, `workflows.signal-handlers.test.ts`, `integration.test.ts`, `cross-project-create.test.ts`, `shared.test.ts`, and `_recovery-writers.test.ts`.\n\n### LBP Check\n\nBest practice is structural correctness at the tool contract boundary: do not rely only on prompts to prevent direct reads of false paths. The likely direction is to make `adv_change_show` path semantics truthful and machine-readable, then reinforce all worker instructions. No external-solution check applies because this is an internal state-contract bug; no library or external product alternative changes the outcome.\n\n### Discovery Opportunity Scout\n\n- Scout ran with `adv-researcher`; report persisted.\n- Auto-adopted candidates:\n  - Add ADV State Access Policy parity to `adv-researcher` and all relevant prompts.\n  - Generalize command packet guidance from proposal-only to all artifacts.\n  - Consolidate duplicated artifact filename/path constants if design confirms a safe locality-preserving target.\n  - Add read-surface regression tests for unbacked design/agreement artifacts.\n- User-surfaced candidate resolved:\n  - Output-shape decision: user prefers no fake paths; artifact access must remain proper through tools/content.\n\n### Recommended Objectives\n\n1. Make active artifact path metadata truthful: no `adv_change_show` response may imply a nonexistent active artifact file is readable.\n2. Preserve proper artifact access for agents through `adv_change_show include.*`, inline worker packet content, and legacy/archive fallback read paths.\n3. Update ADV worker prompts and command packets so direct external-state artifact reads are forbidden for all artifact kinds.\n4. Add spec and tests that prevent recurrence across Temporal active changes, legacy disk fallback, archive fallback, and worker prompt assets.\n\n### AMBIGUITY ANALYSIS — no blocking ambiguity findings. Coverage: B:C F:C S:C M:C\n\nNo CRITICAL or HIGH trigger findings. User-facing questions resolved: path behavior (`No fake paths`), manual debugging (`agents need proper access, not necessarily disk files`), prompt scope (`All ADV prompts`).\n",
+    "problemStatement": "ADV currently exposes artifact metadata paths from `adv_change_show` that may look filesystem-readable, but under Temporal-only storage those files can be missing while artifact content lives only in durable workflow state.\n\nSub-agents then dereference `artifacts.*.path`, hit `File not found`, and waste investigation time or misdiagnose worktree/context issues. Desired outcome: make artifact access semantics unambiguous and structural, so sub-agents reliably use ADV tools / included artifact content and are not handed misleading phantom paths.",
+    "agreement": "# Agreement: Fix phantom artifact paths\n\n## Objectives\n\n1. Make active artifact path metadata truthful: no `adv_change_show` response may imply a nonexistent active artifact file is readable.\n2. Preserve proper artifact access for agents through `adv_change_show include.*`, packet-provided content, and legacy/archive fallback read paths.\n3. Update ADV worker prompts and command packets so direct external-state artifact reads are forbidden for all artifact kinds.\n4. Add spec and test coverage that prevents recurrence across Temporal active changes, legacy disk fallback, archive fallback, and worker prompt assets.\n\n## Success Criteria\n\n1. `adv_change_show` never implies a nonexistent active artifact file is readable for Temporal-only artifact content.\n2. Agents can retrieve proposal/problem/agreement/design/executive-summary/acceptance content through ADV tool output or packet-provided content.\n3. Worker instructions consistently forbid direct reads of external ADV state artifact files.\n4. Regression tests cover active Temporal-only artifacts, legacy disk fallback, archive fallback, and prompt/agent asset guidance.\n\n## Acceptance Criteria\n\n1. Given active artifact content exists in Temporal `state.documents` and no matching active `.md` file exists, when `adv_change_show include.<artifact>` runs, then artifact content is returned via the include field and no response field presents a nonexistent active file path as readable.\n2. Given legacy disk-backed or archived artifact content exists, when artifact readback runs, then legacy disk and archive-bundle fallback content still works.\n3. Given a sub-agent receives a design/research/review packet needing ADV artifacts, when it follows instructions, then it uses inline content or ADV tools and does not read `~/.local/share/.../plugins/advance/**/{proposal,problem-statement,agreement,design,executive-summary,acceptance,change}.md/json` directly.\n4. Given `adv-researcher` and peer ADV agents are inspected, when asset tests run, then each relevant agent/command contract contains the artifact-wide ADV state access rule and direct-read failure recovery rule.\n5. Given artifact metadata/evidence is emitted by gate or change read surfaces, when tests inspect active Temporal-only changes, then metadata distinguishes readable materialized paths from non-file/Temporal sources.\n6. Given recovery or archive paths intentionally materialize artifact files, when those paths produce artifact evidence, then real filesystem paths remain available and verified.\n\n## Constraints\n\n1. Temporal `state.documents` remains canonical for active artifact content.\n2. Active artifact-content disk writes must not be reintroduced as the primary source of truth.\n3. Agents and sub-agents must not be required to read external ADV state files directly.\n4. Legacy disk and archive-bundle fallback reads must remain supported.\n5. The read-surface behavior change must be machine-readable and testable, not prose-only.\n6. Cross-project `target_path` reads must follow the same artifact semantics as current-project reads.\n\n## Avoidances\n\n1. Do not fix the symptom only with prompt text while leaving misleading tool output unchanged.\n2. Do not break recovery/archive evidence paths that intentionally materialize real files.\n3. Do not change app-repo worktree routing or ADV worktree lifecycle behavior as part of this change.\n4. Do not broaden into unrelated sub-agent prompt quality cleanup.\n5. Do not hide artifact content from agents; replace fake file paths with reliable tool/payload access.\n\n## Preview Applicability\n\nvisual_surface: false\n\nRationale: This change affects ADV tool/read surfaces, specs, tests, and agent prompts. It has no browser-visible or design-preview surface.\n\n## Decisions\n\n### User Decisions\n\n- Path behavior: user approved \"No fake paths\". When artifact content exists in Temporal but no readable active disk file exists, ADV must not expose a path as if it were readable.\n- Manual debugging: user does not require active filesystem paths as long as agents have proper artifact access.\n- Prompt scope: user approved updating all ADV prompts/command state-access instructions, not only `adv-researcher`.\n\n### Agent Decisions (LBP)\n\n- Structural tool contract fix is required; prompt-only mitigation is insufficient because `ArtifactMetadata.path` is propagated through tool output and gate evidence.\n- No external solution check applies. This is an internal ADV state-contract bug with no meaningful external library/tool alternative.\n- Spec deltas are required because the behavior is durable ADV workflow/sub-agent contract law.\n\n## Draft Spec Deltas\n\n### rq-artifactPathTruth01 — Truthful artifact path read surfaces\n\nCapability: `advance-workflow`\n\nADV read surfaces MUST NOT expose nonexistent active artifact filesystem paths as readable source-of-truth. When artifact content lives in Temporal `state.documents`, tools MUST expose content via ADV read/include fields and either omit filesystem paths or mark them machine-readably non-readable/source-tagged. Legacy disk and archive-bundle fallback reads MUST remain supported.\n\nScenarios:\n\n- Given an active change has `state.documents.design` populated and no `design.md` active disk file, when `adv_change_show include.design` runs, then the response includes `_design` content and does not present `artifacts.design.path` as a readable existing file.\n- Given an archived change has a materialized archive bundle artifact, when artifact readback runs, then the archive fallback still returns artifact content.\n\n### rq-subagentArtifactAccess01 — Artifact-wide sub-agent state access policy\n\nCapability: `subagent-reports` or `advance-workflow`\n\nADV worker prompts and command packets MUST instruct sub-agents to access ADV artifacts through ADV tools or packet-provided content, not by direct reads of external ADV state paths. The forbidden artifact list includes proposal, problem statement, agreement, design, executive summary, acceptance, change, agenda, wisdom, and conformance state files.\n\nScenarios:\n\n- Given an `adv-researcher` design-validation packet needs design/agreement context, when the worker receives the packet, then the packet or agent instructions tell it to use inline content / `adv_change_show include.*` and not dereference `artifacts.*.path` under external state.\n- Given a worker direct-read attempt fails for an ADV state path, when it recovers, then it stops retrying filesystem paths and uses the ADV tool read path instead.\n\n## Deferred Questions\n\nNone.\n\n## Sign-Off\n\nUser approved criteria/agreement in chat: \"approve\".",
+    "design": "# Design: Fix phantom artifact paths\n\n## Architecture Overview\n\nMake artifact access truthful at two layers:\n\n1. **State/write layer:** stop generating active disk paths for artifact content that is only written to Temporal `state.documents`.\n2. **Read/prompt layer:** normalize artifact metadata before agent-facing readback and make all worker instructions artifact-wide: use ADV tools / included content, never external ADV state filesystem reads.\n\nCanonical content stays Temporal-first:\n\n```text\nstate.documents[kind] → adv_change_show include.* → _proposal/_agreement/_design/... content\n```\n\nMaterialized filesystem paths remain valid only for legacy disk fallback, archive bundles, and audited recovery/archive flows that actually write files.\n\n## Key Decisions\n\n### 1. Stop synthesizing active paths for Temporal-only writes\n\n`store-temporal/changes.ts` currently computes `${changeDir}/${filename}` during `updateArtifacts()` and create metadata fan-out despite explicitly not writing artifact `.md` files. The design changes `fireContentSignalsSequentially` so every content signal also records metadata with `updatedAt`, `contentHash`, and a machine-readable source, but `path` is only set when a file was actually materialized by the same path.\n\nProposed metadata shape:\n\n```ts\ninterface ArtifactMetadata {\n  path?: string;\n  updatedAt: string;\n  contentHash?: string;\n  source?: \"temporal\" | \"disk\" | \"archive\" | \"recovery\";\n  readable?: boolean;\n  rejection?: ...;\n  sizeWarning?: ...;\n}\n```\n\nCompatibility:\n\n- Existing histories with `path: string` replay because making `path` optional is additive/tolerant at the TypeScript boundary.\n- Missing `source`/`readable` normalizes at readback as legacy/unknown.\n- Empty-string `path` seeds from `change-state.ts` are normalized as non-readable.\n- `GateArtifactEvidenceSchema.path` is already optional.\n\n### 2. Sanitize `adv_change_show` artifact metadata before user/agent readback\n\nAdd a read-surface helper near the `adv_change_show` output construction leak point (`change.ts` spreads `...change`) that transforms `change.artifacts` into truthful agent-facing metadata:\n\n- If `metadata.path` exists and `fileExists(path)` is true: retain `path`, set `readable: true`, source `disk`/`recovery`/legacy as appropriate.\n- If `metadata.path` exists but file is missing and `change.documents[kind]` has content: omit `path` from readback, set `source: \"temporal\"`, `readable: false`, retain `contentHash`/`updatedAt`.\n- If no path exists and `change.documents[kind]` has content: source `temporal`, readable false.\n- If `path` is `\"\"`: omit it and mark non-readable when document content exists.\n- If neither content nor readable file exists: keep only safe metadata that does not imply a readable path.\n\nThe raw workflow state can remain backward-compatible; `adv_change_show` is the agent-facing contract that must not hand agents fake paths.\n\n### 3. Gate evidence mostly follows the source fix\n\n`stateBackedArtifactEvidence()` and `stateBackedAcceptanceProof()` already derive proof from `state.documents` and conditionally spread `metadata?.path`. Once source metadata stops carrying fake paths, gate evidence stops emitting them without a second complex path check. Add a regression test for active state-backed gates. Recovery/poisoned-history paths in `gate.ts` keep real disk paths because they write/inspect files before evidence.\n\n### 4. Centralize artifact filename mapping\n\nThe kebab filename map is duplicated in `tools/change.ts`, `store-temporal/changes.ts`, `temporal/activities.ts`, and hydration helpers, while `types/artifacts.ts` already claims the filesystem mapping should be single-sourced. Promote a workflow-safe exported constant from `types/artifacts.ts`, for example:\n\n```ts\nexport const ARTIFACT_FILENAME: Record<ArtifactKind, string> = { ... };\n```\n\nThen use it in tool/storage/activity code. This prevents a path semantics fix from drifting across copies.\n\n### 5. Make ADV state access policy artifact-wide across worker prompts\n\nUpdate the shared agent/prompt guidance so all ADV artifacts are forbidden direct-read targets:\n\n- `change.json`\n- `proposal.md`\n- `problem-statement.md`\n- `agreement.md`\n- `design.md`\n- `executive-summary.md`\n- `acceptance.md`\n- agenda/wisdom/conformance files\n\nAdd parity to `.opencode/agents/adv-researcher.md`, then extend existing policy blocks in peer agents rather than authoring divergent text. Packet guidance should say: artifact content is supplied inline or retrieved via `adv_change_show include.*`; do not dereference `artifacts.*.path` under external state.\n\n### 6. Spec law owns the invariant\n\nAdd spec requirements:\n\n- `advance-workflow`: truthful artifact path read surfaces.\n- `subagent-reports` or `advance-workflow`: artifact-wide worker state access policy.\n\n## ADR Drafts\n\nNone. The decision is structural and important, but not hard to reverse once metadata is normalized; no ADR needed.\n\n## Implementation Strategy\n\n1. **Spec first**\n   - Add `rq-artifactPathTruth01` to `advance-workflow`.\n   - Add `rq-subagentArtifactAccess01` to the owning sub-agent/worker contract spec.\n\n2. **Central map + source fix first**\n   - Export `ARTIFACT_FILENAME` from `types/artifacts.ts`.\n   - Replace duplicated maps in `changes.ts`, `tools/change.ts`, `activities.ts`, and hydration helpers.\n   - Update `fireContentSignalsSequentially` and both metadata call sites so Temporal-only writes record hash/source metadata without paths.\n   - Explicitly invert existing tests that assert phantom paths, including `changes.test.ts` expectations around synthesized paths.\n\n3. **Metadata source model**\n   - Extend `ArtifactMetadata` with optional `path`, `source`, and `readable`.\n   - Keep signal payload tolerant of old metadata.\n   - Treat empty-string path as non-readable.\n\n4. **Readback normalization**\n   - Add `normalizeArtifactMetadataForRead()` or equivalent in the tool/storage read path.\n   - Apply it in `adv_change_show` before returning `artifacts`.\n   - Ensure `target_path` reads use the target store paths for file existence checks.\n\n5. **Gate evidence cleanup**\n   - Add tests proving state-backed gate evidence omits non-readable paths.\n   - Preserve recovery/archive paths that are verified by disk inspection.\n\n6. **Prompt and command contract updates**\n   - Add ADV State Access Policy to `adv-researcher.md`.\n   - Extend existing peer-agent forbidden lists to all artifact files.\n   - Update `adv-design`, `adv-research`, `adv-refactor`, and related command packets to direct workers to include fields or packet content.\n   - Add asset tests for prompt parity.\n\n7. **Tests**\n   - RED: active Temporal-only agreement/design content with nonexistent disk files must return `_agreement`/`_design` but no readable `artifacts.*.path`.\n   - GREEN: legacy disk fallback still returns content.\n   - GREEN: archive bundle fallback still returns content.\n   - GREEN: recovery/archive evidence paths remain when files are real.\n   - GREEN: cross-project `target_path` uses target store path semantics.\n   - GREEN: agent/command asset tests enforce artifact-wide state access policy.\n\n## LBP Analysis\n\nThe long-term best practice is structural correctness at the tool contract boundary. Prompt-only repair would still leave `adv_change_show` presenting misleading fields to any caller. Reintroducing active disk writes would reverse the Temporal-only source-of-truth architecture and violate the no-disk-writes invariant. Normalizing metadata/readback preserves the architecture while giving agents clear, machine-readable access.\n\nNo external alternative applies; this is an internal state/read-surface contract.\n\n## Affected Components\n\n- `plugin/src/temporal/contracts.ts` — `ArtifactMetadata` optional path/source/readable fields.\n- `plugin/src/types/artifacts.ts` — central filename map.\n- `plugin/src/storage/store-temporal/changes.ts` — metadata signal construction without fake paths.\n- `plugin/src/storage/store-temporal/shared.ts` and/or `plugin/src/tools/change.ts` — agent-facing metadata normalization.\n- `plugin/src/temporal/gate-readiness.ts` and `plugin/src/tools/gate.ts` — evidence path behavior and regression tests.\n- `.opencode/agents/adv-researcher.md`, peer ADV agents, and command packets — artifact-wide state access instructions.\n- `.adv/specs/advance-workflow/spec.json` and likely `.adv/specs/subagent-reports/spec.json`.\n- Tests in change, store-temporal, temporal gate-readiness/workflow, integration, cross-project, and agent asset suites.\n\n## Design-Derived Criteria\n\n- Metadata normalization must be deterministic for a given store path and artifact state.\n- A missing filesystem path must never be represented as `readable: true`.\n- Empty-string paths must be treated as absent/non-readable.\n- Content access must remain available through include fields even when `path` is omitted.\n- Recovery/archive code paths may include `path` only after writing or verifying the file.\n- Filename-map consolidation must remain workflow-bundle safe; `types/artifacts.ts` is allowed in workflow imports.\n\n## Risks / Mitigations\n\n- **Risk: test churn from `path` optionality.** Mitigation: update assertions to check source/readable semantics, not raw path strings; explicitly invert tests that currently assert phantom paths.\n- **Risk: legacy callers rely on `artifacts.*.path`.** Mitigation: preserve path when a file exists; for missing files, provide explicit `source/readable` metadata and include content flags.\n- **Risk: recovery paths lose needed file evidence.** Mitigation: leave recovery/archive inspection paths disk-backed and covered by tests.\n- **Risk: prompt-only fixes drift.** Mitigation: add asset tests for all worker/command state-access rules.\n\n## Design Leverage Scout\n\nScout: validated five low-risk leverage points and all were auto-adopted into the design.\n\n- Source-fix-first sequencing: `changes.ts` create/update metadata synthesis are the root cause; fix there before readback/gate cleanup.\n- Gate-evidence cleanup is mostly a consequence of source fix because gate evidence path fields are already optional/conditional.\n- Prompt work should extend existing policy blocks in peer agents and add the missing block to `adv-researcher`.\n- `adv_change_show` normalization should land at the `...change` spread leak point where `fileExists` and `changeDir` are already in scope.\n- Centralizing `ARTIFACT_FILENAME` in `types/artifacts.ts` prevents path-shape drift across four current copies.\n\n## Validator Result\n\nValidator: clean pass ✓ with non-blocking planning cautions.\n\nCautions carried into planning:\n\n1. `changes.test.ts` currently asserts the phantom path; tasks must invert that test.\n2. `change-state.ts` seeds `path: \"\"` in some metadata paths; normalization must treat empty string as non-readable.\n",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\n\nADV artifact read surfaces now distinguish Temporal-only content from materialized filesystem artifacts, preventing agents from receiving nonexistent readable paths while preserving reliable artifact content access through ADV tools and inline packets.\n\n## Verdict\n\nAPPROVED\n\n## What Was Built\n\n1. Added spec law for truthful artifact path read surfaces and artifact-wide sub-agent state access policy.\n2. Centralized artifact filename mapping in `types/artifacts.ts` with structural tests.\n3. Extended `ArtifactMetadata` with optional `path`, `source`, and `readable`; Temporal-only artifact updates now emit `source: \"temporal\"`, `readable: false`, and no path.\n4. Normalized `adv_change_show`, gate evidence, and included context snapshots so missing/non-readable paths are omitted while real materialized disk/recovery/archive paths remain available.\n5. Updated ADV agents and command packets to use inline content or `adv_change_show include.*` instead of external ADV state file reads.\n6. Added review remediation for secondary path-truth edges: snapshot gate normalization, pathless acceptance metadata readiness, file-existence-backed recovery readability, acceptance proof path suppression coverage, and boundary comments.\n\n## What Was Verified\n\n- Verdict: APPROVED after review remediation; 0 unresolved blockers/issues.\n- Review: 4 scanners + targeted post-remediation re-scan; findings resolved/rejected with evidence.\n- Tests: `bin/oc-test targeted -- src/tools/change.test.ts src/temporal/gate-readiness.test.ts src/temporal/workflows.signal-handlers.test.ts` passed (116 tests); `pnpm run typecheck` passed; touched-file Prettier check passed; `bin/oc-test smoke` passed; final `bin/oc-test full` passed.\n- Preview URL: not_applicable — agreement declares `visual_surface: false`; implementation affects ADV tool/state/spec/prompt behavior only, with no browser-visible or visual-output surface.\n- Contract matrix: 21/21 required rows passed/respected; 0 failed/violated/unknown.\n\n## Remaining Concerns\n\n- Live ADV tool behavior in the current OpenCode session still requires rebuild/deploy/restart before end-to-end runtime validation, per repository Source-vs-Dist reload policy. Source tests and full suite passed.\n",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-06-15T23:51:10.000Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | `adv_change_show` never implies a nonexistent active artifact file is readable for Temporal-only artifact content. | pass | Review/remediation verified no agent-facing active Temporal artifact path is exposed as readable: change_show artifact metadata, gates, and _contextSnapshot gate evidence normalize missing/non-readable paths; targeted tests and final full suite pass. |\n| SC2 | success_criterion | Agents can retrieve proposal/problem/agreement/design/executive-summary/acceptance content through ADV tool output or packet-provided content. | pass | Artifact content remains accessible through adv_change_show include fields and worker packet guidance; change.test verifies Temporal document content returned without path; commands inject inline content/include guidance. |\n| SC3 | success_criterion | Worker instructions consistently forbid direct reads of external ADV state artifact files. | pass | Agent/command policy blocks direct external ADV artifact reads across ADV workers; asset tests enforce artifact-wide filenames, include guidance, readable caveat, and artifacts.*.path warning. |\n| SC4 | success_criterion | Regression tests cover active Temporal-only artifacts, legacy disk fallback, archive fallback, and prompt/agent asset guidance. | pass | Regression coverage spans types/artifacts, store-temporal changes, change-state, gate-readiness, workflows signal handlers, change tools, specs/assets, and command/agent asset tests. Final bin/oc-test full passed after review remediation. |\n| AC1 | acceptance_criterion | Given active artifact content exists in Temporal `state.documents` and no matching active `.md` file exists, when `adv_change_show include.<artifact>` runs, then artifact content is returned via the include field and no response field presents a nonexistent active file path as readable. | pass | change.test covers Temporal document content returned via include without artifact path and snapshot/top-level gate path stripping; changes.test verifies Temporal metadata signal source:temporal/readable:false/no path. |\n| AC2 | acceptance_criterion | Given legacy disk-backed or archived artifact content exists, when artifact readback runs, then legacy disk and archive-bundle fallback content still works. | pass | change.ts preserves Temporal-first then disk/archive fallback read paths; change.test verifies existing readable disk path preserved; full suite passed. |\n| AC3 | acceptance_criterion | Given a sub-agent receives a design/research/review packet needing ADV artifacts, when it follows instructions, then it uses inline content or ADV tools and does not read `~/.local/share/.../plugins/advance/**/{proposal,problem-statement,agreement,design,executive-summary,acceptance,change}.md/json` directly. | pass | adv-design, adv-research, and adv-refactor commands now load artifacts via include fields/inline packets and forbid dereferencing external artifacts.*.path; subagent-reports asset test enforces anchors. |\n| AC4 | acceptance_criterion | Given `adv-researcher` and peer ADV agents are inspected, when asset tests run, then each relevant agent/command contract contains the artifact-wide ADV state access rule and direct-read failure recovery rule. | pass | subagent-reports-spec-assets plus agent asset tests verify adv-researcher and peer agents contain artifact-wide state access policy, direct-read recovery rule, readable caveat, and include guidance. |\n| AC5 | acceptance_criterion | Given artifact metadata/evidence is emitted by gate or change read surfaces, when tests inspect active Temporal-only changes, then metadata distinguishes readable materialized paths from non-file/Temporal sources. | pass | ArtifactMetadata has optional path plus source/readable; change-state normalizes blank paths; gate-readiness emits path only for readable metadata; change_show re-validates path existence. Targeted tests and final full suite pass. |\n| AC6 | acceptance_criterion | Given recovery or archive paths intentionally materialize artifact files, when those paths produce artifact evidence, then real filesystem paths remain available and verified. | pass | Recovery/archive/disk paths are preserved only when materialized/readable: review remediation derives recovery readable/path from fileExists and adds tests for materialized and non-materialized cases; archive/disk fallback unchanged. |\n| C1 | constraint | Temporal `state.documents` remains canonical for active artifact content. | respected | Temporal state.documents remains canonical for active artifact content; changes.ts emits content signals to documents and metadata source:temporal/readable:false with no active path. |\n| C2 | constraint | Active artifact-content disk writes must not be reintroduced as the primary source of truth. | respected | store-temporal changes path no longer passes artifacts to legacy disk writes or synthesizes active paths; no-disk-writes invariant test remains green. |\n| C3 | constraint | Agents and sub-agents must not be required to read external ADV state files directly. | respected | Workers/commands route artifact access through ADV tools and inline content; direct external ADV state file reads forbidden and recovery tells agents to stop retrying filesystem paths. |\n| C4 | constraint | Legacy disk and archive-bundle fallback reads must remain supported. | respected | readArtifact/readArtifacts fallback behavior retained, ARTIFACT_FILENAME centralized, readable disk path preservation test passes, full suite passes. |\n| C5 | constraint | The read-surface behavior change must be machine-readable and testable, not prose-only. | respected | Behavior is represented by typed ArtifactMetadata source/readable/path? contract, readback normalizers, gate-readiness helper, specs, and regression tests; not prose-only. |\n| C6 | constraint | Cross-project `target_path` reads must follow the same artifact semantics as current-project reads. | respected | change_show readArtifacts now uses activeStore for target_path include reads; normalization applies to activeStore readback and absolute metadata paths. Review scanner identified this as corrected latent target_path issue. |\n| DONT1 | avoidance | Do not fix the symptom only with prompt text while leaving misleading tool output unchanged. | respected | Structural tool output/state fixes implemented in types, store signals, change-state, gate-readiness, and change_show; prompt updates are secondary, not sole mitigation. |\n| DONT2 | avoidance | Do not break recovery/archive evidence paths that intentionally materialize real files. | respected | Recovery readable/path now file-existence-backed; materialized recovery path test passes; disk/archive fallback unchanged; final full suite passes. |\n| DONT3 | avoidance | Do not change app-repo worktree routing or ADV worktree lifecycle behavior as part of this change. | respected | No ADV/app worktree lifecycle code changed; git diff limited to specs, tool/storage/temporal artifact handling, prompts/commands, and tests. |\n| DONT4 | avoidance | Do not broaden into unrelated sub-agent prompt quality cleanup. | respected | Prompt edits scoped to artifact state access policy; review scanner found no unrelated prompt cleanup or out-of-scope files. |\n| DONT5 | avoidance | Do not hide artifact content from agents; replace fake file paths with reliable tool/payload access. | respected | Content remains available via include fields and packet guidance; tests verify _design/Temporal content returned while false filesystem paths are omitted. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixPhantomArtifactPaths/proposal.md",
+      "updatedAt": "2026-06-15T20:37:25.815Z",
+      "contentHash": "9bd8ff4707a2b6a0f8102b25efb8b2794133845bc73f0a59d5bc797bcb99e399"
+    },
+    "problemStatement": {
+      "path": "",
+      "updatedAt": "2026-06-15T19:43:08.447Z"
+    },
+    "agreement": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixPhantomArtifactPaths/agreement.md",
+      "updatedAt": "2026-06-15T20:38:45.250Z",
+      "contentHash": "6266fc64813097be3e4bbc046a077272847b55a96c5689c18a4af57abae33ea0"
+    },
+    "design": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixPhantomArtifactPaths/design.md",
+      "updatedAt": "2026-06-15T20:44:30.363Z",
+      "contentHash": "51206d201a40253be65aaad96d942f6867632c20ccbeb258f40dc9e2a6d72f71"
+    },
+    "executiveSummary": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixPhantomArtifactPaths/executive-summary.md",
+      "updatedAt": "2026-06-15T23:51:56.800Z",
+      "contentHash": "60047f169332fc1273cb5820af20f68a1263cd887655e69703ab119eb7651713"
+    }
+  },
+  "lastSignalAt": "2026-06-16T00:20:16.431Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true
+}

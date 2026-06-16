@@ -26,7 +26,10 @@ import { formatToolOutput } from "../utils/tool-output";
 import { runPrepReadinessChecks } from "../validator/prep-readiness";
 import { runClarifyReadinessChecks } from "../validator/clarify-readiness";
 import { loadChange } from "../storage/json";
-import { readArtifact } from "./change";
+import {
+  normalizeGateArtifactEvidenceForReadback,
+  readArtifact,
+} from "./change";
 import { buildChangeContextSnapshot } from "../utils/context-snapshot";
 import { COMMAND_MANIFEST } from "../manifest";
 import {
@@ -958,13 +961,15 @@ export const gateTools = {
                 }
               }
             }
-            const incomplete = getIncompleteGates(gates);
-            const canArchive = allGatesSatisfied(gates);
+            const normalizedGates =
+              (await normalizeGateArtifactEvidenceForReadback(gates)) ?? gates;
+            const incomplete = getIncompleteGates(normalizedGates);
+            const canArchive = allGatesSatisfied(normalizedGates);
             const nextGate = incomplete.length > 0 ? incomplete[0] : null;
 
             return formatToolOutput({
               changeId,
-              gates,
+              gates: normalizedGates,
               incomplete,
               canArchive,
               nextGate,

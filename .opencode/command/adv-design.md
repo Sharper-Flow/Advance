@@ -29,8 +29,8 @@ $ARGUMENTS
 
 ## Phase 1: Load Agreement Context
 
-- `adv_change_show`
-- review proposal + agreement artifacts
+- `adv_change_show include: { proposal: true, agreement: true }`
+- review proposal + agreement content from `_proposal` / `_agreement` (or packet state), not artifact paths
 - inspect affected code with `lgrep`/`read`
 - use Context7 when framework/library best practice matters
 
@@ -74,7 +74,7 @@ Run a mandatory bounded leverage-scout pass after draft design and before indepe
 ### Execution
 
 1. **Prepare split-load contract** — orchestrator owns ScoutCandidate schema, routing taxonomy, fallback/degradation, adoption, and all ADV mutations. Do not load scout methodology into main context unless worker loading is unavailable.
-2. **Prepare context** — assemble proposal summary, agreement objectives/AC/constraints/avoidances, draft design content (Phase 2 output), and prior-consideration data from discovery's conflict scan.
+2. **Prepare context** — assemble proposal summary, agreement objectives/AC/constraints/avoidances, draft design content (Phase 2 output), and prior-consideration data from discovery's conflict scan. Inject this content inline; do not pass external ADV artifact paths.
 3. **Spawn adv-researcher** — prompt worker to load `skill("adv-opportunity-scout")` in `design` mode when available; otherwise use the embedded schema/routing summary in this command. The researcher returns ≤5 structured candidates (8-field ScoutCandidate schema).
 4. **Sort candidates** — by payoff/risk ratio (highest first).
 5. **Route adoption** per the skill's routing taxonomy:
@@ -132,7 +132,7 @@ Technical criteria caused by the chosen architecture only; no new user-facing AC
 
 - Spawn the independent validator agent (`adv-researcher`) with a validator-specific prompt. This step is mandatory — it must run before Phase 4. If task tool is unavailable, skip gracefully and record `INCONCLUSIVE` via `adv_change_update` appended to `design.md` (see Phase 3.6).
 
-**Validator input:** design.md content + compact agreement summary (objectives, AC, constraints, avoidances).
+**Validator input:** design.md content + compact agreement summary (objectives, AC, constraints, avoidances), provided inline or from `adv_change_show` include fields. Do not ask validator to read `artifacts.*.path`.
 
 **Validator prompt template:**
 
@@ -144,7 +144,7 @@ SCOPE KEY: researcher:design-validation
 ATTEMPT: {attempt-number, starting at 1 for this researcher worker}
 TASK_SCOPE: validate the proposed design against agreement, specs, and external evidence
 IN_SCOPE:
-  - design.md, agreement objectives/AC/constraints/avoidances, relevant specs, official docs/examples
+  - inline design.md content, inline agreement objectives/AC/constraints/avoidances, relevant specs, official docs/examples
 OUT_OF_SCOPE:
   - rewriting the design, adding unapproved scope, user-value tradeoff decisions
 DONE_WHEN:

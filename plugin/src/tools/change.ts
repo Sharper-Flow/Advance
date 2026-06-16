@@ -27,6 +27,7 @@ import {
   isGateSatisfied,
   GATE_ORDER,
   GateIdSchema,
+  ARTIFACT_FILENAME,
   ChangeListStatusFilterSchema,
   ChangeOriginKindSchema,
   ChangeRepoScopeSchema,
@@ -47,7 +48,10 @@ import { isSyntheticValidationDraftPattern } from "../utils/synthetic-fixture-de
 import { validateChange } from "../validator";
 import { createLogger } from "../utils/debug-log";
 import { queryClaimsByIssueNumber } from "../temporal/visibility-claim-queries";
-import { subagentReportKey } from "../temporal/contracts";
+import {
+  subagentReportKey,
+  type ArtifactMetadata,
+} from "../temporal/contracts";
 import { advWorktreeCleanup } from "./worktree";
 import { initStateDb as initWorktreeStateDb } from "./worktree/state";
 
@@ -72,20 +76,54 @@ function subagentReportReadbackKey(report: ScopedSubagentReport): string {
   });
 }
 
-/**
- * Canonical kebab-case filename per `ArtifactKind`. Matches the filesystem
- * boundary map in `temporal/activities.ts`. Single source of truth for the
- * disk fallback paths in `readArtifact` / `readArtifacts` — kept in lockstep
- * with the activities module.
- */
-const ARTIFACT_KIND_FILENAME: Record<ArtifactKind, string> = {
-  proposal: "proposal.md",
-  problemStatement: "problem-statement.md",
-  agreement: "agreement.md",
-  design: "design.md",
-  executiveSummary: "executive-summary.md",
-  acceptance: "acceptance.md",
-};
+async function normalizeArtifactMetadataForReadback(
+  artifacts: Change["artifacts"],
+): Promise<Change["artifacts"]> {
+  if (!artifacts) return artifacts;
+  const normalized: NonNullable<Change["artifacts"]> = {};
+  for (const [kind, rawMetadata] of Object.entries(artifacts) as Array<
+    [string, ArtifactMetadata]
+  >) {
+    const metadata: ArtifactMetadata = { ...rawMetadata };
+    if (metadata.path) {
+      // Readback re-validates paths because workflow state can retain legacy
+      // path metadata after active artifacts moved to Temporal-only content.
+      const readable =
+        metadata.source !== "temporal" &&
+        metadata.readable !== false &&
+        (await fileExists(metadata.path));
+      if (readable) {
+        metadata.readable = true;
+      } else {
+        delete metadata.path;
+        metadata.readable = false;
+      }
+    }
+    normalized[kind as keyof NonNullable<Change["artifacts"]>] = metadata;
+  }
+  return normalized;
+}
+
+export async function normalizeGateArtifactEvidenceForReadback(
+  gates: Gates | undefined,
+): Promise<Gates | undefined> {
+  if (!gates) return gates;
+  const normalized = { ...gates } as Gates;
+  for (const gateId of GATE_ORDER) {
+    const gate = normalized[gateId];
+    const evidence = gate?.artifact_evidence;
+    if (!evidence?.path) continue;
+    // Gate evidence may come from older state that recorded active artifact
+    // paths; suppress phantom paths unless the file is still materialized.
+    if (await fileExists(evidence.path)) continue;
+    const { path: _path, ...evidenceWithoutPath } = evidence;
+    normalized[gateId] = {
+      ...gate,
+      artifact_evidence: evidenceWithoutPath,
+    } as GateCompletion;
+  }
+  return normalized;
+}
 
 /**
  * Read a single artifact content by canonical kind. Temporal-first per
@@ -115,7 +153,7 @@ export async function readArtifact(
 
   // 2. Disk active directory.
   const changeDir = join(store.paths.changes, changeId);
-  const filename = ARTIFACT_KIND_FILENAME[kind];
+  const filename = ARTIFACT_FILENAME[kind];
   try {
     const text = await readFile(join(changeDir, filename), "utf-8");
     if (text.trim().length > 0) return text;
@@ -218,7 +256,7 @@ export async function readArtifacts(
 
     // Disk fallback per kind.
     const changeDir = join(store.paths.changes, changeId);
-    const filename = ARTIFACT_KIND_FILENAME[kind];
+    const filename = ARTIFACT_FILENAME[kind];
     try {
       const text = await readFile(join(changeDir, filename), "utf-8");
       if (text.trim().length > 0) {
@@ -2228,6 +2266,13 @@ export const changeTools = {
             return formatToolOutput({ error: `Change not found: ${changeId}` });
           }
           const change = result.data;
+          const displayChange: Change = {
+            ...change,
+            artifacts: await normalizeArtifactMetadataForReadback(
+              change.artifacts,
+            ),
+            gates: await normalizeGateArtifactEvidenceForReadback(change.gates),
+          };
           const { content: proposalText } = await loadProposalForContext(
             activeStore,
             changeId,
@@ -2241,7 +2286,7 @@ export const changeTools = {
           });
 
           const output: Record<string, unknown> = {
-            ...change,
+            ...displayChange,
             tasks: paged.items,
             _taskPagination: paged.pagination,
             ...(projectContext ? { _projectContext: projectContext } : {}),
@@ -2313,9 +2358,11 @@ export const changeTools = {
                   // best-effort: missing gates → snapshot still useful
                 }
                 output._contextSnapshot = buildChangeContextSnapshot({
-                  change,
+                  change: displayChange,
                   proposalText,
-                  gates: gates ?? undefined,
+                  gates: gates
+                    ? await normalizeGateArtifactEvidenceForReadback(gates)
+                    : undefined,
                   workdir: activeStore.paths.root,
                 });
               } catch (e) {
@@ -2395,7 +2442,7 @@ export const changeTools = {
 
             if (requestedKinds.length > 0) {
               const artifactContent = await readArtifacts(
-                store,
+                activeStore,
                 changeId,
                 requestedKinds,
               );
@@ -3033,6 +3080,8 @@ export const changeTools = {
             changeId,
             "executive-summary.md",
           );
+          const executiveSummaryReadable =
+            await fileExists(executiveSummaryPath);
           await saveRecoveredArtifactMetadata({
             store: activeStore,
             change: existing.data,
@@ -3042,16 +3091,21 @@ export const changeTools = {
             },
             kind: "executiveSummary",
             metadata: {
-              path: executiveSummaryPath,
+              ...(executiveSummaryReadable
+                ? { path: executiveSummaryPath }
+                : {}),
               updatedAt: new Date().toISOString(),
               contentHash: createHash("sha256")
                 .update(executiveSummary)
                 .digest("hex"),
+              source: "recovery",
+              readable: executiveSummaryReadable,
             },
           });
           return formatToolOutput({
             changeId,
-            executiveSummaryPath,
+            ...(executiveSummaryReadable ? { executiveSummaryPath } : {}),
+            executiveSummaryReadable,
             _recoveryMutation: true,
             recoveryReason,
             priorApprovalEvidence,

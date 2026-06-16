@@ -2211,6 +2211,7 @@
             "direct",
             "pr_auto_merge",
             "pr_manual",
+            "merge_queue",
             "blocked"
           ],
           "type": "string"

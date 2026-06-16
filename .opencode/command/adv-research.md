@@ -40,7 +40,7 @@ If change has done tasks, treat as implementation evidence — not acceptance pr
 0. If `research` gate already complete → `adv_gate_status` → ask whether to refresh research or keep existing findings.
 1. `adv_project_context` → full tech stack (framework, libraries, CSS, testing, etc.)
 2. If project context is empty/unavailable → continue, but explicitly note "project context unavailable" in sub-agent prompts and limit conclusions accordingly.
-3. For specs: `adv_spec show`. For changes: `adv_change_show` only — use the returned proposal/problem context, tasks, deltas, and gate snapshot. × Do not read `proposal.md` directly.
+3. For specs: `adv_spec show`. For changes: `adv_change_show include: { proposal: true, problemStatement: true, agreement: true, design: true }` when artifact content is needed — use returned `_proposal` / `_problemStatement` / `_agreement` / `_design`, tasks, deltas, and gate snapshot. × Do not read artifact files directly or dereference `artifacts.*.path`.
 
 ### Extract Decisions
 
@@ -138,6 +138,8 @@ The `/adv-research` orchestrator may spawn the first-level research agent only.
 ### Orchestrator Pattern
 
 Spawn `adv-researcher` as the single research agent. It owns docs/API/examples lookup (Context7, Exa, searchcode, webfetch, Firecrawl) AND architecture validation / simplicity analysis — its tool grants and system prompt already cover both responsibilities.
+
+Pass required change artifacts inline in the worker packet or instruct the worker to call `adv_change_show` include flags. Never pass external ADV artifact paths as content sources.
 
 Check agent availability: `glob .opencode/agents/adv-researcher.md`. If `adv-researcher` is unavailable, use the Explore Fallback Template immediately; if it is available but returns an empty/failed result, apply the retry protocol first.
 

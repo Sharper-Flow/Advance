@@ -1,10 +1,10 @@
 import type { Store } from "../store-types";
-import type {
-  ArtifactKind,
-  ArtifactPayload,
-  ChangeClosure,
-  BulkCloseResult,
-  Change,
+import {
+  type ArtifactKind,
+  type ArtifactPayload,
+  type ChangeClosure,
+  type BulkCloseResult,
+  type Change,
 } from "../../types";
 import { createHash } from "crypto";
 import {
@@ -80,9 +80,7 @@ const ARTIFACT_SIGNAL_ORDER: ReadonlyArray<{
  */
 async function fireContentSignalsSequentially(
   handle: Awaited<ReturnType<typeof getGuardedChangeHandle>>,
-  changeId: string,
   artifacts: ArtifactPayload,
-  metadataPaths: Partial<Record<ArtifactKind, string>>,
 ): Promise<void> {
   const updatedAt = new Date().toISOString();
   for (const { kind, signal } of ARTIFACT_SIGNAL_ORDER) {
@@ -93,20 +91,18 @@ async function fireContentSignalsSequentially(
 
     // Metadata signal — populates state.artifacts[kind] with contentHash.
     // Fires AFTER the content signal so the hash reflects the just-written
-    // content. metadataPaths[kind] is supplied by the disk store when the
-    // artifact file was also written (transition window before T15 removes
-    // disk writes from this path).
-    const path = metadataPaths[kind];
-    if (path) {
-      await handle.signal(updateArtifactMetadataSignal, {
-        kind,
-        metadata: {
-          path,
-          updatedAt,
-          contentHash: computeContentHash(content),
-        },
-      });
-    }
+    // content. Temporal-only updates intentionally omit `path`: there is no
+    // readable artifact file for active content, and synthesizing one produces
+    // phantom paths in agent-facing tool output.
+    await handle.signal(updateArtifactMetadataSignal, {
+      kind,
+      metadata: {
+        updatedAt,
+        contentHash: computeContentHash(content),
+        source: "temporal",
+        readable: false,
+      },
+    });
   }
 }
 
@@ -268,29 +264,15 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
       // signal (no-op). The metadata-update signal fires AFTER each content
       // signal to keep state.artifacts[kind].contentHash consistent.
       //
-      // Only fires for actually-defined fields; transitional behavior keeps
-      // disk writes via legacy.changes.create above until T15 removes them.
-      const metadataPaths: Partial<Record<ArtifactKind, string>> = {};
-      if (result.path) metadataPaths.proposal = result.path;
-      if (result.problemStatementPath)
-        metadataPaths.problemStatement = result.problemStatementPath;
-      if (result.agreementPath) metadataPaths.agreement = result.agreementPath;
-      if (result.designPath) metadataPaths.design = result.designPath;
-      if (result.executiveSummaryPath)
-        metadataPaths.executiveSummary = result.executiveSummaryPath;
-      // Acceptance is not currently scaffolded by createChangeScaffold;
-      // when added via updateArtifacts/gate.ts, the metadata signal fires
-      // there.
+      // Only fires for actually-defined fields. Metadata is source-tagged as
+      // Temporal-only and deliberately carries no path; the legacy scaffold may
+      // create placeholder files, but active artifact content lives in
+      // state.documents.
 
       if (Object.values(artifacts).some((v) => v !== undefined)) {
         await runTemporal(async () => {
           const handle = await getGuardedChangeHandle(input, created.data!.id);
-          await fireContentSignalsSequentially(
-            handle,
-            created.data!.id,
-            artifacts,
-            metadataPaths,
-          );
+          await fireContentSignalsSequentially(handle, artifacts);
         });
       }
 
@@ -667,25 +649,10 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
       }
       validateAggregateSize(artifacts, existingDocuments);
 
-      // T15 / AC8: no artifact-content disk writes from the temporal store
-      // production path. Compute the canonical kebab-case paths inline so
-      // updateArtifactMetadataSignal can still carry path + contentHash;
-      // do NOT call legacy.changes.updateArtifacts (which would write
-      // artifact .md files to disk).
-      const changeDir = `${legacy.paths.changes}/${changeId}`;
-      const ARTIFACT_FILENAME: Record<keyof ArtifactPayload, string> = {
-        proposal: "proposal.md",
-        problemStatement: "problem-statement.md",
-        agreement: "agreement.md",
-        design: "design.md",
-        executiveSummary: "executive-summary.md",
-        acceptance: "acceptance.md",
-      };
-      const metadataPaths: Partial<Record<ArtifactKind, string>> = {};
-      for (const kind of Object.keys(ARTIFACT_FILENAME) as ArtifactKind[]) {
-        if (artifacts[kind] === undefined) continue;
-        metadataPaths[kind] = `${changeDir}/${ARTIFACT_FILENAME[kind]}`;
-      }
+      // T15 / AC8 + rq-artifactPathTruth01: no artifact-content disk writes
+      // from the temporal store production path, and no synthesized artifact
+      // paths. Active content is stored in state.documents; metadata records
+      // source/readability instead of fake filesystem locations.
 
       // KD-3 + KD-4: sequential await fan-out of content signals. Each
       // defined field on `artifacts` fires its content signal (populating
@@ -694,16 +661,11 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
       // ARTIFACT_SIGNAL_ORDER for deterministic history diffs (C5).
       await runTemporal(async () => {
         const handle = await getGuardedChangeHandle(input, changeId);
-        await fireContentSignalsSequentially(
-          handle,
-          changeId,
-          artifacts,
-          metadataPaths,
-        );
+        await fireContentSignalsSequentially(handle, artifacts);
       });
 
-      // Compose result shape matching the legacy contract — paths for
-      // the kinds that were actually written via the signal path.
+      // Compose result shape matching the legacy contract. Temporal-only
+      // updates do not write artifact files, so no path fields are returned.
       const result: {
         success: true;
         proposalPath?: string;
@@ -712,14 +674,6 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
         designPath?: string;
         executiveSummaryPath?: string;
       } = { success: true };
-      if (metadataPaths.proposal) result.proposalPath = metadataPaths.proposal;
-      if (metadataPaths.problemStatement)
-        result.problemStatementPath = metadataPaths.problemStatement;
-      if (metadataPaths.agreement)
-        result.agreementPath = metadataPaths.agreement;
-      if (metadataPaths.design) result.designPath = metadataPaths.design;
-      if (metadataPaths.executiveSummary)
-        result.executiveSummaryPath = metadataPaths.executiveSummary;
 
       // AC9 (completeStateBackedGate): invalidate the change cache after the
       // content-signal fan-out, matching save/close/refresh/bulk-close. Without

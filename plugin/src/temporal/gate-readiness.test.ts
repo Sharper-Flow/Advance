@@ -6,6 +6,7 @@ import {
   evaluateGateReadiness,
   gateArtifactEvidenceSchema,
   stateBackedArtifactEvidence,
+  stateBackedAcceptanceProof,
 } from "./gate-readiness";
 import type { ChangeWorkflowState } from "./contracts";
 
@@ -146,6 +147,8 @@ describe("gate readiness", () => {
             path: "/tmp/changes/change-1/agreement.md",
             updatedAt: "2026-05-20T00:00:00.000Z",
             contentHash: "a".repeat(64),
+            source: "disk",
+            readable: true,
           },
         },
       }),
@@ -164,6 +167,37 @@ describe("gate readiness", () => {
     });
   });
 
+  it("omits non-readable Temporal artifact paths from gate evidence", () => {
+    const result = stateBackedArtifactEvidence(
+      makeState({
+        documents: {
+          agreement:
+            "# Agreement\n\nThis agreement has enough substantive content.",
+        },
+        artifacts: {
+          agreement: {
+            path: "/tmp/changes/change-1/agreement.md",
+            updatedAt: "2026-05-20T00:00:00.000Z",
+            contentHash: "a".repeat(64),
+            source: "temporal",
+            readable: false,
+          },
+        },
+      }),
+      "discovery",
+      "agreement",
+      "2026-05-20T00:01:00.000Z",
+    );
+
+    expect(result.ready).toBe(true);
+    expect(result.evidence).toMatchObject({
+      kind: "agreement",
+      content_hash: "a".repeat(64),
+      non_whitespace_chars: expect.any(Number),
+    });
+    expect(result.evidence).not.toHaveProperty("path");
+  });
+
   it("omits content_hash when workflow metadata lacks hash", () => {
     const result = stateBackedArtifactEvidence(
       makeState({
@@ -174,6 +208,8 @@ describe("gate readiness", () => {
           design: {
             path: "/tmp/changes/change-1/design.md",
             updatedAt: "2026-05-20T00:00:00.000Z",
+            source: "disk",
+            readable: true,
           },
         },
       }),
@@ -552,6 +588,56 @@ describe("gate readiness", () => {
     );
 
     expect(result.ready).toBe(true);
+  });
+
+  it("allows Temporal-only executive summary metadata without path", () => {
+    const result = evaluateGateReadiness(
+      makeState({
+        gates: acceptanceReadyGates(),
+        projectionChangesDir: "/tmp/changes",
+        contract: passingContract(),
+        artifacts: {
+          executiveSummary: {
+            updatedAt: "2026-05-20T00:00:00.000Z",
+            contentHash: "a".repeat(64),
+            source: "temporal",
+            readable: false,
+          },
+        },
+      }),
+      "acceptance",
+    );
+
+    expect(result.ready).toBe(true);
+  });
+
+  it("omits non-readable Temporal executive summary paths from acceptance proof", () => {
+    const result = stateBackedAcceptanceProof(
+      makeState({
+        documents: {
+          executiveSummary:
+            "# Executive Summary\n\nApproved with full contract review.",
+        },
+        artifacts: {
+          executiveSummary: {
+            path: "/tmp/changes/change-1/executive-summary.md",
+            updatedAt: "2026-05-20T00:00:00.000Z",
+            contentHash: "a".repeat(64),
+            source: "temporal",
+            readable: false,
+          },
+        },
+      }),
+      "2026-05-20T00:01:00.000Z",
+    );
+
+    expect(result.ready).toBe(true);
+    expect(result.evidence).toMatchObject({
+      kind: "acceptance",
+      content_hash: "a".repeat(64),
+      non_whitespace_chars: expect.any(Number),
+    });
+    expect(result.evidence).not.toHaveProperty("path");
   });
 
   it("allows acceptance when executive summary content exists in state.documents but metadata is missing (signal delivery resilience)", () => {

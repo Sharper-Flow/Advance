@@ -336,7 +336,7 @@ Internal state (tasks, gate checkboxes, sub-agent counts, logs) lives in ADV too
 
 ## ADV State Access Policy
 
-**NEVER** read ADV state files directly using `read`, `bash cat`, `ls`, or any filesystem tool. This includes any path matching:
+**NEVER** read ADV state files directly using `read`, `bash cat`, `ls`, or any filesystem tool. This includes change/proposal/problem-statement/agreement/design/executive-summary/acceptance/agenda/wisdom/conformance files and any path matching:
 
 - `~/.local/share/opencode/plugins/advance/**/change.json`
 - `~/.local/share/opencode/plugins/advance/**/proposal.md`
@@ -361,4 +361,4 @@ Internal state (tasks, gate checkboxes, sub-agent counts, logs) lives in ADV too
 | Agenda items                   | `adv_agenda_list`     |
 | Conformance state              | `adv_conformance action: "status"` |
 
-If a direct read attempt fails (file not found, wrong path), **do not retry with a different path**. Stop and call `adv_change_show` instead.
+If a direct read attempt fails (file not found, wrong path), **do not retry with a different path**. Stop and call `adv_change_show` instead. Artifact content comes from `adv_change_show include:{proposal|problemStatement|agreement|design|executiveSummary|acceptance:true}` or packet inline content, not `artifacts.*.path` unless explicitly `readable:true`.

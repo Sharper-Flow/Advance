@@ -387,6 +387,200 @@ describe("change tools — signal-driven lifecycle", () => {
       expect(parsed.tasks[0].subagent_reports).toHaveLength(1);
     });
 
+    test("omits unreadable artifact paths from change show output and gate evidence", async () => {
+      const { mkdtemp, mkdir, rm } = await import("fs/promises");
+      const { tmpdir } = await import("os");
+      const { join: pathJoin } = await import("path");
+      const tempRoot = await mkdtemp(pathJoin(tmpdir(), "adv-phantom-path-"));
+      const changesDir = pathJoin(tempRoot, ".adv/changes");
+      await mkdir(pathJoin(changesDir, "test-change"), { recursive: true });
+
+      try {
+        const phantomPath = pathJoin(changesDir, "test-change", "proposal.md");
+        const store = createMockStore({
+          artifacts: {
+            proposal: {
+              path: phantomPath,
+              updatedAt: "2026-06-15T00:00:00.000Z",
+              source: "temporal",
+              readable: false,
+            },
+          },
+          gates: {
+            discovery: { status: "done" },
+            design: { status: "done" },
+            planning: { status: "done" },
+            execution: { status: "done" },
+            acceptance: { status: "done" },
+            release: { status: "pending" },
+            proposal: {
+              status: "done",
+              artifact_evidence: {
+                kind: "proposal",
+                path: phantomPath,
+                checked_at: "2026-06-15T00:00:01.000Z",
+                non_whitespace_chars: 42,
+              },
+            },
+          } as Change["gates"],
+        });
+        (store.paths as { changes: string }).changes = changesDir;
+        (store.paths as { root: string }).root = tempRoot;
+
+        const result = await changeTools.adv_change_show.execute(
+          { changeId: "test-change" },
+          store,
+        );
+
+        const parsed = JSON.parse(result);
+        expect(parsed.artifacts.proposal).toMatchObject({
+          updatedAt: "2026-06-15T00:00:00.000Z",
+          source: "temporal",
+          readable: false,
+        });
+        expect(parsed.artifacts.proposal).not.toHaveProperty("path");
+        expect(parsed.gates.proposal.artifact_evidence).not.toHaveProperty(
+          "path",
+        );
+      } finally {
+        await rm(tempRoot, { recursive: true, force: true });
+      }
+    });
+
+    test("omits unreadable gate evidence paths from included context snapshot readback", async () => {
+      const { mkdtemp, mkdir, rm } = await import("fs/promises");
+      const { tmpdir } = await import("os");
+      const { join: pathJoin } = await import("path");
+      const tempRoot = await mkdtemp(
+        pathJoin(tmpdir(), "adv-snapshot-phantom-path-"),
+      );
+      const changesDir = pathJoin(tempRoot, ".adv/changes");
+      await mkdir(pathJoin(changesDir, "test-change"), { recursive: true });
+
+      try {
+        const phantomPath = pathJoin(changesDir, "test-change", "proposal.md");
+        const store = createMockStore({
+          gates: {
+            discovery: { status: "done" },
+            design: { status: "done" },
+            planning: { status: "done" },
+            execution: { status: "done" },
+            acceptance: { status: "done" },
+            release: { status: "pending" },
+            proposal: {
+              status: "done",
+              artifact_evidence: {
+                kind: "proposal",
+                path: phantomPath,
+                checked_at: "2026-06-15T00:00:01.000Z",
+                non_whitespace_chars: 42,
+              },
+            },
+          } as Change["gates"],
+        });
+        (store.paths as { changes: string }).changes = changesDir;
+        (store.paths as { root: string }).root = tempRoot;
+
+        const result = await changeTools.adv_change_show.execute(
+          { changeId: "test-change", include: { snapshot: true } },
+          store,
+        );
+
+        const parsed = JSON.parse(result);
+        expect(parsed._contextSnapshot).toEqual(expect.any(String));
+        expect(parsed.gates.proposal.artifact_evidence).not.toHaveProperty(
+          "path",
+        );
+        expect(JSON.stringify(parsed)).not.toContain(phantomPath);
+      } finally {
+        await rm(tempRoot, { recursive: true, force: true });
+      }
+    });
+
+    test("returns Temporal document content without exposing phantom artifact paths", async () => {
+      const { mkdtemp, mkdir, rm } = await import("fs/promises");
+      const { tmpdir } = await import("os");
+      const { join: pathJoin } = await import("path");
+      const tempRoot = await mkdtemp(pathJoin(tmpdir(), "adv-temporal-doc-"));
+      const changesDir = pathJoin(tempRoot, ".adv/changes");
+      await mkdir(pathJoin(changesDir, "test-change"), { recursive: true });
+
+      try {
+        const phantomPath = pathJoin(changesDir, "test-change", "design.md");
+        const designContent = "# Design\n\nTemporal-only design content.";
+        const store = createMockStore({
+          documents: { design: designContent },
+          artifacts: {
+            design: {
+              path: phantomPath,
+              updatedAt: "2026-06-15T00:00:00.000Z",
+              source: "temporal",
+              readable: false,
+            },
+          },
+        });
+        (store.paths as { changes: string }).changes = changesDir;
+        (store.paths as { root: string }).root = tempRoot;
+
+        const result = await changeTools.adv_change_show.execute(
+          { changeId: "test-change", include: { design: true } },
+          store,
+        );
+
+        const parsed = JSON.parse(result);
+        expect(parsed._design).toBe(designContent);
+        expect(parsed.artifacts.design).toMatchObject({
+          source: "temporal",
+          readable: false,
+        });
+        expect(parsed.artifacts.design).not.toHaveProperty("path");
+      } finally {
+        await rm(tempRoot, { recursive: true, force: true });
+      }
+    });
+
+    test("preserves readable artifact paths that exist on disk", async () => {
+      const { mkdtemp, mkdir, writeFile, rm } = await import("fs/promises");
+      const { tmpdir } = await import("os");
+      const { join: pathJoin } = await import("path");
+      const tempRoot = await mkdtemp(pathJoin(tmpdir(), "adv-readable-path-"));
+      const changesDir = pathJoin(tempRoot, ".adv/changes");
+      const changeDir = pathJoin(changesDir, "test-change");
+      await mkdir(changeDir, { recursive: true });
+      const realPath = pathJoin(changeDir, "proposal.md");
+      await writeFile(
+        realPath,
+        "# Proposal\n\nReadable disk artifact.",
+        "utf-8",
+      );
+
+      try {
+        const store = createMockStore({
+          artifacts: {
+            proposal: {
+              path: realPath,
+              updatedAt: "2026-06-15T00:00:00.000Z",
+              source: "disk",
+              readable: true,
+            },
+          },
+        });
+        (store.paths as { changes: string }).changes = changesDir;
+        (store.paths as { root: string }).root = tempRoot;
+
+        const result = await changeTools.adv_change_show.execute(
+          { changeId: "test-change" },
+          store,
+        );
+
+        const parsed = JSON.parse(result);
+        expect(parsed.artifacts.proposal.path).toBe(realPath);
+        expect(parsed.artifacts.proposal.readable).toBe(true);
+      } finally {
+        await rm(tempRoot, { recursive: true, force: true });
+      }
+    });
+
     test("returns _executiveSummary content when include.executiveSummary is set and file exists", async () => {
       const { mkdtemp, mkdir, writeFile, rm } = await import("fs/promises");
       const { tmpdir } = await import("os");
@@ -735,7 +929,7 @@ describe("change tools — signal-driven lifecycle", () => {
       expect(store.changes.updateArtifacts).not.toHaveBeenCalled();
     });
 
-    test("recovers executive-summary metadata when artifact update hits completed workflow", async () => {
+    test("recovers executive-summary metadata without readable path when file is not materialized", async () => {
       const { createHash } = await import("crypto");
       const { mkdir, readFile, rm } = await import("fs/promises");
       const { tmpdir } = await import("os");
@@ -773,6 +967,66 @@ describe("change tools — signal-driven lifecycle", () => {
 
         const parsed = JSON.parse(result);
         expect(parsed._recoveryMutation).toBe(true);
+        expect(parsed.executiveSummaryReadable).toBe(false);
+        expect(parsed).not.toHaveProperty("executiveSummaryPath");
+        const saved = JSON.parse(
+          await readFile(pathJoin(changeDir, "change.json"), "utf-8"),
+        );
+        expect(saved.artifacts.executiveSummary).toMatchObject({
+          contentHash: createHash("sha256")
+            .update(executiveSummary)
+            .digest("hex"),
+          readable: false,
+        });
+        expect(saved.artifacts.executiveSummary).not.toHaveProperty("path");
+      } finally {
+        await rm(tempRoot, { recursive: true, force: true });
+      }
+    });
+
+    test("preserves recovery executive-summary path when file is materialized", async () => {
+      const { createHash } = await import("crypto");
+      const { mkdir, readFile, rm, writeFile } = await import("fs/promises");
+      const { tmpdir } = await import("os");
+      const { join: pathJoin } = await import("path");
+      const tempRoot = pathJoin(
+        tmpdir(),
+        `adv-change-update-recovery-readable-${Date.now()}`,
+      );
+      const changesDir = pathJoin(tempRoot, ".adv/changes");
+      const changeDir = pathJoin(changesDir, "test-change");
+      await mkdir(changeDir, { recursive: true });
+
+      try {
+        const executiveSummary = "# Executive Summary\n\nDurable proof.";
+        await writeFile(
+          pathJoin(changeDir, "executive-summary.md"),
+          executiveSummary,
+          "utf-8",
+        );
+        const store = createMockStore();
+        (store.paths as { changes: string }).changes = changesDir;
+        (store.paths as { root: string }).root = tempRoot;
+        vi.mocked(store.changes.updateArtifacts).mockRejectedValueOnce(
+          new Error("workflow execution already completed"),
+        );
+
+        const result = await changeTools.adv_change_update.execute(
+          {
+            changeId: "test-change",
+            executiveSummary,
+            recoveryMode: "poisoned_history",
+            recoveryEvidence:
+              "WorkflowExecutionAlreadyCompleted: workflow execution already completed",
+            recoveryReason:
+              "completed workflow accepted disk artifact but rejected metadata signal",
+            priorApprovalEvidence: "Prior user acceptance approval: accept",
+          },
+          store,
+        );
+
+        const parsed = JSON.parse(result);
+        expect(parsed.executiveSummaryReadable).toBe(true);
         expect(parsed.executiveSummaryPath).toBe(
           pathJoin(changeDir, "executive-summary.md"),
         );
@@ -784,6 +1038,7 @@ describe("change tools — signal-driven lifecycle", () => {
           contentHash: createHash("sha256")
             .update(executiveSummary)
             .digest("hex"),
+          readable: true,
         });
       } finally {
         await rm(tempRoot, { recursive: true, force: true });

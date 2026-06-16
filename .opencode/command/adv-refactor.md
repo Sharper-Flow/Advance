@@ -31,7 +31,7 @@ Batch mode: `adv_change_list({ sort: "stalest", excludeRecencyBands: ["hot"] })`
 
 ## Pre-flight
 
-`adv_change_show` + `adv_task_list`; use returned proposal/problem context only (× don't read proposal.md directly). Record `{workdir}` via `pwd`; include `WORKING DIRECTORY: {workdir}` in prompts.
+`adv_change_show include: { proposal: true, problemStatement: true, agreement: true, design: true }` + `adv_task_list`; use returned `_proposal` / `_problemStatement` / `_agreement` / `_design` or other returned context only (× don't read artifact files directly; × don't dereference `artifacts.*.path`). Record `{workdir}` via `pwd`; include `WORKING DIRECTORY: {workdir}` in prompts.
 
 ---
 
