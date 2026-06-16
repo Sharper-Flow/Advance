@@ -1,0 +1,1507 @@
+{
+  "id": "fixSquashMergeRelease2",
+  "title": "Fix squash-merge release reachability",
+  "status": "archived",
+  "created_at": "2026-06-10T03:08:22.861Z",
+  "tasks": [
+    {
+      "id": "tk-dd75d3c483e5",
+      "title": "## Route classification: merge_queue detection + fail-closed for unknown policy",
+      "type": "code",
+      "section": "Route Classification",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-06-16T00:54:20.992Z",
+      "metadata": {
+        "delegation_hint": "delegate_allowed",
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC4"
+        ],
+        "respects": [
+          "C1",
+          "C4",
+          "DONT4"
+        ],
+        "verifies": [
+          "AC1",
+          "AC4",
+          "SC1",
+          "SC4"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-16T01:15:39.731Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixSquashMergeRelease2",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixSquashMergeRelease2",
+          "task_id": "tk-dd75d3c483e5",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-dd75d3c483e5"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/tools/archive-helpers/git-finalize.ts",
+            "plugin/src/tools/archive-helpers/git-finalize.test.ts",
+            "plugin/src/types/changes.ts",
+            "plugin/schemas/change.schema.json"
+          ],
+          "verification": [
+            {
+              "command": "bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts",
+              "exit_code": 0,
+              "summary": "62 tests pass, including new merge_queue detection, gh-unavailable/rules-API blocked, and coercePrWorkflowRoute passthrough; existing direct/pr_auto_merge/no_remote routes still pass"
+            },
+            {
+              "command": "pnpm run typecheck",
+              "exit_code": 0,
+              "summary": "TypeScript compiles cleanly with expanded ReleaseFinalizationRouteName union"
+            },
+            {
+              "command": "pnpm run schemas:generate && pnpm run schemas:check",
+              "exit_code": 0,
+              "summary": "Regenerated public JSON schemas and deterministic drift check passes"
+            },
+            {
+              "command": "pnpm run format:check",
+              "exit_code": 0,
+              "summary": "Prettier formatting clean"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Added merge_queue to ReleaseFinalizationRouteName and FinalizationRoute.mergeQueueRequired",
+              "why": "Needed to represent repositories whose branch rules require the merge queue"
+            },
+            {
+              "what": "Scan parsedRules for type merge_queue before allow_auto_merge check and before empty-rules direct route",
+              "why": "A merge_queue rule is a known policy that should short-circuit auto-merge classification"
+            },
+            {
+              "what": "Changed policy-detection failures (gh unavailable, rules API error, unparseable rules, auto-merge status unavailable) to route blocked with reason POLICY_DETECTION_FAILED",
+              "why": "Fail-closed when the policy cannot be determined; avoids guessing pr_manual when constraints are unknown"
+            },
+            {
+              "what": "Kept AUTO_MERGE_DISABLED and GITHUB_REPO_UNRESOLVABLE as pr_manual",
+              "why": "These represent known policy states, not unknown-policy failures"
+            },
+            {
+              "what": "Updated coercePrWorkflowRoute to pass merge_queue through unchanged",
+              "why": "Retry from main checkout should not coerce a merge_queue route into pr_auto_merge"
+            },
+            {
+              "what": "Synchronized Phase9FinalizationStatusSchema and generated change.schema.json with the new route",
+              "why": "The expanded union caused a typecheck/schema drift failure; keeping the canonical Zod schema and JSON schema in sync is required for verification"
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Synchronized the route enum in Phase9FinalizationStatusSchema and generated change.schema.json to match the expanded ReleaseFinalizationRouteName; no other duplicate route enumerations were found in src/",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Slice 1 of design is implemented and verified: classifyFinalizationRoute now detects merge_queue branch rules, blocks with POLICY_DETECTION_FAILED for unknown/failed policy detection, and coercePrWorkflowRoute preserves merge_queue. Dependent Phase9FinalizationStatusSchema and generated JSON schema were updated to include merge_queue so typecheck and schemas:check pass.",
+            "suggested_next_action": "Proceed to the next slice/task, or run bin/oc-test full for a full regression sweep before moving on"
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run typecheck"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run schemas:generate && pnpm run schemas:check"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run format:check"
+            }
+          ]
+        }
+      ],
+      "verification": "62 tests pass. Typecheck clean. Schemas:check clean. Route classification extended with merge_queue detection and POLICY_DETECTION_FAILED fail-closed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/schemas/change.schema.json",
+        "plugin/src/tools/archive-helpers/git-finalize.test.ts",
+        "plugin/src/tools/archive-helpers/git-finalize.ts",
+        "plugin/src/types/changes.ts"
+      ],
+      "touched_files": [
+        "plugin/schemas/change.schema.json",
+        "plugin/src/tools/archive-helpers/git-finalize.test.ts",
+        "plugin/src/tools/archive-helpers/git-finalize.ts",
+        "plugin/src/types/changes.ts"
+      ],
+      "checkpointSha": "bdb0d6741d1b20fa86d4a8cbc9f745770db55b0f",
+      "completedAt": "2026-06-16T01:23:32.098Z",
+      "completed_at": "2026-06-16T01:23:32.098Z"
+    },
+    {
+      "id": "tk-83b3daca1fe1",
+      "title": "## Freshness reconciliation for non-queue PR routes",
+      "type": "code",
+      "section": "Freshness Reconciliation",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-06-16T00:54:41.084Z",
+      "metadata": {
+        "delegation_hint": "delegate_allowed",
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC2"
+        ],
+        "respects": [
+          "C2",
+          "C5",
+          "DONT3"
+        ],
+        "verifies": [
+          "AC2",
+          "SC2"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-16T01:24:43.959Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixSquashMergeRelease2",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixSquashMergeRelease2",
+          "task_id": "tk-83b3daca1fe1",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-83b3daca1fe1"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/tools/archive-helpers/git-finalize.ts",
+            "plugin/src/tools/archive-helpers/git-finalize.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts",
+              "exit_code": 0,
+              "summary": "All 66 targeted git-finalize tests pass"
+            },
+            {
+              "command": "pnpm run typecheck",
+              "exit_code": 0,
+              "summary": "TypeScript typecheck passes"
+            },
+            {
+              "command": "pnpm run lint && pnpm run format:check",
+              "exit_code": 0,
+              "summary": "ESLint clean (no errors) and Prettier formatting passes"
+            },
+            {
+              "command": "bin/oc-test full",
+              "exit_code": 0,
+              "summary": "Full plugin suite passes: 270 files, 3698 tests"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Added parsedRules?: unknown[] to FinalizationRoute and populated it in classifyFinalizationRoute for all rule-derived routes",
+              "why": "Lets completeProtectedBranchViaPullRequest pass the already-fetched branch rules to reconcileChangeBranchWithDefault without a second gh call."
+            },
+            {
+              "what": "Inserted reconcileChangeBranchWithDefault after resetMainToOriginDefault and before pushChangeBranch in completeProtectedBranchViaPullRequest",
+              "why": "Freshens the change branch against origin/default on non-queue PR routes while blocking on linear-history rules or merge conflicts."
+            },
+            {
+              "what": "Updated existing finalizeRelease PR-mode test mocks to intercept `merge` commands",
+              "why": "Those tests use a fake GitHub origin URL and rely on mocked git network operations; the new reconcile step is another network operation that needs to be mocked to keep the tests focused on PR handoff behavior."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "No same-pattern defects found. Adjusted existing PR-mode test mocks to account for the new reconcile merge step.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Slice 2 implemented: reconcileChangeBranchWithDefault merges origin/default into the change worktree, blocks on required_linear_history and RECONCILE_CONFLICT, and is wired into completeProtectedBranchViaPullRequest. classifyFinalizationRoute now carries parsedRules. All targeted and full plugin tests pass.",
+            "suggested_next_action": "Task 3 (completeMergeQueueHandoff / resolveReleaseReachability) can proceed. Rebuild/deploy with scripts/deploy-local.sh --fix if live tool validation is required."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run typecheck"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run lint && pnpm run format:check"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test full"
+            }
+          ]
+        }
+      ],
+      "verification": "66 tests pass including reconcileChangeBranchWithDefault (success, conflict, linear-history, up-to-date). Typecheck clean. Lint+format clean. Full suite 270 files 3698 tests pass.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/archive-helpers/git-finalize.test.ts",
+        "plugin/src/tools/archive-helpers/git-finalize.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/archive-helpers/git-finalize.test.ts",
+        "plugin/src/tools/archive-helpers/git-finalize.ts"
+      ],
+      "checkpointSha": "d96eead5fc53a18ea8652ab01f76b8c5bf0ddfca",
+      "completedAt": "2026-06-16T01:39:23.144Z",
+      "completed_at": "2026-06-16T01:39:23.144Z"
+    },
+    {
+      "id": "tk-a3d9f4be9309",
+      "title": "## Merge queue handoff + shared PR handoff sequence",
+      "type": "code",
+      "section": "Merge Queue Handoff",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-06-16T00:55:00.939Z",
+      "metadata": {
+        "delegation_hint": "delegate_allowed",
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC3"
+        ],
+        "respects": [
+          "C3",
+          "C6",
+          "DONT1",
+          "DONT2"
+        ],
+        "verifies": [
+          "AC3",
+          "SC3"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-16T01:39:45.447Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixSquashMergeRelease2",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixSquashMergeRelease2",
+          "task_id": "tk-a3d9f4be9309",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-a3d9f4be9309"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/tools/archive-helpers/git-finalize.ts",
+            "plugin/src/tools/archive-helpers/git-finalize.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts src/tools/change.archive-phase9.test.ts",
+              "exit_code": 0,
+              "summary": "94 tests passed (71 git-finalize + 23 archive-phase9)"
+            },
+            {
+              "command": "pnpm run check",
+              "exit_code": 0,
+              "summary": "schemas:check, typecheck, test-isolation, lockfile-policy, lint, format:check all green"
+            },
+            {
+              "command": "pnpm run build",
+              "exit_code": 0,
+              "summary": "Plugin ESM + Temporal worker bundles build successfully"
+            },
+            {
+              "command": "bin/oc-test smoke",
+              "exit_code": 0,
+              "summary": "Smoke tier passed (47 tests)"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Added `workdir` to `executePullRequestHandoff` and `completeMergeQueueHandoff` inputs",
+              "why": "`pushChangeBranch` needs the change-branch checkout to push from; the task snippet omitted it but the operation is impossible without it."
+            },
+            {
+              "what": "Exported `executePullRequestHandoff` and `completeMergeQueueHandoff` from git-finalize.ts",
+              "why": "Tests are required to call them directly per the task spec."
+            },
+            {
+              "what": "Handled merge_queue in both finalizeRelease dispatch locations (archiveMode pr and direct push failure)",
+              "why": "A merge_queue classification can surface in either path; both need the non-reconciling queue handoff."
+            },
+            {
+              "what": "Preserved main-checkpoint safety block for merge_queue in direct push-failure path",
+              "why": "Queue handoff resets main to origin/default, so an unmerged ADV checkpoint must block rather than be discarded."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [
+            "redriveArchivedUnmergedBranch still rejects non-pr_auto_merge routes (including merge_queue). Extend it separately if merge-queue archive re-drive is required."
+          ],
+          "required_main_agent_actions": [],
+          "related_scan": "Verified both finalizeRelease dispatch sites (archiveMode pr and direct push failure) route merge_queue to completeMergeQueueHandoff; inspected redriveArchivedUnmergedBranch and left it unchanged as it is outside the requested scope.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Slice 3 implemented: executePullRequestHandoff extracted, completeMergeQueueHandoff added, finalizeRelease dispatches merge_queue before pr_auto_merge/pr_manual in both archiveMode pr and direct push-failure paths. Delete-branch guardrail verified via regression tests. All targeted tests, phase9 tests, lint, format, and build pass.",
+            "suggested_next_action": "Proceed to the next execution task or run the full test tier (bin/oc-test full) before gate review."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts src/tools/change.archive-phase9.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run check"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run build"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test smoke"
+            }
+          ]
+        }
+      ],
+      "verification": "94 tests pass (git-finalize + change.archive-phase9). pnpm run check green. pnpm run build success. smoke 47 pass. 5 new tests: merge_queue pending/shipped/blocked, shared handoff sequence, delete-branch guardrail.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/archive-helpers/git-finalize.test.ts",
+        "plugin/src/tools/archive-helpers/git-finalize.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/archive-helpers/git-finalize.test.ts",
+        "plugin/src/tools/archive-helpers/git-finalize.ts"
+      ],
+      "checkpointSha": "75e58ff74c381f07b5d643e42a897209983c20d1",
+      "completedAt": "2026-06-16T01:53:56.558Z",
+      "completed_at": "2026-06-16T01:53:56.558Z"
+    },
+    {
+      "id": "tk-111d8c6560ed",
+      "title": "## Update specs and command docs for merge queue + fail-closed policy",
+      "type": "code",
+      "section": "Specs and Docs",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-06-16T00:55:17.091Z",
+      "metadata": {
+        "delegation_hint": "delegate_allowed",
+        "tdd_intent": "not_applicable"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC6"
+        ],
+        "respects": [
+          "C1",
+          "C6",
+          "DONT1"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-16T01:54:17.744Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixSquashMergeRelease2",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixSquashMergeRelease2",
+          "task_id": "tk-111d8c6560ed",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-111d8c6560ed"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "docs/specs/advance-workflow.md",
+            ".opencode/command/adv-archive.md",
+            "ADV_INSTRUCTIONS.md"
+          ],
+          "verification": [
+            {
+              "command": "pnpm run format:check",
+              "exit_code": 0,
+              "summary": "Prettier code style passes for plugin/src/"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Added merge_queue as a distinct route variant in Step 4.5 rather than folding it into pr_auto_merge",
+              "why": "Preserves clarity of queue semantics (skips local reconciliation, uses merge_group freshness) and keeps pr_auto_merge for non-queue protected-branch cases"
+            },
+            {
+              "what": "Used `Pending` (capitalized status term) in rq-releaseFinalization01.13 instead of prose-only",
+              "why": "Matches existing scenario status terminology and emphasizes gate/archive remain active until merged proof"
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "none — documentation-only task; no same-pattern code changes required",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Spec scenarios .12–.16, command Step 4.5 route list, and ADV_INSTRUCTIONS Phase 9 paragraph now document merge-queue support, fail-closed policy detection, local-user-token auth assumption, and branch-deletion guard. `pnpm run format:check` passes. Asset test `git-finalize-assets.test.ts` does not exist in this worktree; skipped.",
+            "suggested_next_action": "Review diff for prose accuracy, then proceed to next Slice 4 task or run full `bin/oc-test smoke` if code changes follow."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run format:check"
+            }
+          ]
+        }
+      ],
+      "verification": "Specs rq-releaseFinalization01.12-.16 added to docs/specs/advance-workflow.md. adv-archive.md Step 4.5 updated with merge_queue route. ADV_INSTRUCTIONS.md Phase 9 updated with merge queue + auth assumption. Format:check pass.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".opencode/command/adv-archive.md",
+        "ADV_INSTRUCTIONS.md",
+        "docs/specs/advance-workflow.md"
+      ],
+      "touched_files": [
+        ".opencode/command/adv-archive.md",
+        "ADV_INSTRUCTIONS.md",
+        "docs/specs/advance-workflow.md"
+      ],
+      "checkpointSha": "534813cd535972586757413031d193c54e35b7c0",
+      "completedAt": "2026-06-16T01:57:21.396Z",
+      "completed_at": "2026-06-16T01:57:21.396Z"
+    },
+    {
+      "id": "tk-4aee1185c983",
+      "title": "## Full validation + cross-cutting regression coverage",
+      "type": "code",
+      "section": "Validation",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-06-16T00:55:29.964Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-dd75d3c483e5"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-83b3daca1fe1"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-a3d9f4be9309"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-111d8c6560ed"
+        }
+      ],
+      "metadata": {
+        "delegation_hint": "delegate_allowed",
+        "tdd_intent": "separate_verification"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC5"
+        ],
+        "respects": [
+          "C1",
+          "DONT4"
+        ],
+        "verifies": [
+          "AC5",
+          "AC6",
+          "SC1",
+          "SC2",
+          "SC3",
+          "SC4"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-16T01:57:49.352Z",
+      "verification": "Full suite: 270 files, ~3700 tests pass (66.6s, exit 0). pnpm run check: schemas:check + typecheck + lint + format:check all green (22.8s, exit 0). adv_change_validate strict: passed, 0 errors. All AC paths covered: direct, pr_auto_merge, merge_queue, stale branch, squash proof, blocked policy.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "534813cd535972586757413031d193c54e35b7c0",
+      "completedAt": "2026-06-16T02:00:15.924Z",
+      "completed_at": "2026-06-16T02:00:15.924Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "fixSquashMergeRelease2",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:discovery-opportunity-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Phase 9 merge-queue + change-branch freshness opportunity scout",
+      "sources": [
+        {
+          "label": "gh pr merge manual (GitHub CLI)",
+          "locator": "https://cli.github.com/manual/gh_pr_merge",
+          "summary": "When targeting a merge-queue-required branch, no merge strategy is required; if required checks passed the PR is added to the queue, otherwise auto-merge is enabled. --admin bypasses queue. Confirms current `gh pr merge <n> --squash --auto` already handles queue repos; the --squash strategy is ignored for queue."
+        },
+        {
+          "label": "cli/cli merge.go source (canMerge / shouldAddToMergeQueue)",
+          "locator": "https://github.com/cli/cli/blob/trunk/pkg/cmd/pr/merge/merge.go",
+          "summary": "Source: a PR can always be added to the merge queue when mergeQueueRequired; using -d/--delete-branch with a merge-queue PR is rejected ('Cannot use -d when merge queue enabled') because it can delete the branch before merge and remove it from the queue. Confirms ADV must never pass --delete-branch on the queue route."
+        },
+        {
+          "label": "REST: rules for a branch (merge_queue rule type)",
+          "locator": "https://docs.github.com/rest/repos/rules (GET /repos/{owner}/{repo}/rules/branches/{branch})",
+          "summary": "Returns all active rules incl. {\"type\":\"merge_queue\", parameters:{check_response_timeout_minutes, grouping_strategy ALLGREEN|HEADGREEN, ...}}. This is the SAME endpoint classifyFinalizationRoute already calls; merge-queue can be detected by inspecting rule type with no extra API call."
+        },
+        {
+          "label": "Managing a merge queue (GitHub Docs)",
+          "locator": "https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-a-merge-queue",
+          "summary": "Merge queue groups changes into a merge_group with the LATEST version of base_branch; it provides up-to-date-base validation without the author updating the PR branch. CI must report on merge_group events. Implies change-branch rebase/freshness is unnecessary for queue repos."
+        },
+        {
+          "label": "GraphQL PullRequest.mergeQueueEntry / MergeQueueEntryState",
+          "locator": "https://docs.github.com/en/graphql/reference/pulls",
+          "summary": "PullRequest.mergeQueueEntry exposes state (AWAITING_CHECKS|LOCKED|MERGEABLE|QUEUED|UNMERGEABLE), position, headCommit, baseCommit, estimatedTimeToMerge. Optional richer pending diagnostics; not required for terminal proof since queue merges still resolve to PR state MERGED."
+        },
+        {
+          "label": "Current-state code: git-finalize.ts",
+          "locator": "/home/jon/dev/advance/plugin/src/tools/archive-helpers/git-finalize.ts",
+          "summary": "classifyFinalizationRoute (L322) checks rules length + .allow_auto_merge only — no merge_queue type handling. completeProtectedBranchViaPullRequest (L1307) pushes change/{id} as-is with no freshness reconcile and does NOT pass -d. armPullRequestAutoMerge (L1252) runs `gh pr merge <n> --squash --auto`. resolveReleaseReachability (L1763) terminal proof = origin/default reachability OR PR MERGED OR tree-squash match (queue-agnostic, already safe). git-finalize.test.ts has zero merge_queue coverage."
+        }
+      ],
+      "architecture_assessment": "The release-PROOF terminal (resolveReleaseReachability) is already correct and merge-queue-agnostic: it accepts only origin/default reachability or PR state MERGED (plus squash tree-match), and a queue merge still ends at PR MERGED. The real gaps are confined to the HANDOFF path: (1) classifyFinalizationRoute conflates merge_queue-required branches with generic protected branches because it inspects only rule-array length and .allow_auto_merge, never the rule `type`; (2) completeProtectedBranchViaPullRequest pushes change/{id} with no freshness reconcile. Verified external evidence shows the SIMPLEST correct path: detect merge_queue via the existing rules call (no new API), keep the existing `gh pr merge --squash --auto` arming (already queue-correct), and treat queue presence as the freshness mechanism (queue rebuilds against latest base in merge_group). A bespoke rebase/update-branch route for change-branch freshness is largely YAGNI for queue repos and, for non-queue strict-checks repos, GitHub auto-merge already gates on requiresStrictStatusChecks. Hard invariant to preserve: never pass -d/--delete-branch on a queue PR (cli/cli rejects it and it can strand the PR).",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "No contract/security/release blocker. All material claims cited to official GitHub docs, CLI manual, and cli/cli source. The proposal's in-scope assumptions hold; design should bias to reusing the existing rules API call and existing auto-merge arming rather than adding GraphQL enqueue mutations or a heavy rebase route."
+      },
+      "recommendation": "Scout candidates (classified): [AUTO-ADOPT] C1: Detect merge_queue by inspecting rule `type` in the ALREADY-fetched `rules/branches/{default}` response inside classifyFinalizationRoute; add a `merge_queue` route variant (or annotate the route) — zero new API calls. [AUTO-ADOPT GUARDRAIL] C2: Codify the invariant that the queue/auto-merge arming MUST NOT pass -d/--delete-branch (current code already complies; add a regression test + spec note) — cli/cli rejects it and it can strand the PR. [REJECT-COMPLEXITY/INFORM] C3: Do NOT add a GraphQL enqueuePullRequest mutation or strategy-stripping for queues; `gh pr merge --squash --auto` is already the documented queue-correct handoff (strategy ignored for queue, queue-or-auto-merge auto-selected). [USER-SURFACE] C4: Decide freshness strategy — evidence favors the BORING path: for merge_queue repos rely on the queue's latest-base merge_group (no change-branch rebase); for non-queue strict-status repos rely on GitHub auto-merge + requiresStrictStatusChecks; only fall back to a minimal reconcile if neither applies. Surface this 'no bespoke rebase route' decision to the orchestrator/user before design locks a heavier update-branch route. [FOLLOW-UP] C5: Optionally enrich Pending diagnostics with GraphQL PullRequest.mergeQueueEntry.state/position/estimatedTimeToMerge — pure observability, not correctness; defer unless pending-state UX is in scope.",
+      "follow_ups": [
+        "Design must add merge_queue test coverage to git-finalize.test.ts (currently zero) including: queue-required rule classification, arming via gh pr merge --auto without -d, and pending-vs-merged proof.",
+        "Confirm with orchestrator whether change-branch rebase/update-branch is intentionally OUT of design scope given queue provides latest-base reconciliation (avoids YAGNI heavy route).",
+        "All packet anchors (TASK_SCOPE/IN_SCOPE/OUT_OF_SCOPE/DONE_WHEN/STOP_WHEN/VERIFICATION) were present; no scope degradation occurred."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixSquashMergeRelease2",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation — merge-queue-aware Phase 9 release finalization",
+      "sources": [
+        {
+          "label": "GitHub REST API — rules for a branch",
+          "locator": "https://docs.github.com/en/rest/repos/rules",
+          "summary": "GET /repos/{owner}/{repo}/rules/branches/{branch} returns rule objects with type 'merge_queue' (and parameters incl. grouping_strategy ALLGREEN/HEADGREEN). Confirms structural detection of merge queue from the SAME API call classifyFinalizationRoute already makes."
+        },
+        {
+          "label": "gh pr merge manual",
+          "locator": "https://cli.github.com/manual/gh_pr_merge",
+          "summary": "Official: targeting a merge-queue branch needs no merge strategy; if required checks not yet passed --auto enables auto-merge, if passed the PR is added to the queue. Validates completeMergeQueueHandoff arming via 'gh pr merge --auto'."
+        },
+        {
+          "label": "cli/cli merge.go (shouldAddToMergeQueue)",
+          "locator": "https://github.com/cli/cli/blob/trunk/pkg/cmd/pr/merge/merge.go",
+          "summary": "When mergeQueueRequired, gh forces payload.auto=true and queue dictates merge strategy. Confirms queue provides its own freshness (merge_group) so no manual reconcile needed on queue route — supports AC3 / DONT2."
+        },
+        {
+          "label": "cli/cli #7213, #7143 (merge-queue token detection)",
+          "locator": "https://github.com/cli/cli/issues/7213",
+          "summary": "gh merge-queue detection relies on GraphQL isInMergeQueue feature; GitHub App / Actions default tokens can misdetect and force a strategy error. Caveat for non-interactive/CI auth contexts, not local user auth."
+        },
+        {
+          "label": "advance-workflow spec rq-releaseFinalization01 (.1-.11)",
+          "locator": ".adv/specs/advance-workflow/spec.json:384",
+          "summary": "Spec requires origin/default reachability OR merged PR proof; pending/blocked must NOT record release, close issue, delete branch, or clean worktree; never force-push; phase9 skip and recovery revalidate same proof. Design extends, does not weaken these."
+        },
+        {
+          "label": "git-finalize.ts classifyFinalizationRoute + resolveReleaseReachability",
+          "locator": "plugin/src/tools/archive-helpers/git-finalize.ts:322,1763",
+          "summary": "Existing route classifier falls back to pr_manual on gh failures (GITHUB_* / BRANCH_RULES_UNPARSEABLE / AUTO_MERGE_STATUS_UNAVAILABLE). PR-route reachability terminal accepts pr_merged via readPrMergeState (MERGED+mergedAt) and detectSquashMergeByTree — already queue-agnostic."
+        }
+      ],
+      "architecture_assessment": "DIMENSION 1 CORRECTNESS: Design soundly maps each objective to a structural mechanism. merge_queue detection reuses the existing rules/branches API response (no new network surface), confirmed to carry type:'merge_queue'. Queue handoff via 'gh pr merge --auto' is the documented, boring path and the queue's merge_group supplies freshness, so skipping manual reconcile on the queue route is correct, not a gap. The PR-route reachability terminal already accepts MERGED PR state (incl. squash via tree fallback), so leaving resolveReleaseReachability unchanged is justified. Logical gap (minor): AC2's 'git merge --no-edit origin/{defaultBranch}' on the change branch writes a merge commit; for non-queue PR repos enforcing required_linear_history with a non-squash merge method this could render the PR unmergeable. Squash-merge repos are unaffected (GitHub rebuilds the squash; tree-detect proof covers it). Recommend the design note that reconcile targets non-queue PR routes and that linear-history + non-squash is an edge to verify, or prefer rebase only where a merge commit would violate the detected rule. DIMENSION 2 SIMPLICITY: Approach is already the simple/boring one — reuses one API call, delegates queue mechanics to gh, fails closed. No materially simpler alternative achieves fail-closed structural classification. The only simplification worth surfacing: completeMergeQueueHandoff and completeAutoMergeHandoff likely share push+open/reuse-PR+arm logic; factor the common path to avoid divergence. DIMENSION 3 SPEC-LAW: No contradiction with rq-releaseFinalization01. Routing GITHUB_CLI_UNAVAILABLE/UNAUTHENTICATED/API_UNAVAILABLE/BRANCH_RULES_UNPARSEABLE/AUTO_MERGE_STATUS_UNAVAILABLE to 'blocked' is STRICTER than current pr_manual fallback and satisfies .5/.9/.10 (fail-closed, no release without proof). Queue 'pending until MERGED' satisfies .6 semantics; never-force-push and no-delete-before-merge honor C5/C6 and .11. One compliance watch: changing the unknown-policy fallback from pr_manual to blocked may regress any existing test asserting pr_manual on gh failure (git-finalize.test.ts:302 ghUnavailable case) — must update that expectation as part of the change, not silently. DIMENSION 4 ALTERNATIVES: Significant alternative considered and correctly rejected per DONT2 — driving the queue via GraphQL enqueuePullRequest / bespoke rebase. The gh-CLI '--auto' path is the documented, lower-maintenance choice. One alternative under-addressed: token-context fragility (cli/cli #7213) — under GitHub App/Actions default tokens gh may misdetect queue state and error. ADV Phase 9 normally runs under local user auth so impact is low, but the design should state the auth assumption explicitly so a CI-token execution path fails closed (→ blocked) rather than mis-arming.",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "VALIDATED-WITH-CAUTIONS. No spec conflict, no security/release-proof regression, objectives are met by boring/proven mechanisms. Cautions: (1) AC2 merge-commit on change branch vs required_linear_history + non-squash PR method edge — scope reconcile to non-queue PR routes and verify or prefer rebase where a merge commit violates the detected rule; (2) unknown-policy fallback flip pr_manual→blocked must update existing pr_manual assertions (git-finalize.test.ts:302) as part of the change; (3) gh '--auto' merge-queue detection is token-context sensitive (App/Actions tokens) — state the local-user-auth assumption so CI-token paths fail closed; (4) factor shared push/open-PR/arm logic between completeMergeQueueHandoff and completeAutoMergeHandoff to prevent divergence."
+      },
+      "recommendation": "Proceed with the design — it is correct, appropriately boring, and strengthens (not weakens) rq-releaseFinalization01 by failing closed on unknown policy. Before planning, fold in four refinements: (a) explicitly scope reconcileChangeBranchWithDefault to non-queue PR routes and document the required_linear_history + non-squash edge, preferring rebase-or-block only where a merge commit would violate the detected rule rather than blanket 'git merge'; (b) treat the pr_manual→blocked fallback change as a deliberate test update, fixing the existing ghUnavailable expectation at git-finalize.test.ts:302; (c) record the local-user-auth assumption for 'gh pr merge --auto' so GitHub App/Actions-token executions fail closed to 'blocked' instead of mis-arming (cli/cli #7213); (d) extract the shared push + open/reuse-PR + arm sequence common to merge-queue and auto-merge handoffs. None of these are blockers; they are tighten-before-ship items.",
+      "follow_ups": [
+        "Confirm git-finalize.test.ts:302 (ghUnavailable) expectation is updated from pr_manual to blocked when the fail-closed change lands.",
+        "Add a test fixture for a rules response containing type:'merge_queue' to lock structural detection.",
+        "Document the local-user-auth assumption for gh merge-queue arming and the CI-token fail-closed behavior."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixSquashMergeRelease2",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixSquashMergeRelease2",
+      "task_id": "tk-dd75d3c483e5",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-dd75d3c483e5"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/tools/archive-helpers/git-finalize.ts",
+        "plugin/src/tools/archive-helpers/git-finalize.test.ts",
+        "plugin/src/types/changes.ts",
+        "plugin/schemas/change.schema.json"
+      ],
+      "verification": [
+        {
+          "command": "bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts",
+          "exit_code": 0,
+          "summary": "62 tests pass, including new merge_queue detection, gh-unavailable/rules-API blocked, and coercePrWorkflowRoute passthrough; existing direct/pr_auto_merge/no_remote routes still pass"
+        },
+        {
+          "command": "pnpm run typecheck",
+          "exit_code": 0,
+          "summary": "TypeScript compiles cleanly with expanded ReleaseFinalizationRouteName union"
+        },
+        {
+          "command": "pnpm run schemas:generate && pnpm run schemas:check",
+          "exit_code": 0,
+          "summary": "Regenerated public JSON schemas and deterministic drift check passes"
+        },
+        {
+          "command": "pnpm run format:check",
+          "exit_code": 0,
+          "summary": "Prettier formatting clean"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Added merge_queue to ReleaseFinalizationRouteName and FinalizationRoute.mergeQueueRequired",
+          "why": "Needed to represent repositories whose branch rules require the merge queue"
+        },
+        {
+          "what": "Scan parsedRules for type merge_queue before allow_auto_merge check and before empty-rules direct route",
+          "why": "A merge_queue rule is a known policy that should short-circuit auto-merge classification"
+        },
+        {
+          "what": "Changed policy-detection failures (gh unavailable, rules API error, unparseable rules, auto-merge status unavailable) to route blocked with reason POLICY_DETECTION_FAILED",
+          "why": "Fail-closed when the policy cannot be determined; avoids guessing pr_manual when constraints are unknown"
+        },
+        {
+          "what": "Kept AUTO_MERGE_DISABLED and GITHUB_REPO_UNRESOLVABLE as pr_manual",
+          "why": "These represent known policy states, not unknown-policy failures"
+        },
+        {
+          "what": "Updated coercePrWorkflowRoute to pass merge_queue through unchanged",
+          "why": "Retry from main checkout should not coerce a merge_queue route into pr_auto_merge"
+        },
+        {
+          "what": "Synchronized Phase9FinalizationStatusSchema and generated change.schema.json with the new route",
+          "why": "The expanded union caused a typecheck/schema drift failure; keeping the canonical Zod schema and JSON schema in sync is required for verification"
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Synchronized the route enum in Phase9FinalizationStatusSchema and generated change.schema.json to match the expanded ReleaseFinalizationRouteName; no other duplicate route enumerations were found in src/",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Slice 1 of design is implemented and verified: classifyFinalizationRoute now detects merge_queue branch rules, blocks with POLICY_DETECTION_FAILED for unknown/failed policy detection, and coercePrWorkflowRoute preserves merge_queue. Dependent Phase9FinalizationStatusSchema and generated JSON schema were updated to include merge_queue so typecheck and schemas:check pass.",
+        "suggested_next_action": "Proceed to the next slice/task, or run bin/oc-test full for a full regression sweep before moving on"
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run typecheck"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run schemas:generate && pnpm run schemas:check"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run format:check"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixSquashMergeRelease2",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixSquashMergeRelease2",
+      "task_id": "tk-83b3daca1fe1",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-83b3daca1fe1"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/tools/archive-helpers/git-finalize.ts",
+        "plugin/src/tools/archive-helpers/git-finalize.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts",
+          "exit_code": 0,
+          "summary": "All 66 targeted git-finalize tests pass"
+        },
+        {
+          "command": "pnpm run typecheck",
+          "exit_code": 0,
+          "summary": "TypeScript typecheck passes"
+        },
+        {
+          "command": "pnpm run lint && pnpm run format:check",
+          "exit_code": 0,
+          "summary": "ESLint clean (no errors) and Prettier formatting passes"
+        },
+        {
+          "command": "bin/oc-test full",
+          "exit_code": 0,
+          "summary": "Full plugin suite passes: 270 files, 3698 tests"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Added parsedRules?: unknown[] to FinalizationRoute and populated it in classifyFinalizationRoute for all rule-derived routes",
+          "why": "Lets completeProtectedBranchViaPullRequest pass the already-fetched branch rules to reconcileChangeBranchWithDefault without a second gh call."
+        },
+        {
+          "what": "Inserted reconcileChangeBranchWithDefault after resetMainToOriginDefault and before pushChangeBranch in completeProtectedBranchViaPullRequest",
+          "why": "Freshens the change branch against origin/default on non-queue PR routes while blocking on linear-history rules or merge conflicts."
+        },
+        {
+          "what": "Updated existing finalizeRelease PR-mode test mocks to intercept `merge` commands",
+          "why": "Those tests use a fake GitHub origin URL and rely on mocked git network operations; the new reconcile step is another network operation that needs to be mocked to keep the tests focused on PR handoff behavior."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "No same-pattern defects found. Adjusted existing PR-mode test mocks to account for the new reconcile merge step.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Slice 2 implemented: reconcileChangeBranchWithDefault merges origin/default into the change worktree, blocks on required_linear_history and RECONCILE_CONFLICT, and is wired into completeProtectedBranchViaPullRequest. classifyFinalizationRoute now carries parsedRules. All targeted and full plugin tests pass.",
+        "suggested_next_action": "Task 3 (completeMergeQueueHandoff / resolveReleaseReachability) can proceed. Rebuild/deploy with scripts/deploy-local.sh --fix if live tool validation is required."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run typecheck"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run lint && pnpm run format:check"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test full"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixSquashMergeRelease2",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixSquashMergeRelease2",
+      "task_id": "tk-a3d9f4be9309",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-a3d9f4be9309"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/tools/archive-helpers/git-finalize.ts",
+        "plugin/src/tools/archive-helpers/git-finalize.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts src/tools/change.archive-phase9.test.ts",
+          "exit_code": 0,
+          "summary": "94 tests passed (71 git-finalize + 23 archive-phase9)"
+        },
+        {
+          "command": "pnpm run check",
+          "exit_code": 0,
+          "summary": "schemas:check, typecheck, test-isolation, lockfile-policy, lint, format:check all green"
+        },
+        {
+          "command": "pnpm run build",
+          "exit_code": 0,
+          "summary": "Plugin ESM + Temporal worker bundles build successfully"
+        },
+        {
+          "command": "bin/oc-test smoke",
+          "exit_code": 0,
+          "summary": "Smoke tier passed (47 tests)"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Added `workdir` to `executePullRequestHandoff` and `completeMergeQueueHandoff` inputs",
+          "why": "`pushChangeBranch` needs the change-branch checkout to push from; the task snippet omitted it but the operation is impossible without it."
+        },
+        {
+          "what": "Exported `executePullRequestHandoff` and `completeMergeQueueHandoff` from git-finalize.ts",
+          "why": "Tests are required to call them directly per the task spec."
+        },
+        {
+          "what": "Handled merge_queue in both finalizeRelease dispatch locations (archiveMode pr and direct push failure)",
+          "why": "A merge_queue classification can surface in either path; both need the non-reconciling queue handoff."
+        },
+        {
+          "what": "Preserved main-checkpoint safety block for merge_queue in direct push-failure path",
+          "why": "Queue handoff resets main to origin/default, so an unmerged ADV checkpoint must block rather than be discarded."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [
+        "redriveArchivedUnmergedBranch still rejects non-pr_auto_merge routes (including merge_queue). Extend it separately if merge-queue archive re-drive is required."
+      ],
+      "required_main_agent_actions": [],
+      "related_scan": "Verified both finalizeRelease dispatch sites (archiveMode pr and direct push failure) route merge_queue to completeMergeQueueHandoff; inspected redriveArchivedUnmergedBranch and left it unchanged as it is outside the requested scope.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Slice 3 implemented: executePullRequestHandoff extracted, completeMergeQueueHandoff added, finalizeRelease dispatches merge_queue before pr_auto_merge/pr_manual in both archiveMode pr and direct push-failure paths. Delete-branch guardrail verified via regression tests. All targeted tests, phase9 tests, lint, format, and build pass.",
+        "suggested_next_action": "Proceed to the next execution task or run the full test tier (bin/oc-test full) before gate review."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts src/tools/change.archive-phase9.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run check"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run build"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test smoke"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixSquashMergeRelease2",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixSquashMergeRelease2",
+      "task_id": "tk-111d8c6560ed",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-111d8c6560ed"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "docs/specs/advance-workflow.md",
+        ".opencode/command/adv-archive.md",
+        "ADV_INSTRUCTIONS.md"
+      ],
+      "verification": [
+        {
+          "command": "pnpm run format:check",
+          "exit_code": 0,
+          "summary": "Prettier code style passes for plugin/src/"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Added merge_queue as a distinct route variant in Step 4.5 rather than folding it into pr_auto_merge",
+          "why": "Preserves clarity of queue semantics (skips local reconciliation, uses merge_group freshness) and keeps pr_auto_merge for non-queue protected-branch cases"
+        },
+        {
+          "what": "Used `Pending` (capitalized status term) in rq-releaseFinalization01.13 instead of prose-only",
+          "why": "Matches existing scenario status terminology and emphasizes gate/archive remain active until merged proof"
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "none — documentation-only task; no same-pattern code changes required",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Spec scenarios .12–.16, command Step 4.5 route list, and ADV_INSTRUCTIONS Phase 9 paragraph now document merge-queue support, fail-closed policy detection, local-user-token auth assumption, and branch-deletion guard. `pnpm run format:check` passes. Asset test `git-finalize-assets.test.ts` does not exist in this worktree; skipped.",
+        "suggested_next_action": "Review diff for prose accuracy, then proceed to next Slice 4 task or run full `bin/oc-test smoke` if code changes follow."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run format:check"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixSquashMergeRelease2",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixSquashMergeRelease2",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [
+        {
+          "type": "pattern",
+          "content": "Release-finalization safety is strongest when route classification, persisted phase9 route schema, specs, command docs, and branch-deletion guard tests are updated together; this change keeps merge_queue as an explicit route instead of overloading PR auto-merge."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts",
+          "pnpm run check"
+        ],
+        "results": "pass",
+        "evidence": "Targeted finalize suite passed: 71 tests in plugin/src/tools/archive-helpers/git-finalize.test.ts. pnpm run check passed: schemas:check, typecheck, test isolation check, lockfile policy check, eslint, prettier format check."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Live GitHub merge-queue behavior was not exercised from this review environment; reviewed implementation against structural mocks, specs, and static/type checks."
+      ],
+      "required_main_agent_actions": [],
+      "required_follow_ups": [],
+      "consumer_warnings": []
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-06-16T00:08:40.464Z",
+      "completed_by": "agent",
+      "approval_evidence": "User confirmed problem statement, then invoked exact continuation command `/adv-discover fixSquashMergeRelease2`, which counts as Tier A proposal approval per command-as-approval rule.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "aa8418ee5132e8a1d10b919692cfb3631487e903d08a6c8a86de918591a09f65",
+        "non_whitespace_chars": 5294,
+        "checked_at": "2026-06-10T03:08:22.919Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-06-16T00:28:26.757Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery findings recorded in proposal. Agreement captured with user-approved criteria. Contract minted (20 items: 4 SC, 6 AC, 6 C, 4 DONT). User decisions: safe update first, pending until merged, fail closed.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "c4a1ababef52bde2afd52a49c397bb57d738467cf17d630684ea791187219641",
+        "non_whitespace_chars": 4883,
+        "checked_at": "2026-06-10T03:08:22.920Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-06-16T00:50:42.416Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design persisted with architecture, 7 key decisions, implementation strategy (4 slices), LBP analysis, design-derived criteria, risks. Validator verdict: CAUTION — all 4 tightening items addressed inline (linear-history check, shared handoff extraction, deliberate test update, auth assumption documented). No blockers, no contract compromise.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "456ddecd21d7f1af779ff0b5ae1d54c172d28c74788aa6cc9ca16287fc84b585",
+        "non_whitespace_chars": 13916,
+        "checked_at": "2026-06-10T03:08:22.921Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-06-16T01:14:53.763Z",
+      "completed_by": "user",
+      "approval_evidence": "Prep approved by user reply: \"approve\". 5 tasks created with full contract coverage (20/20 items). Validation strict passed. Worktree materialized at change/fixSquashMergeRelease2."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-06-16T02:00:43.540Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 5 tasks complete. Route classification (merge_queue + POLICY_DETECTION_FAILED), freshness reconciliation (safe merge + linear-history check), merge queue handoff + shared sequence, specs/docs (.12-.16), full validation. 270 files ~3700 tests pass. pnpm run check green. Build green."
+    },
+    "acceptance": {
+      "status": "done",
+      "started_at": "2026-06-16T02:08:01.852Z",
+      "completed_at": "2026-06-16T02:09:16.649Z",
+      "completed_by": "agent",
+      "approval_evidence": "Acceptance review READY. Executive summary persisted (content hash c5a54db...). Contract review matrix 20/20 pass. Reviewer: READY 0 findings. Full suite ~3700 tests pass.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "c5a54db8768b73abdd6dcf7714728461b088f3cb87912f33568caaec11145374",
+        "non_whitespace_chars": 2496,
+        "checked_at": "2026-06-10T03:08:22.923Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "discovery"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "c4a1ababef52bde2afd52a49c397bb57d738467cf17d630684ea791187219641",
+      "approvedAt": "2026-06-16T00:28:16.927Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "Archive Phase 9 never reports shipped or release-complete until default-branch or merged-PR proof exists.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c4a1ababef52bde2afd52a49c397bb57d738467cf17d630684ea791187219641",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "Stale non-queue PR handoffs are safely updated/reconciled or blocked before auto-merge.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c4a1ababef52bde2afd52a49c397bb57d738467cf17d630684ea791187219641",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "Merge queue handoffs remain pending until GitHub reports merged proof.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c4a1ababef52bde2afd52a49c397bb57d738467cf17d630684ea791187219641",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC4",
+        "kind": "success_criterion",
+        "text": "Unknown GitHub policy fails closed before unsafe PR handoff.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c4a1ababef52bde2afd52a49c397bb57d738467cf17d630684ea791187219641",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "Branch policy classification detects merge queue from structural GitHub branch-rule evidence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c4a1ababef52bde2afd52a49c397bb57d738467cf17d630684ea791187219641",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Non-queue stale `change/{id}` branches use safe non-force reconciliation before PR handoff, and conflicts block with diagnostics.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c4a1ababef52bde2afd52a49c397bb57d738467cf17d630684ea791187219641",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Merge queue routes use documented GitHub handoff behavior and never treat queue acceptance as shipped.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c4a1ababef52bde2afd52a49c397bb57d738467cf17d630684ea791187219641",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Policy detection failures block release, archive status transition, issue closure, branch deletion, and cleanup.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c4a1ababef52bde2afd52a49c397bb57d738467cf17d630684ea791187219641",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Squash-merged PRs can satisfy release proof when merged evidence shows the archived change reached default branch.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c4a1ababef52bde2afd52a49c397bb57d738467cf17d630684ea791187219641",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Tests and specs cover direct, PR auto-merge, merge queue, stale branch, squash proof, and blocked-policy paths.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c4a1ababef52bde2afd52a49c397bb57d738467cf17d630684ea791187219641",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Existing spec law `rq-releaseFinalization01` requires no-remote local proof, post-fetch `origin/{default-branch}` reachability, or merged PR state before release completion; new scenarios extend, not weaken, this requirement.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c4a1ababef52bde2afd52a49c397bb57d738467cf17d630684ea791187219641",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Archive Phase 9 must keep the main checkout on the default branch and must not run `git checkout` or `git switch` during archive.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c4a1ababef52bde2afd52a49c397bb57d738467cf17d630684ea791187219641",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Remote-backed pending auto-merge or blocked PR states must leave the change active.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c4a1ababef52bde2afd52a49c397bb57d738467cf17d630684ea791187219641",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "GitHub CLI credentials, branch protection, and merge-queue availability may vary by repository and must be detected structurally, not assumed.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c4a1ababef52bde2afd52a49c397bb57d738467cf17d630684ea791187219641",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "ADV must never force-push `origin/{default-branch}` or `change/{id}`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c4a1ababef52bde2afd52a49c397bb57d738467cf17d630684ea791187219641",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C6",
+        "kind": "constraint",
+        "text": "ADV must never pass delete-branch options or delete local/remote change branch before merged proof on queue/auto-merge routes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c4a1ababef52bde2afd52a49c397bb57d738467cf17d630684ea791187219641",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not treat an armed PR or queued merge as shipped before GitHub reports merged proof.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c4a1ababef52bde2afd52a49c397bb57d738467cf17d630684ea791187219641",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not add a GraphQL `enqueuePullRequest` mutation or bespoke rebase route when documented GitHub CLI/queue behavior already provides freshness.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c4a1ababef52bde2afd52a49c397bb57d738467cf17d630684ea791187219641",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not switch the main checkout away from its default branch during archive.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c4a1ababef52bde2afd52a49c397bb57d738467cf17d630684ea791187219641",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not bypass existing release proof checks or record release without structural evidence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c4a1ababef52bde2afd52a49c397bb57d738467cf17d630684ea791187219641",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-06-16T02:07:44.738Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "resolveReleaseReachability unchanged — accepts only origin/default reachability, PR MERGED, or squash tree match. Tests verify pending_merge returned for unmerged PR. No code path records shipped without proof."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "reconcileChangeBranchWithDefault called in completeProtectedBranchViaPullRequest before pushChangeBranch. Blocks on RECONCILE_CONFLICT with conflictFiles and LINEAR_HISTORY_REQUIRED. Tests cover success, conflict, linear-history, up-to-date."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "completeMergeQueueHandoff returns pending_merge when PR is OPEN with autoMergeArmed. resolveReleaseReachability only accepts MERGED state. Test asserts pending_merge for unmerged queue PR."
+        },
+        {
+          "contractId": "SC4",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "classifyFinalizationRoute returns { route: 'blocked', reason: 'POLICY_DETECTION_FAILED' } for gh unavailable, rules API failure, unparseable rules, auto-merge status unavailable. Tests verify all paths."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Test: classifyFinalizationRoute with merge_queue rule type in rules response → route === 'merge_queue', mergeQueueRequired === true. 71 git-finalize tests pass."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Tests: reconcileChangeBranchWithDefault success (ok), conflict (blocked with conflictFiles), linear-history (blocked LINEAR_HISTORY_REQUIRED), up-to-date (ok). Uses git merge --no-edit, non-force. git-finalize.test.ts."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Test: completeMergeQueueHandoff pending (PR OPEN, autoMergeArmed → pending_merge), shipped (PR MERGED → shipped), blocked (arming failed → blocked). Uses gh pr merge --auto without -d."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Tests: gh unavailable → blocked/POLICY_DETECTION_FAILED, rules API non-zero → blocked, AUTO_MERGE_STATUS_UNAVAILABLE → blocked. Blocked route prevents PR handoff, release recording, cleanup."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "resolveReleaseReachability unchanged. Existing detectSquashMergeByTree test (line 2065+) still passes. Squash PR merge state accepted as proof. 71 tests pass."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Full suite: 270 files, ~3700 tests pass. Coverage: direct route, pr_auto_merge, merge_queue, stale branch (success/conflict/linear-history), squash proof, blocked policy. Specs rq-releaseFinalization01.12-.16 added."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "rq-releaseFinalization01.1-.11 unchanged. Scenarios .12-.16 extend with new cases (freshness, queue, fail-closed, detection, deletion guard). No existing requirement weakened."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "reconcileChangeBranchWithDefault operates on workdir parameter, never main checkout. resetMainToOriginDefault uses git reset --hard origin/{default} which keeps main on default branch. No git checkout/switch calls."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "pending_merge and blocked outcomes return GitFinalizeOutcome with status !== 'shipped'. Change remains active. phase9_status tracks pending/blocked state."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "classifyFinalizationRoute inspects rule type field (structural), not rule name/count heuristics. merge_queue detected by type === 'merge_queue' on parsed rules array."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No git push --force or git push -f calls in reconcileChangeBranchWithDefault or completeMergeQueueHandoff. git merge --no-edit is non-destructive. pushChangeBranch uses normal push."
+        },
+        {
+          "contractId": "C6",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "armPullRequestAutoMerge runs gh pr merge <number> --squash --auto — no -d/--delete-branch flag. Regression test asserts args never include delete flags. Comment documents cli/cli rejection invariant."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "resolveReleaseReachability only returns reachable=true for PR MERGED, origin/default reachability, or squash tree match. Auto-merge armed (autoMergeArmed=true) with PR OPEN returns reachable=false, proof='pr_unmerged'."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No GraphQL enqueuePullRequest mutation. No git rebase calls. Uses gh pr merge --auto (documented queue-correct CLI) and git merge --no-edit (non-destructive)."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No git checkout or git switch commands in reconcileChangeBranchWithDefault, completeMergeQueueHandoff, or executePullRequestHandoff. Main checkout invariant preserved."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "resolveReleaseReachability unchanged — still the single proof authority. No code bypasses it. All handoff paths call it before mapping to outcome."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "Branch policy classification detects merge queue from structural GitHub branch-rule evidence.",
+    "Non-queue stale `change/{id}` branches use safe non-force reconciliation before PR handoff, and conflicts block with diagnostics.",
+    "Merge queue routes use documented GitHub handoff behavior and never treat queue acceptance as shipped.",
+    "Policy detection failures block release, archive status transition, issue closure, branch deletion, and cleanup.",
+    "Squash-merged PRs can satisfy release proof when merged evidence shows the archived change reached default branch.",
+    "Tests and specs cover direct, PR auto-merge, merge queue, stale branch, squash proof, and blocked-policy paths."
+  ],
+  "documents": {
+    "proposal": "# Fix Squash-Merge Release Reachability\n\n## Why\nArchive Phase 9 can route a remote-backed archive through a `change/{id}` PR and arm auto-merge without first proving that the PR branch was reconciled against the latest `origin/{default-branch}` or that the repository merge policy requires merge queue handling. That stale-branch gap can leave release PRs conflicted, blocked by required branch updates, or auto-merge-armed in a state GitHub will not merge.\n\nThis change expands the existing release-finalization proposal beyond squash-merge reachability to cover PR handoff freshness and repository merge policy. The shared problem is Phase 9 release proof: ADV should only retire changes after structural evidence shows the archive branch reached the default branch, or should leave the change active with an explicit pending/blocked status.\n\n## What Changes\n- Phase 9 PR handoff gains an explicit freshness requirement for `change/{id}` before PR creation, PR reuse, auto-merge arming, or merge-queue handoff.\n- Phase 9 handles repository policy paths that prevent direct merge or simple auto-merge, including merge-queue-based repositories when supported.\n- Release finalization keeps current safety semantics: pending PR/queue outcomes leave release incomplete until merged proof exists; blocked outcomes preserve the worktree and branch for retry.\n- Squash-merge reachability remains in scope because it affects the same release-proof decision after PR merge.\n\n## User Outcomes\n- Archiving a completed ADV change does not create or arm a stale release PR.\n- Archive reports make clear whether the change shipped, is waiting on GitHub/merge queue, or is blocked by a concrete freshness or policy reason.\n- Re-running archive after a blocked or pending handoff is idempotent and resumes from durable release evidence.\n- Squash-merged PRs can satisfy release proof when the merged result includes the archived change.\n\n## Scope\n\n### In Scope\n- Phase 9 Git finalization behavior for remote-backed archives.\n- Freshness of `change/{id}` relative to the latest `origin/{default-branch}` before PR handoff.\n- PR creation/reuse, GitHub auto-merge, and merge-queue handoff decision boundaries.\n- Release proof after normal merge, squash merge, pending auto-merge, or merge queue completion.\n- Tests and specs for release-finalization safety and retry behavior.\n\n### Out of Scope\n- Changing user-facing archive sign-off policy.\n- Changing non-archive ADV gates.\n- Force-pushing default branches or change branches.\n- Replacing ADV worktree isolation or switching main checkout branches.\n- Implementing unrelated GitHub Project/backlog coordination behavior.\n\n### Must Not\n- Must not record `release ✓`, archive status, issue closure, branch deletion, or worktree cleanup until release proof exists.\n- Must not force-push `origin/{default-branch}` or `change/{id}`.\n- Must not switch the main checkout away from its default branch.\n- Must not treat an armed PR or queued merge as shipped before GitHub reports merged proof.\n\n## Affected Code\n- `plugin/src/tools/archive-helpers/git-finalize.ts` — runtime Phase 9 finalization, PR handoff, auto-merge, reachability proof.\n- `plugin/src/tools/change.ts` — archive tool entrypoint, finalization outcome handling, release gate recording.\n- `plugin/src/tools/gate.ts` — release-gate proof validation and remediation text.\n- `plugin/src/tools/change.archive-phase9.test.ts` and `plugin/src/tools/archive-helpers/git-finalize.test.ts` — Phase 9 integration and helper coverage.\n- `.opencode/command/adv-archive.md`, `ADV_INSTRUCTIONS.md`, and `docs/specs/advance-workflow.md` — human-facing archive contract and spec law.\n\n## Related Repositories\n- Current repo only: `advance`.\n- No product-linked root config found in `project.json`.\n\n## Constraints\n- Existing spec law `rq-releaseFinalization01` requires no-remote local proof, post-fetch `origin/{default-branch}` reachability, or merged PR state before release completion.\n- Archive Phase 9 must keep the main checkout on the default branch and must not run `git checkout` or `git switch` during archive.\n- Remote-backed pending auto-merge or blocked PR states must leave the change active.\n- GitHub CLI credentials, branch protection, and merge-queue availability may vary by repository and must be detected structurally, not assumed.\n\n## Impact\n- Reduces failed archive retries caused by stale release branches or branch-protection policy.\n- Improves release evidence durability for protected branches and squash-merge workflows.\n- May alter Phase 9 routing so some archives report pending/blocked instead of attempting unsafe direct handoff.\n\n## Context\n- Existing archive command already defines Phase 9 refresh and proof concepts, but PR handoff freshness for the `change/{id}` branch and merge-queue behavior need explicit discovery.\n- Existing runtime PR path resets the main checkout to `origin/{defaultBranch}` before pushing `change/{id}` and arming PR auto-merge; discovery must verify whether the change branch itself is reconciled before handoff.\n- Existing change `fixSquashMergeRelease2` already targeted release proof after squash merge; this proposal reuses it because the new request targets the same Phase 9 release-finalization surface.\n\n## Discovery Agenda\n- Codebase: map current `finalizeRelease`, `completeProtectedBranchViaPullRequest`, change-branch push, conflict recovery, and release-proof paths.\n- Codebase: verify whether Phase 9 currently rebases/merges/updates `change/{id}` onto latest `origin/{default-branch}` before PR handoff.\n- Codebase: identify where merge-queue support would plug into existing finalization outcomes without bypassing release proof.\n- Ecosystem: verify current GitHub CLI/API support for detecting merge queue, enabling auto-merge, updating PR branches, and observing queued/merged states.\n- Domain: decide whether freshness should use rebase, merge, GitHub update-branch API, merge queue, or a policy-driven decision tree.\n- Integration: assess interaction with squash-merge release proof, archived-unmerged repair, branch protection, local deploy hooks, and worktree cleanup.\n\n---\n\n## Discovery Findings\n\n### Discovery Checklist\n| Step | Status | Result |\n|---|---|---|\n| Skill Discovery | PASS | Considered `adv-worktree`, `adv-ci-release`, `adv-opportunity-scout`; loaded worktree + opportunity scout. No pending-review skills found. |\n| Prior Research Extension | PASS | Found `docs/adv-run-test-prep.md`, `docs/adv-slop-scan-prep.md`, `docs/repo-improve-prep.md`; none directly cover archive Phase 9 PR/queue handoff. New finding: no reusable release-finalization research pack exists. |\n| Conflict & Related-Work Scan | PASS | Active related change is this one. Archived related change `fixSquashMergeRelease` exists and motivates this follow-up. Agenda contains archive Phase 9 coordination item `ag-4rGUZcR_`. Own-change warnings `NO_TASKS`/`NO_DELTAS` expected pre-planning. |\n| Edge Case Investigation | PASS | Covered stale PR branch, merge queue path, policy detection failure, squash merge proof, and retry/idempotency. |\n| Design Question Depth | PASS | Open questions annotated below with trust model, blast radius, alternatives. |\n| Draft Spec Delta Shapes | PASS | Draft `rq-releaseFinalization01.*` deltas listed below. |\n| P25 Related-Pattern Scan | PASS | Similar PR/auto-merge handoff patterns found in `finalizeRelease`, `completeProtectedBranchViaPullRequest`, and `redriveArchivedUnmergedBranch`. |\n| LBP Check | PASS | Best direction: policy-aware handoff using existing branch-rules + `gh pr merge` behavior, fail closed when policy unknown. |\n\n### Skills Considered\n- `adv-worktree`: matched archive/worktree branch safety; loaded. Key rule: never delete worktree before merge proof.\n- `adv-ci-release`: partial match for GitHub release/CI context; not loaded because this change is archive handoff, not release automation.\n- `adv-opportunity-scout`: matched discovery scout trigger; loaded and delegated to `adv-researcher`.\n- Skill gap: no dedicated GitHub merge-queue skill. No new skill created; scope is narrow and current official docs + code evidence were sufficient.\n\n### Extends\n- `docs/adv-run-test-prep.md`: not directly relevant; new finding is that `adv_run_test` throttle concerns do not alter archive handoff criteria.\n- `docs/adv-slop-scan-prep.md`: not directly relevant; new finding is that deterministic detector work is orthogonal to release proof.\n- `docs/repo-improve-prep.md`: not directly relevant; new finding is that its lazy-status/latency follow-ups do not cover release finalization.\n- Archived change `fixSquashMergeRelease`: related prior work on squash-merge proof; new finding is that branch freshness and merge queue are separate handoff problems before proof.\n\n### Conflict Scan\n- `adv_change_list` active scan: no active duplicate other than current `fixSquashMergeRelease2`.\n- Archived scan: recent archived `fixSquashMergeRelease` is directly relevant prior work; `enforceCriticalOpsPlanning` explains the observed release/PR pain that led to follow-up.\n- `adv_change_validate`: passed; `NO_TASKS` and `NO_DELTAS` are expected before planning/spec-delta execution.\n- `adv_agenda_list`: `ag-4rGUZcR_` warns to coordinate archive Phase 9 edits with stale `addArchiveCleanupScanner`; no direct blocker.\n\n### Current State\n- Spec law `rq-releaseFinalization01` requires no-remote local proof, post-fetch `origin/{default-branch}` reachability, or merged PR state before release/archive cleanup.\n- `classifyFinalizationRoute` (`plugin/src/tools/archive-helpers/git-finalize.ts:322-417`) reads `repos/{repo}/rules/branches/{defaultBranch}` and `.allow_auto_merge`, but only distinguishes empty rules vs protected/auto-merge; it does not inspect `merge_queue` rule type.\n- `pushChangeBranch` (`git-finalize.ts:850-879`) pushes `change/{id}` as-is. No local `mergeQueue` or `update-branch` handling exists.\n- `completeProtectedBranchViaPullRequest` (`git-finalize.ts:1307-1490`) resets main to `origin/{defaultBranch}`, pushes the change branch, opens/reuses PR, runs `gh pr merge <number> --squash --auto`, and returns `pending_merge` until PR state becomes `MERGED`.\n- `resolveReleaseReachability` (`git-finalize.ts:1763-1915`) already treats merged PR as proof and keeps unmerged PR pending; squash-tree fallback exists.\n- Current repo check: `Sharper-Flow/Advance` default branch is `trunk`, branch rules for `trunk` are `[]`, and `.allow_auto_merge` is `false`; generic support still matters for protected/queue repos.\n\n### Edge Cases\n- Stale non-queue PR branch:\n  - Default branch advances after archive bundle commit but before PR creation.\n  - Safe update/reconcile conflicts with fresh default branch.\n- Merge queue repository:\n  - Queue accepts PR but CI is pending on `merge_group`; release must remain pending.\n  - Queue merges via squash/rebase/merge; proof must rely on PR merged/default reachability, not branch ancestry alone.\n- Policy detection failure:\n  - `gh` missing/unauthenticated or branch rules endpoint unavailable.\n  - Rules response shape changes or cannot be parsed.\n- Retry/idempotency:\n  - Existing PR already open and stale when archive retry runs.\n  - Auto-merge was armed then disabled by new commits before retry.\n\n### Open Design Questions\n1. Non-queue stale branch update path.\n   - Trust model: joint; user chose safe auto-update first.\n   - Blast radius: wrong choice can rewrite branch unexpectedly or block autonomous archive.\n   - Alternatives: safe update/reconcile with conflict block; block only; open PR anyway.\n2. Merge queue freshness semantics.\n   - Trust model: agent-owned after official docs evidence, user confirmed pending-until-merged behavior.\n   - Blast radius: treating queued as shipped would delete worktree/close issue before default branch contains change.\n   - Alternatives: pending until merged; shipped when queued; block queue path.\n3. Unknown policy handling.\n   - Trust model: joint; user chose fail closed.\n   - Blast radius: best-effort handoff could arm PR against unknown protection policy.\n   - Alternatives: fail closed; best-effort PR; direct merge only.\n4. Optional pending diagnostics.\n   - Trust model: agent-owned, low user-value tradeoff.\n   - Blast radius: richer diagnostics may add GraphQL dependency without correctness gain.\n   - Alternatives: defer diagnostics; add `mergeQueueEntry` state/position now.\n\n### Draft Spec Deltas\n- `rq-releaseFinalization01.12` — PR handoff must be freshness-safe.\n  - Given: origin exists and Phase 9 chooses a PR route.\n  - When: the change branch is not current enough for repository policy.\n  - Then: ADV performs only safe non-force reconciliation or blocks with diagnostics before PR handoff.\n- `rq-releaseFinalization01.13` — Merge queue is a freshness mechanism, not release proof.\n  - Given: branch rules require merge queue and PR is queued or auto-merge armed.\n  - When: archive finalization reports outcome.\n  - Then: status is pending until PR state is `MERGED` or origin/default reachability is proven.\n- `rq-releaseFinalization01.14` — Unknown branch policy fails closed.\n  - Given: `gh` unavailable, unauthenticated, rules unreadable, or rules unparseable.\n  - When: Phase 9 would choose PR/queue handoff.\n  - Then: archive reports `Blocked.` and does not arm PR, record release, close issues, or cleanup worktree.\n- `rq-releaseFinalization01.15` — Merge queue detection uses structural rule evidence.\n  - Given: branch rules response contains a `merge_queue` rule.\n  - When: Phase 9 classifies finalization route.\n  - Then: route records queue-required behavior and uses documented GitHub queue handoff semantics.\n- `rq-releaseFinalization01.16` — Queue/auto-merge branch deletion guard.\n  - Given: Phase 9 arms or queues a PR.\n  - When: invoking GitHub CLI or API.\n  - Then: ADV must not pass delete-branch options or delete local/remote change branch before merged proof.\n\n### Related Pattern Scan\n- Similar primary path: `completeProtectedBranchViaPullRequest` opens/reuses PR and arms auto-merge; needs freshness/policy extension.\n- Similar repair path: `redriveArchivedUnmergedBranch` reuses PR and arms auto-merge for stranded archived branches; should share policy/queue guardrails or explicitly remain repair-only.\n- Release gate proof path already centralizes unmerged PR handling in `resolveReleaseReachability` and `gate.ts`; no separate proof model needed.\n- No `mergeQueue`, `merge_queue`, or `update-branch` local implementation found.\n\n### LBP Check\n- Official GitHub merge queue docs: queue validates a `merge_group` against latest base plus earlier queued PRs; it provides up-to-date-base behavior without author-updating the PR branch.\n- GitHub CLI docs: `gh pr merge` automatically adds PRs to queue when the target branch requires merge queue and checks have passed; otherwise it enables auto-merge.\n- GitHub GraphQL exposes `PullRequest.mergeQueueEntry` and `MergeQueueEntry` state/position, useful for diagnostics but not required for release proof.\n- LBP: detect merge queue from existing branch-rules API response; reuse `gh pr merge --auto` handoff; treat queue accepted as `Pending auto-merge.` until merged proof; fail closed if policy cannot be determined. Avoid GraphQL enqueue unless CLI proves insufficient in design.\n\n### Discovery Opportunity Scout\n- Trigger: run — release/architecture + external GitHub policy surface.\n- Candidates considered: 5.\n- Auto-adopted: detect `merge_queue` via existing rules response; add no-delete-branch guardrail.\n- Rejected/deferred: no GraphQL `enqueuePullRequest` unless CLI is insufficient; optional `mergeQueueEntry` diagnostics deferred.\n- Surfaced/resolved: boring freshness strategy favored; user chose safe update first for non-queue stale branches, pending until merged for queue, fail closed when policy unknown.\n\n### Recommended Objectives\n1. Phase 9 classifies branch policy structurally, including merge queue, before PR handoff.\n2. Phase 9 ensures non-queue PR handoff branches are safely current or blocks before arming auto-merge.\n3. Merge queue handoff is supported as pending, not shipped, until merged/default proof exists.\n4. Unknown GitHub policy or unavailable credentials fail closed before unsafe handoff.\n5. Release proof remains centralized and queue/squash compatible.\n6. Tests/specs cover direct, PR auto-merge, merge queue, stale branch, squash proof, and blocked policy paths.\n\n### AMBIGUITY ANALYSIS — no blocking ambiguity findings. Coverage: B:C F:C S:C M:C\n- Resolved M finding: non-queue stale branch behavior → user selected `Safe update first`.\n- Resolved M finding: queue pending semantics → user selected `Pending until merged`.\n- Resolved M finding: unknown policy handling → user selected `Fail closed`.\n\n### User Resolution Log\n- Stale non-queue branch: Safe update first.\n- Queue accepted/armed PR: Pending until merged.\n- Unknown GitHub policy: Fail closed.",
+    "problemStatement": "## Problem\n\nArchive Phase 9 can route a remote-backed archive through a `change/{id}` PR and arm auto-merge without first proving that the PR branch was reconciled against the latest `origin/{default-branch}` or that the repository merge policy requires merge queue handling.\n\n## Desired Outcome\n\nADV archive finalization should only hand off release branches that either include the required latest default-branch basis or are accepted by the repository's merge-queue policy; the release remains active until structural proof shows the change reached the default branch.\n\n## Expected Scope\n\nThis covers Phase 9 release finalization, PR/auto-merge/merge-queue handoff, change-branch freshness relative to `origin/{default-branch}`, and squash-merge release proof. It does not choose the implementation strategy yet; discovery will compare rebase, merge, GitHub update-branch, and merge-queue routes.",
+    "agreement": "# Agreement\n\n## Objectives\n\n1. Phase 9 classifies branch policy structurally, including merge queue, before PR handoff.\n2. Phase 9 ensures non-queue PR handoff branches are safely current or blocks before arming auto-merge.\n3. Merge queue handoff is supported as pending, not shipped, until merged/default proof exists.\n4. Unknown GitHub policy or unavailable credentials fail closed before unsafe handoff.\n5. Release proof remains centralized and queue/squash compatible.\n6. Tests and specs cover direct, PR auto-merge, merge queue, stale branch, squash proof, and blocked policy paths.\n\n## Success Criteria\n\n1. Archive Phase 9 never reports shipped or release-complete until default-branch or merged-PR proof exists.\n2. Stale non-queue PR handoffs are safely updated/reconciled or blocked before auto-merge.\n3. Merge queue handoffs remain pending until GitHub reports merged proof.\n4. Unknown GitHub policy fails closed before unsafe PR handoff.\n\n## Acceptance Criteria\n\n1. Branch policy classification detects merge queue from structural GitHub branch-rule evidence.\n2. Non-queue stale `change/{id}` branches use safe non-force reconciliation before PR handoff, and conflicts block with diagnostics.\n3. Merge queue routes use documented GitHub handoff behavior and never treat queue acceptance as shipped.\n4. Policy detection failures block release, archive status transition, issue closure, branch deletion, and cleanup.\n5. Squash-merged PRs can satisfy release proof when merged evidence shows the archived change reached default branch.\n6. Tests and specs cover direct, PR auto-merge, merge queue, stale branch, squash proof, and blocked-policy paths.\n\n## Constraints\n\n1. Existing spec law `rq-releaseFinalization01` requires no-remote local proof, post-fetch `origin/{default-branch}` reachability, or merged PR state before release completion; new scenarios extend, not weaken, this requirement.\n2. Archive Phase 9 must keep the main checkout on the default branch and must not run `git checkout` or `git switch` during archive.\n3. Remote-backed pending auto-merge or blocked PR states must leave the change active.\n4. GitHub CLI credentials, branch protection, and merge-queue availability may vary by repository and must be detected structurally, not assumed.\n5. ADV must never force-push `origin/{default-branch}` or `change/{id}`.\n6. ADV must never pass delete-branch options or delete local/remote change branch before merged proof on queue/auto-merge routes.\n\n## Avoidances\n\n1. Do not treat an armed PR or queued merge as shipped before GitHub reports merged proof.\n2. Do not add a GraphQL `enqueuePullRequest` mutation or bespoke rebase route when documented GitHub CLI/queue behavior already provides freshness.\n3. Do not switch the main checkout away from its default branch during archive.\n4. Do not bypass existing release proof checks or record release without structural evidence.\n\n## Preview Applicability\n\nvisual_surface: false — this change affects archive git finalization and release proof logic only; no browser-visible, front-end, or rendered output is affected.\n\n## Decisions\n\n### User Decisions\n\n1. **Stale non-queue branch behavior** — Question: \"When `change/{id}` is stale and repo does NOT use merge queue, what behavior should ADV promise?\" Choice: **Safe update first** (ADV may update/reconcile change branch only through safe, non-force paths; block on conflicts). Why it matters: determines whether archive can autonomously reconcile or must hand back to user when branch freshness is required.\n\n2. **Queue pending state** — Question: \"When repo requires merge queue and PR can enter queue, what should archive report?\" Choice: **Pending until merged** (queue accepted/auto-merge armed is not shipped; release completes only after merged proof). Why it matters: prevents premature release completion and worktree/branch cleanup before default branch contains the change.\n\n3. **Unknown policy handling** — Question: \"If GitHub policy detection fails (`gh` unavailable, auth missing, or branch rules unreadable), what should ADV do?\" Choice: **Fail closed** (block before PR/auto-merge handoff and report missing policy evidence). Why it matters: prevents arming PRs against unknown protection policies.\n\n### Agent Decisions (LBP)\n\n1. **Merge queue detection** — Use the existing `repos/{repo}/rules/branches/{defaultBranch}` API call already made by `classifyFinalizationRoute`; inspect rule `type` for `merge_queue`. Zero new API calls required. Evidence: GitHub REST docs confirm `merge_queue` rule type is returned by this endpoint.\n\n2. **Queue handoff method** — Reuse existing `gh pr merge <number> --auto` arming. GitHub CLI docs confirm this command automatically adds PRs to merge queue when required and strategy is ignored for queue repos. No GraphQL `enqueuePullRequest` mutation needed.\n\n3. **Release proof terminal** — Keep existing `resolveReleaseReachability` as the single proof authority. It already accepts PR `MERGED` state, which queue merges produce. No separate queue-aware proof model required.\n\n4. **Delete-branch guardrail** — Codify that queue/auto-merge arming must never pass `-d/--delete-branch`. cli/cli source rejects it on queue PRs and it can strand the PR. Current code already complies; add regression test and spec note.\n\n5. **Optional queue diagnostics** — Defer GraphQL `PullRequest.mergeQueueEntry` state/position/estimatedTimeToMerge enrichment. Pure observability; not correctness. Follow-up only if pending-state UX becomes a user concern.\n\n## Deferred Questions\n\nNone — all user-facing questions resolved in Round 1.\n\n## Sign-Off\n\nCriteria approved by user reply: `approve` at Phase 4.5.1 acceptance criteria checkpoint.",
+    "design": "# Design\n\n## Architecture Overview\n\nThe design extends the existing Phase 9 release-finalization pipeline in `plugin/src/tools/archive-helpers/git-finalize.ts` with three targeted changes: (1) merge-queue-aware route classification, (2) safe freshness reconciliation for non-queue PR handoff, and (3) fail-closed behavior for unknown GitHub policy. No new external dependencies, no new API endpoints beyond what `classifyFinalizationRoute` already calls, and no changes to the release-proof terminal (`resolveReleaseReachability`).\n\n```\nPhase 9 PR Handoff Flow (after change):\n\nclassifyFinalizationRoute()\n  ├─ no_remote → local direct merge\n  ├─ policy detection failure → BLOCKED (fail closed)\n  ├─ merge_queue rule detected → route: \"merge_queue\"\n  │     └─ push change/{id} → open/reuse PR → arm via gh pr merge --auto\n  │        (queue provides freshness via merge_group; no local rebase)\n  │        → pending_merge until PR MERGED\n  ├─ protected + allow_auto_merge → route: \"pr_auto_merge\"\n  │     └─ reconcile change/{id} with origin/{default} (safe merge)\n  │        ├─ conflict → BLOCKED with diagnostics\n  │        └─ success → push → open/reuse PR → arm auto-merge\n  │           → pending_merge until PR MERGED\n  ├─ protected + !allow_auto_merge → route: \"pr_manual\"\n  │     └─ reconcile change/{id} with origin/{default} (safe merge)\n  │        ├─ conflict → BLOCKED with diagnostics\n  │        └─ success → push → open/reuse PR\n  │           → BLOCKED (manual merge required)\n  └─ direct (no rules) → direct merge + push\n```\n\n## Key Decisions\n\n### KD1: Add `merge_queue` to `ReleaseFinalizationRouteName`\n\n**Decision:** Extend the route union to include `\"merge_queue\"` as a first-class route.\n\n**Rationale:** Merge queue provides freshness automatically via `merge_group` (GitHub docs). Separating it from `pr_auto_merge` lets the handoff path skip local reconciliation (which is unnecessary and potentially harmful for queue repos) while keeping the same proof terminal.\n\n**Evidence:** GitHub merge queue docs confirm queue validates PR changes against latest base + queued PRs without author updating the branch. cli/cli source confirms `gh pr merge` auto-adds to queue when required.\n\n### KD2: Detect merge queue from existing rules response\n\n**Decision:** Inspect `parsedRules` for `type: \"merge_queue\"` in the already-fetched `repos/{repo}/rules/branches/{defaultBranch}` response inside `classifyFinalizationRoute`.\n\n**Rationale:** Zero new API calls. The endpoint already returns rule objects with `type` field. Currently only `parsedRules.length` is checked; adding a type scan is a minimal, structural change.\n\n**Evidence:** GitHub REST docs confirm `{\"type\":\"merge_queue\", parameters:{...}}` is returned by `GET /repos/{owner}/{repo}/rules/branches/{branch}`.\n\n### KD3: Safe freshness reconciliation for non-queue PR routes\n\n**Decision:** Before pushing `change/{id}` for non-queue PR routes (`pr_auto_merge` and `pr_manual`), merge `origin/{defaultBranch}` into the change branch in the worktree using `git merge --no-edit origin/{defaultBranch}`. If the merge conflicts, block with conflict file diagnostics and abort the merge.\n\n**Rationale:** User chose \"safe update first.\" `git merge` (not rebase) preserves change-branch history, is non-destructive, and is idempotent. Running in the worktree keeps main checkout untouched. Conflict detection uses the existing `git diff --name-only --diff-filter=U` pattern from `mergeChangeBranch`.\n\n**Linear-history edge case (validator caution a):** If the repository enforces `required_linear_history` branch rule, a merge commit on the change branch would violate it. The reconcile helper checks for `required_linear_history` in the parsed rules. If found, it blocks instead of creating a merge commit, with remediation directing the user to reconcile manually (rebase) — since `git rebase` is in the avoidance list for ADV-owned operations. This is an explicit user-handoff path, not an autonomous rebase.\n\n**Alternatives rejected:**\n- GitHub update-branch API (`PUT /pulls/{n}/update-branch`): requires PR creation first, adds an API round-trip, and returns 202 (async) which complicates proof.\n- `git rebase`: destructive to change-branch history, violates \"no bespoke rebase route\" avoidance.\n- Queue-only freshness for all repos: wrong for non-queue repos with `requiresStrictStatusChecks` that don't use merge queue.\n\n### KD4: Fail-closed route for policy detection failures\n\n**Decision:** Split current `pr_manual` outcomes into two categories:\n- **Known policy, manual merge required** (`AUTO_MERGE_DISABLED`, `GITHUB_REPO_UNRESOLVABLE`): keep as `pr_manual` — policy is known, just can't auto-merge.\n- **Unknown policy** (`GITHUB_CLI_UNAVAILABLE`, `GITHUB_CLI_UNAUTHENTICATED`, `GITHUB_API_UNAVAILABLE`, `BRANCH_RULES_UNPARSEABLE`, `AUTO_MERGE_STATUS_UNAVAILABLE`, rules API non-zero exit): route to `blocked` with `POLICY_DETECTION_FAILED` reason — do not attempt PR handoff.\n\n**Rationale:** User chose \"fail closed.\" The distinction is structural: if we can read policy and it says \"no auto-merge,\" that's a known constraint; if we can't read policy at all, attempting handoff is unsafe.\n\n**Test update note (validator caution b):** Existing test at `git-finalize.test.ts:302` asserts `ghUnavailable` → `route: \"pr_manual\"`. This test must be updated to assert `route: \"blocked\"` with `reason: \"POLICY_DETECTION_FAILED\"` as part of Slice 1. This is a deliberate, intended behavior change.\n\n**Auth assumption (validator caution c):** The design assumes `gh` is authenticated with a local user token that has `write` repo access. CI-provided tokens (GitHub Actions `GITHUB_TOKEN`, App tokens) may lack merge-queue/auto-merge permissions (cli/cli #7213). The `POLICY_DETECTION_FAILED` path covers this: if the token can't read rules or arm auto-merge, archive blocks with remediation directing the user to authenticate with a local user token. Document this assumption in `ADV_INSTRUCTIONS.md` Phase 9 section.\n\n### KD5: Delete-branch guardrail (already compliant, add test)\n\n**Decision:** Codify in spec and add a regression test asserting `armPullRequestAutoMerge` never passes `-d`/`--delete-branch`. Current code already omits it.\n\n**Rationale:** cli/cli source rejects `-d` on queue PRs and it can strand the PR by deleting the branch before merge.\n\n### KD6: No changes to `resolveReleaseReachability`\n\n**Decision:** The proof terminal remains unchanged. It already accepts PR `MERGED` state (which queue merges produce), origin/default reachability, and squash-tree match.\n\n**Rationale:** Queue merges, auto-merges, and manual merges all end at PR state `MERGED`. Adding queue-specific proof would duplicate existing logic without correctness gain.\n\n### KD7: Shared handoff sequence (validator suggestion)\n\n**Decision:** Extract the common push → open/reuse PR → arm → resolve-reachability sequence shared by `completeProtectedBranchViaPullRequest` and `completeMergeQueueHandoff` into a shared helper.\n\n**Rationale:** Both paths perform the same post-reconcile sequence. Factoring it reduces duplication and ensures the delete-branch guardrail applies uniformly. The only difference is that the queue path skips local reconciliation.\n\n## ADR Drafts\n\nNone — no decision meets all 3 criteria (hard-to-reverse, surprising-without-context, result-of-real-tradeoff). All decisions are incremental extensions of existing patterns.\n\n## Implementation Strategy\n\n### Slice 1: Route classification extension\n1. Add `\"merge_queue\"` to `ReleaseFinalizationRouteName`.\n2. Extend `FinalizationRoute` interface with `mergeQueueRequired?: boolean`.\n3. Modify `classifyFinalizationRoute`: after parsing rules array, scan for `type: \"merge_queue\"`. If found, return `{ route: \"merge_queue\", repo, mergeQueueRequired: true }`.\n4. Modify `classifyFinalizationRoute`: route `GITHUB_CLI_UNAVAILABLE`/`GITHUB_CLI_UNAUTHENTICATED`/`GITHUB_API_UNAVAILABLE`/`BRANCH_RULES_UNPARSEABLE`/`AUTO_MERGE_STATUS_UNAVAILABLE` to `{ route: \"blocked\", reason: \"POLICY_DETECTION_FAILED\" }` instead of `pr_manual`.\n5. Update `coercePrWorkflowRoute` to pass through `merge_queue` route.\n6. Update existing test at `git-finalize.test.ts:302` to assert blocked route for gh unavailable.\n\n### Slice 2: Freshness reconciliation\n1. Add `reconcileChangeBranchWithDefault(workdir, defaultBranch, parsedRules, deps)` helper:\n   - Check `parsedRules` for `required_linear_history` rule type. If found, return blocked (user must reconcile manually — ADV does not rebase).\n   - `git merge --no-edit origin/{defaultBranch}` in the worktree.\n   - On conflict: `git diff --name-only --diff-filter=U`, abort merge, return blocked result.\n   - On success: return ok.\n2. Call it in the shared handoff sequence AFTER main reset but BEFORE `pushChangeBranch`, only when route is NOT `merge_queue`.\n3. Return blocked outcome on conflict with diagnostic file list.\n\n### Slice 3: Merge queue handoff + shared sequence\n1. Extract `executePullRequestHandoff(input, deps)` from the common post-reconcile sequence: push → ensureArchivePullRequest → armPullRequestAutoMerge → resolveReleaseReachability → map outcome.\n2. `completeProtectedBranchViaPullRequest` calls reconcile then `executePullRequestHandoff`.\n3. Add `completeMergeQueueHandoff(input, deps)`: reset main, call `executePullRequestHandoff` directly (no reconcile).\n4. Wire `completeMergeQueueHandoff` from `finalizeRelease` when `route.route === \"merge_queue\"`.\n\n### Slice 4: Tests + specs\n1. Add test: `classifyFinalizationRoute` with `merge_queue` rule type → route is `\"merge_queue\"`.\n2. Update test: `classifyFinalizationRoute` with gh unavailable → route is `\"blocked\"`, reason `\"POLICY_DETECTION_FAILED\"`.\n3. Add test: `reconcileChangeBranchWithDefault` success → change branch includes default commits.\n4. Add test: `reconcileChangeBranchWithDefault` conflict → blocked with conflict files.\n5. Add test: `reconcileChangeBranchWithDefault` with `required_linear_history` → blocked (no merge commit).\n6. Add test: `completeMergeQueueHandoff` → pending_merge until PR MERGED.\n7. Add test: `armPullRequestAutoMerge` never passes `-d`/`--delete-branch` (regression guardrail).\n8. Add test: squash-merge proof still works via tree match (existing test, verify no regression).\n9. Update spec `rq-releaseFinalization01` with scenarios `.12`–`.16` per discovery draft.\n10. Update `.opencode/command/adv-archive.md` Step 4.5 route descriptions.\n11. Update `ADV_INSTRUCTIONS.md` Phase 9 with merge queue + auth assumption note.\n\n## LBP Analysis\n\n- **Reuse over rebuild:** merge queue detection reuses the existing rules API call. Queue handoff reuses existing PR/auto-merge/reachability functions. Freshness reconciliation reuses existing `git merge` + conflict-detection patterns. Shared handoff sequence reduces duplication.\n- **GitHub-native behavior:** `gh pr merge --auto` is the documented queue-correct handoff. GitHub update-branch API was considered but rejected because local merge is simpler and synchronous.\n- **Structural over heuristic:** route classification inspects rule `type` (structural), not rule count or name patterns (heuristic). Policy detection failure is classified by error code, not message text.\n- **Boring technology:** `git merge`, `gh pr merge`, existing REST endpoint. No GraphQL mutations, no new libraries.\n\n## Affected Components\n\n| Component | Change |\n|---|---|\n| `git-finalize.ts` types | Add `\"merge_queue\"` to route union; add `mergeQueueRequired?` to route interface |\n| `classifyFinalizationRoute` | Scan rules for `merge_queue` type; route detection failures to `blocked` |\n| `coercePrWorkflowRoute` | Pass through `merge_queue` |\n| `completeProtectedBranchViaPullRequest` | Add freshness reconciliation call before push (non-queue only) |\n| New: `reconcileChangeBranchWithDefault` | Safe merge of origin/default into change branch in worktree; linear-history check |\n| New: `executePullRequestHandoff` | Shared push → PR → arm → reachability sequence |\n| New: `completeMergeQueueHandoff` | Queue-specific handoff (no local reconcile) |\n| `finalizeRelease` | Wire `merge_queue` route to new handoff function |\n| `git-finalize.test.ts` | 7 new test cases + 1 updated test assertion |\n| `change.archive-phase9.test.ts` | Update mocks if route classification changes affect integration |\n| `gate.ts` | No changes — release gate proof path unchanged |\n| `change.ts` | No changes — archive entrypoint delegates to helper |\n| `docs/specs/advance-workflow.md` | Add scenarios `.12`–`.16` to `rq-releaseFinalization01` |\n| `.opencode/command/adv-archive.md` | Update Step 4.5 route descriptions to include merge queue |\n| `ADV_INSTRUCTIONS.md` | Update Phase 9 description + document local-user-auth assumption |\n\n## Design-Derived Criteria\n\n1. **Freshness merge must complete within existing Phase 9 timeout budget.** The `git merge` call in `reconcileChangeBranchWithDefault` must use a bounded timeout to avoid hanging archive.\n2. **Route classification must remain a single `gh api` call.** No additional network round-trips for merge queue detection. The rules scan is a pure function over the already-fetched response.\n3. **Freshness reconciliation must not mutate the main checkout.** All merge operations run in the worktree (`workdir` parameter), never via `git -C \"$MAIN\"`.\n4. **Conflict diagnostics must include file paths.** Blocked freshness outcomes must return `conflictFiles` in the blocked details for user remediation.\n\n## Risks / Mitigations\n\n| Risk | Likelihood | Impact | Mitigation |\n|---|---|---|---|\n| `merge_queue` rule type not returned by older GitHub Enterprise | Low | Route classified as `pr_auto_merge` instead of `merge_queue` — local reconcile runs unnecessarily but is harmless | `git merge` of already-merged content is a no-op; queue still works |\n| Freshness merge introduces unexpected conflicts on large branches | Medium | Archive blocks with conflict diagnostics | Conflict files reported in blocked details; user resolves and retries |\n| `gh pr merge --auto` behavior changes in future CLI versions | Low | Queue handoff may fail differently | Regression tests pin expected CLI args; `ghFailureReason` classifies errors |\n| `POLICY_DETECTION_FAILED` blocks repos that previously used `pr_manual` successfully | Medium | Archives that worked before now block | Intended fail-closed behavior per user decision; remediation text guides user to fix gh/auth |\n| CI-token auth lacks merge-queue permissions (cli/cli #7213) | Medium | Queue/auto-merge arming fails | `POLICY_DETECTION_FAILED` covers this; auth assumption documented in ADV_INSTRUCTIONS.md |\n| Redrive path doesn't use new freshness reconciliation | Low | Stale archived branches re-driven without reconcile | Redrive operates on remote-only branches; document as known limitation; future change may add GitHub update-branch API for redrive |\n\n## Design Leverage Scout\n\nScout: run — architecture change with external GitHub policy surface.\n\nCandidates considered: 3 (post-discovery pruning).\n- Auto-adopted: 0 (discovery scout already adopted the key leverage points).\n- Surfaced to user: 0 (all resolved in discovery).\n- Follow-up: 1 — `redriveArchivedUnmergedBranch` should share route classification but cannot use local freshness; document as known limitation.\n\n## Validator Result\n\n**Validator: CAUTION — clean pass with 4 tightening items addressed.**\n\n| Dimension | Level | Summary | Resolution |\n|---|---|---|---|\n| Correctness | caution | `git merge` writes merge commit; collides with `required_linear_history` | Addressed: KD3 adds linear-history check before merge; blocks if rule present |\n| Simplicity | info | Suggest factoring shared handoff logic | Addressed: KD7 extracts `executePullRequestHandoff` shared helper |\n| Spec-law | info | No contradiction; pr_manual→blocked is stricter | Confirmed; deliberate test update at git-finalize.test.ts:302 noted in KD4 |\n| Alternatives | caution | gh --auto queue detection token-context fragile | Addressed: KD4 documents local-user-auth assumption; POLICY_DETECTION_FAILED covers CI-token failure |\n\nAll cautions resolved inline. No blockers. No contract compromise. Proceed to planning.",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\n\nArchive Phase 9 now structurally detects merge-queue repositories, reconciles stale change branches before PR handoff, and fails closed when GitHub policy cannot be determined. Release proof remains centralized in `resolveReleaseReachability` and is queue-agnostic — queue merges, auto-merges, and manual merges all resolve to PR state `MERGED`.\n\n## What Was Built\n\n1. **Merge-queue-aware route classification** — `classifyFinalizationRoute` scans branch rules for `type === \"merge_queue\"` from the existing `repos/{repo}/rules/branches/{default}` API call. Returns a first-class `merge_queue` route that skips local reconciliation (queue provides freshness via `merge_group`).\n\n2. **Safe freshness reconciliation** — `reconcileChangeBranchWithDefault` runs `git merge --no-edit origin/{default}` in the change worktree before PR handoff for non-queue routes. Blocks on merge conflicts with diagnostic file paths. Blocks on `required_linear_history` branch rule to avoid creating a merge commit that would violate the rule.\n\n3. **Fail-closed policy detection** — Policy detection failures (`gh` unavailable, unauthenticated, rules unreadable/unparseable, auto-merge status unavailable) now route to `blocked` with `POLICY_DETECTION_FAILED` instead of `pr_manual`. Known-policy cases (`AUTO_MERGE_DISABLED`) remain `pr_manual`.\n\n4. **Shared PR handoff sequence** — `executePullRequestHandoff` extracted from `completeProtectedBranchViaPullRequest` to eliminate duplication between queue and non-queue paths. `completeMergeQueueHandoff` uses the shared sequence without reconciliation.\n\n5. **Delete-branch guardrail** — Regression test codifies that `armPullRequestAutoMerge` never passes `-d`/`--delete-branch`, which cli/cli rejects on queue PRs.\n\n6. **Specs and docs** — `rq-releaseFinalization01.12–.16` added to `docs/specs/advance-workflow.md`. `adv-archive.md` Step 4.5 updated with merge_queue route. `ADV_INSTRUCTIONS.md` documents local-user-token auth assumption.\n\n## What Was Verified\n\n- **Tests:** 270 files, ~3700 tests pass. Full check suite green (schemas:check, typecheck, lint, format:check, build).\n- **Review:** Independent acceptance reviewer verdict: READY, 0 blocking findings, 0 nonblocking findings.\n- **Contract:** 20/20 items pass review matrix (4 SC, 6 AC, 6 C, 4 DONT).\n\n## Key Decisions\n\n- **Merge queue detection reuses existing API** — zero new network calls. Rule `type` scan is a pure function over already-fetched response.\n- **Queue provides freshness** — no local rebase/reconcile for queue repos; `merge_group` validates against latest base.\n- **`git merge` (not rebase)** for non-queue reconciliation — preserves history, is non-destructive, blocks on linear-history rule.\n- **No GraphQL** — `gh pr merge --auto` is the documented queue-correct handoff; strategy is ignored for queue repos.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-06-16T02:07:44.738Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | Archive Phase 9 never reports shipped or release-complete until default-branch or merged-PR proof exists. | pass | resolveReleaseReachability unchanged — accepts only origin/default reachability, PR MERGED, or squash tree match. Tests verify pending_merge returned for unmerged PR. No code path records shipped without proof. |\n| SC2 | success_criterion | Stale non-queue PR handoffs are safely updated/reconciled or blocked before auto-merge. | pass | reconcileChangeBranchWithDefault called in completeProtectedBranchViaPullRequest before pushChangeBranch. Blocks on RECONCILE_CONFLICT with conflictFiles and LINEAR_HISTORY_REQUIRED. Tests cover success, conflict, linear-history, up-to-date. |\n| SC3 | success_criterion | Merge queue handoffs remain pending until GitHub reports merged proof. | pass | completeMergeQueueHandoff returns pending_merge when PR is OPEN with autoMergeArmed. resolveReleaseReachability only accepts MERGED state. Test asserts pending_merge for unmerged queue PR. |\n| SC4 | success_criterion | Unknown GitHub policy fails closed before unsafe PR handoff. | pass | classifyFinalizationRoute returns { route: 'blocked', reason: 'POLICY_DETECTION_FAILED' } for gh unavailable, rules API failure, unparseable rules, auto-merge status unavailable. Tests verify all paths. |\n| AC1 | acceptance_criterion | Branch policy classification detects merge queue from structural GitHub branch-rule evidence. | pass | Test: classifyFinalizationRoute with merge_queue rule type in rules response → route === 'merge_queue', mergeQueueRequired === true. 71 git-finalize tests pass. |\n| AC2 | acceptance_criterion | Non-queue stale `change/{id}` branches use safe non-force reconciliation before PR handoff, and conflicts block with diagnostics. | pass | Tests: reconcileChangeBranchWithDefault success (ok), conflict (blocked with conflictFiles), linear-history (blocked LINEAR_HISTORY_REQUIRED), up-to-date (ok). Uses git merge --no-edit, non-force. git-finalize.test.ts. |\n| AC3 | acceptance_criterion | Merge queue routes use documented GitHub handoff behavior and never treat queue acceptance as shipped. | pass | Test: completeMergeQueueHandoff pending (PR OPEN, autoMergeArmed → pending_merge), shipped (PR MERGED → shipped), blocked (arming failed → blocked). Uses gh pr merge --auto without -d. |\n| AC4 | acceptance_criterion | Policy detection failures block release, archive status transition, issue closure, branch deletion, and cleanup. | pass | Tests: gh unavailable → blocked/POLICY_DETECTION_FAILED, rules API non-zero → blocked, AUTO_MERGE_STATUS_UNAVAILABLE → blocked. Blocked route prevents PR handoff, release recording, cleanup. |\n| AC5 | acceptance_criterion | Squash-merged PRs can satisfy release proof when merged evidence shows the archived change reached default branch. | pass | resolveReleaseReachability unchanged. Existing detectSquashMergeByTree test (line 2065+) still passes. Squash PR merge state accepted as proof. 71 tests pass. |\n| AC6 | acceptance_criterion | Tests and specs cover direct, PR auto-merge, merge queue, stale branch, squash proof, and blocked-policy paths. | pass | Full suite: 270 files, ~3700 tests pass. Coverage: direct route, pr_auto_merge, merge_queue, stale branch (success/conflict/linear-history), squash proof, blocked policy. Specs rq-releaseFinalization01.12-.16 added. |\n| C1 | constraint | Existing spec law `rq-releaseFinalization01` requires no-remote local proof, post-fetch `origin/{default-branch}` reachability, or merged PR state before release completion; new scenarios extend, not weaken, this requirement. | respected | rq-releaseFinalization01.1-.11 unchanged. Scenarios .12-.16 extend with new cases (freshness, queue, fail-closed, detection, deletion guard). No existing requirement weakened. |\n| C2 | constraint | Archive Phase 9 must keep the main checkout on the default branch and must not run `git checkout` or `git switch` during archive. | respected | reconcileChangeBranchWithDefault operates on workdir parameter, never main checkout. resetMainToOriginDefault uses git reset --hard origin/{default} which keeps main on default branch. No git checkout/switch calls. |\n| C3 | constraint | Remote-backed pending auto-merge or blocked PR states must leave the change active. | respected | pending_merge and blocked outcomes return GitFinalizeOutcome with status !== 'shipped'. Change remains active. phase9_status tracks pending/blocked state. |\n| C4 | constraint | GitHub CLI credentials, branch protection, and merge-queue availability may vary by repository and must be detected structurally, not assumed. | respected | classifyFinalizationRoute inspects rule type field (structural), not rule name/count heuristics. merge_queue detected by type === 'merge_queue' on parsed rules array. |\n| C5 | constraint | ADV must never force-push `origin/{default-branch}` or `change/{id}`. | respected | No git push --force or git push -f calls in reconcileChangeBranchWithDefault or completeMergeQueueHandoff. git merge --no-edit is non-destructive. pushChangeBranch uses normal push. |\n| C6 | constraint | ADV must never pass delete-branch options or delete local/remote change branch before merged proof on queue/auto-merge routes. | respected | armPullRequestAutoMerge runs gh pr merge <number> --squash --auto — no -d/--delete-branch flag. Regression test asserts args never include delete flags. Comment documents cli/cli rejection invariant. |\n| DONT1 | avoidance | Do not treat an armed PR or queued merge as shipped before GitHub reports merged proof. | respected | resolveReleaseReachability only returns reachable=true for PR MERGED, origin/default reachability, or squash tree match. Auto-merge armed (autoMergeArmed=true) with PR OPEN returns reachable=false, proof='pr_unmerged'. |\n| DONT2 | avoidance | Do not add a GraphQL `enqueuePullRequest` mutation or bespoke rebase route when documented GitHub CLI/queue behavior already provides freshness. | respected | No GraphQL enqueuePullRequest mutation. No git rebase calls. Uses gh pr merge --auto (documented queue-correct CLI) and git merge --no-edit (non-destructive). |\n| DONT3 | avoidance | Do not switch the main checkout away from its default branch during archive. | respected | No git checkout or git switch commands in reconcileChangeBranchWithDefault, completeMergeQueueHandoff, or executePullRequestHandoff. Main checkout invariant preserved. |\n| DONT4 | avoidance | Do not bypass existing release proof checks or record release without structural evidence. | respected | resolveReleaseReachability unchanged — still the single proof authority. No code bypasses it. All handoff paths call it before mapping to outcome. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixSquashMergeRelease2/proposal.md",
+      "updatedAt": "2026-06-16T00:22:19.216Z",
+      "contentHash": "97afc50e3cf4b10183d703a546f4f4860a031b68d22d840691bc6b7bef39489a"
+    },
+    "problemStatement": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixSquashMergeRelease2/problem-statement.md",
+      "updatedAt": "2026-06-16T00:22:19.216Z",
+      "contentHash": "02844106ae67d53f32e1f2f6cccb1dd7fec6a5774f56b254d6181740edea44ba"
+    },
+    "agreement": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixSquashMergeRelease2/agreement.md",
+      "updatedAt": "2026-06-16T00:28:08.708Z",
+      "contentHash": "c4a1ababef52bde2afd52a49c397bb57d738467cf17d630684ea791187219641"
+    },
+    "design": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixSquashMergeRelease2/design.md",
+      "updatedAt": "2026-06-16T00:50:30.938Z",
+      "contentHash": "456ddecd21d7f1af779ff0b5ae1d54c172d28c74788aa6cc9ca16287fc84b585"
+    },
+    "executiveSummary": {
+      "path": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixSquashMergeRelease2/executive-summary.md",
+      "updatedAt": "2026-06-16T02:08:27.212Z",
+      "contentHash": "c5a54db8768b73abdd6dcf7714728461b088f3cb87912f33568caaec11145374"
+    }
+  },
+  "lastSignalAt": "2026-06-16T02:09:16.649Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_ASSUMPTION_HEAVY",
+      "severity": "warning",
+      "message": "Proposal references authentication/authorization without specifying the model. What auth mechanism will be used?",
+      "recorded_at": "2026-06-16T00:01:54.501Z",
+      "resolved": true,
+      "resolved_at": "2026-06-16T00:02:40.149Z"
+    }
+  ]
+}
