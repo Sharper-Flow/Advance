@@ -22,6 +22,7 @@ import {
   mergeToTrunk,
   pushToOrigin,
   pushChangeBranch,
+  reconcileChangeBranchWithDefault,
   resolveMainCheckout,
   verifyChangeBranchPushed,
   verifyChangeBranchReachable,
@@ -1427,6 +1428,9 @@ describe("git-finalize helpers", () => {
           if (args[0] === "reset" && args[1] === "--hard") {
             return { status: 0, stdout: "reset", stderr: "" };
           }
+          if (args[0] === "merge") {
+            return { status: 0, stdout: "merge", stderr: "" };
+          }
           if (args[0] === "push" && args.includes("change/example")) {
             return { status: 0, stdout: "remote: create PR...", stderr: "" };
           }
@@ -1545,6 +1549,9 @@ describe("git-finalize helpers", () => {
           }
           if (args[0] === "reset" && args[1] === "--hard") {
             return { status: 0, stdout: "reset", stderr: "" };
+          }
+          if (args[0] === "merge") {
+            return { status: 0, stdout: "merge", stderr: "" };
           }
           return defaultRunGit(cwd, args);
         },
@@ -1671,6 +1678,9 @@ describe("git-finalize helpers", () => {
           }
           if (args[0] === "reset" && args[1] === "--hard") {
             return { status: 0, stdout: "reset", stderr: "" };
+          }
+          if (args[0] === "merge") {
+            return { status: 0, stdout: "merge", stderr: "" };
           }
           return defaultRunGit(cwd, args);
         },
@@ -2238,6 +2248,141 @@ describe("git-finalize helpers", () => {
       const result = detectSquashMergeByTree(main, "trunk", "any-change");
       expect(result.reachable).toBe(false);
       expect(result.mergeCommitOid).toBeUndefined();
+    });
+  });
+
+  describe("reconcileChangeBranchWithDefault", () => {
+    async function setupRemoteAndWorktree(
+      suffix: string,
+      {
+        behind = true,
+        conflict = false,
+      }: { behind?: boolean; conflict?: boolean } = {},
+    ) {
+      const origin = join(tempRoot, `${suffix}-origin`);
+      const main = join(tempRoot, `${suffix}-main`);
+      const worktree = join(tempRoot, `${suffix}-wt`);
+      await mkdir(origin);
+      await mkdir(main);
+      git(origin, ["init", "-q", "--bare", "-b", "trunk"]);
+      git(main, ["init", "-q", "-b", "trunk"]);
+      git(main, ["config", "user.email", "adv-test@example.invalid"]);
+      git(main, ["config", "user.name", "ADV Test"]);
+      git(main, ["remote", "add", "origin", origin]);
+      await writeFile(join(main, "README.md"), "initial\n");
+      git(main, ["add", "README.md"]);
+      git(main, ["commit", "-m", "initial"]);
+      git(main, ["push", "-u", "origin", "trunk"]);
+
+      git(main, ["checkout", "-b", "change/example"]);
+      if (conflict) {
+        await writeFile(join(main, "file.txt"), "change-line\n");
+      } else {
+        await writeFile(join(main, "change.txt"), "change\n");
+      }
+      git(main, ["add", "."]);
+      git(main, ["commit", "-m", "change"]);
+      git(main, ["push", "-u", "origin", "change/example"]);
+
+      git(main, ["checkout", "trunk"]);
+      if (behind) {
+        if (conflict) {
+          await writeFile(join(main, "file.txt"), "trunk-line\n");
+        } else {
+          await writeFile(join(main, "default.txt"), "default\n");
+        }
+        git(main, ["add", "."]);
+        git(main, ["commit", "-m", "default advance"]);
+        git(main, ["push", "origin", "trunk"]);
+      }
+
+      git(main, ["worktree", "add", worktree, "change/example"]);
+      return { origin, main, worktree };
+    }
+
+    it("success: merges default commits into a change branch that is behind default", async () => {
+      const { worktree, main } = await setupRemoteAndWorktree("reconcile-ok");
+
+      const result = reconcileChangeBranchWithDefault({
+        workdir: worktree,
+        defaultBranch: "trunk",
+        parsedRules: [],
+      });
+
+      expect(result).toEqual({ status: "ok" });
+      const defaultCommit = git(main, ["rev-parse", "origin/trunk"]);
+      const changeHead = git(worktree, ["rev-parse", "HEAD"]);
+      const ancestorCheck = spawnSync(
+        "git",
+        ["merge-base", "--is-ancestor", defaultCommit, changeHead],
+        { cwd: worktree, encoding: "utf8" },
+      );
+      expect(ancestorCheck.status).toBe(0);
+    });
+
+    it("conflict: blocks with conflict files and aborts the merge", async () => {
+      const { worktree } = await setupRemoteAndWorktree("reconcile-conflict", {
+        conflict: true,
+      });
+      const beforeCount = Number(
+        git(worktree, ["rev-list", "--count", "HEAD"]),
+      );
+
+      const result = reconcileChangeBranchWithDefault({
+        workdir: worktree,
+        defaultBranch: "trunk",
+        parsedRules: [],
+      });
+
+      expect(result).toMatchObject({
+        status: "blocked",
+        reason: "RECONCILE_CONFLICT",
+        conflictFiles: expect.arrayContaining(["file.txt"]),
+      });
+      const afterCount = Number(git(worktree, ["rev-list", "--count", "HEAD"]));
+      expect(afterCount).toBe(beforeCount);
+      const status = spawnSync("git", ["status", "--porcelain"], {
+        cwd: worktree,
+        encoding: "utf8",
+      });
+      expect(status.stdout).not.toContain("UU");
+    });
+
+    it("linear history rule: blocks before attempting a merge", async () => {
+      const { worktree } = await setupRemoteAndWorktree("reconcile-linear");
+      const beforeCount = Number(
+        git(worktree, ["rev-list", "--count", "HEAD"]),
+      );
+
+      const result = reconcileChangeBranchWithDefault({
+        workdir: worktree,
+        defaultBranch: "trunk",
+        parsedRules: [{ type: "required_linear_history" }],
+      });
+
+      expect(result).toMatchObject({
+        status: "blocked",
+        reason: "LINEAR_HISTORY_REQUIRED",
+      });
+      const afterCount = Number(git(worktree, ["rev-list", "--count", "HEAD"]));
+      expect(afterCount).toBe(beforeCount);
+    });
+
+    it("already up-to-date: returns ok without adding a merge commit", async () => {
+      const { worktree } = await setupRemoteAndWorktree("reconcile-uptodate", {
+        behind: false,
+      });
+      const beforeHead = git(worktree, ["rev-parse", "HEAD"]);
+
+      const result = reconcileChangeBranchWithDefault({
+        workdir: worktree,
+        defaultBranch: "trunk",
+        parsedRules: [],
+      });
+
+      expect(result).toEqual({ status: "ok" });
+      const afterHead = git(worktree, ["rev-parse", "HEAD"]);
+      expect(afterHead).toBe(beforeHead);
     });
   });
 });

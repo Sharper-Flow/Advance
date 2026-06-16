@@ -50,8 +50,82 @@ export interface FinalizationRoute {
   protected?: boolean;
   autoMergeAllowed?: boolean;
   mergeQueueRequired?: boolean;
+  parsedRules?: unknown[];
   reason?: string;
   details?: string[];
+}
+
+export interface ReconcileResult {
+  status: "ok" | "blocked";
+  reason?: string;
+  remediation?: string;
+  conflictFiles?: string[];
+}
+
+export function reconcileChangeBranchWithDefault(
+  input: {
+    workdir: string;
+    defaultBranch: string;
+    parsedRules: unknown[];
+  },
+  deps: Pick<GitFinalizeDeps, "runGit"> = {},
+): ReconcileResult {
+  const runGit = deps.runGit ?? defaultRunGit;
+
+  const hasLinearHistoryRule =
+    Array.isArray(input.parsedRules) &&
+    input.parsedRules.some(
+      (r) =>
+        typeof r === "object" &&
+        r !== null &&
+        (r as { type?: unknown }).type === "required_linear_history",
+    );
+  if (hasLinearHistoryRule) {
+    return {
+      status: "blocked",
+      reason: "LINEAR_HISTORY_REQUIRED",
+      remediation:
+        "Repository requires linear history; reconcile change branch manually via rebase before archive.",
+    };
+  }
+
+  const fetchResult = runGit(input.workdir, [
+    "fetch",
+    "origin",
+    input.defaultBranch,
+  ]);
+  if (fetchResult.status !== 0) {
+    return {
+      status: "blocked",
+      reason: "DEFAULT_BRANCH_FETCH_FAILED",
+      remediation: `Failed to fetch origin/${input.defaultBranch} for freshness reconciliation.`,
+      conflictFiles: [],
+    };
+  }
+
+  const mergeResult = runGit(input.workdir, [
+    "merge",
+    "--no-edit",
+    `origin/${input.defaultBranch}`,
+  ]);
+  if (mergeResult.status === 0) {
+    return { status: "ok" };
+  }
+
+  const diffResult = runGit(input.workdir, [
+    "diff",
+    "--name-only",
+    "--diff-filter=U",
+  ]);
+  const conflictFiles = splitLines(diffResult.stdout).filter(Boolean);
+  runGit(input.workdir, ["merge", "--abort"]);
+
+  return {
+    status: "blocked",
+    reason: "RECONCILE_CONFLICT",
+    remediation: `Change branch conflicts with ${input.defaultBranch}. Resolve conflicts manually and retry archive.`,
+    conflictFiles,
+  };
 }
 
 export interface PullRequestMergeState {
@@ -367,6 +441,7 @@ export function classifyFinalizationRoute(
       repo: origin.repo,
       remoteUrl: origin.remoteUrl,
       reason: "POLICY_DETECTION_FAILED",
+      parsedRules: Array.isArray(parsedRules) ? parsedRules : undefined,
       details: splitLines(rules.stdout),
     };
   }
@@ -378,6 +453,7 @@ export function classifyFinalizationRoute(
       remoteUrl: origin.remoteUrl,
       protected: true,
       mergeQueueRequired: true,
+      parsedRules,
     };
   }
 
@@ -387,6 +463,7 @@ export function classifyFinalizationRoute(
       repo: origin.repo,
       remoteUrl: origin.remoteUrl,
       protected: false,
+      parsedRules,
     };
   }
 
@@ -403,6 +480,7 @@ export function classifyFinalizationRoute(
       remoteUrl: origin.remoteUrl,
       protected: true,
       reason: "POLICY_DETECTION_FAILED",
+      parsedRules,
       details: splitLines(allowAutoMerge.stderr || allowAutoMerge.stdout),
     };
   }
@@ -415,6 +493,7 @@ export function classifyFinalizationRoute(
       remoteUrl: origin.remoteUrl,
       protected: true,
       autoMergeAllowed: true,
+      parsedRules,
     };
   }
 
@@ -424,6 +503,7 @@ export function classifyFinalizationRoute(
     remoteUrl: origin.remoteUrl,
     protected: true,
     autoMergeAllowed: false,
+    parsedRules,
     reason: "AUTO_MERGE_DISABLED",
   };
 }
@@ -1368,6 +1448,30 @@ function completeProtectedBranchViaPullRequest(
         reason: reset.reason,
         remediation: `Default branch ${input.defaultBranch} must be reconciled to origin/${input.defaultBranch} before PR auto-merge handoff (rq-releaseFinalization01).`,
         details: reset.details,
+      },
+    };
+  }
+
+  const reconcileResult = reconcileChangeBranchWithDefault(
+    {
+      workdir: input.workdir,
+      defaultBranch: input.defaultBranch,
+      parsedRules: input.route.parsedRules ?? [],
+    },
+    deps,
+  );
+  if (reconcileResult.status !== "ok") {
+    return {
+      status: "blocked",
+      mainCheckout: input.mainCheckout,
+      defaultBranch: input.defaultBranch,
+      route: input.route.route,
+      pushStatus: "not_attempted",
+      prBranch: branch,
+      blocked: {
+        reason: reconcileResult.reason ?? "RECONCILE_BLOCKED",
+        remediation: reconcileResult.remediation ?? "",
+        details: reconcileResult.conflictFiles,
       },
     };
   }
