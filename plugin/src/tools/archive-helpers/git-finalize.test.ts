@@ -406,6 +406,36 @@ describe("git-finalize helpers", () => {
     });
   });
 
+  it("classifyFinalizationRoute treats private-repo 403 as direct (no rules)", () => {
+    const result = classifyFinalizationRoute("/repo", "trunk", {
+      runGit: (_cwd, args) => {
+        if (args.join(" ") === "remote get-url origin") {
+          return {
+            status: 0,
+            stdout: "https://github.com/User/private-repo.git\n",
+            stderr: "",
+          };
+        }
+        return { status: 1, stdout: "", stderr: "unexpected" };
+      },
+      runGh: (_cwd, args) => {
+        if (args[0] === "api" && args[1].includes("/rules/branches/")) {
+          return {
+            status: 1,
+            stdout: "",
+            stderr:
+              "gh: Upgrade to GitHub Pro or make this repository public to enable this feature. (HTTP 403)",
+          };
+        }
+        return { status: 1, stdout: "", stderr: "unexpected" };
+      },
+    });
+    expect(result).toMatchObject({
+      route: "direct",
+      protected: false,
+    });
+  });
+
   it("coercePrWorkflowRoute passes merge_queue through unchanged", () => {
     const route = coercePrWorkflowRoute({
       route: "merge_queue",
