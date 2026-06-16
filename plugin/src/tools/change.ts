@@ -104,7 +104,7 @@ async function normalizeArtifactMetadataForReadback(
   return normalized;
 }
 
-async function normalizeGateArtifactEvidenceForReadback(
+export async function normalizeGateArtifactEvidenceForReadback(
   gates: Gates | undefined,
 ): Promise<Gates | undefined> {
   if (!gates) return gates;
