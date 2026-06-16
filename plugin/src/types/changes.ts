@@ -475,7 +475,14 @@ export const Phase9FinalizationStatusSchema = z.object({
   prUrl: z.string().url().optional(),
   autoMergeArmed: z.boolean().optional(),
   route: z
-    .enum(["no_remote", "direct", "pr_auto_merge", "pr_manual", "blocked"])
+    .enum([
+      "no_remote",
+      "direct",
+      "pr_auto_merge",
+      "pr_manual",
+      "merge_queue",
+      "blocked",
+    ])
     .optional(),
 });
 

@@ -40,6 +40,7 @@ export type ReleaseFinalizationRouteName =
   | "direct"
   | "pr_auto_merge"
   | "pr_manual"
+  | "merge_queue"
   | "blocked";
 
 export interface FinalizationRoute {
@@ -48,6 +49,7 @@ export interface FinalizationRoute {
   remoteUrl?: string;
   protected?: boolean;
   autoMergeAllowed?: boolean;
+  mergeQueueRequired?: boolean;
   reason?: string;
   details?: string[];
 }
@@ -350,10 +352,10 @@ export function classifyFinalizationRoute(
   ]);
   if (rules.status !== 0) {
     return {
-      route: "pr_manual",
+      route: "blocked",
       repo: origin.repo,
       remoteUrl: origin.remoteUrl,
-      reason: ghFailureReason(rules),
+      reason: "POLICY_DETECTION_FAILED",
       details: splitLines(rules.stderr || rules.stdout),
     };
   }
@@ -361,11 +363,21 @@ export function classifyFinalizationRoute(
   const parsedRules = parseJson(rules.stdout);
   if (!Array.isArray(parsedRules)) {
     return {
-      route: "pr_manual",
+      route: "blocked",
       repo: origin.repo,
       remoteUrl: origin.remoteUrl,
-      reason: "BRANCH_RULES_UNPARSEABLE",
+      reason: "POLICY_DETECTION_FAILED",
       details: splitLines(rules.stdout),
+    };
+  }
+
+  if (parsedRules.some((r) => r?.type === "merge_queue")) {
+    return {
+      route: "merge_queue",
+      repo: origin.repo,
+      remoteUrl: origin.remoteUrl,
+      protected: true,
+      mergeQueueRequired: true,
     };
   }
 
@@ -386,11 +398,11 @@ export function classifyFinalizationRoute(
   ]);
   if (allowAutoMerge.status !== 0) {
     return {
-      route: "pr_manual",
+      route: "blocked",
       repo: origin.repo,
       remoteUrl: origin.remoteUrl,
       protected: true,
-      reason: "AUTO_MERGE_STATUS_UNAVAILABLE",
+      reason: "POLICY_DETECTION_FAILED",
       details: splitLines(allowAutoMerge.stderr || allowAutoMerge.stdout),
     };
   }
@@ -419,7 +431,12 @@ export function classifyFinalizationRoute(
 export function coercePrWorkflowRoute(
   route: FinalizationRoute,
 ): FinalizationRoute {
-  if (route.route === "blocked" || route.route === "no_remote") return route;
+  if (
+    route.route === "blocked" ||
+    route.route === "no_remote" ||
+    route.route === "merge_queue"
+  )
+    return route;
   if (!route.repo) return route;
   if (route.route === "pr_manual") return route;
   return {

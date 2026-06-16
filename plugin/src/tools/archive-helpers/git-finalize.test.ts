@@ -13,6 +13,7 @@ import { spawnSync } from "child_process";
 import { createTempDir } from "../../__tests__/setup";
 import {
   classifyFinalizationRoute,
+  coercePrWorkflowRoute,
   detectArchiveMode,
   detectDefaultBranch,
   deleteChangeBranch,
@@ -317,8 +318,103 @@ describe("git-finalize helpers", () => {
       }),
     });
     expect(ghUnavailable).toMatchObject({
-      route: "pr_manual",
-      reason: "GITHUB_CLI_UNAVAILABLE",
+      route: "blocked",
+      reason: "POLICY_DETECTION_FAILED",
+    });
+  });
+
+  it("classifyFinalizationRoute detects merge_queue rule", () => {
+    const result = classifyFinalizationRoute("/repo", "trunk", {
+      runGit: (_cwd, args) => {
+        if (args.join(" ") === "remote get-url origin") {
+          return {
+            status: 0,
+            stdout: "https://github.com/Sharper-Flow/Advance.git\n",
+            stderr: "",
+          };
+        }
+        return { status: 1, stdout: "", stderr: "unexpected" };
+      },
+      runGh: (_cwd, args) => {
+        if (args[0] === "api" && args[1].includes("/rules/branches/")) {
+          return {
+            status: 0,
+            stdout: JSON.stringify([{ type: "merge_queue", parameters: {} }]),
+            stderr: "",
+          };
+        }
+        return { status: 1, stdout: "", stderr: "unexpected" };
+      },
+    });
+    expect(result).toMatchObject({
+      route: "merge_queue",
+      repo: "Sharper-Flow/Advance",
+      protected: true,
+      mergeQueueRequired: true,
+    });
+  });
+
+  it("classifyFinalizationRoute blocks when gh unavailable", () => {
+    const result = classifyFinalizationRoute("/repo", "trunk", {
+      runGit: (_cwd, args) => {
+        if (args.join(" ") === "remote get-url origin") {
+          return {
+            status: 0,
+            stdout: "https://github.com/Sharper-Flow/Advance.git\n",
+            stderr: "",
+          };
+        }
+        return { status: 1, stdout: "", stderr: "unexpected" };
+      },
+      runGh: () => ({
+        status: 127,
+        stdout: "",
+        stderr: "gh: command not found",
+      }),
+    });
+    expect(result).toMatchObject({
+      route: "blocked",
+      reason: "POLICY_DETECTION_FAILED",
+    });
+  });
+
+  it("classifyFinalizationRoute blocks when rules API fails", () => {
+    const result = classifyFinalizationRoute("/repo", "trunk", {
+      runGit: (_cwd, args) => {
+        if (args.join(" ") === "remote get-url origin") {
+          return {
+            status: 0,
+            stdout: "https://github.com/Sharper-Flow/Advance.git\n",
+            stderr: "",
+          };
+        }
+        return { status: 1, stdout: "", stderr: "unexpected" };
+      },
+      runGh: (_cwd, args) => {
+        if (args[0] === "api" && args[1].includes("/rules/branches/")) {
+          return { status: 1, stdout: "", stderr: "API error" };
+        }
+        return { status: 1, stdout: "", stderr: "unexpected" };
+      },
+    });
+    expect(result).toMatchObject({
+      route: "blocked",
+      reason: "POLICY_DETECTION_FAILED",
+    });
+  });
+
+  it("coercePrWorkflowRoute passes merge_queue through unchanged", () => {
+    const route = coercePrWorkflowRoute({
+      route: "merge_queue",
+      repo: "Sharper-Flow/Advance",
+      protected: true,
+      mergeQueueRequired: true,
+    });
+    expect(route).toMatchObject({
+      route: "merge_queue",
+      repo: "Sharper-Flow/Advance",
+      protected: true,
+      mergeQueueRequired: true,
     });
   });
 
