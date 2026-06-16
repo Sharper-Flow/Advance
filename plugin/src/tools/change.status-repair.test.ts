@@ -222,12 +222,10 @@ describe("adv_change_status_repair", () => {
     expect(mocks.saveRecoveredChangeStatus).not.toHaveBeenCalled();
   });
 
-  // fixStatusRepairCache AC3: the real saveRecoveredChangeStatus must be
-  // called by the status-repair tool, and it must invalidate the in-memory
-  // cache via store.changes.refresh so the next store.changes.get() returns
-  // the repaired status. This test uses the real writer (not the mock) and
-  // verifies the cache invalidation side-effect.
-  test("invokes the real saveRecoveredChangeStatus which calls store.changes.refresh", async () => {
+  // The real saveRecoveredChangeStatus must be called by the status-repair
+  // tool, but it must not call store.changes.refresh because refresh can
+  // re-query a stale live workflow and overwrite the disk repair.
+  test("invokes the real saveRecoveredChangeStatus without refreshing stale workflow state", async () => {
     // Import the real writer (bypassing the module-level mock for this test).
     const { saveRecoveredChangeStatus: realSaveRecoveredChangeStatus } =
       await vi.importActual<typeof import("./_recovery-writers")>(
@@ -253,8 +251,6 @@ describe("adv_change_status_repair", () => {
     expect(parsed.success).toBe(true);
     expect(parsed.status).toBe("archived");
     expect(mocks.saveRecoveredChangeStatus).toHaveBeenCalledTimes(1);
-    // The real writer calls bestEffortRefresh(store, change.id) after the
-    // disk write, which routes through store.changes.refresh.
-    expect(store.changes.refresh).toHaveBeenCalledWith("wedgedChange");
+    expect(store.changes.refresh).not.toHaveBeenCalled();
   });
 });

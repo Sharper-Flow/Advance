@@ -894,9 +894,10 @@ export async function fileExists(path: string): Promise<boolean> {
 /**
  * Check whether an archive bundle exists for a change ID.
  *
- * Tests for the `archive/<changeId>/change.json` sentinel file rather than
- * just the directory, to avoid false positives from partial bundle dirs
- * (e.g. mkdir succeeded but file write failed).
+ * Tests for a `change.json` sentinel file whose parsed `id` matches the stable
+ * change ID. Archive bundle directory names are not canonical: current bundles
+ * may be date-prefixed (`archive/2026-06-15-<changeId>/change.json`) while some
+ * tests/legacy paths use `archive/<changeId>/change.json`.
  *
  * Used by `listResolvedChanges` (Layer A1) to detect archived changes whose
  * source `changes/<id>/` directory persists with stale `status: "draft"` —
@@ -911,5 +912,19 @@ export async function hasArchiveBundle(
   archivePath: string,
   changeId: string,
 ): Promise<boolean> {
-  return fileExists(join(archivePath, changeId, "change.json"));
+  if (await fileExists(join(archivePath, changeId, "change.json"))) {
+    return true;
+  }
+
+  const dirs = await listChangeDirs(archivePath);
+  for (const dir of dirs) {
+    if (dir === changeId) continue;
+    if (!dir.includes(changeId)) continue;
+    const loaded = await loadChange(archivePath, dir);
+    if (loaded.success && loaded.data?.id === changeId) {
+      return true;
+    }
+  }
+
+  return false;
 }

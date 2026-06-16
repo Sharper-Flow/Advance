@@ -1042,6 +1042,76 @@ describe("listResolvedChanges memo busting (rq-crossSessionCacheConsistency01)",
     expect(archived!.status).toBe("archived");
   });
 
+  it("lets archive bundle projection dominate a still-stale live workflow", async () => {
+    tempDir = await createTempDir();
+    const legacy = await createDiskStore(tempDir);
+
+    await legacy.changes.save(activeChange("staleWorkflowChange"));
+
+    const staleWorkflowState = {
+      id: "staleWorkflowChange",
+      changeId: "staleWorkflowChange",
+      title: "Stale workflow change",
+      status: "draft",
+      createdAt: "2026-05-07T00:00:00.000Z",
+      initializedAt: "2026-05-07T00:00:00.000Z",
+      projectId: "project-1",
+      tasks: [],
+      deltas: {},
+      wisdom: [],
+      gates: createDefaultGates(),
+      reentry_history: [],
+      artifacts: {},
+      documents: {},
+      reflections: [],
+      worktrees: {},
+      conformance: { lockedSpecs: [], overrides: [] },
+    };
+    const temporal = {
+      client: {
+        workflow: {
+          getHandle: () => ({
+            query: async () => staleWorkflowState,
+          }),
+          start: async () => {
+            throw new Error("start should not be called");
+          },
+        },
+      },
+    };
+
+    const store = createTemporalStoreBackend({
+      legacy,
+      temporal,
+      projectId: "project-1",
+    });
+
+    const initial = await store.changes.get("staleWorkflowChange");
+    expect(initial.success).toBe(true);
+    expect(initial.data?.status).toBe("draft");
+
+    const archiveBundleDir = join(
+      tempDir,
+      ".adv",
+      "archive",
+      "2026-06-15-staleWorkflowChange",
+    );
+    await mkdir(archiveBundleDir, { recursive: true });
+    await writeFile(
+      join(archiveBundleDir, "change.json"),
+      JSON.stringify(archivedChange("staleWorkflowChange"), null, 2),
+    );
+
+    const repairedGet = await store.changes.get("staleWorkflowChange");
+    expect(repairedGet.success).toBe(true);
+    expect(repairedGet.data?.status).toBe("archived");
+
+    const activeList = await store.changes.list();
+    expect(activeList.changes.map((c) => c.id)).not.toContain(
+      "staleWorkflowChange",
+    );
+  });
+
   it("skips memo busting for entries already in terminal state", async () => {
     tempDir = await createTempDir();
     const legacy = await createDiskStore(tempDir);
