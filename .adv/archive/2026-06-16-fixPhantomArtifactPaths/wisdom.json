@@ -1,0 +1,26 @@
+{
+  "entries": [
+    {
+      "id": "ws-ftpyjU",
+      "type": "pattern",
+      "content": "When centralizing artifact filename maps in Advance, `types/artifacts.ts` is workflow-safe and already imported by workflow/tool/storage code. Add a unit test that asserts exact `ARTIFACT_FILENAME` keys/values before replacing duplicated maps; this catches drift without needing broader integration tests.",
+      "source_task": "tk-e5a98cdf1080",
+      "recorded_at": "2026-06-15T20:52:24.392Z"
+    },
+    {
+      "id": "ws-b1dF_4",
+      "type": "pattern",
+      "content": "For artifact metadata, separate content authority from filesystem readability: workflow/state code should emit path only when metadata.readable === true, while tool-layer readback can additionally verify path existence before exposing it. This prevents phantom paths without blocking Temporal-only content access via include flags.",
+      "source_task": "tk-a338b86baa6d",
+      "recorded_at": "2026-06-15T21:09:41.072Z"
+    },
+    {
+      "id": "ws-0UJ-4Q",
+      "type": "gotcha",
+      "content": "Temporal-only artifact metadata can safely preserve legacy path-bearing state for replay, but every agent-facing read surface must re-validate readability before exposing paths. Snapshot/context builders need the same normalization as top-level tool output or phantom paths can leak through secondary surfaces.",
+      "source_task": "tk-a338b86baa6d",
+      "recorded_at": "2026-06-15T23:44:37.579Z"
+    }
+  ],
+  "count": 3
+}
