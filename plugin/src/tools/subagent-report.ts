@@ -39,6 +39,17 @@ const AdvRunTestEvidenceSchema = z
     passed: z.boolean(),
     classification: z.string().min(1),
     durationMs: z.number().nonnegative(),
+    // rq-TDD010qual: advisory quality signals (optional, additive)
+    assertionDensity: z.number().nonnegative().optional(),
+    mockSurface: z
+      .array(
+        z.object({
+          pattern: z.string(),
+          count: z.number().int().nonnegative(),
+        }),
+      )
+      .optional(),
+    behaviorSurface: z.enum(["small", "medium", "large"]).optional(),
   })
   .passthrough();
 

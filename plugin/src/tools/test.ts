@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { spawn, type ChildProcess } from "child_process";
 import { existsSync } from "node:fs";
+import { randomBytes } from "node:crypto";
 import { dirname, join, resolve } from "node:path";
 import type { Store } from "../storage/store";
 import { formatToolOutput } from "../utils/tool-output";
@@ -9,6 +10,15 @@ import {
   appendTargetProjectContextOutput,
   withTargetPathStore,
 } from "./target-project";
+import {
+  extractTestFilePath,
+  computeQualitySignals,
+  type QualitySignals,
+} from "./test-quality";
+import { testRunRecordedSignal } from "../temporal/messages";
+import { getService } from "../temporal/service";
+import { getProjectId } from "../utils/project-id";
+import { getChangeHandle } from "./_adapters";
 
 /**
  * Default bounded-execution limits for `adv_run_test`.
@@ -394,6 +404,11 @@ export const testTools = {
 
       const cwd = args.workdir || defaultWorkdir;
       const advisories = buildTestWorkflowAdvisories(args.command, cwd);
+      // rq-TDD010qual: compute advisory quality signals by static-parsing
+      const testFilePath = extractTestFilePath(args.command);
+      const qualitySignals: QualitySignals | null = testFilePath
+        ? computeQualitySignals(testFilePath)
+        : null;
       // Precedence: tool arg (caller-controlled) > internal bounds > default.
       // Tool arg is schema-validated to [1000, 300_000] ms; internal bounds is
       // an unrestricted seam for tests; default protects against runaway when
@@ -421,6 +436,45 @@ export const testTools = {
         durationMs,
         outcome: passed ? "success" : "error",
       });
+
+      // rq-TDD009seq: fire testRunRecordedSignal for ordering enforcement.
+      // Best-effort: signal fire failure is non-fatal; test result still returned.
+      const runId = `tr_${Date.now().toString(36)}_${randomBytes(4).toString("hex")}`;
+      try {
+        const taskInfo = await store.tasks.show(args.taskId);
+        if (taskInfo?.changeId) {
+          const bundle = getService();
+          if (bundle) {
+            const projectId = await getProjectId(store.paths.root);
+            if (projectId) {
+              const handle = getChangeHandle(
+                bundle.client,
+                projectId,
+                taskInfo.changeId,
+              );
+              // rq-cacheRefresh01-exempt: adv_run_test returns command output
+              // directly; does not read change state after firing
+              await handle.signal(testRunRecordedSignal, {
+                taskId: args.taskId,
+                runId,
+                ...(args.phase && { phase: args.phase }),
+                exitCode,
+                classification,
+                command: args.command,
+                durationMs,
+                ...(qualitySignals && {
+                  assertionDensity: qualitySignals.assertionDensity,
+                  mockSurface: qualitySignals.mockSurface,
+                  behaviorSurface: qualitySignals.behaviorSurface,
+                }),
+                recordedAt: new Date().toISOString(),
+              });
+            }
+          }
+        }
+      } catch {
+        // Best-effort: non-fatal if signal fire fails
+      }
 
       let rawOutput = `${stdout}\n${stderr}`.trim();
       if (timedOut) {
@@ -474,7 +528,13 @@ export const testTools = {
           passed,
           classification,
           durationMs,
+          ...(qualitySignals && {
+            assertionDensity: qualitySignals.assertionDensity,
+            mockSurface: qualitySignals.mockSurface,
+            behaviorSurface: qualitySignals.behaviorSurface,
+          }),
         },
+        runId,
         ...(timedOut && { timeoutMs: effective.timeoutMs }),
       });
     },
