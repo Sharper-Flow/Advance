@@ -4989,6 +4989,7 @@ export const changeTools = {
   },
 
   // rq-activeChangePointer01: Session active-change pointer recovery.
+  // Tool emits clear intent; recordForgetChange hook in index.ts processes it.
   adv_change_forget: {
     description:
       "Clear the session active-change pointer for a specified changeId. Pure in-memory recovery — does NOT close, archive, or modify any persistent state. Use when the session pointer references a phantom change (unreachable workflow, no disk state). The pointer is cleared via an index.ts post-output hook; this tool emits the clear intent.",
