@@ -1938,7 +1938,11 @@ export function detectArchivedMergedBranches(
     if (cherry.status !== 0) {
       continue;
     }
-    if (cherry.stdout.trim() === "") {
+    const cherryLines = splitLines(cherry.stdout);
+    if (
+      cherryLines.length === 0 ||
+      cherryLines.every((line) => line.startsWith("-"))
+    ) {
       branches.push({
         changeId: candidate.changeId,
         branch: candidate.branch,
@@ -1954,6 +1958,7 @@ export function detectArchivedMergedBranches(
 export interface CheckedOutChangeBranchesResult {
   status: "ok" | "blocked";
   branches: Set<string>;
+  worktreePaths: Record<string, string>;
   reason?: "WORKTREE_LIST_FAILED";
   details?: string[];
 }
@@ -1969,22 +1974,22 @@ export function getCheckedOutChangeBranches(
     return {
       status: "blocked",
       branches: new Set(),
+      worktreePaths: {},
       reason: "WORKTREE_LIST_FAILED",
       details: splitLines(output.stderr || output.stdout),
     };
   }
 
   const worktrees = parseWorktreeListPorcelain(output.stdout);
-  const branches = new Set(
-    worktrees
-      .map((wt) => wt.branch)
-      .filter(
-        (branch): branch is string =>
-          typeof branch === "string" && branch.startsWith("change/"),
-      ),
-  );
+  const branches = new Set<string>();
+  const worktreePaths: Record<string, string> = {};
+  for (const wt of worktrees) {
+    if (!wt.branch?.startsWith("change/")) continue;
+    branches.add(wt.branch);
+    worktreePaths[wt.branch] = wt.path;
+  }
 
-  return { status: "ok", branches };
+  return { status: "ok", branches, worktreePaths };
 }
 
 export function redriveArchivedUnmergedBranch(

@@ -36,6 +36,7 @@ const mocks = vi.hoisted(() => ({
   getCheckedOutChangeBranches: vi.fn(() => ({
     status: "ok",
     branches: new Set<string>(),
+    worktreePaths: {},
   })),
   deleteChangeBranch: vi.fn(() => ({
     localDeleted: true,
@@ -239,6 +240,7 @@ describe("adv_archive_repair", () => {
     mocks.getCheckedOutChangeBranches.mockReturnValueOnce({
       status: "ok",
       branches: new Set(["change/checked-out"]),
+      worktreePaths: { "change/checked-out": "/tmp/wt/checked-out" },
     });
 
     const result = await changeTools.adv_archive_repair.execute(
@@ -254,6 +256,7 @@ describe("adv_archive_repair", () => {
     expect(parsed.skipped[0]).toMatchObject({
       changeId: "checked-out",
       reason: "WORKTREE_CHECKED_OUT",
+      worktreePath: "/tmp/wt/checked-out",
     });
   });
 

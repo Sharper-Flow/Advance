@@ -64,6 +64,7 @@ import { archiveBundleExists } from "../archive/archive";
 import {
   detectArchivedMergedBranches,
   detectDefaultBranch,
+  getCheckedOutChangeBranches,
   resolveMainCheckout,
   type GitFinalizeDeps,
 } from "./archive-helpers/git-finalize";
@@ -1255,7 +1256,21 @@ async function appendArchivedBranchHygieneRecommendations(
     return;
   }
 
-  const count = result.branches.length;
+  const checkedOut = getCheckedOutChangeBranches(mainCheckout, {
+    runGit: deps?.runGit,
+  });
+  if (checkedOut.status === "blocked") {
+    return;
+  }
+
+  const cleanupReadyBranches = result.branches.filter(
+    (branch) => !checkedOut.branches.has(branch.branch),
+  );
+  if (cleanupReadyBranches.length === 0) {
+    return;
+  }
+
+  const count = cleanupReadyBranches.length;
   const recommendation =
     `cleanup-ready: ${count} archived-change local branch(es) safely deletable\n` +
     `  Preview: adv_archive_repair action=cleanup_merged dryRun=true\n` +
@@ -1264,7 +1279,7 @@ async function appendArchivedBranchHygieneRecommendations(
   status.recommendations.push(recommendation);
   status.archived_branch_hygiene = {
     count,
-    branches: result.branches.map((b) => ({
+    branches: cleanupReadyBranches.map((b) => ({
       changeId: b.changeId,
       branch: b.branch,
       mergeProof: b.mergeProof,

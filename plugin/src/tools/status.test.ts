@@ -43,10 +43,12 @@ const {
 const {
   mockDetectArchivedMergedBranches,
   mockDetectDefaultBranch,
+  mockGetCheckedOutChangeBranches,
   mockResolveMainCheckout,
 } = vi.hoisted(() => ({
   mockDetectArchivedMergedBranches: vi.fn(),
   mockDetectDefaultBranch: vi.fn(),
+  mockGetCheckedOutChangeBranches: vi.fn(),
   mockResolveMainCheckout: vi.fn(),
 }));
 
@@ -78,6 +80,7 @@ vi.mock("./archive-helpers/git-finalize", async (importOriginal) => {
     ...actual,
     detectArchivedMergedBranches: mockDetectArchivedMergedBranches,
     detectDefaultBranch: mockDetectDefaultBranch,
+    getCheckedOutChangeBranches: mockGetCheckedOutChangeBranches,
     resolveMainCheckout: mockResolveMainCheckout,
   };
 });
@@ -171,6 +174,12 @@ describe("Status Tools", () => {
     mockResolveMainCheckout.mockReset();
     tempDir = await createTempDir();
     mockResolveMainCheckout.mockReturnValue(tempDir);
+    mockGetCheckedOutChangeBranches.mockReset();
+    mockGetCheckedOutChangeBranches.mockReturnValue({
+      status: "ok",
+      branches: new Set<string>(),
+      worktreePaths: {},
+    });
     await createTestProject(tempDir);
     store = await createLegacyStore(tempDir);
   });
@@ -1493,6 +1502,51 @@ Vague in-flight work.
             ),
           ]),
         );
+      });
+
+      test("hygiene recommendation excludes archived branches checked out in worktrees", async () => {
+        store.changes.list = vi.fn(async () => ({
+          changes: [
+            {
+              id: "archived-one",
+              title: "Archived One",
+              status: "archived" as const,
+              created_at: "2026-01-01T00:00:00Z",
+              lastActivityAt: "2026-01-01T00:00:00Z",
+              taskCount: 0,
+              completedTasks: 0,
+            },
+          ],
+        }));
+        mockDetectArchivedMergedBranches.mockReturnValue({
+          status: "ok",
+          branches: [
+            {
+              changeId: "archived-one",
+              branch: "change/archived-one",
+              localSha: "abc123",
+              mergeProof: { kind: "patch-equivalent" },
+            },
+          ],
+        });
+        mockGetCheckedOutChangeBranches.mockReturnValue({
+          status: "ok",
+          branches: new Set(["change/archived-one"]),
+          worktreePaths: { "change/archived-one": "/tmp/wt/archived-one" },
+        });
+
+        const result = await statusTools.adv_status.execute(
+          { view: "hygiene" },
+          store,
+        );
+        const parsed = parseToolOutput(result);
+
+        expect(parsed.archived_branch_hygiene).toBeUndefined();
+        expect(
+          (parsed.recommendations as string[] | undefined)?.find((r: string) =>
+            /cleanup-ready:/.test(r),
+          ),
+        ).toBeUndefined();
       });
 
       test("hygiene view short-circuits to no-op when no archived changes (performance)", async () => {

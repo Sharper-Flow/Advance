@@ -4646,6 +4646,7 @@ export const changeTools = {
             skipped: skippedWorktree.map((b) => ({
               ...b,
               reason: "WORKTREE_CHECKED_OUT",
+              worktreePath: checkedOut.worktreePaths[b.branch],
             })),
             count: candidates.length,
             ...(fetchWarnings.length > 0 ? { warnings: fetchWarnings } : {}),
@@ -4681,6 +4682,7 @@ export const changeTools = {
           skipped: skippedWorktree.map((b) => ({
             ...b,
             reason: "WORKTREE_CHECKED_OUT",
+            worktreePath: checkedOut.worktreePaths[b.branch],
           })),
           summary,
           ...(fetchWarnings.length > 0 ? { warnings: fetchWarnings } : {}),

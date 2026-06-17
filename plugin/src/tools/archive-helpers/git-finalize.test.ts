@@ -1098,7 +1098,7 @@ describe("git-finalize helpers", () => {
             args[2] === "trunk" &&
             args[3] === "change/abc"
           ) {
-            return { status: 0, stdout: "", stderr: "" };
+            return { status: 0, stdout: "- def0123 same patch\n", stderr: "" };
           }
           return {
             status: 1,
@@ -1121,6 +1121,46 @@ describe("git-finalize helpers", () => {
       ],
     });
     expect(calls.some((args) => args[0] === "cherry")).toBe(true);
+  });
+
+  it("detectArchivedMergedBranches rejects git cherry output with unmerged commits", () => {
+    const result = detectArchivedMergedBranches(
+      {
+        mainCheckout: "/repo",
+        defaultBranch: "trunk",
+      },
+      {
+        runGit: (_cwd, args) => {
+          if (args[0] === "branch" && args[1] === "--list") {
+            return {
+              status: 0,
+              stdout: "change/abc def0123\n",
+              stderr: "",
+            };
+          }
+          if (args[0] === "rev-parse" && args[1] === "change/abc^{tree}") {
+            return { status: 0, stdout: "tree123\n", stderr: "" };
+          }
+          if (
+            args[0] === "log" &&
+            args[1] === "--format=%H %T" &&
+            args[3] === "trunk"
+          ) {
+            return { status: 0, stdout: "other otherTree\n", stderr: "" };
+          }
+          if (args[0] === "cherry") {
+            return { status: 0, stdout: "+ def0123 unmerged\n", stderr: "" };
+          }
+          return {
+            status: 1,
+            stdout: "",
+            stderr: `unexpected git ${args.join(" ")}`,
+          };
+        },
+      },
+    );
+
+    expect(result).toEqual({ status: "ok", branches: [] });
   });
 
   it("detectArchivedMergedBranches short-circuits cherry when tree-SHA already proves merged", () => {
@@ -1318,6 +1358,9 @@ describe("git-finalize helpers", () => {
 
       expect(result.status).toBe("ok");
       expect(result.branches).toEqual(new Set(["change/foo"]));
+      expect(result.worktreePaths).toEqual({
+        "change/foo": "/home/wt-change-foo",
+      });
     });
 
     it("excludes non-change branches", () => {
@@ -1351,6 +1394,10 @@ describe("git-finalize helpers", () => {
 
       expect(result.status).toBe("ok");
       expect(result.branches).toEqual(new Set(["change/A", "change/B"]));
+      expect(result.worktreePaths).toEqual({
+        "change/A": "/home/change-a",
+        "change/B": "/home/change-b",
+      });
     });
 
     it("returns blocked status when git worktree list fails", () => {
@@ -1370,6 +1417,7 @@ describe("git-finalize helpers", () => {
       expect(result.status).toBe("blocked");
       expect(result.reason).toBe("WORKTREE_LIST_FAILED");
       expect(result.branches.size).toBe(0);
+      expect(result.worktreePaths).toEqual({});
       expect(result.details).toEqual(["fatal: not a git repository"]);
     });
   });
