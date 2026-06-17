@@ -41,6 +41,7 @@ import {
   detectArchivedUnmergedBranches,
   redriveArchivedUnmergedBranch,
   detectSquashMergeByTree,
+  detectArchivedMergedBranches,
 } from "./git-finalize";
 
 function git(cwd: string, args: string[]): string {
@@ -1001,6 +1002,287 @@ describe("git-finalize helpers", () => {
       "origin",
       "+refs/heads/change/active-only:refs/remotes/origin/change/active-only",
     ]);
+  });
+
+  it("detectArchivedMergedBranches lists local change branches whose tree-SHA matches a recent trunk commit", () => {
+    const calls: string[][] = [];
+    const result = detectArchivedMergedBranches(
+      {
+        mainCheckout: "/repo",
+        defaultBranch: "trunk",
+      },
+      {
+        runGit: (_cwd, args) => {
+          calls.push(args);
+          if (args[0] === "branch" && args[1] === "--list") {
+            return {
+              status: 0,
+              stdout: "change/abc def0123\n",
+              stderr: "",
+            };
+          }
+          if (args[0] === "rev-parse" && args[1] === "change/abc^{tree}") {
+            return { status: 0, stdout: "tree123\n", stderr: "" };
+          }
+          if (
+            args[0] === "log" &&
+            args[1] === "--format=%H %T" &&
+            args[3] === "trunk"
+          ) {
+            return {
+              status: 0,
+              stdout: "mergeCommitOid tree123\n",
+              stderr: "",
+            };
+          }
+          return {
+            status: 1,
+            stdout: "",
+            stderr: `unexpected git ${args.join(" ")}`,
+          };
+        },
+      },
+    );
+
+    expect(result).toEqual({
+      status: "ok",
+      branches: [
+        {
+          changeId: "abc",
+          branch: "change/abc",
+          localSha: "def0123",
+          mergeProof: {
+            kind: "tree-identical",
+            trunkCommitSha: "mergeCommitOid",
+          },
+        },
+      ],
+    });
+  });
+
+  it("detectArchivedMergedBranches falls back to git cherry when tree-SHA does not match recent trunk", () => {
+    const calls: string[][] = [];
+    const result = detectArchivedMergedBranches(
+      {
+        mainCheckout: "/repo",
+        defaultBranch: "trunk",
+      },
+      {
+        runGit: (_cwd, args) => {
+          calls.push(args);
+          if (args[0] === "branch" && args[1] === "--list") {
+            return {
+              status: 0,
+              stdout: "change/abc def0123\n",
+              stderr: "",
+            };
+          }
+          if (args[0] === "rev-parse" && args[1] === "change/abc^{tree}") {
+            return { status: 0, stdout: "tree123\n", stderr: "" };
+          }
+          if (
+            args[0] === "log" &&
+            args[1] === "--format=%H %T" &&
+            args[3] === "trunk"
+          ) {
+            return {
+              status: 0,
+              stdout: "otherCommit otherTree\n",
+              stderr: "",
+            };
+          }
+          if (
+            args[0] === "cherry" &&
+            args[1] === "-v" &&
+            args[2] === "trunk" &&
+            args[3] === "change/abc"
+          ) {
+            return { status: 0, stdout: "", stderr: "" };
+          }
+          return {
+            status: 1,
+            stdout: "",
+            stderr: `unexpected git ${args.join(" ")}`,
+          };
+        },
+      },
+    );
+
+    expect(result).toEqual({
+      status: "ok",
+      branches: [
+        {
+          changeId: "abc",
+          branch: "change/abc",
+          localSha: "def0123",
+          mergeProof: { kind: "patch-equivalent" },
+        },
+      ],
+    });
+    expect(calls.some((args) => args[0] === "cherry")).toBe(true);
+  });
+
+  it("detectArchivedMergedBranches short-circuits cherry when tree-SHA already proves merged", () => {
+    const calls: string[][] = [];
+    const result = detectArchivedMergedBranches(
+      {
+        mainCheckout: "/repo",
+        defaultBranch: "trunk",
+      },
+      {
+        runGit: (_cwd, args) => {
+          calls.push(args);
+          if (args[0] === "branch" && args[1] === "--list") {
+            return {
+              status: 0,
+              stdout: "change/abc def0123\n",
+              stderr: "",
+            };
+          }
+          if (args[0] === "rev-parse" && args[1] === "change/abc^{tree}") {
+            return { status: 0, stdout: "tree123\n", stderr: "" };
+          }
+          if (
+            args[0] === "log" &&
+            args[1] === "--format=%H %T" &&
+            args[3] === "trunk"
+          ) {
+            return {
+              status: 0,
+              stdout: "mergeCommitOid tree123\n",
+              stderr: "",
+            };
+          }
+          if (
+            args[0] === "cherry" &&
+            args[1] === "-v" &&
+            args[2] === "trunk" &&
+            args[3] === "change/abc"
+          ) {
+            return {
+              status: 1,
+              stdout: "",
+              stderr: "cherry should not be called",
+            };
+          }
+          return {
+            status: 1,
+            stdout: "",
+            stderr: `unexpected git ${args.join(" ")}`,
+          };
+        },
+      },
+    );
+
+    expect(result).toEqual({
+      status: "ok",
+      branches: [
+        {
+          changeId: "abc",
+          branch: "change/abc",
+          localSha: "def0123",
+          mergeProof: {
+            kind: "tree-identical",
+            trunkCommitSha: "mergeCommitOid",
+          },
+        },
+      ],
+    });
+    expect(calls.some((args) => args[0] === "cherry")).toBe(false);
+  });
+
+  it("detectArchivedMergedBranches filters branches not in archivedChangeIds set", () => {
+    const calls: string[][] = [];
+    const result = detectArchivedMergedBranches(
+      {
+        mainCheckout: "/repo",
+        defaultBranch: "trunk",
+        archivedChangeIds: ["A", "C"],
+      },
+      {
+        runGit: (_cwd, args) => {
+          calls.push(args);
+          if (args[0] === "branch" && args[1] === "--list") {
+            return {
+              status: 0,
+              stdout: "change/A shaA\n" + "change/B shaB\n" + "change/C shaC\n",
+              stderr: "",
+            };
+          }
+          if (args[0] === "rev-parse") {
+            const treeSha = args[1] === "change/A^{tree}" ? "treeA" : "treeC";
+            return { status: 0, stdout: `${treeSha}\n`, stderr: "" };
+          }
+          if (
+            args[0] === "log" &&
+            args[1] === "--format=%H %T" &&
+            args[3] === "trunk"
+          ) {
+            return {
+              status: 0,
+              stdout: "mergeA treeA\nmergeC treeC\n",
+              stderr: "",
+            };
+          }
+          return {
+            status: 1,
+            stdout: "",
+            stderr: `unexpected git ${args.join(" ")}`,
+          };
+        },
+      },
+    );
+
+    expect(result.status).toBe("ok");
+    expect(result).toEqual({
+      status: "ok",
+      branches: [
+        {
+          changeId: "A",
+          branch: "change/A",
+          localSha: "shaA",
+          mergeProof: { kind: "tree-identical", trunkCommitSha: "mergeA" },
+        },
+        {
+          changeId: "C",
+          branch: "change/C",
+          localSha: "shaC",
+          mergeProof: { kind: "tree-identical", trunkCommitSha: "mergeC" },
+        },
+      ],
+    });
+    expect(
+      calls.some(
+        (args) => args[0] === "rev-parse" && args[1] === "change/B^{tree}",
+      ),
+    ).toBe(false);
+  });
+
+  it("detectArchivedMergedBranches returns blocked status when local branch list fails", () => {
+    const result = detectArchivedMergedBranches(
+      {
+        mainCheckout: "/repo",
+        defaultBranch: "trunk",
+      },
+      {
+        runGit: (_cwd, args) => {
+          if (args[0] === "branch" && args[1] === "--list") {
+            return {
+              status: 1,
+              stdout: "",
+              stderr: "fatal: not a git repository\n",
+            };
+          }
+          return { status: 0, stdout: "", stderr: "" };
+        },
+      },
+    );
+
+    expect(result).toEqual({
+      status: "blocked",
+      reason: "LOCAL_BRANCH_LIST_FAILED",
+      details: ["fatal: not a git repository"],
+    });
   });
 
   it("redriveArchivedUnmergedBranch reuses PR and arms auto-merge without force-push", () => {

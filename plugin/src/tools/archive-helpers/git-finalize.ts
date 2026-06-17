@@ -1738,6 +1738,26 @@ export type ArchivedUnmergedBranchesResult =
   | { status: "ok"; branches: ArchivedUnmergedBranch[] }
   | { status: "blocked"; reason: string; details?: string[] };
 
+export interface ArchivedMergedBranch {
+  changeId: string;
+  branch: string;
+  localSha: string;
+  mergeProof:
+    | { kind: "tree-identical"; trunkCommitSha: string }
+    | { kind: "patch-equivalent" };
+}
+
+export type ArchivedMergedBranchesResult =
+  | {
+      status: "ok";
+      branches: ArchivedMergedBranch[];
+    }
+  | {
+      status: "blocked";
+      reason: "LOCAL_BRANCH_LIST_FAILED";
+      details?: string[];
+    };
+
 function parseRemoteChangeBranchRefs(output: string): Array<{
   changeId: string;
   branch: string;
@@ -1832,6 +1852,98 @@ export function detectArchivedUnmergedBranches(
     const unmergedCommits = splitLines(unmerged.stdout);
     if (unmergedCommits.length > 0) {
       branches.push({ ...candidate, unmergedCommits });
+    }
+  }
+
+  return { status: "ok", branches };
+}
+
+function parseLocalChangeBranchRefs(output: string): Array<{
+  changeId: string;
+  branch: string;
+  localSha: string;
+}> {
+  return splitLines(output)
+    .map((line) => {
+      const [branch, localSha] = line.split(/\s+/, 2);
+      const prefix = "change/";
+      if (!localSha || !branch?.startsWith(prefix)) return null;
+      const changeId = branch.slice(prefix.length);
+      if (!changeId) return null;
+      return { changeId, branch, localSha };
+    })
+    .filter((entry): entry is NonNullable<typeof entry> => entry !== null);
+}
+
+export function detectArchivedMergedBranches(
+  input: {
+    mainCheckout: string;
+    defaultBranch: string;
+    archivedChangeIds?: string[];
+  },
+  deps: Pick<GitFinalizeDeps, "runGit"> = {},
+): ArchivedMergedBranchesResult {
+  const runGit = deps.runGit ?? defaultRunGit;
+  const archivedSet = input.archivedChangeIds
+    ? new Set(input.archivedChangeIds)
+    : null;
+
+  const localBranches = runGit(input.mainCheckout, [
+    "branch",
+    "--list",
+    "--format=%(refname:short) %(objectname)",
+    "change/*",
+  ]);
+  if (localBranches.status !== 0) {
+    return {
+      status: "blocked",
+      reason: "LOCAL_BRANCH_LIST_FAILED",
+      details: splitLines(localBranches.stderr || localBranches.stdout),
+    };
+  }
+
+  const candidates = parseLocalChangeBranchRefs(localBranches.stdout).filter(
+    (entry) => !archivedSet || archivedSet.has(entry.changeId),
+  );
+
+  const branches: ArchivedMergedBranch[] = [];
+
+  for (const candidate of candidates) {
+    const treeCheck = detectSquashMergeByTree(
+      input.mainCheckout,
+      input.defaultBranch,
+      candidate.changeId,
+      deps,
+    );
+    if (treeCheck.reachable) {
+      branches.push({
+        changeId: candidate.changeId,
+        branch: candidate.branch,
+        localSha: candidate.localSha,
+        mergeProof: {
+          kind: "tree-identical",
+          trunkCommitSha: treeCheck.mergeCommitOid ?? "",
+        },
+      });
+      continue;
+    }
+
+    const cherry = runGit(input.mainCheckout, [
+      "cherry",
+      "-v",
+      input.defaultBranch,
+      candidate.branch,
+    ]);
+    if (cherry.status !== 0) {
+      continue;
+    }
+    if (cherry.stdout.trim() === "") {
+      branches.push({
+        changeId: candidate.changeId,
+        branch: candidate.branch,
+        localSha: candidate.localSha,
+        mergeProof: { kind: "patch-equivalent" },
+      });
     }
   }
 
