@@ -1,7 +1,7 @@
 # Advance Meta
 
-> **Version:** 1.15.0
-> **Updated:** 2026-06-06
+> **Version:** 1.16.0
+> **Updated:** 2026-06-17
 
 ## Purpose
 
