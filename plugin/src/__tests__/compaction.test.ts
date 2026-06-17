@@ -108,13 +108,7 @@ describe("experimental.session.compacting enrichment", () => {
     pluginInstances.push(hooks);
     const changeId = "compactionTest";
 
-    // Set active change via tool.execute.before
-    await hooks["tool.execute.before"]!(
-      { tool: "adv_task_list" } as any,
-      { args: { changeId } } as any,
-    );
-
-    // Use disk store directly to create tasks
+    // Use disk store directly to create the change and tasks
     const store = await createLegacyStore(tempDir, {
       externalRoot: undefined,
     });
@@ -138,6 +132,13 @@ describe("experimental.session.compacting enrichment", () => {
     }
 
     store.close();
+
+    // Set active change via tool.execute.before only after the change exists
+    // on disk, so the reachability gate permits re-pointing.
+    await hooks["tool.execute.before"]!(
+      { tool: "adv_task_list" } as any,
+      { args: { changeId } } as any,
+    );
 
     const input = { sessionID: "test-session" };
     const output = { context: [] as string[] };

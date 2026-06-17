@@ -24,7 +24,7 @@ import {
 const cleanState = (
   overrides: Partial<AssembleSystemBlockState> = {},
 ): AssembleSystemBlockState => ({
-  activeChange: { id: null, objective: null },
+  activeChange: { id: null },
   lastCompletedTask: null,
   isWorktree: false,
   lastSessionHealthIssue: null,
@@ -162,7 +162,7 @@ describe("assembleSystemBlock", () => {
       const block = assembleSystemBlock(
         cleanInput({
           existingSystem: "Generate a short title for this conversation",
-          state: cleanState({ activeChange: { id: "c1", objective: null } }),
+          state: cleanState({ activeChange: { id: "c1" } }),
         }),
       );
       expect(block).toBeNull();
@@ -172,7 +172,7 @@ describe("assembleSystemBlock", () => {
       const block = assembleSystemBlock(
         cleanInput({
           existingSystem: "You are a helpful assistant that summarizes ...",
-          state: cleanState({ activeChange: { id: "c1", objective: null } }),
+          state: cleanState({ activeChange: { id: "c1" } }),
         }),
       );
       expect(block).toBeNull();
@@ -182,7 +182,7 @@ describe("assembleSystemBlock", () => {
       const block = assembleSystemBlock(
         cleanInput({
           existingSystem: "You are a primary agent.",
-          state: cleanState({ activeChange: { id: "c1", objective: null } }),
+          state: cleanState({ activeChange: { id: "c1" } }),
         }),
       );
       expect(block).not.toBeNull();
@@ -237,7 +237,7 @@ describe("assembleSystemBlock", () => {
         cleanInput({
           state: cleanState({
             isWorktree: true,
-            activeChange: { id: "myChange", objective: null },
+            activeChange: { id: "myChange" },
           }),
         }),
       );
@@ -259,7 +259,7 @@ describe("assembleSystemBlock", () => {
         cleanInput({
           state: cleanState({
             isWorktree: false,
-            activeChange: { id: "c1", objective: null },
+            activeChange: { id: "c1" },
           }),
         }),
       );
@@ -269,26 +269,12 @@ describe("assembleSystemBlock", () => {
   });
 
   describe("active change section", () => {
-    it("emits active-change marker with objective truncated to 60 chars", () => {
-      const longObjective = "a".repeat(120);
+    it("emits active-change marker with no objective suffix", () => {
       const block = assembleSystemBlock(
         cleanInput({
           state: cleanState({
-            activeChange: { id: "c1", objective: longObjective },
+            activeChange: { id: "c1" },
           }),
-        }),
-      );
-      expect(block).toContain("[ADV] Active change: c1");
-      expect(block).toContain("Objective:");
-      // 60-char truncation
-      expect(block).toContain("a".repeat(60));
-      expect(block).not.toContain("a".repeat(61));
-    });
-
-    it("emits active-change marker without objective when none set", () => {
-      const block = assembleSystemBlock(
-        cleanInput({
-          state: cleanState({ activeChange: { id: "c1", objective: null } }),
         }),
       );
       expect(block).toContain("[ADV] Active change: c1");
@@ -298,7 +284,7 @@ describe("assembleSystemBlock", () => {
     it("does NOT emit when activeChange.id is null", () => {
       const block = assembleSystemBlock(
         cleanInput({
-          state: cleanState({ activeChange: { id: null, objective: null } }),
+          state: cleanState({ activeChange: { id: null } }),
         }),
       );
       expect(block).toBeNull();
@@ -310,7 +296,7 @@ describe("assembleSystemBlock", () => {
       const block = assembleSystemBlock(
         cleanInput({
           state: cleanState({
-            activeChange: { id: "c1", objective: null },
+            activeChange: { id: "c1" },
             lastCompletedTask: { id: "tk-1", title: "Implement foo" },
           }),
         }),
@@ -324,7 +310,7 @@ describe("assembleSystemBlock", () => {
       const block = assembleSystemBlock(
         cleanInput({
           state: cleanState({
-            activeChange: { id: "c1", objective: null },
+            activeChange: { id: "c1" },
             lastCompletedTask: null,
           }),
         }),
@@ -338,7 +324,7 @@ describe("assembleSystemBlock", () => {
       const block = assembleSystemBlock(
         cleanInput({
           state: cleanState({
-            activeChange: { id: "c1", objective: null },
+            activeChange: { id: "c1" },
             lastCompletedTask: { id: "tk-1", title: "Foo" },
           }),
         }),
@@ -357,7 +343,7 @@ describe("assembleSystemBlock", () => {
       const block = assembleSystemBlock(
         cleanInput({
           state: cleanState({
-            activeChange: { id: "c1", objective: null },
+            activeChange: { id: "c1" },
             lastCompletedTask: null,
           }),
         }),
@@ -373,7 +359,7 @@ describe("assembleSystemBlock", () => {
       const block = assembleSystemBlock(
         cleanInput({
           state: cleanState({
-            activeChange: { id: null, objective: null },
+            activeChange: { id: null },
             lastCompletedTask: { id: "tk-1", title: "Foo" },
           }),
         }),
@@ -397,7 +383,7 @@ describe("assembleSystemBlock", () => {
               detectedAt: 0,
             },
             isWorktree: true,
-            activeChange: { id: "c1", objective: null },
+            activeChange: { id: "c1" },
           }),
         }),
       );
@@ -420,7 +406,7 @@ describe("assembleSystemBlock", () => {
         cleanInput({
           state: cleanState({
             isWorktree: true,
-            activeChange: { id: "c1", objective: null },
+            activeChange: { id: "c1" },
           }),
         }),
       );
@@ -438,7 +424,7 @@ describe("applyAdvSystemBlock", () => {
   it("appends a single entry when output.system was empty (AC1)", () => {
     const output = { system: [] as string[] };
     const result = applyAdvSystemBlock(output, {
-      state: cleanState({ activeChange: { id: "c1", objective: null } }),
+      state: cleanState({ activeChange: { id: "c1" } }),
       initError: null,
       storeAvailable: true,
     });
@@ -453,19 +439,19 @@ describe("applyAdvSystemBlock", () => {
       cleanInput({ initError: new Error("init failed") }),
       // Healthy with active change
       cleanInput({
-        state: cleanState({ activeChange: { id: "c1", objective: null } }),
+        state: cleanState({ activeChange: { id: "c1" } }),
       }),
       // In worktree with active change
       cleanInput({
         state: cleanState({
           isWorktree: true,
-          activeChange: { id: "c1", objective: "build feature" },
+          activeChange: { id: "c1" },
         }),
       }),
       // Active change + just-completed task (volatile suffix)
       cleanInput({
         state: cleanState({
-          activeChange: { id: "c1", objective: null },
+          activeChange: { id: "c1" },
           lastCompletedTask: { id: "tk-1", title: "Implement foo" },
         }),
       }),
@@ -481,7 +467,7 @@ describe("applyAdvSystemBlock", () => {
   it("preserves an existing system[0] entry by prefixing the ADV block", () => {
     const output = { system: ["You are an agent."] };
     applyAdvSystemBlock(output, {
-      state: cleanState({ activeChange: { id: "c1", objective: null } }),
+      state: cleanState({ activeChange: { id: "c1" } }),
       initError: null,
       storeAvailable: true,
     });
@@ -496,7 +482,7 @@ describe("applyAdvSystemBlock", () => {
   it("returns emitted: false and leaves system untouched on internal call", () => {
     const output = { system: ["Generate a short title for this conversation"] };
     const result = applyAdvSystemBlock(output, {
-      state: cleanState({ activeChange: { id: "c1", objective: null } }),
+      state: cleanState({ activeChange: { id: "c1" } }),
       initError: null,
       storeAvailable: true,
     });
@@ -521,7 +507,7 @@ describe("applyAdvSystemBlock", () => {
     const output = { system: [] as string[] };
     const result = applyAdvSystemBlock(output, {
       state: cleanState({
-        activeChange: { id: "c1", objective: null },
+        activeChange: { id: "c1" },
         lastCompletedTask: { id: "tk-1", title: "Foo" },
       }),
       initError: null,
@@ -535,7 +521,7 @@ describe("applyAdvSystemBlock", () => {
   it("does NOT flag consumedWisdomPrompt when no task just completed", () => {
     const output = { system: [] as string[] };
     const result = applyAdvSystemBlock(output, {
-      state: cleanState({ activeChange: { id: "c1", objective: null } }),
+      state: cleanState({ activeChange: { id: "c1" } }),
       initError: null,
       storeAvailable: true,
     });
@@ -563,7 +549,7 @@ describe("trunkGuardSection", () => {
       cleanInput({
         state: cleanState({
           isWorktree: false,
-          activeChange: { id: "myChange", objective: "Build feature" },
+          activeChange: { id: "myChange" },
         }),
       }),
     );
@@ -577,7 +563,7 @@ describe("trunkGuardSection", () => {
       cleanInput({
         state: cleanState({
           isWorktree: true,
-          activeChange: { id: "myChange", objective: null },
+          activeChange: { id: "myChange" },
         }),
       }),
     );
@@ -589,7 +575,7 @@ describe("trunkGuardSection", () => {
       cleanInput({
         state: cleanState({
           isWorktree: false,
-          activeChange: { id: null, objective: null },
+          activeChange: { id: null },
         }),
       }),
     );
@@ -606,7 +592,7 @@ describe("trunkGuardSection", () => {
       cleanInput({
         state: cleanState({
           isWorktree: false,
-          activeChange: { id: "myChange", objective: null },
+          activeChange: { id: "myChange" },
         }),
       }),
     );
@@ -619,7 +605,7 @@ describe("trunkGuardSection", () => {
       cleanInput({
         state: cleanState({
           isWorktree: false,
-          activeChange: { id: "myChange", objective: null },
+          activeChange: { id: "myChange" },
         }),
       }),
     );
@@ -632,7 +618,7 @@ describe("trunkGuardSection", () => {
       cleanInput({
         state: cleanState({
           isWorktree: false,
-          activeChange: { id: "myChange", objective: null },
+          activeChange: { id: "myChange" },
         }),
       }),
     );

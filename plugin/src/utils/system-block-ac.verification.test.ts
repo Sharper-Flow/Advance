@@ -26,7 +26,7 @@ import {
 const cleanState = (
   overrides: Partial<AssembleSystemBlockState> = {},
 ): AssembleSystemBlockState => ({
-  activeChange: { id: null, objective: null },
+  activeChange: { id: null },
   lastCompletedTask: null,
   isWorktree: false,
   lastSessionHealthIssue: null,
@@ -78,7 +78,7 @@ describe("AC8 — sentinel placement invariants", () => {
   it("emits sentinel only when BOTH stable and volatile content exist", () => {
     const block = assembleSystemBlock({
       state: cleanState({
-        activeChange: { id: "c1", objective: null },
+        activeChange: { id: "c1" },
         lastCompletedTask: { id: "tk-1", title: "Foo" },
       }),
       initError: null,
@@ -92,7 +92,7 @@ describe("AC8 — sentinel placement invariants", () => {
   it("never emits a leading sentinel (stable-only)", () => {
     const block = assembleSystemBlock({
       state: cleanState({
-        activeChange: { id: "c1", objective: null },
+        activeChange: { id: "c1" },
         lastCompletedTask: null,
       }),
       initError: null,
@@ -107,7 +107,7 @@ describe("AC8 — sentinel placement invariants", () => {
   it("never emits a trailing sentinel (volatile-only)", () => {
     const block = assembleSystemBlock({
       state: cleanState({
-        activeChange: { id: null, objective: null },
+        activeChange: { id: null },
         lastCompletedTask: { id: "tk-1", title: "Foo" },
       }),
       initError: null,
@@ -122,7 +122,7 @@ describe("AC8 — sentinel placement invariants", () => {
   it("sentinel appears at most once per block", () => {
     const block = assembleSystemBlock({
       state: cleanState({
-        activeChange: { id: "c1", objective: null },
+        activeChange: { id: "c1" },
         lastCompletedTask: { id: "tk-1", title: "Foo" },
       }),
       initError: null,

@@ -11,6 +11,9 @@ import {
   createTestProject,
 } from "./__tests__/setup";
 
+// Many plugin instances register SIGINT/SIGTERM listeners across describes.
+process.setMaxListeners(40);
+
 describe("Wisdom Lifecycle Integration", () => {
   let tempDir: string;
   let hooks: any;
@@ -342,10 +345,14 @@ describe("Active Change Title Update on adv_change_create", () => {
       serverUrl: new URL("http://localhost"),
     } as any);
 
-    // First, set an active change via the before hook (simulating prior work)
-    await hooks["tool.execute.before"]!(
-      { tool: "adv_task_list" } as any,
-      { args: { changeId: "oldChange" } } as any,
+    // First, set an active change (simulating prior work) via the create
+    // after-hook, which is not gated by the reachability check.
+    await hooks["tool.execute.after"]!(
+      { tool: "adv_change_create" } as any,
+      {
+        args: { summary: "old" },
+        output: JSON.stringify({ changeId: "oldChange" }),
+      } as any,
     );
     expect(getStatus().activeChangeId).toBe("oldChange");
 
@@ -372,9 +379,12 @@ describe("Active Change Title Update on adv_change_create", () => {
       serverUrl: new URL("http://localhost"),
     } as any);
 
-    await hooks["tool.execute.before"]!(
-      { tool: "adv_task_list" } as any,
-      { args: { changeId: "existingChange" } } as any,
+    await hooks["tool.execute.after"]!(
+      { tool: "adv_change_create" } as any,
+      {
+        args: { summary: "existing" },
+        output: JSON.stringify({ changeId: "existingChange" }),
+      } as any,
     );
     expect(getStatus().activeChangeId).toBe("existingChange");
 
@@ -871,10 +881,14 @@ describe("Trunk Write Firewall: tool.execute.before interception", () => {
       serverUrl: new URL("http://localhost"),
     } as any);
 
-    // Change tracking should still work
-    await hooks["tool.execute.before"]!(
-      { tool: "adv_task_list", sessionID: "test" } as any,
-      { args: { changeId: "guardTest" } } as any,
+    // Change tracking should still work. Use the create after-hook so the
+    // pointer is set without requiring a reachable change record.
+    await hooks["tool.execute.after"]!(
+      { tool: "adv_change_create", sessionID: "test" } as any,
+      {
+        args: { summary: "guard" },
+        output: JSON.stringify({ changeId: "guardTest" }),
+      } as any,
     );
     expect(getStatus().activeChangeId).toBe("guardTest");
   }, 30_000);
@@ -922,10 +936,15 @@ describe("Trunk Write Firewall: tool.execute.before interception", () => {
         serverUrl: new URL("http://localhost"),
       } as any);
 
-      // Set active change ID so the hook can derive the worktree path
-      await hooks["tool.execute.before"]!(
-        { tool: "adv_task_list", sessionID: "test" } as any,
-        { args: { changeId } } as any,
+      // Set active change ID so the hook can derive the worktree path.
+      // Use the create after-hook (recordCreatedChange), which is not gated
+      // by the reachability check introduced for args.changeId re-pointing.
+      await hooks["tool.execute.after"]!(
+        { tool: "adv_change_create", sessionID: "test" } as any,
+        {
+          args: { summary: "test" },
+          output: JSON.stringify({ changeId }),
+        } as any,
       );
 
       // REL path must be ALLOWED because it resolves against the worktree
@@ -965,10 +984,14 @@ describe("Trunk Write Firewall: tool.execute.before interception", () => {
       serverUrl: new URL("http://localhost"),
     } as any);
 
-    // Set an active change that has NO worktree
-    await hooks["tool.execute.before"]!(
-      { tool: "adv_task_list", sessionID: "test" } as any,
-      { args: { changeId: "noWorktreeChange" } } as any,
+    // Set an active change that has NO worktree. Use the create after-hook
+    // so the pointer is set without requiring a reachable change record.
+    await hooks["tool.execute.after"]!(
+      { tool: "adv_change_create", sessionID: "test" } as any,
+      {
+        args: { summary: "test" },
+        output: JSON.stringify({ changeId: "noWorktreeChange" }),
+      } as any,
     );
 
     // REL path must be BLOCKED because no worktree exists

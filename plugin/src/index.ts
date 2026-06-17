@@ -56,6 +56,7 @@ import { drainPendingDeletes } from "./tools/worktree";
 import {
   extractCompletedTask,
   extractCreatedChangeId,
+  extractTerminalSuccess,
   isLongRunningTool,
 } from "./plugin-output";
 import {
@@ -63,6 +64,7 @@ import {
   checkTrunkWriteBash,
   type TrunkWriteFirewallDeps,
 } from "./tools/trunk-write-firewall";
+import { isChangeReachable, type ReachabilityDeps } from "./tools/_adapters";
 import { parseWorktreePaths } from "./utils/worktree-paths";
 import { getWorktreeBase } from "./utils/project-id";
 import { existsSync } from "fs";
@@ -218,7 +220,6 @@ interface StatusFlags {
 interface PluginState extends StatusFlags {
   activeChange: {
     id: string | null;
-    objective: string | null;
   };
   lastCompletedTask: {
     id: string;
@@ -357,6 +358,45 @@ const advancePluginImpl: Plugin = async (input) => {
   // can register a degraded tool map rather than nuking every adv_* tool.
   const { store, initError } = await tryInitStore(effectiveDir, externalRoot);
 
+  // Reachability dependencies for the active-change pointer gate.
+  // Visibility lister uses the store's own change getter (workflow state
+  // query) because index.ts does not have direct access to the Temporal
+  // client. Disk checker looks at the durable change.json snapshot.
+  const reachabilityDeps: ReachabilityDeps = store
+    ? {
+        visibilityLister: async (_projectId: string, cid: string) => {
+          try {
+            const result = await store.changes.get(cid);
+            return result.success;
+          } catch {
+            return false;
+          }
+        },
+        diskChecker: async (_dir: string, cid: string) => {
+          try {
+            return existsSync(join(store.paths.changes, cid, "change.json"));
+          } catch {
+            return false;
+          }
+        },
+        workflowStateGetter: async (cid: string) => {
+          try {
+            const result = await store.changes.get(cid);
+            return result.success;
+          } catch {
+            return false;
+          }
+        },
+      }
+    : {
+        // Degraded init: no store means no reachability signal; treat every
+        // candidate as unreachable so the pointer is never moved by phantom
+        // data, but still allow the forget/create paths to work.
+        visibilityLister: async () => false,
+        diskChecker: async () => false,
+        workflowStateGetter: async () => false,
+      };
+
   // Cache the worktree base path for rel-path resolution in the firewall
   // hook. Uses the project ID already resolved by resolveProjectContext.
   // Null when project ID is unavailable (falls back to session directory).
@@ -375,7 +415,7 @@ const advancePluginImpl: Plugin = async (input) => {
     activeSubAgents: 0,
     activeLongTools: 0,
     permissionPending: false,
-    activeChange: { id: null, objective: null },
+    activeChange: { id: null },
     lastCompletedTask: null,
     isWorktree,
     isMainCheckout,
@@ -540,9 +580,56 @@ const advancePluginImpl: Plugin = async (input) => {
     args: Record<string, unknown>,
     input: Record<string, unknown>,
   ) => {
+    // rq-activeChangePointer01.6: adv_change_forget early-return (KD6)
+    // Also validates mismatch (refuse-with-hint per AC1/AD2)
+    if (toolName === "adv_change_forget") {
+      const forgetChangeId = args.changeId as string | undefined;
+      if (!forgetChangeId) return; // Tool's own validation will handle
+      if (
+        state.activeChange.id !== null &&
+        state.activeChange.id !== forgetChangeId
+      ) {
+        throw new Error(
+          `FORGET_MISMATCH: changeId ${forgetChangeId} does not match current active pointer ${state.activeChange.id}. ` +
+            `Call adv_change_forget changeId:${state.activeChange.id}`,
+        );
+      }
+      return; // Skip reachability check (forget intentionally clears)
+    }
+
     if (args.changeId) {
-      state.activeChange.id = String(args.changeId);
-      setActiveChange(state.activeChange.id);
+      // Skip cross-project calls (C5) — target_path changeId refers to
+      // a different project; don't touch caller's pointer
+      if (args.target_path) {
+        debugLog(
+          `handleToolExecuteBefore: skipping re-point for cross-project call (target_path set)`,
+        );
+      } else if (args.changeId === state.activeChange.id) {
+        // Already pointing here; no-op
+      } else {
+        // Reachability gate (AC4/AC5) — check before re-pointing
+        try {
+          const reachable = await isChangeReachable(
+            resolvedProjectId ?? "",
+            String(args.changeId),
+            reachabilityDeps,
+            store?.paths.changes ?? "",
+          );
+          if (reachable) {
+            state.activeChange.id = String(args.changeId);
+            setActiveChange(state.activeChange.id);
+            debugLog(`handleToolExecuteBefore: re-pointed to ${args.changeId}`);
+          } else {
+            debugLog(
+              `handleToolExecuteBefore: changeId ${args.changeId} not reachable; preserving pointer ${state.activeChange.id}`,
+            );
+          }
+        } catch (err) {
+          debugLog(
+            `handleToolExecuteBefore: reachability check failed for ${args.changeId}: ${err}. Preserving pointer.`,
+          );
+        }
+      }
     }
 
     if (toolName === "task") {
@@ -736,6 +823,18 @@ const advancePluginImpl: Plugin = async (input) => {
     debugLog(`adv_change_create: set activeChange to ${newChangeId}`);
   };
 
+  const recordTerminalChange = (toolName: string, rawOutput: string): void => {
+    const terminal = extractTerminalSuccess(rawOutput);
+    if (!terminal) return;
+    if (state.activeChange.id !== terminal.changeId) return;
+    const prev = state.activeChange.id;
+    state.activeChange.id = null;
+    setActiveChange(null);
+    debugLog(
+      `recordTerminalChange: cleared pointer (was ${prev}) after ${toolName} for ${terminal.changeId}`,
+    );
+  };
+
   const recordCompletedTask = (rawOutput: string) => {
     const completedTask = extractCompletedTask(rawOutput);
     if (!completedTask) return;
@@ -873,6 +972,42 @@ const advancePluginImpl: Plugin = async (input) => {
           }
         }
 
+        // Terminal transition pointer clear (AC2/AC3)
+        if (
+          (input.tool === "adv_change_close" ||
+            input.tool === "adv_change_archive") &&
+          output.output
+        ) {
+          try {
+            recordTerminalChange(input.tool, output.output);
+          } catch (err) {
+            hooksLogger.warn(
+              `Failed to process ${input.tool} output for pointer clear: ${(err as Error).message}`,
+            );
+          }
+        }
+
+        // Forget pointer clear (AC1)
+        if (input.tool === "adv_change_forget" && output.output) {
+          try {
+            // Before-hook already validated match; clear unconditionally
+            if (state.activeChange.id) {
+              const prev = state.activeChange.id;
+              state.activeChange.id = null;
+              setActiveChange(null);
+              debugLog(`recordForgetChange: cleared pointer (was ${prev})`);
+            } else {
+              debugLog(
+                "recordForgetChange: no active pointer; idempotent no-op",
+              );
+            }
+          } catch (err) {
+            hooksLogger.warn(
+              `Failed to process adv_change_forget output: ${(err as Error).message}`,
+            );
+          }
+        }
+
         // Track active gate from adv_gate_complete output
 
         // Handle sub-agent completion
@@ -989,7 +1124,7 @@ const advancePluginImpl: Plugin = async (input) => {
         // Resolve change record. Tolerate a not-found / read-error result
         // by falling back to a minimal CompactionChangeLike sourced from
         // active state — the snapshot still produces useful output.
-        let changeTitle = state.activeChange.objective ?? changeId;
+        let changeTitle = changeId;
         try {
           const changeResult = await store.changes.get(changeId);
           if (changeResult.success && changeResult.data) {

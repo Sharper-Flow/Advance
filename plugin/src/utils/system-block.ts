@@ -47,7 +47,6 @@ export interface SessionHealthIssue {
 export interface AssembleSystemBlockState {
   activeChange: {
     id: string | null;
-    objective: string | null;
   };
   lastCompletedTask: {
     id: string;
@@ -177,15 +176,11 @@ function worktreeSection(input: AssembleSystemBlockInput): string | null {
   );
 }
 
-/** Stable: active-change line. Fires whenever an active change is set;
- *  appends a 60-char-truncated objective when present. */
+/** Stable: active-change line. Fires whenever an active change is set. */
 function activeChangeSection(input: AssembleSystemBlockInput): string | null {
   const { activeChange } = input.state;
   if (!activeChange.id) return null;
-  const objectiveSuffix = activeChange.objective
-    ? ` | Objective: ${activeChange.objective.slice(0, 60)}`
-    : "";
-  return `[ADV] Active change: ${activeChange.id}${objectiveSuffix}`;
+  return `[ADV] Active change: ${activeChange.id}`;
 }
 
 /** Volatile: wisdom-recording prompt. Fires when a task just finished

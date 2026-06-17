@@ -88,3 +88,18 @@ export function extractCompletedTask(
   }
   return { id: result.task.id, title: result.task.title };
 }
+
+export function extractTerminalSuccess(
+  rawOutput: unknown,
+): { changeId: string } | null {
+  const result = parseToolOutput<{
+    success?: boolean;
+    changeId?: string;
+    data?: { success?: boolean; changeId?: string };
+  }>(rawOutput);
+  if (!result) return null;
+  const success = result.success ?? result.data?.success;
+  const changeId = result.changeId ?? result.data?.changeId;
+  if (!success || typeof changeId !== "string") return null;
+  return { changeId };
+}

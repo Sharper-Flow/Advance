@@ -3293,6 +3293,7 @@ export const changeTools = {
 
         return formatToolOutput({
           success: true,
+          changeId,
           message: cleanupWarning
             ? `Closed change ${changeId} as ${reason}. ${cleanupWarning}`
             : `Closed change ${changeId} as ${reason}.`,
@@ -4476,6 +4477,7 @@ export const changeTools = {
 
       return formatToolOutput({
         success: archiveResult.success,
+        changeId: change.id,
         specsUpdated: archiveResult.specsUpdated.map((s) => ({
           capability: s.capability,
           version: `${s.originalVersion} → ${s.newVersion}`,
