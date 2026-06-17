@@ -140,9 +140,50 @@ export const TaskCompletedSignalPayloadSchema = z.object({
   completedAt: IsoTimestampSchema,
   /** Structured output extracted from `<adv-output>` tags — optional, non-blocking */
   structured_output: TaskStructuredOutputSchema.optional(),
+  /** Evidence ref for red run — rq-TDD009seq ordering enforcement */
+  lastRedRunId: z.string().optional(),
+  /** Evidence ref for green run — rq-TDD009seq ordering enforcement */
+  lastGreenRunId: z.string().optional(),
+  /** Evidence ref for non-inline TDD (separate_verification / not_applicable) */
+  lastEvidenceRunId: z.string().optional(),
 });
 export type TaskCompletedSignalPayload = z.infer<
   typeof TaskCompletedSignalPayloadSchema
+>;
+
+const MockSurfaceEntrySchema = z.object({
+  pattern: z.string(),
+  count: z.number().int().nonnegative(),
+});
+
+/**
+ * Shared record shape for a persisted test run. Stored in
+ * `state.testRuns[taskId][]` (ring-buffered, last 20). The signal payload
+ * extends this with `taskId`.
+ *
+ * rq-TDD009seq ordering enforcement matches `runId` + `phase` + `exitCode`
+ * from these records against `TaskCompletedSignalPayload.lastRedRunId` /
+ * `lastGreenRunId`.
+ */
+const TestRunRecordBaseSchema = z.object({
+  runId: z.string().min(1),
+  phase: z.enum(["red", "green", "verify"]).optional(),
+  exitCode: z.number().int().nullable(),
+  classification: z.string().min(1),
+  command: z.string().min(1),
+  durationMs: z.number().nonnegative(),
+  assertionDensity: z.number().nonnegative().optional(),
+  mockSurface: z.array(MockSurfaceEntrySchema).optional(),
+  behaviorSurface: z.enum(["small", "medium", "large"]).optional(),
+  recordedAt: IsoTimestampSchema,
+});
+
+export const TestRunRecordedSignalPayloadSchema =
+  TestRunRecordBaseSchema.extend({
+    taskId: z.string(),
+  });
+export type TestRunRecordedSignalPayload = z.infer<
+  typeof TestRunRecordedSignalPayloadSchema
 >;
 
 export const SubagentReportSubmittedSignalPayloadSchema = z.object({

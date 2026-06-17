@@ -62,6 +62,7 @@ export const CHANGE_WORKFLOW_SIGNAL_NAMES = {
   taskRemoved: "adv.change.taskRemoved",
   taskAssigned: "adv.change.taskAssigned",
   taskCompleted: "adv.change.taskCompleted",
+  testRunRecorded: "adv.change.testRunRecorded",
   subagentReportSubmitted: "adv.change.subagentReportSubmitted",
   taskBlocked: "adv.change.taskBlocked",
   taskCancelled: "adv.change.taskCancelled",
@@ -246,6 +247,29 @@ export interface SignalRejection {
   rejectedAt: string;
 }
 
+export interface MockSurfaceEntry {
+  pattern: string;
+  count: number;
+}
+
+/**
+ * Persisted test-run record stored in `state.testRuns[taskId][]`.
+ * Used by rq-TDD009seq ordering enforcement at task-completion time.
+ * Ring-buffered to last 20 per task (same pattern as signal_rejections).
+ */
+export interface TestRunRecord {
+  runId: string;
+  phase?: "red" | "green" | "verify";
+  exitCode: number | null;
+  classification: string;
+  command: string;
+  durationMs: number;
+  assertionDensity?: number;
+  mockSurface?: MockSurfaceEntry[];
+  behaviorSurface?: "small" | "medium" | "large";
+  recordedAt: string;
+}
+
 export interface ChangeWorkflowState extends ChangeWorkflowInput {
   id: string;
   status: import("../types").ChangeStatus;
@@ -405,6 +429,13 @@ export interface ChangeWorkflowState extends ChangeWorkflowInput {
   gateCriteria?: Partial<
     Record<import("../types").GateId, import("../types").GateCriterion[]>
   >;
+  /**
+   * Per-task test-run records, keyed by taskId. Ring-buffered to last 20
+   * per task. Used by rq-TDD009seq ordering enforcement at task-completion
+   * time (applyTaskCompletedToState). Additive optional — replay-safe for
+   * histories predating this field.
+   */
+  testRuns?: Record<string, TestRunRecord[]>;
 }
 
 /**
