@@ -2,6 +2,8 @@
  * Tests for system-block.ts — section assemblers, internal-call detection,
  * and the assembleSystemBlock orchestrator.
  *
+ * T6 (tk-debf477a4ad4): objective field removed; active-change line has no suffix.
+ *
  * Maps to AC1 (single ADV-controlled system entry per turn) and AC8
  * (volatile/stable sentinel placement). Per JC-2 (hardcoded 6 sections)
  * and JC-3 (strict regex internal-call detection).
