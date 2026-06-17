@@ -534,6 +534,7 @@ const advancePluginImpl: Plugin = async (input) => {
   // Related hooks: recordCreatedChange (set on create), recordTerminalChange
   // (clear on close/archive), recordForgetChange (clear on forget).
   // Reachability gate via isChangeReachable prevents phantom re-pointing.
+  // Spec: .adv/specs/advance-meta/spec.json rq-activeChangePointer01
   const handleToolExecuteBefore = async (
     toolName: string,
     args: Record<string, unknown>,
