@@ -3,8 +3,8 @@
   "name": "prep-readiness",
   "title": "Prep Readiness",
   "purpose": "Machine-enforced readiness checks that gate the prep phase. Answers: 'Do we have everything we need ready to make the full change?'",
-  "version": "1.4.0",
-  "updated_at": "2026-06-09T00:00:00.000Z",
+  "version": "1.5.0",
+  "updated_at": "2026-06-17T00:00:00.000Z",
   "requirements": [
     {
       "id": "rq-PR001sml",
@@ -455,6 +455,39 @@
           ],
           "when": "runPrepReadinessChecks is called",
           "then": ["No CRITICAL_OPS_MISSING_COVERAGE error is returned for that item"]
+        }
+      ]
+    },
+    {
+      "id": "rq-PR008tor",
+      "title": "Task Ordering Provisional Advisory",
+      "body": "For tasks with metadata.tdd_intent='inline' that will be subject to rq-TDD009seq ordering enforcement at completion time, the prep-readiness validator SHOULD emit a TASK_ORDERING_PROVISIONAL advisory (warning severity) reminding the agent that a red→green test-run sequence must be recorded via adv_run_test before task completion. This advisory is non-blocking — it surfaces the new ordering requirement without gating the prep gate. The advisory is informational: it does not check whether prior test runs exist (those are validated at task-completion time by the workflow).",
+      "priority": "should",
+      "tags": ["prep", "tdd", "ordering", "advisory"],
+      "scenarios": [
+        {
+          "id": "rq-PR008tor.1",
+          "title": "Inline task gets ordering provisional advisory",
+          "given": [
+            "A task with metadata.tdd_intent='inline'",
+            "The task is part of a change subject to rq-TDD009seq enforcement"
+          ],
+          "when": "runPrepReadinessChecks is called",
+          "then": [
+            "A TASK_ORDERING_PROVISIONAL warning MAY be returned for the task",
+            "The prep gate is NOT blocked (severity is warning)"
+          ]
+        },
+        {
+          "id": "rq-PR008tor.2",
+          "title": "Non-inline tasks do not get ordering advisory",
+          "given": [
+            "A task with metadata.tdd_intent='not_applicable' or 'separate_verification'"
+          ],
+          "when": "runPrepReadinessChecks is called",
+          "then": [
+            "No TASK_ORDERING_PROVISIONAL advisory is returned for the task"
+          ]
         }
       ]
     }

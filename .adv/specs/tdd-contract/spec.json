@@ -3,8 +3,8 @@
   "name": "tdd-contract",
   "title": "TDD Contract",
   "purpose": "Canonical definition of how TDD phases integrate with the ADV task model. Inline TDD (red/green within each implementation task) is the default. Separate verification tasks are reserved for cross-cutting tests spanning multiple implementation tasks.",
-  "version": "1.5.0",
-  "updated_at": "2026-05-03T00:00:00.000Z",
+  "version": "1.6.0",
+  "updated_at": "2026-06-17T00:00:00.000Z",
   "requirements": [
     {
       "id": "rq-TDD001inl",
@@ -250,7 +250,8 @@
           "when": "Command result semantics are interpreted",
           "then": [
             "The command result is interpreted from `passed`, `classification`, and `exitCode` fields",
-            "The optional phase field alone does not authorize gate completion, task completion, or rejection"
+            "The optional phase field alone does not authorize gate completion, task completion, or rejection",
+            "When lastGreenRunId is provided in taskCompletedSignal, the red→green sequence is verified by rq-TDD009seq"
           ]
         },
         {
@@ -261,7 +262,129 @@
           "then": [
             "Only `red`, `green`, or `verify` values are accepted",
             "The accepted value is returned as descriptive metadata",
-            "The phase value is not gate enforcement"
+            "The phase value is not gate enforcement",
+            "The red→green ordering IS enforced by rq-TDD009seq when evidence refs are provided"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-TDD009seq",
+      "title": "Red-Then-Green Ordering Enforcement for Inline TDD",
+      "body": "When a task with metadata.tdd_intent='inline' is completed via taskCompletedSignal carrying a lastGreenRunId reference, the workflow MUST verify that a prior testRunRecordedSignal record with phase='red' AND exitCode != 0 exists for the same taskId, ordered before a matching green record (phase='green', exitCode=0). If no valid red-then-green sequence is found, the taskCompletedSignal is rejected with TASK_ORDERING_VIOLATION. This enforcement applies only when lastGreenRunId is structurally present in the payload. Legacy tasks without lastGreenRunId are grandfathered. Tasks with tdd_intent='not_applicable' or 'separate_verification' are not subject to this check.",
+      "priority": "must",
+      "tags": ["tdd", "inline", "ordering", "enforcement"],
+      "scenarios": [
+        {
+          "id": "rq-TDD009seq.1",
+          "title": "Inline task completed without prior red run is rejected",
+          "given": [
+            "A task with metadata.tdd_intent='inline'",
+            "taskCompletedSignal payload carries lastGreenRunId",
+            "No prior testRunRecordedSignal with phase='red' and exitCode!=0 exists for the same taskId"
+          ],
+          "when": "applyTaskCompletedToState processes the signal",
+          "then": [
+            "TASK_ORDERING_VIOLATION is thrown",
+            "The task status remains unchanged (not 'done')",
+            "The rejection is recorded in signal_rejections"
+          ]
+        },
+        {
+          "id": "rq-TDD009seq.2",
+          "title": "Inline task completed with valid red-then-green sequence is accepted",
+          "given": [
+            "A task with metadata.tdd_intent='inline'",
+            "A prior testRunRecordedSignal with phase='red' and exitCode!=0 exists",
+            "A subsequent testRunRecordedSignal with phase='green' and exitCode=0 exists",
+            "taskCompletedSignal carries lastRedRunId and lastGreenRunId matching those records"
+          ],
+          "when": "applyTaskCompletedToState processes the signal",
+          "then": [
+            "The task is marked 'done'",
+            "No TASK_ORDERING_VIOLATION is thrown"
+          ]
+        },
+        {
+          "id": "rq-TDD009seq.3",
+          "title": "Legacy task without lastGreenRunId is grandfathered",
+          "given": [
+            "A task carrying legacy tdd_evidence.red and tdd_evidence.green",
+            "taskCompletedSignal payload does NOT carry lastGreenRunId"
+          ],
+          "when": "applyTaskCompletedToState processes the signal",
+          "then": [
+            "The ordering check is skipped",
+            "The task is marked 'done' (backward compatible)"
+          ]
+        },
+        {
+          "id": "rq-TDD009seq.4",
+          "title": "Non-inline tasks are exempt from ordering check",
+          "given": [
+            "A task with metadata.tdd_intent='not_applicable' or 'separate_verification'"
+          ],
+          "when": "applyTaskCompletedToState processes the signal",
+          "then": [
+            "The ordering check is skipped regardless of lastGreenRunId presence"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-TDD010qual",
+      "title": "Advisory Test-Quality Signals in adv_run_test Evidence",
+      "body": "The adv_run_test.v1 evidence record MAY carry advisory quality signals computed by static-parsing the test file referenced by the command argument: assertionDensity (count of assertion invocations), mockSurface (detected mock API patterns with counts), and behaviorSurface ('small', 'medium', or 'large' classified by assertion count and function coverage). These signals are advisory only — surfaced to /adv-review for human attention. They MUST NOT gate task completion, gate progression, or signal acceptance. Mock detection patterns are API-qualified (vi.mock, jest.mock, sinon.stub, unittest.mock.patch, etc.) to avoid false positives on the bare 'mock' token.",
+      "priority": "should",
+      "tags": ["tdd", "quality", "advisory", "evidence"],
+      "scenarios": [
+        {
+          "id": "rq-TDD010qual.1",
+          "title": "Quality signals computed when specific test file is referenced",
+          "given": [
+            "adv_run_test is called with a command referencing a specific test file",
+            "The test file exists and is readable"
+          ],
+          "when": "The evidence record is constructed",
+          "then": [
+            "assertionDensity is populated with the count of assertion invocations",
+            "mockSurface is populated with detected mock API patterns and counts",
+            "behaviorSurface is classified as 'small', 'medium', or 'large'"
+          ]
+        },
+        {
+          "id": "rq-TDD010qual.2",
+          "title": "Quality signals omitted for broad commands",
+          "given": [
+            "adv_run_test is called with a broad command (e.g., 'pnpm test' without a specific file)"
+          ],
+          "when": "The evidence record is constructed",
+          "then": [
+            "assertionDensity, mockSurface, and behaviorSurface are omitted",
+            "The evidence record is still valid without these fields"
+          ]
+        },
+        {
+          "id": "rq-TDD010qual.3",
+          "title": "Quality signals do not gate task completion",
+          "given": [
+            "An adv_run_test evidence record with low assertionDensity or high mockSurface"
+          ],
+          "when": "Task completion or gate progression is evaluated",
+          "then": [
+            "The quality signals are advisory only",
+            "Task completion is not blocked by quality signal values",
+            "The signals are surfaced to /adv-review for human attention"
+          ]
+        },
+        {
+          "id": "rq-TDD010qual.4",
+          "title": "Mock detection uses API-qualified patterns only",
+          "given": ["A test file containing the word 'mock' in comments or variable names"],
+          "when": "mockSurface is computed",
+          "then": [
+            "The bare token 'mock' is not matched",
+            "Only API-qualified patterns (vi.mock, jest.mock, sinon.stub, unittest.mock.patch, etc.) are detected"
           ]
         }
       ]
