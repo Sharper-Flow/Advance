@@ -1,3 +1,5 @@
+// Tests for rq-activeChangePointer01: phantom pointer prevention.
+// Covers T4 (recordTerminalChange), T5 (forget validation + clear), T7 (reachability gate).
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
