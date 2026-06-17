@@ -158,6 +158,8 @@ ADV state (changes, archive, wisdom, agenda, reflections, handoff) lives **outsi
 
 ADV-managed worktrees live under `$XDG_DATA_HOME/opencode/worktree/{project-id}/{branch}`. Empty branch-prefix parents may be reaped with bounded `rmdir` only; broad cleanup remains dry-run/approval-gated via hygiene tools.
 
+Archived ADV changes clean up their `change/{id}` branches (local + remote). Direct-archive mode deletes at archive time. PR-mode archives require post-merge cleanup via `adv_archive_repair action=cleanup_merged` (operator-explicit; safe `git branch -d` semantics; squash-merge-safe detection).
+
 `adv_status` also reports a worktree census from `git worktree list --porcelain` plus root-directory mtime. Stale worktrees (>7d inactive) appear in the `worktree_census` raw field and formatted Worktrees section; disk usage is intentionally not scanned in status.
 
 **Never read ADV state files directly** (`read`, `cat`, `ls`). Always use ADV MCP tools (`adv_change_show`, `adv_task_list`, etc.).

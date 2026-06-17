@@ -3,8 +3,8 @@
   "name": "advance-workflow",
   "title": "Advance Workflow",
   "purpose": "Capability: Workflow contract layer for ADV \u2014 gate model, autonomy boundaries, design validation, scope management, releases, approvals, handoff voice, review remediation, and touched-scope quality. Split from `advance` capability.",
-  "version": "1.17.0",
-  "updated_at": "2026-06-15T00:00:00.000Z",
+  "version": "1.18.0",
+  "updated_at": "2026-06-17T00:00:00.000Z",
   "requirements": [
     {
       "id": "rq-problemSpecLaw01",
@@ -3315,6 +3315,65 @@
           "then": [
             "The real verified filesystem path may be included in evidence",
             "The behavior does not reintroduce active artifact-content disk writes as the primary source of truth"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-archiveBranchCleanup01",
+      "title": "Post-merge local branch cleanup for archived ADV changes",
+      "body": "PR-mode ADV archives that survive through PR creation must be cleanable post-merge via an operator-explicit tool. Local deletion uses safe `git branch -d` semantics (refuses unmerged). The cleanup tool reuses the existing `adv_archive_repair` MCP tool surface with a new `cleanup_merged` action; it is operator-explicit (no background sweeps, no daemons, no session-start auto-cleanup per P37). Detection is squash-merge-safe via tree-SHA match (primary) with `git cherry` diff-equivalence fallback.",
+      "priority": "must",
+      "tags": ["workflow", "archive", "branch-cleanup", "release-finalization"],
+      "scenarios": [
+        {
+          "id": "rq-archiveBranchCleanup01.1",
+          "title": "Squash-merge-safe detection",
+          "given": ["An archived ADV change whose `change/{id}` branch was squash-merged into the default branch"],
+          "when": "operator runs `adv_archive_repair action=cleanup_merged`",
+          "then": [
+            "The branch is detected as `tree-identical` (tree-SHA match) OR `patch-equivalent` (git cherry)",
+            "The branch is included in cleanup candidates"
+          ]
+        },
+        {
+          "id": "rq-archiveBranchCleanup01.2",
+          "title": "Worktree-checked-out refusal",
+          "given": ["An archived ADV change whose `change/{id}` branch is currently checked out in any active worktree"],
+          "when": "operator runs `adv_archive_repair action=cleanup_merged`",
+          "then": [
+            "The branch is excluded from deletion candidates",
+            "The exclusion rationale cites the worktree path"
+          ]
+        },
+        {
+          "id": "rq-archiveBranchCleanup01.3",
+          "title": "Dry-run preview",
+          "given": ["Operator wants to preview before deleting"],
+          "when": "operator runs `adv_archive_repair action=cleanup_merged dryRun=true`",
+          "then": [
+            "The tool returns the candidate list with per-branch merge proof",
+            "Zero deletions are performed"
+          ]
+        },
+        {
+          "id": "rq-archiveBranchCleanup01.4",
+          "title": "Status observability",
+          "given": ["At least 1 archived-change local branch is safely deletable"],
+          "when": "operator runs `adv_status view:\"summary\"`",
+          "then": [
+            "A recommendation line appears in `recommendations[]`",
+            "When operator runs `adv_status view:\"hygiene\"`, a full `archived_branch_hygiene` section appears with per-branch detail"
+          ]
+        },
+        {
+          "id": "rq-archiveBranchCleanup01.5",
+          "title": "Non-regression of direct-archive path",
+          "given": ["A change archived via direct-archive mode"],
+          "when": "archive finalization completes",
+          "then": [
+            "The existing branch cleanup gate at `change.ts:4436-4441` continues to delete the branch at archive time",
+            "Direct-archive cleanup behavior is unchanged by the addition of cleanup_merged action"
           ]
         }
       ]
