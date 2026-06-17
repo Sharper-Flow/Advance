@@ -2,9 +2,9 @@
   "$schema": "https://raw.githubusercontent.com/Sharper-Flow/Advance/trunk/plugin/schemas/spec.schema.json",
   "name": "advance-meta",
   "title": "Advance Meta",
-  "purpose": "Capability: Cross-cutting ADV concerns \u2014 config diagnostics, metadata filters, shutdown lifecycle, due-diligence routing, and synthetic-state guards. Split from `advance` capability.",
-  "version": "1.15.0",
-  "updated_at": "2026-06-06T00:00:00.000Z",
+  "purpose": "Capability: Cross-cutting ADV concerns — config diagnostics, metadata filters, shutdown lifecycle, due-diligence routing, and synthetic-state guards. Split from `advance` capability.",
+  "version": "1.16.0",
+  "updated_at": "2026-06-17T00:00:00.000Z",
   "requirements": [
     {
       "id": "rq-synthstate01",
@@ -563,7 +563,7 @@
     {
       "id": "rq-proseReduction01",
       "title": "Code-Enforced Prose Deduplication",
-      "body": "ADV instruction surfaces (ADV_INSTRUCTIONS.md, docs/command-voice-standard.md, .opencode/agents/adv.md, .opencode/command/adv-*.md) MUST classify each section by enforcement class (fully-enforced, partially-enforced, inherently-prose) and apply the matching compression template defined in docs/command-voice-standard.md \u00a7 Prose-Load Reduction Rules. Sections whose behavior is fully or partially enforced by code MUST NOT contain paragraph explanations duplicating the enforced behavior; they MUST use a pointer line + constraint table format.",
+      "body": "ADV instruction surfaces (ADV_INSTRUCTIONS.md, docs/command-voice-standard.md, .opencode/agents/adv.md, .opencode/command/adv-*.md) MUST classify each section by enforcement class (fully-enforced, partially-enforced, inherently-prose) and apply the matching compression template defined in docs/command-voice-standard.md § Prose-Load Reduction Rules. Sections whose behavior is fully or partially enforced by code MUST NOT contain paragraph explanations duplicating the enforced behavior; they MUST use a pointer line + constraint table format.",
       "priority": "must",
       "tags": [
         "prose-reduction",
@@ -829,7 +829,7 @@
     {
       "id": "rq-skillClassification01",
       "title": "Command Skill Classification Tracking",
-      "body": "Commands backed by dedicated or shared skills MUST be listed in ADV_INSTRUCTIONS.md \u00a7 Command vs Skill Boundaries so command/skill ownership stays explicit and drift is reviewable.",
+      "body": "Commands backed by dedicated or shared skills MUST be listed in ADV_INSTRUCTIONS.md § Command vs Skill Boundaries so command/skill ownership stays explicit and drift is reviewable.",
       "priority": "must",
       "tags": [
         "skills",
@@ -845,7 +845,7 @@
           ],
           "when": "Extraction is complete",
           "then": [
-            "ADV_INSTRUCTIONS.md \u00a7 Command vs Skill Boundaries lists the command under Dedicated skill or Shared skill",
+            "ADV_INSTRUCTIONS.md § Command vs Skill Boundaries lists the command under Dedicated skill or Shared skill",
             "The row includes the skill identifier",
             "The command is not listed as Command-only"
           ]
@@ -1598,7 +1598,7 @@
           "then": [
             "The tool returns success with the existing path, branch, baseRef, and headSha",
             "The output marks the result as reused so callers can distinguish reuse from fresh create",
-            "No per-change workflow recovery is required \u2014 change-workflow state survives directly via Temporal",
+            "No per-change workflow recovery is required — change-workflow state survives directly via Temporal",
             "No `git worktree add` is invoked"
           ]
         },
@@ -1955,7 +1955,7 @@
           ],
           "when": "/adv-audit applies quality gates",
           "then": [
-            "CRITICAL ambiguity \u2265 1 promotes health to MAJOR_DRIFT",
+            "CRITICAL ambiguity ≥ 1 promotes health to MAJOR_DRIFT",
             "HIGH ambiguity > 3 (standard) or any HIGH (strict) promotes to DRIFT_DETECTED",
             "Ambiguity thresholds appear in the quality gate table with pass/fail status"
           ]
@@ -2203,7 +2203,7 @@
     {
       "id": "rq-toolPlaceholderPolicy01.6",
       "title": "Contextually-Validated Audit Fields Must Use blank: omit in Preflight",
-      "body": "Optional audit and recovery fields that are only required in specific contextual paths (recovery mode, cross-project mutation, or specific gate types) must use blank: 'omit' in the FIELD_POLICIES preflight table. The handler layer validates these fields contextually \u2014 preflight rejection of blank values creates a deadlock for strict-mode API providers (e.g., OpenAI Responses API with strict:true) that auto-fill every optional field with empty strings. Fields in this class include: confirmationEvidence (required only when target_path is present for cross-project mutations), recoveryEvidence/recoveryReason/priorApprovalEvidence (required only when recoveryMode is poisoned_history), and completedBy on adv_gate_complete (handler defaults to 'agent'). Always-required semantic fields (approvalEvidence, reason, command, content, title, branch) retain blank: 'reject'.",
+      "body": "Optional audit and recovery fields that are only required in specific contextual paths (recovery mode, cross-project mutation, or specific gate types) must use blank: 'omit' in the FIELD_POLICIES preflight table. The handler layer validates these fields contextually — preflight rejection of blank values creates a deadlock for strict-mode API providers (e.g., OpenAI Responses API with strict:true) that auto-fill every optional field with empty strings. Fields in this class include: confirmationEvidence (required only when target_path is present for cross-project mutations), recoveryEvidence/recoveryReason/priorApprovalEvidence (required only when recoveryMode is poisoned_history), and completedBy on adv_gate_complete (handler defaults to 'agent'). Always-required semantic fields (approvalEvidence, reason, command, content, title, branch) retain blank: 'reject'.",
       "priority": "must",
       "tags": [
         "preflight",
@@ -2251,6 +2251,122 @@
             "All such entries use blank: 'omit'",
             "The handler layer for each tool still validates these fields when contextually required",
             "Always-required fields (approvalEvidence, reason, command, content) retain blank: 'reject'"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-activeChangePointer01",
+      "title": "Session Active-Change Pointer Hygiene",
+      "body": "The session active-change pointer (state.activeChange.id in plugin/src/index.ts and its mirror StatusState.activeChangeId in plugin/src/events/status.ts) must not leak phantom references — pointers to changeIds whose Temporal workflow is unreachable AND whose on-disk change.json is absent. Three structural defenses required: (1) a recovery MCP tool (adv_change_forget) to clear phantom pointers, (2) automatic pointer-clear on terminal transitions (close/archive success), (3) a reachability gate in handleToolExecuteBefore that refuses to re-point on non-existent changeIds. All state.activeChange.id mutations MUST live in plugin/src/index.ts hooks (closure scope); tools MUST NOT mutate the pointer directly.",
+      "priority": "must",
+      "tags": [
+        "pointer",
+        "session",
+        "phantom",
+        "recovery",
+        "lifecycle",
+        "handleToolExecuteBefore"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-activeChangePointer01.1",
+          "title": "adv_change_forget clears matching active pointer",
+          "given": [
+            "A session with state.activeChange.id set to changeId X",
+            "An audit log channel (debugLog) is available"
+          ],
+          "when": "adv_change_forget changeId:X is called and the recordForgetChange hook processes a success output",
+          "then": [
+            "state.activeChange.id is set to null",
+            "setActiveChange(null) is called to clear the status mirror",
+            "An audit entry is written with {ts, changeId, prevPointer, action: 'forget', trigger: 'user'}",
+            "Re-calling adv_change_forget changeId:X is idempotent (no-op when pointer already null)"
+          ]
+        },
+        {
+          "id": "rq-activeChangePointer01.2",
+          "title": "adv_change_forget refuses on mismatched changeId with hint",
+          "given": [
+            "A session with state.activeChange.id set to changeId Y (non-null)",
+            "adv_change_forget is called with changeId X where X != Y"
+          ],
+          "when": "The recordForgetChange hook processes the forget output",
+          "then": [
+            "state.activeChange.id remains Y (NOT cleared)",
+            "A debug log is emitted: 'forget called for X but pointer is Y; no clear'",
+            "The tool output is amended with a hint naming the actual pointer",
+            "The hint includes the exact command to retry: adv_change_forget changeId:Y"
+          ]
+        },
+        {
+          "id": "rq-activeChangePointer01.3",
+          "title": "Terminal transitions clear matching active pointer on success",
+          "given": [
+            "A session with state.activeChange.id set to changeId X"
+          ],
+          "when": "adv_change_close or adv_change_archive succeeds for changeId X (success: true in tool output)",
+          "then": [
+            "state.activeChange.id is set to null",
+            "setActiveChange(null) is called",
+            "An audit entry is written with action 'terminal-close' or 'terminal-archive'",
+            "The clear fires only AFTER removeChangeDir succeeds (success-only path)"
+          ]
+        },
+        {
+          "id": "rq-activeChangePointer01.4",
+          "title": "Terminal transitions do NOT clear on partial failure or different changeId",
+          "given": [
+            "A session with state.activeChange.id set to changeId X"
+          ],
+          "when": "adv_change_close or adv_change_archive is called for changeId X but fails (success: false) OR succeeds for a different changeId Y where Y != X",
+          "then": [
+            "state.activeChange.id remains X (NOT cleared)",
+            "No audit entry is written",
+            "No setActiveChange call is made"
+          ]
+        },
+        {
+          "id": "rq-activeChangePointer01.5",
+          "title": "handleToolExecuteBefore does not re-point on non-existent changeId",
+          "given": [
+            "A session with state.activeChange.id set to changeId X",
+            "An ADV tool is called with args.changeId referencing changeId Y",
+            "changeId Y does not exist: no Visibility search attribute, no disk change.json, no reachable workflow state"
+          ],
+          "when": "handleToolExecuteBefore processes the tool call and runs the isChangeReachable check",
+          "then": [
+            "state.activeChange.id remains X (NOT re-pointed to Y)",
+            "A debug log is emitted noting Y is unreachable",
+            "The tool execution itself proceeds and returns its normal 'Change not found' result",
+            "The reachability check uses Visibility fast-path first, then disk change.json fallback, then workflow state fallback"
+          ]
+        },
+        {
+          "id": "rq-activeChangePointer01.6",
+          "title": "handleToolExecuteBefore exempts adv_change_forget from reachability gate",
+          "given": [
+            "The adv_change_forget tool is being executed"
+          ],
+          "when": "handleToolExecuteBefore processes the adv_change_forget tool call",
+          "then": [
+            "The reachability gate is skipped entirely (early-return at the top of the hook body)",
+            "No isChangeReachable check is performed",
+            "The forget tool's intentional clear is not defeated by the gate"
+          ]
+        },
+        {
+          "id": "rq-activeChangePointer01.7",
+          "title": "Cross-project tool calls do not touch caller's pointer",
+          "given": [
+            "A session in project A with state.activeChange.id set to changeId X (project A scope)",
+            "An ADV tool is called with target_path pointing to project B and args.changeId referencing a changeId in project B"
+          ],
+          "when": "handleToolExecuteBefore processes the cross-project tool call",
+          "then": [
+            "The caller's state.activeChange.id remains X (NOT mutated)",
+            "No reachability check is performed against the caller's project for the target-project changeId",
+            "The terminal-clear hooks likewise do not clear the caller's pointer for target-project close/archive operations"
           ]
         }
       ]

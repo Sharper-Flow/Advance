@@ -530,6 +530,10 @@ const advancePluginImpl: Plugin = async (input) => {
     });
   };
 
+  // rq-activeChangePointer01: session active-change pointer hygiene.
+  // Related hooks: recordCreatedChange (set on create), recordTerminalChange
+  // (clear on close/archive), recordForgetChange (clear on forget).
+  // Reachability gate via isChangeReachable prevents phantom re-pointing.
   const handleToolExecuteBefore = async (
     toolName: string,
     args: Record<string, unknown>,
