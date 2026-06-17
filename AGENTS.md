@@ -81,7 +81,7 @@ bin/adv slop-scan   # deterministic slop scanner
 bin/adv --json      # JSON output (status/roadmap/slop-scan)
 ```
 
-**CI order** (`.github/workflows/ci.yml`, Node 24.x, pnpm 11): schemas:check → typecheck → lint → format:check → `build:worker` → install Temporal CLI + Bun → `pnpm test` → `bun test bin/`. A separate `build` job runs `pnpm run build` after tests pass. Auto-release (`auto-release.yml`) cuts a GitHub Release after CI succeeds on main/trunk using conventional commits.
+**CI order** (`.github/workflows/ci.yml`, Node 24.x, pnpm 11): schemas:check → typecheck → lint → format:check → test → build. Within the test job, `build:worker` runs before `pnpm test`, Temporal CLI + Bun are installed, and `bun test bin/` runs as a separate surface; the `build` job (`pnpm run build`) runs only after tests pass. Auto-release (`auto-release.yml`) cuts a GitHub Release after CI succeeds on main/trunk using conventional commits.
 
 **Git hooks** (`.githooks/`, opt-in via `scripts/install-git-hooks.sh` which sets `core.hooksPath=.githooks`): `post-commit` and `pre-push` run `deploy-local.sh --fix` when a commit touches `.opencode/`, `ADV_INSTRUCTIONS.md`, or `skills/`, keeping `~/.config/opencode/` in sync. Idempotent no-ops otherwise; never block the push.
 
