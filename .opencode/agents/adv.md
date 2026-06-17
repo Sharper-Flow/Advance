@@ -54,6 +54,7 @@ tools:
   adv_change_reenter: true
   adv_archive_repair: true
   adv_change_status_repair: true
+  adv_change_forget: true
   # Tasks
   adv_task_list: true
   adv_task_show: true
