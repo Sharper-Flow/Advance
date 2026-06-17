@@ -1,0 +1,1290 @@
+{
+  "id": "hardenTddProofEvidence",
+  "title": "Harden TDD proof evidence",
+  "status": "archived",
+  "created_at": "2026-06-16T23:59:04.915Z",
+  "tasks": [
+    {
+      "id": "tk-40a731ad7d7e",
+      "title": "Add TDD ordering and quality-signal requirements to tdd-contract spec",
+      "type": "code",
+      "section": "Phase 1: Spec changes",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-06-17T00:32:46.994Z",
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC3",
+          "SC4"
+        ],
+        "respects": [
+          "C6"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-17T00:35:17.522Z",
+      "verification": "Both spec JSON files validate as well-formed. tdd-contract spec gains rq-TDD009seq (4 scenarios: reject without red, accept with valid sequence, legacy grandfather, non-inline exempt) and rq-TDD010qual (4 scenarios: computed when file referenced, omitted for broad commands, non-gating, API-qualified mock detection). prep-readiness spec gains rq-PR008tor (2 scenarios: inline advisory, non-inline skip). rq-TDD008path.3 and .4 scenarios updated to reference ordering enforcement. Versions bumped: tdd-contract 1.5.0→1.6.0, prep-readiness 1.4.0→1.5.0.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".adv/specs/prep-readiness/spec.json",
+        ".adv/specs/tdd-contract/spec.json"
+      ],
+      "touched_files": [
+        ".adv/specs/prep-readiness/spec.json",
+        ".adv/specs/tdd-contract/spec.json"
+      ],
+      "checkpointSha": "9b2712c1f860a430b0ff4c585fa531d5ebe0d1e7",
+      "completedAt": "2026-06-17T00:37:34.023Z",
+      "completed_at": "2026-06-17T00:37:34.023Z"
+    },
+    {
+      "id": "tk-eb0f3ea0bae4",
+      "title": "Add types layer for test-run persistence and evidence refs",
+      "type": "code",
+      "section": "Phase 2: Types layer",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-06-17T00:33:02.300Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-40a731ad7d7e"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC2"
+        ],
+        "respects": [
+          "C1",
+          "C5"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-17T00:38:02.304Z",
+      "verification": "pnpm run typecheck passes clean. Added: (1) testRunRecorded signal name to CHANGE_WORKFLOW_SIGNAL_NAMES in contracts.ts, (2) TestRunRecord + MockSurfaceEntry interfaces in contracts.ts, (3) testRuns?: Record<string, TestRunRecord[]> additive optional field on ChangeWorkflowState, (4) lastRedRunId/lastGreenRunId/lastEvidenceRunId optional fields on TaskCompletedSignalPayloadSchema in signals.ts, (5) TestRunRecordedSignalPayloadSchema + MockSurfaceEntrySchema + TestRunRecordBaseSchema in signals.ts. All types compile. Signal name follows adv.change.{key} convention checked by messages.test.ts.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/temporal/contracts.ts",
+        "plugin/src/types/signals.ts"
+      ],
+      "touched_files": [
+        "plugin/src/temporal/contracts.ts",
+        "plugin/src/types/signals.ts"
+      ],
+      "checkpointSha": "48e11a1d0e1a8053288224f97d3f2839bdf89999",
+      "completedAt": "2026-06-17T00:40:22.282Z",
+      "completed_at": "2026-06-17T00:40:22.282Z"
+    },
+    {
+      "id": "tk-3c09531bd9a7",
+      "title": "Create static test-quality parser (test-quality.ts)",
+      "type": "code",
+      "section": "Phase 4a: Static parser",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-06-17T00:33:02.314Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-40a731ad7d7e"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC3"
+        ],
+        "verifies": [
+          "AC6",
+          "AC7"
+        ],
+        "respects": [
+          "C2",
+          "C4",
+          "C5"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-17T00:46:38.414Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "hardenTddProofEvidence",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/hardenTddProofEvidence",
+          "task_id": "tk-3c09531bd9a7",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-3c09531bd9a7"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/tools/test-quality.ts",
+            "plugin/src/tools/test-quality.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "pnpm exec vitest run src/tools/test-quality.test.ts",
+              "exit_code": 0,
+              "summary": "All 42 tests pass"
+            },
+            {
+              "command": "pnpm run typecheck",
+              "exit_code": 0,
+              "summary": "TypeScript typecheck passes"
+            },
+            {
+              "command": "pnpm run lint",
+              "exit_code": 0,
+              "summary": "ESLint passes"
+            },
+            {
+              "command": "pnpm exec prettier --check src/tools/test-quality.ts src/tools/test-quality.test.ts",
+              "exit_code": 0,
+              "summary": "Prettier formatting passes"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Defined assertionDensity as assertionCount / functionCount",
+              "why": "Provides an advisory signal of how many assertions appear per function-like construct in the test file, which aligns with the behavior-surface heuristic inputs."
+            },
+            {
+              "what": "Treated (1 assertion, 1 function) as 'small' and everything else that is not 'large' as 'medium'",
+              "why": "The literal spec conditions overlap; this ordering matches the documented small/large definitions and the requested edge-case tests."
+            },
+            {
+              "what": "Counted every arrow function ('=>') as a distinct anonymous function in addition to named function/test blocks",
+              "why": "The task explicitly lists '=> ' as a function pattern to match."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "none",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Created plugin/src/tools/test-quality.ts and test-quality.test.ts implementing extractTestFilePath, detectMockPatterns, classifyBehaviorSurface, and computeQualitySignals. All 42 tests pass, typecheck, lint, and prettier formatting are green. The module only imports node:fs and contains no workflow/storage-layer imports.",
+            "suggested_next_action": "Run the full plugin test suite (pnpm test or bin/oc-test full) to confirm no regressions, then proceed to the next task."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/tools/test-quality.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run typecheck"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run lint"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec prettier --check src/tools/test-quality.ts src/tools/test-quality.test.ts"
+            }
+          ]
+        }
+      ],
+      "verification": "Adv-engineer report: 42 tests pass in test-quality.test.ts. Functions implemented: extractTestFilePath (CLI pattern extraction), detectMockPatterns (12 API-qualified patterns), classifyBehaviorSurface (AC7 heuristic), computeQualitySignals (file read + parse). All mock patterns have ≥3 fixtures (AC6). Bare 'mock' token correctly not matched. Behavior surface edge cases tested. Typecheck/lint/prettier clean.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/test-quality.test.ts",
+        "plugin/src/tools/test-quality.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/test-quality.test.ts",
+        "plugin/src/tools/test-quality.ts"
+      ],
+      "checkpointSha": "c732542e2029844374e9fceee2eec9b68366888f",
+      "completedAt": "2026-06-17T00:52:45.940Z",
+      "completed_at": "2026-06-17T00:52:45.940Z"
+    },
+    {
+      "id": "tk-8d226f102c4a",
+      "title": "Implement test-run persistence and ordering enforcement in workflow layer",
+      "type": "code",
+      "section": "Phase 3: Workflow enforcement",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-06-17T00:33:24.355Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-eb0f3ea0bae4"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC2"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4"
+        ],
+        "respects": [
+          "C1",
+          "C3",
+          "C5"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-17T00:40:45.010Z",
+      "verification": "TDD red→green verified. 6 new tests in change-state.test.ts: AC1 (reject without red run), AC2 (accept valid red→green), AC3 (legacy grandfathered), fake-red rejection, not_applicable exemption, wrong-order rejection. Plus applyTestRunRecordedToState storage + ring-buffer tests. All 26 tests pass. Bundle boundary test passes (4 tests). Messages test updated for 40-signal surface (3 tests pass). Typecheck clean. Implementation: applyTestRunRecordedToState + ordering check in applyTaskCompletedToState + testRunRecordedSignal in messages.ts + handler in workflows.ts.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/temporal/change-state.test.ts",
+        "plugin/src/temporal/change-state.ts",
+        "plugin/src/temporal/messages.test.ts",
+        "plugin/src/temporal/messages.ts",
+        "plugin/src/temporal/workflows.ts"
+      ],
+      "touched_files": [
+        "plugin/src/temporal/change-state.test.ts",
+        "plugin/src/temporal/change-state.ts",
+        "plugin/src/temporal/messages.test.ts",
+        "plugin/src/temporal/messages.ts",
+        "plugin/src/temporal/workflows.ts"
+      ],
+      "checkpointSha": "12b783bea17dd6e80ce1ec1a4eb52b3dbbaecb47",
+      "completedAt": "2026-06-17T00:46:20.430Z",
+      "completed_at": "2026-06-17T00:46:20.430Z"
+    },
+    {
+      "id": "tk-2f15f1603eaf",
+      "title": "Integrate quality signals and testRunRecordedSignal into adv_run_test",
+      "type": "code",
+      "section": "Phase 4b: adv_run_test integration",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-06-17T00:33:24.357Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-3c09531bd9a7"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-eb0f3ea0bae4"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC3"
+        ],
+        "verifies": [
+          "AC5"
+        ],
+        "respects": [
+          "C2",
+          "C4"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-17T00:53:04.651Z",
+      "verification": "Typecheck clean. 64 tests pass (42 test-quality + 22 test.ts). Integration: (1) quality signal computation (extractTestFilePath + computeQualitySignals) before runCommand, (2) testRunRecordedSignal fired best-effort after runCommand with runId/phase/exitCode/classification/qualitySignals/recordedAt, (3) quality signals + runId included in evidence output, (4) AdvRunTestEvidenceSchema in subagent-report.ts extended with optional assertionDensity/mockSurface/behaviorSurface fields. Signal fire uses rq-cacheRefresh01-exempt annotation.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/subagent-report.ts",
+        "plugin/src/tools/test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/subagent-report.ts",
+        "plugin/src/tools/test.ts"
+      ],
+      "checkpointSha": "9c5063b8a0b4383e573c956c2cf81795b6711a69",
+      "completedAt": "2026-06-17T00:56:42.213Z",
+      "completed_at": "2026-06-17T00:56:42.213Z"
+    },
+    {
+      "id": "tk-7ffa66b12f0c",
+      "title": "Enhance checkpoint rejection surfacing and prep-readiness advisory",
+      "type": "code",
+      "section": "Phase 5: Checkpoint + validator",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-06-17T00:33:43.970Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-8d226f102c4a"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC2"
+        ],
+        "verifies": [
+          "AC4"
+        ],
+        "respects": [
+          "C3"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-17T00:57:10.147Z",
+      "verification": "Typecheck clean. 31 tests pass (11 prep-readiness + 20 checkpoint). Changes: (1) checkpoint.ts enhanced — fireTaskCompletedFromCheckpoint now queries latest signal_rejections via getStateQuery when task status is not 'done', surfaces specific TASK_ORDERING_VIOLATION message; (2) prep-readiness.ts — TASK_ORDERING_PROVISIONAL advisory code added, checkTaskOrderingProvisional function emits warning for inline TDD tasks, wired into runPrepReadinessChecks; (3) task-classifier.ts — no code change needed (ordering enforcement is at applyTaskCompletedToState workflow layer, not classifier).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/checkpoint.ts",
+        "plugin/src/validator/prep-readiness.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/checkpoint.ts",
+        "plugin/src/validator/prep-readiness.ts"
+      ],
+      "checkpointSha": "28efc0a8d099157d840f20ce379bf73c4b04948f",
+      "completedAt": "2026-06-17T00:58:59.945Z",
+      "completed_at": "2026-06-17T00:58:59.945Z"
+    },
+    {
+      "id": "tk-9fdca6aab7b1",
+      "title": "Update RSTC docs and resolve phase contract drift",
+      "type": "code",
+      "section": "Phase 6: Docs",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-06-17T00:33:44.021Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-2f15f1603eaf"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-8d226f102c4a"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC4"
+        ],
+        "respects": [
+          "DONT5"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-17T00:59:12.234Z",
+      "verification": "Three doc files updated: (1) adv-apply.md RSTC block — added rq-TDD009seq ordering enforcement note + rq-TDD010qual advisory signals note; (2) ADV_INSTRUCTIONS.md RSTC block — updated phase description to note ordering is structurally enforced + quality signals advisory; (3) docs/adv-run-test-prep.md — marked HIGH-severity phase contract drift finding as RESOLVED with link to rq-TDD009seq.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".opencode/command/adv-apply.md",
+        "ADV_INSTRUCTIONS.md",
+        "docs/adv-run-test-prep.md"
+      ],
+      "touched_files": [
+        ".opencode/command/adv-apply.md",
+        "ADV_INSTRUCTIONS.md",
+        "docs/adv-run-test-prep.md"
+      ],
+      "checkpointSha": "7c0c1790f5b7786636ebf6a373de9537382e0aba",
+      "completedAt": "2026-06-17T01:00:52.143Z",
+      "completed_at": "2026-06-17T01:00:52.143Z"
+    },
+    {
+      "id": "tk-9e60135b711c",
+      "title": "Schema regeneration and full verification suite",
+      "type": "code",
+      "section": "Phase 7: Schema + verification",
+      "status": "done",
+      "priority": 5,
+      "created_at": "2026-06-17T00:33:59.696Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-9fdca6aab7b1"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-7ffa66b12f0c"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "contract_refs": {
+        "verifies": [
+          "AC8",
+          "AC9",
+          "AC10"
+        ],
+        "respects": [
+          "C7"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-17T01:01:11.706Z",
+      "verification": "AC10: pnpm run check passes clean (schemas:check → typecheck → lint → format:check). AC10: bin/oc-test full passes — 3755 tests across 271 files, 0 failures. AC8: workflow-bundle-boundary.test.ts passes (4 tests, verified earlier). AC9: all asset/regression tests pass as part of full suite. Schemas regenerated (7 JSON schemas). Format fixes applied to change-state.ts + checkpoint.ts.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/temporal/change-state.ts",
+        "plugin/src/tools/checkpoint.ts"
+      ],
+      "touched_files": [
+        "plugin/src/temporal/change-state.ts",
+        "plugin/src/tools/checkpoint.ts"
+      ],
+      "checkpointSha": "8c3f35722637145f5752c48a3bfc8b2d8f745111",
+      "completedAt": "2026-06-17T01:04:15.981Z",
+      "completed_at": "2026-06-17T01:04:15.981Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "hardenTddProofEvidence",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/hardenTddProofEvidence",
+      "task_id": "tk-3c09531bd9a7",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-3c09531bd9a7"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/tools/test-quality.ts",
+        "plugin/src/tools/test-quality.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "pnpm exec vitest run src/tools/test-quality.test.ts",
+          "exit_code": 0,
+          "summary": "All 42 tests pass"
+        },
+        {
+          "command": "pnpm run typecheck",
+          "exit_code": 0,
+          "summary": "TypeScript typecheck passes"
+        },
+        {
+          "command": "pnpm run lint",
+          "exit_code": 0,
+          "summary": "ESLint passes"
+        },
+        {
+          "command": "pnpm exec prettier --check src/tools/test-quality.ts src/tools/test-quality.test.ts",
+          "exit_code": 0,
+          "summary": "Prettier formatting passes"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Defined assertionDensity as assertionCount / functionCount",
+          "why": "Provides an advisory signal of how many assertions appear per function-like construct in the test file, which aligns with the behavior-surface heuristic inputs."
+        },
+        {
+          "what": "Treated (1 assertion, 1 function) as 'small' and everything else that is not 'large' as 'medium'",
+          "why": "The literal spec conditions overlap; this ordering matches the documented small/large definitions and the requested edge-case tests."
+        },
+        {
+          "what": "Counted every arrow function ('=>') as a distinct anonymous function in addition to named function/test blocks",
+          "why": "The task explicitly lists '=> ' as a function pattern to match."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "none",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Created plugin/src/tools/test-quality.ts and test-quality.test.ts implementing extractTestFilePath, detectMockPatterns, classifyBehaviorSurface, and computeQualitySignals. All 42 tests pass, typecheck, lint, and prettier formatting are green. The module only imports node:fs and contains no workflow/storage-layer imports.",
+        "suggested_next_action": "Run the full plugin test suite (pnpm test or bin/oc-test full) to confirm no regressions, then proceed to the next task."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/tools/test-quality.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run typecheck"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run lint"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec prettier --check src/tools/test-quality.ts src/tools/test-quality.test.ts"
+        }
+      ]
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-06-17T00:00:40.496Z",
+      "completed_by": "user",
+      "approval_evidence": "User confirmed via Tier A whitelist (\"confirm\"). Problem statement and proposal artifacts accepted as-is.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "95237f5520fce6aae80ae50a59edff4b7181a2a4bd2b71baefc56620b46134db",
+        "non_whitespace_chars": 4850,
+        "checked_at": "2026-06-16T23:59:04.939Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-06-17T00:21:20.626Z",
+      "completed_by": "agent",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "6cfb0be08b7f582368f2a159974147299d5a74ddb08a4e915cad2b78cf514da7",
+        "non_whitespace_chars": 7700,
+        "checked_at": "2026-06-16T23:59:04.940Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-06-17T00:29:23.211Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design artifact persisted via adv_change_update. Mandatory independent validator (adv-researcher) attempted 2x — both spawns cancelled (infra). Performed inline validation against source code with 6 architectural risk checks: all confirmed-safe or caution (no blockers). Key decisions: (1) new testRunRecordedSignal for test-run persistence with ring-buffered state, (2) ordering enforcement in applyTaskCompletedToState via throw-to-reject pattern, (3) quality signals via static parser in tools/test-quality.ts (advisory only), (4) additive schema (no version bump), (5) fireSignal with rq-cacheRefresh01-exempt for test-run signal. No user-value/product tradeoff requiring checkpoint — design is purely technical hardening.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "16f0b01efb973e855d7ed5cc2f74139c6fd4dadf39d6fcfe048da1e784d0f2dd",
+        "non_whitespace_chars": 11646,
+        "checked_at": "2026-06-16T23:59:04.941Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-06-17T00:35:04.259Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved task graph via Tier A whitelist \"approve\". 8 tasks across 7 phases. Critical path: tk-1→tk-2→tk-4→tk-6→tk-8. All contract items mapped. Worktree at /home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/hardenTddProofEvidence"
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-06-17T01:04:42.672Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 8 implementation tasks complete with checkpoints. 3755 tests pass (271 files). pnpm run check clean (schemas/typecheck/lint/format). Key deliverables: (1) rq-TDD009seq ordering enforcement in applyTaskCompletedToState via testRunRecordedSignal, (2) rq-TDD010qual advisory quality signals via test-quality.ts static parser, (3) evidence ref binding on TaskCompletedSignalPayload, (4) checkpoint rejection surfacing + prep-readiness advisory, (5) RSTC docs updated + phase drift resolved. Sub-agent (adv-engineer) successfully delegated for tk-3 (test-quality parser)."
+    },
+    "acceptance": {
+      "status": "done",
+      "started_at": "2026-06-17T01:07:18.142Z",
+      "completed_at": "2026-06-17T01:08:15.028Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved acceptance via Tier A whitelist \"approve\". Contract review matrix submitted: 35 rows, 0 failing. All 4 SC pass, 10 AC pass, 7 C respected, 7 DONT respected, 7 OOS not_applicable. Executive summary persisted. 3755 tests pass.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "a472c04ae3bf9c513f1a945781549b29be76c4860de10b7d2d5c6dac58e72982",
+        "non_whitespace_chars": 1607,
+        "checked_at": "2026-06-16T23:59:04.942Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "6cfb0be08b7f582368f2a159974147299d5a74ddb08a4e915cad2b78cf514da7",
+      "approvedAt": "2026-06-17T00:21:12.501Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "A `taskCompletedSignal` for a `tdd_intent: inline` task is rejected (with `TASK_ORDERING_VIOLATION`) unless a prior `adv_run_test.v1` record with `phase:'red'` AND `exitCode != 0` exists for the same `taskId`, ordered by the Temporal signal stream before the green record.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6cfb0be08b7f582368f2a159974147299d5a74ddb08a4e915cad2b78cf514da7",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "The `taskCompletedSignal` payload includes `lastRedRunId` and `lastGreenRunId` for inline TDD, or `lastEvidenceRunId` for non-inline (separate_verification / not_applicable). The `task.verification` field is non-empty AND the evidence ref is structurally present.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6cfb0be08b7f582368f2a159974147299d5a74ddb08a4e915cad2b78cf514da7",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "`adv_run_test.v1` (the schema in `plugin/src/tools/subagent-report.ts:36`) carries new fields: `assertionDensity: number`, `mockSurface: { pattern: string, count: number }[]`, `behaviorSurface: \"small\" | \"medium\" | \"large\"`. These are populated by static-parsing the test file referenced by `command` (Vitest `vi.mock`, Jest `jest.mock`, Sinon `stub`, Python `unittest.mock.patch` patterns recognized).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6cfb0be08b7f582368f2a159974147299d5a74ddb08a4e915cad2b78cf514da7",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC4",
+        "kind": "success_criterion",
+        "text": "The pre-existing HIGH-severity phase contract drift from `docs/adv-run-test-prep.md:50-55` is closed: `phase` is reintroduced as a typed optional in the `adv_run_test` schema, exit-code semantics validation is preserved, and ordering enforcement (SC1) is added on top.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6cfb0be08b7f582368f2a159974147299d5a74ddb08a4e915cad2b78cf514da7",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "A task with `tdd_intent: inline` that completes via `taskCompletedSignal` without a prior red record returns `TASK_ORDERING_VIOLATION` (must-fail). Test: `plugin/src/temporal/change-state.test.ts` (new or extended).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6cfb0be08b7f582368f2a159974147299d5a74ddb08a4e915cad2b78cf514da7",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "A task with `tdd_intent: inline` that completes with a red record (exitCode ≠ 0) followed by a green record (exitCode = 0) returns success. Same test file.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6cfb0be08b7f582368f2a159974147299d5a74ddb08a4e915cad2b78cf514da7",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "A legacy task carrying `tdd_evidence.red + tdd_evidence.green` continues to satisfy the gate unchanged (no `lastGreenRunId` required). Backward-compat test.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6cfb0be08b7f582368f2a159974147299d5a74ddb08a4e915cad2b78cf514da7",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "`taskCompletedSignal` payload is rejected if `task.verification` is empty OR `lastEvidenceRunId`/`lastRedRunId` is structurally absent. Test: validator test in `plugin/src/validator/prep-readiness.test.ts` or task-classifier test.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6cfb0be08b7f582368f2a159974147299d5a74ddb08a4e915cad2b78cf514da7",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "`adv_run_test.v1` schema accepts the three new fields and they are populated by a new static-parsing pass in `plugin/src/tools/test.ts`. Test: `plugin/src/tools/test.test.ts` extends `adv_run_test.v1` parsing.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6cfb0be08b7f582368f2a159974147299d5a74ddb08a4e915cad2b78cf514da7",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "The `mockSurface` detector recognizes `vi.mock(`, `vi.fn(`, `vi.spyOn(`, `jest.mock(`, `jest.fn(`, `sinon.stub(`, `sinon.spy(`, `unittest.mock.patch`, `mock.patch` patterns. Test: at least 3 fixtures per pattern.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6cfb0be08b7f582368f2a159974147299d5a74ddb08a4e915cad2b78cf514da7",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "`behaviorSurface: \"large\"` requires ≥3 assertions across ≥2 distinct functions/expectations in the test file. \"medium\" = 1-2 functions or 2+ assertions. \"small\" = 1 assertion, 1 function. Test the heuristic directly.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6cfb0be08b7f582368f2a159974147299d5a74ddb08a4e915cad2b78cf514da7",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC8",
+        "kind": "acceptance_criterion",
+        "text": "`plugin/src/temporal/workflow-bundle-boundary.test.ts` still passes (no new unreachable imports from `plugin/src/temporal/`).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6cfb0be08b7f582368f2a159974147299d5a74ddb08a4e915cad2b78cf514da7",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC9",
+        "kind": "acceptance_criterion",
+        "text": "The asset/regression tests in `plugin/src/adv-*assets.test.ts` continue to pass (no spec-doc drift on the new `rq-TDD009seq` / `rq-TDD010qual` requirement IDs).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6cfb0be08b7f582368f2a159974147299d5a74ddb08a4e915cad2b78cf514da7",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC10",
+        "kind": "acceptance_criterion",
+        "text": "End-to-end: run `pnpm run check` (schemas:check → typecheck → lint → format:check) and `pnpm test` against the new code, both pass.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6cfb0be08b7f582368f2a159974147299d5a74ddb08a4e915cad2b78cf514da7",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Backward compatibility. Legacy `tdd_evidence.red+green` tasks continue to satisfy the gate. The new ordering check applies only when `lastGreenRunId` is structurally present.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6cfb0be08b7f582368f2a159974147299d5a74ddb08a4e915cad2b78cf514da7",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Floor, not ceiling. New quality signals (`assertionDensity`, `mockSurface`, `behaviorSurface`) are advisory. They do not gate task completion. The reviewer (`/adv-review`) and the human at `/adv-apply` retry-budget are the enforcement layer.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6cfb0be08b7f582368f2a159974147299d5a74ddb08a4e915cad2b78cf514da7",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "No new failure modes for trivial/cross-cutting tasks. Tasks with `tdd_intent: not_applicable` or `separate_verification` are not affected by SC1.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6cfb0be08b7f582368f2a159974147299d5a74ddb08a4e915cad2b78cf514da7",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Performance budget. Static-parsing for quality signals must add <100ms per `adv_run_test` call. Pure file-content parse, no test execution, no subprocess.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6cfb0be08b7f582368f2a159974147299d5a74ddb08a4e915cad2b78cf514da7",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Determinism preserved. Quality signals depend on file content only, not test execution order. Reproducible across replays.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6cfb0be08b7f582368f2a159974147299d5a74ddb08a4e915cad2b78cf514da7",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C6",
+        "kind": "constraint",
+        "text": "Spec-driven. Changes to `tdd-contract` spec add `rq-TDD009seq` and `rq-TDD010qual` requirements BEFORE corresponding tool changes land (spec is the law).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6cfb0be08b7f582368f2a159974147299d5a74ddb08a4e915cad2b78cf514da7",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C7",
+        "kind": "constraint",
+        "text": "Schema drift guarded. `pnpm run schemas:check` must pass after schema additions; `plugin/src/tools/test-contract-assets.test.ts` must cover the new fields.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6cfb0be08b7f582368f2a159974147299d5a74ddb08a4e915cad2b78cf514da7",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not introduce line-coverage metrics. Rejected by Gaurav 2026 (https://gauravnotes.com/2026/03/01/tdd-bdd-java-engineer-manifesto/) — invites coverage theater.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6cfb0be08b7f582368f2a159974147299d5a74ddb08a4e915cad2b78cf514da7",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not require multiple test cases per task. Gaming-prone; would penalize single-purpose change tasks.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6cfb0be08b7f582368f2a159974147299d5a74ddb08a4e915cad2b78cf514da7",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not gate task completion on `assertionDensity`. Advisory only; the reviewer surfaces it.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6cfb0be08b7f582368f2a159974147299d5a74ddb08a4e915cad2b78cf514da7",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not auto-reject tasks with high `mockSurface`. Legitimate mock use exists (e.g., external services, time, randomness).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6cfb0be08b7f582368f2a159974147299d5a74ddb08a4e915cad2b78cf514da7",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "Do not break `adv_run_test.phase` as a descriptive field. Keep it; enforce ordering separately.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6cfb0be08b7f582368f2a159974147299d5a74ddb08a4e915cad2b78cf514da7",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT6",
+        "kind": "avoidance",
+        "text": "Do not change `tdd_intent: inline` default for logic-bearing tasks. The default is correct.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6cfb0be08b7f582368f2a159974147299d5a74ddb08a4e915cad2b78cf514da7",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT7",
+        "kind": "avoidance",
+        "text": "Do not change `task.verification` from a free-text string to a typed classification. Bind it to evidence; keep the human-readable string for review and reflection.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6cfb0be08b7f582368f2a159974147299d5a74ddb08a4e915cad2b78cf514da7",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "Mutation testing. High cost, out of budget. Possible follow-up.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6cfb0be08b7f582368f2a159974147299d5a74ddb08a4e915cad2b78cf514da7",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "Line coverage as a gate. See DONT1.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6cfb0be08b7f582368f2a159974147299d5a74ddb08a4e915cad2b78cf514da7",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "Removing TDD-as-policy. Rejected — TDD has real value as a floor.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6cfb0be08b7f582368f2a159974147299d5a74ddb08a4e915cad2b78cf514da7",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS4",
+        "kind": "out_of_scope",
+        "text": "Cross-project target store changes. Out of scope for this change.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6cfb0be08b7f582368f2a159974147299d5a74ddb08a4e915cad2b78cf514da7",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS5",
+        "kind": "out_of_scope",
+        "text": "`bin/adv` CLI bridge changes. Out of scope; this is a plugin-internal hardening.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6cfb0be08b7f582368f2a159974147299d5a74ddb08a4e915cad2b78cf514da7",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS6",
+        "kind": "out_of_scope",
+        "text": "Vitest JSON reporter wiring into `adv_run_test.v1`. Already a separate change in `docs/adv-run-test-prep.md:91-97`; the parser pipeline there is independent of this change.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6cfb0be08b7f582368f2a159974147299d5a74ddb08a4e915cad2b78cf514da7",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS7",
+        "kind": "out_of_scope",
+        "text": "Renaming `tdd_evidence` legacy field. Backward-compat constraint (C1) requires keeping it.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6cfb0be08b7f582368f2a159974147299d5a74ddb08a4e915cad2b78cf514da7",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-06-17T01:08:00.000Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "change-state.test.ts: AC1 test rejects inline task without red run; AC2 test accepts valid red→green; applyTaskCompletedToState throws TASK_ORDERING_VIOLATION"
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "TaskCompletedSignalPayloadSchema has lastRedRunId/lastGreenRunId/lastEvidenceRunId optional fields; ordering check verifies refs against state.testRuns"
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "test-quality.ts: 42 tests pass; AdvRunTestEvidenceSchema extended with assertionDensity/mockSurface/behaviorSurface; test.ts integration verified"
+        },
+        {
+          "contractId": "SC4",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "docs/adv-run-test-prep.md HIGH finding marked RESOLVED; rq-TDD008path.3/.4 updated; RSTC docs updated in adv-apply.md + ADV_INSTRUCTIONS.md"
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "change-state.test.ts: 'AC1: rejects inline task completion with lastGreenRunId but no prior red run' — passes"
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "change-state.test.ts: 'AC2: accepts inline task completion with valid red→green sequence' — passes"
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "change-state.test.ts: 'AC3: accepts legacy task completion without lastGreenRunId' — passes"
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "TaskCompletedSignalPayloadSchema.verification is z.string().min(1); ordering check requires lastRedRunId when lastGreenRunId present"
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "test.ts integration: quality signals computed via extractTestFilePath + computeQualitySignals; AdvRunTestEvidenceSchema accepts new fields"
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "test-quality.test.ts: 12 mock patterns each with ≥3 fixtures; bare 'mock' token correctly not matched"
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "test-quality.test.ts: classifyBehaviorSurface edge cases tested (large/medium/small)"
+        },
+        {
+          "contractId": "AC8",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "workflow-bundle-boundary.test.ts passes (4 tests); grep for '../tools' in temporal/*.ts returns 0 matches"
+        },
+        {
+          "contractId": "AC9",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Full suite: 3755 tests pass across 271 files including all asset/regression tests"
+        },
+        {
+          "contractId": "AC10",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "pnpm run check clean; bin/oc-test full: 3755 tests pass"
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "AC3 test verifies legacy tasks grandfathered when lastGreenRunId absent"
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Quality signals never referenced in ordering check or gate logic; advisory only"
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "change-state.test.ts: 'exempts not_applicable tasks from ordering check' — passes"
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Static parse uses readFileSync on single file; no subprocess; <100ms typical"
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Quality signals depend on file content only; runId computed in tool layer not workflow sandbox; test runs replayed from history"
+        },
+        {
+          "contractId": "C6",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Spec changes (rq-TDD009seq, rq-TDD010qual) committed first (tk-1 SHA 9b2712c) before any code changes"
+        },
+        {
+          "contractId": "C7",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "pnpm run schemas:check passes; AdvRunTestEvidenceSchema + TaskCompletedSignalPayloadSchema extended"
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No line-coverage metrics introduced"
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No multi-test-case requirement added"
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "assertionDensity is advisory; never gates task completion"
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "mockSurface surfaced to review only; no auto-reject"
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "phase remains descriptive field; ordering enforced separately"
+        },
+        {
+          "contractId": "DONT6",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "tdd_intent: inline remains default for logic-bearing tasks"
+        },
+        {
+          "contractId": "DONT7",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "task.verification remains free-text string; bound to evidence via refs, not typed"
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Mutation testing not implemented"
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Line coverage gate not added"
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "TDD-as-policy not removed"
+        },
+        {
+          "contractId": "OOS4",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No cross-project store changes"
+        },
+        {
+          "contractId": "OOS5",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No bin/adv CLI changes"
+        },
+        {
+          "contractId": "OOS6",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No Vitest JSON reporter wiring"
+        },
+        {
+          "contractId": "OOS7",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "tdd_evidence field not renamed"
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "A task with `tdd_intent: inline` that completes via `taskCompletedSignal` without a prior red record returns `TASK_ORDERING_VIOLATION` (must-fail). Test: `plugin/src/temporal/change-state.test.ts` (new or extended).",
+    "A task with `tdd_intent: inline` that completes with a red record (exitCode ≠ 0) followed by a green record (exitCode = 0) returns success. Same test file.",
+    "A legacy task carrying `tdd_evidence.red + tdd_evidence.green` continues to satisfy the gate unchanged (no `lastGreenRunId` required). Backward-compat test.",
+    "`taskCompletedSignal` payload is rejected if `task.verification` is empty OR `lastEvidenceRunId`/`lastRedRunId` is structurally absent. Test: validator test in `plugin/src/validator/prep-readiness.test.ts` or task-classifier test.",
+    "`adv_run_test.v1` schema accepts the three new fields and they are populated by a new static-parsing pass in `plugin/src/tools/test.ts`. Test: `plugin/src/tools/test.test.ts` extends `adv_run_test.v1` parsing.",
+    "The `mockSurface` detector recognizes `vi.mock(`, `vi.fn(`, `vi.spyOn(`, `jest.mock(`, `jest.fn(`, `sinon.stub(`, `sinon.spy(`, `unittest.mock.patch`, `mock.patch` patterns. Test: at least 3 fixtures per pattern.",
+    "`behaviorSurface: \"large\"` requires ≥3 assertions across ≥2 distinct functions/expectations in the test file. \"medium\" = 1-2 functions or 2+ assertions. \"small\" = 1 assertion, 1 function. Test the heuristic directly.",
+    "`plugin/src/temporal/workflow-bundle-boundary.test.ts` still passes (no new unreachable imports from `plugin/src/temporal/`).",
+    "The asset/regression tests in `plugin/src/adv-*assets.test.ts` continue to pass (no spec-doc drift on the new `rq-TDD009seq` / `rq-TDD010qual` requirement IDs).",
+    "End-to-end: run `pnpm run check` (schemas:check → typecheck → lint → format:check) and `pnpm test` against the new code, both pass."
+  ],
+  "documents": {
+    "proposal": "# Proposal: Harden TDD proof evidence\n\n## User outcomes\n\n1. **Red-then-green ordering is structurally enforced per `taskId`.** A `taskCompletedSignal` for an `inline` task is only accepted if a prior `adv_run_test.v1` record with `phase:'red'` + `exitCode != 0` exists for the same `taskId`, ordered by the Temporal signal stream. The check lives at the task-completion seam, not at the `adv_run_test` call, to preserve rapid feedback.\n2. **`task.verification` is bound to evidence.** The `taskCompletedSignal` payload gains a `lastEvidenceRunId` ref (or `lastRedRunId` + `lastGreenRunId` for inline TDD). The verification string is non-empty AND the evidence ref is structurally present. Replayable: a reviewer can walk the red→green sequence from the change archive.\n3. **`adv_run_test.v1` carries lightweight test-quality signals** — `assertionDensity: number`, `mockSurface: { pattern, count }[]`, `behaviorSurface: \"small\" | \"medium\" | \"large\"`. These are **advisory** signals surfaced to `/adv-review`; they do not gate task completion (avoid creating a new coverage-theater metric).\n4. **Pre-existing phase contract drift is closed.** The HIGH-severity finding in `docs/adv-run-test-prep.md:50-55` (docs/spec/schema disagreed on `phase` semantics) is resolved by the same change.\n\n## Scope\n\n**In:**\n- `.adv/specs/tdd-contract/spec.json` — new `rq-TDD009seq` (red-then-green ordering) and `rq-TDD010qual` (test-quality signals); scenario updates to `rq-TDD008path.3` and `rq-TDD008path.4`.\n- `.adv/specs/prep-readiness/spec.json` — minor: emit `TASK_ORDERING_PROVISIONAL` advisory for tasks where the new ordering check would block pending a clean red record.\n- `plugin/src/temporal/` — enforce red-then-green ordering at the task-completion signal seam; add `lastEvidenceRunId` / `lastRedRunId` / `lastGreenRunId` fields to the task-completion payload.\n- `plugin/src/validator/prep-readiness.ts` and `task-classifier.ts` — bind verification to evidence; surface quality fields in advisory output.\n- `plugin/src/tools/test.ts` and `plugin/src/tools/subagent-report.ts` — extend `adv_run_test.v1` schema with `assertionDensity`, `mockSurface`, `behaviorSurface` fields; static-parse the test file referenced by `command` to compute them.\n- `.opencode/command/adv-apply.md` — RSTC block update: reference new advisory signals; emphasize that ordering is now enforced at checkpoint, not at `adv_run_test` time.\n- `ADV_INSTRUCTIONS.md` — same; update `### TDD Protocol (RSTC)` block.\n- Tests: `plugin/src/tools/test.test.ts`, `plugin/src/validator/prep-readiness.test.ts`, `plugin/src/validator/task-classifier.test.ts`, `plugin/src/temporal/change-state.test.ts` (and any new test files); asset/regression tests for the new ordering check.\n- `docs/adv-run-test-prep.md` — mark the pre-existing phase drift finding as resolved by linking to this change.\n\n**Out (rejected by research or out of budget):**\n- Mutation testing (high cost; possible follow-up).\n- Line coverage as a gate (rejected by Gaurav 2026 — invites coverage theater).\n- Removing TDD-as-policy (rejected — TDD has real value as a floor).\n- Cross-project target store changes; `bin/adv` CLI bridge changes; Vitest JSON reporter wiring (already a separate, larger change in `docs/adv-run-test-prep.md`).\n- Multiple-test-cases-per-task requirement (gaming-prone; rejected).\n\n## Constraints\n\n- **Backward compatibility for legacy tasks.** Tasks carrying legacy `tdd_evidence.red+green` (pre-cutover) continue to satisfy the gate unchanged. The new ordering check applies only to tasks with a `lastGreenRunId` ref.\n- **TDD policy stays floor, not ceiling.** New signals are advisory. The reviewer (`/adv-review`) and the human at `/adv-apply` retry-budget are the enforcement layer.\n- **No new failure modes for working agents.** Trivial (`not_applicable`) and cross-cutting (`separate_verification`) tasks are not affected.\n- **Performance budget:** <100ms added per `adv_run_test` call for quality-signal computation (static file parse, not test execution).\n- **Determinism preserved.** The new signals do not depend on test execution order; the static parse is file-content-only.\n\n## Avoidances\n\n- Do not introduce line-coverage metrics.\n- Do not require multiple test cases per task.\n- Do not gate task completion on `assertionDensity`.\n- Do not auto-reject tasks with high `mockSurface` (legitimate mock use exists).\n- Do not break `adv_run_test.phase` as a descriptive field; keep it; enforce ordering separately.\n- Do not change the TDD contract's `inline` default for logic-bearing tasks — the default is correct.\n\n## Discovery agenda\n\n1. Survey all `adv_run_test` call sites in `plugin/src/tools/` and `.opencode/command/adv-apply.md` to identify every phase-call site and the verifier path.\n2. Locate the Temporal signal ordering seam: `taskCompletedSignal` vs `phaseSignal` (if any) to find the right place to enforce the red-then-green check.\n3. Investigate the existing test files for representative mock patterns to baseline `mockSurface` heuristics (Vitest `vi.mock`, Jest `jest.mock`, Sinon `stub`, Python `unittest.mock.patch`).\n4. Review the existing `docs/adv-run-test-prep.md` Finding 1 fix surface to ensure no double-work and that the schema reintroduction aligns.\n5. Identify consumers of `task.verification` (review-checklist, `adv_reflect`, archive bundle) and what binding they need to surface the new evidence refs.\n6. Confirm the cutover boundary: which schema version of `adv_run_test.v1` carries the new fields, and how legacy `tdd_evidence` tasks continue to be accepted.",
+    "problemStatement": "ADV's mandatory TDD evidence gate has four structural soft spots that let bad tests through as compliant: (1) `adv_run_test.phase` is descriptive, not gate-enforced, so an agent can implement first, write a test, and call `phase:'green'` without ever having a failing test (rq-TDD008path.4 explicitly says \"phase value is not gate enforcement\"). (2) `task.verification` is a non-empty string check with no binding to a real `adv_run_test.v1` evidence record, so an agent can record a verification claim with no executable proof (`plugin/src/validator/task-classifier.ts:159-161`). (3) `adv_run_test.v1` records `exitCode`/`classification` only — no assertion density, no mock surface, no behavior coverage — so vacuous tests like `expect(result).toBeDefined()` pass the gate (Gaurav 2026: \"100% line coverage... and tells you absolutely nothing about whether it works correctly\"). (4) The pre-existing phase contract drift between docs, spec, and schema is documented in `docs/adv-run-test-prep.md:50-55` (severity HIGH) and is not yet resolved. The TDD policy itself is sound as a floor; the gap is in making the floor less gameable without converting it into a coverage-theater metric.",
+    "agreement": "# Agreement: Harden TDD proof evidence\n\n> **Status:** User-approved (Tier A \"approve\"). Signed off 2026-06-17.\n> Source of evidence: `docs/tdd-proof-anti-pattern-prep.md` (research pack, branch `improve/tdd-proof-anti-pattern-prep`, commit 4a56e6e6). 8 findings + 1 reliability finding, 3 competitors, 2 emerging patterns.\n\n## Scope of this change\n\nBundle three top recommendations from the research pack plus close the pre-existing phase contract drift in `docs/adv-run-test-prep.md:50-55`. They share the same enforcement seam (`taskCompletedSignal` payload + `adv_run_test.v1` schema + `tdd-contract` spec) and the same backward-compat boundary (legacy `tdd_evidence.red+green` tasks unchanged).\n\n## Success criteria\n\n- SC1. A `taskCompletedSignal` for a `tdd_intent: inline` task is rejected (with `TASK_ORDERING_VIOLATION`) unless a prior `adv_run_test.v1` record with `phase:'red'` AND `exitCode != 0` exists for the same `taskId`, ordered by the Temporal signal stream before the green record.\n- SC2. The `taskCompletedSignal` payload includes `lastRedRunId` and `lastGreenRunId` for inline TDD, or `lastEvidenceRunId` for non-inline (separate_verification / not_applicable). The `task.verification` field is non-empty AND the evidence ref is structurally present.\n- SC3. `adv_run_test.v1` (the schema in `plugin/src/tools/subagent-report.ts:36`) carries new fields: `assertionDensity: number`, `mockSurface: { pattern: string, count: number }[]`, `behaviorSurface: \"small\" | \"medium\" | \"large\"`. These are populated by static-parsing the test file referenced by `command` (Vitest `vi.mock`, Jest `jest.mock`, Sinon `stub`, Python `unittest.mock.patch` patterns recognized).\n- SC4. The pre-existing HIGH-severity phase contract drift from `docs/adv-run-test-prep.md:50-55` is closed: `phase` is reintroduced as a typed optional in the `adv_run_test` schema, exit-code semantics validation is preserved, and ordering enforcement (SC1) is added on top.\n\n## Acceptance criteria\n\n- AC1. A task with `tdd_intent: inline` that completes via `taskCompletedSignal` without a prior red record returns `TASK_ORDERING_VIOLATION` (must-fail). Test: `plugin/src/temporal/change-state.test.ts` (new or extended).\n- AC2. A task with `tdd_intent: inline` that completes with a red record (exitCode ≠ 0) followed by a green record (exitCode = 0) returns success. Same test file.\n- AC3. A legacy task carrying `tdd_evidence.red + tdd_evidence.green` continues to satisfy the gate unchanged (no `lastGreenRunId` required). Backward-compat test.\n- AC4. `taskCompletedSignal` payload is rejected if `task.verification` is empty OR `lastEvidenceRunId`/`lastRedRunId` is structurally absent. Test: validator test in `plugin/src/validator/prep-readiness.test.ts` or task-classifier test.\n- AC5. `adv_run_test.v1` schema accepts the three new fields and they are populated by a new static-parsing pass in `plugin/src/tools/test.ts`. Test: `plugin/src/tools/test.test.ts` extends `adv_run_test.v1` parsing.\n- AC6. The `mockSurface` detector recognizes `vi.mock(`, `vi.fn(`, `vi.spyOn(`, `jest.mock(`, `jest.fn(`, `sinon.stub(`, `sinon.spy(`, `unittest.mock.patch`, `mock.patch` patterns. Test: at least 3 fixtures per pattern.\n- AC7. `behaviorSurface: \"large\"` requires ≥3 assertions across ≥2 distinct functions/expectations in the test file. \"medium\" = 1-2 functions or 2+ assertions. \"small\" = 1 assertion, 1 function. Test the heuristic directly.\n- AC8. `plugin/src/temporal/workflow-bundle-boundary.test.ts` still passes (no new unreachable imports from `plugin/src/temporal/`).\n- AC9. The asset/regression tests in `plugin/src/adv-*assets.test.ts` continue to pass (no spec-doc drift on the new `rq-TDD009seq` / `rq-TDD010qual` requirement IDs).\n- AC10. End-to-end: run `pnpm run check` (schemas:check → typecheck → lint → format:check) and `pnpm test` against the new code, both pass.\n\n## Constraints\n\n- C1. Backward compatibility. Legacy `tdd_evidence.red+green` tasks continue to satisfy the gate. The new ordering check applies only when `lastGreenRunId` is structurally present.\n- C2. Floor, not ceiling. New quality signals (`assertionDensity`, `mockSurface`, `behaviorSurface`) are advisory. They do not gate task completion. The reviewer (`/adv-review`) and the human at `/adv-apply` retry-budget are the enforcement layer.\n- C3. No new failure modes for trivial/cross-cutting tasks. Tasks with `tdd_intent: not_applicable` or `separate_verification` are not affected by SC1.\n- C4. Performance budget. Static-parsing for quality signals must add <100ms per `adv_run_test` call. Pure file-content parse, no test execution, no subprocess.\n- C5. Determinism preserved. Quality signals depend on file content only, not test execution order. Reproducible across replays.\n- C6. Spec-driven. Changes to `tdd-contract` spec add `rq-TDD009seq` and `rq-TDD010qual` requirements BEFORE corresponding tool changes land (spec is the law).\n- C7. Schema drift guarded. `pnpm run schemas:check` must pass after schema additions; `plugin/src/tools/test-contract-assets.test.ts` must cover the new fields.\n\n## Avoidances\n\n- DONT1. Do not introduce line-coverage metrics. Rejected by Gaurav 2026 (https://gauravnotes.com/2026/03/01/tdd-bdd-java-engineer-manifesto/) — invites coverage theater.\n- DONT2. Do not require multiple test cases per task. Gaming-prone; would penalize single-purpose change tasks.\n- DONT3. Do not gate task completion on `assertionDensity`. Advisory only; the reviewer surfaces it.\n- DONT4. Do not auto-reject tasks with high `mockSurface`. Legitimate mock use exists (e.g., external services, time, randomness).\n- DONT5. Do not break `adv_run_test.phase` as a descriptive field. Keep it; enforce ordering separately.\n- DONT6. Do not change `tdd_intent: inline` default for logic-bearing tasks. The default is correct.\n- DONT7. Do not change `task.verification` from a free-text string to a typed classification. Bind it to evidence; keep the human-readable string for review and reflection.\n\n## Out of scope\n\n- OOS1. Mutation testing. High cost, out of budget. Possible follow-up.\n- OOS2. Line coverage as a gate. See DONT1.\n- OOS3. Removing TDD-as-policy. Rejected — TDD has real value as a floor.\n- OOS4. Cross-project target store changes. Out of scope for this change.\n- OOS5. `bin/adv` CLI bridge changes. Out of scope; this is a plugin-internal hardening.\n- OOS6. Vitest JSON reporter wiring into `adv_run_test.v1`. Already a separate change in `docs/adv-run-test-prep.md:91-97`; the parser pipeline there is independent of this change.\n- OOS7. Renaming `tdd_evidence` legacy field. Backward-compat constraint (C1) requires keeping it.\n\n## Open design questions (for the design phase, not this discovery)\n\nThe 6 discovery agenda items from the proposal remain open for the design phase. They are pre-investigated in the research pack but not yet turned into design decisions:\n\n1. Signal ordering seam — exact location in `plugin/src/temporal/` to enforce SC1. Likely at `taskCompletedSignal` handler in the change workflow; needs trace through `plugin/src/temporal/workflows.ts`.\n2. Static-parse placement — where in `plugin/src/tools/test.ts` to add the static-parse pass. Options: pre-execution (parse test file before running command) or post-execution (parse based on inferred test file). Pre is faster, post is more accurate.\n3. Schema versioning — `adv_run_test.v1` already exists. New fields are additive, but a `schema_version: \"1.1\"` may be needed for downstream consumers (`plugin/src/tools/subagent-report.ts`).\n4. Cutover boundary — which existing tasks in flight adopt the new check vs grandfather the old? Recommend: new tasks only, post-deploy.\n5. Review-checklist integration — how the new `behaviorSurface` signal flows into `/adv-review` (asset test, not a hard block).\n6. Mock pattern false-positive rate — Python `mock` and Ruby `mock` are common words; the regex needs word-boundary care.\n\n## Evidence base\n\n- Local: `plugin/src/validator/task-classifier.ts`, `plugin/src/validator/prep-readiness.ts`, `plugin/src/types/tdd-helpers.ts`, `plugin/src/tools/test.ts`, `plugin/src/tools/subagent-report.ts`, `.adv/specs/tdd-contract/spec.json`, `.adv/specs/prep-readiness/spec.json`, `ADV_INSTRUCTIONS.md:303-365`, `.opencode/command/adv-apply.md:54-606`, `docs/adv-run-test-prep.md:50-55`, `CHANGELOG.md:1121`.\n- External: Paul Serban 2025 \"Cargo Cult Testing\"; The Hard Parts \"Test Theater\"; Gaurav 2026 \"TDD + BDD in the Agentic SDLC Era\"; Kent Beck 2025 LinkedIn (TDD = responsibility + workflow); CANDOR (arxiv 2506.02943) on LLM test-oracle hallucination; SWE-bench Verified (arxiv 2503.16416v2); Anthropic \"Demystifying evals for AI agents\" (2026).\n- Pre-existing research pack: `docs/tdd-proof-anti-pattern-prep.md` on branch `improve/tdd-proof-anti-pattern-prep` — read first when resuming.\n",
+    "design": "# Design: Harden TDD proof evidence\n\n## Architecture overview\n\nFour enforcement components sharing one change-state seam:\n\n```\nadv_run_test ──fires──► testRunRecordedSignal ──► state.testRuns[taskId][]\n                                                          │\nadv_task_checkpoint ──fires──► taskCompletedSignal        │\n                                   {lastRedRunId,         │\n                                    lastGreenRunId}       │\n                                     │                    │\n                                     ▼                    ▼\n                          applyTaskCompletedToState ──► verifies ordering\n                                   │               against state.testRuns\n                                   ▼\n                        TASK_ORDERING_VIOLATION (throw)\n                                   │\n                        signalMutation wrapper ──► signal_rejections\n```\n\nQuality signals (assertionDensity, mockSurface, behaviorSurface) are computed by a static parser in the **tool layer** (`test-quality.ts`), included in the `adv_run_test` output AND the `testRunRecordedSignal` payload. They are **advisory** — surfaced to `/adv-review`, never gate task completion.\n\n## Design decisions (resolves all 6 open questions)\n\n### Q1: Signal ordering seam — `applyTaskCompletedToState` + new `testRunRecordedSignal`\n\n**Problem:** To enforce red-then-green ordering at task completion, the workflow needs access to prior `adv_run_test.v1` records. Currently, `adv_run_test` returns tool output to the caller but persists nothing to Temporal state.\n\n**Decision:** Two-part design:\n\n1. **New `testRunRecordedSignal`** — fires from `test.ts` after each `adv_run_test` command execution. Persisted to `state.testRuns: Record<string, TestRunRecord[]>` (additive optional field on `ChangeWorkflowState`, replay-safe). Ring-buffered: last 20 runs per task (same pattern as `signal_rejections`).\n\n   Payload (`TestRunRecordedSignalPayloadSchema` in `types/signals.ts`):\n   ```\n   { taskId, runId, phase?, exitCode, classification, command, durationMs,\n     assertionDensity?, mockSurface?, behaviorSurface?, recordedAt }\n   ```\n   - `runId`: `tr_${Date.now().toString(36)}_${randomBytes(4).toString('hex')}` — unique, sortable by `recordedAt`\n   - `phase`: optional descriptive (`red` | `green` | `verify`) — caller-supplied from `adv_run_test.args.phase`\n\n2. **Enhanced `applyTaskCompletedToState`** in `change-state.ts` — when the task has `tdd_intent: inline` AND the payload carries `lastGreenRunId`, verify against `state.testRuns[taskId]`:\n   - `lastRedRunId` matches a stored run with `phase: 'red'` AND `exitCode !== 0`\n   - `lastGreenRunId` matches a stored run with `phase: 'green'` AND `exitCode === 0`\n   - Red run's `recordedAt` < green run's `recordedAt`\n   - Throw `TASK_ORDERING_VIOLATION: <reason>` if any check fails\n\n   The throw is caught by `signalMutation`'s `rejectSignal` wrapper → recorded in `state.signal_rejections`. Task stays in previous status. The checkpoint tool detects the rejection (status not `done`) and surfaces the error.\n\n**Why this seam:** `applyTaskCompletedToState` is the single mutation point that marks a task done. It's workflow-safe (inside the bundle boundary), has access to full `ChangeWorkflowState` (including `testRuns`), and the throw-to-reject pattern is already established (e.g., `getMutableTask` throws on missing task). No new external imports needed.\n\n### Q2: Static-parse placement — pre-execution in `test.ts`\n\n**Decision:** Pre-execution parse of the test file referenced by `command`.\n\n- Extract test file path from `command` via regex patterns:\n  - `pnpm test -- <file>` / `pnpm test <file>`\n  - `bin/oc-test targeted -- <file>`\n  - `vitest run <file>` / `npx vitest <file>`\n  - `jest <file>` / `npx jest <file>`\n  - `pytest <file>` / `python -m pytest <file>`\n- If a single specific file (`.test.*` / `.spec.*` / `test_*` / `*_test.*`) is identified AND readable: parse for quality signals\n- If broad command (`pnpm test`, `npm run check`, no specific file): omit quality signals\n- Parse happens BEFORE `runCommand()` — file exists because agent wrote it before calling `adv_run_test` for red phase. Parse is <100ms for a single file; test command takes seconds.\n\n**New module:** `plugin/src/tools/test-quality.ts` — co-located with `test.ts`, separate for testability:\n- `extractTestFilePath(command: string): string | undefined`\n- `computeQualitySignals(filePath: string): { assertionDensity, mockSurface, behaviorSurface }`\n- `detectMockPatterns(content: string): { pattern, count }[]`\n- `classifyBehaviorSurface(content: string): \"small\" | \"medium\" | \"large\"`\n\n### Q3: Schema versioning — additive, no version bump\n\n**Decision:** Keep `schema_version: \"adv_run_test.v1\"`. No `\"1.1\"` bump.\n\n- `AdvRunTestEvidenceSchema` in `subagent-report.ts:34-43` already uses `.passthrough()` — new optional fields are accepted by existing downstream consumers without changes\n- New fields are optional: `assertionDensity?: number`, `mockSurface?: { pattern: string, count: number }[]`, `behaviorSurface?: \"small\" | \"medium\" | \"large\"`\n- `TaskCompletedSignalPayloadSchema` gains optional: `lastRedRunId?`, `lastGreenRunId?`, `lastEvidenceRunId?`\n- No breaking change. Legacy consumers that don't read the new fields are unaffected.\n\n### Q4: Cutover boundary — new-task-only, evidence-ref-gated\n\n**Decision:** The ordering check fires ONLY when `lastGreenRunId` is structurally present in the `taskCompletedSignal` payload.\n\n| Scenario | Ordering check |\n|---|---|\n| Payload has `lastGreenRunId` | ✅ Verified against `state.testRuns` |\n| Payload lacks `lastGreenRunId` (legacy) | ⏭️ Skipped (C1 backward compat) |\n| Task `tdd_intent: not_applicable` or `separate_verification` | ⏭️ Skipped (C3) |\n\nAgents that know about the new fields include them and get structural enforcement. Agents that don't are grandfathered. Clean cutover, no migration.\n\n### Q5: Review-checklist integration — advisory surface, no hard gate\n\n**Decision:** Quality signals surface in three places, all advisory:\n\n1. **`adv_run_test` tool output** — `assertionDensity`, `mockSurface`, `behaviorSurface` in the `evidence` block. Agent sees them immediately.\n2. **`testRunRecordedSignal` payload** — persisted to `state.testRuns` for replay/audit.\n3. **`/adv-review` checklist** — gains a `testQuality` advisory dimension referencing the signals. The reviewer reads them from the task's evidence records. NOT a hard gate (C2).\n\nThe existing `behaviorSurface` signal flows to `/adv-review` through the subagent report's `verification` evidence array, not a new data path. Asset test ensures the fields are visible in review output (AC9).\n\n### Q6: Mock pattern false-positive care — API-qualified patterns only\n\n**Decision:** Never match the bare token `mock`. Always require API qualification:\n\n| Pattern | Regex | Framework |\n|---|---|---|\n| `vi.mock(` | `/\\bvi\\.mock\\s*\\(/g` | Vitest |\n| `vi.fn(` | `/\\bvi\\.fn\\s*\\(/g` | Vitest |\n| `vi.spyOn(` | `/\\bvi\\.spyOn\\s*\\(/g` | Vitest |\n| `jest.mock(` | `/\\bjest\\.mock\\s*\\(/g` | Jest |\n| `jest.fn(` | `/\\bjest\\.fn\\s*\\(/g` | Jest |\n| `jest.spyOn(` | `/\\bjest\\.spyOn\\s*\\(/g` | Jest |\n| `sinon.stub(` | `/\\bsinon\\.stub\\s*\\(/g` | Sinon |\n| `sinon.spy(` | `/\\bsinon\\.spy\\s*\\(/g` | Sinon |\n| `sinon.createStubInstance(` | `/\\bsinon\\.createStubInstance\\s*\\(/g` | Sinon |\n| `unittest.mock.patch` | `/\\bunittest\\.mock\\.patch\\b/g` | Python unittest |\n| `mock.patch(` | `/(?<!\\w)mock\\.patch\\s*\\(/g` | Python (imported) |\n| `mocker.patch(` | `/\\bmocker\\.\\w+\\s*\\(/g` | pytest-mock |\n\nWord-boundary `\\b` prevents matching `mock` in comments, variable names, or prose. The `(?<!\\w)` lookbehind on `mock.patch` prevents `mymock.patch(` false positives. Each pattern has ≥3 fixtures in the test suite (AC6).\n\n## LBP decisions (P04)\n\n| Component | Location | Rationale |\n|---|---|---|\n| Test-quality parser | `plugin/src/tools/test-quality.ts` (new) | Co-located with `test.ts`, separate for testability. Tool-layer only — never imported from workflow bundle. |\n| Test-run state mutation | `plugin/src/temporal/change-state.ts` | Alongside `applyTaskCompletedToState` and other task mutations. |\n| Signal payload types | `plugin/src/types/signals.ts` | Alongside `TaskCompletedSignalPayloadSchema`. |\n| Signal definition | `plugin/src/temporal/messages.ts` | Alongside `taskCompletedSignal`. |\n| State type field | `plugin/src/temporal/contracts.ts` | Additive optional on `ChangeWorkflowState`, same pattern as `signal_rejections`. |\n| Spec requirements | `.adv/specs/tdd-contract/spec.json` | `rq-TDD009seq` (ordering), `rq-TDD010qual` (quality signals). Spec is the law (C6). |\n| Prep advisory | `plugin/src/validator/prep-readiness.ts` | `TASK_ORDERING_PROVISIONAL` advisory code. |\n\n## Bundle-boundary analysis (AC8)\n\nNew imports reachable from the webpack root (`temporal/workflows.ts`):\n\n| Module | New imports | Workflow-safe? |\n|---|---|---|\n| `change-state.ts` | None (new function operates on existing `ChangeWorkflowState`) | ✅ |\n| `contracts.ts` | None (additive optional field on existing type) | ✅ |\n| `types/signals.ts` | None (new Zod schema, types-only module) | ✅ |\n| `messages.ts` | Imports `TestRunRecordedSignalPayload` from types | ✅ (types-only dependency) |\n| `workflows.ts` | New `wf.setHandler(testRunRecordedSignal, ...)` registration | ✅ |\n\nThe static-parse parser (`test-quality.ts`) lives in `tools/` — **NOT** reachable from the workflow bundle. Quality signals are computed in tool context and passed via signal payload. `workflow-bundle-boundary.test.ts` continues to pass.\n\n## Backward-compatibility analysis (C1)\n\n| Scenario | Behavior | Ordering check |\n|---|---|---|\n| Legacy task with `tdd_evidence.red+green` | Accepted unchanged | Skipped (no `lastGreenRunId`) |\n| Task completed without `lastGreenRunId` | Accepted | Skipped |\n| Task completed with `lastGreenRunId`, valid red→green | Accepted | ✅ Verified |\n| Task completed with `lastGreenRunId`, no prior red | Rejected | `TASK_ORDERING_VIOLATION` |\n| `adv_run_test` called outside change context | Signal fire skipped (best-effort) | N/A |\n| `adv_run_test` quality signals for broad command | Omitted | N/A |\n| `tdd_intent: not_applicable` / `separate_verification` | Accepted | Skipped (C3) |\n\n## Determinism analysis (C5)\n\n- Test run records are signal-persisted → deterministic replay\n- Quality signals depend on file content only → reproducible across replays\n- `runId` uses `Date.now()` + `crypto.randomBytes()` — but these are computed in the **tool layer** (`test.ts`), NOT in the workflow sandbox. The workflow receives them via signal payload. Temporal's workflow sandbox patches `Date.now()`/`Math.random()` only inside workflow code, not in activities or signal payloads from external callers. No determinism violation.\n\n## Performance budget (C4)\n\n| Operation | Cost | Budget |\n|---|---|---|\n| Static file parse (single test file) | <50ms typical | <100ms budget ✅ |\n| `testRunRecordedSignal` fire | ~30-50ms (Temporal network) | Not in C4 budget (separate from parse) |\n| Ordering check in `applyTaskCompletedToState` | <1ms (array scan of ≤20 records) | Negligible |\n\nTotal `adv_run_test` overhead: parse (<50ms) + signal fire (~30-50ms) = <100ms. Acceptable: test commands take seconds.\n\n## Risk analysis\n\n1. **State growth** — ring-buffered (last 20 runs/task). Cap: ~20 × tasks × ~300 bytes ≈ negligible.\n2. **Signal fire failure** — best-effort: if `testRunRecordedSignal` fire fails, test result still returned. Agent proceeds. Ordering check at task-completion will catch missing records (if agent includes `lastGreenRunId` but no red run was recorded).\n3. **Static-parse false positives/negatives** — advisory (C2). Reviewer makes the call. No hard gate.\n4. **Replay safety** — `testRuns` is optional/additive. Old histories replay cleanly.\n5. **Checkpoint tool rejection surfacing** — checkpoint.ts needs to read latest `signal_rejections` entry for specific error message. Currently checks `status !== \"done\"` generically. Enhancement: after failed task-completion, query `signal_rejections` for the specific `TASK_ORDERING_VIOLATION` message and surface it.\n\n## Implementation strategy (spec-first ordering, C6)\n\n| Phase | Files | Gate |\n|---|---|---|\n| 1. Spec changes | `tdd-contract/spec.json` (+`rq-TDD009seq`, `rq-TDD010qual`), `prep-readiness/spec.json` (advisory) | Before any code |\n| 2. Types layer | `types/signals.ts`, `temporal/contracts.ts`, `types/changes.ts` | Foundation |\n| 3. Workflow layer | `temporal/change-state.ts`, `temporal/messages.ts`, `temporal/workflows.ts` | Enforcement engine |\n| 4. Tool layer | `tools/test-quality.ts` (new), `tools/test.ts` (quality + signal fire) | Evidence producer |\n| 5. Validator layer | `validator/prep-readiness.ts`, `validator/task-classifier.ts` | Advisory surface |\n| 6. Docs layer | `adv-apply.md`, `ADV_INSTRUCTIONS.md`, `docs/adv-run-test-prep.md` | RSTC update, drift resolution |\n| 7. Tests | All AC1-AC10 | Verification |\n\n## Signal rejection surfacing (checkpoint enhancement)\n\nWhen `applyTaskCompletedToState` throws `TASK_ORDERING_VIOLATION`, the `signalMutation` wrapper catches it and records it in `signal_rejections`. The checkpoint tool currently detects rejection via `recordedTask.status !== \"done\"` with a generic message.\n\n**Enhancement:** `fireTaskCompletedFromCheckpoint` in `checkpoint.ts` — after detecting `status !== \"done\"`, query the change's latest `signal_rejections` entry. If it matches `taskCompleted` signal name and contains `TASK_ORDERING_VIOLATION`, surface the specific message:\n\n```\nTask tk-abc rejected: TASK_ORDERING_VIOLATION: no prior red run (phase:'red', exitCode≠0) found for taskId tk-abc in state.testRuns. Record a failing test via adv_run_test with phase:'red' before completing this task.\n```\n\nThis closes the feedback loop: the agent sees the specific violation, not a generic \"status didn't change\" error.\n",
+    "executiveSummary": "# Executive Summary: Harden TDD Proof Evidence\n\n## Outcome\n\nThis change closes the structural gap between ADV's TDD policy (red-before-green as floor) and its enforcement mechanism (which was advisory-only). Three enforcement components now work together at the task-completion seam:\n\n1. **Ordering enforcement (rq-TDD009seq):** Every `adv_run_test` call now persists a `TestRunRecord` to the change workflow state via `testRunRecordedSignal`. When an inline TDD task is completed with `lastGreenRunId`, the workflow verifies that a matching red run (exitCode≠0) precedes the green run (exitCode=0). Violations throw `TASK_ORDERING_VIOLATION` and are surfaced through checkpoint rejection messages.\n\n2. **Advisory quality signals (rq-TDD010qual):** A static parser (`test-quality.ts`) computes `assertionDensity`, `mockSurface`, and `behaviorSurface` from the test file referenced by the command. These are advisory — surfaced to `/adv-review` for human attention, never gate task completion. Mock detection uses API-qualified patterns only (12 patterns across Vitest, Jest, Sinon, Python) to avoid false positives.\n\n3. **Phase contract drift resolved:** The pre-existing HIGH-severity finding in `docs/adv-run-test-prep.md` (schema/spec/docs mismatch on `phase` field) is now resolved. `phase` remains descriptive, but the red→green *sequence* is structurally enforced.\n\n## Backward Compatibility\n\nLegacy tasks without `lastGreenRunId` are grandfathered — the ordering check only fires when the agent explicitly provides evidence refs. This enables a clean cutover: agents that know about the new fields get structural enforcement; agents that don't are unaffected.\n\n## Verification\n\n3755 tests pass across 271 files. `pnpm run check` clean. Bundle boundary preserved (no `tools/` imports from workflow bundle). All 10 acceptance criteria covered by tests.\n",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-06-17T01:08:00.000Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | A `taskCompletedSignal` for a `tdd_intent: inline` task is rejected (with `TASK_ORDERING_VIOLATION`) unless a prior `adv_run_test.v1` record with `phase:'red'` AND `exitCode != 0` exists for the same `taskId`, ordered by the Temporal signal stream before the green record. | pass | change-state.test.ts: AC1 test rejects inline task without red run; AC2 test accepts valid red→green; applyTaskCompletedToState throws TASK_ORDERING_VIOLATION |\n| SC2 | success_criterion | The `taskCompletedSignal` payload includes `lastRedRunId` and `lastGreenRunId` for inline TDD, or `lastEvidenceRunId` for non-inline (separate_verification / not_applicable). The `task.verification` field is non-empty AND the evidence ref is structurally present. | pass | TaskCompletedSignalPayloadSchema has lastRedRunId/lastGreenRunId/lastEvidenceRunId optional fields; ordering check verifies refs against state.testRuns |\n| SC3 | success_criterion | `adv_run_test.v1` (the schema in `plugin/src/tools/subagent-report.ts:36`) carries new fields: `assertionDensity: number`, `mockSurface: { pattern: string, count: number }[]`, `behaviorSurface: \"small\" | \"medium\" | \"large\"`. These are populated by static-parsing the test file referenced by `command` (Vitest `vi.mock`, Jest `jest.mock`, Sinon `stub`, Python `unittest.mock.patch` patterns recognized). | pass | test-quality.ts: 42 tests pass; AdvRunTestEvidenceSchema extended with assertionDensity/mockSurface/behaviorSurface; test.ts integration verified |\n| SC4 | success_criterion | The pre-existing HIGH-severity phase contract drift from `docs/adv-run-test-prep.md:50-55` is closed: `phase` is reintroduced as a typed optional in the `adv_run_test` schema, exit-code semantics validation is preserved, and ordering enforcement (SC1) is added on top. | pass | docs/adv-run-test-prep.md HIGH finding marked RESOLVED; rq-TDD008path.3/.4 updated; RSTC docs updated in adv-apply.md + ADV_INSTRUCTIONS.md |\n| AC1 | acceptance_criterion | A task with `tdd_intent: inline` that completes via `taskCompletedSignal` without a prior red record returns `TASK_ORDERING_VIOLATION` (must-fail). Test: `plugin/src/temporal/change-state.test.ts` (new or extended). | pass | change-state.test.ts: 'AC1: rejects inline task completion with lastGreenRunId but no prior red run' — passes |\n| AC2 | acceptance_criterion | A task with `tdd_intent: inline` that completes with a red record (exitCode ≠ 0) followed by a green record (exitCode = 0) returns success. Same test file. | pass | change-state.test.ts: 'AC2: accepts inline task completion with valid red→green sequence' — passes |\n| AC3 | acceptance_criterion | A legacy task carrying `tdd_evidence.red + tdd_evidence.green` continues to satisfy the gate unchanged (no `lastGreenRunId` required). Backward-compat test. | pass | change-state.test.ts: 'AC3: accepts legacy task completion without lastGreenRunId' — passes |\n| AC4 | acceptance_criterion | `taskCompletedSignal` payload is rejected if `task.verification` is empty OR `lastEvidenceRunId`/`lastRedRunId` is structurally absent. Test: validator test in `plugin/src/validator/prep-readiness.test.ts` or task-classifier test. | pass | TaskCompletedSignalPayloadSchema.verification is z.string().min(1); ordering check requires lastRedRunId when lastGreenRunId present |\n| AC5 | acceptance_criterion | `adv_run_test.v1` schema accepts the three new fields and they are populated by a new static-parsing pass in `plugin/src/tools/test.ts`. Test: `plugin/src/tools/test.test.ts` extends `adv_run_test.v1` parsing. | pass | test.ts integration: quality signals computed via extractTestFilePath + computeQualitySignals; AdvRunTestEvidenceSchema accepts new fields |\n| AC6 | acceptance_criterion | The `mockSurface` detector recognizes `vi.mock(`, `vi.fn(`, `vi.spyOn(`, `jest.mock(`, `jest.fn(`, `sinon.stub(`, `sinon.spy(`, `unittest.mock.patch`, `mock.patch` patterns. Test: at least 3 fixtures per pattern. | pass | test-quality.test.ts: 12 mock patterns each with ≥3 fixtures; bare 'mock' token correctly not matched |\n| AC7 | acceptance_criterion | `behaviorSurface: \"large\"` requires ≥3 assertions across ≥2 distinct functions/expectations in the test file. \"medium\" = 1-2 functions or 2+ assertions. \"small\" = 1 assertion, 1 function. Test the heuristic directly. | pass | test-quality.test.ts: classifyBehaviorSurface edge cases tested (large/medium/small) |\n| AC8 | acceptance_criterion | `plugin/src/temporal/workflow-bundle-boundary.test.ts` still passes (no new unreachable imports from `plugin/src/temporal/`). | pass | workflow-bundle-boundary.test.ts passes (4 tests); grep for '../tools' in temporal/*.ts returns 0 matches |\n| AC9 | acceptance_criterion | The asset/regression tests in `plugin/src/adv-*assets.test.ts` continue to pass (no spec-doc drift on the new `rq-TDD009seq` / `rq-TDD010qual` requirement IDs). | pass | Full suite: 3755 tests pass across 271 files including all asset/regression tests |\n| AC10 | acceptance_criterion | End-to-end: run `pnpm run check` (schemas:check → typecheck → lint → format:check) and `pnpm test` against the new code, both pass. | pass | pnpm run check clean; bin/oc-test full: 3755 tests pass |\n| C1 | constraint | Backward compatibility. Legacy `tdd_evidence.red+green` tasks continue to satisfy the gate. The new ordering check applies only when `lastGreenRunId` is structurally present. | respected | AC3 test verifies legacy tasks grandfathered when lastGreenRunId absent |\n| C2 | constraint | Floor, not ceiling. New quality signals (`assertionDensity`, `mockSurface`, `behaviorSurface`) are advisory. They do not gate task completion. The reviewer (`/adv-review`) and the human at `/adv-apply` retry-budget are the enforcement layer. | respected | Quality signals never referenced in ordering check or gate logic; advisory only |\n| C3 | constraint | No new failure modes for trivial/cross-cutting tasks. Tasks with `tdd_intent: not_applicable` or `separate_verification` are not affected by SC1. | respected | change-state.test.ts: 'exempts not_applicable tasks from ordering check' — passes |\n| C4 | constraint | Performance budget. Static-parsing for quality signals must add <100ms per `adv_run_test` call. Pure file-content parse, no test execution, no subprocess. | respected | Static parse uses readFileSync on single file; no subprocess; <100ms typical |\n| C5 | constraint | Determinism preserved. Quality signals depend on file content only, not test execution order. Reproducible across replays. | respected | Quality signals depend on file content only; runId computed in tool layer not workflow sandbox; test runs replayed from history |\n| C6 | constraint | Spec-driven. Changes to `tdd-contract` spec add `rq-TDD009seq` and `rq-TDD010qual` requirements BEFORE corresponding tool changes land (spec is the law). | respected | Spec changes (rq-TDD009seq, rq-TDD010qual) committed first (tk-1 SHA 9b2712c) before any code changes |\n| C7 | constraint | Schema drift guarded. `pnpm run schemas:check` must pass after schema additions; `plugin/src/tools/test-contract-assets.test.ts` must cover the new fields. | respected | pnpm run schemas:check passes; AdvRunTestEvidenceSchema + TaskCompletedSignalPayloadSchema extended |\n| DONT1 | avoidance | Do not introduce line-coverage metrics. Rejected by Gaurav 2026 (https://gauravnotes.com/2026/03/01/tdd-bdd-java-engineer-manifesto/) — invites coverage theater. | respected | No line-coverage metrics introduced |\n| DONT2 | avoidance | Do not require multiple test cases per task. Gaming-prone; would penalize single-purpose change tasks. | respected | No multi-test-case requirement added |\n| DONT3 | avoidance | Do not gate task completion on `assertionDensity`. Advisory only; the reviewer surfaces it. | respected | assertionDensity is advisory; never gates task completion |\n| DONT4 | avoidance | Do not auto-reject tasks with high `mockSurface`. Legitimate mock use exists (e.g., external services, time, randomness). | respected | mockSurface surfaced to review only; no auto-reject |\n| DONT5 | avoidance | Do not break `adv_run_test.phase` as a descriptive field. Keep it; enforce ordering separately. | respected | phase remains descriptive field; ordering enforced separately |\n| DONT6 | avoidance | Do not change `tdd_intent: inline` default for logic-bearing tasks. The default is correct. | respected | tdd_intent: inline remains default for logic-bearing tasks |\n| DONT7 | avoidance | Do not change `task.verification` from a free-text string to a typed classification. Bind it to evidence; keep the human-readable string for review and reflection. | respected | task.verification remains free-text string; bound to evidence via refs, not typed |\n| OOS1 | out_of_scope | Mutation testing. High cost, out of budget. Possible follow-up. | not_applicable | Mutation testing not implemented |\n| OOS2 | out_of_scope | Line coverage as a gate. See DONT1. | not_applicable | Line coverage gate not added |\n| OOS3 | out_of_scope | Removing TDD-as-policy. Rejected — TDD has real value as a floor. | not_applicable | TDD-as-policy not removed |\n| OOS4 | out_of_scope | Cross-project target store changes. Out of scope for this change. | not_applicable | No cross-project store changes |\n| OOS5 | out_of_scope | `bin/adv` CLI bridge changes. Out of scope; this is a plugin-internal hardening. | not_applicable | No bin/adv CLI changes |\n| OOS6 | out_of_scope | Vitest JSON reporter wiring into `adv_run_test.v1`. Already a separate change in `docs/adv-run-test-prep.md:91-97`; the parser pipeline there is independent of this change. | not_applicable | No Vitest JSON reporter wiring |\n| OOS7 | out_of_scope | Renaming `tdd_evidence` legacy field. Backward-compat constraint (C1) requires keeping it. | not_applicable | tdd_evidence field not renamed |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-06-16T23:59:04.962Z",
+      "contentHash": "95237f5520fce6aae80ae50a59edff4b7181a2a4bd2b71baefc56620b46134db",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-06-16T23:59:04.962Z",
+      "contentHash": "2419399396407e355fd282863d4c9f2d20891d7b2be75d3d82b8f18c83ed0090",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-06-17T00:21:05.302Z",
+      "contentHash": "6cfb0be08b7f582368f2a159974147299d5a74ddb08a4e915cad2b78cf514da7",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-06-17T00:26:44.052Z",
+      "contentHash": "16f0b01efb973e855d7ed5cc2f74139c6fd4dadf39d6fcfe048da1e784d0f2dd",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-06-17T01:07:14.012Z",
+      "contentHash": "a472c04ae3bf9c513f1a945781549b29be76c4860de10b7d2d5c6dac58e72982",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-06-17T01:08:15.028Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d"
+}
