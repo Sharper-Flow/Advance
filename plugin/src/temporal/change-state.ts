@@ -653,11 +653,7 @@ export function applyTaskCompletedToState(
         );
       }
 
-      if (
-        !greenRun ||
-        greenRun.exitCode !== 0 ||
-        greenRun.phase !== "green"
-      ) {
+      if (!greenRun || greenRun.exitCode !== 0 || greenRun.phase !== "green") {
         throw new Error(
           `TASK_ORDERING_VIOLATION: green run matching lastGreenRunId=${payload.lastGreenRunId} ` +
             `not found or not passing (expected phase:'green', exitCode=0) for taskId ${payload.taskId}.`,

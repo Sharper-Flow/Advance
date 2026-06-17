@@ -31,7 +31,11 @@ import {
   getChangeHandle,
   querySignal,
 } from "./_adapters";
-import { changeTaskQuery, getStateQuery, taskCompletedSignal } from "../temporal/messages";
+import {
+  changeTaskQuery,
+  getStateQuery,
+  taskCompletedSignal,
+} from "../temporal/messages";
 import { extractStructuredOutput } from "../utils/extract-structured-output";
 
 // ─── Constants ──────────────────────────────────────────────────────────────
@@ -460,10 +464,7 @@ async function fireTaskCompletedFromCheckpoint(
         } | null>(handle, getStateQuery);
         const rejections = state?.signal_rejections ?? [];
         const latest = rejections[rejections.length - 1];
-        if (
-          latest?.signalName === "taskCompleted" &&
-          latest.errorMessage
-        ) {
+        if (latest?.signalName === "taskCompleted" && latest.errorMessage) {
           specificError = latest.errorMessage;
         }
       } catch {
