@@ -40,6 +40,16 @@ const {
   mockScanSnapshotHealth: vi.fn(),
 }));
 
+const {
+  mockDetectArchivedMergedBranches,
+  mockDetectDefaultBranch,
+  mockResolveMainCheckout,
+} = vi.hoisted(() => ({
+  mockDetectArchivedMergedBranches: vi.fn(),
+  mockDetectDefaultBranch: vi.fn(),
+  mockResolveMainCheckout: vi.fn(),
+}));
+
 vi.mock("../temporal/health-probe", () => ({
   getTemporalHealth: mockGetTemporalHealth,
 }));
@@ -60,6 +70,17 @@ vi.mock("../utils/opencode-session-debt", async (importOriginal) => {
 vi.mock("./snapshot-scan", () => ({
   scanSnapshotHealth: mockScanSnapshotHealth,
 }));
+
+vi.mock("./archive-helpers/git-finalize", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("./archive-helpers/git-finalize")>();
+  return {
+    ...actual,
+    detectArchivedMergedBranches: mockDetectArchivedMergedBranches,
+    detectDefaultBranch: mockDetectDefaultBranch,
+    resolveMainCheckout: mockResolveMainCheckout,
+  };
+});
 
 // Mock getStslStats and isStslInitialized for search_attributes testing.
 // `getService` is also mocked so the queue-serviceability path added by
@@ -137,7 +158,19 @@ describe("Status Tools", () => {
       orphan_ghost: [],
       ignored_with_parts: [],
     });
+    mockDetectArchivedMergedBranches.mockReset();
+    mockDetectArchivedMergedBranches.mockReturnValue({
+      status: "ok",
+      branches: [],
+    });
+    mockDetectDefaultBranch.mockReset();
+    mockDetectDefaultBranch.mockReturnValue({
+      branch: "main",
+      source: "local-main",
+    });
+    mockResolveMainCheckout.mockReset();
     tempDir = await createTempDir();
+    mockResolveMainCheckout.mockReturnValue(tempDir);
     await createTestProject(tempDir);
     store = await createLegacyStore(tempDir);
   });
@@ -1317,6 +1350,202 @@ Vague in-flight work.
           const parsed = parseToolOutput(result);
           expect(parsed.formatted).toBeDefined();
         }
+      });
+    });
+    describe("archived branch hygiene (KD6)", () => {
+      test("summary view includes recommendation line when archived merged branches detected", async () => {
+        store.changes.list = vi.fn(async () => ({
+          changes: [
+            {
+              id: "archived-one",
+              title: "Archived One",
+              status: "archived" as const,
+              created_at: "2026-01-01T00:00:00Z",
+              lastActivityAt: "2026-01-01T00:00:00Z",
+              taskCount: 0,
+              completedTasks: 0,
+            },
+            {
+              id: "archived-two",
+              title: "Archived Two",
+              status: "archived" as const,
+              created_at: "2026-01-02T00:00:00Z",
+              lastActivityAt: "2026-01-02T00:00:00Z",
+              taskCount: 0,
+              completedTasks: 0,
+            },
+          ],
+        }));
+        mockDetectArchivedMergedBranches.mockReturnValue({
+          status: "ok",
+          branches: [
+            {
+              changeId: "archived-one",
+              branch: "change/archived-one",
+              localSha: "abc123",
+              mergeProof: { kind: "tree-identical", trunkCommitSha: "def456" },
+            },
+            {
+              changeId: "archived-two",
+              branch: "change/archived-two",
+              localSha: "ghi789",
+              mergeProof: { kind: "patch-equivalent" },
+            },
+          ],
+        });
+
+        const result = await statusTools.adv_status.execute(
+          { view: "summary" },
+          store,
+        );
+        const parsed = parseToolOutput(result);
+
+        expect(parsed.recommendations).toEqual(
+          expect.arrayContaining([
+            expect.stringMatching(
+              /cleanup-ready: 2 archived-change local branch/,
+            ),
+          ]),
+        );
+      });
+
+      test("summary view omits recommendation when no archived changes", async () => {
+        store.changes.list = vi.fn(async () => ({ changes: [] }));
+
+        const result = await statusTools.adv_status.execute(
+          { view: "summary" },
+          store,
+        );
+        const parsed = parseToolOutput(result);
+
+        expect(
+          (parsed.recommendations as string[] | undefined)?.find((r: string) =>
+            /cleanup-ready:/.test(r),
+          ),
+        ).toBeUndefined();
+        expect(mockDetectArchivedMergedBranches).not.toHaveBeenCalled();
+      });
+
+      test("hygiene view includes archived_branch_hygiene field with per-branch detail", async () => {
+        store.changes.list = vi.fn(async () => ({
+          changes: [
+            {
+              id: "archived-one",
+              title: "Archived One",
+              status: "archived" as const,
+              created_at: "2026-01-01T00:00:00Z",
+              lastActivityAt: "2026-01-01T00:00:00Z",
+              taskCount: 0,
+              completedTasks: 0,
+            },
+            {
+              id: "archived-two",
+              title: "Archived Two",
+              status: "archived" as const,
+              created_at: "2026-01-02T00:00:00Z",
+              lastActivityAt: "2026-01-02T00:00:00Z",
+              taskCount: 0,
+              completedTasks: 0,
+            },
+          ],
+        }));
+        mockDetectArchivedMergedBranches.mockReturnValue({
+          status: "ok",
+          branches: [
+            {
+              changeId: "archived-one",
+              branch: "change/archived-one",
+              localSha: "abc123",
+              mergeProof: { kind: "tree-identical", trunkCommitSha: "def456" },
+            },
+            {
+              changeId: "archived-two",
+              branch: "change/archived-two",
+              localSha: "ghi789",
+              mergeProof: { kind: "patch-equivalent" },
+            },
+          ],
+        });
+
+        const result = await statusTools.adv_status.execute(
+          { view: "hygiene" },
+          store,
+        );
+        const parsed = parseToolOutput(result);
+
+        expect(parsed.archived_branch_hygiene).toBeDefined();
+        expect(parsed.archived_branch_hygiene.count).toBe(2);
+        expect(parsed.archived_branch_hygiene.branches).toHaveLength(2);
+        expect(parsed.archived_branch_hygiene.branches[0]).toMatchObject({
+          changeId: "archived-one",
+          branch: "change/archived-one",
+          mergeProof: { kind: "tree-identical", trunkCommitSha: "def456" },
+        });
+        expect(parsed.archived_branch_hygiene.branches[1]).toMatchObject({
+          changeId: "archived-two",
+          branch: "change/archived-two",
+          mergeProof: { kind: "patch-equivalent" },
+        });
+        expect(parsed.recommendations).toEqual(
+          expect.arrayContaining([
+            expect.stringMatching(
+              /cleanup-ready: 2 archived-change local branch/,
+            ),
+          ]),
+        );
+      });
+
+      test("hygiene view short-circuits to no-op when no archived changes (performance)", async () => {
+        store.changes.list = vi.fn(async () => ({ changes: [] }));
+
+        const result = await statusTools.adv_status.execute(
+          { view: "hygiene" },
+          store,
+        );
+        const parsed = parseToolOutput(result);
+
+        expect(parsed.archived_branch_hygiene).toBeUndefined();
+        expect(mockDetectArchivedMergedBranches).not.toHaveBeenCalled();
+      });
+
+      test("health view does NOT call appender (orthogonal)", async () => {
+        store.changes.list = vi.fn(async () => ({
+          changes: [
+            {
+              id: "archived-one",
+              title: "Archived One",
+              status: "archived" as const,
+              created_at: "2026-01-01T00:00:00Z",
+              lastActivityAt: "2026-01-01T00:00:00Z",
+              taskCount: 0,
+              completedTasks: 0,
+            },
+          ],
+        }));
+        mockDetectArchivedMergedBranches.mockReturnValue({
+          status: "ok",
+          branches: [
+            {
+              changeId: "archived-one",
+              branch: "change/archived-one",
+              localSha: "abc123",
+              mergeProof: { kind: "tree-identical", trunkCommitSha: "def456" },
+            },
+          ],
+        });
+
+        const result = await statusTools.adv_status.execute(
+          { view: "health" },
+          store,
+        );
+        const parsed = parseToolOutput(result);
+
+        expect(
+          (parsed.recommendations as string[] | undefined)?.find((r: string) =>
+            /cleanup-ready:/.test(r),
+          ),
+        ).toBeUndefined();
+        expect(parsed.archived_branch_hygiene).toBeUndefined();
       });
     });
   });

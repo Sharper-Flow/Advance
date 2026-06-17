@@ -62,6 +62,12 @@ import { buildExternalDependencyStatus } from "./external-dependency-status";
 import { listChangeDirs, loadChange } from "../storage/json";
 import { archiveBundleExists } from "../archive/archive";
 import {
+  detectArchivedMergedBranches,
+  detectDefaultBranch,
+  resolveMainCheckout,
+  type GitFinalizeDeps,
+} from "./archive-helpers/git-finalize";
+import {
   getDataHome,
   getWorktreeBase,
   SYNTHETIC_TEST_PROJECT_ID_PREFIX,
@@ -103,6 +109,18 @@ interface ExternalStateHygieneReport {
   in_repo_changes: boolean;
   in_repo_archive: boolean;
   recommendations: string[];
+}
+
+interface ArchivedBranchHygieneSection {
+  count: number;
+  branches: Array<{
+    changeId: string;
+    branch: string;
+    mergeProof:
+      | { kind: "tree-identical"; trunkCommitSha: string }
+      | { kind: "patch-equivalent" };
+  }>;
+  recommendation: string;
 }
 
 type TemporalHealthSnapshot = Awaited<ReturnType<typeof getTemporalHealth>>;
@@ -865,6 +883,7 @@ interface StatusViewPlan {
   peerSessions: boolean;
   pluginRuntime: boolean;
   projectMetadata: boolean;
+  archivedBranchHygiene: boolean;
 }
 
 // rq-advStatusLazyView01 (advance-meta v1.12) — execute providers from
@@ -890,6 +909,7 @@ export function buildStatusViewPlan(view: AdvStatusView): StatusViewPlan {
         peerSessions: false,
         pluginRuntime: false,
         projectMetadata: false,
+        archivedBranchHygiene: true,
       };
     case "health":
       return {
@@ -908,6 +928,7 @@ export function buildStatusViewPlan(view: AdvStatusView): StatusViewPlan {
         peerSessions: true,
         pluginRuntime: true,
         projectMetadata: false,
+        archivedBranchHygiene: false,
       };
     case "changes":
       return {
@@ -926,6 +947,7 @@ export function buildStatusViewPlan(view: AdvStatusView): StatusViewPlan {
         peerSessions: false,
         pluginRuntime: false,
         projectMetadata: false,
+        archivedBranchHygiene: false,
       };
     case "hygiene":
       return {
@@ -944,6 +966,7 @@ export function buildStatusViewPlan(view: AdvStatusView): StatusViewPlan {
         peerSessions: false,
         pluginRuntime: false,
         projectMetadata: true,
+        archivedBranchHygiene: true,
       };
   }
 }
@@ -1058,6 +1081,7 @@ export function applyStatusView(
       projection.project_metadata = full.project_metadata;
       projection._healthSnapshot = full._healthSnapshot;
       projection.external_state_hygiene = full.external_state_hygiene;
+      projection.archived_branch_hygiene = full.archived_branch_hygiene;
       projection.migration_status = full.migration_status;
       projection.snapshot_health = full.snapshot_health;
       projection.terminal_cleanup_retained = full.terminal_cleanup_retained;
@@ -1185,6 +1209,68 @@ function pushQueueServiceabilityRecommendations(input: {
       "⚠️ Suspect live legacy v1 worker.lock with unproven queue serviceability — explicit approval is required for reclaim, or restart the owning OpenCode session.",
     );
   }
+}
+
+/**
+ * Detect local change/* branches for archived changes that are already merged
+ * into the default branch. Advisory only — no destructive action.
+ */
+async function appendArchivedBranchHygieneRecommendations(
+  status: {
+    recommendations: string[];
+    archived_branch_hygiene?: ArchivedBranchHygieneSection;
+  },
+  store: Store,
+  mainCheckout: string,
+  deps?: { runGit?: GitFinalizeDeps["runGit"] },
+): Promise<void> {
+  const archivedList = await store.changes.list({
+    status: "archived",
+    includeArchived: true,
+  });
+  if (archivedList.changes.length === 0) {
+    return;
+  }
+
+  let defaultBranch: string;
+  try {
+    ({ branch: defaultBranch } = detectDefaultBranch(mainCheckout, deps));
+  } catch {
+    return;
+  }
+
+  // Best-effort fetch; failure is non-blocking.
+  try {
+    deps?.runGit?.(mainCheckout, ["fetch", "origin", defaultBranch]);
+  } catch {
+    // proceed with local state
+  }
+
+  const archivedChangeIds = archivedList.changes.map((c) => c.id);
+  const result = detectArchivedMergedBranches(
+    { mainCheckout, defaultBranch, archivedChangeIds },
+    { runGit: deps?.runGit },
+  );
+  if (result.status === "blocked" || result.branches.length === 0) {
+    return;
+  }
+
+  const count = result.branches.length;
+  const recommendation =
+    `cleanup-ready: ${count} archived-change local branch(es) safely deletable\n` +
+    `  Preview: adv_archive_repair action=cleanup_merged dryRun=true\n` +
+    `  Delete:  adv_archive_repair action=cleanup_merged`;
+
+  status.recommendations.push(recommendation);
+  status.archived_branch_hygiene = {
+    count,
+    branches: result.branches.map((b) => ({
+      changeId: b.changeId,
+      branch: b.branch,
+      mergeProof: b.mergeProof,
+    })),
+    recommendation,
+  };
 }
 
 // =============================================================================
@@ -1500,6 +1586,22 @@ export const statusTools = {
             ? await computeExternalStateHygiene(activeStore)
             : undefined;
 
+          let archivedBranchHygiene: ArchivedBranchHygieneSection | undefined;
+          if (plan.archivedBranchHygiene) {
+            const mainCheckout = resolveMainCheckout(activeStore.paths.root);
+            const hygieneStatus: {
+              recommendations: string[];
+              archived_branch_hygiene?: ArchivedBranchHygieneSection;
+            } = { recommendations: status.recommendations };
+            await appendArchivedBranchHygieneRecommendations(
+              hygieneStatus,
+              activeStore,
+              mainCheckout,
+            );
+            status.recommendations = hygieneStatus.recommendations;
+            archivedBranchHygiene = hygieneStatus.archived_branch_hygiene;
+          }
+
           let snapshotHealth: SnapshotHealthSnapshot | undefined;
           if (plan.snapshotHealth) {
             const snapshotHealthProbe = await withRecordedPhase(
@@ -1671,6 +1773,7 @@ export const statusTools = {
             terminal_cleanup_retained: terminalCleanupRetained,
             snapshot_health: snapshotHealth,
             _healthSnapshot: healthSnapshot,
+            archived_branch_hygiene: archivedBranchHygiene,
             // AC6: in-memory counters surfaced via view: "health".
             // Counters reset on plugin init (JC-1).
             metrics: getMetrics(),
