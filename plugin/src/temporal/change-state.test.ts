@@ -9,6 +9,7 @@ import {
   applyProposalUpdatedToState,
   applyTaskAddedToState,
   applyTaskCompletedToState,
+  applyTestRunRecordedToState,
   changeSeedStateFromChange,
   completeGateInChangeState,
   createChangeWorkflowState,
@@ -629,5 +630,241 @@ describe("change-state pure mutation helpers", () => {
     };
 
     expect(input.seedState?.origin?.issue_number).toBe(51);
+  });
+});
+
+// rq-TDD009seq: red-then-green ordering enforcement tests
+describe("applyTestRunRecordedToState and rq-TDD009seq ordering enforcement", () => {
+  function setupStateWithInlineTask(taskId: string) {
+    const state = createChangeWorkflowState({
+      changeId: "ordering-test",
+      title: "Ordering test",
+      createdAt: "2026-06-17T00:00:00.000Z",
+    });
+    applyTaskAddedToState(state, {
+      task: {
+        id: taskId,
+        title: "Implement feature with TDD",
+        type: "code",
+        status: "pending",
+        priority: 0,
+        created_at: "2026-06-17T00:00:01.000Z",
+        metadata: { tdd_intent: "inline" },
+      },
+      addedAt: "2026-06-17T00:00:01.000Z",
+    });
+    return state;
+  }
+
+  it("stores a test-run record in state.testRuns[taskId]", () => {
+    const state = setupStateWithInlineTask("tk-seq1");
+    applyTestRunRecordedToState(state, {
+      taskId: "tk-seq1",
+      runId: "tr_red_001",
+      phase: "red",
+      exitCode: 1,
+      classification: "failed",
+      command: "pnpm test -- foo.test.ts",
+      durationMs: 500,
+      recordedAt: "2026-06-17T00:00:10.000Z",
+    });
+
+    expect(state.testRuns?.["tk-seq1"]).toHaveLength(1);
+    expect(state.testRuns?.["tk-seq1"]?.[0]).toMatchObject({
+      runId: "tr_red_001",
+      phase: "red",
+      exitCode: 1,
+    });
+  });
+
+  it("ring-buffers test runs to last 20 per task", () => {
+    const state = setupStateWithInlineTask("tk-ring");
+    for (let i = 0; i < 25; i++) {
+      applyTestRunRecordedToState(state, {
+        taskId: "tk-ring",
+        runId: `tr_${i}`,
+        exitCode: i % 2,
+        classification: i % 2 === 0 ? "passed" : "failed",
+        command: "pnpm test",
+        durationMs: 100,
+        recordedAt: `2026-06-17T00:00:${String(i).padStart(2, "0")}.000Z`,
+      });
+    }
+    expect(state.testRuns?.["tk-ring"]).toHaveLength(20);
+    expect(state.testRuns?.["tk-ring"]?.[0]?.runId).toBe("tr_5");
+    expect(state.testRuns?.["tk-ring"]?.[19]?.runId).toBe("tr_24");
+  });
+
+  // AC1: reject inline task without prior red run
+  it("AC1: rejects inline task completion with lastGreenRunId but no prior red run", () => {
+    const state = setupStateWithInlineTask("tk-ac1");
+    // No test runs recorded
+    expect(() =>
+      applyTaskCompletedToState(state, {
+        taskId: "tk-ac1",
+        verification: "done",
+        summary: "completed",
+        filesTouched: [],
+        completedAt: "2026-06-17T00:01:00.000Z",
+        lastRedRunId: "tr_red_missing",
+        lastGreenRunId: "tr_green_001",
+      }),
+    ).toThrow(/TASK_ORDERING_VIOLATION/);
+    expect(state.tasks[0].status).toBe("pending");
+  });
+
+  // AC2: accept valid red→green sequence
+  it("AC2: accepts inline task completion with valid red→green sequence", () => {
+    const state = setupStateWithInlineTask("tk-ac2");
+    applyTestRunRecordedToState(state, {
+      taskId: "tk-ac2",
+      runId: "tr_red_ok",
+      phase: "red",
+      exitCode: 1,
+      classification: "failed",
+      command: "pnpm test -- foo.test.ts",
+      durationMs: 500,
+      recordedAt: "2026-06-17T00:00:10.000Z",
+    });
+    applyTestRunRecordedToState(state, {
+      taskId: "tk-ac2",
+      runId: "tr_green_ok",
+      phase: "green",
+      exitCode: 0,
+      classification: "passed",
+      command: "pnpm test -- foo.test.ts",
+      durationMs: 400,
+      recordedAt: "2026-06-17T00:00:20.000Z",
+    });
+
+    applyTaskCompletedToState(state, {
+      taskId: "tk-ac2",
+      verification: "red then green verified",
+      summary: "completed with TDD",
+      filesTouched: ["src/foo.ts"],
+      completedAt: "2026-06-17T00:01:00.000Z",
+      lastRedRunId: "tr_red_ok",
+      lastGreenRunId: "tr_green_ok",
+    });
+
+    expect(state.tasks[0].status).toBe("done");
+  });
+
+  // AC3: legacy task without lastGreenRunId is grandfathered
+  it("AC3: accepts legacy task completion without lastGreenRunId", () => {
+    const state = setupStateWithInlineTask("tk-ac3");
+    // No test runs, no lastGreenRunId — backward compat
+    applyTaskCompletedToState(state, {
+      taskId: "tk-ac3",
+      verification: "legacy verification",
+      summary: "legacy done",
+      filesTouched: ["src/foo.ts"],
+      completedAt: "2026-06-17T00:01:00.000Z",
+    });
+
+    expect(state.tasks[0].status).toBe("done");
+  });
+
+  it("rejects when red run has exitCode=0 (was not actually red)", () => {
+    const state = setupStateWithInlineTask("tk-fake-red");
+    applyTestRunRecordedToState(state, {
+      taskId: "tk-fake-red",
+      runId: "tr_fake_red",
+      phase: "red",
+      exitCode: 0,
+      classification: "passed",
+      command: "pnpm test -- foo.test.ts",
+      durationMs: 500,
+      recordedAt: "2026-06-17T00:00:10.000Z",
+    });
+    applyTestRunRecordedToState(state, {
+      taskId: "tk-fake-red",
+      runId: "tr_green_ok",
+      phase: "green",
+      exitCode: 0,
+      classification: "passed",
+      command: "pnpm test -- foo.test.ts",
+      durationMs: 400,
+      recordedAt: "2026-06-17T00:00:20.000Z",
+    });
+
+    expect(() =>
+      applyTaskCompletedToState(state, {
+        taskId: "tk-fake-red",
+        verification: "done",
+        summary: "completed",
+        filesTouched: [],
+        completedAt: "2026-06-17T00:01:00.000Z",
+        lastRedRunId: "tr_fake_red",
+        lastGreenRunId: "tr_green_ok",
+      }),
+    ).toThrow(/TASK_ORDERING_VIOLATION/);
+  });
+
+  it("exempts not_applicable tasks from ordering check", () => {
+    const state = createChangeWorkflowState({
+      changeId: "na-test",
+      title: "NA test",
+      createdAt: "2026-06-17T00:00:00.000Z",
+    });
+    applyTaskAddedToState(state, {
+      task: {
+        id: "tk-na",
+        title: "Update docs",
+        type: "code",
+        status: "pending",
+        priority: 0,
+        created_at: "2026-06-17T00:00:01.000Z",
+        metadata: { tdd_intent: "not_applicable" },
+      },
+      addedAt: "2026-06-17T00:00:01.000Z",
+    });
+    // Even with lastGreenRunId, not_applicable tasks skip the check
+    applyTaskCompletedToState(state, {
+      taskId: "tk-na",
+      verification: "docs updated",
+      summary: "done",
+      filesTouched: ["README.md"],
+      completedAt: "2026-06-17T00:01:00.000Z",
+      lastGreenRunId: "tr_nonexistent",
+    });
+
+    expect(state.tasks[0].status).toBe("done");
+  });
+
+  it("rejects when red run is after green run (wrong order)", () => {
+    const state = setupStateWithInlineTask("tk-order");
+    applyTestRunRecordedToState(state, {
+      taskId: "tk-order",
+      runId: "tr_green_first",
+      phase: "green",
+      exitCode: 0,
+      classification: "passed",
+      command: "pnpm test -- foo.test.ts",
+      durationMs: 400,
+      recordedAt: "2026-06-17T00:00:10.000Z",
+    });
+    applyTestRunRecordedToState(state, {
+      taskId: "tk-order",
+      runId: "tr_red_second",
+      phase: "red",
+      exitCode: 1,
+      classification: "failed",
+      command: "pnpm test -- foo.test.ts",
+      durationMs: 500,
+      recordedAt: "2026-06-17T00:00:20.000Z",
+    });
+
+    expect(() =>
+      applyTaskCompletedToState(state, {
+        taskId: "tk-order",
+        verification: "done",
+        summary: "completed",
+        filesTouched: [],
+        completedAt: "2026-06-17T00:01:00.000Z",
+        lastRedRunId: "tr_red_second",
+        lastGreenRunId: "tr_green_first",
+      }),
+    ).toThrow(/TASK_ORDERING_VIOLATION/);
   });
 });

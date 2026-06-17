@@ -55,6 +55,7 @@ import {
   applyTaskCompletedToState,
   applyTaskRemovedToState,
   applyTaskUpdatedToState,
+  applyTestRunRecordedToState,
   applyWisdomAddedToState,
   applyWorktreeAttachedToState,
   applyWorktreeAutoManagedToState,
@@ -275,6 +276,9 @@ const taskAssignedSignal = wf.defineSignal<
 const taskCompletedSignal = wf.defineSignal<
   [import("../types").TaskCompletedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.taskCompleted);
+const testRunRecordedSignal = wf.defineSignal<
+  [import("../types").TestRunRecordedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.testRunRecorded);
 const subagentReportSubmittedSignal = wf.defineSignal<
   [import("../types").SubagentReportSubmittedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.subagentReportSubmitted);
@@ -1156,6 +1160,12 @@ export async function changeWorkflow(
     taskCompletedSignal,
     signalMutation("taskCompleted", (payload) =>
       applyTaskCompletedToState(state, payload),
+    ),
+  );
+  wf.setHandler(
+    testRunRecordedSignal,
+    signalMutation("testRunRecorded", (payload) =>
+      applyTestRunRecordedToState(state, payload),
     ),
   );
   wf.setHandler(

@@ -35,6 +35,7 @@ import type {
   TaskRemovedSignalPayload,
   TaskUpdatedSignalPayload,
   TddReclassification,
+  TestRunRecordedSignalPayload,
   WisdomAddedSignalPayload,
   WisdomType,
   WorktreeAttachedSignalPayload,
@@ -52,6 +53,7 @@ import type {
   ChangeWorkflowInput,
   ChangeWorkflowState,
   SignalRejection,
+  TestRunRecord,
 } from "./contracts";
 
 export interface UpdateTaskInput {
@@ -583,6 +585,32 @@ export function applyTaskAssignedToState(
   return state;
 }
 
+const TEST_RUN_RING_BUFFER_LIMIT = 20;
+
+/**
+ * Persist a test-run record into `state.testRuns[taskId][]`.
+ * Ring-buffered to last TEST_RUN_RING_BUFFER_LIMIT entries per task.
+ *
+ * rq-TDD009seq: these records are matched against
+ * `TaskCompletedSignalPayload.lastRedRunId` / `lastGreenRunId` at
+ * task-completion time to enforce red-before-green ordering.
+ */
+export function applyTestRunRecordedToState(
+  state: ChangeWorkflowState,
+  payload: TestRunRecordedSignalPayload,
+): ChangeWorkflowState {
+  const { taskId, ...recordFields } = payload;
+  const record = recordFields as TestRunRecord;
+  const existing = state.testRuns?.[taskId] ?? [];
+  const updated = [...existing, record].slice(-TEST_RUN_RING_BUFFER_LIMIT);
+  state.testRuns = {
+    ...(state.testRuns ?? {}),
+    [taskId]: updated,
+  };
+  setLastSignalAt(state, payload.recordedAt);
+  return state;
+}
+
 export function applyTaskCompletedToState(
   state: ChangeWorkflowState,
   payload: TaskCompletedSignalPayload,
@@ -597,6 +625,53 @@ export function applyTaskCompletedToState(
   if (incomingWouldWeakenCheckpoint) {
     setLastSignalAt(state, payload.completedAt);
     return state;
+  }
+
+  // rq-TDD009seq: red-then-green ordering enforcement for inline TDD tasks.
+  // Only fires when lastGreenRunId is structurally present (cutover boundary).
+  // Legacy tasks without lastGreenRunId are grandfathered (C1).
+  // Tasks with tdd_intent not_applicable / separate_verification are exempt (C3).
+  if (payload.lastGreenRunId) {
+    const tddIntent = task.metadata?.tdd_intent;
+    // Default (undefined) is treated as inline per rq-TDD001inl.3
+    const isInline = tddIntent === "inline" || tddIntent === undefined;
+    if (isInline) {
+      const runs = state.testRuns?.[payload.taskId] ?? [];
+      const redRun = payload.lastRedRunId
+        ? runs.find((r) => r.runId === payload.lastRedRunId)
+        : undefined;
+      const greenRun = runs.find((r) => r.runId === payload.lastGreenRunId);
+
+      if (!redRun || redRun.exitCode === 0 || redRun.phase !== "red") {
+        throw new Error(
+          `TASK_ORDERING_VIOLATION: no prior red run (phase:'red', exitCode!=0) ` +
+            `found for taskId ${payload.taskId}` +
+            (payload.lastRedRunId
+              ? ` matching lastRedRunId=${payload.lastRedRunId}`
+              : "") +
+            `. Record a failing test via adv_run_test with phase:'red' before completing this task.`,
+        );
+      }
+
+      if (
+        !greenRun ||
+        greenRun.exitCode !== 0 ||
+        greenRun.phase !== "green"
+      ) {
+        throw new Error(
+          `TASK_ORDERING_VIOLATION: green run matching lastGreenRunId=${payload.lastGreenRunId} ` +
+            `not found or not passing (expected phase:'green', exitCode=0) for taskId ${payload.taskId}.`,
+        );
+      }
+
+      if (redRun.recordedAt >= greenRun.recordedAt) {
+        throw new Error(
+          `TASK_ORDERING_VIOLATION: red run ${redRun.runId} ` +
+            `(recordedAt=${redRun.recordedAt}) is not before green run ` +
+            `${greenRun.runId} (recordedAt=${greenRun.recordedAt}) for taskId ${payload.taskId}.`,
+        );
+      }
+    }
   }
 
   task.status = "done";

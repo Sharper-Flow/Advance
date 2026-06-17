@@ -48,6 +48,7 @@ import type {
   TaskCompletedSignalPayload,
   TaskRemovedSignalPayload,
   TaskUpdatedSignalPayload,
+  TestRunRecordedSignalPayload,
   WisdomAddedSignalPayload,
   WorktreeAttachedSignalPayload,
   WorktreeAutoManagedSignalPayload,
@@ -171,6 +172,9 @@ export const taskAssignedSignal = wf.defineSignal<[TaskAssignedSignalPayload]>(
 export const taskCompletedSignal = wf.defineSignal<
   [TaskCompletedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.taskCompleted);
+export const testRunRecordedSignal = wf.defineSignal<
+  [TestRunRecordedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.testRunRecorded);
 export const subagentReportSubmittedSignal = wf.defineSignal<
   [SubagentReportSubmittedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.subagentReportSubmitted);
