@@ -90,6 +90,8 @@ const TITLE_BUILDERS: Record<string, TitleBuilder> = {
     write(`Update change issues${suffix(args, "changeId")}`),
   adv_change_reenter: (args) =>
     write(`Re-enter change${suffix(args, "changeId")}`),
+  adv_change_forget: (args) =>
+    operator(`Forget change pointer${suffix(args, "changeId")}`),
   adv_contract_mint: (args) =>
     write(`Mint contract${suffix(args, "changeId")}`),
   adv_contract_review_matrix_set: (args) =>

@@ -253,3 +253,59 @@ export async function startChangeWorkflow(
   );
   return handle as WorkflowHandleLike;
 }
+
+/**
+ * Injectable dependencies for {@link isChangeReachable}.
+ * All I/O is performed by the caller-supplied functions so the helper stays
+ * pure and fully testable.
+ */
+export interface ReachabilityDeps {
+  visibilityLister: (projectId: string, changeId: string) => Promise<boolean>;
+  diskChecker: (changesDir: string, changeId: string) => Promise<boolean>;
+  workflowStateGetter: (changeId: string) => Promise<boolean>;
+}
+
+// rq-activeChangePointer01
+/**
+ * Three-tier reachability check for a changeId.
+ *
+ * Order (short-circuiting):
+ *   1. Worker-free Visibility lister.
+ *   2. Disk fallback (change.json present on disk).
+ *   3. Workflow-state fallback.
+ *
+ * A rejected tier is treated as a miss and falls through to the next tier.
+ * The function is pure: all I/O is injected via `deps`.
+ */
+export async function isChangeReachable(
+  projectId: string,
+  changeId: string,
+  deps: ReachabilityDeps,
+  changesDir: string,
+): Promise<boolean> {
+  try {
+    if (await deps.visibilityLister(projectId, changeId)) {
+      return true;
+    }
+  } catch {
+    // Visibility failed; fall through to disk check.
+  }
+
+  try {
+    if (await deps.diskChecker(changesDir, changeId)) {
+      return true;
+    }
+  } catch {
+    // Disk check failed; fall through to workflow check.
+  }
+
+  try {
+    if (await deps.workflowStateGetter(changeId)) {
+      return true;
+    }
+  } catch {
+    // Workflow check failed; treat as unreachable.
+  }
+
+  return false;
+}

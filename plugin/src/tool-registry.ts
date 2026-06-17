@@ -326,6 +326,11 @@ export function createToolMap(
       "adv_change_reenter",
       store,
     ),
+    adv_change_forget: bindTool(
+      changeTools.adv_change_forget,
+      "adv_change_forget",
+      store,
+    ),
 
     // Contract Tools
     adv_contract_mint: bindTool(
@@ -728,6 +733,7 @@ export const ADV_TOOL_NAMES: readonly string[] = [
   "adv_change_status_repair",
   "adv_change_update_issues",
   "adv_change_reenter",
+  "adv_change_forget",
   "adv_contract_mint",
   "adv_contract_review_matrix_set",
   "adv_task_show",

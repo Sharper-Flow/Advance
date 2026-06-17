@@ -136,6 +136,7 @@ describe("REGISTRY NO-REMOVAL GUARD (AC6/DONT1)", () => {
       "adv_change_status_repair",
       "adv_change_update_issues",
       "adv_change_reenter",
+      "adv_change_forget",
       "adv_contract_mint",
       "adv_contract_review_matrix_set",
       "adv_task_show",

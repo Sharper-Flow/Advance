@@ -4987,4 +4987,29 @@ export const changeTools = {
       });
     },
   },
+
+  // rq-activeChangePointer01: Session active-change pointer recovery.
+  adv_change_forget: {
+    description:
+      "Clear the session active-change pointer for a specified changeId. Pure in-memory recovery — does NOT close, archive, or modify any persistent state. Use when the session pointer references a phantom change (unreachable workflow, no disk state). The pointer is cleared via an index.ts post-output hook; this tool emits the clear intent.",
+    args: {
+      changeId: z
+        .string()
+        .describe(
+          "The changeId to forget from the session pointer. Must match the current active pointer for the clear to take effect; if mismatched, the hook will refuse and surface the actual pointer.",
+        ),
+    },
+    execute: async ({ changeId }: { changeId: string }, _store: Store) => {
+      // Emit success output unconditionally. The recordForgetChange hook
+      // in index.ts will process this and conditionally clear the pointer.
+      logger.debug(`adv_change_forget: emitted clear intent for ${changeId}`);
+      return formatToolOutput({
+        success: true,
+        changeId,
+        action: "forget",
+        cleared: true,
+        message: `Forget intent emitted for ${changeId}. Session pointer will be cleared by the recordForgetChange hook if changeId matches the current active pointer.`,
+      });
+    },
+  },
 };

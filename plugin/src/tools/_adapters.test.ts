@@ -12,6 +12,8 @@ import {
   fireSignalAndRefresh,
   getChangeHandle,
   startChangeWorkflow,
+  isChangeReachable,
+  type ReachabilityDeps,
 } from "./_adapters";
 
 // Mock the workflow-start module so startChangeWorkflow is testable
@@ -426,5 +428,159 @@ describe("_adapters", () => {
         }),
       ).rejects.toThrow("does not expose workflow.start");
     });
+  });
+});
+
+describe("isChangeReachable", () => {
+  const changesDir = "/data/changes";
+
+  function createDeps(
+    overrides: Partial<ReachabilityDeps> = {},
+  ): ReachabilityDeps {
+    return {
+      visibilityLister: vi.fn(async () => false),
+      diskChecker: vi.fn(async () => false),
+      workflowStateGetter: vi.fn(async () => false),
+      ...overrides,
+    };
+  }
+
+  test("visibility hit returns true without touching disk or workflow", async () => {
+    const deps = createDeps({
+      visibilityLister: vi.fn(async () => true),
+    });
+
+    const result = await isChangeReachable(
+      "proj-123",
+      "chg-456",
+      deps,
+      changesDir,
+    );
+
+    expect(result).toBe(true);
+    expect(deps.visibilityLister).toHaveBeenCalledExactlyOnceWith(
+      "proj-123",
+      "chg-456",
+    );
+    expect(deps.diskChecker).not.toHaveBeenCalled();
+    expect(deps.workflowStateGetter).not.toHaveBeenCalled();
+  });
+
+  test("visibility miss + disk hit returns true without workflow", async () => {
+    const deps = createDeps({
+      visibilityLister: vi.fn(async () => false),
+      diskChecker: vi.fn(async () => true),
+    });
+
+    const result = await isChangeReachable(
+      "proj-123",
+      "chg-456",
+      deps,
+      changesDir,
+    );
+
+    expect(result).toBe(true);
+    expect(deps.visibilityLister).toHaveBeenCalledTimes(1);
+    expect(deps.diskChecker).toHaveBeenCalledExactlyOnceWith(
+      changesDir,
+      "chg-456",
+    );
+    expect(deps.workflowStateGetter).not.toHaveBeenCalled();
+  });
+
+  test("visibility miss + disk miss + workflow hit returns true", async () => {
+    const deps = createDeps({
+      visibilityLister: vi.fn(async () => false),
+      diskChecker: vi.fn(async () => false),
+      workflowStateGetter: vi.fn(async () => true),
+    });
+
+    const result = await isChangeReachable(
+      "proj-123",
+      "chg-456",
+      deps,
+      changesDir,
+    );
+
+    expect(result).toBe(true);
+    expect(deps.visibilityLister).toHaveBeenCalledTimes(1);
+    expect(deps.diskChecker).toHaveBeenCalledTimes(1);
+    expect(deps.workflowStateGetter).toHaveBeenCalledExactlyOnceWith("chg-456");
+  });
+
+  test("all miss returns false", async () => {
+    const deps = createDeps();
+
+    const result = await isChangeReachable(
+      "proj-123",
+      "chg-456",
+      deps,
+      changesDir,
+    );
+
+    expect(result).toBe(false);
+    expect(deps.visibilityLister).toHaveBeenCalledTimes(1);
+    expect(deps.diskChecker).toHaveBeenCalledTimes(1);
+    expect(deps.workflowStateGetter).toHaveBeenCalledTimes(1);
+  });
+
+  test("freshly-created change reachable via disk fallback", async () => {
+    const deps = createDeps({
+      visibilityLister: vi.fn(async () => false),
+      diskChecker: vi.fn(async () => true),
+    });
+
+    const result = await isChangeReachable(
+      "proj-123",
+      "chg-new",
+      deps,
+      changesDir,
+    );
+
+    expect(result).toBe(true);
+    expect(deps.diskChecker).toHaveBeenCalledExactlyOnceWith(
+      changesDir,
+      "chg-new",
+    );
+    expect(deps.workflowStateGetter).not.toHaveBeenCalled();
+  });
+
+  test("rejected visibility falls through to disk and workflow", async () => {
+    const deps = createDeps({
+      visibilityLister: vi.fn(async () => {
+        throw new Error("visibility unavailable");
+      }),
+      diskChecker: vi.fn(async () => false),
+      workflowStateGetter: vi.fn(async () => true),
+    });
+
+    const result = await isChangeReachable(
+      "proj-123",
+      "chg-456",
+      deps,
+      changesDir,
+    );
+
+    expect(result).toBe(true);
+    expect(deps.diskChecker).toHaveBeenCalledTimes(1);
+    expect(deps.workflowStateGetter).toHaveBeenCalledTimes(1);
+  });
+
+  test("all rejected tiers return false without throwing", async () => {
+    const deps = createDeps({
+      visibilityLister: vi.fn(async () => {
+        throw new Error("visibility unavailable");
+      }),
+      diskChecker: vi.fn(async () => {
+        throw new Error("disk unavailable");
+      }),
+      workflowStateGetter: vi.fn(async () => {
+        throw new Error("workflow unavailable");
+      }),
+    });
+
+    await expect(
+      isChangeReachable("proj-123", "chg-456", deps, changesDir),
+    ).resolves.toBe(false);
   });
 });
