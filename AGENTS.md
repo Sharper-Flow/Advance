@@ -24,7 +24,7 @@ plugin/              # TypeScript plugin (the only buildable package)
 .adv/specs/          # Capability specs (the laws) — git-tracked, branch-local
 .opencode/
   command/           # Slash-command workflow files (adv-*.md)
-  agents/            # adv-researcher (bundled global), adv-engineer (bundled global), adv-reviewer (bundled global), adv-designer (bundled global, apply-phase frontend specialist), adv-tron (repo-local); overlay-managed: adv, plan (absorbed scout), build (absorbed refine)
+  agents/            # adv-researcher, adv-engineer, adv-reviewer, adv-designer (bundled global; designer is the apply-phase frontend specialist), adv-tron (repo-local), adv-atc; overlay-managed: adv, plan (absorbed scout), build (absorbed refine)
   overlays/          # Managed overlay blocks synced into global shared agents
 skills/              # Bundled methodology skills synced to ~/.config/opencode/skills/
 scripts/             # deploy-local.sh (main), migrate-openspec.ts, recover-db.js, model-blind-test
@@ -34,28 +34,35 @@ acp-mux/             # Archived ACP experiment; reference only, not supported/re
 
 ## Development Commands
 
-**All commands run from `plugin/`, not the repo root.**
+**All commands run from `plugin/`, not the repo root.** Tests run on Node via vitest; the plugin runtime is Bun.
 
 ```bash
-pnpm test                    # vitest run — 2900+ tests, ~55s
-pnpm run check               # schemas:check → typecheck → lint → format:check (no tests)
-pnpm run build               # tsup (ESM) — emits dist/index.js + dist/index.d.ts
+pnpm test                    # vitest run — full suite (~267 spec files under src/)
+pnpm run check               # pre-push gate: schemas:check → typecheck → check-test-isolation → check-lockfile-policy → lint → format:check (no tests)
+pnpm run build               # tsup ESM (dist/index.js + .d.ts) && build:worker (dist/temporal/*.js)
+pnpm run build:worker        # TEMPORAL WORKER BUNDLE — must build before OOP integration tests
 pnpm run typecheck            # tsc --noEmit
 pnpm run lint                 # eslint src/
 pnpm run lint:fix             # eslint --fix
-pnpm run format               # prettier --write
-pnpm run format:check         # prettier --check
+pnpm run format               # prettier --write src/
+pnpm run format:check         # prettier --check src/
 pnpm run schemas:generate     # regenerate public JSON schemas from Zod registry
-pnpm run schemas:check        # deterministic schema drift check
-# Note: `pnpm run validate:temporal` and its harness were retired after the
-# Temporal cutover shipped. Current Temporal guidance lives in docs/temporal-recovery.md.
-# Note: no `generate:docs` script exists. Public JSON schemas are generated
-# from plugin/src/schema-registry.ts using Zod v4 z.toJSONSchema().
+pnpm run schemas:check        # deterministic schema drift check (CI-enforced)
+pnpm run dev                  # tsup --watch (plugin only)
+pnpm run test:watch           # vitest watch mode
+pnpm run test:coverage        # vitest --coverage
+pnpm run bench:latency        # bun --smol scripts/bench-adv-latency.ts
+# Note: no `generate:docs` script. Public JSON schemas are generated from
+# plugin/src/schema-registry.ts using Zod v4 z.toJSONSchema().
 ```
 
 **Single test file:** `pnpm test -- src/tools/change.test.ts`
 
-**OpenCode/ADV test routing:** prefer repo-local throttle wrapper when running suites from the repo root:
+**Lockfile policy** (`scripts/check-lockfile-policy.ts`, enforced in `check`): pnpm is authoritative — never commit `bun.lock`/`bun.lockb` beside `plugin/pnpm-lock.yaml`. Bun is the OpenCode runtime, not the package manager for this repo.
+
+**Test isolation** (`scripts/check-test-isolation.ts`, enforced in `check`): any test calling `adv_change_create`/`changeCreate` MUST use an isolated project dir (`createTempDir`/`tmpdir`/`os.tmpdir`). Allowlisted: `*-assets.test.ts`, `target-project.test.ts`.
+
+**OpenCode/ADV test routing:** prefer the repo-local throttle wrapper when running suites from the repo root:
 
 ```bash
 bin/oc-test targeted -- src/tools/change.test.ts
@@ -63,9 +70,20 @@ bin/oc-test smoke
 bin/oc-test full
 ```
 
-`bin/oc-test` delegates to `oc-test-gate` when available and falls back to direct plugin commands without changing `adv_run_test` command semantics.
+`bin/oc-test` delegates to `oc-test-gate` when available and falls back to direct plugin commands without changing `adv_run_test` semantics.
 
-**CI order** (`.github/workflows/ci.yml`): schemas:check → typecheck → lint → format:check → test → build. Node 24.x.
+**`bin/adv` — read-only status CLI** (Bun runtime; covered by `bun test bin/` in CI):
+
+```bash
+bin/adv status      # live active-changes table from Temporal (default subcommand)
+bin/adv roadmap     # prioritized backlog from .adv/roadmap-snapshot.json
+bin/adv slop-scan   # deterministic slop scanner
+bin/adv --json      # JSON output (status/roadmap/slop-scan)
+```
+
+**CI order** (`.github/workflows/ci.yml`, Node 24.x, pnpm 11): schemas:check → typecheck → lint → format:check → `build:worker` → install Temporal CLI + Bun → `pnpm test` → `bun test bin/`. A separate `build` job runs `pnpm run build` after tests pass. Auto-release (`auto-release.yml`) cuts a GitHub Release after CI succeeds on main/trunk using conventional commits.
+
+**Git hooks** (`.githooks/`, opt-in via `scripts/install-git-hooks.sh` which sets `core.hooksPath=.githooks`): `post-commit` and `pre-push` run `deploy-local.sh --fix` when a commit touches `.opencode/`, `ADV_INSTRUCTIONS.md`, or `skills/`, keeping `~/.config/opencode/` in sync. Idempotent no-ops otherwise; never block the push.
 
 ### Source-vs-Dist Reload Gotcha
 
@@ -212,5 +230,6 @@ Requires `jq` for config patching and `rsync` for runtime plugin deployment.
 - `ADV_INSTRUCTIONS.md` — full agent operating protocol (gates, TDD, doom loop, cancellation, re-entry)
 - `SETUP.md` — installation, project init, troubleshooting
 - `docs/adv-gates.md` — gate contracts and sequencing rules
+- `docs/temporal-recovery.md` — Temporal worker recovery model (replaces retired `validate:temporal`)
 - `docs/checklists/` — prep, review, and harden checklists
 - `docs/snapshot-health.md` — detect/repair OpenCode snapshot-store corruption (stale locks, zero-byte objects, fsck errors, orphan repos)
