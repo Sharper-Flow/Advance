@@ -47,6 +47,9 @@ const PrepReadinessCodes = {
   // Critical-ops coverage (rq-PR007cro)
   CRITICAL_OPS_UNCOVERED: "CRITICAL_OPS_UNCOVERED", // must (error)
   CRITICAL_OPS_DEFERRED: "CRITICAL_OPS_DEFERRED", // must (error)
+
+  // TDD ordering advisory (rq-PR008tor / rq-TDD009seq)
+  TASK_ORDERING_PROVISIONAL: "TASK_ORDERING_PROVISIONAL", // warning (advisory)
 } as const;
 
 type _PrepReadinessCode =
@@ -465,6 +468,42 @@ export function checkCriticalOpsCoverage(change: Change): ValidationIssue[] {
 }
 
 // =============================================================================
+// Check: Task Ordering Provisional Advisory (rq-PR008tor / rq-TDD009seq)
+// =============================================================================
+
+/**
+ * Emit advisory warnings for inline TDD tasks subject to rq-TDD009seq
+ * ordering enforcement. Non-blocking — informational only.
+ */
+export function checkTaskOrderingProvisional(
+  change: Change,
+): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+  const tasks = (change.tasks ?? []).filter((t) => t.status !== "cancelled");
+
+  for (const task of tasks) {
+    const intent = task.metadata?.tdd_intent;
+    // Default (undefined) is treated as inline per rq-TDD001inl.3
+    const isInline = intent === "inline" || intent === undefined;
+    if (!isInline) continue;
+
+    issues.push({
+      code: PrepReadinessCodes.TASK_ORDERING_PROVISIONAL,
+      severity: "warning",
+      message: `Task "${task.id}" will be subject to rq-TDD009seq red→green ordering enforcement at completion time. Record a failing test via adv_run_test with phase:'red' before completing this task.`,
+      path: `tasks.${task.id}`,
+      details: {
+        taskId: task.id,
+        remediation:
+          "Use adv_run_test phase:'red' (expect failure) then phase:'green' (expect pass) before task completion. Include lastRedRunId and lastGreenRunId in the task completion payload.",
+      },
+    });
+  }
+
+  return issues;
+}
+
+// =============================================================================
 // runPrepReadinessChecks
 // =============================================================================
 
@@ -493,6 +532,7 @@ export function runPrepReadinessChecks(
     ...checkTaskGraphIntegrity(change),
     ...checkCrossRepoRouting(change),
     ...checkCriticalOpsCoverage(change),
+    ...checkTaskOrderingProvisional(change),
     ...(tddEnforcement !== "off"
       ? checkTddIntentAssigned(
           change,
@@ -514,6 +554,7 @@ export function runPrepReadinessChecks(
       "checkTaskGraphIntegrity",
       "checkCrossRepoRouting",
       "checkCriticalOpsCoverage",
+      "checkTaskOrderingProvisional",
       "checkTddIntentAssigned",
     ],
     checkedAt: new Date().toISOString(),

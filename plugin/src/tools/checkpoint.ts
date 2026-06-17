@@ -31,7 +31,7 @@ import {
   getChangeHandle,
   querySignal,
 } from "./_adapters";
-import { changeTaskQuery, taskCompletedSignal } from "../temporal/messages";
+import { changeTaskQuery, getStateQuery, taskCompletedSignal } from "../temporal/messages";
 import { extractStructuredOutput } from "../utils/extract-structured-output";
 
 // ─── Constants ──────────────────────────────────────────────────────────────
@@ -448,9 +448,33 @@ async function fireTaskCompletedFromCheckpoint(
     }
 
     if (recordedTask.status !== "done") {
+      // rq-TDD009seq: surface specific rejection reason if available
+      let specificError: string | undefined;
+      try {
+        const state = await querySignal<{
+          signal_rejections?: Array<{
+            signalName: string;
+            errorMessage: string;
+            rejectedAt: string;
+          }>;
+        } | null>(handle, getStateQuery);
+        const rejections = state?.signal_rejections ?? [];
+        const latest = rejections[rejections.length - 1];
+        if (
+          latest?.signalName === "taskCompleted" &&
+          latest.errorMessage
+        ) {
+          specificError = latest.errorMessage;
+        }
+      } catch {
+        // Non-fatal: fall through to generic error
+      }
+
       return {
         recorded: false,
-        error: `Task ${taskId} status is ${recordedTask.status ?? "unknown"} after checkpoint completion signal`,
+        error:
+          specificError ??
+          `Task ${taskId} status is ${recordedTask.status ?? "unknown"} after checkpoint completion signal`,
         remediation: CHECKPOINT_RECORDING_REMEDIATION,
       };
     }
