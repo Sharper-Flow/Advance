@@ -1,0 +1,5 @@
+# Executive Summary
+
+Resolved a registered-tool-vs-allowlist drift: `adv_change_forget` (the in-memory phantom-pointer recovery tool, registered at `tool-registry.ts:329`) was missing from the `adv.md` and `adv-atc.md` agent `tools:` allowlists, so `deploy-local.sh --check` flagged it as a tool-drift `✗` ("invisible in sessions"). Added `adv_change_forget: true` to both allowlists.
+
+**Outcome:** `deploy-local.sh --check` now reports `✓ tool drift: adv.md allowlist matches plugin registry (56 tools)` and the same for `adv-atc.md` — zero drift in either direction. `pnpm run check` is green. The change is two allowlist lines; no tool registration, schema, code, or instruction-prose changes. The ADV and ATC agents can now legitimately call the recovery tool, and the allowlist truthfully represents their callable surface.

@@ -1,0 +1,323 @@
+{
+  "id": "addAdvChangeForgetAgent",
+  "title": "Add adv_change_forget to agent allowlists",
+  "status": "archived",
+  "created_at": "2026-06-17T21:55:00.699Z",
+  "tasks": [
+    {
+      "id": "tk-155e3eadb59c",
+      "title": "Add `adv_change_forget: true` to both agent allowlists",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-06-17T21:56:45.654Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-17T21:57:13.360Z",
+      "verification": "RED ABSENT → GREEN PRESENT. deploy --check: ✓ tool drift adv.md (56 tools), ✓ tool drift adv-atc.md (56 tools) — zero drift both directions. pnpm run check green (schemas/typecheck/isolation/lockfile/lint/format). git diff = two allowlist lines.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added adv_change_forget: true to .opencode/agents/adv.md (after adv_change_status_repair) and .opencode/agents/adv-atc.md (after adv_change_reenter). deploy --check now reports ✓ tool drift for both agents (56 tools, zero drift both directions). pnpm run check green. No code/schema/instruction-prose changes — two allowlist lines only.",
+      "filesTouched": [
+        ".opencode/agents/adv-atc.md",
+        ".opencode/agents/adv.md"
+      ],
+      "touched_files": [
+        ".opencode/agents/adv-atc.md",
+        ".opencode/agents/adv.md"
+      ],
+      "checkpointSha": "d6af4c53f910cf4ecc56ece5b998462457f1837e",
+      "completedAt": "2026-06-17T21:59:07.469Z",
+      "completed_at": "2026-06-17T21:59:07.469Z",
+      "contract_refs": {
+        "respects": [
+          "C1",
+          "C2"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4"
+        ]
+      },
+      "updatedAt": "2026-06-17T21:59:19.995Z"
+    }
+  ],
+  "subagent_reports": [],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-06-17T21:55:42.263Z",
+      "completed_by": "user",
+      "approval_evidence": "User-approved fix (\"yes\" to the offered allowlist change). Trivial 2-line config drift fix; problem/proposal/agreement written.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "14dc1b34b1939c8fa2843830b9fead5b24a484100ba9915b41e2bb622501c6b6",
+        "non_whitespace_chars": 325,
+        "checked_at": "2026-06-17T21:55:00.781Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-06-17T21:56:09.545Z",
+      "completed_by": "agent",
+      "approval_evidence": "Contract minted (8 items: AC1-4, C1-2, DONT1-2). Drift confirmed: adv_change_forget registered (tool-registry.ts:329) but absent from adv.md (lines 45-56) and adv-atc.md allowlists. Fix is mechanical: add allowlist entry to both.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "0a4081e71d6ea0c76e21c8db0288f8594ef8280e6ab9acc2ec6fb4396e3e0b42",
+        "non_whitespace_chars": 795,
+        "checked_at": "2026-06-17T21:55:00.782Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-06-17T21:56:30.900Z",
+      "completed_by": "agent",
+      "approval_evidence": "Minimal design (trivial config fix): append adv_change_forget: true to adv.md + adv-atc.md allowlists. Verification = deploy --check tool-drift green + pnpm run check green. No spec delta.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "456eae357923fde9564c5d33063d5b0d51e7d06935698dfbc4c2c80151af2077",
+        "non_whitespace_chars": 785,
+        "checked_at": "2026-06-17T21:55:00.783Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-06-17T21:56:53.219Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved the fix upfront (\"yes\"). Single implementation task tk-155e3eadb59c. Entering execution."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-06-17T21:59:51.588Z",
+      "completed_by": "agent",
+      "approval_evidence": "1 task done (red→green). Two allowlist lines added; deploy --check ✓ tool drift both agents (56 tools); pnpm run check green."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-06-17T22:00:19.196Z",
+      "completed_by": "user",
+      "approval_evidence": "Review matrix 8/8 pass/respected, 0 failing. Executive summary persisted. All 4 AC met; deploy --check tool-drift green both agents; pnpm run check green.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "36fe578614b04d8ddc15a3f54412dc28b6514663367af5310552e814e86cbd33",
+        "non_whitespace_chars": 718,
+        "checked_at": "2026-06-17T21:55:00.784Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "adhoc"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "0a4081e71d6ea0c76e21c8db0288f8594ef8280e6ab9acc2ec6fb4396e3e0b42",
+      "approvedAt": "2026-06-17T21:55:50.905Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "`adv_change_forget: true` present in `.opencode/agents/adv.md` and `.opencode/agents/adv-atc.md`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0a4081e71d6ea0c76e21c8db0288f8594ef8280e6ab9acc2ec6fb4396e3e0b42",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "`./scripts/deploy-local.sh --check` reports `✓ tool drift` for both adv and adv-atc (zero registered-but-unallowed, zero allowed-but-unregistered).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0a4081e71d6ea0c76e21c8db0288f8594ef8280e6ab9acc2ec6fb4396e3e0b42",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "No change to the tool's behavior/schema/registration — allowlist entry only.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0a4081e71d6ea0c76e21c8db0288f8594ef8280e6ab9acc2ec6fb4396e3e0b42",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "`pnpm run check` green; no instruction-prose or code changes beyond the two allowlist lines.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0a4081e71d6ea0c76e21c8db0288f8594ef8280e6ab9acc2ec6fb4396e3e0b42",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Allowlist entries only; no tool-registry, schema, or code changes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0a4081e71d6ea0c76e21c8db0288f8594ef8280e6ab9acc2ec6fb4396e3e0b42",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Worktree-isolated (trunk write firewall).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0a4081e71d6ea0c76e21c8db0288f8594ef8280e6ab9acc2ec6fb4396e3e0b42",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Don't touch `adv_change_forget` registration/implementation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0a4081e71d6ea0c76e21c8db0288f8594ef8280e6ab9acc2ec6fb4396e3e0b42",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Don't expand into other allowlist cleanup.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0a4081e71d6ea0c76e21c8db0288f8594ef8280e6ab9acc2ec6fb4396e3e0b42",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-06-17T21:59:55.000Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "grep PRESENT: adv_change_forget: true in .opencode/agents/adv.md (after status_repair) and .opencode/agents/adv-atc.md (after reenter)."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "deploy --check: ✓ tool drift adv.md (56 tools), ✓ tool drift adv-atc.md (56 tools) — zero drift both directions (run tr_mqim3ylt)."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "git diff = exactly two allowlist lines; tool-registry.ts, schema-registry.ts, FIELD_POLICIES, change.ts unchanged."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "pnpm run check exit 0 (schemas:check/typecheck/check-test-isolation/check-lockfile-policy/lint/format:check all green, run tr_mqim59sv)."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Only allowlist entries added; no tool-registry/schema/code changes (git diff confirms)."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Implemented in change/addAdvChangeForgetAgent worktree (trunk firewall honored)."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "adv_change_forget registration/implementation untouched (tool-registry.ts:329 unchanged)."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Only the two intended allowlist lines; no other allowlist cleanup expanded into."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "`adv_change_forget: true` present in `.opencode/agents/adv.md` and `.opencode/agents/adv-atc.md`.",
+    "`./scripts/deploy-local.sh --check` reports `✓ tool drift` for both adv and adv-atc (zero registered-but-unallowed, zero allowed-but-unregistered).",
+    "No change to the tool's behavior/schema/registration — allowlist entry only.",
+    "`pnpm run check` green; no instruction-prose or code changes beyond the two allowlist lines."
+  ],
+  "documents": {
+    "proposal": "# Proposal: Add `adv_change_forget` to agent allowlists\n\nAdd `adv_change_forget: true` to the `tools:` allowlist in:\n- `.opencode/agents/adv.md` (alongside the other `adv_change_*` entries)\n- `.opencode/agents/adv-atc.md` (ATC hits wedged pointers during autonomous takeover)\n\nTwo-line config fix. Resolves the `check_tool_drift` `✗` for both agents → deploy check green.",
+    "problemStatement": "# Problem\n\n`adv_change_forget` (the in-memory recovery tool that clears a phantom session active-change pointer) is **registered** (`plugin/src/tool-registry.ts:329`) but **missing from the `adv.md` and `adv-atc.md` agent `tools:` allowlists**. `scripts/deploy-local.sh:567` (`check_tool_drift`) flags it: *\"tool(s) registered but NOT in allowlist — the agent cannot call these — they will be invisible in sessions.\"*\n\nThe allowlist is the source of truth for the agent's callable surface. A registered-but-unallowed tool is a consistency hole: either a recovery path is silently broken when a phantom pointer is hit, or the allowlist misrepresents the agent's real surface. No safety reason to exclude it (the tool is pure in-memory, mutates no persistent state), and no \"do not expose\" note exists — it's an oversight from when the tool landed.",
+    "agreement": "# Agreement\n\n## Objectives\nRestore allowlist↔registry parity for `adv_change_forget` so the ADV and ATC agents can call the phantom-pointer recovery tool and `deploy-local.sh --check` reports no tool drift.\n\n## Acceptance Criteria\n1. `adv_change_forget: true` present in `.opencode/agents/adv.md` and `.opencode/agents/adv-atc.md`.\n2. `./scripts/deploy-local.sh --check` reports `✓ tool drift` for both adv and adv-atc (zero registered-but-unallowed, zero allowed-but-unregistered).\n3. No change to the tool's behavior/schema/registration — allowlist entry only.\n4. `pnpm run check` green; no instruction-prose or code changes beyond the two allowlist lines.\n\n## Constraints\n- Allowlist entries only; no tool-registry, schema, or code changes.\n- Worktree-isolated (trunk write firewall).\n\n## Avoidances\n- Don't touch `adv_change_forget` registration/implementation.\n- Don't expand into other allowlist cleanup.",
+    "design": "# Design: add `adv_change_forget` to agent allowlists\n\n## Approach\nAppend `adv_change_forget: true` to the `tools:` allowlist in `.opencode/agents/adv.md` (in the `adv_change_*` block) and `.opencode/agents/adv-atc.md`. No other change.\n\n## Why both agents\n- **adv.md** — the orchestrator hits phantom pointers when resuming wedged changes; needs the recovery call.\n- **adv-atc.md** — autonomous takeover encounters wedged pointers during unattended runs.\n\n## Verification\n- `./scripts/deploy-local.sh --check` → `✓ tool drift` for adv and adv-atc (the check at `deploy-local.sh:567` cross-references allowlist ↔ registry both directions).\n- `pnpm run check` green (no code/schema touched).\n- Scope: git diff = exactly the two allowlist lines.\n\n## LBP\nConfig-only fix at the source of truth (the agent allowlists), not a workaround — aligns with the registry. No spec delta (allowlists aren't spec'd requirements).",
+    "executiveSummary": "# Executive Summary\n\nResolved a registered-tool-vs-allowlist drift: `adv_change_forget` (the in-memory phantom-pointer recovery tool, registered at `tool-registry.ts:329`) was missing from the `adv.md` and `adv-atc.md` agent `tools:` allowlists, so `deploy-local.sh --check` flagged it as a tool-drift `✗` (\"invisible in sessions\"). Added `adv_change_forget: true` to both allowlists.\n\n**Outcome:** `deploy-local.sh --check` now reports `✓ tool drift: adv.md allowlist matches plugin registry (56 tools)` and the same for `adv-atc.md` — zero drift in either direction. `pnpm run check` is green. The change is two allowlist lines; no tool registration, schema, code, or instruction-prose changes. The ADV and ATC agents can now legitimately call the recovery tool, and the allowlist truthfully represents their callable surface.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-06-17T21:59:55.000Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| AC1 | acceptance_criterion | `adv_change_forget: true` present in `.opencode/agents/adv.md` and `.opencode/agents/adv-atc.md`. | pass | grep PRESENT: adv_change_forget: true in .opencode/agents/adv.md (after status_repair) and .opencode/agents/adv-atc.md (after reenter). |\n| AC2 | acceptance_criterion | `./scripts/deploy-local.sh --check` reports `✓ tool drift` for both adv and adv-atc (zero registered-but-unallowed, zero allowed-but-unregistered). | pass | deploy --check: ✓ tool drift adv.md (56 tools), ✓ tool drift adv-atc.md (56 tools) — zero drift both directions (run tr_mqim3ylt). |\n| AC3 | acceptance_criterion | No change to the tool's behavior/schema/registration — allowlist entry only. | pass | git diff = exactly two allowlist lines; tool-registry.ts, schema-registry.ts, FIELD_POLICIES, change.ts unchanged. |\n| AC4 | acceptance_criterion | `pnpm run check` green; no instruction-prose or code changes beyond the two allowlist lines. | pass | pnpm run check exit 0 (schemas:check/typecheck/check-test-isolation/check-lockfile-policy/lint/format:check all green, run tr_mqim59sv). |\n| C1 | constraint | Allowlist entries only; no tool-registry, schema, or code changes. | respected | Only allowlist entries added; no tool-registry/schema/code changes (git diff confirms). |\n| C2 | constraint | Worktree-isolated (trunk write firewall). | respected | Implemented in change/addAdvChangeForgetAgent worktree (trunk firewall honored). |\n| DONT1 | avoidance | Don't touch `adv_change_forget` registration/implementation. | respected | adv_change_forget registration/implementation untouched (tool-registry.ts:329 unchanged). |\n| DONT2 | avoidance | Don't expand into other allowlist cleanup. | respected | Only the two intended allowlist lines; no other allowlist cleanup expanded into. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-06-17T21:55:22.720Z",
+      "contentHash": "14dc1b34b1939c8fa2843830b9fead5b24a484100ba9915b41e2bb622501c6b6",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-06-17T21:55:22.720Z",
+      "contentHash": "00141e695475a1fbae7f8634c0544ad56512a6c0fd4c03748e2ed80744968135",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-06-17T21:55:22.720Z",
+      "contentHash": "0a4081e71d6ea0c76e21c8db0288f8594ef8280e6ab9acc2ec6fb4396e3e0b42",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-06-17T21:56:23.026Z",
+      "contentHash": "456eae357923fde9564c5d33063d5b0d51e7d06935698dfbc4c2c80151af2077",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-06-17T21:59:51.183Z",
+      "contentHash": "36fe578614b04d8ddc15a3f54412dc28b6514663367af5310552e814e86cbd33",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-06-17T22:00:19.196Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true
+}
