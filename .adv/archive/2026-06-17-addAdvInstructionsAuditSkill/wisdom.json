@@ -1,0 +1,12 @@
+{
+  "entries": [
+    {
+      "id": "ws-LS1EAh",
+      "type": "pattern",
+      "content": "Anchor presence ≠ anchor fidelity. repo-instructions-assets.test.ts asserts the canonical CI-order SUMMARY string is present across AGENTS.md + project.md, but does not assert the per-command `# check`/`# build` COMMENTS match package.json. Result: project.md passes the anchor while its dev-command comments are stale (missing check-test-isolation/check-lockfile-policy/build:worker). The drift-detector dimension MUST require \"assertion fails for THIS claim's failure mode,\" or dry-runs yield false-anchored (ALIGNED) verdicts over stale prose. This is the bug class that broke CI in PR #172.",
+      "source_task": "tk-d1e8b59028f7",
+      "recorded_at": "2026-06-17T21:10:35.657Z"
+    }
+  ],
+  "count": 1
+}

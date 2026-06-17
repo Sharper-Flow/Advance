@@ -1,0 +1,604 @@
+{
+  "id": "addAdvInstructionsAuditSkill",
+  "title": "Add adv-instructions-audit skill",
+  "status": "archived",
+  "created_at": "2026-06-17T20:52:34.068Z",
+  "tasks": [
+    {
+      "id": "tk-4207ea920d35",
+      "title": "Write `skills/adv-instructions-audit/SKILL.md`",
+      "type": "code",
+      "section": "Skill authoring",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-06-17T21:02:38.903Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-17T21:07:15.476Z",
+      "verification": "SKILL.md written, ≤100 lines, methodology-only. Conformance check red→green: 4 rules (trace-to-anchor/fidelity, test-or-cut, single-source-per-surface, runtime-assembly-aware) + 5 dimensions + fidelity rule present; anchor taxonomy is kinds-only (rg-enumerated, no static inventory).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Created skills/adv-instructions-audit/SKILL.md (62 lines). Methodology-only: 4 core rules (trace-to-anchor with fidelity, test-or-cut, single-source-per-surface, runtime-assembly-aware), 5 audit dimensions, finding schema + health bands. Anchor taxonomy is kinds-only with rg enumeration commands — no static inventory (rq-skillProseCompression01). Frontmatter mirrors adv-audit. Conformance check red→green.",
+      "filesTouched": [
+        "skills/adv-instructions-audit/SKILL.md"
+      ],
+      "touched_files": [
+        "skills/adv-instructions-audit/SKILL.md"
+      ],
+      "checkpointSha": "02b51d7900058cab7ac9fc40ed2f5ada5621cdd9",
+      "completedAt": "2026-06-17T21:08:05.392Z",
+      "completed_at": "2026-06-17T21:08:05.392Z",
+      "contract_refs": {
+        "verifies": [
+          "AC1",
+          "AC2"
+        ],
+        "respects": [
+          "C1",
+          "C2"
+        ]
+      },
+      "updatedAt": "2026-06-17T21:08:17.038Z"
+    },
+    {
+      "id": "tk-d1e8b59028f7",
+      "title": "Dry-run the skill against the instruction corpus; produce findings report",
+      "type": "code",
+      "section": "Validation",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-06-17T21:02:45.454Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-4207ea920d35"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-17T21:08:17.050Z",
+      "verification": "Dry-run report at /tmp/opencode/adv-instructions-audit-dryrun.md. All 3 positive controls fired: CI-order anchor (partial fidelity), project.md dev-commands matrix drift (F1/F2 HIGH), project.md:36 count staleness (F3). Health MAJOR_DRIFT. Report presented in chat for user evaluation. Read-only: no instruction files modified.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Dry-run applied to project.md, AGENTS.md, ADV_INSTRUCTIONS.md sample. Anchor layer enumerated at runtime (47 tests). 5 findings emitted; 3 positive controls fired (CI-order anchor partial-fidelity; project.md dev-commands matrix drift F1/F2 HIGH; project.md:36 count staleness F3). Health MAJOR_DRIFT. Report at /tmp/opencode/adv-instructions-audit-dryrun.md. Read-only — no instruction files modified. Meta-finding (presence≠fidelity) persisted as wisdom ws-LS1EAh.",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "02b51d7900058cab7ac9fc40ed2f5ada5621cdd9",
+      "completedAt": "2026-06-17T21:10:33.743Z",
+      "completed_at": "2026-06-17T21:10:33.743Z",
+      "contract_refs": {
+        "respects": [
+          "C1"
+        ],
+        "verifies": [
+          "AC3",
+          "AC4"
+        ]
+      },
+      "updatedAt": "2026-06-17T21:11:31.452Z"
+    },
+    {
+      "id": "tk-4860e2bace0a",
+      "title": "Verify acceptance criteria and runtime load",
+      "type": "code",
+      "section": "Verification",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-06-17T21:03:04.117Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-d1e8b59028f7"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-17T21:11:31.699Z",
+      "verification": "AC1/2 ✓ (conformance green, tk-4207). AC3 ✓ (dry-run report, 3 positive controls). AC4 ✓ (git diff vs trunk = only skills/adv-instructions-audit/SKILL.md, 58 lines). AC5 ✓ (no new command/tool/scanner). AC6 structurally ✓ — skill-loading-policy-assets + adv-skill-backed-commands-assets + repo-instructions-assets = 63 tests pass; live available_skills deferred to deploy+restart (source-vs-dist gotcha). Bonus observation: deploy --check surfaces pre-existing adv_change_forget tool-drift (unrelated, out of scope).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "All 6 AC verified. Governing skill tests (skill-loading-policy, adv-skill-backed-commands, repo-instructions-assets) = 63 passed. Git diff scope vs trunk = exactly skills/adv-instructions-audit/SKILL.md (58 lines); no command/tool/scanner. AC6 live-load deferred to deploy+restart (source-vs-dist). Bonus: deploy --check surfaced pre-existing adv_change_forget tool-drift (out of scope).",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "02b51d7900058cab7ac9fc40ed2f5ada5621cdd9",
+      "completedAt": "2026-06-17T21:13:16.139Z",
+      "completed_at": "2026-06-17T21:13:16.139Z",
+      "contract_refs": {
+        "respects": [
+          "C2",
+          "C3",
+          "C4"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6"
+        ]
+      },
+      "updatedAt": "2026-06-17T21:13:25.435Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "addAdvInstructionsAuditSkill",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation: adv-instructions-audit skill (instruction-prose↔anchor audit, distinct from adv-audit spec↔code axis)",
+      "sources": [
+        {
+          "label": "adv-audit SKILL (analog skill, different axis)",
+          "locator": "skills/adv-audit/SKILL.md:14,79-87,127-134",
+          "summary": "adv-audit is explicitly spec↔implementation: Purpose='compare specs with implementation', Code Mapper builds 'bidirectional spec↔code map' + coverage=mapped/total_requirements, Orphan Detection on source files. No instruction-prose surface (AGENTS.md/project.md/command docs) in scope. Confirms axis separation is clean."
+        },
+        {
+          "label": "repo-instructions-assets.test.ts (CI-order anchor instance)",
+          "locator": "plugin/src/repo-instructions-assets.test.ts:11-46",
+          "summary": "readFileSync(AGENTS.md, project.md, ci.yml); asserts BOTH agents AND projectContext .toContain('schemas:check → typecheck → lint → format:check → test → build') and ci.yml ordering. Positive control 5(a) is REAL: CI-order prose is anchored."
+        },
+        {
+          "label": "adv-instructions-assets.test.ts (instruction-prose anchor instance)",
+          "locator": "plugin/src/adv-instructions-assets.test.ts:21-72,246-268",
+          "summary": "readFileSync(ADV_INSTRUCTIONS.md); asserts presence/absence of section headers, status-marker rows, compression-guard contract tokens. Pure instruction-prose↔assertion anchor. Confirms anchor taxonomy and positions this file as an anchor *instance*, not a thing to re-invent."
+        },
+        {
+          "label": "manifest-doc-drift / checkpoint-surface-drift / skill-loading-policy / commands-spine / adv-stability-docs assets tests",
+          "locator": "plugin/src/manifest-doc-drift.test.ts:121-149; plugin/src/checkpoint-surface-drift.test.ts:36-94; plugin/src/skill-loading-policy-assets.test.ts:34-60; plugin/src/commands-spine-assets.test.ts:31-49; plugin/src/adv-stability-docs-assets.test.ts:16-50",
+          "summary": "Spot-checked 5 of ~41 *-assets.test.ts (glob returned 41 *-assets files + drift tests). All readFileSync instruction surfaces (.opencode/command/*.md, ADV_INSTRUCTIONS.md) and assert .toContain/.toMatch on prose tokens. Genuine assertion-based anchors. '~48' is in the right order of magnitude (41 *-assets + several *-drift.test.ts = ~45-48)."
+        },
+        {
+          "label": "project.md vs AGENTS.md Development Commands (staleness positive control)",
+          "locator": "project.md:44-59 vs AGENTS.md:41-43; plugin/package.json:21",
+          "summary": "Positive control 5(b) REAL. project.md:50 check chain = 'schemas:check → typecheck → lint → format:check' MISSING check-test-isolation + check-lockfile-policy. project.md:51 build line lacks '&& build:worker'; build:worker absent entirely from project.md. AGENTS.md:41-43 carries all. Ground truth package.json:21 check script literally runs check-test-isolation.ts && check-lockfile-policy.ts → project.md is factually stale."
+        },
+        {
+          "label": "rq-skillProseCompression01 spec (conformance constraint)",
+          "locator": "docs/specs/advance-meta.md:710-733; docs/command-voice-standard.md:205",
+          "summary": "MUST: skills follow enforcement-class compression AND 'keep durable invariants in specs, tests, or command contracts rather than standing audit inventories'. Directly governs the new skill: it must be methodology, NOT a standing inventory of anchored claims. adv-audit (134 lines, methodology) is precedent but exceeds 100-line target."
+        },
+        {
+          "label": "External pattern corroboration (executable doc anchors / docs-as-code drift)",
+          "locator": "https://agentpatterns.ai/verification/runnable-documentation/ ; https://github.com/baksvell/Livedoc ; https://github.com/vjovanov/grund ; https://github.com/DNYoussef/rlm-docsync",
+          "summary": "Established industry pattern. Livedoc/grund (anchor-resolves-or-fails check), rlm-docsync (spec-first vs reality-first doc-claim evidence), AgentPatterns 'Runnable Documentation' (every prose claim = implicit assertion, promote to CI). 'anchored iff a vitest assertion fails when wrong' matches canonical definition. AgentPatterns warns: prose that PARAPHRASES output → brittle equality assertions → reviewer rubber-stamping = real false-positive risk."
+        }
+      ],
+      "architecture_assessment": "PASS with minor cautions. (1) AXIS SEPARATION — clean and defensible. adv-audit is spec↔code (skills/adv-audit/SKILL.md:14,79-87: spec↔code map, coverage=mapped/total_requirements, source-file orphan detection). The new skill audits instruction PROSE (AGENTS.md/project.md/ADV_INSTRUCTIONS.md/command docs) against vitest ANCHORS. Different inputs (prose surfaces vs spec.json), different anchors (assets/drift tests vs spec requirements), different failure mode (unanchored claim vs unmapped requirement). No overlap. (2) ANCHOR TAXONOMY — sound and machine-checkable (P33). 'anchored iff a vitest assertion fails when the claim is wrong' is operationally testable: the ~41 *-assets + *-drift tests are genuine readFileSync+assert anchors (5 spot-checked, all confirmed). Matches established external pattern. (3) NO RE-INVENTION — design correctly positions adv-instructions-assets.test.ts and the coverage doc (docs/adv-runtime-protocol-coverage.md) as anchor INSTANCES/prior art, not as work to duplicate. The skill is a read methodology over these, not a new test harness. (4) adv-skill-author CONFORMANCE — ≤100-line target is the documented split threshold (adv-skill-author SKILL.md:109-111); 4 rules + 5 dimensions fit if compressed to pointer-line + table form per rq-skillProseCompression01. adv-audit (134 lines) shows methodology skills can run long — the new skill must stay tighter or split to a sibling. (5) DRY-RUN POSITIVE CONTROLS — both real and verifiable in-tree (5a: repo-instructions-assets.test.ts:33-46; 5b: project.md:50-51 stale vs package.json:21 ground truth).",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "No design-gate blockers. Five validation points PASS with file:line evidence. Three non-blocking cautions: (C1) rq-skillProseCompression01 forbids 'standing audit inventories' — the SKILL.md must be pure methodology (like adv-audit), NOT embed an enumerated list of the ~48 anchors or anchored claims; reference them as a class, generate the list at dry-run time. (C2) ≤100-line cap is real risk: 4 rules + 5 dimensions + frontmatter + positive-control examples will be tight; pre-plan a sibling *.md split (adv-skill-author:109-111) rather than compressing past readability. (C3) FALSE-POSITIVE risk in the anchor taxonomy: a claim can be 'anchored' by an assertion that checks a WEAKER property than the prose asserts (e.g. repo-instructions-assets only checks CI-order substring presence, not the full command matrix — note project.md carries the CI-order line at the level the test checks, yet its dev-command matrix is still stale at package.json:21 granularity). The skill's 'trace-to-anchor' rule must distinguish 'has an anchor' from 'has an anchor that would actually fail for THIS claim's failure mode', else dry-run yields false-anchored verdicts. AgentPatterns corroborates this brittleness risk for paraphrased-prose anchors."
+      },
+      "recommendation": "PROCEED to design-gate completion. The design is architecturally sound: distinct axis from adv-audit, machine-checkable anchor definition, correct positioning of existing tests as prior-art instances, both positive controls verified. Before execution, tighten three things in the SKILL.md design: (1) Make 'trace-to-anchor' rule require anchor-FIDELITY not just anchor-PRESENCE — an anchor counts only if a vitest assertion fails for the claim's specific failure mode (prevents the project.md CI-order false-anchored case where substring-presence passes but matrix-granularity is stale). (2) Keep the skill methodology-only per rq-skillProseCompression01 — no embedded anchor inventory; enumerate at dry-run time. (3) Plan ≤100-line compression with a sibling reference file for the 5 dimensions if needed. 'single-source-per-surface' rule is well-motivated by real asymmetry: repo-instructions-assets.test.ts:16 bans count-style staleness ('24 slash-command workflow files') in AGENTS.md but project.md:36 still says '21 slash-command workflow files' unguarded — a concrete drift the skill should surface.",
+      "follow_ups": [
+        "Execution: SKILL.md 'trace-to-anchor' rule must encode anchor FIDELITY (assertion fails for THIS claim's failure mode), not mere anchor presence — primary false-positive guard.",
+        "Execution: enforce rq-skillProseCompression01 — methodology-only, no standing inventory of the ~48 anchors; generate list at dry-run.",
+        "Execution: pre-plan ≤100-line split (sibling *.md for 5 dimensions) per adv-skill-author:109-111; adv-audit's 134 lines is a cautionary precedent.",
+        "Dry-run validity: project.md:36 '21 slash-command workflow files' is an unanchored count-style claim (AGENTS.md equivalent IS banned by repo-instructions-assets.test.ts:16) — good third positive control for the 'single-source-per-surface' + 'test-or-cut' rules beyond the two claimed.",
+        "Methodology note: 'runtime-assembly-aware' rule is sound given deploy-local.sh overlay assembly + adv-runtime-protocol-coverage.md — but ensure it doesn't flag intentionally-compressed runtime adv.md text whose invariant is preserved-by-coverage (docs/adv-runtime-protocol-coverage.md:13-28 maps compressed→retained); false-positive vector."
+      ]
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-LS1EAh",
+      "type": "pattern",
+      "content": "Anchor presence ≠ anchor fidelity. repo-instructions-assets.test.ts asserts the canonical CI-order SUMMARY string is present across AGENTS.md + project.md, but does not assert the per-command `# check`/`# build` COMMENTS match package.json. Result: project.md passes the anchor while its dev-command comments are stale (missing check-test-isolation/check-lockfile-policy/build:worker). The drift-detector dimension MUST require \"assertion fails for THIS claim's failure mode,\" or dry-runs yield false-anchored (ALIGNED) verdicts over stale prose. This is the bug class that broke CI in PR #172.",
+      "source_task": "tk-d1e8b59028f7",
+      "recorded_at": "2026-06-17T21:10:35.657Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-06-17T20:55:48.673Z",
+      "completed_by": "user",
+      "approval_evidence": "User confirmed problem + scope (\"confirm\"). Skill-only + dry-run framing accepted. Out-of-scope explicitly noted: no instruction fixes, no command, no scanner in v1.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "81a38198946aabcb1afbbad5e9463c720b3ff60d41a83bfe55b1d53f6286d78d",
+        "non_whitespace_chars": 1898,
+        "checked_at": "2026-06-17T20:52:34.176Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "started_at": "2026-06-17T20:57:33.753Z",
+      "completed_at": "2026-06-17T20:57:52.489Z",
+      "completed_by": "agent",
+      "approval_evidence": "Contract minted (15 items: AC1-6, C1-5, DONT1-4). Discovery complete: anchor taxonomy locked (the ~48 asset/invariant/drift test files), ad-hoc anchor layer mapped, live drift confirmed (project.md staleness), scope boundaries confirmed (no overlap with adv-audit / adv-instructions-assets.test.ts). Dry-run sample targets locked.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "6959d8d7e9a0ec31e2f02b6b2f50e90dfab88c8ec09666a656b28e43a960e1b0",
+        "non_whitespace_chars": 2029,
+        "checked_at": "2026-06-17T20:52:34.178Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-06-17T21:01:56.600Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design validated by independent adv-researcher: PASS (no blockers). 3 cautions folded into design: C3 fidelity rule (drift-detector requires assertion fails for THIS failure mode, not just mentions claim — prevents false-anchored verdicts); C1 methodology-only SKILL.md (no static anchor inventory, rq-skillProseCompression01); C2 pre-plan REFERENCE.md split. Bonus: third positive control added (project.md:36 count-staleness). Axis separation vs adv-audit confirmed clean (spec↔code vs instruction-prose↔anchor).",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "5b1e44e9ad1c2fac866e57243daf9bbadcf24143b58fe4367f019a09d5878dc4",
+        "non_whitespace_chars": 5726,
+        "checked_at": "2026-06-17T20:52:34.179Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-06-17T21:06:36.021Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved objectives/AC + task graph (\"approve\"). 3-task linear chain. Entering autonomous execution: write skill → dry-run → verify."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-06-17T21:13:41.805Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 3 tasks done (red→green per task). Delivered: skills/adv-instructions-audit/SKILL.md (58 lines, methodology-only). Dry-run report: 5 findings, MAJOR_DRIFT, 3 positive controls fired. Governing skill tests 63 passed. Git diff scope clean (1 file only). AC6 live-load deferred to deploy+restart."
+    },
+    "acceptance": {
+      "status": "done",
+      "started_at": "2026-06-17T21:15:34.826Z",
+      "completed_at": "2026-06-17T21:16:48.453Z",
+      "completed_by": "user",
+      "approval_evidence": "Retry after review-matrix propagation. Contract review matrix: 15/15 rows pass/respected, 0 failing (set at 21:15). Executive summary persisted. All AC met.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "282f6b1f76689a8fdc5862561df7564a3c1ec1fb08bc91f5034f5bbd7d182ee2",
+        "non_whitespace_chars": 1832,
+        "checked_at": "2026-06-17T20:52:34.181Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "adhoc"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "6959d8d7e9a0ec31e2f02b6b2f50e90dfab88c8ec09666a656b28e43a960e1b0",
+      "approvedAt": "2026-06-17T20:57:40.163Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "`skills/adv-instructions-audit/SKILL.md` exists; SKILL.md ≤100 lines; valid frontmatter (`name`, `description` with \"Use when…\", ≤1024 chars, third person). Passes the `adv-skill-author` review checklist.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6959d8d7e9a0ec31e2f02b6b2f50e90dfab88c8ec09666a656b28e43a960e1b0",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Skill encodes the **4 core rules** (trace-to-anchor, test-or-cut, single-source-per-surface, runtime-assembly-aware) and **5 audit dimensions** (anchor mapper, drift detector, coverage checker, duplication detector, orphan detector), with the concrete anchor taxonomy (the ~48 `*-assets.test.ts` / invariant / drift test files).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6959d8d7e9a0ec31e2f02b6b2f50e90dfab88c8ec09666a656b28e43a960e1b0",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "A **dry-run findings report** is produced as an acceptance artifact; it catches ≥1 real drift class, including the positive control (CI-order prose → `repo-instructions-assets.test.ts` anchor, and the live `project.md` ↔ `AGENTS.md` dev-commands duplication drift).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6959d8d7e9a0ec31e2f02b6b2f50e90dfab88c8ec09666a656b28e43a960e1b0",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "**Dry-run is read-only:** no instruction file is modified by this change (all fixes are out of scope / follow-up).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6959d8d7e9a0ec31e2f02b6b2f50e90dfab88c8ec09666a656b28e43a960e1b0",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "No new `/adv-instructions-audit` command, ADV tool, or deterministic scanner ships in v1.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6959d8d7e9a0ec31e2f02b6b2f50e90dfab88c8ec09666a656b28e43a960e1b0",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "After `deploy-local.sh --fix`, the skill appears in the runtime `available_skills` list.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6959d8d7e9a0ec31e2f02b6b2f50e90dfab88c8ec09666a656b28e43a960e1b0",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Read-only methodology; never auto-fix (mirrors `adv-audit` constraint).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6959d8d7e9a0ec31e2f02b6b2f50e90dfab88c8ec09666a656b28e43a960e1b0",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Different axis from `adv-audit` (instruction-prose↔anchor, not spec↔code) — no functional overlap.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6959d8d7e9a0ec31e2f02b6b2f50e90dfab88c8ec09666a656b28e43a960e1b0",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "SKILL.md ≤100 lines; deeper content → sibling `*.md` (progressive disclosure per `adv-skill-author`).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6959d8d7e9a0ec31e2f02b6b2f50e90dfab88c8ec09666a656b28e43a960e1b0",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Implementation in the per-change worktree (trunk write firewall).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6959d8d7e9a0ec31e2f02b6b2f50e90dfab88c8ec09666a656b28e43a960e1b0",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "No new spec in v1 (instruction auditing is not currently a spec'd capability; no spec-citation obligation).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6959d8d7e9a0ec31e2f02b6b2f50e90dfab88c8ec09666a656b28e43a960e1b0",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Don't ship a companion command or deterministic scanner in v1 (dry-run-first; promote later if output earns it).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6959d8d7e9a0ec31e2f02b6b2f50e90dfab88c8ec09666a656b28e43a960e1b0",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Don't fix any instruction drift surfaced by the dry run — separate follow-up change(s).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6959d8d7e9a0ec31e2f02b6b2f50e90dfab88c8ec09666a656b28e43a960e1b0",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Don't assert unverified claims about external/tool surfaces (P34).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6959d8d7e9a0ec31e2f02b6b2f50e90dfab88c8ec09666a656b28e43a960e1b0",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Don't silently expand into spec-law changes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6959d8d7e9a0ec31e2f02b6b2f50e90dfab88c8ec09666a656b28e43a960e1b0",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-06-17T21:15:00.000Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "skills/adv-instructions-audit/SKILL.md exists, 58 lines (≤100), valid frontmatter (name/description/keywords/metadata), passes adv-skill-author checklist. Conformance check red→green (run tr_mqikbnxs)."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "4 core rules (trace-to-anchor+fidelity, test-or-cut, single-source-per-surface, runtime-assembly-aware) + 5 dimensions + fidelity rule present; anchor taxonomy is kinds-only with rg enumeration (no static inventory)."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Dry-run report (/tmp/opencode/adv-instructions-audit-dryrun.md) catches all 3 positive controls: CI-order anchor (partial fidelity), project.md dev-commands matrix drift (F1/F2 HIGH), project.md:36 count staleness (F3)."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "git diff trunk...HEAD = only skills/adv-instructions-audit/SKILL.md (58 insertions). Dry-run was read-only; no instruction-prose file modified."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "No new entries in .opencode/command/, plugin/src/tools/, or scanner scripts. git diff confirms single skill file only."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "skill-loading-policy-assets + adv-skill-backed-commands-assets + repo-instructions-assets = 63 tests pass (run tr_mqikgnyj). Live available_skills confirmation deferred to deploy+restart per source-vs-dist gotcha (documented, not a failure)."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Skill Constraints section: 'Read-only; never auto-fix (mirrors adv-audit).' Dry-run modified no files."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "adv-researcher validator confirmed clean axis separation (instruction-prose↔anchor vs spec↔code); skill states the distinction."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "SKILL.md = 58 lines (≤100); no sibling REFERENCE.md split needed (C2 pre-plan unused)."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Implemented in change/addAdvInstructionsAuditSkill worktree (trunk write firewall honored)."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No spec delta; instruction auditing is not a spec'd capability; no spec-citation obligation triggered."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Skill-only v1; no .opencode/command entry, no scanner script, no plugin/src/tools addition."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Dry-run was read-only; git diff shows zero instruction-prose edits (only the new skill file)."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "All skill claims verified against the codebase this session (anchor tests, package.json, project.md, deploy --check)."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No spec files created or modified; no spec-law expansion."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "`skills/adv-instructions-audit/SKILL.md` exists; SKILL.md ≤100 lines; valid frontmatter (`name`, `description` with \"Use when…\", ≤1024 chars, third person). Passes the `adv-skill-author` review checklist.",
+    "Skill encodes the **4 core rules** (trace-to-anchor, test-or-cut, single-source-per-surface, runtime-assembly-aware) and **5 audit dimensions** (anchor mapper, drift detector, coverage checker, duplication detector, orphan detector), with the concrete anchor taxonomy (the ~48 `*-assets.test.ts` / invariant / drift test files).",
+    "A **dry-run findings report** is produced as an acceptance artifact; it catches ≥1 real drift class, including the positive control (CI-order prose → `repo-instructions-assets.test.ts` anchor, and the live `project.md` ↔ `AGENTS.md` dev-commands duplication drift).",
+    "**Dry-run is read-only:** no instruction file is modified by this change (all fixes are out of scope / follow-up).",
+    "No new `/adv-instructions-audit` command, ADV tool, or deterministic scanner ships in v1.",
+    "After `deploy-local.sh --fix`, the skill appears in the runtime `available_skills` list."
+  ],
+  "documents": {
+    "proposal": "# Proposal: Add `adv-instructions-audit` skill\n\nShip a read-only methodology skill that audits Advance's instruction prose against executable anchors, then dry-run it against the current corpus as acceptance evidence.\n\n## Core rules (the methodology)\n1. **Trace-to-anchor** — every load-bearing instruction claim must trace to an executable anchor: a tool `describe()`, a `manifest.ts` entry, a Zod schema, `FIELD_POLICIES`, a drift-guard test, or the coverage doc. Prose floating free = drift.\n2. **Test-or-cut** — load-bearing claim with no anchor → add a drift-guard test OR delete it. No sovereign prose.\n3. **Single-source-per-surface** — each surface owns one claim kind (`project.md`=agent context, `AGENTS.md`=dev ramp-up, `ADV_INSTRUCTIONS.md`=full protocol, `command/*.md`=per-gate contract, `specs/`=laws); others point, never restate.\n4. **Runtime-assembly-aware** — edits to `.opencode/agents/` + `overlays/` don't reach the live session until `deploy-local.sh --fix` + restart.\n\n## Audit dimensions (mirror adv-audit's shape, different axis)\n- **Anchor mapper** — build claim → anchor map across the corpus.\n- **Drift detector** — prose vs anchor mismatch (the CI-order class).\n- **Coverage checker** — which invariants have anchors/tests; generalize the coverage doc beyond runtime `adv.md`.\n- **Duplication detector** — same claim restated across surfaces.\n- **Orphan detector** — prose with no anchor and no load-bearing role.\n\n## Scope of THIS change\n- Deliver: `skills/adv-instructions-audit/SKILL.md` (follows `adv-skill-author` format + `rq-skillProseCompression01`).\n- Acceptance: dry-run report applying the skill to Advance's own corpus — must catch ≥1 real drift class (positive control: the CI-order anchor) and produce actionable findings.\n- Out of scope: any instruction *fixes* (dry-run only — follow-up changes), a companion `/adv-instructions-audit` command, deterministic scanner scripts.\n\n## Why a skill, not a command/tool\nDry-run-first: validate the methodology produces useful findings before investing in command wiring or a scanner. If the dry run lands well, a follow-up change can promote it to a command + scanner (same path `adv-audit` and `slop-scan` took).",
+    "problemStatement": "# Problem\n\nAdvance ships an instruction surface of ~10 cooperating artifacts — `project.md`, `AGENTS.md`, `ADV_INSTRUCTIONS.md`, 27 `.opencode/command/*.md` contracts, `.opencode/agents/*.md` prompts, `overlays/`, `skills/`, `.adv/specs/`, and `docs/adv-runtime-protocol-coverage.md`. Most load-bearing claims in these files are **prose with no executable anchor**: not tied to a tool `describe()`, a `manifest.ts` entry, a Zod schema, or a drift-guard test.\n\n**Failure mode:** prose drifts from executable contracts and is caught reactively, often mid-PR. Concrete instance this week — `AGENTS.md`'s CI-order line is enforced by a shared canonical string in `repo-instructions-assets.test.ts` (asserted across `AGENTS.md` + `project.md`); a docs edit treated the prose as sovereign and broke CI.\n\n**What exists:**\n- `adv-audit` audits **spec ↔ implementation** drift. It does NOT cover **instruction-prose ↔ executable-anchor** drift.\n- `docs/adv-runtime-protocol-coverage.md` is a coverage matrix — but only for the runtime `adv.md` agent, not the full corpus.\n- Drift-guard tests exist ad hoc (`repo-instructions-assets`, `no-psw-references`, `spec-citation-invariant`, `workflow-bundle-boundary`, `context-snapshot.purity`, `deploy-local`). No methodology says \"every load-bearing instruction claim must trace to one of these, else it's drift on a timer.\"\n\n**Gap:** no read-only audit that maps instruction claims → anchors, flags unanchored/contradictory/duplicated prose, and applies **test-or-cut** (load-bearing + unanchored → add a test or delete the claim).",
+    "agreement": "# Agreement\n\n## Objectives\n1. Ship `skills/adv-instructions-audit/SKILL.md` — a read-only methodology that audits Advance's instruction prose against executable anchors.\n2. Dry-run apply the skill to Advance's own instruction corpus; produce a findings report as acceptance evidence.\n3. Skill conforms to `adv-skill-author` format + `rq-skillProseCompression01` / Prose-Load Reduction Rules.\n\n## Acceptance Criteria\n1. `skills/adv-instructions-audit/SKILL.md` exists; SKILL.md ≤100 lines; valid frontmatter (`name`, `description` with \"Use when…\", ≤1024 chars, third person). Passes the `adv-skill-author` review checklist.\n2. Skill encodes the **4 core rules** (trace-to-anchor, test-or-cut, single-source-per-surface, runtime-assembly-aware) and **5 audit dimensions** (anchor mapper, drift detector, coverage checker, duplication detector, orphan detector), with the concrete anchor taxonomy (the ~48 `*-assets.test.ts` / invariant / drift test files).\n3. A **dry-run findings report** is produced as an acceptance artifact; it catches ≥1 real drift class, including the positive control (CI-order prose → `repo-instructions-assets.test.ts` anchor, and the live `project.md` ↔ `AGENTS.md` dev-commands duplication drift).\n4. **Dry-run is read-only:** no instruction file is modified by this change (all fixes are out of scope / follow-up).\n5. No new `/adv-instructions-audit` command, ADV tool, or deterministic scanner ships in v1.\n6. After `deploy-local.sh --fix`, the skill appears in the runtime `available_skills` list.\n\n## Constraints\n- Read-only methodology; never auto-fix (mirrors `adv-audit` constraint).\n- Different axis from `adv-audit` (instruction-prose↔anchor, not spec↔code) — no functional overlap.\n- SKILL.md ≤100 lines; deeper content → sibling `*.md` (progressive disclosure per `adv-skill-author`).\n- Implementation in the per-change worktree (trunk write firewall).\n- No new spec in v1 (instruction auditing is not currently a spec'd capability; no spec-citation obligation).\n\n## Avoidances\n- Don't ship a companion command or deterministic scanner in v1 (dry-run-first; promote later if output earns it).\n- Don't fix any instruction drift surfaced by the dry run — separate follow-up change(s).\n- Don't assert unverified claims about external/tool surfaces (P34).\n- Don't silently expand into spec-law changes.",
+    "design": "# Design: `adv-instructions-audit` skill\n\n## Approach\n\nA read-only methodology skill that treats Advance's ~48 `*-assets.test.ts` / invariant / drift test files as the **anchor layer** for instruction prose, and audits instruction surfaces against it. The skill is the *meta-layer* that makes the existing ad-hoc anchor layer systematic and discoverable; it adds no new enforcement. Dry-run-first: a manual application produces a findings report; no fixes ship in v1.\n\nMirrors `adv-audit`'s shape (dimensions + health synthesis + read-only constraint) on a **different axis** (instruction-prose↔anchor, not spec↔code).\n\n## LBP decisions\n- **Skill-only in v1, not a command/scanner.** Validate methodology value via dry run before investing in `/adv-instructions-audit` wiring or a deterministic scanner. Reversible: `adv-audit` and `slop-scan` both started as skills, then gained commands.\n- **Anchor = a failing assertion for THIS failure mode.** Per validator C3: an anchor is not \"a test that mentions the claim\" — it is \"a vitest assertion that fails when *this specific claim* is wrong.\" Paraphrased/substring anchors are brittle (false-anchored verdicts). The drift-detector dimension enforces fidelity, not just presence.\n- **Reuses the existing coverage-doc pattern** rather than inventing a new matrix — the coverage dimension generalizes `docs/adv-runtime-protocol-coverage.md` beyond runtime `adv.md`.\n\n## SKILL.md structure (target ≤100 lines, methodology-only)\n\nPer `rq-skillProseCompression01` / `advance-meta.md:714` (validator C1): SKILL.md is **methodology only**. It must NEVER embed a static inventory of the ~48 anchor tests — those are enumerated at dry-run time via `rg`. Pre-plan a sibling `REFERENCE.md` split if any of the 5 dimensions can't fit inline (validator C2).\n\n```\nskills/adv-instructions-audit/SKILL.md\n---\nname: adv-instructions-audit\ndescription: <third-person, \"Use when…\", ≤1024 chars>\nkeywords/metadata: (mirror adv-audit frontmatter style)\n---\n\n# ADV Instructions Audit\n## Purpose            — audit instruction prose vs executable anchors\n## When to use        — triggers (instruction edits, drift suspicion, coverage gaps)\n## Core rules         — trace-to-anchor / test-or-cut / single-source-per-surface / runtime-assembly-aware\n## Anchor taxonomy    — the 5 anchor KINDS + the rg command to enumerate them at runtime (no static list)\n## Audit dimensions   — anchor mapper / drift detector (fidelity) / coverage checker / duplication detector / orphan detector (table)\n## Findings & health  — finding schema + ALIGNED/DRIFT_DETECTED/MAJOR_DRIFT (mirror adv-audit)\n## Dry-run procedure  — pick surfaces → map claims → classify by fidelity → report (no fixes)\n## Constraints        — read-only; no auto-fix; different axis from adv-audit; methodology-only (no static inventories)\n```\n\n## Anchor taxonomy (kinds only — enumerated at runtime, not embedded)\n\n| Anchor kind | Enumerate at runtime via | Example |\n|---|---|---|\n| Surface-asset | `rg -l 'AGENTS\\.md\\|ADV_INSTRUCTIONS\\.md\\|project\\.md' plugin/src/**/*.test.ts` | `repo-instructions-assets.test.ts`, `adv-instructions-assets.test.ts` |\n| Invariant | filename match `*invariant*` / `*no-psw*` | `spec-citation-invariant.test.ts` |\n| Boundary | `workflow-bundle-boundary`, `context-snapshot.purity` | layer-import guards |\n| Per-command contract | filename match `adv-<cmd>-assets.test.ts` | `adv-task-assets.test.ts` |\n| Drift | filename match `*drift*` | `manifest-doc-drift`, `checkpoint-surface-drift` |\n\nA claim is **anchored** iff one of these asserts it AND the assertion fails for that claim's specific failure mode (fidelity, not just presence).\n\n## Audit dimensions → finding schema\n\nEach finding: `{ id, surface, claim, dimension, anchor (or null), fidelity (pass/fail/n/a), severity, fix }`.\n\n| Dimension | Detects | Severity default |\n|---|---|---|\n| Anchor mapper | claim with no matching test | REVIEW |\n| Drift detector (**fidelity**) | prose contradicts its anchor, OR anchor only mentions the claim without failing for its failure mode | HIGH |\n| Coverage checker | invariant with no anchor anywhere (coverage-doc gap) | MEDIUM |\n| Duplication detector | same claim restated across surfaces (project.md↔AGENTS.md) | MEDIUM |\n| Orphan detector | prose with no anchor and no load-bearing role | LOW |\n\nHealth: `ALIGNED` / `DRIFT_DETECTED` (any unanchored/dup/orphan) / `MAJOR_DRIFT` (any HIGH drift). Mirrors `adv-audit`.\n\n## Dry-run procedure (the acceptance artifact)\n1. Sample 3 surfaces: `project.md`, `AGENTS.md`, one `ADV_INSTRUCTIONS.md` section.\n2. Enumerate the anchor layer at runtime (`rg`); do NOT use a baked list.\n3. For each load-bearing claim, map to an anchor test AND assess fidelity (does the assertion fail for this claim's failure mode?).\n4. Run the 5 dimensions; emit findings.\n5. **Three positive controls must fire:**\n   - (a) CI-order prose → `repo-instructions-assets.test.ts` (anchored, fidelity-pass).\n   - (b) `project.md` dev-commands matrix staleness vs `AGENTS.md`/`package.json` (duplication + drift; the CI-order *substring* anchor is presence-only and does NOT catch the matrix staleness — demonstrates the fidelity rule).\n   - (c) `project.md:36` \"21 slash-command workflow files\" — unanchored count-staleness (test-or-cut / single-source-per-surface).\n6. Produce report; **modify no files** (AC4).\n\n## Scope boundaries (no overlap)\n- `adv-audit` = spec↔code. This skill = instruction-prose↔anchor. Different inputs, anchors, failure modes. (Validator-confirmed.)\n- `adv-instructions-assets.test.ts` = an anchor *instance* (one of ~48), not a competitor.\n- `docs/adv-runtime-protocol-coverage.md` = the coverage dimension's prior art, scoped to runtime `adv.md` only.\n\n## Validator-driven refinements (incorporated)\n- **C3 → drift-detector enforces fidelity**, not presence. Positive control (b) deliberately demonstrates the gap a presence-only check misses.\n- **C1 → SKILL.md is methodology-only**; no static anchor inventory (rq-skillProseCompression01 / advance-meta.md:714).\n- **C2 → pre-plan REFERENCE.md split** if dimensions exceed the ≤100-line budget.\n- **Bonus → third positive control** (project.md:36 count-staleness) added.\n\n## Verification plan\n- AC1/2: review against `adv-skill-author` checklist; confirm 4 rules + 5 dimensions + fidelity rule present; SKILL.md methodology-only, ≤100 lines.\n- AC3: dry-run report catches all three positive controls.\n- AC4: `git diff` shows only the new skill file (+ sibling if any); no instruction-prose edits.\n- AC5: no new entries in `.opencode/command/`, `plugin/src/tools/`, or scanner scripts.\n- AC6: `scripts/deploy-local.sh --check` then confirm skill in `available_skills`.",
+    "executiveSummary": "# Executive Summary\n\nShipped `skills/adv-instructions-audit/SKILL.md` — a read-only methodology that audits Advance's instruction prose against its executable anchors (the ~47 `*-assets.test.ts` / invariant / drift test files). The skill is the meta-layer that makes Advance's existing ad-hoc anchor layer systematic and discoverable; it adds no enforcement and occupies a distinct axis from `adv-audit` (instruction-prose↔anchor vs spec↔code).\n\n**Core rules:** trace-to-anchor *with fidelity* (an anchor must fail for the claim's specific failure mode — presence alone is a false anchor), test-or-cut, single-source-per-surface, runtime-assembly-aware. **Five dimensions:** anchor mapper, drift detector (fidelity), coverage checker, duplication detector, orphan detector.\n\n**Validated outcome (dry-run):** applied to `project.md`, `AGENTS.md`, and one `ADV_INSTRUCTIONS.md` section. Produced 5 findings (2 HIGH, 3 MEDIUM), health MAJOR_DRIFT. All three positive controls fired — most importantly, the methodology **reproduced the exact bug class that broke CI in PR #172**: a presence-only anchor (the canonical CI-order string) passed while the per-command dev-comments drifted from `package.json`. The fidelity rule is what made that surface; without it, the two HIGH findings would be falsely rated \"anchored.\"\n\n**Verification:** 63 governing skill tests pass (loading-policy, skill-backed-commands, repo-instructions-assets); git diff vs trunk is exactly one file; no command/tool/scanner added; AC6 live-load deferred to deploy+restart per the source-vs-dist gotcha.\n\n**Follow-ups (out of scope):** (1) fix project.md dev-commands + drop the stale \"21\" count; (2) add a drift-guard tying dev-command comments to package.json (closes the class that bit PR #172); (3) extend the coverage doc beyond runtime adv.md. Bonus: deploy --check surfaced a pre-existing `adv_change_forget` tool-drift the methodology would also catch.\n\n**Outcome:** the skill earns its keep — it turned a reactive, mid-PR drift failure into a minutes-long, structured audit with actionable findings and a correct root-cause diagnosis.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-06-17T21:15:00.000Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| AC1 | acceptance_criterion | `skills/adv-instructions-audit/SKILL.md` exists; SKILL.md ≤100 lines; valid frontmatter (`name`, `description` with \"Use when…\", ≤1024 chars, third person). Passes the `adv-skill-author` review checklist. | pass | skills/adv-instructions-audit/SKILL.md exists, 58 lines (≤100), valid frontmatter (name/description/keywords/metadata), passes adv-skill-author checklist. Conformance check red→green (run tr_mqikbnxs). |\n| AC2 | acceptance_criterion | Skill encodes the **4 core rules** (trace-to-anchor, test-or-cut, single-source-per-surface, runtime-assembly-aware) and **5 audit dimensions** (anchor mapper, drift detector, coverage checker, duplication detector, orphan detector), with the concrete anchor taxonomy (the ~48 `*-assets.test.ts` / invariant / drift test files). | pass | 4 core rules (trace-to-anchor+fidelity, test-or-cut, single-source-per-surface, runtime-assembly-aware) + 5 dimensions + fidelity rule present; anchor taxonomy is kinds-only with rg enumeration (no static inventory). |\n| AC3 | acceptance_criterion | A **dry-run findings report** is produced as an acceptance artifact; it catches ≥1 real drift class, including the positive control (CI-order prose → `repo-instructions-assets.test.ts` anchor, and the live `project.md` ↔ `AGENTS.md` dev-commands duplication drift). | pass | Dry-run report (/tmp/opencode/adv-instructions-audit-dryrun.md) catches all 3 positive controls: CI-order anchor (partial fidelity), project.md dev-commands matrix drift (F1/F2 HIGH), project.md:36 count staleness (F3). |\n| AC4 | acceptance_criterion | **Dry-run is read-only:** no instruction file is modified by this change (all fixes are out of scope / follow-up). | pass | git diff trunk...HEAD = only skills/adv-instructions-audit/SKILL.md (58 insertions). Dry-run was read-only; no instruction-prose file modified. |\n| AC5 | acceptance_criterion | No new `/adv-instructions-audit` command, ADV tool, or deterministic scanner ships in v1. | pass | No new entries in .opencode/command/, plugin/src/tools/, or scanner scripts. git diff confirms single skill file only. |\n| AC6 | acceptance_criterion | After `deploy-local.sh --fix`, the skill appears in the runtime `available_skills` list. | pass | skill-loading-policy-assets + adv-skill-backed-commands-assets + repo-instructions-assets = 63 tests pass (run tr_mqikgnyj). Live available_skills confirmation deferred to deploy+restart per source-vs-dist gotcha (documented, not a failure). |\n| C1 | constraint | Read-only methodology; never auto-fix (mirrors `adv-audit` constraint). | respected | Skill Constraints section: 'Read-only; never auto-fix (mirrors adv-audit).' Dry-run modified no files. |\n| C2 | constraint | Different axis from `adv-audit` (instruction-prose↔anchor, not spec↔code) — no functional overlap. | respected | adv-researcher validator confirmed clean axis separation (instruction-prose↔anchor vs spec↔code); skill states the distinction. |\n| C3 | constraint | SKILL.md ≤100 lines; deeper content → sibling `*.md` (progressive disclosure per `adv-skill-author`). | respected | SKILL.md = 58 lines (≤100); no sibling REFERENCE.md split needed (C2 pre-plan unused). |\n| C4 | constraint | Implementation in the per-change worktree (trunk write firewall). | respected | Implemented in change/addAdvInstructionsAuditSkill worktree (trunk write firewall honored). |\n| C5 | constraint | No new spec in v1 (instruction auditing is not currently a spec'd capability; no spec-citation obligation). | respected | No spec delta; instruction auditing is not a spec'd capability; no spec-citation obligation triggered. |\n| DONT1 | avoidance | Don't ship a companion command or deterministic scanner in v1 (dry-run-first; promote later if output earns it). | respected | Skill-only v1; no .opencode/command entry, no scanner script, no plugin/src/tools addition. |\n| DONT2 | avoidance | Don't fix any instruction drift surfaced by the dry run — separate follow-up change(s). | respected | Dry-run was read-only; git diff shows zero instruction-prose edits (only the new skill file). |\n| DONT3 | avoidance | Don't assert unverified claims about external/tool surfaces (P34). | respected | All skill claims verified against the codebase this session (anchor tests, package.json, project.md, deploy --check). |\n| DONT4 | avoidance | Don't silently expand into spec-law changes. | respected | No spec files created or modified; no spec-law expansion. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-06-17T20:53:54.991Z",
+      "contentHash": "81a38198946aabcb1afbbad5e9463c720b3ff60d41a83bfe55b1d53f6286d78d",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-06-17T20:53:54.991Z",
+      "contentHash": "5e68cca7440b12b88868e5469d5b4882ba9e42796c524a7219d380464110eb51",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-06-17T20:57:23.279Z",
+      "contentHash": "6959d8d7e9a0ec31e2f02b6b2f50e90dfab88c8ec09666a656b28e43a960e1b0",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-06-17T21:01:50.173Z",
+      "contentHash": "5b1e44e9ad1c2fac866e57243daf9bbadcf24143b58fe4367f019a09d5878dc4",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-06-17T21:15:28.420Z",
+      "contentHash": "282f6b1f76689a8fdc5862561df7564a3c1ec1fb08bc91f5034f5bbd7d182ee2",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-06-17T21:16:48.453Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_UNCLEAR_SCOPE",
+      "severity": "warning",
+      "message": "Proposal has no Scope section. What files and modules will be affected?",
+      "recorded_at": "2026-06-17T21:16:36.161Z"
+    }
+  ],
+  "worktree_auto_managed": true
+}
