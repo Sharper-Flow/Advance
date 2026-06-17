@@ -36,6 +36,10 @@ import { detectStaleBranchHead } from "../../utils/stale-head";
 import { execFileGitAsync } from "../../utils/git-binary";
 import { getDefaultBranch } from "../../utils/git";
 import { resolve } from "path";
+import {
+  parseWorktreeListPorcelain,
+  type DiskWorktree,
+} from "./porcelain-parser";
 
 // =============================================================================
 // Public types
@@ -72,11 +76,6 @@ export interface TriageOptions {
 // =============================================================================
 // Helpers
 // =============================================================================
-
-interface DiskWorktree {
-  path: string;
-  branch?: string;
-}
 
 function isTargetProjectTriage(
   repoRoot: string,
@@ -163,22 +162,7 @@ async function listDiskWorktrees(repoRoot: string): Promise<DiskWorktree[]> {
     return [];
   }
 
-  const worktrees: DiskWorktree[] = [];
-  const blocks = stdout.split(/\n\n/);
-  for (const block of blocks) {
-    if (!block.trim()) continue;
-    let path: string | undefined;
-    let branch: string | undefined;
-    for (const line of block.split("\n")) {
-      if (line.startsWith("worktree ")) {
-        path = line.slice("worktree ".length).trim();
-      } else if (line.startsWith("branch refs/heads/")) {
-        branch = line.slice("branch refs/heads/".length).trim();
-      }
-    }
-    if (path) worktrees.push({ path, branch });
-  }
-  return worktrees;
+  return parseWorktreeListPorcelain(stdout);
 }
 
 // =============================================================================

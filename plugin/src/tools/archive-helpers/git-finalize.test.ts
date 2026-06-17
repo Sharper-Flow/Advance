@@ -42,6 +42,7 @@ import {
   redriveArchivedUnmergedBranch,
   detectSquashMergeByTree,
   detectArchivedMergedBranches,
+  getCheckedOutChangeBranches,
 } from "./git-finalize";
 
 function git(cwd: string, args: string[]): string {
@@ -1282,6 +1283,94 @@ describe("git-finalize helpers", () => {
       status: "blocked",
       reason: "LOCAL_BRANCH_LIST_FAILED",
       details: ["fatal: not a git repository"],
+    });
+  });
+
+  describe("getCheckedOutChangeBranches", () => {
+    it("returns set of change/* branches from worktree list --porcelain output", () => {
+      const result = getCheckedOutChangeBranches("/repo", {
+        runGit: (_cwd, args) => {
+          if (args[0] === "worktree" && args[1] === "list") {
+            return {
+              status: 0,
+              stdout:
+                "worktree /home/main\n" +
+                "HEAD abc123\n" +
+                "branch refs/heads/trunk\n" +
+                "\n" +
+                "worktree /home/wt-change-foo\n" +
+                "HEAD def456\n" +
+                "branch refs/heads/change/foo\n" +
+                "\n" +
+                "worktree /home/bare\n" +
+                "HEAD ghi789\n" +
+                "bare\n" +
+                "\n" +
+                "worktree /home/detached\n" +
+                "HEAD jkl012\n" +
+                "detached\n",
+              stderr: "",
+            };
+          }
+          return { status: 0, stdout: "", stderr: "" };
+        },
+      });
+
+      expect(result.status).toBe("ok");
+      expect(result.branches).toEqual(new Set(["change/foo"]));
+    });
+
+    it("excludes non-change branches", () => {
+      const result = getCheckedOutChangeBranches("/repo", {
+        runGit: (_cwd, args) => {
+          if (args[0] === "worktree" && args[1] === "list") {
+            return {
+              status: 0,
+              stdout:
+                "worktree /home/main\n" +
+                "HEAD abc123\n" +
+                "branch refs/heads/trunk\n" +
+                "\n" +
+                "worktree /home/feature\n" +
+                "HEAD def456\n" +
+                "branch refs/heads/feature/x\n" +
+                "\n" +
+                "worktree /home/change-a\n" +
+                "HEAD ghi789\n" +
+                "branch refs/heads/change/A\n" +
+                "\n" +
+                "worktree /home/change-b\n" +
+                "HEAD jkl012\n" +
+                "branch refs/heads/change/B\n",
+              stderr: "",
+            };
+          }
+          return { status: 0, stdout: "", stderr: "" };
+        },
+      });
+
+      expect(result.status).toBe("ok");
+      expect(result.branches).toEqual(new Set(["change/A", "change/B"]));
+    });
+
+    it("returns blocked status when git worktree list fails", () => {
+      const result = getCheckedOutChangeBranches("/repo", {
+        runGit: (_cwd, args) => {
+          if (args[0] === "worktree" && args[1] === "list") {
+            return {
+              status: 1,
+              stdout: "",
+              stderr: "fatal: not a git repository\n",
+            };
+          }
+          return { status: 0, stdout: "", stderr: "" };
+        },
+      });
+
+      expect(result.status).toBe("blocked");
+      expect(result.reason).toBe("WORKTREE_LIST_FAILED");
+      expect(result.branches.size).toBe(0);
+      expect(result.details).toEqual(["fatal: not a git repository"]);
     });
   });
 

@@ -2,6 +2,7 @@ import { realpathSync } from "fs";
 import { spawnSync } from "child_process";
 import { dirname } from "path";
 import { spawnSyncGit } from "../../utils/git-binary";
+import { parseWorktreeListPorcelain } from "../worktree/porcelain-parser";
 
 export type ArchiveMode = "direct" | "pr";
 
@@ -1946,6 +1947,42 @@ export function detectArchivedMergedBranches(
       });
     }
   }
+
+  return { status: "ok", branches };
+}
+
+export interface CheckedOutChangeBranchesResult {
+  status: "ok" | "blocked";
+  branches: Set<string>;
+  reason?: "WORKTREE_LIST_FAILED";
+  details?: string[];
+}
+
+export function getCheckedOutChangeBranches(
+  mainCheckout: string,
+  deps: Pick<GitFinalizeDeps, "runGit"> = {},
+): CheckedOutChangeBranchesResult {
+  const runGit = deps.runGit ?? defaultRunGit;
+
+  const output = runGit(mainCheckout, ["worktree", "list", "--porcelain"]);
+  if (output.status !== 0) {
+    return {
+      status: "blocked",
+      branches: new Set(),
+      reason: "WORKTREE_LIST_FAILED",
+      details: splitLines(output.stderr || output.stdout),
+    };
+  }
+
+  const worktrees = parseWorktreeListPorcelain(output.stdout);
+  const branches = new Set(
+    worktrees
+      .map((wt) => wt.branch)
+      .filter(
+        (branch): branch is string =>
+          typeof branch === "string" && branch.startsWith("change/"),
+      ),
+  );
 
   return { status: "ok", branches };
 }
