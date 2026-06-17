@@ -373,6 +373,8 @@ import {
   resolveReleaseReachability,
   detectArchivedUnmergedBranches,
   redriveArchivedUnmergedBranch,
+  detectArchivedMergedBranches,
+  getCheckedOutChangeBranches,
   type GitFinalizeOutcome,
 } from "./archive-helpers/git-finalize";
 import { dispatchPhase9Finalization } from "./archive-helpers/phase9-queue";
@@ -4538,28 +4540,37 @@ export const changeTools = {
 
   adv_archive_repair: {
     description:
-      "Scan for archived change branches not reachable from origin/default and re-drive PR auto-merge handoff",
+      "Scan for archived change branches not reachable from origin/default and re-drive PR auto-merge handoff; OR clean up local change/* branches left behind after PR-mode archive merges",
     args: {
       action: z
-        .enum(["scan", "redrive"])
+        .enum(["scan", "redrive", "cleanup_merged"])
         .describe(
-          "scan = list candidates; redrive = open/reuse PR and arm auto-merge for one archived change",
+          "scan = list candidates; redrive = open/reuse PR and arm auto-merge for one archived change; " +
+            "cleanup_merged = scan local change/* branches tied to archived ADV changes, detect fully-merged ones (squash-merge-safe), and delete the safe ones",
         ),
       changeId: z
         .string()
         .optional()
-        .describe("Archived change ID to re-drive when action='redrive'"),
+        .describe(
+          "Archived change ID to re-drive when action='redrive' or restrict cleanup_merged to a single change",
+        ),
       dryRun: z
         .boolean()
         .optional()
-        .describe("Preview redrive without creating PRs or arming auto-merge"),
+        .describe(
+          "Preview redrive or cleanup_merged without creating PRs, arming auto-merge, or deleting branches",
+        ),
     },
     execute: async (
       {
         action,
         changeId,
         dryRun,
-      }: { action: "scan" | "redrive"; changeId?: string; dryRun?: boolean },
+      }: {
+        action: "scan" | "redrive" | "cleanup_merged";
+        changeId?: string;
+        dryRun?: boolean;
+      },
       store: Store,
     ) => {
       const mainCheckout = resolveMainCheckout(store.paths.root);
@@ -4569,6 +4580,113 @@ export const changeTools = {
         includeArchived: true,
       });
       const archivedChangeIds = archivedList.changes.map((change) => change.id);
+
+      if (action === "cleanup_merged") {
+        let targetArchivedChangeIds = archivedChangeIds;
+        if (changeId?.trim()) {
+          if (!archivedChangeIds.includes(changeId)) {
+            return formatToolOutput({
+              success: false,
+              action,
+              changeId,
+              error: `Change is not archived or was not found: ${changeId}`,
+            });
+          }
+          targetArchivedChangeIds = [changeId];
+        }
+
+        const fetchWarnings: string[] = [];
+        try {
+          await execGit(["fetch", "origin", defaultBranch], mainCheckout);
+        } catch (err) {
+          fetchWarnings.push(
+            `Best-effort default-branch fetch failed: ${err instanceof Error ? err.message : String(err)}`,
+          );
+        }
+
+        const detect = detectArchivedMergedBranches({
+          mainCheckout,
+          defaultBranch,
+          archivedChangeIds: targetArchivedChangeIds,
+        });
+        if (detect.status === "blocked") {
+          return formatToolOutput({
+            success: false,
+            action,
+            error: `Cleanup scan blocked: ${detect.reason}`,
+            details: detect.details,
+          });
+        }
+
+        const checkedOut = getCheckedOutChangeBranches(mainCheckout);
+        if (checkedOut.status === "blocked") {
+          return formatToolOutput({
+            success: false,
+            action,
+            error: `Worktree safety check blocked: ${checkedOut.reason}`,
+            details: checkedOut.details,
+          });
+        }
+
+        const candidates = detect.branches.filter(
+          (b) => !checkedOut.branches.has(b.branch),
+        );
+        const skippedWorktree = detect.branches.filter((b) =>
+          checkedOut.branches.has(b.branch),
+        );
+
+        if (dryRun) {
+          return formatToolOutput({
+            success: true,
+            action,
+            dryRun: true,
+            mainCheckout,
+            defaultBranch,
+            candidates,
+            skipped: skippedWorktree.map((b) => ({
+              ...b,
+              reason: "WORKTREE_CHECKED_OUT",
+            })),
+            count: candidates.length,
+            ...(fetchWarnings.length > 0 ? { warnings: fetchWarnings } : {}),
+          });
+        }
+
+        const results = candidates.map((b) => {
+          const deletion = deleteChangeBranch(mainCheckout, b.changeId);
+          return {
+            changeId: b.changeId,
+            branch: b.branch,
+            mergeProof: b.mergeProof,
+            ...deletion,
+          };
+        });
+
+        const summary = {
+          total: detect.branches.length,
+          candidates: candidates.length,
+          deleted: results.filter((r) => r.localDeleted).length,
+          remoteDeleted: results.filter((r) => r.remoteDeleted).length,
+          failed: results.filter((r) => !r.localDeleted).length,
+          skippedWorktree: skippedWorktree.length,
+        };
+
+        return formatToolOutput({
+          success: true,
+          action,
+          dryRun: false,
+          mainCheckout,
+          defaultBranch,
+          results,
+          skipped: skippedWorktree.map((b) => ({
+            ...b,
+            reason: "WORKTREE_CHECKED_OUT",
+          })),
+          summary,
+          ...(fetchWarnings.length > 0 ? { warnings: fetchWarnings } : {}),
+        });
+      }
+
       const scan = detectArchivedUnmergedBranches({
         mainCheckout,
         defaultBranch,

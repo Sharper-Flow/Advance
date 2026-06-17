@@ -29,6 +29,18 @@ const mocks = vi.hoisted(() => ({
     prUrl: "https://github.com/Sharper-Flow/Advance/pull/42",
     autoMergeArmed: true,
   })),
+  detectArchivedMergedBranches: vi.fn(() => ({
+    status: "ok",
+    branches: [],
+  })),
+  getCheckedOutChangeBranches: vi.fn(() => ({
+    status: "ok",
+    branches: new Set<string>(),
+  })),
+  deleteChangeBranch: vi.fn(() => ({
+    localDeleted: true,
+    remoteDeleted: true,
+  })),
 }));
 
 vi.mock("./archive-helpers/git-finalize", async () => {
@@ -41,6 +53,9 @@ vi.mock("./archive-helpers/git-finalize", async () => {
     detectDefaultBranch: mocks.detectDefaultBranch,
     detectArchivedUnmergedBranches: mocks.detectArchivedUnmergedBranches,
     redriveArchivedUnmergedBranch: mocks.redriveArchivedUnmergedBranch,
+    detectArchivedMergedBranches: mocks.detectArchivedMergedBranches,
+    getCheckedOutChangeBranches: mocks.getCheckedOutChangeBranches,
+    deleteChangeBranch: mocks.deleteChangeBranch,
   };
 });
 
@@ -57,11 +72,12 @@ function archivedChange(id: string): Change {
   } as Change;
 }
 
-function createMockStore(): Store {
-  const changes = [
+function createMockStore(
+  changes: Change[] = [
     archivedChange("archived-one"),
     archivedChange("already-merged"),
-  ];
+  ],
+): Store {
   return {
     paths: {
       root: "/tmp/main",
@@ -74,7 +90,11 @@ function createMockStore(): Store {
     flush: vi.fn(),
     specs: {} as Store["specs"],
     changes: {
-      list: vi.fn(async () => ({ changes })),
+      list: vi.fn(async ({ status }: { status?: string } = {}) => ({
+        changes: status
+          ? changes.filter((change) => change.status === status)
+          : changes,
+      })),
       get: vi.fn(async (changeId: string) => ({
         success: true,
         data: changes.find((change) => change.id === changeId) ?? null,
@@ -146,5 +166,287 @@ describe("adv_archive_repair", () => {
       defaultBranch: "trunk",
       changeId: "archived-one",
     });
+  });
+
+  test("cleanup_merged scan lists candidates with merge proof", async () => {
+    const store = createMockStore();
+    mocks.detectArchivedMergedBranches.mockReturnValueOnce({
+      status: "ok",
+      branches: [
+        {
+          changeId: "tree-match",
+          branch: "change/tree-match",
+          localSha: "abc123",
+          mergeProof: {
+            kind: "tree-identical",
+            trunkCommitSha: "def456",
+          },
+        },
+        {
+          changeId: "patch-match",
+          branch: "change/patch-match",
+          localSha: "ghi789",
+          mergeProof: { kind: "patch-equivalent" },
+        },
+      ],
+    });
+
+    const result = await changeTools.adv_archive_repair.execute(
+      { action: "cleanup_merged", dryRun: true },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(true);
+    expect(parsed.action).toBe("cleanup_merged");
+    expect(parsed.dryRun).toBe(true);
+    expect(parsed.candidates).toHaveLength(2);
+    expect(parsed.candidates[0]).toMatchObject({
+      changeId: "tree-match",
+      mergeProof: { kind: "tree-identical", trunkCommitSha: "def456" },
+    });
+    expect(parsed.candidates[1]).toMatchObject({
+      changeId: "patch-match",
+      mergeProof: { kind: "patch-equivalent" },
+    });
+    expect(mocks.detectArchivedMergedBranches).toHaveBeenCalledWith({
+      mainCheckout: "/tmp/main",
+      defaultBranch: "trunk",
+      archivedChangeIds: ["archived-one", "already-merged"],
+    });
+    expect(mocks.deleteChangeBranch).not.toHaveBeenCalled();
+  });
+
+  test("cleanup_merged excludes branches checked out in worktrees", async () => {
+    const store = createMockStore();
+    mocks.detectArchivedMergedBranches.mockReturnValueOnce({
+      status: "ok",
+      branches: [
+        {
+          changeId: "checked-out",
+          branch: "change/checked-out",
+          localSha: "aaa",
+          mergeProof: { kind: "patch-equivalent" },
+        },
+        {
+          changeId: "free",
+          branch: "change/free",
+          localSha: "bbb",
+          mergeProof: { kind: "patch-equivalent" },
+        },
+      ],
+    });
+    mocks.getCheckedOutChangeBranches.mockReturnValueOnce({
+      status: "ok",
+      branches: new Set(["change/checked-out"]),
+    });
+
+    const result = await changeTools.adv_archive_repair.execute(
+      { action: "cleanup_merged", dryRun: true },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(true);
+    expect(parsed.candidates).toHaveLength(1);
+    expect(parsed.candidates[0].changeId).toBe("free");
+    expect(parsed.skipped).toHaveLength(1);
+    expect(parsed.skipped[0]).toMatchObject({
+      changeId: "checked-out",
+      reason: "WORKTREE_CHECKED_OUT",
+    });
+  });
+
+  test("cleanup_merged dryRun returns candidates without deleting", async () => {
+    const store = createMockStore();
+    mocks.detectArchivedMergedBranches.mockReturnValueOnce({
+      status: "ok",
+      branches: [
+        {
+          changeId: "merged-a",
+          branch: "change/merged-a",
+          localSha: "aaa",
+          mergeProof: { kind: "tree-identical", trunkCommitSha: "trunk-aaa" },
+        },
+        {
+          changeId: "merged-b",
+          branch: "change/merged-b",
+          localSha: "bbb",
+          mergeProof: { kind: "patch-equivalent" },
+        },
+      ],
+    });
+
+    const result = await changeTools.adv_archive_repair.execute(
+      { action: "cleanup_merged", dryRun: true },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(true);
+    expect(parsed.dryRun).toBe(true);
+    expect(parsed.count).toBe(2);
+    expect(mocks.deleteChangeBranch).not.toHaveBeenCalled();
+  });
+
+  test("cleanup_merged wet-run deletes safe candidates via deleteChangeBranch", async () => {
+    const store = createMockStore();
+    mocks.detectArchivedMergedBranches.mockReturnValueOnce({
+      status: "ok",
+      branches: [
+        {
+          changeId: "merged-a",
+          branch: "change/merged-a",
+          localSha: "aaa",
+          mergeProof: { kind: "tree-identical", trunkCommitSha: "trunk-aaa" },
+        },
+        {
+          changeId: "merged-b",
+          branch: "change/merged-b",
+          localSha: "bbb",
+          mergeProof: { kind: "patch-equivalent" },
+        },
+      ],
+    });
+
+    const result = await changeTools.adv_archive_repair.execute(
+      { action: "cleanup_merged" },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(true);
+    expect(parsed.dryRun).toBe(false);
+    expect(parsed.results).toHaveLength(2);
+    expect(mocks.deleteChangeBranch).toHaveBeenCalledTimes(2);
+    expect(mocks.deleteChangeBranch).toHaveBeenNthCalledWith(
+      1,
+      "/tmp/main",
+      "merged-a",
+    );
+    expect(mocks.deleteChangeBranch).toHaveBeenNthCalledWith(
+      2,
+      "/tmp/main",
+      "merged-b",
+    );
+    expect(parsed.summary).toMatchObject({
+      total: 2,
+      candidates: 2,
+      deleted: 2,
+      remoteDeleted: 2,
+      failed: 0,
+      skippedWorktree: 0,
+    });
+  });
+
+  test("cleanup_merged filters non-archived changes", async () => {
+    const store = createMockStore([
+      archivedChange("X"),
+      { ...archivedChange("Y"), status: "draft" } as Change,
+    ]);
+    mocks.detectArchivedMergedBranches.mockReturnValueOnce({
+      status: "ok",
+      branches: [],
+    });
+
+    const result = await changeTools.adv_archive_repair.execute(
+      { action: "cleanup_merged", dryRun: true },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(true);
+    expect(mocks.detectArchivedMergedBranches).toHaveBeenCalledWith({
+      mainCheckout: "/tmp/main",
+      defaultBranch: "trunk",
+      archivedChangeIds: ["X"],
+    });
+  });
+
+  test("cleanup_merged tolerates remote-already-deleted as warning", async () => {
+    const store = createMockStore();
+    mocks.detectArchivedMergedBranches.mockReturnValueOnce({
+      status: "ok",
+      branches: [
+        {
+          changeId: "merged-a",
+          branch: "change/merged-a",
+          localSha: "aaa",
+          mergeProof: { kind: "patch-equivalent" },
+        },
+      ],
+    });
+    mocks.deleteChangeBranch.mockReturnValueOnce({
+      localDeleted: true,
+      remoteDeleted: false,
+      error: "Remote branch deletion failed: remote ref not found",
+    });
+
+    const result = await changeTools.adv_archive_repair.execute(
+      { action: "cleanup_merged" },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(true);
+    expect(parsed.results).toHaveLength(1);
+    expect(parsed.results[0]).toMatchObject({
+      changeId: "merged-a",
+      localDeleted: true,
+      remoteDeleted: false,
+    });
+    expect(parsed.results[0].error).toContain("Remote branch deletion failed");
+    expect(parsed.summary).toMatchObject({
+      deleted: 1,
+      remoteDeleted: 0,
+      failed: 0,
+    });
+  });
+
+  test("cleanup_merged changeId arg restricts to single archived change", async () => {
+    const store = createMockStore([archivedChange("X"), archivedChange("Y")]);
+    mocks.detectArchivedMergedBranches.mockReturnValueOnce({
+      status: "ok",
+      branches: [],
+    });
+
+    const result = await changeTools.adv_archive_repair.execute(
+      { action: "cleanup_merged", changeId: "X", dryRun: true },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(true);
+    expect(mocks.detectArchivedMergedBranches).toHaveBeenCalledWith({
+      mainCheckout: "/tmp/main",
+      defaultBranch: "trunk",
+      archivedChangeIds: ["X"],
+    });
+  });
+
+  test("cleanup_merged rejects changeId that is not archived", async () => {
+    const store = createMockStore([archivedChange("X")]);
+
+    const result = await changeTools.adv_archive_repair.execute(
+      { action: "cleanup_merged", changeId: "Y", dryRun: true },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(false);
+    expect(parsed.error).toContain("not archived or was not found");
+    expect(mocks.detectArchivedMergedBranches).not.toHaveBeenCalled();
+  });
+
+  test("non-regression: direct-archive cleanup gate keeps archiveMode === direct check", async () => {
+    // This is a source-level guard to ensure the direct-mode archive cleanup
+    // gate at change.ts:4436-4441 is not accidentally removed. The actual
+    // behavior is covered by existing archive finalization tests.
+    const fs = await import("node:fs");
+    const source = fs.readFileSync(
+      new URL("./change.ts", import.meta.url),
+      "utf8",
+    );
+    expect(source).toContain('archiveMode === "direct"');
   });
 });
