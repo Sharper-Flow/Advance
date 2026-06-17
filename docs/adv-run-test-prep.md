@@ -49,6 +49,7 @@ Non-scope:
 ### Testing
 
 - Severity: HIGH
+  - **RESOLVED** by change `hardenTddProofEvidence` (rq-TDD008path.3/.4 updated, rq-TDD009seq ordering enforcement added, typed `phase` field present in schema). See `.adv/specs/tdd-contract/spec.json` rq-TDD009seq for the ordering enforcement contract.
   - Evidence: TDD spec `rq-TDD008path.3` says red phase rejects `exitCode=0` and green phase rejects non-zero exit codes; docs still instruct `adv_run_test phase:'red'` / `phase:'green'` in `ADV_INSTRUCTIONS.md:335-336` and `.opencode/command/adv-apply.md:68-69,552-554`; current schema in `plugin/src/tools/test.ts:176-202` has no `phase`; `plugin/src/tools/test.test.ts:56-74` asserts no phase.
   - Impact: spec/docs/model contract drift. Agents are told to pass a field the tool does not accept, and phase semantics are not machine-checkable.
   - Recommendation: either reintroduce a typed optional `phase: "red" | "green" | "verify"` with semantics validation, or update specs/docs to remove phase claims. Better model alignment: reintroduce phase for inline TDD and return phase-validity errors structurally.

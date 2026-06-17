@@ -360,7 +360,7 @@ Inline TDD is default — red/green phases WITHIN each task. × Do NOT create se
 - **Trivial:** Note `(trivial: docs change)`, skip TDD
 - **Cross-cutting:** Separate verification tasks OK → mark `metadata.tdd_intent: "separate_verification"`
 
-`adv_run_test phase` is descriptive metadata, not gate enforcement. Use `passed`, `classification`, and `exitCode` as command-result evidence.
+`adv_run_test phase` is descriptive metadata, not gate enforcement. Use `passed`, `classification`, and `exitCode` as command-result evidence. The red→green sequence IS structurally enforced by rq-TDD009seq: include `lastRedRunId` and `lastGreenRunId` (from `adv_run_test` output `runId`) in `adv_task_checkpoint` verification for inline TDD tasks. Tasks without these refs are grandfathered (backward compatible). Advisory quality signals (`assertionDensity`, `mockSurface`, `behaviorSurface`) are surfaced for `/adv-review`; they never gate task completion.
 
 `adv_run_test` is prescribed for ordinary inline red/green work because it provides executable proof for the current agent run. Durable final proof is recorded on `taskCompletedSignal.verification` when the task transitions to `done` via `adv_task_checkpoint`. <!-- rq-ADVEXEC04 rq-ADVEXEC05 -->
 

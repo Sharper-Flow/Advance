@@ -73,6 +73,10 @@ Reusable implementation methodology for ADV apply workflows. Provides the TDD wo
 
 `adv_run_test phase` is descriptive metadata, not gate enforcement. Use `passed`, `classification`, and `exitCode` as command-result evidence.
 
+**rq-TDD009seq ordering enforcement:** When completing an inline TDD task, include the `runId` values from your red and green `adv_run_test` calls as `lastRedRunId` and `lastGreenRunId` in the task completion payload. The workflow verifies that a red run (phase:'red', exitCode≠0) precedes a green run (phase:'green', exitCode=0). Tasks without these refs are grandfathered (backward compatible).
+
+**rq-TDD010qual advisory signals:** `adv_run_test` now returns `assertionDensity`, `mockSurface`, and `behaviorSurface` when a specific test file is referenced. These are advisory — surfaced to `/adv-review` for human attention, never gate task completion.
+
 #### Retry Protocol
 
 | Error type    | Examples                               | Action                      |
