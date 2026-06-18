@@ -1,0 +1,2071 @@
+{
+  "id": "cleanupMergedArchiveBranches",
+  "title": "Cleanup merged archive branches",
+  "status": "archived",
+  "created_at": "2026-06-17T22:14:57.864Z",
+  "tasks": [
+    {
+      "id": "tk-7d4670063af0",
+      "title": "Add `detectArchivedMergedBranches()` pure detector to `plugin/src/tools/archive-helpers/git-finalize.ts`.",
+      "type": "code",
+      "section": "Detection",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-06-17T22:38:08.099Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_preferred",
+        "frontend": "false"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC4"
+        ],
+        "verifies": [
+          "AC1",
+          "AC4",
+          "AC11",
+          "SC1",
+          "SC2"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-17T22:40:41.904Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "cleanupMergedArchiveBranches",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/cleanupMergedArchiveBranches",
+          "task_id": "tk-7d4670063af0",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-7d4670063af0"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/tools/archive-helpers/git-finalize.ts",
+            "plugin/src/tools/archive-helpers/git-finalize.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "pnpm test -- src/tools/archive-helpers/git-finalize.test.ts -t \"detectArchivedMergedBranches\"",
+              "exit_code": 1,
+              "summary": "RED phase: targeted tests failed as expected because detectArchivedMergedBranches did not exist yet (runId: tr_mqinsknh_04127429)"
+            },
+            {
+              "command": "pnpm exec vitest run src/tools/archive-helpers/git-finalize.test.ts -t \"detectArchivedMergedBranches\"",
+              "exit_code": 0,
+              "summary": "GREEN phase: all 5 detectArchivedMergedBranches tests pass (runId: tr_mqio6clu_a5a20717)"
+            },
+            {
+              "command": "pnpm exec vitest run src/tools/archive-helpers/git-finalize.test.ts",
+              "exit_code": 0,
+              "summary": "VERIFY phase: full git-finalize.test.ts suite passes, 77 tests (runId: tr_mqio6mko_cf8a7c92)"
+            },
+            {
+              "command": "pnpm run typecheck",
+              "exit_code": 0,
+              "summary": "VERIFY phase: TypeScript typecheck passes (runId: tr_mqio6p3s_a0f912e6)"
+            },
+            {
+              "command": "pnpm run lint",
+              "exit_code": 0,
+              "summary": "Lint passes (runId: tr_mqio5aod_f162bdd0)"
+            },
+            {
+              "command": "pnpm run format:check",
+              "exit_code": 0,
+              "summary": "Prettier format check passes after formatting (runId: tr_mqio64e9_330892c6)"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Used `pnpm exec vitest run` instead of `pnpm test --` for targeted GREEN/VERIFY runs",
+              "why": "`pnpm test -- src/tools/archive-helpers/git-finalize.test.ts -t ...` was not isolating to the specified file and ran unrelated tests (deploy-local.test.ts), causing a non-zero exit despite our tests passing. The equivalent `pnpm exec vitest run` invocation correctly filtered to the target file and tests."
+            },
+            {
+              "what": "Prefixed four test names with `detectArchivedMergedBranches`",
+              "why": "The vitest `-t` filter matches the full test name; only the first test originally contained the substring. Prefixing the other four ensured the filter ran all five tests together as required."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "none",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Task tk-7d4670063af0 complete. Added exported `ArchivedMergedBranch` interface, `ArchivedMergedBranchesResult` type, `parseLocalChangeBranchRefs` helper, and `detectArchivedMergedBranches()` pure detector to `plugin/src/tools/archive-helpers/git-finalize.ts` co-located with `detectArchivedUnmergedBranches`. The detector lists local `change/*` branches, filters by optional `archivedChangeIds`, short-circuits to `tree-identical` proof via `detectSquashMergeByTree`, and falls back to `git cherry -v` for `patch-equivalent` proof. Five new tests were added and pass; full git-finalize suite, typecheck, lint, and format checks are green.",
+            "suggested_next_action": "Proceed to task T2 in the 5-task graph; T2-T5 are now unblocked."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm test -- src/tools/archive-helpers/git-finalize.test.ts -t \"detectArchivedMergedBranches\""
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/tools/archive-helpers/git-finalize.test.ts -t \"detectArchivedMergedBranches\""
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/tools/archive-helpers/git-finalize.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run typecheck"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run lint"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run format:check"
+            }
+          ]
+        }
+      ],
+      "verification": "T1 complete. detectArchivedMergedBranches pure detector added with 5 RED→GREEN tests. Independent verify: 5/5 pass, 72 skipped (filter isolated), exit 0, runId tr_mqio92fk_0758ce90. Worker RED runId tr_mqinsknh_04127429, GREEN runId tr_mqio6clu_a5a20717. Worker reported typecheck/lint/format all green. Files: git-finalize.ts (+types, +parseLocalChangeBranchRefs helper, +detectArchivedMergedBranches), git-finalize.test.ts (+5 tests).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/archive-helpers/git-finalize.test.ts",
+        "plugin/src/tools/archive-helpers/git-finalize.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/archive-helpers/git-finalize.test.ts",
+        "plugin/src/tools/archive-helpers/git-finalize.ts"
+      ],
+      "checkpointSha": "9fc084b977447ee340c34e7c5f85d196add7fe58",
+      "completedAt": "2026-06-17T22:58:06.573Z",
+      "completed_at": "2026-06-17T22:58:06.573Z"
+    },
+    {
+      "id": "tk-01261e9a6335",
+      "title": "Add `getCheckedOutChangeBranches()` worktree-safety wrapper to `plugin/src/tools/archive-helpers/git-finalize.ts`.",
+      "type": "code",
+      "section": "Worktree Safety",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-06-17T22:38:23.505Z",
+      "metadata": {
+        "delegation_hint": "delegate_preferred",
+        "frontend": "false",
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC6"
+        ],
+        "verifies": [
+          "AC6",
+          "AC11",
+          "SC2"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-17T22:58:34.969Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "cleanupMergedArchiveBranches",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/cleanupMergedArchiveBranches",
+          "task_id": "tk-01261e9a6335",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-01261e9a6335"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/tools/archive-helpers/git-finalize.ts",
+            "plugin/src/tools/archive-helpers/git-finalize.test.ts",
+            "plugin/src/tools/worktree/porcelain-parser.ts",
+            "plugin/src/tools/worktree/porcelain-parser.test.ts",
+            "plugin/src/tools/worktree/triage.ts"
+          ],
+          "verification": [
+            {
+              "command": "pnpm exec vitest run src/tools/archive-helpers/git-finalize.test.ts -t \"getCheckedOutChangeBranches\"",
+              "exit_code": 1,
+              "summary": "RED: 3 new tests fail as expected because getCheckedOutChangeBranches does not yet exist (runId: tr_mqioe34x_f3e8aa27)"
+            },
+            {
+              "command": "pnpm exec vitest run src/tools/archive-helpers/git-finalize.test.ts -t \"getCheckedOutChangeBranches\"",
+              "exit_code": 0,
+              "summary": "GREEN: 3 new tests pass after implementation (runId: tr_mqiog575_7152e2d6)"
+            },
+            {
+              "command": "pnpm exec vitest run src/tools/archive-helpers/git-finalize.test.ts src/tools/worktree/triage.test.ts src/tools/worktree/porcelain-parser.test.ts",
+              "exit_code": 0,
+              "summary": "VERIFY: git-finalize (80 tests), triage (13 tests), and porcelain-parser (5 tests) all pass; parser extraction did not regress triage (runId: tr_mqioi3ca_7ef317a1)"
+            },
+            {
+              "command": "pnpm run typecheck",
+              "exit_code": 0,
+              "summary": "VERIFY: tsc --noEmit passes with no type errors (runId: tr_mqiogzoz_98fabe24)"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Extracted the `git worktree list --porcelain` parser from triage.ts into `plugin/src/tools/worktree/porcelain-parser.ts`",
+              "why": "The parser was private/inlined in triage.ts; git-finalize.ts uses a synchronous `runGit` dep and could not reuse the async wrapper. Extraction preserves behavior while enabling reuse."
+            },
+            {
+              "what": "Added a co-located `porcelain-parser.test.ts` covering single, multi, bare, detached, trailing-blank, and empty outputs",
+              "why": "Maintains parser coverage after extraction so triage.ts indirect coverage remains backed by direct tests."
+            },
+            {
+              "what": "Used a type-predicate filter for `change/` branches in getCheckedOutChangeBranches",
+              "why": "The parser strips `refs/heads/` so branch values are short names; filtering by `change/` prefix matches the spec and existing census.ts convention."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "none",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "getCheckedOutChangeBranches implemented in plugin/src/tools/archive-helpers/git-finalize.ts using the extracted shared porcelain parser from plugin/src/tools/worktree/porcelain-parser.ts. 3 new tests pass, triage.test.ts still passes, typecheck is clean. Note: the worktree already contains unrelated modifications to .adv/specs/advance-workflow/spec.json, AGENTS.md, and plugin/src/tools/status.test.ts that were not touched by this task.",
+            "suggested_next_action": "Proceed to the next task in cleanupMergedArchiveBranches or run the full plugin test suite if broader regression coverage is desired."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/tools/archive-helpers/git-finalize.test.ts -t \"getCheckedOutChangeBranches\""
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/tools/archive-helpers/git-finalize.test.ts -t \"getCheckedOutChangeBranches\""
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/tools/archive-helpers/git-finalize.test.ts src/tools/worktree/triage.test.ts src/tools/worktree/porcelain-parser.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run typecheck"
+            }
+          ]
+        }
+      ],
+      "verification": "T2 complete (re-checkpoint after stash isolation). getCheckedOutChangeBranches added; porcelain parser extracted to new worktree/porcelain-parser.ts; triage.ts re-routed. 3+5 tests pass; 140/140 combined verify earlier (T4/T5 stashed for separate commits).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/archive-helpers/git-finalize.test.ts",
+        "plugin/src/tools/archive-helpers/git-finalize.ts",
+        "plugin/src/tools/worktree/porcelain-parser.test.ts",
+        "plugin/src/tools/worktree/porcelain-parser.ts",
+        "plugin/src/tools/worktree/triage.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/archive-helpers/git-finalize.test.ts",
+        "plugin/src/tools/archive-helpers/git-finalize.ts",
+        "plugin/src/tools/worktree/porcelain-parser.test.ts",
+        "plugin/src/tools/worktree/porcelain-parser.ts",
+        "plugin/src/tools/worktree/triage.ts"
+      ],
+      "checkpointSha": "81a81cf6ee0c9299b6adcb15ac927eac10c168f9",
+      "completedAt": "2026-06-17T23:12:09.159Z",
+      "completed_at": "2026-06-17T23:12:09.159Z"
+    },
+    {
+      "id": "tk-4002c20fb123",
+      "title": "Extend `adv_archive_repair` MCP tool with `cleanup_merged` action.",
+      "type": "code",
+      "section": "Tool Handler",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-06-17T22:38:47.978Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-7d4670063af0"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-01261e9a6335"
+        }
+      ],
+      "metadata": {
+        "delegation_hint": "delegate_allowed",
+        "frontend": "false",
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC5",
+          "SC1"
+        ],
+        "respects": [
+          "C1",
+          "C3",
+          "C4",
+          "DONT1",
+          "DONT5"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC5",
+          "AC7",
+          "AC11",
+          "SC1",
+          "SC2"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-17T23:12:55.634Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "cleanupMergedArchiveBranches",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/cleanupMergedArchiveBranches",
+          "task_id": "tk-4002c20fb123",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-4002c20fb123"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/tools/change.ts",
+            "plugin/src/tools/change.archive-repair.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "pnpm exec vitest run src/tools/change.archive-repair.test.ts",
+              "exit_code": 1,
+              "summary": "RED phase: 8 new cleanup_merged tests failed as expected before implementation (runId tr_mqiovu2v_dc47df98)"
+            },
+            {
+              "command": "pnpm exec vitest run src/tools/change.archive-repair.test.ts",
+              "exit_code": 0,
+              "summary": "GREEN phase: all 11 archive-repair tests pass after implementation (runId tr_mqioy5ju_8b756cf6)"
+            },
+            {
+              "command": "pnpm exec vitest run src/tools/change.archive-repair.test.ts src/tools/change.test.ts src/tools/archive-helpers/git-finalize.test.ts",
+              "exit_code": 0,
+              "summary": "VERIFY phase: 154 tests pass across archive-repair, change, and git-finalize suites (runId tr_mqioztzg_4933cafc)"
+            },
+            {
+              "command": "pnpm run typecheck",
+              "exit_code": 0,
+              "summary": "TypeScript typecheck passes (runId tr_mqioym9l_74f45767)"
+            },
+            {
+              "command": "pnpm run lint",
+              "exit_code": 0,
+              "summary": "ESLint passes (runId tr_mqioywv2_8df7fa5c)"
+            },
+            {
+              "command": "pnpm run format:check",
+              "exit_code": 0,
+              "summary": "Prettier format check passes after formatting (runId tr_mqiozm76_f77b3ccb)"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Added a source-level non-regression test that asserts `archiveMode === \"direct\"` still exists in change.ts",
+              "why": "The task required guarding the direct-archive cleanup gate at change.ts:4436-4441; a lightweight source-string test protects against accidental removal without needing to exercise the full archive path in the archive-repair test file."
+            },
+            {
+              "what": "Updated createMockStore list mock to filter by status",
+              "why": "The 'filters non-archived changes' test required the store query to actually filter by status; the original mock returned all changes unconditionally. Filtering preserves existing scan/redrive tests (both fixtures are archived) and makes the new test accurate."
+            },
+            {
+              "what": "Used best-effort fetch with execGit in a try/catch and surfaced warnings without blocking",
+              "why": "Matches DDC2 graceful-offline requirement; detectArchivedMergedBranches operates on local state, so a failed fetch does not block cleanup."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "No same-pattern fixes needed; cleanup_merged is a new integration branch. Verified existing scan/redrive behavior unchanged.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Implemented the `cleanup_merged` action for `adv_archive_repair` in plugin/src/tools/change.ts. It integrates detectArchivedMergedBranches (T1), getCheckedOutChangeBranches (T2), and deleteChangeBranch to safely remove local change/* branches left after PR-mode archive merges. Added 8 new tests plus 1 non-regression source-guard test in change.archive-repair.test.ts. All 154 targeted tests, typecheck, lint, and format:check pass.",
+            "suggested_next_action": "Run the full `pnpm run check` suite and/or `bin/oc-test full` to validate against the broader repo gate, then proceed to task completion/archive."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/tools/change.archive-repair.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/tools/change.archive-repair.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/tools/change.archive-repair.test.ts src/tools/change.test.ts src/tools/archive-helpers/git-finalize.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run typecheck"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run lint"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run format:check"
+            }
+          ]
+        }
+      ],
+      "verification": "T3 complete. adv_archive_repair action enum widened to [scan, redrive, cleanup_merged]; handler added integrating detectArchivedMergedBranches + getCheckedOutChangeBranches + deleteChangeBranch. 8 new cleanup_merged tests + 1 source-level non-regression guard for direct-archive gate. archive-repair.test.ts 11/11 pass (runId tr_mqip1obb_3ee817db). Worker reported 154 tests across archive-repair + change + git-finalize all pass; typecheck/lint/format clean.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/change.archive-repair.test.ts",
+        "plugin/src/tools/change.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/change.archive-repair.test.ts",
+        "plugin/src/tools/change.ts"
+      ],
+      "checkpointSha": "e617c32d7a52d66d29d14b959aeae6faed8a0bca",
+      "completedAt": "2026-06-17T23:20:18.246Z",
+      "completed_at": "2026-06-17T23:20:18.246Z"
+    },
+    {
+      "id": "tk-fb331d11488d",
+      "title": "Add status integration for archived-branch hygiene.",
+      "type": "code",
+      "section": "Status Integration",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-06-17T22:38:59.647Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-7d4670063af0"
+        }
+      ],
+      "metadata": {
+        "delegation_hint": "delegate_preferred",
+        "frontend": "false",
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC8",
+          "AC9"
+        ],
+        "respects": [
+          "C1"
+        ],
+        "verifies": [
+          "AC8",
+          "AC9",
+          "AC11",
+          "SC3"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-17T22:58:35.151Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "cleanupMergedArchiveBranches",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/cleanupMergedArchiveBranches",
+          "task_id": "tk-fb331d11488d",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-fb331d11488d"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/tools/status.ts",
+            "plugin/src/tools/status.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "pnpm exec vitest run src/tools/status.test.ts -t \"archived branch hygiene \\(KD6\\)\"",
+              "exit_code": 0,
+              "summary": "RED→GREEN: 5 targeted tests pass after implementation"
+            },
+            {
+              "command": "pnpm exec vitest run src/tools/status.test.ts",
+              "exit_code": 0,
+              "summary": "Full status.test.ts suite passes (42 tests)"
+            },
+            {
+              "command": "pnpm run typecheck",
+              "exit_code": 0,
+              "summary": "TypeScript typecheck passes"
+            },
+            {
+              "command": "pnpm exec eslint src/tools/status.ts src/tools/status.test.ts",
+              "exit_code": 0,
+              "summary": "Lint clean on touched files"
+            },
+            {
+              "command": "pnpm exec prettier --check src/tools/status.ts src/tools/status.test.ts",
+              "exit_code": 0,
+              "summary": "Prettier clean on touched files"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Passed a typed hygieneStatus wrapper to appendArchivedBranchHygieneRecommendations instead of the ProjectStatus object",
+              "why": "ProjectStatus does not declare archived_branch_hygiene, so a local wrapper avoids type widening while still mutating the same recommendations array"
+            },
+            {
+              "what": "Wrapped detectDefaultBranch and the best-effort fetch in try/catch",
+              "why": "Status must remain available even when git state is unreachable; failures silently skip the advisory scan"
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [
+            "pnpm run check currently fails on an unrelated untracked file (plugin/src/tools/worktree/porcelain-parser.test.ts) that has Prettier formatting issues. This file is not touched by this task."
+          ],
+          "required_main_agent_actions": [],
+          "related_scan": "none",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Added archived-branch hygiene to adv_status. Summary and hygiene views now surface a cleanup-ready recommendation when local change/* branches for archived changes are merge-proven; hygiene view also exposes archived_branch_hygiene detail. Health and changes views are excluded. All 5 new tests and full status.test.ts pass; typecheck passes.",
+            "suggested_next_action": "Run the broader test suite (bin/oc-test targeted -- src/tools/status.test.ts already passed; consider bin/oc-test smoke) and address the unrelated porcelain-parser.test.ts formatting issue before final CI."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/tools/status.test.ts -t \"archived branch hygiene \\(KD6\\)\""
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/tools/status.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run typecheck"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec eslint src/tools/status.ts src/tools/status.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec prettier --check src/tools/status.ts src/tools/status.test.ts"
+            }
+          ]
+        }
+      ],
+      "verification": "T4 complete. appendArchivedBranchHygieneRecommendations added to status.ts + wired into summary/hygiene views via StatusViewPlan.archivedBranchHygiene; archived_branch_hygiene field projected in hygiene view. 5 RED→GREEN tests added. status.test.ts 42/42 pass. Typecheck pass. T5 stashed for separate commit.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/status.test.ts",
+        "plugin/src/tools/status.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/status.test.ts",
+        "plugin/src/tools/status.ts"
+      ],
+      "checkpointSha": "4389feb2f084a4649f108aab1e2c2c01308398fe",
+      "completedAt": "2026-06-17T23:12:31.265Z",
+      "completed_at": "2026-06-17T23:12:31.265Z"
+    },
+    {
+      "id": "tk-0ee4cd8d4796",
+      "title": "Add `rq-archiveBranchCleanup01` spec requirement family + AGENTS.md docs accuracy fix.",
+      "type": "code",
+      "section": "Docs + Spec",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-06-17T22:38:59.712Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-7d4670063af0"
+        }
+      ],
+      "metadata": {
+        "delegation_hint": "delegate_allowed",
+        "frontend": "false",
+        "tdd_intent": "not_applicable"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC10",
+          "AC12"
+        ],
+        "respects": [
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5"
+        ],
+        "verifies": [
+          "AC10",
+          "AC12",
+          "SC3",
+          "SC4"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-17T22:58:35.347Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "cleanupMergedArchiveBranches",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/cleanupMergedArchiveBranches",
+          "task_id": "tk-0ee4cd8d4796",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-0ee4cd8d4796"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            ".adv/specs/advance-workflow/spec.json",
+            "AGENTS.md"
+          ],
+          "verification": [
+            {
+              "command": "node -e \"const s = require('./.adv/specs/advance-workflow/spec.json'); const r = s.requirements.find(x => x.id === 'rq-archiveBranchCleanup01'); if (!r) { console.error('NOT FOUND'); process.exit(1); } console.log('FOUND:', r.id, r.scenarios.length, 'scenarios'); console.log('version:', s.version);\"",
+              "exit_code": 0,
+              "summary": "FOUND: rq-archiveBranchCleanup01 5 scenarios; version: 1.18.0"
+            },
+            {
+              "command": "grep -c 'adv_archive_repair action=cleanup_merged' AGENTS.md",
+              "exit_code": 0,
+              "summary": "AGENTS.md contains 1 reference to adv_archive_repair action=cleanup_merged"
+            },
+            {
+              "command": "pnpm run typecheck",
+              "exit_code": 0,
+              "summary": "tsc --noEmit passes"
+            },
+            {
+              "command": "pnpm run format:check",
+              "exit_code": 0,
+              "summary": "Prettier code style passes"
+            },
+            {
+              "command": "pnpm run schemas:check",
+              "exit_code": 0,
+              "summary": "Deterministic schema drift check passes"
+            },
+            {
+              "command": "adv_spec action: \"search\" query: \"archiveBranchCleanup\"",
+              "exit_code": 0,
+              "summary": "Live adv_spec returned empty: current OpenCode session root is the trunk checkout, not the worktree, and spec.search indexes requirement title/body only (not id/tags). Not a spec defect."
+            },
+            {
+              "command": "pnpm exec tsx -e \"import { createDiskStore } from './src/storage/store-disk.ts'; createDiskStore('/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/cleanupMergedArchiveBranches').then(store => store.specs.search('cleanup_merged')).then(results => { console.log('results count:', results.length); for (const r of results) console.log(r.spec, r.requirement, r.title); });\"",
+              "exit_code": 0,
+              "summary": "Source-level store search pointed at the workdir finds advance-workflow rq-archiveBranchCleanup01, confirming the new spec is loadable and searchable"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Added AGENTS.md branch-cleanup claim as a new paragraph under 'External mutable state'",
+              "why": "Grep found no existing claim matching any of the requested patterns, and the worktree/branch-lifecycle discussion in External mutable state is the most relevant existing section."
+            },
+            {
+              "what": "Left the requirement body and scenarios verbatim from the task spec",
+              "why": "Ensures the spec text matches the as-built behavior labels (tree-identical / patch-equivalent) and scenario IDs follow the existing pattern."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [
+            "Validate adv_spec search returns rq-archiveBranchCleanup01 from a worktree-rooted OpenCode session; the current trunk-rooted session cannot see the worktree spec change."
+          ],
+          "required_main_agent_actions": [],
+          "related_scan": "none",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Spec delta applied: advance-workflow version bumped to 1.18.0, updated_at set to 2026-06-17, and rq-archiveBranchCleanup01 added with 5 scenarios. AGENTS.md now documents branch cleanup accurately for direct-archive vs PR-mode archives. typecheck/format:check/schemas:check all pass. Live adv_spec in this trunk-rooted session reads the old trunk spec and its search indexes title/body only, so the literal 'adv_spec action:search query:archiveBranchCleanup' verification does not return the new requirement here; a source-level store search against the workdir confirms it is present and searchable.",
+            "suggested_next_action": "Commit/push the worktree changes and validate adv_spec search from a worktree-rooted OpenCode session or after merge."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: node -e \"const s = require('./.adv/specs/advance-workflow/spec.json'); const r = s.requirements.find(x => x.id === 'rq-archiveBranchCleanup01'); if (!r) { console.error('NOT FOUND'); process.exit(1); } console.log('FOUND:', r.id, r.scenarios.length, 'scenarios'); console.log('version:', s.version);\""
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: grep -c 'adv_archive_repair action=cleanup_merged' AGENTS.md"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run typecheck"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run format:check"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run schemas:check"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: adv_spec action: \"search\" query: \"archiveBranchCleanup\""
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec tsx -e \"import { createDiskStore } from './src/storage/store-disk.ts'; createDiskStore('/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/cleanupMergedArchiveBranches').then(store => store.specs.search('cleanup_merged')).then(results => { console.log('results count:', results.length); for (const r of results) console.log(r.spec, r.requirement, r.title); });\""
+            }
+          ]
+        }
+      ],
+      "verification": "T5 complete. rq-archiveBranchCleanup01 added to advance-workflow spec (5 scenarios, version 1.18.0); AGENTS.md updated with new bullet under Architecture Gotchas > External mutable state. Spec read-back confirmed FOUND rq-archiveBranchCleanup01 5 scenarios version 1.18.0. AGENTS.md grep: 1 reference to adv_archive_repair action=cleanup_merged. Typecheck/format/schemas:check all pass.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".adv/specs/advance-workflow/spec.json",
+        "AGENTS.md"
+      ],
+      "touched_files": [
+        ".adv/specs/advance-workflow/spec.json",
+        "AGENTS.md"
+      ],
+      "checkpointSha": "72d05f61f70bf1694de127de6e9c978c4cfe6699",
+      "completedAt": "2026-06-17T23:12:42.748Z",
+      "completed_at": "2026-06-17T23:12:42.748Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "cleanupMergedArchiveBranches",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation — cleanupMergedArchiveBranches",
+      "sources": [
+        {
+          "label": "git-branch official docs (2.51.0)",
+          "locator": "https://git-scm.com/docs/git-branch",
+          "summary": "-d/--delete: 'The branch must be fully merged in its upstream branch, or in HEAD if no upstream was set with --track or --set-upstream-to.' -D = --delete --force, bypasses merge check. -f even refuses to change a branch checked out in another linked worktree. Confirms KD5/AC4 safety invariant AND a secondary git-level worktree guard."
+        },
+        {
+          "label": "git-cherry official docs",
+          "locator": "https://git-scm.com/docs/git-cherry",
+          "summary": "git cherry <upstream> <head>: '-' prefix = commit has patch-equivalent in upstream, '+' = not yet applied. Equivalence = diff after removing whitespace and line numbers. Detects copies via cherry-pick/am/rebase. Suitable for squash-merge equivalence but diff-based, not strict patch-id; known edge cases on empty/merge commits."
+        },
+        {
+          "label": "git-worktree official docs LIST OUTPUT FORMAT (2.54.0)",
+          "locator": "https://git-scm.com/docs/git-worktree",
+          "summary": "--porcelain emits one attribute per line: 'worktree <path>', 'HEAD <sha>', and 'branch refs/heads/<name>' OR label-only 'detached'/'bare'. Bare worktrees and detached HEADs emit no branch line. Confirms KD4 branch:-line parse reliably enumerates all checked-out branches; bare/detached correctly produce no candidate collision."
+        },
+        {
+          "label": "git-finalize.ts:182-223 deleteChangeBranch",
+          "locator": "/home/jon/dev/advance/plugin/src/tools/archive-helpers/git-finalize.ts",
+          "summary": "Existing primitive already uses `git branch -d` (line 198), never -D; remote push --delete best-effort, failure recorded not fatal. Reuse claim (LBP) valid; AC4/C3 non-regression holds by reusing this primitive unchanged."
+        },
+        {
+          "label": "git-finalize.ts:1182-1224 detectSquashMergeByTree",
+          "locator": "/home/jon/dev/advance/plugin/src/tools/archive-helpers/git-finalize.ts",
+          "summary": "Takes changeId (not arbitrary branch), resolves change/${changeId}^{tree}, compares against last 50 trunk commits' tree SHAs. Confirms DDC1 50-commit window and KD2 tree-SHA-primary mechanism exactly as described."
+        },
+        {
+          "label": "git-finalize.ts:1764+ detectArchivedUnmergedBranches & spec rq-releaseFinalization01",
+          "locator": "/home/jon/dev/advance/.adv/specs/advance-workflow/spec.json:384-553",
+          "summary": "rq-releaseFinalization01 governs REMOTE change/* reachability and PR re-drive (ls-remote + origin reachability). Orthogonal to LOCAL merged-branch cleanup. New detector is a distinct sibling function, not a modification. No spec conflict; rq-releaseFinalization01.11 explicitly owns the remote/unmerged re-drive path that this change leaves untouched."
+        },
+        {
+          "label": "worktree/triage.ts:148-182 listDiskWorktrees + utils/worktree-paths.ts",
+          "locator": "/home/jon/dev/advance/plugin/src/tools/worktree/triage.ts",
+          "summary": "Existing battle-tested porcelain parser splits on blank-line blocks, extracts 'branch refs/heads/' prefix. KD4 getCheckedOutChangeBranches should reuse this exact pattern rather than re-implement; an existing reusable primitive the LBP analysis did not enumerate."
+        }
+      ],
+      "architecture_assessment": "Design is correct, simple, and spec-compliant. It extends adv_archive_repair with an additive cleanup_merged action, reusing deleteChangeBranch (already -d-only), detectSquashMergeByTree, and the porcelain worktree parser. Two correctness nuances to flag (both non-blocking): (1) `git branch -d` checks merge into UPSTREAM-or-HEAD, while the detector checks merge into the LOCAL DEFAULT branch — these can diverge if a change/* branch has origin/change/X set as upstream and HEAD is not the default branch. Mitigation: the design's detector (tree-SHA + cherry vs default) is the authoritative safety gate, and `branch -d` is a redundant final guard; the divergence only causes FALSE REFUSALS (safe-fail), never unsafe deletion, because the design never uses -D. (2) git cherry equivalence is diff-after-whitespace, not strict patch-id, so the report should label merge proof as 'patch-equivalent' not 'patch-id identical'. Wet-run-by-default (KD5) is genuinely safe-by-construction: the irreversibility floor is `branch -d` refusal, independent of default mode. Detector priority (tree-SHA primary, cherry fallback) is correct: tree-SHA is O(1) per branch and catches the common squash-merge case; cherry is the slower exhaustive fallback for older-than-50-commit merges — reversing would pay cherry cost on every branch unnecessarily.",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "VALIDATED with minor cautions. D1 CORRECTNESS: solves all 4 objectives; the only logical nuance is the `branch -d` upstream-vs-default ref divergence, which fails safe (false-refusal, never unsafe-delete) per git-branch docs. D2 SIMPLICITY: no materially simpler approach — `git branch --merged <default>` was a viable alternative but is strictly weaker than tree-SHA+cherry for squash merges (squash merge produces a NEW commit not an ancestor, so --merged would never list a squash-merged branch), so the chosen detector is the correct minimal-yet-sufficient mechanism. D3 SPEC-LAW: no conflict with rq-releaseFinalization01 (remote scope) or rq-archiveRetirement01; new rq-archiveBranchCleanup01 family is a legitimately distinct local-cleanup requirement. D4 ALTERNATIVES: (a) new rq family vs extending rq-releaseFinalization01 — correctly chose new family (distinct problem: remote-reachability/PR vs local-stale-cleanup); (b) detector choice — tree-SHA+cherry correctly beats `git branch --merged` which structurally cannot detect squash merges; (c) extend tool vs new tool — extending adv_archive_repair correctly reuses namespace/test surface. DDC3 latency caution: worst-case 50 branches x ~4 git invocations is realistic at ~5-8s only if git process startup stays ~20-40ms; on cold cache or large repos this could approach the 10s budget — recommend bounding candidate count or short-circuiting cherry fallback when tree-SHA already proves merged (design DDC4 short-circuit covers the empty case but not the per-branch double-detector cost)."
+      },
+      "recommendation": "VALIDATED — proceed to planning. Three non-blocking refinements to fold into design/AC before execution: (1) Document explicitly that `git branch -d` final guard checks merge-into-upstream-or-HEAD which may differ from the detector's merge-into-default, and that this divergence is safe (false-refusal only, never unsafe-delete) since -D is never used — add a one-line rationale so a future reader does not 'fix' the apparent redundancy. (2) Reuse the existing porcelain parser pattern from worktree/triage.ts:155 (listDiskWorktrees) for KD4 getCheckedOutChangeBranches rather than re-implementing branch:-line parsing — add to LBP reused-primitives list (4 -> 5). (3) Per-branch latency: short-circuit the cherry fallback when detectSquashMergeByTree already returns reachable:true, so worst case is ~2 git invocations/branch not 4 — tightens DDC3 against the 10s budget. Label merge proof as 'patch-equivalent (git cherry)' or 'tree-identical' rather than 'patch-id' for accuracy. No spec or contract blocker; non-regression of change.ts:4436-4441 and deleteChangeBranch body is sound.",
+      "follow_ups": [
+        "Design/AC: add safe-divergence rationale note for git branch -d upstream-vs-default merge check (false-refusal-only invariant).",
+        "LBP: enumerate worktree/triage.ts listDiskWorktrees porcelain parser as a 5th reused primitive for KD4.",
+        "DDC3: short-circuit cherry fallback when tree-SHA detector already proves merged, to bound the 10s tool budget.",
+        "Report wording: label merge proof 'patch-equivalent'/'tree-identical' not 'patch-id' per git-cherry diff-based equivalence semantics."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "cleanupMergedArchiveBranches",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/cleanupMergedArchiveBranches",
+      "task_id": "tk-7d4670063af0",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-7d4670063af0"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/tools/archive-helpers/git-finalize.ts",
+        "plugin/src/tools/archive-helpers/git-finalize.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "pnpm test -- src/tools/archive-helpers/git-finalize.test.ts -t \"detectArchivedMergedBranches\"",
+          "exit_code": 1,
+          "summary": "RED phase: targeted tests failed as expected because detectArchivedMergedBranches did not exist yet (runId: tr_mqinsknh_04127429)"
+        },
+        {
+          "command": "pnpm exec vitest run src/tools/archive-helpers/git-finalize.test.ts -t \"detectArchivedMergedBranches\"",
+          "exit_code": 0,
+          "summary": "GREEN phase: all 5 detectArchivedMergedBranches tests pass (runId: tr_mqio6clu_a5a20717)"
+        },
+        {
+          "command": "pnpm exec vitest run src/tools/archive-helpers/git-finalize.test.ts",
+          "exit_code": 0,
+          "summary": "VERIFY phase: full git-finalize.test.ts suite passes, 77 tests (runId: tr_mqio6mko_cf8a7c92)"
+        },
+        {
+          "command": "pnpm run typecheck",
+          "exit_code": 0,
+          "summary": "VERIFY phase: TypeScript typecheck passes (runId: tr_mqio6p3s_a0f912e6)"
+        },
+        {
+          "command": "pnpm run lint",
+          "exit_code": 0,
+          "summary": "Lint passes (runId: tr_mqio5aod_f162bdd0)"
+        },
+        {
+          "command": "pnpm run format:check",
+          "exit_code": 0,
+          "summary": "Prettier format check passes after formatting (runId: tr_mqio64e9_330892c6)"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Used `pnpm exec vitest run` instead of `pnpm test --` for targeted GREEN/VERIFY runs",
+          "why": "`pnpm test -- src/tools/archive-helpers/git-finalize.test.ts -t ...` was not isolating to the specified file and ran unrelated tests (deploy-local.test.ts), causing a non-zero exit despite our tests passing. The equivalent `pnpm exec vitest run` invocation correctly filtered to the target file and tests."
+        },
+        {
+          "what": "Prefixed four test names with `detectArchivedMergedBranches`",
+          "why": "The vitest `-t` filter matches the full test name; only the first test originally contained the substring. Prefixing the other four ensured the filter ran all five tests together as required."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "none",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Task tk-7d4670063af0 complete. Added exported `ArchivedMergedBranch` interface, `ArchivedMergedBranchesResult` type, `parseLocalChangeBranchRefs` helper, and `detectArchivedMergedBranches()` pure detector to `plugin/src/tools/archive-helpers/git-finalize.ts` co-located with `detectArchivedUnmergedBranches`. The detector lists local `change/*` branches, filters by optional `archivedChangeIds`, short-circuits to `tree-identical` proof via `detectSquashMergeByTree`, and falls back to `git cherry -v` for `patch-equivalent` proof. Five new tests were added and pass; full git-finalize suite, typecheck, lint, and format checks are green.",
+        "suggested_next_action": "Proceed to task T2 in the 5-task graph; T2-T5 are now unblocked."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm test -- src/tools/archive-helpers/git-finalize.test.ts -t \"detectArchivedMergedBranches\""
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/tools/archive-helpers/git-finalize.test.ts -t \"detectArchivedMergedBranches\""
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/tools/archive-helpers/git-finalize.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run typecheck"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run lint"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run format:check"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "cleanupMergedArchiveBranches",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/cleanupMergedArchiveBranches",
+      "task_id": "tk-01261e9a6335",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-01261e9a6335"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/tools/archive-helpers/git-finalize.ts",
+        "plugin/src/tools/archive-helpers/git-finalize.test.ts",
+        "plugin/src/tools/worktree/porcelain-parser.ts",
+        "plugin/src/tools/worktree/porcelain-parser.test.ts",
+        "plugin/src/tools/worktree/triage.ts"
+      ],
+      "verification": [
+        {
+          "command": "pnpm exec vitest run src/tools/archive-helpers/git-finalize.test.ts -t \"getCheckedOutChangeBranches\"",
+          "exit_code": 1,
+          "summary": "RED: 3 new tests fail as expected because getCheckedOutChangeBranches does not yet exist (runId: tr_mqioe34x_f3e8aa27)"
+        },
+        {
+          "command": "pnpm exec vitest run src/tools/archive-helpers/git-finalize.test.ts -t \"getCheckedOutChangeBranches\"",
+          "exit_code": 0,
+          "summary": "GREEN: 3 new tests pass after implementation (runId: tr_mqiog575_7152e2d6)"
+        },
+        {
+          "command": "pnpm exec vitest run src/tools/archive-helpers/git-finalize.test.ts src/tools/worktree/triage.test.ts src/tools/worktree/porcelain-parser.test.ts",
+          "exit_code": 0,
+          "summary": "VERIFY: git-finalize (80 tests), triage (13 tests), and porcelain-parser (5 tests) all pass; parser extraction did not regress triage (runId: tr_mqioi3ca_7ef317a1)"
+        },
+        {
+          "command": "pnpm run typecheck",
+          "exit_code": 0,
+          "summary": "VERIFY: tsc --noEmit passes with no type errors (runId: tr_mqiogzoz_98fabe24)"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Extracted the `git worktree list --porcelain` parser from triage.ts into `plugin/src/tools/worktree/porcelain-parser.ts`",
+          "why": "The parser was private/inlined in triage.ts; git-finalize.ts uses a synchronous `runGit` dep and could not reuse the async wrapper. Extraction preserves behavior while enabling reuse."
+        },
+        {
+          "what": "Added a co-located `porcelain-parser.test.ts` covering single, multi, bare, detached, trailing-blank, and empty outputs",
+          "why": "Maintains parser coverage after extraction so triage.ts indirect coverage remains backed by direct tests."
+        },
+        {
+          "what": "Used a type-predicate filter for `change/` branches in getCheckedOutChangeBranches",
+          "why": "The parser strips `refs/heads/` so branch values are short names; filtering by `change/` prefix matches the spec and existing census.ts convention."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "none",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "getCheckedOutChangeBranches implemented in plugin/src/tools/archive-helpers/git-finalize.ts using the extracted shared porcelain parser from plugin/src/tools/worktree/porcelain-parser.ts. 3 new tests pass, triage.test.ts still passes, typecheck is clean. Note: the worktree already contains unrelated modifications to .adv/specs/advance-workflow/spec.json, AGENTS.md, and plugin/src/tools/status.test.ts that were not touched by this task.",
+        "suggested_next_action": "Proceed to the next task in cleanupMergedArchiveBranches or run the full plugin test suite if broader regression coverage is desired."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/tools/archive-helpers/git-finalize.test.ts -t \"getCheckedOutChangeBranches\""
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/tools/archive-helpers/git-finalize.test.ts -t \"getCheckedOutChangeBranches\""
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/tools/archive-helpers/git-finalize.test.ts src/tools/worktree/triage.test.ts src/tools/worktree/porcelain-parser.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run typecheck"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "cleanupMergedArchiveBranches",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/cleanupMergedArchiveBranches",
+      "task_id": "tk-0ee4cd8d4796",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-0ee4cd8d4796"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        ".adv/specs/advance-workflow/spec.json",
+        "AGENTS.md"
+      ],
+      "verification": [
+        {
+          "command": "node -e \"const s = require('./.adv/specs/advance-workflow/spec.json'); const r = s.requirements.find(x => x.id === 'rq-archiveBranchCleanup01'); if (!r) { console.error('NOT FOUND'); process.exit(1); } console.log('FOUND:', r.id, r.scenarios.length, 'scenarios'); console.log('version:', s.version);\"",
+          "exit_code": 0,
+          "summary": "FOUND: rq-archiveBranchCleanup01 5 scenarios; version: 1.18.0"
+        },
+        {
+          "command": "grep -c 'adv_archive_repair action=cleanup_merged' AGENTS.md",
+          "exit_code": 0,
+          "summary": "AGENTS.md contains 1 reference to adv_archive_repair action=cleanup_merged"
+        },
+        {
+          "command": "pnpm run typecheck",
+          "exit_code": 0,
+          "summary": "tsc --noEmit passes"
+        },
+        {
+          "command": "pnpm run format:check",
+          "exit_code": 0,
+          "summary": "Prettier code style passes"
+        },
+        {
+          "command": "pnpm run schemas:check",
+          "exit_code": 0,
+          "summary": "Deterministic schema drift check passes"
+        },
+        {
+          "command": "adv_spec action: \"search\" query: \"archiveBranchCleanup\"",
+          "exit_code": 0,
+          "summary": "Live adv_spec returned empty: current OpenCode session root is the trunk checkout, not the worktree, and spec.search indexes requirement title/body only (not id/tags). Not a spec defect."
+        },
+        {
+          "command": "pnpm exec tsx -e \"import { createDiskStore } from './src/storage/store-disk.ts'; createDiskStore('/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/cleanupMergedArchiveBranches').then(store => store.specs.search('cleanup_merged')).then(results => { console.log('results count:', results.length); for (const r of results) console.log(r.spec, r.requirement, r.title); });\"",
+          "exit_code": 0,
+          "summary": "Source-level store search pointed at the workdir finds advance-workflow rq-archiveBranchCleanup01, confirming the new spec is loadable and searchable"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Added AGENTS.md branch-cleanup claim as a new paragraph under 'External mutable state'",
+          "why": "Grep found no existing claim matching any of the requested patterns, and the worktree/branch-lifecycle discussion in External mutable state is the most relevant existing section."
+        },
+        {
+          "what": "Left the requirement body and scenarios verbatim from the task spec",
+          "why": "Ensures the spec text matches the as-built behavior labels (tree-identical / patch-equivalent) and scenario IDs follow the existing pattern."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [
+        "Validate adv_spec search returns rq-archiveBranchCleanup01 from a worktree-rooted OpenCode session; the current trunk-rooted session cannot see the worktree spec change."
+      ],
+      "required_main_agent_actions": [],
+      "related_scan": "none",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Spec delta applied: advance-workflow version bumped to 1.18.0, updated_at set to 2026-06-17, and rq-archiveBranchCleanup01 added with 5 scenarios. AGENTS.md now documents branch cleanup accurately for direct-archive vs PR-mode archives. typecheck/format:check/schemas:check all pass. Live adv_spec in this trunk-rooted session reads the old trunk spec and its search indexes title/body only, so the literal 'adv_spec action:search query:archiveBranchCleanup' verification does not return the new requirement here; a source-level store search against the workdir confirms it is present and searchable.",
+        "suggested_next_action": "Commit/push the worktree changes and validate adv_spec search from a worktree-rooted OpenCode session or after merge."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: node -e \"const s = require('./.adv/specs/advance-workflow/spec.json'); const r = s.requirements.find(x => x.id === 'rq-archiveBranchCleanup01'); if (!r) { console.error('NOT FOUND'); process.exit(1); } console.log('FOUND:', r.id, r.scenarios.length, 'scenarios'); console.log('version:', s.version);\""
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: grep -c 'adv_archive_repair action=cleanup_merged' AGENTS.md"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run typecheck"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run format:check"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run schemas:check"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: adv_spec action: \"search\" query: \"archiveBranchCleanup\""
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec tsx -e \"import { createDiskStore } from './src/storage/store-disk.ts'; createDiskStore('/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/cleanupMergedArchiveBranches').then(store => store.specs.search('cleanup_merged')).then(results => { console.log('results count:', results.length); for (const r of results) console.log(r.spec, r.requirement, r.title); });\""
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "cleanupMergedArchiveBranches",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/cleanupMergedArchiveBranches",
+      "task_id": "tk-fb331d11488d",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-fb331d11488d"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/tools/status.ts",
+        "plugin/src/tools/status.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "pnpm exec vitest run src/tools/status.test.ts -t \"archived branch hygiene \\(KD6\\)\"",
+          "exit_code": 0,
+          "summary": "RED→GREEN: 5 targeted tests pass after implementation"
+        },
+        {
+          "command": "pnpm exec vitest run src/tools/status.test.ts",
+          "exit_code": 0,
+          "summary": "Full status.test.ts suite passes (42 tests)"
+        },
+        {
+          "command": "pnpm run typecheck",
+          "exit_code": 0,
+          "summary": "TypeScript typecheck passes"
+        },
+        {
+          "command": "pnpm exec eslint src/tools/status.ts src/tools/status.test.ts",
+          "exit_code": 0,
+          "summary": "Lint clean on touched files"
+        },
+        {
+          "command": "pnpm exec prettier --check src/tools/status.ts src/tools/status.test.ts",
+          "exit_code": 0,
+          "summary": "Prettier clean on touched files"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Passed a typed hygieneStatus wrapper to appendArchivedBranchHygieneRecommendations instead of the ProjectStatus object",
+          "why": "ProjectStatus does not declare archived_branch_hygiene, so a local wrapper avoids type widening while still mutating the same recommendations array"
+        },
+        {
+          "what": "Wrapped detectDefaultBranch and the best-effort fetch in try/catch",
+          "why": "Status must remain available even when git state is unreachable; failures silently skip the advisory scan"
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [
+        "pnpm run check currently fails on an unrelated untracked file (plugin/src/tools/worktree/porcelain-parser.test.ts) that has Prettier formatting issues. This file is not touched by this task."
+      ],
+      "required_main_agent_actions": [],
+      "related_scan": "none",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Added archived-branch hygiene to adv_status. Summary and hygiene views now surface a cleanup-ready recommendation when local change/* branches for archived changes are merge-proven; hygiene view also exposes archived_branch_hygiene detail. Health and changes views are excluded. All 5 new tests and full status.test.ts pass; typecheck passes.",
+        "suggested_next_action": "Run the broader test suite (bin/oc-test targeted -- src/tools/status.test.ts already passed; consider bin/oc-test smoke) and address the unrelated porcelain-parser.test.ts formatting issue before final CI."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/tools/status.test.ts -t \"archived branch hygiene \\(KD6\\)\""
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/tools/status.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run typecheck"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec eslint src/tools/status.ts src/tools/status.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec prettier --check src/tools/status.ts src/tools/status.test.ts"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "cleanupMergedArchiveBranches",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/cleanupMergedArchiveBranches",
+      "task_id": "tk-4002c20fb123",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-4002c20fb123"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/change.archive-repair.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "pnpm exec vitest run src/tools/change.archive-repair.test.ts",
+          "exit_code": 1,
+          "summary": "RED phase: 8 new cleanup_merged tests failed as expected before implementation (runId tr_mqiovu2v_dc47df98)"
+        },
+        {
+          "command": "pnpm exec vitest run src/tools/change.archive-repair.test.ts",
+          "exit_code": 0,
+          "summary": "GREEN phase: all 11 archive-repair tests pass after implementation (runId tr_mqioy5ju_8b756cf6)"
+        },
+        {
+          "command": "pnpm exec vitest run src/tools/change.archive-repair.test.ts src/tools/change.test.ts src/tools/archive-helpers/git-finalize.test.ts",
+          "exit_code": 0,
+          "summary": "VERIFY phase: 154 tests pass across archive-repair, change, and git-finalize suites (runId tr_mqioztzg_4933cafc)"
+        },
+        {
+          "command": "pnpm run typecheck",
+          "exit_code": 0,
+          "summary": "TypeScript typecheck passes (runId tr_mqioym9l_74f45767)"
+        },
+        {
+          "command": "pnpm run lint",
+          "exit_code": 0,
+          "summary": "ESLint passes (runId tr_mqioywv2_8df7fa5c)"
+        },
+        {
+          "command": "pnpm run format:check",
+          "exit_code": 0,
+          "summary": "Prettier format check passes after formatting (runId tr_mqiozm76_f77b3ccb)"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Added a source-level non-regression test that asserts `archiveMode === \"direct\"` still exists in change.ts",
+          "why": "The task required guarding the direct-archive cleanup gate at change.ts:4436-4441; a lightweight source-string test protects against accidental removal without needing to exercise the full archive path in the archive-repair test file."
+        },
+        {
+          "what": "Updated createMockStore list mock to filter by status",
+          "why": "The 'filters non-archived changes' test required the store query to actually filter by status; the original mock returned all changes unconditionally. Filtering preserves existing scan/redrive tests (both fixtures are archived) and makes the new test accurate."
+        },
+        {
+          "what": "Used best-effort fetch with execGit in a try/catch and surfaced warnings without blocking",
+          "why": "Matches DDC2 graceful-offline requirement; detectArchivedMergedBranches operates on local state, so a failed fetch does not block cleanup."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "No same-pattern fixes needed; cleanup_merged is a new integration branch. Verified existing scan/redrive behavior unchanged.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Implemented the `cleanup_merged` action for `adv_archive_repair` in plugin/src/tools/change.ts. It integrates detectArchivedMergedBranches (T1), getCheckedOutChangeBranches (T2), and deleteChangeBranch to safely remove local change/* branches left after PR-mode archive merges. Added 8 new tests plus 1 non-regression source-guard test in change.archive-repair.test.ts. All 154 targeted tests, typecheck, lint, and format:check pass.",
+        "suggested_next_action": "Run the full `pnpm run check` suite and/or `bin/oc-test full` to validate against the broader repo gate, then proceed to task completion/archive."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/tools/change.archive-repair.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/tools/change.archive-repair.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/tools/change.archive-repair.test.ts src/tools/change.test.ts src/tools/archive-helpers/git-finalize.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run typecheck"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run lint"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run format:check"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "cleanupMergedArchiveBranches",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/cleanupMergedArchiveBranches",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [
+        {
+          "id": "review-praise-1",
+          "label": "praise",
+          "file": "plugin/src/tools/archive-helpers/git-finalize.ts",
+          "line": 1912,
+          "what": "Tree-SHA detection now short-circuits before git cherry fallback.",
+          "why": "Satisfies KD2 and avoids extra git work when `tree-identical` proof is sufficient.",
+          "fix": "n/a"
+        },
+        {
+          "id": "review-praise-2",
+          "label": "praise",
+          "file": "plugin/src/tools/change.ts",
+          "line": 4435,
+          "what": "Direct-archive branch cleanup gate remains constrained to direct archive mode and shipped finalization.",
+          "why": "Preserves AC7/C4 non-regression while adding PR-mode post-merge cleanup separately.",
+          "fix": "n/a"
+        }
+      ],
+      "changes_made": [
+        {
+          "file": "plugin/src/tools/archive-helpers/git-finalize.ts",
+          "summary": "Fixed `git cherry` patch-equivalence handling so all-minus output is treated as safely merged while plus output remains unmerged; added checked-out worktree path reporting to the worktree-safety helper.",
+          "verification": "`pnpm exec vitest run src/tools/change.archive-repair.test.ts src/tools/archive-helpers/git-finalize.test.ts src/tools/status.test.ts src/tools/worktree/porcelain-parser.test.ts src/tools/worktree/triage.test.ts` passed, runId tr_mqip9k65_42aa7b3d; `pnpm run check` passed, runId tr_mqipa1fj_80c23fc1."
+        },
+        {
+          "file": "plugin/src/tools/archive-helpers/git-finalize.test.ts",
+          "summary": "Added regression coverage for `git cherry` plus-output rejection and asserted returned worktree paths for checked-out branch detection.",
+          "verification": "Targeted suite passed, runId tr_mqip9k65_42aa7b3d."
+        },
+        {
+          "file": "plugin/src/tools/change.ts",
+          "summary": "Included `worktreePath` in `cleanup_merged` skipped records for checked-out branches.",
+          "verification": "Archive-repair/status target suite passed, runId tr_mqip9k65_42aa7b3d."
+        },
+        {
+          "file": "plugin/src/tools/change.archive-repair.test.ts",
+          "summary": "Updated checked-out branch refusal test to require `worktreePath` in skipped output.",
+          "verification": "Archive-repair/status target suite passed, runId tr_mqip9k65_42aa7b3d."
+        },
+        {
+          "file": "plugin/src/tools/status.ts",
+          "summary": "Filtered status archived-branch hygiene recommendations through the same checked-out worktree safety layer so summary/hygiene only claim branches are safely deletable when not checked out.",
+          "verification": "Status target suite passed, runId tr_mqip9k65_42aa7b3d; `pnpm run check` passed, runId tr_mqipa1fj_80c23fc1."
+        },
+        {
+          "file": "plugin/src/tools/status.test.ts",
+          "summary": "Added hygiene regression test proving checked-out archived branches do not produce cleanup-ready recommendations.",
+          "verification": "Status target suite passed, runId tr_mqip9k65_42aa7b3d."
+        }
+      ],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "For `git cherry upstream head`, patch-equivalent squash-merged commits appear as `- <sha> ...`; empty output only proves no ahead commits. Cleanup logic must treat all-minus as safe and any plus line as unmerged."
+        },
+        {
+          "type": "pattern",
+          "content": "Status recommendations that claim destructive actions are safe should reuse the same safety predicate as the destructive handler, not a weaker detector-only predicate."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "pnpm exec vitest run src/tools/change.archive-repair.test.ts src/tools/archive-helpers/git-finalize.test.ts src/tools/status.test.ts src/tools/worktree/porcelain-parser.test.ts src/tools/worktree/triage.test.ts",
+          "pnpm run check"
+        ],
+        "results": "pass",
+        "evidence": "Targeted acceptance suite: 5 files passed, 153 tests passed, exit 0, runId tr_mqip9k65_42aa7b3d. Full check: schemas:check, typecheck, test isolation, lockfile policy, lint, and format:check passed, exit 0, runId tr_mqipa1fj_80c23fc1."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Live OpenCode tool behavior still requires build/deploy/restart before runtime invocation observes source changes, per repository Source-vs-Dist Reload Gotcha."
+      ],
+      "required_main_agent_actions": [
+        "Review the six-file reviewer remediation diff before acceptance gate completion.",
+        "If accepting this review, include git-cherry all-minus patch-equivalence and checked-out worktree path fixes in acceptance evidence."
+      ],
+      "required_follow_ups": [],
+      "consumer_warnings": []
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-06-17T22:20:48.620Z",
+      "completed_by": "user:proposal-approval",
+      "approval_evidence": "User approved with exact reply: approve. B/F/S scan clean. CLARIFY_MISSING_ERROR_HANDLING finding accepted as already addressed in Constraints/Must Not sections.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "7cddbbca293a59af1a329ab53e25294db27aaab0b71b52f6b1fc14a2f1562db3",
+        "non_whitespace_chars": 6604,
+        "checked_at": "2026-06-17T22:14:57.888Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-06-17T22:30:53.572Z",
+      "completed_by": "user:discovery-approval",
+      "approval_evidence": "User approved AC at Phase 4.5.1 via explicit reply 'approve'. Contract minted: 30 items (4 SC + 12 AC + 5 C + 5 DONT + 4 OOS). All Round 1 user-facing questions resolved; no deferrals. visual_surface: false.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "43f679e238b6c950625eeae9a5203725deeb69ec7ff4c27afbf8d06d3b4e902f",
+        "non_whitespace_chars": 6405,
+        "checked_at": "2026-06-17T22:14:57.889Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-06-17T22:36:51.187Z",
+      "completed_by": "user:design-approval",
+      "approval_evidence": "Validator VALIDATED (clean pass). 4 dimensions all info-level. 4 validator refinements auto-adopted (R1-R4: -d upstream-vs-default doc, triage.ts:155 parser reuse, cherry short-circuit, proof-label convention). No CONFLICT, no user-value tradeoff, no contract-compromise risk. Auto-continue to prep per Phase 4 rule.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "b78d836494246f904b046fc129cf336456a03a911542f94166dbd90b9373864b",
+        "non_whitespace_chars": 15587,
+        "checked_at": "2026-06-17T22:14:57.890Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-06-17T22:39:57.299Z",
+      "completed_by": "user:prep-approval",
+      "approval_evidence": "User approved prep vision via explicit reply 'approve'. Strict validation passed (NO_DELTAS warning expected — T5 creates delta at execution). 5-task graph with 30/30 contract coverage. Last human checkpoint before autonomous execution."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-06-17T23:21:12.153Z",
+      "completed_by": "agent:execution",
+      "approval_evidence": "5/5 tasks done. 151/151 tests pass across affected files (archive-repair 11, git-finalize 80, status 42, porcelain-parser 5, triage 13). pnpm run check green (schemas + typecheck + isolation + lockfile + lint + format). Strict validation passed (NO_DELTAS warning benign — spec.json edited directly during execution; deltas field populated at archive). Completion mode: UNASSISTED (5 sub-agents, no doom loops, no scope drift). All contract_refs preserved through checkpoints. Per-task commits: 9fc084b9 (T1), 81a81cf6 (T2), 4389feb2 (T4), 72d05f61 (T5), e617c32d (T3)."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-06-18T00:07:49.558Z",
+      "completed_by": "user:acceptance-approval",
+      "approval_evidence": "User approved acceptance via explicit reply 'approve'. Reviewer verdict READY, 0 blockers, 0 issues. 3 in-scope remediations applied (commit 5806a261). Contract matrix 30/30 passing. Executive summary persisted. 153/153 tests pass; pnpm run check green.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "37ef9bc29843912b7ba6e777c1673860f5cf6d91324fc75e477c5da6daf75e0b",
+        "non_whitespace_chars": 3178,
+        "checked_at": "2026-06-17T22:14:57.891Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "roadmap",
+    "issue_number": 173
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "43f679e238b6c950625eeae9a5203725deeb69ec7ff4c27afbf8d06d3b4e902f",
+      "approvedAt": "2026-06-17T22:30:47.610Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "**SC1** — PR-mode ADV changes do not accumulate stale local `change/*` branches after their PR merges.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "43f679e238b6c950625eeae9a5203725deeb69ec7ff4c27afbf8d06d3b4e902f",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "**SC2** — Cleanup is safe by construction: no unmerged branch is ever deleted.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "43f679e238b6c950625eeae9a5203725deeb69ec7ff4c27afbf8d06d3b4e902f",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "**SC3** — ADV documentation accurately describes branch-cleanup behavior across all archive modes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "43f679e238b6c950625eeae9a5203725deeb69ec7ff4c27afbf8d06d3b4e902f",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC4",
+        "kind": "success_criterion",
+        "text": "**SC4** — No new background processes, polling loops, or scheduled tasks introduced.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "43f679e238b6c950625eeae9a5203725deeb69ec7ff4c27afbf8d06d3b4e902f",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "**AC1** — A new tool (or `adv_archive_repair` action) scans local `change/*` branches tied to ADV changes with status `archived`, evaluates each against the local default branch via `git cherry` (patch-id equivalence, squash-merge safe), and deletes the safe ones using `git branch -d`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "43f679e238b6c950625eeae9a5203725deeb69ec7ff4c27afbf8d06d3b4e902f",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "**AC2** — Cleanup defaults to **wet-run**; accepts a `dryRun` flag for preview-only mode that lists candidates + merge proof without deleting.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "43f679e238b6c950625eeae9a5203725deeb69ec7ff4c27afbf8d06d3b4e902f",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "**AC3** — Cleanup scope is restricted to local `change/*` branches whose ADV change status is `archived`; branches tied to active/closed/draft/pending changes are skipped and surfaced with rationale.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "43f679e238b6c950625eeae9a5203725deeb69ec7ff4c27afbf8d06d3b4e902f",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "**AC4** — Local deletion uses `git branch -d` only; never falls back to `-D`; git's refusal (unmerged) is captured and reported per-branch.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "43f679e238b6c950625eeae9a5203725deeb69ec7ff4c27afbf8d06d3b4e902f",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "**AC5** — Remote `push --delete` is best-effort per deleted local branch; failure because GitHub auto-delete already removed the head is treated as success-with-warning, not error.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "43f679e238b6c950625eeae9a5203725deeb69ec7ff4c27afbf8d06d3b4e902f",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "**AC6** — Cleanup refuses to delete any branch currently checked out in any active worktree; surfaces refusal with the worktree path.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "43f679e238b6c950625eeae9a5203725deeb69ec7ff4c27afbf8d06d3b4e902f",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "**AC7** — Direct-archive branch cleanup at `plugin/src/tools/change.ts:4436-4441` is unchanged in behavior (non-regression).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "43f679e238b6c950625eeae9a5203725deeb69ec7ff4c27afbf8d06d3b4e902f",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC8",
+        "kind": "acceptance_criterion",
+        "text": "**AC8** — `adv_status view:\"summary\"` includes a recommendation line when ≥1 archived-change local branch is detected as safely deletable.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "43f679e238b6c950625eeae9a5203725deeb69ec7ff4c27afbf8d06d3b4e902f",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC9",
+        "kind": "acceptance_criterion",
+        "text": "**AC9** — `adv_status view:\"hygiene\"` includes a section listing stale merged `change/*` branches with per-branch merge proof.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "43f679e238b6c950625eeae9a5203725deeb69ec7ff4c27afbf8d06d3b4e902f",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC10",
+        "kind": "acceptance_criterion",
+        "text": "**AC10** — `/home/jon/dev/advance/AGENTS.md` claim about archive branch cleanup is accurate for both direct-mode and PR-mode archives.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "43f679e238b6c950625eeae9a5203725deeb69ec7ff4c27afbf8d06d3b4e902f",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC11",
+        "kind": "acceptance_criterion",
+        "text": "**AC11** — Tests cover: archived-only filter, squash-merged branch detection via `git cherry`, `git branch -d` refusal path, dry-run mode, remote-already-deleted tolerance, worktree-checked-out refusal, non-regression of direct-mode cleanup, status/hygiene surfacing.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "43f679e238b6c950625eeae9a5203725deeb69ec7ff4c27afbf8d06d3b4e902f",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC12",
+        "kind": "acceptance_criterion",
+        "text": "**AC12** — A new spec requirement `rq-archiveBranchCleanup01` (with Given/When/Then scenarios) is added under the `advance-workflow` capability covering post-merge branch cleanup for archived changes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "43f679e238b6c950625eeae9a5203725deeb69ec7ff4c27afbf8d06d3b4e902f",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "**C1** — P37 (no-polling-loops): operator-explicit invocation only; no background sweeps, daemons, session-start hooks, or scheduled tasks.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "43f679e238b6c950625eeae9a5203725deeb69ec7ff4c27afbf8d06d3b4e902f",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "**C2** — P32 (worktree-isolation): never delete a branch currently checked out in any active worktree.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "43f679e238b6c950625eeae9a5203725deeb69ec7ff4c27afbf8d06d3b4e902f",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "**C3** — Safety first: local deletion uses `git branch -d` semantics only; never falls back to `-D`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "43f679e238b6c950625eeae9a5203725deeb69ec7ff4c27afbf8d06d3b4e902f",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "**C4** — Non-regressive: direct-archive branch cleanup at `change.ts:4436-4441` continues to work unchanged.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "43f679e238b6c950625eeae9a5203725deeb69ec7ff4c27afbf8d06d3b4e902f",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "**C5** — Single-repo scope (`Sharper-Flow/Advance`); no cross-repo / product scope.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "43f679e238b6c950625eeae9a5203725deeb69ec7ff4c27afbf8d06d3b4e902f",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "**DONT1** — No background polling, daemons, or session-start auto-cleanup hooks.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "43f679e238b6c950625eeae9a5203725deeb69ec7ff4c27afbf8d06d3b4e902f",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "**DONT2** — No pre-PR branch synchronization (covered by GitHub issue #169).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "43f679e238b6c950625eeae9a5203725deeb69ec7ff4c27afbf8d06d3b4e902f",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "**DONT3** — No temp/session artifact cleanup (covered by in-flight `addArchiveCleanupScanner` change).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "43f679e238b6c950625eeae9a5203725deeb69ec7ff4c27afbf8d06d3b4e902f",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "**DONT4** — No re-architecting of Phase 9 finalization mechanics.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "43f679e238b6c950625eeae9a5203725deeb69ec7ff4c27afbf8d06d3b4e902f",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "**DONT5** — No auto-invocation of cleanup without explicit operator action.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "43f679e238b6c950625eeae9a5203725deeb69ec7ff4c27afbf8d06d3b4e902f",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "**OOS1** — Pre-PR branch synchronization (issue #169).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "43f679e238b6c950625eeae9a5203725deeb69ec7ff4c27afbf8d06d3b4e902f",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "**OOS2** — Temp/session artifact cleanup (`addArchiveCleanupScanner`).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "43f679e238b6c950625eeae9a5203725deeb69ec7ff4c27afbf8d06d3b4e902f",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "**OOS3** — Cross-repo / product-scope cleanup coordination.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "43f679e238b6c950625eeae9a5203725deeb69ec7ff4c27afbf8d06d3b4e902f",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS4",
+        "kind": "out_of_scope",
+        "text": "**OOS4** — Downstream consumer repo documentation fixes (e.g. `JRedeker/toolbox` AGENTS.md).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "43f679e238b6c950625eeae9a5203725deeb69ec7ff4c27afbf8d06d3b4e902f",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-06-17T23:29:17.174Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "adv_archive_repair cleanup_merged action provides operator-explicit cleanup; AC1-AC12 verified pass",
+          "notes": "Reviewer verdict READY"
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "git branch -d invariant (never -D) + worktree safety belt-and-suspenders; AC4/AC6 verified pass",
+          "notes": "Reviewer-enhanced worktree path surfacing"
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "AGENTS.md updated (commit 72d05f61); rq-archiveBranchCleanup01 spec added",
+          "notes": "T5 docs + spec verified"
+        },
+        {
+          "contractId": "SC4",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Operator-explicit tool only; no daemons, no session-start hooks, no scheduling",
+          "notes": "C1/DONT1 respected"
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "T3 handler tests: cleanup_merged scan lists candidates with merge proof (tree-identical / patch-equivalent)",
+          "notes": "Reviewer fixed git cherry patch-equivalence handling"
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "T3 test: cleanup_merged dryRun returns candidates without deleting",
+          "notes": "Wet-run default per UD1"
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "T3 test: cleanup_merged filters non-archived changes",
+          "notes": "KD3 archived-only filter"
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "T3 non-regression guard: deleteChangeBranch calls branch -d only; existing 5 tests cover refusal path",
+          "notes": "C3 respected; never -D"
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "T3 test: cleanup_merged tolerates remote-already-deleted as warning",
+          "notes": "Best-effort remote via existing deleteChangeBranch"
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "T2 test: worktree list --porcelain exclusion; T3 test: cleanup_merged excludes branches checked out in worktrees",
+          "notes": "Reviewer-enhanced: worktree path in refusal"
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "T3 source-level non-regression guard: archiveMode === 'direct' gate at change.ts:4436-4441 unchanged",
+          "notes": "C4 respected"
+        },
+        {
+          "contractId": "AC8",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "T4 test: summary view includes recommendation line when archived merged branches detected",
+          "notes": "Reviewer: status reuses worktree safety before saying safely deletable"
+        },
+        {
+          "contractId": "AC9",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "T4 test: hygiene view includes archived_branch_hygiene field with per-branch detail",
+          "notes": "KD6 implementation"
+        },
+        {
+          "contractId": "AC10",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "T5 grep verification: 1 reference to adv_archive_repair action=cleanup_merged in AGENTS.md",
+          "notes": "Bullet added under Architecture Gotchas > External mutable state"
+        },
+        {
+          "contractId": "AC11",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "153 tests pass across archive-repair (11), git-finalize (80), status (42), porcelain-parser (5), triage (13)",
+          "notes": "All 8 scenarios covered: archived-only filter, cherry detection, -d refusal, dry-run, remote-tolerance, worktree refusal, non-regression, status/hygiene"
+        },
+        {
+          "contractId": "AC12",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "T5 spec read-back: FOUND rq-archiveBranchCleanup01 5 scenarios; advance-workflow version 1.18.0",
+          "notes": "5 GWT scenarios: detection / worktree refusal / dry-run / status observability / non-regression"
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Code review: handler invoked only via explicit tool call; no scheduling, no daemons, no session hooks",
+          "notes": "DONT1 also covers"
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "KD4: getCheckedOutChangeBranches via reused porcelain parser + git branch -d second guard",
+          "notes": "Reviewer R3 from design validation confirmed"
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "deleteChangeBranch reuses existing primitive; source review confirms branch -d only",
+          "notes": "AC4 verified pass"
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "T3 source-level non-regression guard test",
+          "notes": "AC7 verified pass"
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "All touched files in Sharper-Flow/Advance; no cross-repo code paths",
+          "notes": "Single-repo scope confirmed"
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No background code introduced",
+          "notes": "C1 covers"
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No pre-PR sync logic; #169 is separate concern",
+          "notes": "Distinct helpers"
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No artifact cleanup; addArchiveCleanupScanner is separate in-flight change",
+          "notes": "Distinct concern"
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Phase 9 finalization mechanics unchanged; only additive action enum extension",
+          "notes": "Direct-archive gate preserved"
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No auto-invocation; handler requires explicit action=cleanup_merged from operator",
+          "notes": "P37-compliant"
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Out-of-scope per agreement (issue #169 owns)",
+          "notes": "N/A"
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Out-of-scope per agreement (addArchiveCleanupScanner owns)",
+          "notes": "N/A"
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Out-of-scope per agreement (single-repo scope C5)",
+          "notes": "N/A"
+        },
+        {
+          "contractId": "OOS4",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Out-of-scope per agreement (UD4: advance repo only)",
+          "notes": "N/A"
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "**AC1** — A new tool (or `adv_archive_repair` action) scans local `change/*` branches tied to ADV changes with status `archived`, evaluates each against the local default branch via `git cherry` (patch-id equivalence, squash-merge safe), and deletes the safe ones using `git branch -d`.",
+    "**AC2** — Cleanup defaults to **wet-run**; accepts a `dryRun` flag for preview-only mode that lists candidates + merge proof without deleting.",
+    "**AC3** — Cleanup scope is restricted to local `change/*` branches whose ADV change status is `archived`; branches tied to active/closed/draft/pending changes are skipped and surfaced with rationale.",
+    "**AC4** — Local deletion uses `git branch -d` only; never falls back to `-D`; git's refusal (unmerged) is captured and reported per-branch.",
+    "**AC5** — Remote `push --delete` is best-effort per deleted local branch; failure because GitHub auto-delete already removed the head is treated as success-with-warning, not error.",
+    "**AC6** — Cleanup refuses to delete any branch currently checked out in any active worktree; surfaces refusal with the worktree path.",
+    "**AC7** — Direct-archive branch cleanup at `plugin/src/tools/change.ts:4436-4441` is unchanged in behavior (non-regression).",
+    "**AC8** — `adv_status view:\"summary\"` includes a recommendation line when ≥1 archived-change local branch is detected as safely deletable.",
+    "**AC9** — `adv_status view:\"hygiene\"` includes a section listing stale merged `change/*` branches with per-branch merge proof.",
+    "**AC10** — `/home/jon/dev/advance/AGENTS.md` claim about archive branch cleanup is accurate for both direct-mode and PR-mode archives.",
+    "**AC11** — Tests cover: archived-only filter, squash-merged branch detection via `git cherry`, `git branch -d` refusal path, dry-run mode, remote-already-deleted tolerance, worktree-checked-out refusal, non-regression of direct-mode cleanup, status/hygiene surfacing.",
+    "**AC12** — A new spec requirement `rq-archiveBranchCleanup01` (with Given/When/Then scenarios) is added under the `advance-workflow` capability covering post-merge branch cleanup for archived changes."
+  ],
+  "documents": {
+    "proposal": "# Cleanup merged archive branches\n\n## Why\n\nPR-mode ADV archives leak local `change/{id}` branches post-merge. Originates from [GitHub issue #173](https://github.com/Sharper-Flow/Advance/issues/173).\n\n## What Changes\n\nAdd operator-explicit branch cleanup for merged `change/*` refs left behind by PR-mode archives. Three candidate implementation shapes (decision deferred to design):\n\n1. **Extend `adv_archive_repair`** — add a `cleanup_merged` action (or new `kind`) that scans local `change/*` refs, checks each against `origin/<default>` via `git cherry` / `git branch --merged`, and deletes the safe ones (`git branch -d`). Operator-explicit, dry-run capable, no background work.\n2. **New `adv_archive_cleanup_merged_branches` tool** — sibling to `adv_archive_repair` with a narrower single-purpose surface.\n3. **Doc-only stopgap** — document the limitation in `AGENTS.md` and ship a `bin/` script for periodic manual cleanup.\n\nIssue author leans (1). Reuses existing `adv_archive_repair` shape (scan + targeted action) and existing `detectArchivedUnmergedBranches` detection pattern, inverted.\n\n## User Outcomes\n\n- Operators can clean up stale local `change/*` branches left by PR-mode archives with a single command, without manual `git branch -d` loops.\n- Cleanup is safe by construction (`git branch -d` refuses unmerged refs) and never silently destroys unmerged work.\n- ADV documentation accurately describes branch-cleanup behavior across all archive modes.\n- No new background processes or polling loops (P37-compliant).\n\n## Affected Code\n\n- `plugin/src/tools/change.ts:4436-4465` — existing direct-mode-only branch cleanup (do not regress; coordinate with new path).\n- `plugin/src/tools/archive-helpers/git-finalize.ts:189-223` — existing `deleteChangeBranch()` (safe `git branch -d` + best-effort remote); reused as-is or extended.\n- `plugin/src/tools/archive-helpers/git-finalize.ts:1764+` — existing `detectArchivedUnmergedBranches()` (remote-ref scan pattern); inverted/sibling for merged-local detection.\n- `plugin/src/tools/change.ts:4539+` — existing `adv_archive_repair` tool surface (scan/redrive); candidate extension point.\n- `plugin/src/tools/change.archive-repair.test.ts` — existing test surface for archive repair tool.\n- `AGENTS.md` (advance repo + downstream consumer repos) — documentation accuracy.\n- `.adv/specs/advance-workflow/spec.json` — likely needs a new requirement under release-finalization family (e.g. `rq-releaseFinalization02` or `rq-archiveBranchCleanup01`).\n\n## Related Repositories\n\nSingle-repo change scoped to `Sharper-Flow/Advance`. No cross-repo product scope.\n\n## Constraints\n\n- **P37 (no-polling-loops):** no background sweeps, no session-start auto-cleanup, no periodic daemons. Operator-explicit invocation only.\n- **P32 (worktree-isolation):** cleanup must respect worktree lifecycle — never delete a branch currently checked out in any worktree.\n- **Safety first:** local deletion uses `git branch -d` semantics (refuses if not fully merged). Remote deletion is best-effort and tolerates GitHub auto-delete having already removed the head.\n- **Non-regressive:** direct-archive branch cleanup at `change.ts:4436-4441` continues to work unchanged.\n- **No new background surfaces:** no new ADV-managed daemon, worker, or scheduled task.\n\n## Impact\n\n- **Users:** single-developer and team workflows using PR-mode archives stop accumulating cruft branches. No behavior change for direct-mode users.\n- **Specs:** adds a release-finalization requirement covering post-merge branch cleanup.\n- **Coordination:** issue [#169](https://github.com/Sharper-Flow/Advance/issues/169) (release finalization should sync change branch before PR handoff) touches the same Phase 9 area; designs should be coordinated so a single future-hardened Phase 9 handles pre-PR sync + post-merge cleanup coherently, but the two issues solve distinct problems and should not be bundled.\n- **Adjacent change:** `addArchiveCleanupScanner` covers temp/session artifact cleanup inside the worktree (different problem); not blocked by it.\n\n## Context\n\n- Issue lists three implementation options with author leaning toward option 1 (extend `adv_archive_repair`).\n- `deleteChangeBranch()` is already correct; the gap is purely \"no caller for PR-mode post-merge case\".\n- Existing `detectArchivedUnmergedBranches()` shows the detection pattern (remote-ref scan + reachability via `git log`). A merged-local variant would use `git branch --merged <default>` or `git cherry` against local default branch.\n- The `addArchiveCleanupScanner` change (in-flight, discovery gate) covers artifact cleanup, not git ref cleanup — adjacent but distinct.\n\n## Scope\n\n### In Scope\n\n- Operator-explicit tool or action to clean up merged local `change/*` branches left by PR-mode archives.\n- Safe local deletion via `git branch -d` semantics.\n- Best-effort remote deletion tolerant of GitHub auto-delete.\n- Observable cleanup result (`localBranchDeleted`, `remoteBranchDeleted` per branch + aggregate).\n- Dry-run preview mode.\n- Documentation accuracy fix in advance `AGENTS.md`.\n- Spec requirement under release-finalization family.\n- Tests covering: merged-local detection, safe deletion, dry-run, worktree-checked-out safety, remote-already-deleted tolerance, non-regression of direct-mode cleanup.\n\n### Out of Scope\n\n- Background polling, daemons, session-start hooks, or any scheduled/automatic cleanup (P37).\n- Pre-PR branch synchronization (covered by issue #169).\n- Temp/session artifact cleanup (covered by `addArchiveCleanupScanner`).\n- Re-architecting Phase 9 finalization mechanics.\n- Changing PR auto-merge arming/handoff.\n- Cross-repo / product-scope cleanup coordination.\n\n### Must Not\n\n- Must not delete unmerged branches — `git branch -d` semantics enforced; never fall back to `-D`.\n- Must not delete a branch currently checked out in any active worktree.\n- Must not regress direct-archive branch cleanup at `change.ts:4436-4441`.\n- Must not introduce background polling or scheduled tasks.\n- Must not auto-invoke cleanup without operator action (no implicit session-start sweep).\n- Must not require network round-trips for purely-local cleanup decisions when remote is unreachable (degrade gracefully, surface warning).\n\n## Discovery Agenda\n\nUnresolved unknowns to firm in `/adv-discover`:\n\n1. **Tool surface shape** — extend `adv_archive_repair` (add `cleanup_merged` action) vs new `adv_archive_cleanup_merged_branches` tool vs hybrid (shared detector, two surfaces). Need to read full `adv_archive_repair` body + test surface to decide.\n2. **Detection semantics** — `git branch --merged <default>` vs `git cherry -v origin/<default> <branch>` vs patch-id equivalence. Squash-merge makes SHA-based detection unreliable; need patch-id or cherry equivalence. The issue's evidence used `git cherry`.\n3. **Coordination with #169** — does the pre-PR sync logic in #169 naturally pair with post-merge cleanup, and should they share branch-state helpers?\n4. **Spec placement** — new `rq-archiveBranchCleanup01` requirement family vs extending existing `rq-releaseFinalization01`?\n5. **Status surfacing** — should cleanup results be visible in `adv_status` (per-issue #173 AC: \"observable in archive evidence or ADV status\")? If yes, where in the status output?\n6. **Worktree safety** — `adv_worktree_triage` already detects stale/active worktrees; can the new tool reuse its branch-in-use check, or does it need its own?\n7. **Operator UX** — single-batch (delete all safe) vs per-branch confirmation vs opt-in list. Issue implies batch with safe-by-construction deletion.\n",
+    "problemStatement": "## Problem\n\nPR-mode ADV archives leave local `change/{id}` git branches behind indefinitely after their linked PR merges. Direct-archive mode cleans the branch at archive time; PR-mode archives must preserve the branch through PR creation, but no follow-up step removes it once the PR merges.\n\n## Root cause (verified)\n\n`plugin/src/tools/change.ts:4436-4441` gates branch cleanup on `archiveMode === \"direct\"` AND `finalization.route !== \"pr_auto_merge\"`. The pre-merge comment (\"PR-mode branches must survive for PR creation\") is correct, but there is no post-merge counterpart. `deleteChangeBranch()` at `plugin/src/tools/archive-helpers/git-finalize.ts:189` already implements safe `git branch -d` (refuses if not fully merged) + best-effort remote `push --delete`. It is simply never invoked for PR-mode archives.\n\n## Evidence\n\n- 21 stale merged `change/*` branches accumulated in `JRedeker/toolbox` over ~6 months of PR-mode usage; all fully merged into `master` by patch-id (`git cherry -v origin/master <branch>` produced empty output for all 21); all deleted safely via `git branch -d`.\n- Documentation claim (\"Archived ADV changes auto-delete their change/{id} branches (local + remote)\") is currently false for local PR-mode archives.\n\n## Desired outcome\n\nPR-mode ADV changes do not accumulate stale local branches after their PR merges. Cleanup is:\n- Safe — `git branch -d` semantics (git itself verifies merge state).\n- Observable — surfaced in archive evidence or ADV status (`localBranchDeleted`, `remoteBranchDeleted`).\n- Non-regressive — direct-archive behavior unchanged.\n- P37-compliant — no background polling/daemons.\n\n## Out of scope\n\n- Re-architecting Phase 9 finalization mechanics.\n- Changing PR auto-merge arming/handoff.\n- Background polling or session-start auto-cleanup (P37 risk per issue option 2).\n",
+    "agreement": "# Agreement\n\n## Objectives\n\n1. Close the post-merge cleanup gap for PR-mode ADV archives: local `change/{id}` branches must not accumulate after their linked PR merges.\n2. Provide an operator-explicit, safe-by-construction cleanup path that does not regress direct-archive behavior.\n3. Make stale-branch state observable in `adv_status` so operators notice accumulation without manual `git branch` audits.\n4. Restore documentation accuracy for archive branch-cleanup claims across all archive modes.\n\n## Success Criteria\n\n- **SC1** — PR-mode ADV changes do not accumulate stale local `change/*` branches after their PR merges.\n- **SC2** — Cleanup is safe by construction: no unmerged branch is ever deleted.\n- **SC3** — ADV documentation accurately describes branch-cleanup behavior across all archive modes.\n- **SC4** — No new background processes, polling loops, or scheduled tasks introduced.\n\n## Acceptance Criteria\n\n- **AC1** — A new tool (or `adv_archive_repair` action) scans local `change/*` branches tied to ADV changes with status `archived`, evaluates each against the local default branch via `git cherry` (patch-id equivalence, squash-merge safe), and deletes the safe ones using `git branch -d`.\n- **AC2** — Cleanup defaults to **wet-run**; accepts a `dryRun` flag for preview-only mode that lists candidates + merge proof without deleting.\n- **AC3** — Cleanup scope is restricted to local `change/*` branches whose ADV change status is `archived`; branches tied to active/closed/draft/pending changes are skipped and surfaced with rationale.\n- **AC4** — Local deletion uses `git branch -d` only; never falls back to `-D`; git's refusal (unmerged) is captured and reported per-branch.\n- **AC5** — Remote `push --delete` is best-effort per deleted local branch; failure because GitHub auto-delete already removed the head is treated as success-with-warning, not error.\n- **AC6** — Cleanup refuses to delete any branch currently checked out in any active worktree; surfaces refusal with the worktree path.\n- **AC7** — Direct-archive branch cleanup at `plugin/src/tools/change.ts:4436-4441` is unchanged in behavior (non-regression).\n- **AC8** — `adv_status view:\"summary\"` includes a recommendation line when ≥1 archived-change local branch is detected as safely deletable.\n- **AC9** — `adv_status view:\"hygiene\"` includes a section listing stale merged `change/*` branches with per-branch merge proof.\n- **AC10** — `/home/jon/dev/advance/AGENTS.md` claim about archive branch cleanup is accurate for both direct-mode and PR-mode archives.\n- **AC11** — Tests cover: archived-only filter, squash-merged branch detection via `git cherry`, `git branch -d` refusal path, dry-run mode, remote-already-deleted tolerance, worktree-checked-out refusal, non-regression of direct-mode cleanup, status/hygiene surfacing.\n- **AC12** — A new spec requirement `rq-archiveBranchCleanup01` (with Given/When/Then scenarios) is added under the `advance-workflow` capability covering post-merge branch cleanup for archived changes.\n\n## Constraints\n\n- **C1** — P37 (no-polling-loops): operator-explicit invocation only; no background sweeps, daemons, session-start hooks, or scheduled tasks.\n- **C2** — P32 (worktree-isolation): never delete a branch currently checked out in any active worktree.\n- **C3** — Safety first: local deletion uses `git branch -d` semantics only; never falls back to `-D`.\n- **C4** — Non-regressive: direct-archive branch cleanup at `change.ts:4436-4441` continues to work unchanged.\n- **C5** — Single-repo scope (`Sharper-Flow/Advance`); no cross-repo / product scope.\n\n## Avoidances\n\n- **DONT1** — No background polling, daemons, or session-start auto-cleanup hooks.\n- **DONT2** — No pre-PR branch synchronization (covered by GitHub issue #169).\n- **DONT3** — No temp/session artifact cleanup (covered by in-flight `addArchiveCleanupScanner` change).\n- **DONT4** — No re-architecting of Phase 9 finalization mechanics.\n- **DONT5** — No auto-invocation of cleanup without explicit operator action.\n\n## Out of Scope\n\n- **OOS1** — Pre-PR branch synchronization (issue #169).\n- **OOS2** — Temp/session artifact cleanup (`addArchiveCleanupScanner`).\n- **OOS3** — Cross-repo / product-scope cleanup coordination.\n- **OOS4** — Downstream consumer repo documentation fixes (e.g. `JRedeker/toolbox` AGENTS.md).\n\n## Preview Applicability\n\n`visual_surface: false` — CLI tool output only; no browser/UI/visual surface affected. Rationale: change touches git plumbing, MCP tool args, status text output, and markdown docs. No frontend component, no rendered UI, no browser surface.\n\n## Decisions\n\n### User Decisions\n\n- **UD1** — Default invocation mode: **wet-run by default**, with `dryRun` flag for preview. User accepted the slight risk in exchange for faster cleanup, justified by the `git branch -d` safety invariant (git itself refuses unmerged refs).\n- **UD2** — Batch scope: **archived-only filter** — only local `change/*` branches whose ADV change status is `archived` are candidates. Active/closed/draft/pending changes' branches are skipped with rationale.\n- **UD3** — Advisory surface: **status + hygiene view section** — both a recommendation line in `adv_status view:\"summary\"` and a dedicated section in `adv_status view:\"hygiene\"` listing stale merged branches with merge proof. Satisfies issue AC \"observable in ADV status\".\n- **UD4** — Documentation scope: **advance repo only** — fix `/home/jon/dev/advance/AGENTS.md`. Downstream consumer repos (e.g. toolbox) fix their own copies via separate PRs.\n\n### Agent Decisions (LBP)\n\n- **AD1** — Tool surface: **extend `adv_archive_repair`** with a new action (e.g. `cleanup_merged`) rather than mint a sibling tool. Rationale: reuses existing scan/redrive shape, existing test surface (`change.archive-repair.test.ts`), existing detector pattern (`detectArchivedUnmergedBranches`), and the existing `deleteChangeBranch()` helper. Lower structural cost than a new tool; matches issue author's lean.\n- **AD2** — Detection mechanism: **`git cherry -v <default> <branch>`** (patch-id equivalence). Rationale: squash-merge makes SHA-based reachability (`git log default..branch`) unreliable; the issue's repro evidence used `git cherry` and verified all 21 stale branches were correctly identified as merged. `git branch --merged` is SHA-based and also unreliable under squash-merge.\n- **AD3** — Coordination with issue #169: **distinct problems, share helpers if natural, do not bundle.** #169 is pre-PR sync (branch behind default); #173 is post-merge cleanup (branch merged into default). They share the Phase 9 area but solve different problems. Designs coordinate at the helper level only.\n- **AD4** — Spec placement: **new `rq-archiveBranchCleanup01` requirement family** under `advance-workflow`, sibling to `rq-releaseFinalization01`. Rationale: distinct problem (post-merge cleanup vs. pre-archive finalization); extending `rq-releaseFinalization01` would overload a single requirement with two separable invariants.\n- **AD5** — Worktree safety: **reuse `adv_worktree_triage` branch-in-use check** (or its underlying helper). Refuse deletion of any branch currently checked out in any active worktree; surface the worktree path in the refusal.\n\n## Deferred Questions\n\nNone. All Round 1 user-facing questions resolved; no explicit deferrals.\n\n## Sign-Off\n\nAcceptance Criteria approved at Phase 4.5.1 via explicit user reply `approve` on 2026-06-17.\n",
+    "design": "# Design\n\n## Architecture Overview\n\nExtend the existing `adv_archive_repair` MCP tool with a new `cleanup_merged` action that scans local `change/*` branches tied to ADV-archived changes, detects which are fully merged into the local default branch (squash-merge-safe), excludes any currently checked out in an active worktree, and deletes the safe ones using the existing `deleteChangeBranch()` primitive.\n\nThe change is **additive**: no existing behavior is modified. The direct-archive cleanup gate at `change.ts:4436-4441` is untouched. The new path is operator-explicit (P37-compliant).\n\n```\nadv_archive_repair\n  ├── action: \"scan\"           (existing — unmerged-remote)\n  ├── action: \"redrive\"        (existing — re-drive PR for unmerged)\n  └── action: \"cleanup_merged\" (NEW — local post-merge cleanup)\n        ├── dryRun?: boolean   (default false per UD1)\n        ├── detect candidates  (NEW: detectArchivedMergedBranches)\n        ├── exclude worktree-checked-out (REUSED: porcelain parser from worktree/triage.ts:155)\n        └── deleteChangeBranch (EXISTING: safe -d + best-effort remote)\n```\n\n## Key Decisions\n\n### KD1: Tool surface — extend `adv_archive_repair`, not new tool\n**Decision:** Add `cleanup_merged` action to `adv_archive_repair` enum. Do not mint `adv_archive_cleanup_merged_branches`.\n\n**Rationale:**\n- Existing tool already owns the \"scan-and-act on archived change branches\" namespace.\n- Test surface (`change.archive-repair.test.ts`) and helper module (`archive-helpers/git-finalize.ts`) are reused as-is.\n- Issue author's stated lean.\n- Avoids MCP namespace bloat; one repair-shaped tool per archive-lifecycle concern.\n\n**Rejected alternative:** Sibling tool `adv_archive_cleanup_merged_branches`. Higher structural cost (new tool registration, new test file, new agent allowlist entries, new docs surface) for no functional gain.\n\n### KD2: Detection — tree-SHA primary, `git cherry` fallback (short-circuited)\n**Decision:** New `detectArchivedMergedBranches()` uses `detectSquashMergeByTree()` (tree-SHA match against last 50 trunk commits) as primary signal; falls back to `git cherry -v <default> <branch>` (diff-equivalence) **only when** tree-SHA does not match.\n\n**Rationale:**\n- `detectSquashMergeByTree` already exists at `git-finalize.ts:1182` and is the canonical squash-merge-safe detector used by archive finalization (`git-finalize.ts:2091`).\n- Tree-SHA match is O(1) per branch once trunk commits are fetched (one `git log --format=%H %T -50 <default>` call covers all candidates).\n- 50-commit window is too narrow for stale branches (the issue evidence includes 6-month-old merges); `git cherry` is authoritative and was the mechanism the issue author used to verify all 21 stale branches.\n- **Short-circuit (validator refinement R3):** when tree-SHA already proves merged, skip `git cherry`. Worst case drops from 4 → 2 git invocations per branch, tightening the 10s tool budget.\n- Belt-and-suspenders: a branch is safe-to-delete if EITHER detector says merged (never AND — false negatives from one are caught by the other).\n\n**Proof-label convention (validator refinement R4):** Per-branch merge proof is labeled `tree-identical` (tree-SHA match) or `patch-equivalent` (git cherry diff-equivalence), not \"patch-id\" — git cherry is diff-based, not patch-id-based.\n\n**Rejected alternative:** `git branch --merged <default>` only. SHA-based; structurally cannot detect squash merges (squash = new commit, not ancestor).\n\n### KD3: Scope filter — archived-only\n**Decision:** Cleanup candidates are restricted to local `change/*` branches whose corresponding ADV change status is `archived`. Active/closed/draft/pending changes' branches are skipped with rationale (per UD2).\n\n**Rationale:**\n- User decision UD2.\n- Archived status means the change lifecycle is terminal; the branch is structurally cruft if merged.\n- Closed changes may have branches the operator wants to keep (cancelled work, etc.); respects operator intent.\n- Active changes obviously have live branches.\n\n**Implementation:** `store.changes.list({ status: \"archived\", includeArchived: true })` → `Set<changeId>` → filter local `change/*` refs by membership.\n\n### KD4: Worktree safety — reuse `worktree/triage.ts:155` porcelain parser\n**Decision:** Reuse the existing porcelain parser at `plugin/src/tools/worktree/triage.ts:155` for `git worktree list --porcelain` parsing. New `getCheckedOutChangeBranches(mainCheckout)` wraps it and returns a `Set<string>` of currently-checked-out `change/*` branch names.\n\n**Rationale:**\n- Validator refinement R2: `worktree/triage.ts:155` already implements porcelain parsing correctly (handles bare/detached/link cases). Reusing it makes this the **5th** reused primitive, not 4th.\n- `git worktree list --porcelain` is the authoritative source (the registry is a downstream projection and may lag).\n- Failure mode: if `git worktree list` fails, refuse all deletions and surface the error (safe-default).\n- Git provides a second worktree guard at the `branch -d` level — `-d` refuses to delete a branch checked out in a linked worktree (verified by validator against git-scm.com/docs/git-branch line 2665). This makes the worktree check **belt-and-suspenders**, not the only safety layer.\n\n**Rejected alternative:** Roll a fresh porcelain parser inline. Duplicates logic already tested in triage; violates P23 (campsite-rule) and DRY.\n\n### KD5: Wet-run by default — safety comes from `git branch -d`, not from default mode\n**Decision:** `cleanup_merged` action defaults to wet-run (`dryRun: false`). Operator passes `dryRun: true` for preview.\n\n**Rationale:**\n- User decision UD1.\n- The safety invariant is `git branch -d` semantics (git itself refuses unmerged refs), not the default mode. A wet-run-by-default tool that ever only deletes fully-merged branches is safe by construction.\n- Matches the ergonomics of `redrive` (also wet-run by default; `dryRun` for preview).\n\n**`-d` upstream-vs-default safe-divergence (validator refinement R1, documented):** `git branch -d` checks merge into upstream-or-HEAD, while the detector checks merge into local default branch. These can diverge (e.g. branch with `origin/change/X` upstream + non-default HEAD). The detector is the broader check; `-d` is the narrower backstop. Fails SAFE — false-refusal only, never unsafe-delete, because the design never uses `-D`. **Documented here so a future reader doesn't \"fix\" the redundant guard.**\n\n**Risk acknowledged:** If detection has a bug that produces false positives, wet-run-by-default deletes a branch that shouldn't be deleted. Mitigation: `git branch -d` is the final guard; if the detector says \"merged\" but git disagrees, the deletion fails safely and is reported per-branch.\n\n### KD6: Status integration — recommendation line + hygiene section\n**Decision:**\n- `adv_status view:\"summary\"`: append a recommendation line when ≥1 archived-change local branch is detected as safely deletable. Pattern matches `appendQueueServiceabilityRecommendations()` (status.ts:1163+).\n- `adv_status view:\"hygiene\"`: new `archived_branch_hygiene` field with `{ count, branches: [{ changeId, branch, mergeProof }], recommendation }`. Pattern matches `external_state_hygiene`, `opencode_session_debt` fields.\n\n**Rationale:**\n- User decision UD3.\n- Satisfies issue AC \"observable in archive evidence or ADV status\".\n- Summary view stays terse (single line). Hygiene view gets full detail.\n\n**Risk acknowledged:** Every `adv_status` call now does a `git branch --list change/*` + per-branch detection. Mitigation: scan is short-circuited when `store.changes.list({ status: \"archived\" })` returns empty.\n\n### KD7: Spec placement — new `rq-archiveBranchCleanup01` family\n**Decision:** Add new requirement family under `advance-workflow`, sibling to `rq-releaseFinalization01`. Do not extend `rq-releaseFinalization01`.\n\n**Rationale:**\n- Validator confirmed (D3): `rq-releaseFinalization01` governs REMOTE reachability/PR re-drive; this change is LOCAL stale-cleanup — orthogonal. `rq-releaseFinalization01.11` owns the untouched remote path. New `rq-archiveBranchCleanup01` legitimately distinct.\n- Single-responsibility per requirement keeps spec law auditable.\n\n## Implementation Strategy\n\nSequenced for incremental testability:\n\n1. **Pure detector** — `detectArchivedMergedBranches(input, deps)` in `git-finalize.ts`. Takes `mainCheckout`, `defaultBranch`, `archivedChangeIds`; returns `{ status: \"ok\"|\"blocked\", branches: ArchivedMergedBranch[] }`. Uses tree-SHA primary + `git cherry` fallback (short-circuited). No side effects.\n2. **Worktree safety check** — `getCheckedOutChangeBranches(mainCheckout, deps)` in `git-finalize.ts`. Wraps the porcelain parser at `worktree/triage.ts:155`. Returns `Set<string>` of branch names currently checked out in any worktree.\n3. **Compose safe-to-delete list** — pure function that takes detector output + worktree set + `deleteChangeBranch` results, returns per-branch outcome.\n4. **Extend `adv_archive_repair`** — widen `action` enum to `\"scan\" | \"redrive\" | \"cleanup_merged\"`; add handler that:\n   - Fetches `origin/<default>` (best-effort; degrade gracefully if offline).\n   - Calls `detectArchivedMergedBranches`.\n   - Calls `getCheckedOutChangeBranches`; filters candidates.\n   - If `dryRun`: returns candidate list with merge proof, no deletions.\n   - Else: calls `deleteChangeBranch` per candidate; aggregates per-branch + summary result.\n5. **Status appender** — `appendArchivedBranchHygieneRecommendations(status, store, deps)` in `status.ts`. Called from both summary and hygiene view builders; emits recommendation line in summary, full section in hygiene.\n6. **AGENTS.md fix** — clarify cleanup applies to direct-mode at archive time AND PR-mode post-merge via `adv_archive_repair action:cleanup_merged`.\n7. **Spec delta** — add `rq-archiveBranchCleanup01` (+ `.1` detection, `.2` worktree safety, `.3` dry-run, `.4` status observability scenarios) to `.adv/specs/advance-workflow/spec.json`.\n\n## LBP Analysis\n\nThis is the preferred long-term approach because:\n\n- **Reuses 5 existing primitives.** `deleteChangeBranch`, `detectSquashMergeByTree`, `detectArchivedUnmergedBranches` pattern, `appendQueueServiceabilityRecommendations` appender shape, `worktree/triage.ts:155` porcelain parser. Zero new abstractions.\n- **Single source of truth for \"archived change branch repair.\"** Operators learn one tool (`adv_archive_repair`) with three actions, not three tools.\n- **No new background surfaces.** P37-compliant by construction.\n- **Matches issue author's stated direction.** Option 1 from the issue, with refinements.\n- **Spec law stays auditable.** New `rq-archiveBranchCleanup01` family is single-responsibility.\n\nRejected long-term alternatives:\n\n- **Background sweep daemon (issue option 2).** Violates P37; introduces operational surface (monitoring, restart on crash, race conditions with concurrent archives).\n- **Doc-only stopgap (issue option 3).** Does not fix the structural gap; operators still accumulate cruft and must remember to clean manually.\n\n## Affected Components\n\n| Component | Change | Risk |\n|---|---|---|\n| `plugin/src/tools/archive-helpers/git-finalize.ts` | +`detectArchivedMergedBranches`, +`getCheckedOutChangeBranches` (wraps existing parser) | Low — pure additions |\n| `plugin/src/tools/archive-helpers/git-finalize.test.ts` | +tests for new functions | Low |\n| `plugin/src/tools/change.ts` (adv_archive_repair handler, ~line 4539) | Widen action enum, add cleanup_merged handler | Low — additive |\n| `plugin/src/tools/change.archive-repair.test.ts` | +tests for cleanup_merged action | Low |\n| `plugin/src/tools/status.ts` | +`appendArchivedBranchHygieneRecommendations` + wire into summary/hygiene builders | Low — additive appender |\n| `plugin/src/tools/status.test.ts` | +tests for new recommendation | Low |\n| `/home/jon/dev/advance/AGENTS.md` | Clarify cleanup mode coverage | Low — docs only |\n| `.adv/specs/advance-workflow/spec.json` | +`rq-archiveBranchCleanup01` family | Low — additive spec |\n\n**Untouched (non-regression guarantee):**\n- `plugin/src/tools/change.ts:4436-4441` direct-archive cleanup gate — unchanged.\n- `deleteChangeBranch()` body — unchanged (reused as-is).\n- `detectArchivedUnmergedBranches()` — unchanged.\n- `redriveArchivedUnmergedBranch()` — unchanged.\n- `worktree/triage.ts:155` porcelain parser — unchanged (reused, not modified).\n\n## Design-Derived Criteria\n\nTechnical budgets created by the chosen architecture:\n\n- **DDC1 — Detection window.** `detectSquashMergeByTree` examines the last 50 trunk commits. Branches squash-merged further back fall through to `git cherry` fallback. Worst case (no tree match, cherry scan over thousands of commits) adds ~50–200ms per branch.\n- **DDC2 — Local default freshness.** Detection evaluates local-branch merge state against the local default branch ref. If `origin/<default>` is significantly ahead, the local ref may not yet contain the merge commit. Mitigation: best-effort `git fetch origin <default>` before detection; degrade gracefully when offline (detector returns `{ status: \"blocked\", reason: \"DEFAULT_BRANCH_FETCH_FAILED\" }`, surface in tool result).\n- **DDC3 — Tool execution budget.** MCP tool budget is 10s. Worst case (validator-refined): 50 archived-change branches × 2 git invocations (detector short-circuit + delete) ≈ 100 git invocations. Each git call is sub-100ms for local ops; total ≈ 3–6s worst case. Acceptable. **Validator caution:** cold cache or large repo with slow git startup may approach 10s; if exceeded, surface partial result + continue-in-next-call guidance.\n- **DDC4 — Status scan cost.** `adv_status` adds one `git branch --list change/*` + N detection calls (N = candidate count). Short-circuited to zero cost when no archived changes exist. Bounded by DDC3 budget.\n\n## Risks / Mitigations\n\n| ID | Risk | Likelihood | Impact | Mitigation |\n|---|---|---|---|---|\n| R1 | Detector false-positive marks unmerged branch as merged | Low | High (deletes unmerged work) | `git branch -d` is the final guard; git refuses unmerged refs by construction. Per-branch result captures refusal; never falls back to `-D`. |\n| R2 | `git branch -d` succeeds but branch was not actually merged into remote default yet | Low | Medium (premature local cleanup; remote branch still exists, can be re-checked-out) | Best-effort `git fetch origin <default>` keeps local ref fresh. Operator can `git fetch && git checkout change/<id>` from remote if needed. |\n| R3 | Worktree-checked-out branch missed by safety check | Low | High (deletes checked-out branch) | Reuse `worktree/triage.ts:155` porcelain parser (already correct for bare/detached/link cases). Git's `branch -d` provides second guard (refuses linked-worktree branch). On any parse failure, refuse all deletions (safe-default). |\n| R4 | Status scan adds latency to every `adv_status` call | Low | Low (UX nuisance) | Short-circuit when no archived changes. Bounded by DDC3. |\n| R5 | `detectSquashMergeByTree` 50-commit window misses old merges | Medium | Low (false negative → branch not deleted this run, retry later) | `git cherry` fallback catches diff-equivalent merges regardless of age. |\n| R6 | Operator runs `cleanup_merged` expecting it to also handle closed-cancelled changes | Medium | Low (UX confusion) | Result clearly lists skipped branches with rationale (\"status: closed — skipped\"). Docs clarify archived-only scope. |\n| R7 | Coordination collision with #169 if both ship near-simultaneously | Low | Low (both touch Phase 9 helpers) | Distinct helpers (`detectArchivedMergedBranches` vs sync helpers); no shared mutable state. Coordinate at PR review time. |\n| R8 | Cold cache / large repo pushes tool budget past 10s | Low | Medium (partial result, no harm) | Short-circuit cherry when tree-SHA proves merged. Surface partial result + continue guidance if budget exceeded. |\n\n## Design Leverage Scout\n\n**Scout: skipped — narrow tool extension with no greenfield architecture surface.**\n\nRationale: This change extends an existing MCP tool action enum and reuses five existing primitives. Leverage opportunities are minimal because the design is constrained by the existing tool surface and existing detector patterns. The 4 user decisions (UD1–UD4) already settled the only meaningful design forks.\n\n## Design Validation\n\n**Validator: clean pass (VALIDATED).**\n\nAll 4 dimensions returned `info` (no `caution` blocking findings, no `conflict`):\n\n- D1 CORRECTNESS — Design solves all 4 objectives. `git branch -d` upstream-vs-default safe-divergence documented in KD5 (validator refinement R1).\n- D2 SIMPLICITY — No materially simpler approach. `git branch --merged` structurally cannot detect squash merges.\n- D3 SPEC-LAW — No conflict. `rq-releaseFinalization01` governs REMOTE reachability; this change is LOCAL stale-cleanup (orthogonal). `rq-releaseFinalization01.11` owns the untouched remote path.\n- D4 ALTERNATIVES — All 3 choices correct (new rq family / tree-SHA+cherry / extend adv_archive_repair).\n\nVerified mechanism claims (validator against git-scm.com/docs/git-branch 2.51.0):\n- Wet-run safe via `-d` invariant — confirmed (lines 2635-2641)\n- tree-SHA primary / cherry fallback order — correct (tree-SHA O(1), cherry exhaustive)\n- `worktree list --porcelain` exposes all branches — confirmed (bare/detached emit no branch line; correct)\n- Git provides 2nd worktree guard via `-d` refusing linked-worktree branch — confirmed (line 2665)\n\nOne non-blocking latency caution folded into DDC3 and R8: cold cache / large repo may approach 10s budget; mitigated by short-circuit + partial-result surface.\n\nThree validator refinements auto-adopted (low risk, no user-value tradeoff):\n1. R1 — Documented `-d` upstream-vs-default safe-divergence in KD5.\n2. R2 — Reused `worktree/triage.ts:155` porcelain parser for KD4 (5th reused primitive).\n3. R3 — Short-circuit `git cherry` when tree-SHA proves merged (4 → 2 git invocations per branch).\n4. R4 — Proof label convention: `tree-identical` / `patch-equivalent` (not \"patch-id\"; git cherry is diff-based).\n",
+    "executiveSummary": "# Executive Summary — cleanupMergedArchiveBranches\n\n## Outcome\n\nClosed the post-merge cleanup gap for PR-mode ADV archives described in [GitHub issue #173](https://github.com/Sharper-Flow/Advance/issues/173). Operators can now clean up stale local `change/{id}` branches left behind after PR-mode archive merges via a single operator-explicit command, without manual `git branch -d` loops.\n\n## What Was Built\n\nExtended the existing `adv_archive_repair` MCP tool with a new `cleanup_merged` action. The action scans local `change/*` branches tied to ADV-archived changes, detects fully-merged ones (squash-merge-safe via tree-SHA match primary + `git cherry` diff-equivalence fallback), excludes any checked out in an active worktree, and deletes the safe ones using the existing `deleteChangeBranch()` primitive (safe `git branch -d` semantics — never `-D`).\n\nFive existing primitives were reused (zero new abstractions):\n1. `deleteChangeBranch()` — safe local delete + best-effort remote\n2. `detectSquashMergeByTree()` — squash-merge-safe tree-SHA detection\n3. `detectArchivedUnmergedBranches()` pattern — scan + act shape\n4. `appendQueueServiceabilityRecommendations()` appender shape — status integration\n5. `worktree/triage.ts:155` porcelain parser — extracted to `worktree/porcelain-parser.ts` for reuse\n\nSurface visibility: `adv_status view:\"summary\"` shows a recommendation line when ≥1 archived-change local branch is safely deletable; `adv_status view:\"hygiene\"` shows a full `archived_branch_hygiene` section with per-branch merge proof.\n\n## How It Was Verified\n\n- **153 tests pass** across affected surfaces (archive-repair 11, git-finalize 80, status 42, porcelain-parser 5, triage 13).\n- **`pnpm run check` green** (schemas:check + typecheck + check-test-isolation + check-lockfile-policy + lint + format:check).\n- **Independent design validator** (adv-researcher): VALIDATED, 4 dimensions all info-level, 4 refinements folded (R1-R4).\n- **Independent acceptance reviewer** (adv-reviewer): verdict READY, 3 in-scope remediations applied:\n  - `git cherry` patch-equivalence handling (- lines count as merged; + lines as unmerged)\n  - Worktree path surfacing in checked-out branch refusals\n  - `adv_status` hygiene/summary reuses worktree safety before claiming \"safely deletable\"\n- **Contract review matrix**: 30/30 rows passing (4 SC + 12 AC + 5 C + 5 DONT + 4 OOS).\n\n## Contract Coverage\n\n| Category | Count | Status |\n|---|---|---|\n| Success Criteria (SC1-SC4) | 4 | 4 pass |\n| Acceptance Criteria (AC1-AC12) | 12 | 12 pass |\n| Constraints (C1-C5) | 5 | 5 respected |\n| Avoidances (DONT1-DONT5) | 5 | 5 respected |\n| Out of Scope (OOS1-OOS4) | 4 | 4 not_applicable |\n| **Total** | **30** | **30 passing** |\n\n## Spec Law\n\nNew requirement family `rq-archiveBranchCleanup01` added to `advance-workflow` capability (version 1.17.0 → 1.18.0), with 5 Given/When/Then scenarios:\n- `.1` Squash-merge-safe detection\n- `.2` Worktree-checked-out refusal\n- `.3` Dry-run preview\n- `.4` Status observability\n- `.5` Non-regression of direct-archive path\n\nSibling to existing `rq-releaseFinalization01` (which governs REMOTE reachability/PR re-drive); the new family governs LOCAL stale-branch post-merge cleanup (orthogonal problem).\n\n## Remaining Concerns\n\n- **Live runtime validation deferred**: source changes do not take effect in the current OpenCode session until rebuild + restart (`pnpm run build` + session restart). Verified via tests only.\n- **No outstanding reviewer suggestions deferred to harden** — reviewer verdict was clean READY.\n- **Coordination with #169**: distinct problems (pre-PR sync vs post-merge cleanup); coordinate at PR review time if both ship near-simultaneously.\n",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-06-17T23:29:17.174Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | **SC1** — PR-mode ADV changes do not accumulate stale local `change/*` branches after their PR merges. | pass | adv_archive_repair cleanup_merged action provides operator-explicit cleanup; AC1-AC12 verified pass |\n| SC2 | success_criterion | **SC2** — Cleanup is safe by construction: no unmerged branch is ever deleted. | pass | git branch -d invariant (never -D) + worktree safety belt-and-suspenders; AC4/AC6 verified pass |\n| SC3 | success_criterion | **SC3** — ADV documentation accurately describes branch-cleanup behavior across all archive modes. | pass | AGENTS.md updated (commit 72d05f61); rq-archiveBranchCleanup01 spec added |\n| SC4 | success_criterion | **SC4** — No new background processes, polling loops, or scheduled tasks introduced. | pass | Operator-explicit tool only; no daemons, no session-start hooks, no scheduling |\n| AC1 | acceptance_criterion | **AC1** — A new tool (or `adv_archive_repair` action) scans local `change/*` branches tied to ADV changes with status `archived`, evaluates each against the local default branch via `git cherry` (patch-id equivalence, squash-merge safe), and deletes the safe ones using `git branch -d`. | pass | T3 handler tests: cleanup_merged scan lists candidates with merge proof (tree-identical / patch-equivalent) |\n| AC2 | acceptance_criterion | **AC2** — Cleanup defaults to **wet-run**; accepts a `dryRun` flag for preview-only mode that lists candidates + merge proof without deleting. | pass | T3 test: cleanup_merged dryRun returns candidates without deleting |\n| AC3 | acceptance_criterion | **AC3** — Cleanup scope is restricted to local `change/*` branches whose ADV change status is `archived`; branches tied to active/closed/draft/pending changes are skipped and surfaced with rationale. | pass | T3 test: cleanup_merged filters non-archived changes |\n| AC4 | acceptance_criterion | **AC4** — Local deletion uses `git branch -d` only; never falls back to `-D`; git's refusal (unmerged) is captured and reported per-branch. | pass | T3 non-regression guard: deleteChangeBranch calls branch -d only; existing 5 tests cover refusal path |\n| AC5 | acceptance_criterion | **AC5** — Remote `push --delete` is best-effort per deleted local branch; failure because GitHub auto-delete already removed the head is treated as success-with-warning, not error. | pass | T3 test: cleanup_merged tolerates remote-already-deleted as warning |\n| AC6 | acceptance_criterion | **AC6** — Cleanup refuses to delete any branch currently checked out in any active worktree; surfaces refusal with the worktree path. | pass | T2 test: worktree list --porcelain exclusion; T3 test: cleanup_merged excludes branches checked out in worktrees |\n| AC7 | acceptance_criterion | **AC7** — Direct-archive branch cleanup at `plugin/src/tools/change.ts:4436-4441` is unchanged in behavior (non-regression). | pass | T3 source-level non-regression guard: archiveMode === 'direct' gate at change.ts:4436-4441 unchanged |\n| AC8 | acceptance_criterion | **AC8** — `adv_status view:\"summary\"` includes a recommendation line when ≥1 archived-change local branch is detected as safely deletable. | pass | T4 test: summary view includes recommendation line when archived merged branches detected |\n| AC9 | acceptance_criterion | **AC9** — `adv_status view:\"hygiene\"` includes a section listing stale merged `change/*` branches with per-branch merge proof. | pass | T4 test: hygiene view includes archived_branch_hygiene field with per-branch detail |\n| AC10 | acceptance_criterion | **AC10** — `/home/jon/dev/advance/AGENTS.md` claim about archive branch cleanup is accurate for both direct-mode and PR-mode archives. | pass | T5 grep verification: 1 reference to adv_archive_repair action=cleanup_merged in AGENTS.md |\n| AC11 | acceptance_criterion | **AC11** — Tests cover: archived-only filter, squash-merged branch detection via `git cherry`, `git branch -d` refusal path, dry-run mode, remote-already-deleted tolerance, worktree-checked-out refusal, non-regression of direct-mode cleanup, status/hygiene surfacing. | pass | 153 tests pass across archive-repair (11), git-finalize (80), status (42), porcelain-parser (5), triage (13) |\n| AC12 | acceptance_criterion | **AC12** — A new spec requirement `rq-archiveBranchCleanup01` (with Given/When/Then scenarios) is added under the `advance-workflow` capability covering post-merge branch cleanup for archived changes. | pass | T5 spec read-back: FOUND rq-archiveBranchCleanup01 5 scenarios; advance-workflow version 1.18.0 |\n| C1 | constraint | **C1** — P37 (no-polling-loops): operator-explicit invocation only; no background sweeps, daemons, session-start hooks, or scheduled tasks. | respected | Code review: handler invoked only via explicit tool call; no scheduling, no daemons, no session hooks |\n| C2 | constraint | **C2** — P32 (worktree-isolation): never delete a branch currently checked out in any active worktree. | respected | KD4: getCheckedOutChangeBranches via reused porcelain parser + git branch -d second guard |\n| C3 | constraint | **C3** — Safety first: local deletion uses `git branch -d` semantics only; never falls back to `-D`. | respected | deleteChangeBranch reuses existing primitive; source review confirms branch -d only |\n| C4 | constraint | **C4** — Non-regressive: direct-archive branch cleanup at `change.ts:4436-4441` continues to work unchanged. | respected | T3 source-level non-regression guard test |\n| C5 | constraint | **C5** — Single-repo scope (`Sharper-Flow/Advance`); no cross-repo / product scope. | respected | All touched files in Sharper-Flow/Advance; no cross-repo code paths |\n| DONT1 | avoidance | **DONT1** — No background polling, daemons, or session-start auto-cleanup hooks. | respected | No background code introduced |\n| DONT2 | avoidance | **DONT2** — No pre-PR branch synchronization (covered by GitHub issue #169). | respected | No pre-PR sync logic; #169 is separate concern |\n| DONT3 | avoidance | **DONT3** — No temp/session artifact cleanup (covered by in-flight `addArchiveCleanupScanner` change). | respected | No artifact cleanup; addArchiveCleanupScanner is separate in-flight change |\n| DONT4 | avoidance | **DONT4** — No re-architecting of Phase 9 finalization mechanics. | respected | Phase 9 finalization mechanics unchanged; only additive action enum extension |\n| DONT5 | avoidance | **DONT5** — No auto-invocation of cleanup without explicit operator action. | respected | No auto-invocation; handler requires explicit action=cleanup_merged from operator |\n| OOS1 | out_of_scope | **OOS1** — Pre-PR branch synchronization (issue #169). | not_applicable | Out-of-scope per agreement (issue #169 owns) |\n| OOS2 | out_of_scope | **OOS2** — Temp/session artifact cleanup (`addArchiveCleanupScanner`). | not_applicable | Out-of-scope per agreement (addArchiveCleanupScanner owns) |\n| OOS3 | out_of_scope | **OOS3** — Cross-repo / product-scope cleanup coordination. | not_applicable | Out-of-scope per agreement (single-repo scope C5) |\n| OOS4 | out_of_scope | **OOS4** — Downstream consumer repo documentation fixes (e.g. `JRedeker/toolbox` AGENTS.md). | not_applicable | Out-of-scope per agreement (UD4: advance repo only) |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-06-17T22:14:57.902Z",
+      "contentHash": "7cddbbca293a59af1a329ab53e25294db27aaab0b71b52f6b1fc14a2f1562db3",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-06-17T22:14:57.902Z",
+      "contentHash": "7627228a30dfe8e40a968d1af132a198b3e1fe815a1306be698a43dc7b92cf1c",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-06-17T22:30:43.670Z",
+      "contentHash": "43f679e238b6c950625eeae9a5203725deeb69ec7ff4c27afbf8d06d3b4e902f",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-06-17T22:36:42.297Z",
+      "contentHash": "b78d836494246f904b046fc129cf336456a03a911542f94166dbd90b9373864b",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-06-17T23:29:43.306Z",
+      "contentHash": "37ef9bc29843912b7ba6e777c1673860f5cf6d91324fc75e477c5da6daf75e0b",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-06-18T00:09:14.213Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_MISSING_ERROR_HANDLING",
+      "severity": "warning",
+      "message": "Proposal describes behavior that could fail but doesn't mention error handling or rollback. What happens when things go wrong?",
+      "recorded_at": "2026-06-17T23:26:04.504Z"
+    }
+  ],
+  "worktree_auto_managed": true
+}
