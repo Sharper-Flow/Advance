@@ -1,0 +1,1371 @@
+{
+  "id": "updateTriageCleanup",
+  "title": "Update triage cleanup",
+  "status": "archived",
+  "created_at": "2026-06-19T15:29:37.152Z",
+  "tasks": [
+    {
+      "id": "tk-07970a16318b",
+      "title": "Add RED asset tests for triage cleanup-before-priority contract",
+      "type": "code",
+      "section": "Tests",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-06-19T15:48:42.948Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [],
+        "verifies": [
+          "AC1",
+          "AC4",
+          "AC7",
+          "AC8"
+        ],
+        "respects": [
+          "C1",
+          "DONT1",
+          "DONT2",
+          "DONT3"
+        ],
+        "not_applicable_reason": ""
+      },
+      "verification": "RED evidence recorded: adv_run_test tr_mql46hcu_5128a73f ran `bin/oc-test targeted -- src/adv-triage-relevance-assets.test.ts` and failed as expected with 4 new failing tests covering missing Phase 3.5 cleanup stage, cleanup_decisions schema, GitHub duplicate capability detection, and rq-backlogCoord09 spec law.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Extended plugin/src/adv-triage-relevance-assets.test.ts with RED assertions for Phase 3.5 cleanup ordering before issue creation/scoring, cleanup_decisions schema/prompt contract, GitHub duplicate capability detection, and rq-backlogCoord09 spec law. The targeted test currently fails as intended until implementation tasks update command/skill/spec surfaces.",
+      "filesTouched": [
+        "plugin/src/adv-triage-relevance-assets.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/adv-triage-relevance-assets.test.ts"
+      ],
+      "checkpointSha": "6daec95a61c93a007914712bbd273157a5054ae5",
+      "completedAt": "2026-06-19T15:59:50.097Z",
+      "completed_at": "2026-06-19T15:59:50.097Z",
+      "notes": "Added RED asset tests and recorded failing test evidence tr_mql46hcu_5128a73f. Checkpoint commit 6daec95a61c93a007914712bbd273157a5054ae5.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "updatedAt": "2026-06-19T16:00:11.429Z"
+    },
+    {
+      "id": "tk-1085271107bb",
+      "title": "Add backlog-coordination spec law for triage cleanup-before-creation/scoring",
+      "type": "code",
+      "section": "Spec law",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-06-19T15:48:54.636Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-07970a16318b"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC8",
+          "SC5"
+        ],
+        "verifies": [
+          "AC8"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C4",
+          "DONT1",
+          "DONT2",
+          "DONT6"
+        ],
+        "not_applicable_reason": ""
+      },
+      "verification": "GREEN evidence recorded: adv_run_test tr_mql48uol_1072cf2a verified rq-backlogCoord09 exists, includes cleanup validation before issue creation and Priority/Value prompts, advisory-only heuristic language, and >=3 scenarios.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".adv/specs/backlog-coordination/spec.json"
+      ],
+      "touched_files": [
+        ".adv/specs/backlog-coordination/spec.json"
+      ],
+      "checkpointSha": "5436bedb46cfd6d19dd73e82ad42f30047a1578a",
+      "completedAt": "2026-06-19T16:01:29.487Z",
+      "completed_at": "2026-06-19T16:01:29.487Z"
+    },
+    {
+      "id": "tk-f7455998493b",
+      "title": "Update adv-triage command with Phase 3.5 Source Cleanup Validation",
+      "type": "code",
+      "section": "Command workflow",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-06-19T15:49:08.593Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-07970a16318b"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "SC1",
+          "SC2",
+          "SC3"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "DONT6",
+          "OOS1",
+          "OOS2",
+          "OOS3",
+          "OOS4",
+          "OOS5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "verification": "GREEN: bin/oc-test targeted -- src/adv-triage-relevance-assets.test.ts passed (7 tests). Command now contains Phase 3.5 Source Cleanup Validation before issue creation and field prompts with cleanup approval/capability detection/action mapping.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added `/adv-triage` Phase 3.5 Source Cleanup Validation after match/gap and before issue creation/user-owned scoring. Documented cleanup_decisions[], source/reason Tier B approval grouping, source-specific action mapping for ADV changes/GitHub issues/agenda, GitHub duplicate capability detection via `gh issue close --help`, and P33 advisory-only heuristic boundaries. Updated skill schema, prompts, core flow, and anti-patterns in the same checkpoint because command behavior references those skill sections.",
+      "filesTouched": [
+        ".opencode/command/adv-triage.md",
+        "skills/adv-triage/ANTI-PATTERNS.md",
+        "skills/adv-triage/PROMPTS.md",
+        "skills/adv-triage/SCHEMA.md",
+        "skills/adv-triage/SKILL.md"
+      ],
+      "touched_files": [
+        ".opencode/command/adv-triage.md",
+        "skills/adv-triage/ANTI-PATTERNS.md",
+        "skills/adv-triage/PROMPTS.md",
+        "skills/adv-triage/SCHEMA.md",
+        "skills/adv-triage/SKILL.md"
+      ],
+      "checkpointSha": "e6cd5b4e899a0c5d641e064d0af88c1dd59c6159",
+      "completedAt": "2026-06-19T18:11:15.578Z",
+      "completed_at": "2026-06-19T18:11:15.578Z",
+      "notes": "Implemented Phase 3.5 Source Cleanup Validation in /adv-triage command and related triage skill surfaces. Verification tr_mql8vg0t_c330b595 passed: bin/oc-test targeted -- src/adv-triage-relevance-assets.test.ts (7 tests). Checkpoint e6cd5b4e899a0c5d641e064d0af88c1dd59c6159.",
+      "error_recovery": {
+        "last_error": "Initial verification command ran from plugin/ so bin/oc-test was not found.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "ENVIRONMENTAL",
+        "next_strategy": "Use repository root as workdir for bin/oc-test.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "/bin/sh: 1: bin/oc-test: not found",
+            "diagnosis": "Verification command was correct for repo root but was executed from plugin/ subdirectory.",
+            "fix_tried": "Reran the same command from the worktree repository root.",
+            "strategy_label": "correct_workdir",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-19T14:10:44.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-19T18:11:29.857Z"
+    },
+    {
+      "id": "tk-dfd36ea05cd8",
+      "title": "Update adv-triage skill schema, prompts, and anti-patterns for cleanup decisions",
+      "type": "code",
+      "section": "Triage skill",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-06-19T15:49:20.557Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-07970a16318b"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC2",
+          "AC3",
+          "AC5",
+          "AC6",
+          "SC2",
+          "SC3",
+          "SC4"
+        ],
+        "verifies": [
+          "AC2",
+          "AC3",
+          "AC5",
+          "AC6"
+        ],
+        "respects": [
+          "C1",
+          "C3",
+          "C4",
+          "C6",
+          "DONT1",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "DONT7",
+          "OOS4",
+          "OOS5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "verification": "GREEN: bin/oc-test targeted -- src/adv-triage-relevance-assets.test.ts passed (7 tests). Skill schema, prompts, and anti-patterns now define cleanup_decisions[], source/reason approval grouping, agenda complete-with-note mapping, and GitHub duplicate capability detection.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added `cleanup_decisions[]` schema with source/ref/classification/evidence/proposedAction/approvalGroup; added Tier B source cleanup prompt grouped by source/reason; documented agenda `should-merge`/superseded completion via `adv_agenda_complete` note; documented GitHub duplicate capability detection with `gh issue close --help`, native `--duplicate-of` when present, and `Duplicate of #N` fallback semantics; extended anti-patterns to forbid cleanup-before-creation/scoring regressions and heuristic-owned mutation.",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "e6cd5b4e899a0c5d641e064d0af88c1dd59c6159",
+      "completedAt": "2026-06-19T18:11:38.564Z",
+      "completed_at": "2026-06-19T18:11:38.564Z",
+      "notes": "Updated adv-triage skill schema, prompts, and anti-patterns for cleanup decisions. Verification tr_mql8vx69_014e8005 passed: bin/oc-test targeted -- src/adv-triage-relevance-assets.test.ts (7 tests). Worktree already clean at checkpoint e6cd5b4e899a0c5d641e064d0af88c1dd59c6159 because related skill edits were committed with the command checkpoint.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "updatedAt": "2026-06-19T18:11:49.160Z"
+    },
+    {
+      "id": "tk-b78de1e5d273",
+      "title": "Verify triage cleanup contract coverage and targeted tests",
+      "type": "code",
+      "section": "Verification",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-06-19T15:49:45.404Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-1085271107bb"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-f7455998493b"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-dfd36ea05cd8"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [],
+        "verifies": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "SC4",
+          "SC5",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7",
+          "AC8"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "DONT6",
+          "DONT7",
+          "OOS1",
+          "OOS2",
+          "OOS3",
+          "OOS4",
+          "OOS5",
+          "OOS6"
+        ],
+        "not_applicable_reason": ""
+      },
+      "verification": "Harden remediation verified: tr_mqlakjyx_c40b6d1e bin/oc-test targeted -- src/adv-triage-relevance-assets.test.ts passed (7 tests); tr_mqlakjpo_329d5a9f pnpm run schemas:check passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Release hardening completed. Harden reviewer added missing `adv_agenda_cancel` key-tool documentation and a matching asset-test assertion, then primary reran targeted asset tests and schema check and checkpointed the remediation.",
+      "filesTouched": [
+        ".opencode/command/adv-triage.md",
+        "plugin/src/adv-triage-relevance-assets.test.ts"
+      ],
+      "touched_files": [
+        ".opencode/command/adv-triage.md",
+        "plugin/src/adv-triage-relevance-assets.test.ts"
+      ],
+      "checkpointSha": "7fd17b4f83bed513109fd532a2c548b4d15d1ddf",
+      "completedAt": "2026-06-19T18:58:23.402Z",
+      "completed_at": "2026-06-19T18:58:23.402Z",
+      "notes": "Release harden found and remediated a scoped doc/test drift issue: agenda key tools now include `adv_agenda_cancel`, and asset test covers `adv_agenda_cancel` in cleanup prompt docs. Harden verdict READY. Verification: tr_mqlakjyx_c40b6d1e targeted asset test passed (7 tests); tr_mqlakjpo_329d5a9f schemas:check passed. Checkpoint 7fd17b4f83bed513109fd532a2c548b4d15d1ddf.",
+      "error_recovery": {
+        "last_error": "Harden reviewer initially ran wrapper with wrong path `plugin/src/adv-triage-relevance-assets.test.ts`; no test files found.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "ENVIRONMENTAL",
+        "next_strategy": "Use wrapper-relative path `src/adv-triage-relevance-assets.test.ts` from repo root.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "No test files found for `bin/oc-test targeted -- plugin/src/adv-triage-relevance-assets.test.ts`.",
+            "diagnosis": "`bin/oc-test` runs under plugin/ internally; caller should pass paths relative to plugin/src, not prefixed with plugin/.",
+            "fix_tried": "Reran `bin/oc-test targeted -- src/adv-triage-relevance-assets.test.ts` from the worktree root.",
+            "strategy_label": "correct_wrapper_path",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-19T18:58:15.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-19T18:58:38.613Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "updateTriageCleanup",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:discovery-opportunity-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Triage cleanup-before-priority opportunity scout",
+      "sources": [
+        {
+          "label": "adv-triage command (Phase 4b)",
+          "locator": ".opencode/command/adv-triage.md:61-79",
+          "summary": "Current relevance validation is nested inside Phase 4 (after match/gap + after issue creation), scoped to field-gap candidates only; no upfront source-pool cleanup stage exists. Phase 3 already builds represented[]/unrepresented[] structurally."
+        },
+        {
+          "label": "adv-triage skill PROMPTS.md",
+          "locator": "skills/adv-triage/PROMPTS.md:51-108",
+          "summary": "Relevance outcomes (relevant/stale-already-addressed/duplicate-superseded/unclear) + question-tool batch/per-item pattern already defined; reusable cleanup approval surface scaffolding exists."
+        },
+        {
+          "label": "adv-triage relevance asset test",
+          "locator": "plugin/src/adv-triage-relevance-assets.test.ts:13-49",
+          "summary": "Anchors relevance-before-field-prompts ordering via document-index assertions; pattern directly extensible to cleanup-before-priority."
+        },
+        {
+          "label": "adv-cleanup command + skill",
+          "locator": ".opencode/command/adv-cleanup.md:89-115 ; skills/adv-cleanup/SKILL.md:130-173",
+          "summary": "Mature Tier-B per-bucket approval parser (approve all/reject all/keep N/cancel N/stop, no LLM fallback) and bucket precedence model for ADV-change closure. Reusable conceptual template, but coupled to active-change scope only."
+        },
+        {
+          "label": "adv_change_close / bulk_close schema",
+          "locator": "plugin/src/tools/change.ts:3199-3258,3396-3460",
+          "summary": "ADV change mutation paths confirmed: reason enum {cancelled,superseded,not_planned}; superseded requires supersededBy; filter-based bulk close REJECTS superseded (explicit IDs only). Structural primitive for change cleanup."
+        },
+        {
+          "label": "GitHub close-as-duplicate (gh CLI + docs)",
+          "locator": "https://cli.github.com/manual/gh_issue_close ; https://github.blog/changelog/2024-12-12-github-issues-projects-close-issue-as-a-duplicate-rest-api-for-sub-issues-and-more/",
+          "summary": "gh issue close supports --duplicate-of <N> and --reason {completed|not planned|duplicate} natively (since 2024-12). Structural close path; no comment-string heuristic needed. 'Duplicate of #N' comment remains the timeline-event fallback (needs write access)."
+        },
+        {
+          "label": "backlog-coordination spec",
+          "locator": "spec:backlog-coordination v1.1.0",
+          "summary": "No requirement governs source-pool cleanup before scoring. rq-backlogCoord06 keeps Value user-owned; cleanup law would be a net-new requirement, fits this capability."
+        }
+      ],
+      "architecture_assessment": "Cleanup-before-priority is mostly a RE-ORDERING + GENERALIZATION of assets already present, not net-new machinery. Phase 3 already produces structural represented/unrepresented sets; Phase 4b already classifies relevance with the exact 4 outcomes the proposal needs; PROMPTS.md already defines the question-tool approval pattern; adv-cleanup already provides a strict Tier-B per-bucket closure parser. The cleanest design promotes relevance validation OUT of Phase 4 into a new Phase ~3.5 cleanup stage that runs over the WHOLE candidate pool (changes + issues + agenda) before BOTH issue creation and field assignment, reusing adv-cleanup's bucket/approval shape rather than inventing a second one. Structural close primitives exist for two of three sources (gh issue close --duplicate-of/--reason for issues; adv_change_close superseded/not_planned/cancelled for changes). The agenda surface is the asymmetric gap: it exposes only complete/cancel/prioritize — there is NO native 'supersede' verb, so agenda 'should-merge/superseded' must map to complete+note or cancel+note, and that mapping is a real user-value decision the orchestrator should lock.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "No blockers. Proposal scope is sound and largely reuses existing structure. Two design decisions need orchestrator/user resolution (agenda supersede mapping; whether cleanup runs before issue-creation too vs before scoring only). External GitHub duplicate-close is a native structural primitive — adopt it instead of comment heuristics."
+      },
+      "recommendation": "Adopt a single new cleanup stage between Phase 3 (match/gap) and Phase 4 (user assignments) that validates the full pool, reuses the adv-cleanup Tier-B per-bucket approval parser verbatim, and uses structural close primitives (gh issue close --duplicate-of/--reason; adv_change_close). Generalize Phase 4b into this stage rather than keeping two relevance passes; retain a thin item-level fallback only if discovery finds field-gap-specific evidence. Add a backlog-coordination spec requirement + extend the relevance asset test to assert cleanup-stage-before-Phase-4. Lock the agenda supersede->complete/cancel mapping with the user (user-value tradeoff).",
+      "follow_ups": [
+        "Confirm whether cleanup must precede issue-creation (4a) as well as scoring (4c), or scoring only.",
+        "Decide agenda 'should-merge/superseded' mapping (complete+note vs cancel+note) — no native supersede verb exists.",
+        "Decide dry-run preview vs Tier-B boundary for each cleanup action class."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "updateTriageCleanup",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-leverage-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Triage Phase 3.5 cleanup design — leverage points, simplifications, contract risks",
+      "sources": [
+        {
+          "label": "Official gh issue close manual (cli.github.com)",
+          "locator": "https://cli.github.com/manual/gh_issue_close",
+          "summary": "Documents NATIVE flags: --duplicate-of <number|url> AND -r/--reason {completed|not planned|duplicate}. Example: 'gh issue close 123 --duplicate-of 456'. Structural close-as-duplicate primitive exists — no comment-string heuristic required."
+        },
+        {
+          "label": "adv-triage command Phase 3/4b (repo)",
+          "locator": ".opencode/command/adv-triage.md:53-79",
+          "summary": "Phase 3 already builds represented[]/unrepresented[] structurally; Phase 4b relevance validation already classifies relevant/stale-already-addressed/duplicate-superseded/unclear AND already enforces advisory-only P33 + approval. Design's Phase 3.5 is a re-order + generalization of existing assets, not net-new machinery."
+        },
+        {
+          "label": "adv-triage PROMPTS.md relevance + deprecation prompts",
+          "locator": "skills/adv-triage/PROMPTS.md:50-130",
+          "summary": "Relevance outcome table + question-tool batch/per-item pattern already defined. Local source deprecation prompt already maps agenda item -> 'complete with note' (line 130). AC5 agenda mapping already has a prompt precedent to reuse."
+        },
+        {
+          "label": "adv-triage relevance asset test",
+          "locator": "plugin/src/adv-triage-relevance-assets.test.ts:13-49",
+          "summary": "Existing document-index ordering assertions (relevanceIndex < fieldAssignmentIndex) are the exact extensible pattern for AC7 cleanup-before-creation/scoring drift test. Reuse, do not invent a new test harness."
+        },
+        {
+          "label": "backlog-coordination spec v1.1.0 (9 reqs)",
+          "locator": "spec:backlog-coordination",
+          "summary": "No requirement governs source-pool cleanup before scoring; rq-backlogCoord06 keeps Value user-owned. AC8 cleanup law is net-new and fits this capability cleanly. Next id rq-backlogCoord09."
+        },
+        {
+          "label": "Repo gh close precedent",
+          "locator": ".opencode/command/adv-archive.md:459 ; .adv/archive/2026-05-09-wireIssueChangeLinkage/design.md:29",
+          "summary": "Established repo pattern: 'gh issue close <N> --reason completed', exit-code-only idempotent handling, non-fatal on failure. Cleanup GH close path should mirror this proven shape, not invent new error handling."
+        }
+      ],
+      "architecture_assessment": "Design is sound and high-leverage: ~80% reuse of existing Phase 3 structural sets + Phase 4b relevance classifier + PROMPTS question-tool approval surface + asset-test ordering pattern. Promoting Phase 4b into a single Phase 3.5 over the whole pool (changes+issues+agenda) and deleting the duplicate Phase 4b pass is the correct simplification — avoid two relevance passes. ONE MATERIAL CONTRACT RISK: agreement C6/AC6 assert the local gh CLI lacks --duplicate-of and mandate comment-string ('Duplicate of #N') heuristics + only completed|not planned reasons. The OFFICIAL gh manual contradicts this: --duplicate-of AND --reason duplicate are native, documented primitives. Building on a comment-string heuristic where a structural close primitive exists VIOLATES the change's own P33/C1 'structural before heuristic' constraint and ships a weaker solution. The C6 observation is almost certainly a stale/older local gh binary (or truncated --help read) captured at discovery; repo already uses --reason flags natively elsewhere. Second decision to lock: agenda has NO native 'supersede' verb (only complete/cancel/prioritize), so AC5 'complete-with-note' is the right mapping and already has a PROMPTS precedent — keep it.",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "No hard blockers, but one design-around required before planning: reconcile AC6/C6 against verified native gh --duplicate-of/--reason duplicate support. Recommend design gate version-detect gh capability and PREFER the structural --duplicate-of/--reason duplicate path, falling back to comment+supported-reason only when a probe proves the local binary lacks the flag. This satisfies AC6 (no dependence on unavailable flags) AND P33 (structural-first) without rubber-stamping the stale assumption."
+      },
+      "recommendation": "Adopt now: (1) Single Phase 3.5 over full pool replacing Phase 4b (delete duplicate relevance pass). (2) Reuse adv-triage-relevance-assets.test.ts ordering-index pattern for AC7. (3) Reuse PROMPTS agenda 'complete-with-note' precedent for AC5. (4) Add rq-backlogCoord09 cleanup-before-creation/scoring law. Design-around (do NOT hardcode comment heuristic): make GH duplicate handling capability-detected — probe 'gh issue close --help' for --duplicate-of; use native --duplicate-of/--reason duplicate when present (structural, P33-aligned), comment-fallback only when absent. Surface to orchestrator: the AC6/C6 wording presumes the flag is unavailable, which the official manual contradicts; confirm with user whether to keep heuristic-only (honoring literal AC6) or upgrade AC6 to capability-detected structural-first.",
+      "follow_ups": [
+        "Orchestrator/user decision: reconcile AC6/C6 (assumes no --duplicate-of) vs verified native gh support; prefer capability-detected structural close.",
+        "Confirm Phase 4b is fully removed (not left as a second pass) to avoid double relevance prompting.",
+        "Lock dry-run vs Tier-B boundary per cleanup action class (archive-recommend vs change_close vs gh close vs agenda complete).",
+        "Set net-new spec id rq-backlogCoord09 for cleanup-before-creation/scoring law (AC8)."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "updateTriageCleanup",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation — Phase 3.5 source cleanup before triage scoring",
+      "sources": [
+        {
+          "label": "backlog-coordination spec v1.1.0 (adv_spec)",
+          "locator": "spec:backlog-coordination v1.1.0",
+          "summary": "Owns issue claims, Value human-authority (rq-backlogCoord06), active-change annotation, triage-origin linkage. No existing cleanup-before-scoring law — confirms rq-backlogCoord09 is net-new and non-conflicting. D6 spec home is correct."
+        },
+        {
+          "label": "adv_change_close reason enum + supersededBy guard",
+          "locator": "plugin/src/tools/change.ts:3199-3252",
+          "summary": "reason enum = {cancelled,superseded,not_planned}; superseded requires supersededBy. D4 ADV-change action mapping is structurally exact. NOTE: 'archive' and 'completed' are NOT close reasons — design correctly routes those to /adv-archive recommendation, not adv_change_close."
+        },
+        {
+          "label": "adv_agenda_complete notes support",
+          "locator": "plugin/src/tools/agenda.ts:156-187",
+          "summary": "adv_agenda_complete accepts optional notes param. D4 agenda complete-with-note and AC5 (survivor/source reference) are structurally supported."
+        },
+        {
+          "label": "gh issue close official manual",
+          "locator": "https://cli.github.com/manual/gh_issue_close",
+          "summary": "Native flags --duplicate-of <string> and --reason {completed|not planned|duplicate} are documented. D5 capability-detection is correct and superior to C6's assumption that flags are absent — detection adapts to both modern and old CLI."
+        },
+        {
+          "label": "current adv-triage command Phase 4b",
+          "locator": ".opencode/command/adv-triage.md:67-79",
+          "summary": "Existing Phase 4b relevance validation has the exact classification vocabulary (relevant/stale-already-addressed/duplicate-superseded/unclear) and P33 advisory-only warning. D2 generalization into Phase 3.5 is a reorder+lift, not net-new machinery."
+        },
+        {
+          "label": "existing asset test ordering anchors",
+          "locator": "plugin/src/adv-triage-relevance-assets.test.ts:14-49",
+          "summary": "Test asserts '### 4b. Relevance validation' indexOf < '### 4c. Field assignments'. Moving/removing 4b WILL break these assertions; design strategy step 6 commits to updating them — must be honored or asset tests fail (which AC7 actually wants for regressions)."
+        }
+      ],
+      "architecture_assessment": "Design is a reorder + generalization of assets already present (Phase 3 structural match, Phase 4b classification vocabulary, /adv-cleanup Tier-B approval grammar, existing asset-test ordering pattern), not net-new machinery. All source-action primitives are confirmed: adv_change_close {cancelled,superseded,not_planned} for changes, adv_agenda_complete notes for agenda, native gh issue close --duplicate-of/--reason for issues. cleanup_decisions[] is correctly command-local (no new MCP tool/store), preserving minimal-machinery and P33 (heuristics flag, approval groups mutate). The agreement's C6 assumes local gh lacks --duplicate-of, but official manual + discovery scout confirm native support exists; D5 capability-detection resolves this cleanly and satisfies AC6/C6 either way. One implementation watch-item: existing asset test hard-codes 4b→4c ordering; generalizing 4b into 3.5 requires updating those assertions in lockstep (strategy step 6 covers it).",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "No blockers. Caution-level: (1) C6/agreement premise that gh lacks --duplicate-of is contradicted by official manual — D5 capability-detect already handles it, so no rework, but spec/AC6 wording should not assert flags are universally absent. (2) Existing adv-triage-relevance-assets.test.ts ordering assertions must be migrated when 4b is lifted into 3.5 or the suite breaks. (3) Design adds source types wisdom/note/todo to cleanup_decisions beyond agreement's enumerated ADV-change/GH-issue/agenda trio — acceptable extension but ensure C4 (no broad repo hygiene) boundary holds for those."
+      },
+      "recommendation": "VALIDATED. The design solves all 8 objectives with confirmed structural primitives and the simplest viable approach (generalize existing Phase 4b rather than add a parallel pass; command-local cleanup_decisions[] rather than new tool/store). Proceed to planning. During execution: (a) honor strategy step 6 — update the existing 4b→4c asset-test ordering assertions to 3.5→4a/4c so AC7 regressions still fire; (b) keep D5 capability detection as the single GitHub duplicate path and align AC6/C6 prose so it no longer asserts native flags are absent; (c) confirm wisdom/note/todo cleanup stays within C4 backlog-source scope, not broad hygiene.",
+      "follow_ups": [
+        "Update adv-triage-relevance-assets.test.ts ordering assertions when Phase 4b lifts into Phase 3.5 (else suite breaks).",
+        "Align AC6/C6 prose: gh issue close --duplicate-of IS available per official manual; capability-detection covers both, but spec should not assert universal absence.",
+        "Confirm wisdom/note/todo cleanup classifications respect C4 (no broad repo hygiene) boundary."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "updateTriageCleanup",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/updateTriageCleanup",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [
+        {
+          "file": ".opencode/command/adv-triage.md",
+          "summary": "Moved the no-new-issues/no-field-gaps fast-path until after Phase 3.5 cleanup validation, preventing cleanup validation from being bypassed when no issue creation or scoring gaps exist.",
+          "verification": "bin/oc-test targeted -- src/adv-triage-relevance-assets.test.ts passed (7 tests); pnpm --dir plugin run schemas:check passed."
+        },
+        {
+          "file": "plugin/src/adv-triage-relevance-assets.test.ts",
+          "summary": "Added assertion that the no-work skip path appears after Phase 3.5 cleanup validation, covering the ordering regression found during review.",
+          "verification": "bin/oc-test targeted -- src/adv-triage-relevance-assets.test.ts passed (7 tests)."
+        }
+      ],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "Instruction ordering tests should cover early-exit/skip branches, not only major phase headers; otherwise a fast-path can bypass a newly inserted validation phase while header-order tests still pass."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/adv-triage-relevance-assets.test.ts",
+          "pnpm --dir plugin run schemas:check"
+        ],
+        "results": "pass",
+        "evidence": "Targeted asset suite passed: 1 file, 7 tests. Schema drift check completed successfully via tsx scripts/generate-json-schemas.ts --check."
+      },
+      "scope_drift": null,
+      "risks": [],
+      "required_main_agent_actions": [],
+      "required_follow_ups": [],
+      "consumer_warnings": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "updateTriageCleanup",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/updateTriageCleanup",
+      "scope": {
+        "kind": "change",
+        "scope_key": "harden:release"
+      },
+      "agent": "adv-reviewer",
+      "phase": "harden",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [
+        {
+          "file": ".opencode/command/adv-triage.md",
+          "summary": "Added `adv_agenda_cancel` to the adv-triage Key Tools agenda row so the command tool list matches Phase 3.5 cleanup action mapping for stale/not-planned agenda cancellation.",
+          "verification": "`bin/oc-test targeted -- src/adv-triage-relevance-assets.test.ts` passed: 1 file, 7 tests."
+        },
+        {
+          "file": "plugin/src/adv-triage-relevance-assets.test.ts",
+          "summary": "Extended the triage asset coverage to assert cleanup prompt documentation includes `adv_agenda_cancel`, preventing future drift between agenda cleanup actions and tested prompt assets.",
+          "verification": "`bin/oc-test targeted -- src/adv-triage-relevance-assets.test.ts` passed: 1 file, 7 tests."
+        }
+      ],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- plugin/src/adv-triage-relevance-assets.test.ts",
+          "bin/oc-test targeted -- src/adv-triage-relevance-assets.test.ts"
+        ],
+        "results": "pass",
+        "evidence": "First targeted run used repo-root path under wrapper that runs inside plugin and failed with no test files found. Rerun with plugin-relative `src/adv-triage-relevance-assets.test.ts` passed: 1 test file, 7 tests, exit 0."
+      },
+      "scope_drift": null,
+      "risks": [],
+      "required_main_agent_actions": [],
+      "required_follow_ups": [],
+      "consumer_warnings": [
+        {
+          "kind": "consumer_failure",
+          "message": "Spawn prompt requested scope_key `release-harden`, but report schema only accepts `harden:release` for harden change-scope reports; submitted with schema-valid harden scope key."
+        }
+      ]
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-F3oyWq",
+      "type": "gotcha",
+      "content": "`bin/oc-test` is rooted at the repository checkout, not `plugin/`; ADV verification commands using `bin/oc-test targeted -- ...` must run with workdir at repo root even though tests themselves execute under plugin/.",
+      "source_task": "tk-dfd36ea05cd8",
+      "recorded_at": "2026-06-19T18:11:56.132Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-06-19T15:30:49.273Z",
+      "completed_by": "user:proposal-approval",
+      "approval_evidence": "User approved proposal checkpoint with exact reply: approve",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "2457013dd2b34350135d49da361e5d9051f9d37cd697b6f44b860b2511b1f2b3",
+        "non_whitespace_chars": 6554,
+        "checked_at": "2026-06-19T15:29:37.243Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-06-19T15:41:25.533Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery findings, approved agreement, and ChangeContract persisted. User approved criteria/agreement checkpoint with exact reply: approve.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "6098b172b647b5dc7c3e63d00973b53d70077d65a6b00531d7a0b598188069e1",
+        "non_whitespace_chars": 5495,
+        "checked_at": "2026-06-19T15:29:37.244Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-06-19T15:48:04.685Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design recorded and independently validated. Validator verdict: VALIDATED with non-blocking cautions. No unresolved user-value tradeoff, conflict, or contract-compromise risk.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "8aa90eff4ff55d79e8a57480a4f10533a5bc621f7048687e19e894efed07f27f",
+        "non_whitespace_chars": 8522,
+        "checked_at": "2026-06-19T15:29:37.245Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-06-19T15:58:10.249Z",
+      "completed_by": "user:prep-approval",
+      "approval_evidence": "User approved planning/prep task graph with exact reply: approve"
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-06-19T18:13:03.985Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 5 planned tasks complete. Verification: tr_mql8xj81_6bd3cd2c passed `bin/oc-test targeted -- src/adv-triage-relevance-assets.test.ts` (7 tests); tr_mql8xj4q_e1d9728d passed `pnpm run schemas:check`. Worktree clean at checkpoint e6cd5b4e899a0c5d641e064d0af88c1dd59c6159."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-06-19T18:54:20.413Z",
+      "completed_by": "user:acceptance-approval",
+      "approval_evidence": "User accepted delivered work with exact reply: approve. Acceptance proof pre-persisted: executive summary present (content hash ba8e1e3aba9834fb5404dba05da7e9847c4d27eb1f59c743254125f82f0786df), contract matrix 32/32 pass/respected with 0 failing rows, reviewer verdict READY, targeted tests and schemas:check passed.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "ba8e1e3aba9834fb5404dba05da7e9847c4d27eb1f59c743254125f82f0786df",
+        "non_whitespace_chars": 1659,
+        "checked_at": "2026-06-19T15:29:37.246Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "adhoc"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "6098b172b647b5dc7c3e63d00973b53d70077d65a6b00531d7a0b598188069e1",
+      "approvedAt": "2026-06-19T15:41:19.627Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "`/adv-triage` presents only cleanup-validated backlog candidates before user-owned scoring begins.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6098b172b647b5dc7c3e63d00973b53d70077d65a6b00531d7a0b598188069e1",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "Stale, duplicate, superseded, already-addressed, and should-merge items are surfaced with evidence before mutation or suppression.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6098b172b647b5dc7c3e63d00973b53d70077d65a6b00531d7a0b598188069e1",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "User approval remains required for destructive or suppressive cleanup actions.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6098b172b647b5dc7c3e63d00973b53d70077d65a6b00531d7a0b598188069e1",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC4",
+        "kind": "success_criterion",
+        "text": "Agenda superseded/merge candidates resolve as completed-with-note after approval.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6098b172b647b5dc7c3e63d00973b53d70077d65a6b00531d7a0b598188069e1",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC5",
+        "kind": "success_criterion",
+        "text": "Cleanup-before-priority behavior is backed by spec law and automated drift tests.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6098b172b647b5dc7c3e63d00973b53d70077d65a6b00531d7a0b598188069e1",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "Given `/adv-triage` has gathered and matched source items, when cleanup validation runs, then it runs before both new issue creation and bug Priority / feature Value prompts.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6098b172b647b5dc7c3e63d00973b53d70077d65a6b00531d7a0b598188069e1",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Given a cleanup candidate is stale, duplicate, superseded, already addressed, should-merge, or unclear, when `/adv-triage` reports it, then output includes source, reason, evidence, and proposed action.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6098b172b647b5dc7c3e63d00973b53d70077d65a6b00531d7a0b598188069e1",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Given a cleanup candidate would close, complete, cancel, remove, suppress, merge-note, or deprioritize an item, when `/adv-triage` prepares the action, then explicit approval is required batched by source/reason.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6098b172b647b5dc7c3e63d00973b53d70077d65a6b00531d7a0b598188069e1",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Given title similarity or agent inference flags a candidate, when no structural evidence or user approval exists, then `/adv-triage` must not mutate or suppress the item.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6098b172b647b5dc7c3e63d00973b53d70077d65a6b00531d7a0b598188069e1",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Given an agenda item is approved as superseded/should-merge, when cleanup applies, then the agenda item is completed with a note referencing the survivor/source.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6098b172b647b5dc7c3e63d00973b53d70077d65a6b00531d7a0b598188069e1",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Given GitHub duplicate handling is needed, when the local `gh` CLI lacks duplicate-close support, then `/adv-triage` uses documented duplicate-comment semantics and supported close reasons only.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6098b172b647b5dc7c3e63d00973b53d70077d65a6b00531d7a0b598188069e1",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "Given tests inspect `/adv-triage` command/skill surfaces, when cleanup ordering or advisory-only heuristic rules regress, then automated tests fail.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6098b172b647b5dc7c3e63d00973b53d70077d65a6b00531d7a0b598188069e1",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC8",
+        "kind": "acceptance_criterion",
+        "text": "Given backlog-coordination specs are inspected, when this change lands, then a requirement exists for cleanup-before-creation/scoring behavior.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6098b172b647b5dc7c3e63d00973b53d70077d65a6b00531d7a0b598188069e1",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "P33 structural correctness applies: heuristics may rank or flag cleanup candidates, never own closure, suppression, persistence, or spec compliance decisions.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6098b172b647b5dc7c3e63d00973b53d70077d65a6b00531d7a0b598188069e1",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Bug Priority and feature Value remain user-owned.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6098b172b647b5dc7c3e63d00973b53d70077d65a6b00531d7a0b598188069e1",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Destructive/suppressive cleanup actions require explicit approval.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6098b172b647b5dc7c3e63d00973b53d70077d65a6b00531d7a0b598188069e1",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "`/adv-triage` remains focused on backlog reconciliation/scoring, not broad repo hygiene.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6098b172b647b5dc7c3e63d00973b53d70077d65a6b00531d7a0b598188069e1",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "`ROADMAP.md` generation remains deterministic from GitHub Project/repo state after cleanup decisions.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6098b172b647b5dc7c3e63d00973b53d70077d65a6b00531d7a0b598188069e1",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C6",
+        "kind": "constraint",
+        "text": "Current local `gh issue close --help` supports `--reason completed|not planned`, not `--duplicate-of`; implementation must not rely on unavailable CLI flags.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6098b172b647b5dc7c3e63d00973b53d70077d65a6b00531d7a0b598188069e1",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not close ADV changes, GitHub issues, or agenda items based only on title similarity or agent inference.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6098b172b647b5dc7c3e63d00973b53d70077d65a6b00531d7a0b598188069e1",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not ask for bug Priority or feature Value before cleanup validation has completed for the candidate pool.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6098b172b647b5dc7c3e63d00973b53d70077d65a6b00531d7a0b598188069e1",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not silently suppress ambiguous cleanup candidates.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6098b172b647b5dc7c3e63d00973b53d70077d65a6b00531d7a0b598188069e1",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not mutate GitHub/project state without existing Tier B approval boundaries.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6098b172b647b5dc7c3e63d00973b53d70077d65a6b00531d7a0b598188069e1",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "Do not replace or broaden `/adv-cleanup`; use it only as pattern reference.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6098b172b647b5dc7c3e63d00973b53d70077d65a6b00531d7a0b598188069e1",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT6",
+        "kind": "avoidance",
+        "text": "Do not change WSJF formula or bug priority label semantics.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6098b172b647b5dc7c3e63d00973b53d70077d65a6b00531d7a0b598188069e1",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT7",
+        "kind": "avoidance",
+        "text": "Do not duplicate Temporal/store access outside ADV tools or approved command/tool surfaces.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6098b172b647b5dc7c3e63d00973b53d70077d65a6b00531d7a0b598188069e1",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "Running a one-off cleanup of the current project backlog as part of this change.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6098b172b647b5dc7c3e63d00973b53d70077d65a6b00531d7a0b598188069e1",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "Changing WSJF formula or bug priority label semantics.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6098b172b647b5dc7c3e63d00973b53d70077d65a6b00531d7a0b598188069e1",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "Automating feature Value assignment without user approval.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6098b172b647b5dc7c3e63d00973b53d70077d65a6b00531d7a0b598188069e1",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS4",
+        "kind": "out_of_scope",
+        "text": "Replacing `/adv-cleanup`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6098b172b647b5dc7c3e63d00973b53d70077d65a6b00531d7a0b598188069e1",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS5",
+        "kind": "out_of_scope",
+        "text": "Broad repository hygiene unrelated to backlog/source cleanup.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6098b172b647b5dc7c3e63d00973b53d70077d65a6b00531d7a0b598188069e1",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS6",
+        "kind": "out_of_scope",
+        "text": "Changing `/adv-roadmap` or backlog read tools except where tests/spec references require awareness.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6098b172b647b5dc7c3e63d00973b53d70077d65a6b00531d7a0b598188069e1",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-06-19T18:17:30.000Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "`.opencode/command/adv-triage.md` Phase 3.5 runs before Phase 4 issue creation/scoring; `plugin/src/adv-triage-relevance-assets.test.ts` asserts cleanup before issue creation, field assignment, and no-work skip.",
+          "notes": "Cleanup-validated candidates precede user-owned scoring."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "Command Phase 3.5 and `skills/adv-triage/PROMPTS.md` require source, classification/reason, evidence, proposed action, and survivor/source for cleanup candidates.",
+          "notes": "Covers stale, duplicate, superseded, already-addressed, and should-merge."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "Command Phase 3.5 and prompt template batch destructive/suppressive cleanup approvals by source/reason; anti-patterns forbid mutation from title similarity alone.",
+          "notes": "Tier B approval boundary documented."
+        },
+        {
+          "contractId": "SC4",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "Command Phase 3.5 and `PROMPTS.md` map agenda duplicate/superseded/should-merge to `adv_agenda_complete` with survivor/source note; asset test checks prompt contains `adv_agenda_complete`.",
+          "notes": "Behavior specified; no one-off cleanup run in scope."
+        },
+        {
+          "contractId": "SC5",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`rq-backlogCoord09` added to backlog-coordination spec; `bin/oc-test targeted -- src/adv-triage-relevance-assets.test.ts` passed (tr_mql935o4_d2cd81a9, 7 tests).",
+          "notes": "Spec law and automated drift test present."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Asset test `command requires source cleanup before issue creation and field prompts` asserts Phase 3.5 after match and before `4a`/`4c`; reviewer added assertion that no-work skip follows cleanup. Test passed tr_mql935o4_d2cd81a9.",
+          "notes": "Also command contains MUST NOT issue-create or prompt scoring before cleanup validation."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "`cleanup_decisions[]` schema defines source/ref/classification/evidence/proposedAction/approvalGroup; prompt template displays source, classification, evidence, proposed action, survivor/source.",
+          "notes": "Reason represented as classification/source-reason group."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "`PROMPTS.md` Source cleanup validation prompt groups by source/reason and requires exact Tier B approval options before applying actions; command says mutate/suppress only after explicit Tier B approval.",
+          "notes": "Includes closure, completion, cancellation, suppression, merge-note, deprioritization."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "Command Phase 3.5 states title similarity and agent inference are advisory only and never mutate/close/suppress/remove without structural evidence and approval; schema/anti-patterns repeat this boundary.",
+          "notes": "P33 preserved."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "Command Phase 3.5 and `PROMPTS.md` specify agenda duplicate/superseded/should-merge → `adv_agenda_complete` with survivor/source note after approval.",
+          "notes": "No live agenda mutation in scope."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "Command and prompts require capability detection via `gh issue close --help`, native `--duplicate-of` only when present, and fallback `Duplicate of #N` comment semantics plus locally supported close reasons.",
+          "notes": "Avoids relying on unavailable CLI support."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`plugin/src/adv-triage-relevance-assets.test.ts` covers cleanup ordering, schema/prompt contract, GitHub duplicate capability detection, and advisory-only spec law; passed tr_mql935o4_d2cd81a9.",
+          "notes": "Automated regression coverage active."
+        },
+        {
+          "contractId": "AC8",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "Backlog-coordination spec includes `rq-backlogCoord09` with cleanup-before-creation/scoring behavior, advisory-only heuristics, and multiple scenarios; asset test passed.",
+          "notes": "Spec law present."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Reviewer verdict READY; command/schema/anti-patterns make heuristics advisory only and require structural evidence + approval for mutation/suppression.",
+          "notes": "P33 boundary explicit."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Command Phase 3.5 and skill core flow state bug Priority and feature Value prompts occur only after cleanup validation; no autonomous Value assignment added.",
+          "notes": "User ownership preserved."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Cleanup prompt and command require explicit Tier B approval for destructive/suppressive actions grouped by source/reason.",
+          "notes": "Approval retained."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Scope limited to `/adv-triage` command, adv-triage skill docs, backlog-coordination spec, and asset tests; no broad repo hygiene machinery added.",
+          "notes": "Reviewer found no scope drift."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "ROADMAP generation flow remains Phase 6 deterministic from fresh GitHub Project read after cleanup decisions; no formula/generation implementation changed.",
+          "notes": "Generated mirrors remain existing flow."
+        },
+        {
+          "contractId": "C6",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Docs require `gh issue close --help` capability detection and fallback when `--duplicate-of` unavailable; no hard dependency on unavailable local CLI flags.",
+          "notes": "Local CLI limitation handled structurally."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Command and anti-patterns forbid close/complete/cancel/remove/suppress/deprioritize from title similarity alone.",
+          "notes": "Heuristic-owned mutation prohibited."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Asset test asserts cleanup validation before field assignments; command says MUST NOT prompt for Priority/Value before cleanup validation.",
+          "notes": "Scoring prompt order protected."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Command Phase 3.5 requires unclear items get focused clarification and stay visible; unresolved items are not silently suppressed.",
+          "notes": "Ambiguity surfaced."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Cleanup prompt uses Tier B exact whitelist for mutations; no new GitHub/project mutation path without approval added.",
+          "notes": "Existing approval boundary preserved."
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No `/adv-cleanup` files changed; `/adv-cleanup` only used as conceptual pattern reference in design, not replacement.",
+          "notes": "Disjoint commands retained."
+        },
+        {
+          "contractId": "DONT6",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No WSJF formula or bug priority label semantics changed; triage skill formulas remain unchanged.",
+          "notes": "Scoring semantics intact."
+        },
+        {
+          "contractId": "DONT7",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No Temporal/store access code added; changes are command/skill/spec/test documentation and asset assertions only.",
+          "notes": "No duplicate state access."
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No one-off cleanup of current project backlog was run; implementation only updates workflow docs/spec/tests.",
+          "notes": "No backlog state mutation."
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "WSJF formula and bug priority label semantics unchanged.",
+          "notes": "Out-of-scope respected."
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No automation of feature Value assignment added; Value remains user-owned unless user explicitly chooses autofill in existing prompt flow.",
+          "notes": "Out-of-scope respected."
+        },
+        {
+          "contractId": "OOS4",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No `/adv-cleanup` replacement or behavior change introduced.",
+          "notes": "Out-of-scope respected."
+        },
+        {
+          "contractId": "OOS5",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No broad repository hygiene beyond triage source-pool cleanup contract.",
+          "notes": "Out-of-scope respected."
+        },
+        {
+          "contractId": "OOS6",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No `/adv-roadmap` or backlog read tool code changed; only spec/test awareness added.",
+          "notes": "Out-of-scope respected."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "Given `/adv-triage` has gathered and matched source items, when cleanup validation runs, then it runs before both new issue creation and bug Priority / feature Value prompts.",
+    "Given a cleanup candidate is stale, duplicate, superseded, already addressed, should-merge, or unclear, when `/adv-triage` reports it, then output includes source, reason, evidence, and proposed action.",
+    "Given a cleanup candidate would close, complete, cancel, remove, suppress, merge-note, or deprioritize an item, when `/adv-triage` prepares the action, then explicit approval is required batched by source/reason.",
+    "Given title similarity or agent inference flags a candidate, when no structural evidence or user approval exists, then `/adv-triage` must not mutate or suppress the item.",
+    "Given an agenda item is approved as superseded/should-merge, when cleanup applies, then the agenda item is completed with a note referencing the survivor/source.",
+    "Given GitHub duplicate handling is needed, when the local `gh` CLI lacks duplicate-close support, then `/adv-triage` uses documented duplicate-comment semantics and supported close reasons only.",
+    "Given tests inspect `/adv-triage` command/skill surfaces, when cleanup ordering or advisory-only heuristic rules regress, then automated tests fail.",
+    "Given backlog-coordination specs are inspected, when this change lands, then a requirement exists for cleanup-before-creation/scoring behavior."
+  ],
+  "documents": {
+    "proposal": "# Update triage cleanup\n\n## Problem\n\n`/adv-triage` currently asks for backlog priority decisions before running a full cleanup pass across source pools. Existing Phase 4b relevance validation helps for field-gap candidates, but it happens after source gathering/matching and does not establish a first-class cleanup gate for open ADV changes, GitHub issues, and agenda items before priority assignment.\n\n## Why\n\nPriority assignment is noisy when the candidate pool includes items that are already completed/fixed, duplicated, should be merged, superseded, or no longer actionable. The workflow should remove or route those items before asking the user for priority/value decisions.\n\n## What Changes\n\n- Add an explicit cleanup/validation stage early in `/adv-triage`, before user priority/value assignment.\n- Validate open ADV changes for already completed work, supersession, duplicates, or merge/closure candidates.\n- Validate GitHub issues for duplicates, merge candidates, supersession, and already-fixed/already-addressed status.\n- Validate agenda items for duplicates, supersession, already-addressed status, and merge/closure candidates.\n- Preserve approval boundaries for destructive actions such as closing changes, closing issues, completing/cancelling agenda items, or deprioritizing items.\n- Keep heuristics advisory: they may flag cleanup candidates, but structural evidence and/or explicit user approval must own mutations.\n\n## User Outcomes\n\n- User sees a cleaned, evidence-backed candidate pool before assigning priorities.\n- User is not asked to prioritize items that are stale, duplicate, superseded, or already fixed.\n- User gets clear cleanup recommendations grouped by source and reason.\n- User remains in control of destructive cleanup decisions.\n- Triage output produces a cleaner roadmap and fewer duplicate backlog items.\n\n## Scope\n\n### In Scope\n\n- `/adv-triage` workflow ordering and cleanup stage definition.\n- Source-pool validation for open ADV changes, GitHub issues, and agenda items.\n- Cleanup candidate classifications: already completed/fixed, duplicate, should merge, superseded, already addressed, unclear.\n- User approval path for closing, merging, cancelling, completing, removing, or deprioritizing candidates.\n- Updates to command/skill prose and asset tests that enforce cleanup-before-priority behavior.\n- Spec deltas for backlog/triage coordination if discovery confirms this is durable command law.\n\n### Out of Scope\n\n- Running a one-off cleanup of the current project backlog as part of this proposal.\n- Changing WSJF formula or bug priority label semantics.\n- Automating feature Value assignment without user approval.\n- Replacing `/adv-cleanup`; that command remains active-change cleanup triage unless discovery decides a shared cleanup primitive is needed.\n- Broad repository hygiene unrelated to backlog/source cleanup.\n\n### Must Not\n\n- Must not close ADV changes, GitHub issues, or agenda items based only on title similarity or agent inference.\n- Must not ask for bug Priority or feature Value before cleanup validation has completed for the candidate pool.\n- Must not silently suppress ambiguous candidates; unclear items must be surfaced.\n- Must not mutate GitHub/project state without the existing Tier B approval boundaries.\n- Must not duplicate Temporal/store access outside ADV tools or approved command/tool surfaces.\n\n## Affected Code\n\nLikely surfaces for discovery:\n\n- `.opencode/command/adv-triage.md` — phase ordering, cleanup stage, approval boundaries.\n- `skills/adv-triage/` — cleanup methodology, prompts, anti-patterns, schemas/rubrics if needed.\n- `plugin/src/adv-triage-relevance-assets.test.ts` or adjacent asset tests — enforce cleanup-before-priority ordering.\n- `.adv/specs/backlog-coordination/` or `.adv/specs/advance-workflow/` — durable triage cleanup law if discovery confirms fit.\n- `plugin/src/tools/` only if the solution needs new structural helper/tool behavior after discovery.\n\n## Related Repositories\n\nSingle-repo scope currently expected: `advance`.\n\n## Constraints\n\n- P33 structural correctness: heuristics can rank/flag cleanup candidates, never own closure/suppression/persistence decisions.\n- Existing user authority remains: bug Priority and feature Value stay user-owned.\n- Destructive cleanup needs explicit approval.\n- ROADMAP generation remains deterministic from project/GitHub state after cleanup decisions.\n- Keep `/adv-triage` focused on backlog reconciliation/scoring; do not turn it into broad repo hygiene.\n\n## Impact\n\n- Better prioritization signal by reducing stale/duplicate candidate noise before user scoring.\n- More predictable triage flow by promoting cleanup to an explicit early stage instead of a narrow field-gap relevance check.\n- Possible extra user checkpoint during triage when cleanup candidates require approval.\n\n## Context\n\nCurrent evidence gathered during proposal:\n\n- `.opencode/command/adv-triage.md` currently gathers seven sources in Phase 2, matches/gaps in Phase 3, then handles user assignments in Phase 4.\n- Existing Phase 4b relevance validation says field-gap candidates must be classified before Priority/Value prompts, but it is scoped to field-gap candidates rather than a full upfront source cleanup pass.\n- `skills/adv-triage/ANTI-PATTERNS.md` already forbids asking users to score stale or already-addressed items.\n- `plugin/src/adv-triage-relevance-assets.test.ts` currently anchors relevance-before-field-prompts; likely needs expansion for cleanup-before-priority.\n- `backlog-coordination` spec owns backlog/claim coordination; no existing requirement found for source-pool cleanup before scoring.\n\n## Discovery Findings\n\n### Discovery Checklist\n\n| Step | Result | Evidence |\n|---|---|---|\n| Origin validation | PASS | Local adhoc change; no cross-project origin or fast-follow lineage on `adv_change_show`. |\n| Skill discovery | PASS | Loaded `adv-triage`; loaded `adv-cleanup` for related active-change cleanup pattern. No new skill needed. |\n| Prior research extension | PASS | No relevant `temp/brainstorm-*.md` or triage-specific `docs/*-prep.md` pack found. `docs/cli-surface-matrix.md` used as current context, not prior research. |\n| Conflict & related-work scan | PASS with degraded archived scan | `adv_change_validate` passed with expected pre-prep warnings only. Active changes listed; `addArchiveCleanupScanner` is cleanup-related but archive-specific. `adv_change_list` archived path timed out twice; `adv_temporal_diagnose` reported Temporal healthy. Agenda list shows many pending items, including triage/cleanup-adjacent follow-ups, but no blocker. |\n| Edge case investigation | PASS | Edge cases documented below. |\n| Design question depth | PASS | Open questions documented with trust model/blast radius/alternatives. User-facing questions resolved. |\n| Draft spec delta shapes | PASS | Draft `rq-triageCleanupBeforePriority01` below. |\n| Related-pattern scan | PASS | Relevance-validation, adv-cleanup bucket approval, generated ROADMAP cleanup summary, and asset-test patterns found. |\n| Completeness verification | PASS | Cross-source triage scope scanned: command, skill prompts/schema/anti-patterns, tests, cleanup command/skill, ROADMAP, specs. |\n| LBP check | PASS | Best direction is a single explicit cleanup stage after matching and before all Phase 4 user mutations/prompts. |\n| Discovery opportunity scout | PASS | Triggered due broad workflow/user-authority surface; researcher returned 5 candidates; 3 adopted, 1 user-resolved, 1 corrected based on local `gh` CLI evidence. |\n\n### Skills Considered\n\n| Skill | Match | Action |\n|---|---|---|\n| `adv-triage` | Strong | Loaded. Provides source enumeration, match algorithm, scoring, prompt templates, anti-patterns. |\n| `adv-cleanup` | Related | Loaded. Provides strict bucket approval pattern for active changes; reuse conceptually, do not couple or replace `/adv-cleanup`. |\n| `adv-opportunity-scout` | Triggered via researcher | Used indirectly by `adv-researcher` scout packet; findings integrated. |\n| New skill | Not needed | Existing `adv-triage` and `adv-cleanup` cover domain. |\n\n### Extends\n\nNo relevant prior research pack found in `temp/` or `docs/*-prep.md` for triage cleanup.\n\nCurrent-context artifacts cited:\n\n- `docs/cli-surface-matrix.md:27-28` confirms `/adv-triage` and `/adv-cleanup` are both agent-workflow-only because they are HITL-scoped.\n- `ROADMAP.md:64-73` shows current generated roadmap already reports “Issues closed as completed/duplicate/superseded this run,” so reporting shape exists even though command docs lack a first-class early cleanup phase.\n\n### Conflict Scan\n\n- Active changes: `updateTriageCleanup` is current; no direct active overlap found. `addArchiveCleanupScanner` is cleanup-related but release/archive-specific. `clarifyTempFileRules` and `conformAdvanceCi` have completed tasks but are unrelated to triage cleanup.\n- Validation: `adv_change_validate updateTriageCleanup` passed. `NO_TASKS` and `NO_DELTAS` warnings are expected before prep.\n- Agenda: `adv_agenda_list` returned 200 pending/completed entries; several are cleanup/triage-adjacent follow-ups, but none supersede this change.\n- Archived scan: `adv_change_list status:'archived' includeArchived:true` timed out even at limit 5. Temporal health check passed, so this is recorded as degraded discovery evidence, not a blocker.\n\n### Current State\n\n- `.opencode/command/adv-triage.md:47-79` has Phase 2 gather, Phase 3 match/gaps, Phase 4a issue creation, Phase 4b relevance validation, and Phase 4c field assignment.\n- `.opencode/command/adv-triage.md:69-75` requires relevance-checking every field-gap candidate before Priority/Value, but the check is item-scoped and after new-issue confirmation.\n- `skills/adv-triage/PROMPTS.md:52-72` defines relevance outcomes: `relevant`, `stale/already-addressed`, `duplicate/superseded`, `unclear`.\n- `skills/adv-triage/SCHEMA.md:15-20` only models `represented[]` and `unrepresented[]`; no cleanup decision collection exists yet.\n- `plugin/src/adv-triage-relevance-assets.test.ts:13-49` anchors relevance-before-field-prompts and prompt outcome vocabulary, but not cleanup-before-issue-creation or source-pool cleanup.\n- `.opencode/command/adv-cleanup.md:89-115` and `skills/adv-cleanup/SKILL.md` define strict per-bucket Tier B approval. This is a good pattern to reuse conceptually.\n- Installed `gh issue close --help` supports `--reason completed|not planned`, but not a `--duplicate-of` flag in this environment.\n- GitHub Docs state duplicate marking is done by commenting `Duplicate of #N`; write access creates a duplicate timeline event. GitHub changelog says close-as-duplicate exists in public preview UI, but current local CLI help does not expose it.\n\n### Edge Cases\n\n| Gap | Edge cases / failure modes |\n|---|---|\n| Cleanup timing | (1) If cleanup runs only before scoring, stale local sources can still become new GH issues in Phase 4a. (2) If cleanup runs before matching, it lacks represented/unrepresented context and may duplicate matching work. |\n| ADV changes | (1) A draft with all tasks done but gates incomplete may be ready for archive/re-entry, not closure. (2) A stale draft may have an active child/fast-follow or linked issue claim and should not be closed blindly. |\n| GitHub issues | (1) Title-similar issues may be related but not duplicates. (2) A fixed issue may have no closing PR keyword, requiring source/test evidence or user confirmation. (3) Local CLI lacks duplicate-close flag, so duplicate marking may require comment + close reason fallback. |\n| Agenda items | (1) Agenda has complete/cancel/prioritize tools, but no native supersede verb. (2) Completing a superseded agenda item can imply “done elsewhere”; cancelling can imply “not planned,” so user-owned semantics matter. |\n| Approval batching | (1) Single all-cleanup approval may hide destructive blast radius. (2) One-item prompts preserve control but make triage too noisy. |\n\n### Open Design Questions\n\n| Question | Trust model | Blast radius | Alternatives / resolution |\n|---|---|---|---|\n| Where should cleanup run? | User-facing workflow priority | High: affects whether stale sources become issues and whether stale issues get scored | User resolved: before both issue creation and scoring, after match/gap context exists. |\n| How should agenda supersede/merge be represented? | User-owned semantics | Medium: complete vs cancel changes historical meaning | User resolved: complete with note referencing survivor/source. |\n| How should cleanup approvals be batched? | User-owned approval UX | Medium: prompt count vs approval granularity | User resolved: batch by source/reason. |\n| Should Phase 4b remain? | Agent-resolved | Low: duplicate logic risk | Generalize Phase 4b into the upfront cleanup stage; retain thin item-level fallback only for late field gaps or unclear relevance. |\n| Which spec owns durable law? | Agent-resolved | Medium: spec locality | `backlog-coordination` is best fit because it owns backlog coordination, issue claims, and triage-origin linkage. |\n| What GitHub duplicate mutation should be used? | Agent-resolved from docs/CLI | Medium: wrong command would fail at runtime | Use GitHub duplicate comment syntax (`Duplicate of #N`) plus available close reason when needed; do not assume unavailable `gh --duplicate-of`. |\n\n### User Clarification Resolutions\n\n- Cleanup timing: run cleanup before both issue creation and priority/value scoring.\n- Agenda superseded/merge handling: complete with note, including survivor/reference.\n- Approval batching: batch by source/reason.\n\n### Draft Spec Deltas\n\n- `rq-triageCleanupBeforePriority01` — `/adv-triage` source-pool cleanup before user scoring and issue creation.\n  - Given `/adv-triage` has gathered and matched source items from GH issues, GH Project items, ADV changes, agenda, wisdom, notes, and TODO/FIXME,\n  - When any source item or represented issue/change/agenda item is stale, already addressed, duplicate, superseded, mergeable, or unclear,\n  - Then `/adv-triage` must surface a cleanup validation stage before new issue creation and before bug Priority or feature Value prompts.\n- `rq-triageCleanupBeforePriority01.1` — cleanup candidate classifications.\n  - Given cleanup validation runs,\n  - When an item is classified,\n  - Then the classification must be one of `relevant`, `stale/already-addressed`, `duplicate/superseded`, `should-merge`, or `unclear`, with evidence and source reference.\n- `rq-triageCleanupBeforePriority01.2` — strict approval before mutation/suppression.\n  - Given a cleanup candidate would close, complete, cancel, remove, suppress, merge, or deprioritize a source item,\n  - When `/adv-triage` prepares to mutate or suppress it,\n  - Then it must obtain explicit approval batched by source/reason and must not rely on title similarity or agent inference as authority.\n- `rq-triageCleanupBeforePriority01.3` — source-specific cleanup actions.\n  - Given approved cleanup candidates across sources,\n  - When cleanup is applied,\n  - Then ADV changes use ADV close/archive handoff semantics, GitHub issues use supported issue close/comment/project status semantics, and agenda supersede/merge candidates complete with a note referencing the survivor/source.\n- `rq-triageCleanupBeforePriority01.4` — asset-test enforcement.\n  - Given `.opencode/command/adv-triage.md` and `skills/adv-triage/*` are inspected,\n  - When tests run,\n  - Then asset tests must prove cleanup validation appears before new issue confirmation and before field assignment, and that cleanup heuristics remain advisory only.\n\n### Related Pattern Scan\n\n- Existing relevance pattern: `.opencode/command/adv-triage.md:67-75`, `skills/adv-triage/PROMPTS.md:52-72`, `plugin/src/adv-triage-relevance-assets.test.ts:13-49`.\n- Existing cleanup approval pattern: `.opencode/command/adv-cleanup.md:89-115`, `skills/adv-cleanup/SKILL.md` approval parser.\n- Existing source promotion/deprecation pattern: `skills/adv-triage/PROMPTS.md:110-130` completes agenda items after promotion.\n- Existing generated report pattern: `ROADMAP.md:64-73` includes closed-as-completed/duplicate/superseded counts.\n- No existing spec requirement found via `adv_spec search` for triage cleanup before priority/scoring.\n\n### Completeness Verification\n\nProblem-completeness: high confidence. The problem is not just field-gap scoring; it spans all source pools that feed `/adv-triage`: ADV changes, GH issues/project items, agenda, wisdom/notes/TODOs, and generated ROADMAP output. Discovery scanned command, skill prompt/schema/anti-patterns, asset tests, cleanup command/skill, ROADMAP, and specs.\n\nSolution-scope: high confidence. The intended solution is a workflow-ordering and approval-boundary change, not a new scoring algorithm. The single control surface is `/adv-triage`; secondary surfaces are `skills/adv-triage/*`, asset tests, and backlog-coordination spec. All are in scope. `/adv-cleanup` remains out of scope except as pattern reference.\n\nSole-entry claim: verified for command workflow law. `/adv-triage` is the sole slash-command workflow that owns backlog reconciliation/scoring. `adv_backlog_state` and `/adv-roadmap` are read surfaces and do not own cleanup/scoring mutation.\n\nSecondary surface disposition:\n\n- In scope: `.opencode/command/adv-triage.md`, `skills/adv-triage/*`, triage asset tests, `backlog-coordination` spec.\n- Out of scope: `/adv-cleanup` behavior changes, WSJF formula, bug priority label semantics, unrelated roadmap CLI bridge behavior.\n\n### LBP Check\n\nBest direction: insert a single explicit cleanup validation stage after Phase 3 matching and before all Phase 4 user mutation/assignment prompts. This uses existing match context, prevents stale items from becoming new issues, and blocks stale/duplicate issues from reaching Priority/Value prompts.\n\nLong-term best-practice fit:\n\n- P33: structural evidence and approval own cleanup; heuristics only flag candidates.\n- HITL: destructive cleanup remains explicitly approved, batched by source/reason.\n- Locality: update command + triage skill + triage asset test + backlog-coordination spec together.\n- GitHub evidence: duplicate marker uses documented `Duplicate of #N` comment syntax; current local CLI supports close reasons `completed|not planned` but no duplicate-of flag, so design must not rely on unavailable CLI support.\n\n### Discovery Opportunity Scout\n\nTrigger decision: run. Reason: broad workflow/user-authority surface with source-pool cleanup, issue mutation, agenda semantics, and spec/test anchoring.\n\nScout result:\n\n- Candidates considered: 5.\n- Auto-adopted: upfront cleanup stage, spec/test anchor, conceptual reuse of adv-cleanup approval parser.\n- User-surfaced/resolved: agenda supersede mapping and cleanup timing/approval batching.\n- Corrected: researcher suggested native `gh issue close --duplicate-of`; local `gh issue close --help` disproved that flag in this environment. GitHub duplicate marking remains documented via `Duplicate of #N` comment; close-as-duplicate UI is public preview per GitHub changelog.\n\n### Recommended Objectives\n\n1. Add an explicit `/adv-triage` cleanup validation stage after match/gap analysis and before Phase 4 issue creation/scoring prompts.\n2. Validate ADV changes, GitHub issues/project items, and agenda items for stale/already-addressed, duplicate/superseded, should-merge, and unclear states.\n3. Batch cleanup recommendations by source/reason and require explicit approval before any closure, completion, cancellation, suppression, removal, merge note, or deprioritization.\n4. Keep bug Priority and feature Value user-owned; never prompt for them until cleanup validation completes.\n5. Preserve P33 boundaries: title similarity and agent inference may flag candidates but cannot own mutation or suppression.\n6. Map agenda superseded/merge candidates to `adv_agenda_complete` with a note referencing the survivor/source after approval.\n7. Use documented/available GitHub issue semantics only: duplicate comment syntax and supported close reasons; do not depend on unavailable CLI flags.\n8. Add backlog-coordination spec law and asset tests proving cleanup-before-creation/scoring ordering and advisory-only heuristic behavior.\n\n### AMBIGUITY ANALYSIS — no blocking ambiguity findings. Coverage: B:C F:C S:C M:C\n\n- B clear: proposal scope names in-scope source pools, out-of-scope WSJF/cleanup-command changes, and Must Not boundaries.\n- F clear: user outcomes and discovery findings define cleanup-before-create+score behavior.\n- S clear: draft spec deltas and proposed asset tests define observable completion signals.\n- M clear: user-facing questions were resolved during discovery. Remaining technical details are design-owned.\n",
+    "problemStatement": "`/adv-triage` currently asks for backlog priority decisions before first cleaning stale/duplicate/superseded source items. This makes prioritization noisy because active ADV changes, GitHub issues, and agenda items may already be completed, duplicated, merged elsewhere, superseded, or no longer actionable.",
+    "agreement": "# Agreement\n\n## Objectives\n\n1. Add an explicit `/adv-triage` cleanup validation stage after match/gap analysis and before Phase 4 issue creation/scoring prompts.\n2. Validate ADV changes, GitHub issues/project items, and agenda items for stale/already-addressed, duplicate/superseded, should-merge, and unclear states.\n3. Batch cleanup recommendations by source/reason and require explicit approval before any closure, completion, cancellation, suppression, removal, merge note, or deprioritization.\n4. Keep bug Priority and feature Value user-owned; never prompt for them until cleanup validation completes.\n5. Preserve P33 boundaries: title similarity and agent inference may flag candidates but cannot own mutation or suppression.\n6. Map agenda superseded/merge candidates to `adv_agenda_complete` with a note referencing the survivor/source after approval.\n7. Use documented/available GitHub issue semantics only: duplicate comment syntax and supported close reasons; do not depend on unavailable CLI flags.\n8. Add backlog-coordination spec law and asset tests proving cleanup-before-creation/scoring ordering and advisory-only heuristic behavior.\n\n## Success Criteria\n\n- SC1: `/adv-triage` presents only cleanup-validated backlog candidates before user-owned scoring begins.\n- SC2: Stale, duplicate, superseded, already-addressed, and should-merge items are surfaced with evidence before mutation or suppression.\n- SC3: User approval remains required for destructive or suppressive cleanup actions.\n- SC4: Agenda superseded/merge candidates resolve as completed-with-note after approval.\n- SC5: Cleanup-before-priority behavior is backed by spec law and automated drift tests.\n\n## Acceptance Criteria\n\n- AC1: Given `/adv-triage` has gathered and matched source items, when cleanup validation runs, then it runs before both new issue creation and bug Priority / feature Value prompts.\n- AC2: Given a cleanup candidate is stale, duplicate, superseded, already addressed, should-merge, or unclear, when `/adv-triage` reports it, then output includes source, reason, evidence, and proposed action.\n- AC3: Given a cleanup candidate would close, complete, cancel, remove, suppress, merge-note, or deprioritize an item, when `/adv-triage` prepares the action, then explicit approval is required batched by source/reason.\n- AC4: Given title similarity or agent inference flags a candidate, when no structural evidence or user approval exists, then `/adv-triage` must not mutate or suppress the item.\n- AC5: Given an agenda item is approved as superseded/should-merge, when cleanup applies, then the agenda item is completed with a note referencing the survivor/source.\n- AC6: Given GitHub duplicate handling is needed, when the local `gh` CLI lacks duplicate-close support, then `/adv-triage` uses documented duplicate-comment semantics and supported close reasons only.\n- AC7: Given tests inspect `/adv-triage` command/skill surfaces, when cleanup ordering or advisory-only heuristic rules regress, then automated tests fail.\n- AC8: Given backlog-coordination specs are inspected, when this change lands, then a requirement exists for cleanup-before-creation/scoring behavior.\n\n## Constraints\n\n- C1: P33 structural correctness applies: heuristics may rank or flag cleanup candidates, never own closure, suppression, persistence, or spec compliance decisions.\n- C2: Bug Priority and feature Value remain user-owned.\n- C3: Destructive/suppressive cleanup actions require explicit approval.\n- C4: `/adv-triage` remains focused on backlog reconciliation/scoring, not broad repo hygiene.\n- C5: `ROADMAP.md` generation remains deterministic from GitHub Project/repo state after cleanup decisions.\n- C6: Current local `gh issue close --help` supports `--reason completed|not planned`, not `--duplicate-of`; implementation must not rely on unavailable CLI flags.\n\n## Avoidances\n\n- DONT1: Do not close ADV changes, GitHub issues, or agenda items based only on title similarity or agent inference.\n- DONT2: Do not ask for bug Priority or feature Value before cleanup validation has completed for the candidate pool.\n- DONT3: Do not silently suppress ambiguous cleanup candidates.\n- DONT4: Do not mutate GitHub/project state without existing Tier B approval boundaries.\n- DONT5: Do not replace or broaden `/adv-cleanup`; use it only as pattern reference.\n- DONT6: Do not change WSJF formula or bug priority label semantics.\n- DONT7: Do not duplicate Temporal/store access outside ADV tools or approved command/tool surfaces.\n\n## Out of Scope\n\n- OOS1: Running a one-off cleanup of the current project backlog as part of this change.\n- OOS2: Changing WSJF formula or bug priority label semantics.\n- OOS3: Automating feature Value assignment without user approval.\n- OOS4: Replacing `/adv-cleanup`.\n- OOS5: Broad repository hygiene unrelated to backlog/source cleanup.\n- OOS6: Changing `/adv-roadmap` or backlog read tools except where tests/spec references require awareness.\n\n## Preview Applicability\n\nvisual_surface: false\n\nRationale: This change affects command/workflow prose, generated roadmap semantics, source-pool cleanup behavior, and tests/specs. It does not affect frontend/browser UI. Command text output is verified through docs/asset tests rather than visual preview.\n\n## Decisions\n\n### User Decisions\n\n1. Cleanup timing: run cleanup before both new issue creation and priority/value scoring.\n2. Agenda supersede/merge handling: complete agenda item with note referencing survivor/source.\n3. Approval batching: batch cleanup approvals by source/reason.\n\n### Agent Decisions (LBP)\n\n1. Generalize current Phase 4b relevance validation into an upfront cleanup stage after Phase 3 matching, retaining thin item-level fallback only for late/unclear field gaps if needed.\n2. Use `backlog-coordination` as the likely spec home for durable cleanup-before-creation/scoring law.\n3. Extend `adv-triage-relevance-assets.test.ts` or adjacent asset tests to prove ordering and advisory-only heuristic rules.\n4. Use documented GitHub duplicate comment syntax (`Duplicate of #N`) plus supported close reasons where local CLI duplicate-close support is unavailable.\n5. Conceptually reuse `/adv-cleanup` strict per-bucket approval style without coupling or replacing that command.\n\n## Deferred Questions\n\nNone.\n\n## Sign-Off\n\nUser approved discovery criteria checkpoint with exact reply: `approve`.\n",
+    "design": "# Design\n\n## Architecture Overview\n\n`/adv-triage` gets one new explicit stage: **Phase 3.5 — Source Cleanup Validation**.\n\nPlacement: Phase 2 gathers source inventory; Phase 3 builds structural `represented[]` / `unrepresented[]`; Phase 3.5 validates cleanup candidates across the source pool; Phase 4a creates approved new issues only after cleanup; Phase 4c asks bug Priority / feature Value only after cleanup validation.\n\nThe design generalizes existing Phase 4b relevance validation instead of adding a second parallel pass. Phase 4b becomes removed or a thin late fallback for newly discovered/unclear field-gap items.\n\nCore flow:\n\n```text\ninventory records → structural match → cleanup_decisions[] → approved cleanup actions / unresolved unclear items → issue creation → user-owned scoring → agent scoring → roadmap generation\n```\n\n`cleanup_decisions[]` is command-local planning/report state, not a new persistent store.\n\nSuggested shape:\n\n```ts\ntype TriageCleanupClassification =\n  | \"relevant\"\n  | \"stale/already-addressed\"\n  | \"duplicate/superseded\"\n  | \"should-merge\"\n  | \"unclear\";\n\ntype TriageCleanupSource = \"adv-change\" | \"github-issue\" | \"agenda\" | \"wisdom\" | \"note\" | \"todo\";\n\ntype TriageCleanupDecision = {\n  source: TriageCleanupSource;\n  ref: string;\n  title: string;\n  classification: TriageCleanupClassification;\n  evidence: string[];\n  proposedAction: string;\n  survivorRef?: string;\n  requiresApproval: boolean;\n  approvalGroup: `${TriageCleanupSource}:${TriageCleanupClassification}`;\n};\n```\n\n## Key Decisions\n\n### D1 — One cleanup stage before all user mutation/scoring prompts\n\nRun cleanup after matching and before both issue creation and Priority/Value prompts. Match/gap output gives cleanup enough context; running only before scoring still lets stale local items become new issues; running before matching duplicates existing match logic.\n\n### D2 — Generalize Phase 4b\n\nMove current Phase 4b classification into Phase 3.5. Keep a small fallback only for late/unclear scoring items if needed.\n\n### D3 — Approval groups batched by source/reason\n\nGroup cleanup mutations/suppressions by `approvalGroup` (`github-issue:duplicate/superseded`, `agenda:should-merge`, etc.). Each group uses strict Tier B-style parsing modeled on `/adv-cleanup`: exact whitelist, no LLM fallback for destructive approval.\n\n### D4 — Source-specific action mapping\n\n| Source | Classification | Action after approval |\n|---|---|---|\n| ADV change | ready to archive / completed | Recommend `/adv-archive {id}`; do not auto-archive. |\n| ADV change | duplicate/superseded | `adv_change_close reason:\"superseded\"` with `supersededBy`. |\n| ADV change | stale/not planned | `adv_change_close reason:\"not_planned\"` after approval. |\n| ADV change | abandoned/cancelled | `adv_change_close reason:\"cancelled\"` after approval. |\n| GitHub issue | duplicate/superseded | Capability-detect `gh issue close --duplicate-of`; use native duplicate close when local CLI supports it. If unavailable, add documented `Duplicate of #N` comment and close with supported reason when approved. |\n| GitHub issue | already fixed/addressed | Close with supported `--reason completed` after approval, with evidence/comment as needed. |\n| GitHub issue | not planned/stale | Close with supported `--reason \"not planned\"` after approval. |\n| Agenda | duplicate/superseded/should-merge | `adv_agenda_complete` with note referencing survivor/source. |\n| Agenda | stale/not planned | `adv_agenda_cancel` after approval. |\n| Wisdom/note/TODO | represented or stale | Existing `/adv-triage` source inventory only; deprecate only through existing local-source deprecation prompt or explicit cleanup approval. No new broad hygiene cleanup. |\n\n### D5 — GitHub duplicate close is capability-detected\n\nProbe installed `gh issue close --help` output or equivalent. If `--duplicate-of` and `--reason duplicate` are available, use native duplicate close. If absent, use GitHub Docs duplicate-comment syntax (`Duplicate of #N`) plus supported close reason where appropriate. Never hard-code either path as universal.\n\n### D6 — Spec law lives in `backlog-coordination`\n\nAdd `rq-backlogCoord09` for cleanup-before-creation/scoring. Mirror docs if this repo maintains generated markdown spec mirrors.\n\n## ADR Drafts\n\nNone. Decisions are workflow-local and reversible through command/spec edits; no ADR threshold met.\n\n## Implementation Strategy\n\n1. Add `rq-backlogCoord09` to `backlog-coordination` with scenarios for ordering, approval, advisory-only heuristics, source-specific actions, and agenda complete-with-note.\n2. Update `.opencode/command/adv-triage.md`: insert Phase 3.5 after Phase 3; move/generalize Phase 4b; make Phase 4a and 4c depend on completed cleanup validation.\n3. Update `skills/adv-triage/SCHEMA.md`: add command-local `cleanup_decisions[]` shape.\n4. Update `skills/adv-triage/PROMPTS.md`: add cleanup approval prompt grouped by source/reason; add GitHub duplicate capability-detection guidance; keep `question` tool only for unclear relevance and user-owned scoring prompts.\n5. Update `skills/adv-triage/ANTI-PATTERNS.md`: forbid issue creation before cleanup validation; forbid assuming native duplicate-close support or absence without capability check.\n6. Extend `plugin/src/adv-triage-relevance-assets.test.ts` or adjacent asset test: assert cleanup appears after match/gap and before confirm-new-issues and field assignments; assert classifications, advisory-only language, and GitHub duplicate capability detection.\n7. Run targeted asset tests and required spec/schema checks.\n\n## LBP Analysis\n\nThis makes cleanup a first-class deterministic workflow stage instead of a hidden scoring precondition.\n\n- Structural correctness: classification feeds explicit approval groups; heuristics never mutate or suppress by themselves.\n- Locality: command, skill, spec, and asset test change together.\n- User authority: bug Priority and feature Value remain untouched until cleanup finishes.\n- Minimal machinery: no new ADV MCP tool or persistent database layer.\n- Compatibility: `gh` duplicate handling adapts to installed CLI capability.\n\n## Affected Components\n\n| Component | Design impact |\n|---|---|\n| `.opencode/command/adv-triage.md` | Phase ordering, cleanup stage contract, approval boundary text. |\n| `skills/adv-triage/PROMPTS.md` | Cleanup report/approval prompt and unclear relevance guidance. |\n| `skills/adv-triage/SCHEMA.md` | Command-local `cleanup_decisions[]` shape. |\n| `skills/adv-triage/ANTI-PATTERNS.md` | New forbidden flows and duplicate-close capability assumptions. |\n| `.adv/specs/backlog-coordination/spec.json` | New `rq-backlogCoord09` requirement/scenarios. |\n| `docs/specs/backlog-coordination.md` | Markdown mirror update if maintained manually. |\n| `plugin/src/adv-triage-relevance-assets.test.ts` | Ordering and contract drift assertions. |\n| `ROADMAP.md` / `.adv/roadmap-snapshot.json` | No direct design change; generated after cleanup decisions as before. |\n| `/adv-cleanup` | No behavior change; pattern reference only. |\n\n## Design-Derived Criteria\n\n- DC1: `cleanup_decisions[]` includes source, stable ref, classification, evidence, proposed action, approval requirement, and approval group for every non-relevant cleanup candidate.\n- DC2: Cleanup phase ordering is machine-checked by asset tests using index/order assertions against command headings.\n- DC3: GitHub duplicate action is selected through capability detection, not hard-coded assumption.\n- DC4: Cleanup mutation/suppression paths have approval group and approval evidence.\n- DC5: Phase 4 field assignment matrix is built only from candidates that survived cleanup as `relevant` or explicitly user-approved unresolved items.\n\n## Risks / Mitigations\n\n| Risk | Mitigation |\n|---|---|\n| Cleanup phase becomes broad hygiene | Keep scope to `/adv-triage` source-pool actionability; no broad repo hygiene. |\n| Title similarity suppresses valid items | Title similarity remains advisory; structural evidence or user approval required. |\n| Agenda completion loses provenance | Completion note includes survivor/source reference. |\n| GitHub CLI version drift breaks duplicate handling | Capability-detect duplicate close support; fallback to documented comment syntax and supported close reasons. |\n| Prompt spam | Batch by source/reason. |\n| Approval blast radius too large | Separate groups by source/reason, not one global approval. |\n| Spec/test drift | Add `rq-backlogCoord09` and asset tests. |\n\n## Design Leverage Scout\n\nCandidates considered: 5.\n\nAuto-adopted: collapse Phase 4b into one Phase 3.5 full-pool cleanup stage; reuse existing asset-test ordering-index pattern; preserve agenda complete-with-note mapping; add `rq-backlogCoord09`.\n\nDesign-around adopted: GitHub duplicate handling is capability-detected. Official manual documents native duplicate-close flags, while local CLI lacks them. Design prefers native support when present and falls back only when absent.\n\nSurfaced-to-user: none remaining. Prior user-facing tradeoffs were resolved during discovery.\n\n## Validator Result\n\nValidator verdict: **VALIDATED**.\n\nFindings:\n\n- Correctness: clean. Design satisfies objectives and maps source-specific actions to confirmed primitives.\n- Simplicity: clean. Reordering/generalizing existing Phase 4b is simpler than a second pass or new tool/store.\n- Spec-law compliance: caution only. No existing spec conflict; `rq-backlogCoord09` is net-new. AC6/C6 are satisfied by capability detection because fallback is used when local CLI lacks native duplicate support.\n- Alternatives: caution only. Existing `adv-triage-relevance-assets.test.ts` hard-codes 4b→4c ordering and must be migrated in lockstep. Wisdom/note/TODO handling is limited to existing `/adv-triage` source inventory and does not broaden into repo hygiene.\n\nRecommendation: proceed to planning.\n",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\n\n`/adv-triage` now treats source cleanup as a required validation stage before backlog issue creation or user-owned scoring. The delivered workflow prevents stale, duplicate, superseded, already-addressed, and should-merge items from reaching creation/scoring prompts without evidence and explicit approval.\n\n## Verdict\n\nAPPROVED\n\n## What Was Built\n\n1. Added RED asset tests for cleanup-before-creation/scoring ordering, cleanup decision schema/prompt coverage, GitHub duplicate capability detection, and `rq-backlogCoord09` spec law.\n2. Added backlog-coordination spec law requiring cleanup validation before new issue creation and Priority/Value prompts, with advisory-only heuristic boundaries.\n3. Added `/adv-triage` Phase 3.5 Source Cleanup Validation after match/gap and before issue creation/user-owned scoring.\n4. Added triage skill schema/prompt/anti-pattern coverage for `cleanup_decisions[]`, source/reason approval grouping, agenda `adv_agenda_complete` survivor/source notes, and GitHub duplicate capability detection/fallback semantics.\n5. Hardened review-discovered fast-path ordering: the no-new-issues/no-field-gaps skip now occurs only after cleanup validation; added regression assertion.\n\n## What Was Verified\n\n- Verdict: READY / APPROVED. Independent reviewer reported 0 remaining blocker/issue/nonblocking findings after remediation.\n- Tests: `bin/oc-test targeted -- src/adv-triage-relevance-assets.test.ts` passed, 7 tests (`tr_mql935o4_d2cd81a9`).\n- Schema drift: `pnpm run schemas:check` passed (`tr_mql935g7_b8fee672`).\n- Preview URL: not_applicable — agreement declares `visual_surface: false`; change affects command/workflow prose, skill docs, spec law, and asset tests, not frontend/browser-visible output.\n- Contract matrix: 32/32 required rows pass/respected; 0 failed/violated/unknown.\n\n## Remaining Concerns\n\nNone.\n",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-06-19T18:17:30.000Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | `/adv-triage` presents only cleanup-validated backlog candidates before user-owned scoring begins. | pass | `.opencode/command/adv-triage.md` Phase 3.5 runs before Phase 4 issue creation/scoring; `plugin/src/adv-triage-relevance-assets.test.ts` asserts cleanup before issue creation, field assignment, and no-work skip. |\n| SC2 | success_criterion | Stale, duplicate, superseded, already-addressed, and should-merge items are surfaced with evidence before mutation or suppression. | pass | Command Phase 3.5 and `skills/adv-triage/PROMPTS.md` require source, classification/reason, evidence, proposed action, and survivor/source for cleanup candidates. |\n| SC3 | success_criterion | User approval remains required for destructive or suppressive cleanup actions. | pass | Command Phase 3.5 and prompt template batch destructive/suppressive cleanup approvals by source/reason; anti-patterns forbid mutation from title similarity alone. |\n| SC4 | success_criterion | Agenda superseded/merge candidates resolve as completed-with-note after approval. | pass | Command Phase 3.5 and `PROMPTS.md` map agenda duplicate/superseded/should-merge to `adv_agenda_complete` with survivor/source note; asset test checks prompt contains `adv_agenda_complete`. |\n| SC5 | success_criterion | Cleanup-before-priority behavior is backed by spec law and automated drift tests. | pass | `rq-backlogCoord09` added to backlog-coordination spec; `bin/oc-test targeted -- src/adv-triage-relevance-assets.test.ts` passed (tr_mql935o4_d2cd81a9, 7 tests). |\n| AC1 | acceptance_criterion | Given `/adv-triage` has gathered and matched source items, when cleanup validation runs, then it runs before both new issue creation and bug Priority / feature Value prompts. | pass | Asset test `command requires source cleanup before issue creation and field prompts` asserts Phase 3.5 after match and before `4a`/`4c`; reviewer added assertion that no-work skip follows cleanup. Test passed tr_mql935o4_d2cd81a9. |\n| AC2 | acceptance_criterion | Given a cleanup candidate is stale, duplicate, superseded, already addressed, should-merge, or unclear, when `/adv-triage` reports it, then output includes source, reason, evidence, and proposed action. | pass | `cleanup_decisions[]` schema defines source/ref/classification/evidence/proposedAction/approvalGroup; prompt template displays source, classification, evidence, proposed action, survivor/source. |\n| AC3 | acceptance_criterion | Given a cleanup candidate would close, complete, cancel, remove, suppress, merge-note, or deprioritize an item, when `/adv-triage` prepares the action, then explicit approval is required batched by source/reason. | pass | `PROMPTS.md` Source cleanup validation prompt groups by source/reason and requires exact Tier B approval options before applying actions; command says mutate/suppress only after explicit Tier B approval. |\n| AC4 | acceptance_criterion | Given title similarity or agent inference flags a candidate, when no structural evidence or user approval exists, then `/adv-triage` must not mutate or suppress the item. | pass | Command Phase 3.5 states title similarity and agent inference are advisory only and never mutate/close/suppress/remove without structural evidence and approval; schema/anti-patterns repeat this boundary. |\n| AC5 | acceptance_criterion | Given an agenda item is approved as superseded/should-merge, when cleanup applies, then the agenda item is completed with a note referencing the survivor/source. | pass | Command Phase 3.5 and `PROMPTS.md` specify agenda duplicate/superseded/should-merge → `adv_agenda_complete` with survivor/source note after approval. |\n| AC6 | acceptance_criterion | Given GitHub duplicate handling is needed, when the local `gh` CLI lacks duplicate-close support, then `/adv-triage` uses documented duplicate-comment semantics and supported close reasons only. | pass | Command and prompts require capability detection via `gh issue close --help`, native `--duplicate-of` only when present, and fallback `Duplicate of #N` comment semantics plus locally supported close reasons. |\n| AC7 | acceptance_criterion | Given tests inspect `/adv-triage` command/skill surfaces, when cleanup ordering or advisory-only heuristic rules regress, then automated tests fail. | pass | `plugin/src/adv-triage-relevance-assets.test.ts` covers cleanup ordering, schema/prompt contract, GitHub duplicate capability detection, and advisory-only spec law; passed tr_mql935o4_d2cd81a9. |\n| AC8 | acceptance_criterion | Given backlog-coordination specs are inspected, when this change lands, then a requirement exists for cleanup-before-creation/scoring behavior. | pass | Backlog-coordination spec includes `rq-backlogCoord09` with cleanup-before-creation/scoring behavior, advisory-only heuristics, and multiple scenarios; asset test passed. |\n| C1 | constraint | P33 structural correctness applies: heuristics may rank or flag cleanup candidates, never own closure, suppression, persistence, or spec compliance decisions. | respected | Reviewer verdict READY; command/schema/anti-patterns make heuristics advisory only and require structural evidence + approval for mutation/suppression. |\n| C2 | constraint | Bug Priority and feature Value remain user-owned. | respected | Command Phase 3.5 and skill core flow state bug Priority and feature Value prompts occur only after cleanup validation; no autonomous Value assignment added. |\n| C3 | constraint | Destructive/suppressive cleanup actions require explicit approval. | respected | Cleanup prompt and command require explicit Tier B approval for destructive/suppressive actions grouped by source/reason. |\n| C4 | constraint | `/adv-triage` remains focused on backlog reconciliation/scoring, not broad repo hygiene. | respected | Scope limited to `/adv-triage` command, adv-triage skill docs, backlog-coordination spec, and asset tests; no broad repo hygiene machinery added. |\n| C5 | constraint | `ROADMAP.md` generation remains deterministic from GitHub Project/repo state after cleanup decisions. | respected | ROADMAP generation flow remains Phase 6 deterministic from fresh GitHub Project read after cleanup decisions; no formula/generation implementation changed. |\n| C6 | constraint | Current local `gh issue close --help` supports `--reason completed|not planned`, not `--duplicate-of`; implementation must not rely on unavailable CLI flags. | respected | Docs require `gh issue close --help` capability detection and fallback when `--duplicate-of` unavailable; no hard dependency on unavailable local CLI flags. |\n| DONT1 | avoidance | Do not close ADV changes, GitHub issues, or agenda items based only on title similarity or agent inference. | respected | Command and anti-patterns forbid close/complete/cancel/remove/suppress/deprioritize from title similarity alone. |\n| DONT2 | avoidance | Do not ask for bug Priority or feature Value before cleanup validation has completed for the candidate pool. | respected | Asset test asserts cleanup validation before field assignments; command says MUST NOT prompt for Priority/Value before cleanup validation. |\n| DONT3 | avoidance | Do not silently suppress ambiguous cleanup candidates. | respected | Command Phase 3.5 requires unclear items get focused clarification and stay visible; unresolved items are not silently suppressed. |\n| DONT4 | avoidance | Do not mutate GitHub/project state without existing Tier B approval boundaries. | respected | Cleanup prompt uses Tier B exact whitelist for mutations; no new GitHub/project mutation path without approval added. |\n| DONT5 | avoidance | Do not replace or broaden `/adv-cleanup`; use it only as pattern reference. | respected | No `/adv-cleanup` files changed; `/adv-cleanup` only used as conceptual pattern reference in design, not replacement. |\n| DONT6 | avoidance | Do not change WSJF formula or bug priority label semantics. | respected | No WSJF formula or bug priority label semantics changed; triage skill formulas remain unchanged. |\n| DONT7 | avoidance | Do not duplicate Temporal/store access outside ADV tools or approved command/tool surfaces. | respected | No Temporal/store access code added; changes are command/skill/spec/test documentation and asset assertions only. |\n| OOS1 | out_of_scope | Running a one-off cleanup of the current project backlog as part of this change. | respected | No one-off cleanup of current project backlog was run; implementation only updates workflow docs/spec/tests. |\n| OOS2 | out_of_scope | Changing WSJF formula or bug priority label semantics. | respected | WSJF formula and bug priority label semantics unchanged. |\n| OOS3 | out_of_scope | Automating feature Value assignment without user approval. | respected | No automation of feature Value assignment added; Value remains user-owned unless user explicitly chooses autofill in existing prompt flow. |\n| OOS4 | out_of_scope | Replacing `/adv-cleanup`. | respected | No `/adv-cleanup` replacement or behavior change introduced. |\n| OOS5 | out_of_scope | Broad repository hygiene unrelated to backlog/source cleanup. | respected | No broad repository hygiene beyond triage source-pool cleanup contract. |\n| OOS6 | out_of_scope | Changing `/adv-roadmap` or backlog read tools except where tests/spec references require awareness. | respected | No `/adv-roadmap` or backlog read tool code changed; only spec/test awareness added. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-06-19T15:38:52.892Z",
+      "contentHash": "4654e38a11d35f7a3cc44c7c7eeef356b54eb3e1dbca4513fc49f814a260237f",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-06-19T15:29:37.397Z",
+      "contentHash": "d33ee00fc401bc2840ee3200a788a53f167bdcc9e2f2a240b2269d8b6ee02370",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-06-19T15:41:13.164Z",
+      "contentHash": "6098b172b647b5dc7c3e63d00973b53d70077d65a6b00531d7a0b598188069e1",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-06-19T15:47:57.921Z",
+      "contentHash": "8aa90eff4ff55d79e8a57480a4f10533a5bc621f7048687e19e894efed07f27f",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-06-19T18:19:30.086Z",
+      "contentHash": "ba8e1e3aba9834fb5404dba05da7e9847c4d27eb1f59c743254125f82f0786df",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-06-19T18:58:38.613Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d"
+}
