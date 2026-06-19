@@ -158,7 +158,7 @@ ADV state (changes, archive, wisdom, agenda, reflections, handoff) lives **outsi
 
 ADV-managed worktrees live under `$XDG_DATA_HOME/opencode/worktree/{project-id}/{branch}`. Empty branch-prefix parents may be reaped with bounded `rmdir` only; broad cleanup remains dry-run/approval-gated via hygiene tools.
 
-Archived ADV changes clean up their `change/{id}` branches (local + remote). Direct-archive mode deletes at archive time. PR-mode archives require post-merge cleanup via `adv_archive_repair action=cleanup_merged` (operator-explicit; safe `git branch -d` semantics; squash-merge-safe detection).
+Archived ADV changes clean up their `change/{id}` branches (local + remote). Direct-archive mode deletes at archive time. PR-mode archives require post-merge cleanup via `adv_archive_repair action=cleanup_merged` or `adv_worktree_cleanup` (operator-explicit; no background polling). Squash PR merges are not git-ancestry reachable from the local branch tip, so cleanup must use PR-aware proof: retain dirty/in-use/open/closed-unmerged/no-PR/post-PR-local-commit branches, but allow deletion when GitHub PR evidence shows `MERGED` and the local branch head either equals the PR `headRefOid` or is an ancestor of that PR head. Never use `git branch --merged` as the sole cleanup authority for squash-merged `change/*` branches.
 
 `adv_status` also reports a worktree census from `git worktree list --porcelain` plus root-directory mtime. Stale worktrees (>7d inactive) appear in the `worktree_census` raw field and formatted Worktrees section; disk usage is intentionally not scanned in status.
 

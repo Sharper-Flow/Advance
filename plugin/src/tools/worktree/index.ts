@@ -117,6 +117,7 @@ import {
 } from "../../temporal/messages";
 import type { Store } from "../../storage/store";
 import { withTimeout, TimeoutError } from "../../utils/with-timeout";
+import { execGh } from "../../integrations/gh-cli";
 
 /** Maximum retries for database initialization */
 const DB_MAX_RETRIES = 3;
@@ -1359,6 +1360,10 @@ export interface AdvWorktreeDeleteDeps {
     defaultBranch: string,
     repoRoot: string,
   ) => Promise<string[]>;
+  prMergeEvidence?: (
+    branch: string,
+    repoRoot: string,
+  ) => Promise<PrMergedBranchIntegrationResult>;
 }
 
 export type AdvWorktreeDeleteResult =
@@ -1456,6 +1461,181 @@ async function getMergedBranchesForDelete(
   return result.value.split("\n").filter((line) => line.trim().length > 0);
 }
 
+type PrMergedBranchIntegrationResult =
+  | {
+      ok: true;
+      proof: "pr-head-exact" | "local-ancestor-of-pr-head";
+      prNumber: number;
+      prUrl?: string;
+      headRefOid: string;
+    }
+  | {
+      ok: false;
+      reason:
+        | "branch_not_change_branch"
+        | "local_branch_missing"
+        | "gh_failed"
+        | "gh_json_invalid"
+        | "no_pr_evidence"
+        | "pr_not_merged"
+        | "local_has_commits_after_pr_head";
+      hint: string;
+      details?: string[];
+    };
+
+interface GhPullRequestSummary {
+  number?: number;
+  state?: string;
+  mergedAt?: string | null;
+  headRefOid?: string | null;
+  url?: string;
+}
+
+async function getPrMergedBranchIntegration(
+  branch: string,
+  deps: AdvWorktreeDeleteDeps,
+): Promise<PrMergedBranchIntegrationResult> {
+  if (!branch.startsWith("change/")) {
+    return {
+      ok: false,
+      reason: "branch_not_change_branch",
+      hint: "PR-aware squash cleanup is limited to ADV change/* branches.",
+    };
+  }
+
+  if (deps.prMergeEvidence) {
+    return deps.prMergeEvidence(branch, deps.projectRoot);
+  }
+
+  const localHead = await git(["rev-parse", branch], deps.projectRoot);
+  if (!localHead.ok) {
+    return {
+      ok: false,
+      reason: "local_branch_missing",
+      hint: `Local branch ${branch} does not exist or cannot be resolved.`,
+      details: [localHead.error],
+    };
+  }
+
+  const prList = await execGh(
+    [
+      "pr",
+      "list",
+      "--state",
+      "all",
+      "--head",
+      branch,
+      "--limit",
+      "20",
+      "--json",
+      "number,state,mergedAt,headRefOid,url",
+    ],
+    deps.projectRoot,
+  );
+  if (prList.exitCode !== 0) {
+    return {
+      ok: false,
+      reason: "gh_failed",
+      hint: `GitHub PR evidence unavailable for ${branch}; retaining worktree.`,
+      details: [prList.stderr || prList.stdout || "gh pr list failed"],
+    };
+  }
+
+  let prs: GhPullRequestSummary[];
+  try {
+    const parsed = JSON.parse(prList.stdout || "[]") as unknown;
+    prs = Array.isArray(parsed) ? (parsed as GhPullRequestSummary[]) : [];
+  } catch (error) {
+    return {
+      ok: false,
+      reason: "gh_json_invalid",
+      hint: `GitHub PR evidence for ${branch} was not valid JSON; retaining worktree.`,
+      details: [error instanceof Error ? error.message : String(error)],
+    };
+  }
+
+  if (prs.length === 0) {
+    return {
+      ok: false,
+      reason: "no_pr_evidence",
+      hint: `No GitHub PR found for ${branch}; retaining worktree.`,
+    };
+  }
+
+  const mergedPrs = prs.filter(
+    (pr) => Boolean(pr.mergedAt) && typeof pr.headRefOid === "string",
+  );
+  if (mergedPrs.length === 0) {
+    return {
+      ok: false,
+      reason: "pr_not_merged",
+      hint: `GitHub PR for ${branch} is not merged; retaining worktree.`,
+      details: prs.map(
+        (pr) => `PR #${pr.number ?? "?"}: ${pr.state ?? "unknown"}`,
+      ),
+    };
+  }
+
+  const localHeadSha = localHead.value.trim();
+  for (const pr of mergedPrs) {
+    if (pr.number && pr.headRefOid === localHeadSha) {
+      return {
+        ok: true,
+        proof: "pr-head-exact",
+        prNumber: pr.number,
+        prUrl: pr.url,
+        headRefOid: pr.headRefOid,
+      };
+    }
+  }
+
+  for (const pr of mergedPrs) {
+    if (!pr.number || !pr.headRefOid) continue;
+    const fetch = await git(
+      ["fetch", "origin", `refs/pull/${pr.number}/head`],
+      deps.projectRoot,
+    );
+    if (!fetch.ok) continue;
+    const ancestor = await git(
+      ["merge-base", "--is-ancestor", branch, "FETCH_HEAD"],
+      deps.projectRoot,
+    );
+    if (ancestor.ok) {
+      return {
+        ok: true,
+        proof: "local-ancestor-of-pr-head",
+        prNumber: pr.number,
+        prUrl: pr.url,
+        headRefOid: pr.headRefOid,
+      };
+    }
+  }
+
+  return {
+    ok: false,
+    reason: "local_has_commits_after_pr_head",
+    hint: `Merged PR exists for ${branch}, but local branch has commits not proven merged by the PR head; retaining worktree.`,
+    details: mergedPrs.map(
+      (pr) => `PR #${pr.number ?? "?"}: ${pr.headRefOid ?? "unknown-head"}`,
+    ),
+  };
+}
+
+async function verifyPrMergedChangeBranchIntegration(
+  branch: string,
+  deps: AdvWorktreeDeleteDeps,
+): Promise<{ ok: true } | { ok: false; reason: string; hint: string }> {
+  const pr = await getPrMergedBranchIntegration(branch, deps);
+  if (pr.ok) {
+    appendDebugLog(
+      "worktree-delete",
+      `verified squash PR merge for ${branch} via PR #${pr.prNumber} (${pr.proof})`,
+    );
+    return { ok: true };
+  }
+  return { ok: false, reason: pr.reason, hint: pr.hint };
+}
+
 async function verifyNonAdvBranchIntegration(
   branch: string,
   deps: AdvWorktreeDeleteDeps,
@@ -1488,10 +1668,15 @@ async function verifyNonAdvBranchIntegration(
 
   const normalizedMerged = merged.map((b) => b.replace(/^[*+]\s*/, "").trim());
   if (!normalizedMerged.includes(branch)) {
+    const prIntegration = await verifyPrMergedChangeBranchIntegration(
+      branch,
+      deps,
+    );
+    if (prIntegration.ok) return prIntegration;
     return {
       ok: false,
       reason: "branch_not_merged",
-      hint: `Merge the branch into ${defaultBranch} before deleting its worktree.`,
+      hint: `Merge the branch into ${defaultBranch} before deleting its worktree. Squash-merged change branches require merged GitHub PR evidence; PR cleanup check returned ${prIntegration.reason}: ${prIntegration.hint}`,
     };
   }
 
@@ -1504,10 +1689,15 @@ async function verifyMissingRegistryChangeBranchIntegration(
   deps: AdvWorktreeDeleteDeps,
 ): Promise<{ ok: true } | { ok: false; reason: string; hint: string }> {
   if (!deps.store) {
+    const prIntegration = await verifyPrMergedChangeBranchIntegration(
+      branch,
+      deps,
+    );
+    if (prIntegration.ok) return prIntegration;
     return {
       ok: false,
       reason: "registry_drift_recovery_requires_store",
-      hint: "Missing-registry change branch cleanup requires the durable ADV store to verify archived state.",
+      hint: `Missing-registry change branch cleanup requires either the durable ADV store to verify archived state or merged GitHub PR evidence. PR cleanup check returned ${prIntegration.reason}: ${prIntegration.hint}`,
     };
   }
 
@@ -1516,17 +1706,27 @@ async function verifyMissingRegistryChangeBranchIntegration(
     const status =
       loaded.success && loaded.data ? loaded.data.status : undefined;
     if (status !== "archived" && status !== "closed") {
+      const prIntegration = await verifyPrMergedChangeBranchIntegration(
+        branch,
+        deps,
+      );
+      if (prIntegration.ok) return prIntegration;
       return {
         ok: false,
         reason: "change_not_terminal",
-        hint: `Archive or close change ${changeId} before deleting its worktree.`,
+        hint: `Archive or close change ${changeId} before deleting its worktree, or provide merged GitHub PR evidence. PR cleanup check returned ${prIntegration.reason}: ${prIntegration.hint}`,
       };
     }
   } catch (err) {
+    const prIntegration = await verifyPrMergedChangeBranchIntegration(
+      branch,
+      deps,
+    );
+    if (prIntegration.ok) return prIntegration;
     return {
       ok: false,
       reason: "git_failed",
-      hint: `Failed to verify archived state for change ${changeId}: ${String(err)}`,
+      hint: `Failed to verify archived state for change ${changeId}: ${String(err)}. PR cleanup check returned ${prIntegration.reason}: ${prIntegration.hint}`,
     };
   }
 
@@ -1690,12 +1890,32 @@ export async function advWorktreeDelete(
     const integrationFn = deps.integrationCheck ?? verifyBranchIntegration;
     const integration = await integrationFn(branch, deps.projectRoot);
     if (!integration.ok) {
-      return {
-        ok: false,
-        error: "INTEGRATION_REQUIRED",
-        reason: integration.reason,
-        hint: "Branch must be archived or closed, merged, and clean",
-      };
+      if (integration.reason === "branch_not_merged") {
+        const prIntegration = await verifyPrMergedChangeBranchIntegration(
+          branch,
+          deps,
+        );
+        if (prIntegration.ok) {
+          appendDebugLog(
+            "worktree-delete",
+            `deleting ${branch} with squash PR merge proof after ancestry integration check failed`,
+          );
+        } else {
+          return {
+            ok: false,
+            error: "INTEGRATION_REQUIRED",
+            reason: integration.reason,
+            hint: `Branch must be archived or closed, merged, and clean. Squash PR cleanup check returned ${prIntegration.reason}: ${prIntegration.hint}`,
+          };
+        }
+      } else {
+        return {
+          ok: false,
+          error: "INTEGRATION_REQUIRED",
+          reason: integration.reason,
+          hint: "Branch must be archived or closed, merged, and clean",
+        };
+      }
     }
   }
 
@@ -2099,6 +2319,8 @@ export interface AdvWorktreeCleanupDeps {
   deleteWorktree?: typeof advWorktreeDelete;
   /** Injection seam for testing. Defaults to {@link isWorktreeInUse}. */
   isWorktreeInUse?: (worktreePath: string) => boolean;
+  /** Injection seam for PR-aware squash-merge cleanup evidence. */
+  prMergeEvidence?: AdvWorktreeDeleteDeps["prMergeEvidence"];
 }
 
 export interface DrainPendingDeletesOptions {
@@ -2155,10 +2377,20 @@ async function discoverTerminalCleanupCandidates(
       deps.log.warn(
         `[worktree] Skipping terminal cleanup discovery for ${branch} during ${trigger} — change state unavailable: ${error instanceof Error ? error.message : String(error)}`,
       );
-      continue;
     }
 
-    if (status !== "archived" && status !== "closed") continue;
+    if (status !== "archived" && status !== "closed") {
+      // Manual cleanup may use GitHub PR evidence to recover squash-merged
+      // orphan worktrees whose ADV state is missing or no longer reachable.
+      // Hot-path status/archive cleanup stays store-only to avoid surprise
+      // network calls and to preserve existing terminal-state semantics.
+      if (trigger === "status" || trigger === "archive") continue;
+      const prIntegration = await verifyPrMergedChangeBranchIntegration(
+        branch,
+        deps,
+      );
+      if (!prIntegration.ok) continue;
+    }
 
     await setPendingDelete(
       deps.database,
@@ -2337,10 +2569,14 @@ export async function advWorktreeCleanup(
     store: deps.store,
     warpDeps: deps.warpDeps,
     isWorktreeInUse: deps.isWorktreeInUse,
+    prMergeEvidence: deps.prMergeEvidence,
   };
 
   if (!deps.dryRun && deps.discover !== false) {
-    await discoverTerminalCleanupCandidates("worktree_cleanup", deleteDeps);
+    await discoverTerminalCleanupCandidates(
+      reason || "worktree_cleanup",
+      deleteDeps,
+    );
   }
 
   if (reason.trim()) {

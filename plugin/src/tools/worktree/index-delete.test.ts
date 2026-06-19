@@ -845,6 +845,152 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
     ).toContain(branch);
   });
 
+  it("deletes missing-registry change branch when merged PR head exactly matches local head", async () => {
+    const branch = "change/squash-exact";
+    const wtPath = addWorktree(repoRoot, branch);
+    writeFileSync(join(wtPath, "squash.txt"), "merged by squash");
+    execSync("git add squash.txt", { cwd: wtPath });
+    execSync("git commit -m 'squash exact'", { cwd: wtPath });
+    const headRefOid = execSync(`git rev-parse ${branch}`, {
+      cwd: repoRoot,
+    })
+      .toString()
+      .trim();
+    const deps = createMockDeps(repoRoot, wtPath);
+    deps.registry = [];
+    attachChangeStatus(deps, null);
+    deps.mergedBranches = async () => ["main"];
+    deps.prMergeEvidence = async () => ({
+      ok: true,
+      proof: "pr-head-exact",
+      prNumber: 123,
+      headRefOid,
+    });
+
+    const result = await advWorktreeDelete(branch, {}, deps);
+
+    expect(result).toEqual({ ok: true, branch, path: wtPath });
+    expect(appendDebugLog).toHaveBeenCalledWith(
+      "worktree-delete",
+      expect.stringContaining("verified squash PR merge"),
+    );
+    expect(
+      execSync("git worktree list", { cwd: repoRoot }).toString(),
+    ).not.toContain(branch);
+  });
+
+  it("deletes missing-registry change branch when local head is ancestor of merged PR head", async () => {
+    const branch = "change/squash-ancestor";
+    const wtPath = addWorktree(repoRoot, branch);
+    writeFileSync(join(wtPath, "ancestor.txt"), "local branch");
+    execSync("git add ancestor.txt", { cwd: wtPath });
+    execSync("git commit -m 'local branch commit'", { cwd: wtPath });
+    const deps = createMockDeps(repoRoot, wtPath);
+    deps.registry = [];
+    attachChangeStatus(deps, null);
+    deps.mergedBranches = async () => ["main"];
+    deps.prMergeEvidence = async () => ({
+      ok: true,
+      proof: "local-ancestor-of-pr-head",
+      prNumber: 124,
+      headRefOid: "pr-head-sha",
+    });
+
+    const result = await advWorktreeDelete(branch, {}, deps);
+
+    expect(result).toEqual({ ok: true, branch, path: wtPath });
+    expect(
+      execSync("git worktree list", { cwd: repoRoot }).toString(),
+    ).not.toContain(branch);
+  });
+
+  it("retains missing-registry change branch when local commits are not proven in merged PR head", async () => {
+    const branch = "change/squash-post-pr";
+    const wtPath = addWorktree(repoRoot, branch);
+    writeFileSync(join(wtPath, "post.txt"), "post pr commit");
+    execSync("git add post.txt", { cwd: wtPath });
+    execSync("git commit -m 'post pr commit'", { cwd: wtPath });
+    const deps = createMockDeps(repoRoot, wtPath);
+    deps.registry = [];
+    attachChangeStatus(deps, null);
+    deps.mergedBranches = async () => ["main"];
+    deps.prMergeEvidence = async () => ({
+      ok: false,
+      reason: "local_has_commits_after_pr_head",
+      hint: "post-PR commits are retained",
+    });
+
+    const result = await advWorktreeDelete(branch, {}, deps);
+
+    expect(result).toMatchObject({
+      ok: false,
+      error: "INTEGRATION_REQUIRED",
+      reason: "change_not_terminal",
+    });
+    expect(
+      execSync("git worktree list", { cwd: repoRoot }).toString(),
+    ).toContain(branch);
+  });
+
+  it.each([
+    ["no_pr_evidence", "No PR evidence"],
+    ["pr_not_merged", "PR open or closed unmerged"],
+  ] as const)(
+    "retains missing-registry change branch when PR evidence is %s",
+    async (reason, hint) => {
+      const branch = `change/${reason}`;
+      const wtPath = addWorktree(repoRoot, branch);
+      writeFileSync(join(wtPath, `${reason}.txt`), hint);
+      execSync(`git add ${reason}.txt`, { cwd: wtPath });
+      execSync(`git commit -m '${hint}'`, { cwd: wtPath });
+      const deps = createMockDeps(repoRoot, wtPath);
+      deps.registry = [];
+      attachChangeStatus(deps, null);
+      deps.mergedBranches = async () => ["main"];
+      deps.prMergeEvidence = async () => ({
+        ok: false,
+        reason,
+        hint,
+      });
+
+      const result = await advWorktreeDelete(branch, {}, deps);
+
+      expect(result).toMatchObject({
+        ok: false,
+        error: "INTEGRATION_REQUIRED",
+      });
+      expect(
+        execSync("git worktree list", { cwd: repoRoot }).toString(),
+      ).toContain(branch);
+    },
+  );
+
+  it("uses PR merge evidence when registered terminal branch is squash-merged", async () => {
+    const branch = "change/registered-squash";
+    const wtPath = addWorktree(repoRoot, branch);
+    const deps = createMockDeps(repoRoot, wtPath);
+    deps.registry = [{ branch, changeId: "registered-squash", path: wtPath }];
+    deps.integrationCheck = async () => ({
+      ok: false,
+      reason: "branch_not_merged",
+      detail: "not ancestry-merged",
+      hint: "squash merge requires PR evidence",
+    });
+    deps.prMergeEvidence = async () => ({
+      ok: true,
+      proof: "pr-head-exact",
+      prNumber: 125,
+      headRefOid: "registered-head",
+    });
+
+    const result = await advWorktreeDelete(branch, {}, deps);
+
+    expect(result).toEqual({ ok: true, branch, path: wtPath });
+    expect(
+      execSync("git worktree list", { cwd: repoRoot }).toString(),
+    ).not.toContain(branch);
+  });
+
   it("#55 non-registered branch without force still fails branch_not_in_registry", async () => {
     const branch = "chore/no-force";
     const wtPath = addWorktree(repoRoot, branch);
@@ -1161,6 +1307,32 @@ describe.skipIf(!isLinux)("shared pending-delete drain", () => {
       database: deps.database,
       log: deps.log,
       store: deps.store,
+    });
+
+    expect(result).toEqual({ removed: 1, retained: 0 });
+    await expect(getPendingDeletes(deps.database)).resolves.toEqual([]);
+    expect(
+      execSync("git worktree list", { cwd: repoRoot }).toString(),
+    ).not.toContain(branch);
+  });
+
+  it("manual cleanup discovers squash-merged orphan worktrees using PR evidence", async () => {
+    const branch = "change/discovered-squash";
+    const wtPath = addWorktree(repoRoot, branch);
+    const deps = createDrainDeps(wtPath);
+    attachChangeStatus(deps, null);
+
+    const result = await advWorktreeCleanup("manual cleanup", {
+      projectRoot: repoRoot,
+      database: deps.database,
+      log: deps.log,
+      store: deps.store,
+      prMergeEvidence: async () => ({
+        ok: true,
+        proof: "pr-head-exact",
+        prNumber: 126,
+        headRefOid: "discovered-head",
+      }),
     });
 
     expect(result).toEqual({ removed: 1, retained: 0 });
