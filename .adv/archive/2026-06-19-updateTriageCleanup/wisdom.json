@@ -1,0 +1,12 @@
+{
+  "entries": [
+    {
+      "id": "ws-F3oyWq",
+      "type": "gotcha",
+      "content": "`bin/oc-test` is rooted at the repository checkout, not `plugin/`; ADV verification commands using `bin/oc-test targeted -- ...` must run with workdir at repo root even though tests themselves execute under plugin/.",
+      "source_task": "tk-dfd36ea05cd8",
+      "recorded_at": "2026-06-19T18:11:56.132Z"
+    }
+  ],
+  "count": 1
+}
