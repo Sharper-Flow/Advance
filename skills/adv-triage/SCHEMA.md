@@ -19,6 +19,26 @@
 
 If `unrepresented[]` empty and represented issues have required fields, skip issue-creation phases and continue to scoring/roadmap as needed.
 
+## Source cleanup validation
+
+`cleanup_decisions[]` is command-local planning/report state produced after match/gap analysis and before issue creation or user-owned scoring.
+
+```jsonc
+{
+  "source": "adv-change | github-issue | agenda | wisdom | note | todo",
+  "ref": "<stable-source-ref>",
+  "title": "<short-title>",
+  "classification": "relevant | stale/already-addressed | duplicate/superseded | should-merge | unclear",
+  "evidence": ["<source-backed evidence item>"],
+  "proposedAction": "<close|complete|cancel|merge-note|suppress|defer|ask-user|none>",
+  "survivorRef": "<canonical surviving issue/change/source when applicable>",
+  "requiresApproval": true,
+  "approvalGroup": "<source>:<classification>"
+}
+```
+
+Every non-`relevant` decision must include source, ref, classification, evidence, proposed action, and approval group. Title similarity and agent inference may populate evidence as advisory flags only; they do not authorize mutation, suppression, or removal without structural evidence and explicit approval.
+
 ## Triage-origin tagging (`rq-issueChangeLinkage01`)
 
 When user starts a new ADV change from an issue created by `/adv-triage`, proposal creation MUST pass:

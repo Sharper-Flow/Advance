@@ -58,6 +58,24 @@ If `unrepresented[]` empty AND represented have required fields → skip to Phas
 
 ---
 
+## Phase 3.5: Source Cleanup Validation (Tier B, batched)
+
+After `represented[]` / `unrepresented[]` are built and before any issue creation or user-owned scoring prompt, validate the whole source pool for cleanup decisions. Build command-local `cleanup_decisions[]` with source, stable ref, classification, evidence, proposed action, survivor/source when applicable, and source/reason approval group. Classifications: `relevant`, `stale/already-addressed`, `duplicate/superseded`, `should-merge`, `unclear`.
+
+- `relevant` → may proceed to Phase 4 issue creation or field assignment.
+- `stale/already-addressed` / `duplicate/superseded` / `should-merge` → surface source, reason, evidence, survivor/source, and proposed action; mutate/suppress only after explicit Tier B approval batched by source/reason.
+- `unclear` → ask focused relevance clarification before issue creation or scoring; unresolved items stay visible and are not silently suppressed.
+
+Source-specific actions after approval:
+
+- ADV changes: recommend `/adv-archive` for completed/ready work; close duplicate/superseded/not-planned/cancelled only through ADV close tools with approval evidence.
+- GitHub issues: capability-detect duplicate close support via `gh issue close --help`. If `--duplicate-of` is available, use native duplicate close. If unavailable, use documented `Duplicate of #N` comment semantics plus supported close reasons only.
+- Agenda: `duplicate/superseded` and `should-merge` resolve through `adv_agenda_complete` with a note referencing the survivor/source; stale/not-planned uses agenda cancellation only after approval.
+
+MUST NOT create or open issue candidates before cleanup validation completes for the source pool. MUST NOT prompt for bug Priority or feature Value before cleanup validation completes. Title similarity and agent inference are advisory only (P33): they may flag cleanup candidates, never mutate, close, suppress, or remove without structural evidence and explicit approval. See skill § Source cleanup validation.
+
+---
+
 ## Phase 4: User Assignments (Tier B, batched)
 
 ### 4a. Confirm new issues
@@ -66,7 +84,7 @@ When `unrepresented[]` non-empty: emit Tier B inline approval (skill § Phase 3a
 
 ### 4b. Relevance validation
 
-Before asking for bug Priority or feature Value, relevance-check every field-gap candidate. Evidence sources: issue body/comments/labels/project status, linked ADV change state, current source/docs/tests for implementation-gap claims, and user-provided context from the run. Classify each item as `relevant`, `stale/already-addressed`, `duplicate/superseded`, or `unclear`.
+Thin late fallback only: if a field-gap candidate was not covered by Phase 3.5 cleanup validation or new evidence appears after issue creation, relevance-check before asking for bug Priority or feature Value. Evidence sources: issue body/comments/labels/project status, linked ADV change state, current source/docs/tests for implementation-gap claims, and user-provided context from the run. Classify each item as `relevant`, `stale/already-addressed`, `duplicate/superseded`, or `unclear`.
 
 - `relevant` → include in the Phase 4c field assignment matrix.
 - `stale/already-addressed` or `duplicate/superseded` → surface evidence and get explicit user approval before closing/removing/deprioritizing.

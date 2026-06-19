@@ -47,6 +47,43 @@ Anything else → re-prompt with the same options.
 
 For each approved item: `gh issue create`, add source trailer, add to project, set `ADV Type` field.
 
+## Source cleanup validation prompt (Tier B)
+
+Use after match/gap analysis and before confirming new GH issues or asking for bug Priority / feature Value.
+
+Group `cleanup_decisions[]` by source/reason (`approvalGroup`) so users can approve narrow buckets without accepting unrelated cleanup.
+
+```text
+Found {N} cleanup candidate(s) before backlog scoring:
+
+Group: {source}/{reason}
+
+1. {source}:{ref} — {title}
+   Classification: {stale/already-addressed|duplicate/superseded|should-merge|unclear}
+   Evidence: {source-backed evidence}
+   Proposed action: {action}
+   Survivor/source: {survivorRef or none}
+...
+
+Reply EXACTLY one of:
+- `approve all` — apply every proposed action in this source/reason group
+- `approve N` (or `approve N,M`) — apply only listed actions
+- `keep all` — take no cleanup action for this group
+- `keep N` (or `keep N,M`) — keep listed items, re-prompt for remaining actions
+- `stop` / `abort` — halt the entire /adv-triage run
+
+Anything else → re-prompt with the same options. No LLM fallback.
+```
+
+Action mapping after approval:
+
+- Agenda `duplicate/superseded` or `should-merge` → `adv_agenda_complete` with a note referencing the survivor/source.
+- Agenda `stale/already-addressed` or not-planned → `adv_agenda_cancel` with approval evidence.
+- GitHub duplicate handling → capability-detect with `gh issue close --help`. If `--duplicate-of` is supported, use native duplicate close. If not, add documented `Duplicate of #N` comment semantics and close only with locally supported reasons.
+- ADV changes → use ADV close/archive recommendations only; never mutate workflow state outside ADV tools.
+
+Use the `question` tool only for `unclear` relevance choices and user-owned scoring prompts. Cleanup approval itself is Tier B inline text with exact whitelist parsing.
+
 ## User-only field assignments
 
 ### Relevance validation

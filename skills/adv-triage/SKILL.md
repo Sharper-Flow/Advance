@@ -29,16 +29,18 @@ Storage of truth = GH Projects v2 typed fields. `ROADMAP.md` = generated mirror.
 1. **Bootstrap** — ensure labels + GH Projects v2 board + custom fields. Persist typed config; never overwrite existing `repository_filter`.
 2. **Inventory** — gather GH issues, project items, active ADV changes, agenda, wisdom, notes, TODO/FIXME. Cap each source at 100; surface overflow.
 3. **Match** — structural first: stable ref, exact body excerpt, then title-similarity candidate duplicate. Only exact ref/body matches auto-suppress creation.
-4. **Confirm issue creation** — Tier B inline prompt for unrepresented items. Create only approved issues, label `bug|feature`, add to project, record source trailer.
-5. **User fields** — use `question` tool for bug priority + feature Value. Stage batch-control first, then per-item prompts.
-6. **Agent scoring** — assign TimeCriticality/RROE/Effort only when Value exists; compute `WSJF = (Value + TimeCriticality + RROE) / Effort` rounded 1 decimal.
-7. **Render roadmap** — fresh project read, write both `ROADMAP.md` and `.adv/roadmap-snapshot.json`, echo full generated markdown in chat.
-8. **Commit/push** — explicit Tier B prompt; stage only `ROADMAP.md .adv/roadmap-snapshot.json`; default branch only.
-9. **Report** — include sources, created/updated/deferred counts, roadmap counts, local-source deprecations, API budget.
+4. **Source cleanup validation** — classify the whole source pool before issue creation or user-owned scoring. Build `cleanup_decisions[]`; batch destructive/suppressive approvals by source/reason.
+5. **Confirm issue creation** — Tier B inline prompt for cleanup-surviving unrepresented items. Create only approved issues, label `bug|feature`, add to project, record source trailer.
+6. **User fields** — use `question` tool for bug priority + feature Value only after cleanup validation. Stage batch-control first, then per-item prompts.
+7. **Agent scoring** — assign TimeCriticality/RROE/Effort only when Value exists; compute `WSJF = (Value + TimeCriticality + RROE) / Effort` rounded 1 decimal.
+8. **Render roadmap** — fresh project read, write both `ROADMAP.md` and `.adv/roadmap-snapshot.json`, echo full generated markdown in chat.
+9. **Commit/push** — explicit Tier B prompt; stage only `ROADMAP.md .adv/roadmap-snapshot.json`; default branch only.
+10. **Report** — include sources, cleanup decisions, created/updated/deferred counts, roadmap counts, local-source deprecations, API budget.
 
 ## Structural Rules
 
 - P33: heuristics may classify, rank, or flag duplicates; they never own correctness or persistence.
+- Cleanup validation runs before new GH issue creation and before bug Priority / feature Value prompts.
 - Bugs use `priority:*` labels only. No WSJF for bugs.
 - Feature Value is user-owned unless user explicitly selects autofill.
 - GraphQL writes parse `errors` even on HTTP 200 and respect `x-ratelimit-remaining`.
