@@ -18,6 +18,7 @@ const AGENT_PATHS = [
   ".opencode/agents/adv-reviewer.md",
   ".opencode/agents/adv-designer.md",
   ".opencode/agents/adv-researcher.md",
+  ".opencode/agents/adv-temporal-repair.md",
   ".opencode/agents/build.md",
 ].map((path) => join(REPO_ROOT, path));
 const ARTIFACT_ACCESS_COMMANDS = [
