@@ -73,7 +73,7 @@ Use ADV tools instead:
 | Active/WIP state | `adv_wip_state` |
 | Specs | `adv_spec` |
 | Project context | `adv_project_context` |
-| Conformance state | `adv_conformance action: "status"` |
+| Conformance state | Ask primary ADV to run `adv_conformance action: "status"` if needed; this specialist is not granted conformance mutation tools. |
 
 If a direct read attempt fails with file-not-found or wrong path, do not retry alternate paths. Stop and call `adv_change_show` with include flags. Do not dereference `artifacts.*.path` unless metadata explicitly says `readable:true` and the repair task truly needs a materialized file path.
 
