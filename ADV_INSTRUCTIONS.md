@@ -102,7 +102,7 @@ Each workflow command has a defined phase goal. Canonical in `manifest.ts` (`pha
 | --------------- | ----------------------------------------------------------------------------------------------------------------------------- |
 | `/adv-proposal` | Clarify the problem, user needs, and high-level user outcomes. Establish _what_ and _why_ — no _how_.                         |
 | `/adv-research` | Produce a defined, fully-researched proposed plan ready for user approval. Validate the _how_.                                |
-| `/adv-discover` | Gather current-state evidence, resolve agreement, and capture objectives and acceptance criteria before design.               |
+| `/adv-discover` | Gather current-state evidence, resolve agreement, and capture objectives and acceptance criteria before design. Runs an always-on completeness verification (Phase 1.8) — see `rq-disc13`/`rq-disc14` in the adv-discover spec.               |
 | `/adv-design`   | Convert the approved agreement into a validated implementation strategy ready for planning.                                   |
 | `/adv-prep`     | Complete the flight-check: every gap closed, every dependency mapped, every task ready — ready for autonomous implementation. |
 | `/adv-apply`    | Execute the approved plan autonomously. Add discovered tasks within scope. Escalate only on failure.                          |

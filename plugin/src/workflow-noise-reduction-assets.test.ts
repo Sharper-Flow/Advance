@@ -119,6 +119,39 @@ describe("discovery opportunity scout and ambiguity noise policy", () => {
       expect(content).toMatch(/concise advisory/i);
     }
   });
+
+  // rq-disc13 / rq-disc14 / rq-disc15 — always-on discovery completeness verification
+  test("discovery completeness verification is durable across command, checklist, and spec", () => {
+    const command = readCommand("adv-discover.md");
+    const checklist = readChecklist("discover-checklist.md");
+    const spec = readRepoFile(".adv/specs/adv-discover/spec.json");
+
+    // spec law present
+    expect(spec).toContain('"id": "rq-disc13"');
+    expect(spec).toContain('"id": "rq-disc14"');
+    expect(spec).toContain('"id": "rq-disc15"');
+
+    // co-presence: Completeness Verification step MUST be in BOTH command and checklist
+    // (numeric step-count equality is NOT the invariant — the surfaces use different
+    //  granularities; co-presence is the drift guarantee per rq-disc15.2)
+    for (const content of [command, checklist]) {
+      expect(content).toMatch(/Completeness Verification/i);
+      expect(content).toMatch(/Phase 1\.8/);
+    }
+
+    // the command always-on framing: not gated behind a trigger
+    expect(command).toMatch(/always-on/i);
+    expect(command).toMatch(
+      /problem-completeness|problem completeness/i,
+    );
+    expect(command).toMatch(/solution-scope/i);
+
+    // sole-entry blocking reuses the existing B-CRITICAL ambiguity halt (KD2)
+    expect(command).toMatch(/B-CRITICAL|Boundaries.*CRITICAL/i);
+
+    // scan depth scales (AC6) — not a forced broad scan
+    expect(command).toMatch(/scan depth scales|depth.*scales/i);
+  });
 });
 
 describe("investment report removal", () => {

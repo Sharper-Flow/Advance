@@ -18,10 +18,11 @@ Every discovery MUST execute each step and report results. Mark `[x]` when compl
 - [ ] **Design Question Depth** — Each open design question must include trust model, blast radius, and alternatives considered annotations.
 - [ ] **Draft Spec Delta Shapes** — Each identified delta must have a concrete `rq-*` requirement ID and ≥1 Given/When/Then scenario. If no deltas needed, state "No spec deltas required" with rationale.
 - [ ] **P25 Related-Pattern Scan** — Identify the class of bug/gap being addressed and scan for similar patterns elsewhere in the codebase. Output: "Related Pattern Scan" section with matches or "no similar patterns found".
+- [ ] **Phase 1.8: Completeness Verification** — Always-on (not trigger-gated). Run two checks: (1) problem-completeness — was the full problem identified, not only an observed symptom/path? (2) solution-scope — is the full intended solution scoped, not only one piece? Record rationale + confidence for each. When discovery relies on a sole-chokepoint / single-entry / single-control-surface claim for a cross-cutting operation that is not verified by a target-operation surface scan, emit a Boundaries (B) CRITICAL finding (existing rq-disc-tax2 halt fires → /adv-clarify). Any secondary surfaces found MUST be classified in scope / out of scope with rationale / unresolved user scope question. Scan depth scales to the question; narrow changes record a lightweight rationale and proceed. Output: "Completeness Verification" section.
 - [ ] **LBP Check** — Verify the likely direction matches long-term best practice. Output: "LBP Check" section with direction and evidence. When the discovery agenda contains ecosystem unknowns or an open design question lists external tools/libraries/services as a realistic option, perform the External-Solution Check: consult any cited `docs/*-prep.md` pack first, and only run new Exa queries when no relevant pack covers the question. Purely internal changes may state "No external alternatives apply" with rationale.
 - [ ] **Phase 3.5: Discovery Opportunity Scout** — Run a trigger-based opportunity-scout pass using `adv-opportunity-scout` skill (mode: discovery) when strategic, architecture, product, ecosystem, external-option, or broad objective/AC leverage exists. Load skill, spawn `adv-researcher` with discovery-mode prompt when triggered, collect ≤5 candidates, sort by payoff/risk, route adoption (auto-adopt narrow only: contract-tied, low risk, no user-value tradeoff; surface all others to user). Integrate adopted findings into agreement. Output: "Discovery Opportunity Scout" section with trigger decision, candidate counts, and adoption summary. Narrow low-opportunity changes may record `Scout: skipped — {rationale}`. INCONCLUSIVE is always valid (`Scout: inconclusive ({reason})`).
 
-**Minimum**: All 10 protocol steps must be evaluated and reported. Triggered steps must execute; untriggered scout paths require explicit `Scout: skipped — {rationale}` in the Discovery Checklist output section.
+**Minimum**: All 11 protocol steps must be evaluated and reported. Triggered steps must execute; untriggered scout paths require explicit `Scout: skipped — {rationale}` in the Discovery Checklist output section.
 
 ---
 
@@ -50,7 +51,10 @@ Graceful degradation rules for each protocol step:
 | Design Questions  | Single viable direction                              | Annotate "alternatives: none viable, single direction".                                                                                                      |
 | Spec Deltas       | New capability needed (no existing spec)             | Draft "rq-NEW* in new capability X".                                                                                                                         |
 | P25 Scan          | Zero pattern matches                                 | State "no similar patterns found" explicitly. Do not omit.                                                                                                   |
-| P25 Scan          | Many matches found                                   | Cap at top N with rationale for prioritization.                                                                                                              |
+| P25 Scan          | Many matches found                                   | Cap at top N with rationale for prioritization.                                              |
+| Completeness Verification | No sole-entry / cross-cutting claim made          | Record a lightweight rationale ("change is local to X; no cross-cutting operation claimed") and proceed. No broad scan forced. |
+| Completeness Verification | Sole-entry claim made but not verified            | Emit Boundaries (B) CRITICAL finding; rq-disc-tax2 halts discovery → /adv-clarify. Block until verified or downgraded. |
+| Completeness Verification | Secondary surfaces found                          | Each classified in scope / out of scope with rationale / unresolved user scope question. Never silently deferred. |
 | Opportunity Scout | Skill unavailable or sub-agent fails                 | Record "Scout: inconclusive ({reason})". Proceed without blocking.                                                                                           |
 | Opportunity Scout | Narrow low-opportunity change (narrow fix, single path, no strategic/architecture/product/external-option leverage) | Record "Scout: skipped — {rationale}". Proceed without blocking.                                                                                             |
 | Opportunity Scout | Zero candidates returned                              | Record "Scout: 0 candidates found". Proceed normally.                                                                                                       |
@@ -72,6 +76,7 @@ Discovery output persisted via `adv_change_update` must contain these sections:
 | Open Design Questions  | Trust model + blast radius + alternatives  | Table                     |
 | Draft Spec Deltas      | `rq-*` IDs + ≥1 G/W/T per delta            | Structured list           |
 | Related Pattern Scan   | Matches or "no similar patterns found"     | Prose                     |
+| Completeness Verification | Problem-completeness + solution-scope checks (rationale + confidence); sole-entry claim status; secondary-surface dispositions | Prose / structured list |
 | LBP Check              | Direction + evidence                       | Prose                     |
 | Recommended Objectives | Numbered list for the agreement phase      | List                      |
 | AMBIGUITY ANALYSIS     | Finding IDs (B1, F1, etc.), severity, evidence quotes, coverage report | Table + coverage line |
@@ -136,7 +141,7 @@ Skip the entire Ambiguity Analysis Protocol if the discovery gate is already com
 
 Discovery analysis is complete when ALL of the following are true:
 
-- [ ] All 10 protocol steps executed and reported (including origin validation and opportunity scout)
+- [ ] All 11 protocol steps executed and reported (including origin validation, opportunity scout, and completeness verification)
 - [ ] If cross-project origin exists, it has been validated and confirmed by the user
 - [ ] Codebase searched for 3+ key terms from the change
 - [ ] All deployed specs scanned for conflicts via `adv_spec action: "search"`

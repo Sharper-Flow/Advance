@@ -38,22 +38,23 @@ $ARGUMENTS
 
 Embedded protocol below owns discovery step rules, edge cases, and output sections. This command owns orchestration.
 
-#### Discovery Protocol (8 Steps)
+#### Discovery Protocol (9 Steps)
 
-Every `/adv-discover` invocation must execute these 8 protocol steps and emit a Discovery Checklist section summarizing their results:
+Every `/adv-discover` invocation must execute these 9 protocol steps and emit a Discovery Checklist section summarizing their results:
 
-| #   | Step                                               | Output section        | Required content                                                                                                                 |
-| --- | -------------------------------------------------- | --------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | **Skill Discovery** (Phase 1.5)                    | Skills Considered     | Examined skills + match results (or "none available")                                                                            |
-| 2   | **Prior Research Extension**                       | Extends               | Cited artifacts (including `/adv-improve` research packs under `docs/*-prep.md`) + ≥1 new finding (or "No prior research found") |
-| 3   | **Conflict & Related-Work Scan** (Phase 1.6)       | Conflict Scan         | Results from `adv_change_list` (includeArchived), `adv_change_validate`, `adv_agenda_list`                                       |
-| 4   | **Edge Case Investigation**                        | Edge Cases            | ≥2 edge cases per gap (or "N/A: structural" with rationale)                                                                      |
-| 5   | **Design Question Depth**                          | Open Design Questions | Each question annotated with trust model, blast radius, alternatives                                                             |
-| 6   | **Draft Spec Delta Shapes**                        | Draft Spec Deltas     | `rq-*` IDs + ≥1 G/W/T per delta (or "No spec deltas required")                                                                   |
-| 7   | **P25 Related-Pattern Scan** (Phase 1.7)           | Related Pattern Scan  | Similar patterns or "no similar patterns found"                                                                                  |
-| 8   | **LBP Check (with gated External-Solution Check)** | LBP Check             | Whether likely direction matches long-term best practice                                                                         |
+| #   | Step                                               | Output section            | Required content                                                                                                                 |
+| --- | -------------------------------------------------- | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | **Skill Discovery** (Phase 1.5)                    | Skills Considered         | Examined skills + match results (or "none available")                                                                            |
+| 2   | **Prior Research Extension**                       | Extends                   | Cited artifacts (including `/adv-improve` research packs under `docs/*-prep.md`) + ≥1 new finding (or "No prior research found") |
+| 3   | **Conflict & Related-Work Scan** (Phase 1.6)       | Conflict Scan             | Results from `adv_change_list` (includeArchived), `adv_change_validate`, `adv_agenda_list`                                       |
+| 4   | **Edge Case Investigation**                        | Edge Cases                | ≥2 edge cases per gap (or "N/A: structural" with rationale)                                                                      |
+| 5   | **Design Question Depth**                          | Open Design Questions     | Each question annotated with trust model, blast radius, alternatives                                                             |
+| 6   | **Draft Spec Delta Shapes**                        | Draft Spec Deltas         | `rq-*` IDs + ≥1 G/W/T per delta (or "No spec deltas required")                                                                   |
+| 7   | **P25 Related-Pattern Scan** (Phase 1.7)           | Related Pattern Scan      | Similar patterns or "no similar patterns found"                                                                                  |
+| 8   | **LBP Check (with gated External-Solution Check)** | LBP Check                 | Whether likely direction matches long-term best practice                                                                         |
+| 9   | **Completeness Verification** (Phase 1.8)          | Completeness Verification | Always-on problem-completeness + solution-scope checks; sole-entry blocking; secondary-surface disposition                      |
 
-After all 8 steps, emit a **Discovery Checklist** table listing each step with PASS/SKIP + reason.
+After all 9 steps, emit a **Discovery Checklist** table listing each step with PASS/SKIP + reason.
 
 <!-- rq-disc01 -->
 
@@ -176,13 +177,59 @@ For relevant archived changes, use `adv_change_show` to inspect their tasks and 
 
 <!-- rq-disc08 -->
 
-Per rule P25 (related-scan): identify the class of bug or gap being addressed, then scan for similar patterns elsewhere in the codebase.
+Per rule P25 (related-scan): identify the class of bug/gap being addressed, then scan for similar patterns elsewhere in the codebase.
 
 **Output:** "Related Pattern Scan" section listing similar patterns with file references, or explicitly stating "no similar patterns found".
 
 - Zero matches → state explicitly (do not silently omit the section)
 - Many matches → cap at top N with rationale
 - Matches in deprecated/archived code → filter and note
+
+---
+
+## Phase 1.8: Completeness Verification
+
+<!-- rq-disc13 rq-disc14 -->
+
+Always-on discipline ensuring discovery captured the **full problem** and **full intended solution scope**, not only a first-found symptom or single code path. This step runs in **every** discovery — it is not gated behind a trigger condition. Only the depth of any codebase surface scan scales to what the completeness question demands (preserving proportionality for narrow changes).
+
+### Two always-on checks
+
+1. **Problem-completeness check** — "Was the full problem identified, or only an observed symptom/path?" Record a rationale + confidence note. If the observed symptom may be only part of the problem, state what else could be in scope and how it was (or will be) ruled in/out.
+2. **Solution-scope check** — "Is the full intended solution scoped, or only one implementation piece?" Record a rationale + confidence note, including any sole-chokepoint / single-entry / single-control-surface claims the design will rely on.
+
+### Scan-depth scaling (proportionality)
+
+The **check** always runs. A broad codebase surface scan (`lgrep_search_semantic` + `lgrep_search_symbols`) runs **only when the completeness question demands it** — i.e., when discovery relies on a sole-entry / single-control-surface claim for a cross-cutting operation, or when the problem spans an operation performed in multiple places. Narrow, localized changes record a lightweight rationale ("change is local to X; no cross-cutting operation claimed") and proceed without a broad scan.
+
+### Sole-entry blocking (KD2 — reuses existing halt plumbing)
+
+When discovery relies on a **sole-chokepoint / single-entry / single-control-surface** claim for a cross-cutting operation and that claim is **not verified** by a target-operation surface scan:
+
+- Emit a **Boundaries (B) CRITICAL** ambiguity finding with verbatim evidence (the unverified claim text).
+- The existing `rq-disc-tax2` trigger (see Phase 2.5) halts discovery and hands off to `/adv-clarify`.
+- **No new halt machinery** — the block reuses the existing CRITICAL→halt→`/adv-clarify` path.
+- Discovery does not complete until the claim is verified (scan proves sole entry) or downgraded (reframed as one-of-many with explicit scope).
+
+### Secondary-surface disposition (AC4)
+
+Any secondary surfaces found during completeness verification (parallel code paths that perform the target operation) MUST be explicitly classified **before agreement**:
+
+- **In scope** — the change will address this surface too
+- **Out of scope with rationale** — explicitly excluded and why
+- **Unresolved user-facing scope question** — surfaced to the user in the agreement phase
+
+Secondary surfaces MUST NOT be silently deferred as "future work" without explicit scope rationale.
+
+### Target-operation surface scan evidence shape
+
+When a surface scan runs, record: searched terms/symbols, found surfaces (file:line), excluded surfaces with rationale, and the final scope disposition. This evidence is carried forward so design and review can audit completeness.
+
+### Relationship to P25 (Phase 1.7)
+
+P25 scans for **similar bugs** after a defect class is known. Completeness verification asks a different question: **did we find the whole problem and scope the whole solution?** The two are complementary; do not merge them.
+
+**Output:** "Completeness Verification" section with the two checks (rationale + confidence), any sole-entry claim status (verified / downgraded / blocking), and secondary-surface dispositions.
 
 ---
 
@@ -203,6 +250,7 @@ Build a compact discovery report. The output MUST contain these sections (order 
 | **Open Design Questions**  | Each with trust model + blast radius + alternatives considered                                                                         |
 | **Draft Spec Deltas**      | `rq-*` IDs + ≥1 Given/When/Then per delta (or "No spec deltas required" with rationale)                                                |
 | **Related Pattern Scan**   | Results from Phase 1.7                                                                                                                 |
+| **Completeness Verification** | Always-on problem-completeness + solution-scope checks (rationale + confidence); sole-entry claim status; secondary-surface dispositions |
 | **LBP Check**              | Whether likely direction matches long-term best practice                                                                               |
 | **Recommended Objectives** | Numbered list for the agreement phase                                                                                                  |
 | **AMBIGUITY ANALYSIS**     | Finding table: B/F/S/M findings (required v1) + optional D/X/Q/I/E/C/T findings; severity column; evidence quotes; coverage report row |

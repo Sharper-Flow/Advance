@@ -883,7 +883,7 @@ The Discovery Opportunity Scout MUST use the existing adv-researcher sub-agent f
 
 **ID:** `rq-disc15` | **Priority:** **[MUST]**
 
-The completeness-verification obligation MUST be made durable across ADV law, command, checklist, and docs: the adv-discover canonical spec contains `rq-disc13` and `rq-disc14`; the `/adv-discover` command contract contains a Phase 1.8 Completeness Verification step and a Completeness Verification output-section row; the discover checklist contains a Phase 1.8 step and a matching output-section row; and an asset test asserts the obligation is present in the command, checklist, canonical spec, and docs mirror so prose cannot drift silently. The asset test cross-asserts that the protocol step count in the command and the checklist stay identical.
+The completeness-verification obligation MUST be made durable across ADV law, command, checklist, and docs: the adv-discover canonical spec contains `rq-disc13` and `rq-disc14`; the `/adv-discover` command contract contains a Phase 1.8 Completeness Verification step and a Completeness Verification output-section row; the discover checklist contains a Phase 1.8 step and a matching output-section row; and an asset test asserts the obligation is present in the command, checklist, canonical spec, and docs mirror so prose cannot drift silently. The asset test cross-asserts co-presence: the Completeness Verification step MUST appear in both the command and the checklist, so the two surfaces cannot drift apart (the command and checklist use different step-count granularities, so numeric count equality is not the invariant — co-presence is).
 
 **Tags:** `discover`, `completeness`, `durable`, `anchors`, `asset-test`
 
@@ -902,13 +902,14 @@ The completeness-verification obligation MUST be made durable across ADV law, co
 - The discover checklist contains a Phase 1.8 step and a matching output-section row
 - An asset test asserts presence in the command, checklist, canonical spec, and docs mirror
 
-**Protocol step count stays in sync across command and checklist** (`rq-disc15.2`)
+**Completeness step is co-present across command and checklist** (`rq-disc15.2`)
 
 **Given:**
-- The Phase 1.8 step is added to both the command and the checklist
+- The Phase 1.8 Completeness Verification step is added
 
-**When:** An asset test cross-asserts the protocol step count
+**When:** An asset test cross-asserts co-presence
 
 **Then:**
-- The protocol step count in the command equals the protocol step count in the checklist
-- The asset test fails if the two surfaces drift apart
+- The Completeness Verification step is present in the command AND in the checklist
+- The asset test fails if the step is added to one surface but not the other
+- Numeric step-count equality is NOT the invariant (the command and checklist use different granularities)
