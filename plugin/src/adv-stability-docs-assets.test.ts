@@ -93,4 +93,21 @@ describe("ADV stability hardening docs", () => {
       "Stale `_freshness` values are diagnostic-only",
     );
   });
+
+  test("Temporal recovery docs include phantom-pointer and artifact decision tree", () => {
+    const temporalRecovery = readRepoFile("docs/temporal-recovery.md");
+
+    for (const marker of [
+      "phantom pointer / phantom artifact",
+      "adv_change_show",
+      "adv_gate_status",
+      "adv_change_forget",
+      "readable:true",
+      "worker restart does not reload host-loaded plugin tool code",
+      "Restart OpenCode",
+      "approval evidence",
+    ]) {
+      expect(temporalRecovery).toContain(marker);
+    }
+  });
 });

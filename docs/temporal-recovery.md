@@ -97,6 +97,52 @@ XDG/process isolation and make restarts less ambiguous, but it does not repair
 the plugin bug by itself. The plugin fix and a fresh OpenCode process are still
 required.
 
+## ADV phantom pointer / phantom artifact triage
+
+Use this when an agent reports that a change workflow is unreachable because a
+presumed ADV artifact path (for example `.../.adv/changes/<id>/design.md`) is
+missing. Missing sidecar files are not proof of lost ADV state.
+
+### Decision tree
+
+1. Query ADV state first:
+
+   ```text
+   adv_change_show changeId: "<change-id>" include: { proposal: true, agreement: true, design: true }
+   adv_gate_status changeId: "<change-id>"
+   ```
+
+   If these tools load the change and gates, classify the incident as **not a
+   Temporal phantom**. Resume from the reported `nextGate` or included artifact
+   content.
+
+2. For cross-project work, pass the same `target_path` to both tools. If one
+   project loads the change and another does not, classify it as target-project
+   or shard confusion, not state loss.
+
+3. Treat `artifacts.*.path` as advisory metadata only. Do not read it unless an
+   ADV tool exposes `readable:true` for that path. When metadata says
+   `readable:false`, artifact content must come from `adv_change_show` include
+   fields or from an inline worker packet.
+
+4. Use `adv_change_forget` only for current-session active-pointer cleanup when
+   the pointer matches the exact phantom change ID. It is in-memory session
+   recovery; it does not close, archive, delete, or repair persistent change
+   state.
+
+5. If `adv_change_show` / `adv_gate_status` cannot reach the workflow, run
+   `adv_temporal_diagnose changeId: "<change-id>"` and follow its structured
+   next action. Approval-gated repairs such as search-attribute registration or
+   suspect worker-lock reclaim still require explicit approval evidence.
+
+### Restart boundary
+
+`adv_temporal_worker_restart` restarts the Temporal worker process only. A
+worker restart does not reload host-loaded plugin tool code or agent prompt
+assets. After changing `.opencode/agents/*`, `ADV_INSTRUCTIONS.md`,
+`plugin/src/tools/*`, or deploy-synced prompt surfaces, run the deploy flow and
+Restart OpenCode before expecting live sessions to see the new behavior.
+
 ## Worker model
 
 ### Decision (current — hybrid)
