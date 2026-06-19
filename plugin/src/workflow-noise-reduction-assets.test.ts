@@ -141,9 +141,7 @@ describe("discovery opportunity scout and ambiguity noise policy", () => {
 
     // the command always-on framing: not gated behind a trigger
     expect(command).toMatch(/always-on/i);
-    expect(command).toMatch(
-      /problem-completeness|problem completeness/i,
-    );
+    expect(command).toMatch(/problem-completeness|problem completeness/i);
     expect(command).toMatch(/solution-scope/i);
 
     // sole-entry blocking reuses the existing B-CRITICAL ambiguity halt (KD2)
