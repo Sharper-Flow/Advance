@@ -543,15 +543,14 @@ describe("change tools — signal-driven lifecycle", () => {
       const { mkdtemp, mkdir, rm } = await import("fs/promises");
       const { tmpdir } = await import("os");
       const { join: pathJoin } = await import("path");
-      const tempRoot = await mkdtemp(
-        pathJoin(tmpdir(), "adv-artifact-only-"),
-      );
+      const tempRoot = await mkdtemp(pathJoin(tmpdir(), "adv-artifact-only-"));
       const changesDir = pathJoin(tempRoot, ".adv/changes");
       await mkdir(pathJoin(changesDir, "test-change"), { recursive: true });
 
       try {
         const phantomPath = pathJoin(changesDir, "test-change", "design.md");
-        const designContent = "# Design\n\nOnly this artifact should be returned.";
+        const designContent =
+          "# Design\n\nOnly this artifact should be returned.";
         const store = createMockStore({
           documents: { design: designContent },
           artifacts: {

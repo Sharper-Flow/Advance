@@ -2285,7 +2285,8 @@ export const changeTools = {
 
           const requestedKinds: ArtifactKind[] = [];
           if (include?.proposal) requestedKinds.push("proposal");
-          if (include?.problemStatement) requestedKinds.push("problemStatement");
+          if (include?.problemStatement)
+            requestedKinds.push("problemStatement");
           if (include?.agreement) requestedKinds.push("agreement");
           if (include?.design) requestedKinds.push("design");
           if (include?.executiveSummary)

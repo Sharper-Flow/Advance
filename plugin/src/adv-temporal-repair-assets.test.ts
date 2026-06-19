@@ -16,7 +16,10 @@ function splitFrontmatter(content: string): {
 
 function getToolGrant(frontmatter: string, toolName: string): boolean | null {
   const match = frontmatter.match(
-    new RegExp(`^\\s{2}${toolName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}:\\s*(true|false)\\s*$`, "m"),
+    new RegExp(
+      `^\\s{2}${toolName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}:\\s*(true|false)\\s*$`,
+      "m",
+    ),
   );
   return match ? match[1] === "true" : null;
 }
