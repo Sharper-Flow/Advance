@@ -2181,6 +2181,12 @@ export const changeTools = {
             .max(50)
             .optional()
             .describe("Override default top-10 ready-task slice. Range 1-50."),
+          artifactOnly: z
+            .boolean()
+            .optional()
+            .describe(
+              "When true with artifact include flags, returns a bounded artifact-only readback instead of full change/task context.",
+            ),
           proposal: z
             .boolean()
             .optional()
@@ -2246,6 +2252,7 @@ export const changeTools = {
           snapshot?: boolean;
           readyTasks?: boolean;
           readyTasksLimit?: number;
+          artifactOnly?: boolean;
           proposal?: boolean;
           problemStatement?: boolean;
           agreement?: boolean;
@@ -2275,6 +2282,49 @@ export const changeTools = {
             ),
             gates: await normalizeGateArtifactEvidenceForReadback(change.gates),
           };
+
+          const requestedKinds: ArtifactKind[] = [];
+          if (include?.proposal) requestedKinds.push("proposal");
+          if (include?.problemStatement) requestedKinds.push("problemStatement");
+          if (include?.agreement) requestedKinds.push("agreement");
+          if (include?.design) requestedKinds.push("design");
+          if (include?.executiveSummary)
+            requestedKinds.push("executiveSummary");
+          if (include?.acceptance) requestedKinds.push("acceptance");
+
+          if (include?.artifactOnly) {
+            const output: Record<string, unknown> = {
+              id: displayChange.id,
+              title: displayChange.title,
+              status: displayChange.status,
+              artifacts: displayChange.artifacts,
+              _artifactOnly: true,
+              ...(projectContext ? { _projectContext: projectContext } : {}),
+            };
+
+            if (requestedKinds.length > 0) {
+              const artifactContent = await readArtifacts(
+                activeStore,
+                changeId,
+                requestedKinds,
+              );
+              if (artifactContent.proposal !== undefined)
+                output._proposal = artifactContent.proposal;
+              if (artifactContent.problemStatement !== undefined)
+                output._problemStatement = artifactContent.problemStatement;
+              if (artifactContent.agreement !== undefined)
+                output._agreement = artifactContent.agreement;
+              if (artifactContent.design !== undefined)
+                output._design = artifactContent.design;
+              if (artifactContent.executiveSummary !== undefined)
+                output._executiveSummary = artifactContent.executiveSummary;
+              if (artifactContent.acceptance !== undefined)
+                output._acceptance = artifactContent.acceptance;
+            }
+
+            return formatToolOutput(output);
+          }
+
           const { content: proposalText } = await loadProposalForContext(
             activeStore,
             changeId,
@@ -2432,16 +2482,6 @@ export const changeTools = {
             // latest archive bundle for archived changes.
             // Batched multi-include read per C9 — single store.changes.get()
             // query covers all requested kinds (KD-6 readArtifacts).
-            const requestedKinds: ArtifactKind[] = [];
-            if (include.proposal) requestedKinds.push("proposal");
-            if (include.problemStatement)
-              requestedKinds.push("problemStatement");
-            if (include.agreement) requestedKinds.push("agreement");
-            if (include.design) requestedKinds.push("design");
-            if (include.executiveSummary)
-              requestedKinds.push("executiveSummary");
-            if (include.acceptance) requestedKinds.push("acceptance");
-
             if (requestedKinds.length > 0) {
               const artifactContent = await readArtifacts(
                 activeStore,
