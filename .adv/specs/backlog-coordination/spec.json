@@ -3,8 +3,8 @@
   "name": "backlog-coordination",
   "title": "Backlog Coordination",
   "purpose": "Multi-agent backlog and WIP coordination via per-change Temporal workflows + cross-entity search attributes. Eliminates drift between agent view and user view in single-developer-multi-agent workflows. GitHub Project remains canonical for ranking and Value (V); the change workflow itself acts as the durable claim record (no separate claim primitive, no project-level shared workflow).",
-  "version": "1.1.0",
-  "updated_at": "2026-05-22T00:00:00.000Z",
+  "version": "1.2.0",
+  "updated_at": "2026-06-19T00:00:00.000Z",
   "requirements": [
     {
       "id": "rq-backlogCoord01",
@@ -388,6 +388,84 @@
           "then": [
             "AdvBacklogIssueNumber is populated from workflow state.origin.issue_number",
             "The value is not sourced from a late disk-only patch"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-backlogCoord09",
+      "title": "Triage source cleanup before issue creation and scoring",
+      "body": "/adv-triage MUST run source cleanup validation after structural match/gap analysis and before new issue creation, bug Priority prompts, or feature Value prompts. Cleanup validation covers represented and unrepresented ADV changes, GitHub issues/project items, agenda items, and local sources gathered by /adv-triage. Each non-relevant cleanup candidate MUST include source, stable ref, classification, evidence, proposed action, and approval group. Heuristics such as title similarity or agent inference are advisory only and MUST NOT close, complete, cancel, remove, suppress, merge-note, deprioritize, or otherwise mutate items without structural evidence and explicit approval batched by source/reason. Agenda duplicate/superseded/should-merge candidates approved for cleanup MUST complete with a note referencing the survivor/source. Bug Priority and feature Value remain user-owned and must not be requested until cleanup validation has completed for the candidate pool.",
+      "priority": "must",
+      "tags": [
+        "triage",
+        "cleanup",
+        "backlog",
+        "human-authority",
+        "p33"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-backlogCoord09.1",
+          "title": "Cleanup validation precedes issue creation and scoring prompts",
+          "given": [
+            "/adv-triage has gathered sources and built represented[] plus unrepresented[] match results"
+          ],
+          "when": "/adv-triage prepares Phase 4 user prompts",
+          "then": [
+            "Source cleanup validation has run before any new GH issue creation prompt",
+            "Source cleanup validation has run before any bug Priority prompt",
+            "Source cleanup validation has run before any feature Value prompt"
+          ]
+        },
+        {
+          "id": "rq-backlogCoord09.2",
+          "title": "Cleanup candidates carry evidence and action shape",
+          "given": [
+            "A source item, represented issue, active ADV change, or agenda item is stale, already addressed, duplicate, superseded, should-merge, or unclear"
+          ],
+          "when": "cleanup validation classifies the candidate",
+          "then": [
+            "The report includes source and stable ref",
+            "The report includes classification, evidence, proposed action, and approval group",
+            "Unclear items are surfaced instead of silently suppressed"
+          ]
+        },
+        {
+          "id": "rq-backlogCoord09.3",
+          "title": "Heuristic cleanup findings are advisory only",
+          "given": [
+            "Title similarity, token overlap, or agent inference flags a cleanup candidate"
+          ],
+          "when": "No structural evidence and no explicit user approval exists",
+          "then": [
+            "/adv-triage does not close, complete, cancel, remove, suppress, merge-note, or deprioritize the item",
+            "The candidate remains surfaced for user confirmation or clarification"
+          ]
+        },
+        {
+          "id": "rq-backlogCoord09.4",
+          "title": "Cleanup mutations require source-reason approval",
+          "given": [
+            "A cleanup candidate would mutate or suppress an ADV change, GitHub issue/project item, agenda item, or local source"
+          ],
+          "when": "/adv-triage prepares to apply the cleanup action",
+          "then": [
+            "The action is included in a batch grouped by source/reason",
+            "Explicit approval is recorded before mutation or suppression",
+            "Bug Priority and feature Value prompts wait until the approval path resolves or the item is otherwise classified relevant"
+          ]
+        },
+        {
+          "id": "rq-backlogCoord09.5",
+          "title": "Agenda superseded or merge candidates complete with survivor note",
+          "given": [
+            "An agenda item is approved as duplicate/superseded or should-merge"
+          ],
+          "when": "/adv-triage applies cleanup",
+          "then": [
+            "The agenda item is completed rather than silently deleted",
+            "The completion note references the survivor/source"
           ]
         }
       ]
