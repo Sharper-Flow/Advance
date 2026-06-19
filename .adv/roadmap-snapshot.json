@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated_at": "2026-06-19T15:30:09Z",
+  "generated_at": "2026-06-19T15:42:35Z",
   "project": {
     "owner": "Sharper-Flow",
     "number": 2,
@@ -13,312 +13,43 @@
     "deferred": 1
   },
   "bugs": [
-    {
-      "number": 131,
-      "title": "Investigate worktree delete timeout",
-      "priority": "critical",
-      "labels": ["bug", "priority:critical"]
-    },
-    {
-      "number": 136,
-      "title": "Fix archive release gate ordering after terminal archive",
-      "priority": "critical",
-      "labels": ["bug", "priority:critical"]
-    },
-    {
-      "number": 175,
-      "title": "Fix peer-owned target_path create",
-      "priority": "critical",
-      "labels": ["bug", "priority:critical"]
-    },
-    {
-      "number": 1,
-      "title": "adv_change_create creates duplicate instead of updating existing change",
-      "priority": "high",
-      "labels": ["bug", "priority:high"]
-    },
-    {
-      "number": 127,
-      "title": "Add origin repair tool",
-      "priority": "high",
-      "labels": ["bug", "priority:high"]
-    },
-    {
-      "number": 138,
-      "title": "Acceptance signals reject after execution gate complete: 'workflow execution already completed'",
-      "priority": "high",
-      "labels": ["bug", "priority:high"]
-    },
-    {
-      "number": 168,
-      "title": "Archive status repair reports success but read paths remain draft/in-flight",
-      "priority": "high",
-      "labels": ["bug", "priority:high"]
-    },
-    {
-      "number": 174,
-      "title": "Worktree registry: archived-change `missing_from_disk` entries are unclearable (removeWorktree is a stub)",
-      "priority": "high",
-      "labels": ["bug", "priority:high"]
-    }
+    { "number": 131, "title": "Investigate worktree delete timeout", "priority": "critical", "labels": ["bug", "priority:critical"] },
+    { "number": 136, "title": "Fix archive release gate ordering after terminal archive", "priority": "critical", "labels": ["bug", "priority:critical"] },
+    { "number": 168, "title": "Archive status repair reports success but read paths remain draft/in-flight", "priority": "critical", "labels": ["bug", "priority:critical"] },
+    { "number": 174, "title": "Worktree registry: archived-change `missing_from_disk` entries are unclearable (removeWorktree is a stub)", "priority": "critical", "labels": ["bug", "priority:critical"] },
+    { "number": 175, "title": "Fix peer-owned target_path create", "priority": "critical", "labels": ["bug", "priority:critical"] },
+    { "number": 1, "title": "adv_change_create creates duplicate instead of updating existing change", "priority": "high", "labels": ["bug", "priority:high"] },
+    { "number": 127, "title": "Add origin repair tool", "priority": "high", "labels": ["bug", "priority:high"] },
+    { "number": 138, "title": "Acceptance signals reject after execution gate complete: 'workflow execution already completed'", "priority": "high", "labels": ["bug", "priority:high"] }
   ],
   "features": [
-    {
-      "number": 129,
-      "title": "Refactor adv-worktree skill — remove openchad, evaluate tmux",
-      "value": 5,
-      "time_criticality": 2,
-      "rroe": 3,
-      "effort": 1,
-      "wsjf": 10,
-      "labels": ["feature"]
-    },
-    {
-      "number": 79,
-      "title": "Add must-not section to future ADV proposals",
-      "value": 5,
-      "time_criticality": 1,
-      "rroe": 2,
-      "effort": 1,
-      "wsjf": 8,
-      "labels": ["feature"]
-    },
-    {
-      "number": 80,
-      "title": "Make worktree.deps.store required",
-      "value": 8,
-      "time_criticality": 2,
-      "rroe": 5,
-      "effort": 2,
-      "wsjf": 7.5,
-      "labels": ["feature"]
-    },
-    {
-      "number": 109,
-      "title": "Verify archive gate protects against dangling task commits",
-      "value": 8,
-      "time_criticality": 5,
-      "rroe": 8,
-      "effort": 3,
-      "wsjf": 7,
-      "labels": ["feature"]
-    },
-    {
-      "number": 66,
-      "title": "ADV clarify/design must surface 'imported assumptions from research' as scope decisions",
-      "value": 8,
-      "time_criticality": 3,
-      "rroe": 8,
-      "effort": 3,
-      "wsjf": 6.3,
-      "labels": ["enhancement", "priority:medium"]
-    },
-    {
-      "number": 64,
-      "title": "Add adv_delta_add MCP tool — agent-facing path to encode spec deltas",
-      "value": 8,
-      "time_criticality": 2,
-      "rroe": 8,
-      "effort": 3,
-      "wsjf": 6,
-      "labels": ["feature", "priority:medium"]
-    },
-    {
-      "number": 61,
-      "title": "Telemetry & Temporal follow-ups from fixTemporalContextMismatch",
-      "value": 5,
-      "time_criticality": 2,
-      "rroe": 5,
-      "effort": 2,
-      "wsjf": 6,
-      "labels": ["enhancement", "priority:high"]
-    },
-    {
-      "number": 107,
-      "title": "Add TTL caching for ADV status health probes",
-      "value": 5,
-      "time_criticality": 2,
-      "rroe": 5,
-      "effort": 2,
-      "wsjf": 6,
-      "labels": ["feature"]
-    },
-    {
-      "number": 81,
-      "title": "Document tdd_intent reclassification workaround for cached-dist self-update sessions",
-      "value": 3,
-      "time_criticality": 1,
-      "rroe": 2,
-      "effort": 1,
-      "wsjf": 6,
-      "labels": ["feature"]
-    },
-    {
-      "number": 84,
-      "title": "Sweep unused type exports flagged by knip",
-      "value": 3,
-      "time_criticality": 1,
-      "rroe": 2,
-      "effort": 1,
-      "wsjf": 6,
-      "labels": ["feature"]
-    },
-    {
-      "number": 87,
-      "title": "Wire scanFileOverlaps into prep validator when async checks exist",
-      "value": 8,
-      "time_criticality": 3,
-      "rroe": 5,
-      "effort": 3,
-      "wsjf": 5.3,
-      "labels": ["feature"]
-    },
-    {
-      "number": 104,
-      "title": "Expose stable ADV read surface for OCA consumption (O2)",
-      "value": 8,
-      "time_criticality": 8,
-      "rroe": 8,
-      "effort": 5,
-      "wsjf": 4.8,
-      "labels": ["feature"]
-    },
-    {
-      "number": 93,
-      "title": "adv_status: surface reflection friction signal in hygiene view",
-      "value": 5,
-      "time_criticality": 3,
-      "rroe": 5,
-      "effort": 3,
-      "wsjf": 4.3,
-      "labels": ["enhancement", "priority:medium"]
-    },
-    {
-      "number": 106,
-      "title": "Archived/terminal change listing can time out and shadow state",
-      "value": 5,
-      "time_criticality": 3,
-      "rroe": 5,
-      "effort": 3,
-      "wsjf": 4.3,
-      "labels": ["feature"]
-    },
-    {
-      "number": 103,
-      "title": "Permission-first config for ADV agents",
-      "value": 8,
-      "time_criticality": 5,
-      "rroe": 8,
-      "effort": 5,
-      "wsjf": 4.2,
-      "labels": ["feature"]
-    },
-    {
-      "number": 45,
-      "title": "Add runtime Zod parse validation at SDK boundary in tests",
-      "value": 5,
-      "time_criticality": 2,
-      "rroe": 5,
-      "effort": 3,
-      "wsjf": 4,
-      "labels": ["enhancement", "priority:low"]
-    },
-    {
-      "number": 94,
-      "title": "Add adv_friction_query MCP tool — agent-queryable reflection friction",
-      "value": 5,
-      "time_criticality": 2,
-      "rroe": 5,
-      "effort": 3,
-      "wsjf": 4,
-      "labels": ["feature", "priority:medium"]
-    },
-    {
-      "number": 96,
-      "title": "adv_session_list: cross-project view (v2 promotion)",
-      "value": 5,
-      "time_criticality": 2,
-      "rroe": 5,
-      "effort": 3,
-      "wsjf": 4,
-      "labels": ["enhancement", "priority:medium"]
-    },
-    {
-      "number": 65,
-      "title": "Replace prose-based MCP arg validation with declarative Zod refinements at schema boundary",
-      "value": 13,
-      "time_criticality": 5,
-      "rroe": 13,
-      "effort": 8,
-      "wsjf": 3.9,
-      "labels": ["enhancement", "priority:medium"]
-    },
-    {
-      "number": 50,
-      "title": "Project capability index: searchable, indexed reference of truth",
-      "value": 8,
-      "time_criticality": 3,
-      "rroe": 8,
-      "effort": 5,
-      "wsjf": 3.8,
-      "labels": ["feature", "priority:medium"]
-    },
-    {
-      "number": 82,
-      "title": "Reduce ESLint complexity violations across plugin/src",
-      "value": 5,
-      "time_criticality": 2,
-      "rroe": 3,
-      "effort": 3,
-      "wsjf": 3.3,
-      "labels": ["feature"]
-    },
-    {
-      "number": 132,
-      "title": "Assess checkpoint target_path support",
-      "value": 5,
-      "time_criticality": 2,
-      "rroe": 3,
-      "effort": 3,
-      "wsjf": 3.3,
-      "labels": ["feature"]
-    },
-    {
-      "number": 143,
-      "title": "Add archive cleanup scanner",
-      "value": 8,
-      "time_criticality": 3,
-      "rroe": 5,
-      "effort": 5,
-      "wsjf": 3.2,
-      "labels": ["feature"]
-    },
-    {
-      "number": 83,
-      "title": "Decompose long factory closures",
-      "value": 5,
-      "time_criticality": 2,
-      "rroe": 5,
-      "effort": 5,
-      "wsjf": 2.4,
-      "labels": ["feature"]
-    },
-    {
-      "number": 135,
-      "title": "Clean terminal title API",
-      "value": 8,
-      "time_criticality": 3,
-      "rroe": 5,
-      "effort": 8,
-      "wsjf": 2,
-      "labels": ["feature"]
-    }
+    { "number": 129, "title": "Refactor adv-worktree skill — remove openchad, evaluate tmux", "value": 3, "time_criticality": 2, "rroe": 3, "effort": 1, "wsjf": 8, "labels": ["feature"] },
+    { "number": 80, "title": "Make worktree.deps.store required", "value": 8, "time_criticality": 2, "rroe": 5, "effort": 2, "wsjf": 7.5, "labels": ["feature"] },
+    { "number": 109, "title": "Verify archive gate protects against dangling task commits", "value": 8, "time_criticality": 5, "rroe": 8, "effort": 3, "wsjf": 7, "labels": ["feature"] },
+    { "number": 66, "title": "ADV clarify/design must surface 'imported assumptions from research' as scope decisions", "value": 8, "time_criticality": 3, "rroe": 8, "effort": 3, "wsjf": 6.3, "labels": ["enhancement", "priority:medium"] },
+    { "number": 79, "title": "Add must-not section to future ADV proposals", "value": 3, "time_criticality": 1, "rroe": 2, "effort": 1, "wsjf": 6, "labels": ["feature"] },
+    { "number": 64, "title": "Add adv_delta_add MCP tool — agent-facing path to encode spec deltas", "value": 8, "time_criticality": 2, "rroe": 8, "effort": 3, "wsjf": 6, "labels": ["feature", "priority:medium"] },
+    { "number": 61, "title": "Telemetry & Temporal follow-ups from fixTemporalContextMismatch", "value": 5, "time_criticality": 2, "rroe": 5, "effort": 2, "wsjf": 6, "labels": ["enhancement", "priority:high"] },
+    { "number": 107, "title": "Add TTL caching for ADV status health probes", "value": 5, "time_criticality": 2, "rroe": 5, "effort": 2, "wsjf": 6, "labels": ["feature"] },
+    { "number": 87, "title": "Wire scanFileOverlaps into prep validator when async checks exist", "value": 8, "time_criticality": 3, "rroe": 5, "effort": 3, "wsjf": 5.3, "labels": ["feature"] },
+    { "number": 106, "title": "Archived/terminal change listing can time out and shadow state", "value": 8, "time_criticality": 3, "rroe": 5, "effort": 3, "wsjf": 5.3, "labels": ["feature"] },
+    { "number": 81, "title": "Document tdd_intent reclassification workaround for cached-dist self-update sessions", "value": 2, "time_criticality": 1, "rroe": 2, "effort": 1, "wsjf": 5, "labels": ["feature"] },
+    { "number": 84, "title": "Sweep unused type exports flagged by knip", "value": 2, "time_criticality": 1, "rroe": 2, "effort": 1, "wsjf": 5, "labels": ["feature"] },
+    { "number": 104, "title": "Expose stable ADV read surface for OCA consumption (O2)", "value": 8, "time_criticality": 8, "rroe": 8, "effort": 5, "wsjf": 4.8, "labels": ["feature"] },
+    { "number": 93, "title": "adv_status: surface reflection friction signal in hygiene view", "value": 5, "time_criticality": 3, "rroe": 5, "effort": 3, "wsjf": 4.3, "labels": ["enhancement", "priority:medium"] },
+    { "number": 103, "title": "Permission-first config for ADV agents", "value": 8, "time_criticality": 5, "rroe": 8, "effort": 5, "wsjf": 4.2, "labels": ["feature"] },
+    { "number": 45, "title": "Add runtime Zod parse validation at SDK boundary in tests", "value": 5, "time_criticality": 2, "rroe": 5, "effort": 3, "wsjf": 4, "labels": ["enhancement", "priority:low"] },
+    { "number": 94, "title": "Add adv_friction_query MCP tool — agent-queryable reflection friction", "value": 5, "time_criticality": 2, "rroe": 5, "effort": 3, "wsjf": 4, "labels": ["feature", "priority:medium"] },
+    { "number": 96, "title": "adv_session_list: cross-project view (v2 promotion)", "value": 5, "time_criticality": 2, "rroe": 5, "effort": 3, "wsjf": 4, "labels": ["enhancement", "priority:medium"] },
+    { "number": 65, "title": "Replace prose-based MCP arg validation with declarative Zod refinements at schema boundary", "value": 13, "time_criticality": 5, "rroe": 13, "effort": 8, "wsjf": 3.9, "labels": ["enhancement", "priority:medium"] },
+    { "number": 50, "title": "Project capability index: searchable, indexed reference of truth", "value": 8, "time_criticality": 3, "rroe": 8, "effort": 5, "wsjf": 3.8, "labels": ["feature", "priority:medium"] },
+    { "number": 82, "title": "Reduce ESLint complexity violations across plugin/src", "value": 5, "time_criticality": 2, "rroe": 3, "effort": 3, "wsjf": 3.3, "labels": ["feature"] },
+    { "number": 132, "title": "Assess checkpoint target_path support", "value": 5, "time_criticality": 2, "rroe": 3, "effort": 3, "wsjf": 3.3, "labels": ["feature"] },
+    { "number": 143, "title": "Add archive cleanup scanner", "value": 8, "time_criticality": 3, "rroe": 5, "effort": 5, "wsjf": 3.2, "labels": ["feature"] },
+    { "number": 83, "title": "Decompose long factory closures", "value": 5, "time_criticality": 2, "rroe": 5, "effort": 5, "wsjf": 2.4, "labels": ["feature"] },
+    { "number": 135, "title": "Clean terminal title API", "value": 8, "time_criticality": 3, "rroe": 5, "effort": 8, "wsjf": 2, "labels": ["feature"] }
   ],
   "deferred": [
-    {
-      "number": 144,
-      "title": "Add Claude distribution",
-      "reason": "user-deferred (Value)"
-    }
+    { "number": 144, "title": "Add Claude distribution", "reason": "user-deferred (Value)" }
   ]
 }
