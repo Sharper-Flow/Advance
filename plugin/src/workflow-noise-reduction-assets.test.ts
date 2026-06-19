@@ -125,11 +125,14 @@ describe("discovery opportunity scout and ambiguity noise policy", () => {
     const command = readCommand("adv-discover.md");
     const checklist = readChecklist("discover-checklist.md");
     const spec = readRepoFile(".adv/specs/adv-discover/spec.json");
+    const docs = readRepoFile("docs/specs/adv-discover.md");
 
-    // spec law present
-    expect(spec).toContain('"id": "rq-disc13"');
-    expect(spec).toContain('"id": "rq-disc14"');
-    expect(spec).toContain('"id": "rq-disc15"');
+    // spec law present in canonical JSON and docs mirror
+    for (const content of [spec, docs]) {
+      expect(content).toContain("rq-disc13");
+      expect(content).toContain("rq-disc14");
+      expect(content).toContain("rq-disc15");
+    }
 
     // co-presence: Completeness Verification step MUST be in BOTH command and checklist
     // (numeric step-count equality is NOT the invariant — the surfaces use different
