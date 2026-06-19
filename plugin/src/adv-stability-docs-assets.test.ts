@@ -103,11 +103,17 @@ describe("ADV stability hardening docs", () => {
       "adv_gate_status",
       "adv_change_forget",
       "readable:true",
+      'adv_status view: "health"',
+      "search_attributes.ok",
       "worker restart does not reload host-loaded plugin tool code",
       "Restart OpenCode",
       "approval evidence",
     ]) {
       expect(temporalRecovery).toContain(marker);
     }
+    expect(temporalRecovery).not.toContain("searchAttributes.ok");
+    expect(temporalRecovery).not.toMatch(
+      /adv_temporal_diagnose[^\n]*search-attribute/i,
+    );
   });
 });

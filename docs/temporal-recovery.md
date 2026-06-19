@@ -334,10 +334,10 @@ ServiceError: Failed to start Workflow
 
 Recovery:
 
-1. Run `adv_temporal_diagnose` and confirm `searchAttributes.ok=false`.
+1. Run `adv_status view: "health"` and confirm `search_attributes.ok=false`.
 2. Get explicit user approval.
 3. Run `adv_temporal_register_search_attributes` with approval evidence.
-4. Re-run `adv_temporal_diagnose` or the blocked ADV command.
+4. Re-run `adv_status view: "health"` or the blocked ADV command.
 
 The registration tool creates missing attributes only. It refuses wrong-type
 attributes because Temporal search-attribute type migration is an operator
@@ -345,7 +345,7 @@ decision, not a safe automatic repair.
 
 ### Wrong-type ADV search attributes
 
-If `adv_temporal_diagnose` reports `wrongType` entries (attributes that exist
+If `adv_status view: "health"` reports `wrongType` entries (attributes that exist
 but with the wrong Temporal `IndexedValueType`), the dev server has stale
 registrations from an earlier session that registered the attributes with
 incorrect numeric type codes. ADV does **not** automatically remove these
@@ -362,17 +362,17 @@ and must be operator-driven.
 [adv:stsl] Failed to register ADV search attributes (Visibility queries may fail)
 ```
 
-`adv_temporal_diagnose` will additionally surface a `wrongType` array under
-the `searchAttributes` block listing each affected attribute with its
+`adv_status view: "health"` surfaces a `wrongType` array under
+the `search_attributes` block listing each affected attribute with its
 expected and actual type codes.
 
 #### Detection
 
 ```bash
-adv_temporal_diagnose
+adv_status view: "health"
 ```
 
-Look for `searchAttributes.wrongType.length > 0` in the output.
+Look for `search_attributes.wrongType.length > 0` in the output.
 
 #### Manual remediation
 
@@ -389,7 +389,7 @@ Look for `searchAttributes.wrongType.length > 0` in the output.
 
 3. Restart your OpenCode session. ADV's `initStsl` will re-register the
    attributes with the correct type codes on the next session start.
-4. Re-run `adv_temporal_diagnose` to confirm `searchAttributes.ok=true`.
+4. Re-run `adv_status view: "health"` to confirm `search_attributes.ok=true`.
 
 #### Persistence note
 
@@ -576,11 +576,11 @@ Use this when a project's import ledger is not `done`.
    - `migration_status.detail`
    - `temporal_health.server_alive`
    - `temporal_health.worker_process_alive`
-   - `searchAttributes.ok`
+   - `search_attributes.ok`
    - `recommendedNextAction`
 2. Classify the failure:
    - `server_alive: false` → Temporal runtime/server problem first
-   - `searchAttributes.ok: false` → register missing ADV search attributes with user approval
+   - `search_attributes.ok: false` → register missing ADV search attributes with user approval
    - `worker_process_alive: false` with `server_alive: true` → worker crash / restart exhaustion
    - `migration_status.status: failed` with detail → workflow reached a terminal failure state
    - `migration_status.status: empty|unknown|null` → no usable import ledger yet; treat as incomplete bootstrap / recovery state
@@ -618,7 +618,7 @@ The Bun-host path uses one Node child per queue with restart backoff `1s -> 3s -
 | Health shape                                                                                                            | Likely cause                                                                            | Fix                                                                                                                                                                                                         |
 | ----------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `server_alive=false`                                                                                                    | Temporal dev server unreachable                                                         | Start / restore Temporal runtime first                                                                                                                                                                      |
-| `server_alive=true`, `searchAttributes.ok=false`                                                                        | Required ADV search attributes missing or wrong type                                    | Run `adv_temporal_register_search_attributes` with approval, or manually fix wrong-type attrs                                                                                                               |
+| `server_alive=true`, `search_attributes.ok=false`                                                                        | Required ADV search attributes missing or wrong type                                    | Run `adv_temporal_register_search_attributes` with approval, or manually fix wrong-type attrs                                                                                                               |
 | `server_alive=true`, workers alive, service errors persist                                                              | Stale STSL connection/client                                                            | Run `adv_temporal_reconnect`, then `adv_temporal_diagnose`                                                                                                                                                  |
 | `server_alive=true`, `worker_alive=false`, `worker_lock.heartbeat_age_ms > 60000`                                       | Stale heartbeat; peer worker spawn/reclaim is pending                                   | Treat `normal recovery — peer worker spawn pending` as informational; start a fresh peer/session and re-check only if tools still time out                                                                  |
 | `server_alive=true`, `worker_alive=true`, `worker_process_alive=false`                                                  | OOP child crashed and exhausted restart budget                                          | Run `adv_temporal_worker_restart`; inspect `last_error` and `last_worker_run_error`. If source under `plugin/src/temporal/*` changed, run `pnpm run build:worker` first.                                    |
@@ -672,7 +672,7 @@ Keep their core poisoned-history markers aligned (`TMPRL1100`, `NonDeterministic
 1. Confirm the error in logs or `last_error`.
 2. Do **not** keep restarting the same worker hoping it clears.
 3. Get explicit user approval.
-4. Run `adv_temporal_diagnose` to confirm server/search-attribute/STSL/worker health.
+4. Run `adv_status view: "health"` for search-attribute health, then `adv_temporal_diagnose` for server/STSL/worker/queue-serviceability health.
 5. Investigate the affected change with `adv_change_show` and `adv_temporal_diagnose`.
 6. If the change workflow is terminally corrupted, terminate it via Temporal CLI and let the next access reseed from disk.
 7. Re-run `adv_temporal_diagnose` and confirm the change workflow is healthy again.
