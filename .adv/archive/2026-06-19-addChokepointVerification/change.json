@@ -1,0 +1,989 @@
+{
+  "id": "addChokepointVerification",
+  "title": "Add chokepoint verification",
+  "status": "archived",
+  "created_at": "2026-06-19T03:46:56.317Z",
+  "tasks": [
+    {
+      "id": "tk-3effbcb14c80",
+      "title": "Add rq-disc13 / rq-disc14 / rq-disc15 to the adv-discover spec + docs mirror + version bump.",
+      "type": "code",
+      "section": "Spec Law",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-06-19T04:17:13.892Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "frontend": "false",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC5",
+          "SC3"
+        ],
+        "respects": [
+          "C3",
+          "C6",
+          "DONT6"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-19T04:24:36.293Z",
+      "verification": "RED: adv-skill-backed-commands-assets.test.ts asserted rq-disc13/14/15 + version 1.4.0 → 2 failed (IDs absent, version 1.3.0). GREEN: added rq-disc13/14/15 to .adv/specs/adv-discover/spec.json (3 requirements, 7 G/W/T scenarios), bumped version 1.3.0→1.4.0, updated updated_at; mirrored into docs/specs/adv-discover.md; campsite fix: corrected stale advance-workflow version assertion 1.17.0→1.18.0 (pre-existing drift, same test file). bin/oc-test targeted → 54/54 pass.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".adv/specs/adv-discover/spec.json",
+        "docs/specs/adv-discover.md",
+        "plugin/src/adv-skill-backed-commands-assets.test.ts"
+      ],
+      "touched_files": [
+        ".adv/specs/adv-discover/spec.json",
+        "docs/specs/adv-discover.md",
+        "plugin/src/adv-skill-backed-commands-assets.test.ts"
+      ],
+      "checkpointSha": "aca81d520ccda0ec11217a7521607cc581bc558e",
+      "completedAt": "2026-06-19T04:28:15.619Z",
+      "completed_at": "2026-06-19T04:28:15.619Z"
+    },
+    {
+      "id": "tk-930adb28b40a",
+      "title": "Add always-on Phase 1.8 Completeness Verification to the adv-discover command + checklist + ADV_INSTRUCTIONS pointer + step-count cross-assert asset anchor.",
+      "type": "code",
+      "section": "Command + Checklist",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-06-19T04:17:28.401Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-3effbcb14c80"
+        }
+      ],
+      "metadata": {
+        "delegation_hint": "delegate_allowed",
+        "frontend": "false",
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC6",
+          "SC1",
+          "SC2"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "DONT1",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "DONT6"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-19T04:28:21.351Z",
+      "verification": "RED: workflow-noise-reduction-assets.test.ts new test failed (command lacked \"Completeness Verification\"). GREEN: added Phase 1.8 Completeness Verification to .opencode/command/adv-discover.md (always-on problem-completeness + solution-scope checks, sole-entry B-CRITICAL blocking via rq-disc-tax2, secondary disposition, scan-depth scaling) + step 9 in protocol table (8→9) + output-section row; discover-checklist.md Phase 1.8 step + 10→11 count + edge-case rows + output-schema row; ADV_INSTRUCTIONS.md one-line pointer. Revised rq-disc15.2 to co-presence semantics (command/checklist use different step granularities). bin/oc-test targeted: 13/13 pass.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".adv/specs/adv-discover/spec.json",
+        ".opencode/command/adv-discover.md",
+        "ADV_INSTRUCTIONS.md",
+        "docs/checklists/discover-checklist.md",
+        "docs/specs/adv-discover.md",
+        "plugin/src/workflow-noise-reduction-assets.test.ts"
+      ],
+      "touched_files": [
+        ".adv/specs/adv-discover/spec.json",
+        ".opencode/command/adv-discover.md",
+        "ADV_INSTRUCTIONS.md",
+        "docs/checklists/discover-checklist.md",
+        "docs/specs/adv-discover.md",
+        "plugin/src/workflow-noise-reduction-assets.test.ts"
+      ],
+      "checkpointSha": "15176be0486a96b07488da709c4dac9ee2c65b1d",
+      "completedAt": "2026-06-19T04:32:56.252Z",
+      "completed_at": "2026-06-19T04:32:56.252Z"
+    },
+    {
+      "id": "tk-3a9481044461",
+      "title": "Run the full pre-push check gate to confirm no schema/type/lint/format drift after the spec/command/checklist/test edits.",
+      "type": "code",
+      "section": "Verify",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-06-19T04:17:52.646Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-930adb28b40a"
+        }
+      ],
+      "metadata": {
+        "delegation_hint": "delegate_allowed",
+        "frontend": "false",
+        "tdd_intent": "not_applicable"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC5"
+        ],
+        "not_applicable_reason": "verify-only gate; implements durability (AC5) by confirming the check suite passes. Respects structural-correctness (C2) and no-new-Temporal-surface (C6) — DDC3 derives from C6. No code contract item to verify directly.",
+        "respects": [
+          "C2",
+          "C6"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-19T04:33:00.372Z",
+      "verification": "pnpm run check exit 0: schemas:check + typecheck + check-test-isolation + check-lockfile-policy + lint + format:check all pass. Fixed format drift in workflow-noise-reduction-assets.test.ts via prettier --write. No schema/type/lint/format drift after spec/command/checklist/test edits.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/workflow-noise-reduction-assets.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/workflow-noise-reduction-assets.test.ts"
+      ],
+      "checkpointSha": "80f4979f29ed2323471fe1eece8ef0cc4fb22a30",
+      "completedAt": "2026-06-19T04:34:38.846Z",
+      "completed_at": "2026-06-19T04:34:38.846Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "addChokepointVerification",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:discovery-opportunity-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Discovery chokepoint-completeness verification — opportunity scout",
+      "sources": [
+        {
+          "label": "adv-discover spec (rq-disc08 P25 Related-Pattern Scan, rq-disc-tax1/tax2 Ambiguity)",
+          "locator": "adv_spec action:show capability:adv-discover",
+          "summary": "Discovery already owns a P25 related-pattern scan (Phase 1.7) and an 11-category AMBIGUITY ANALYSIS with B=Boundaries category + CRITICAL/2xHIGH halt-and-handoff trigger to /adv-clarify. Both are structural insertion points; no chokepoint concept exists yet."
+        },
+        {
+          "label": "ADV_INSTRUCTIONS.md Ambiguity Taxonomy (lines 599-652)",
+          "locator": "/home/jon/dev/advance/ADV_INSTRUCTIONS.md:599",
+          "summary": "Canonical B=Boundaries category ('what is explicitly in/out of scope; edge cases', Required). CRITICAL=structurally-missing rubric. A false sole-chokepoint claim is a Boundaries CRITICAL: in-scope surface declared without proving sole entry point."
+        },
+        {
+          "label": "docs/checklists/discover-checklist.md",
+          "locator": "/home/jon/dev/advance/docs/checklists/discover-checklist.md:20",
+          "summary": "P25 scan step already mandates lgrep semantic/symbol search for similar patterns; output-section schema + completeness heuristics define durable enforcement seams. Chokepoint verification can extend P25 step rather than add a parallel mechanism."
+        },
+        {
+          "label": "Local grep for 'chokepoint|single entry point|single point of change' across *.md",
+          "locator": "grep /home/jon/dev/advance",
+          "summary": "Zero matches in any spec/command/checklist/instruction; only one incidental usage in an archived design doc. Confirms no current canonical rule under these terms — greenfield trigger naming."
+        },
+        {
+          "label": "proposal.md Constraints + Context (coordination note)",
+          "locator": "adv_change_show include.proposal",
+          "summary": "Proposal already flags coordination with active change tightenAdvScopeDiscipline (prep/review scope bounding) and instructs discovery to confirm no duplicate spec delta. Also reports prior semantic lgrep timeouts — rerun with fresh index/symbol fallback during design."
+        }
+      ],
+      "architecture_assessment": "The cleanest, boring-est leverage point is to SPECIALIZE existing discovery mechanisms rather than add a new phase. Two strong reuse seams: (1) the AMBIGUITY ANALYSIS B=Boundaries category already triggers a structural halt-and-handoff on CRITICAL findings — a false 'this is the chokepoint' claim is precisely a Boundaries CRITICAL (in-scope surface asserted without proof of sole entry point), so the trigger plumbing, severity rubric, and /adv-clarify handoff already exist and would be reused for free; (2) the P25 Related-Pattern Scan (Phase 1.7) already mandates lgrep semantic+symbol search and an output section — chokepoint surface-area scan is the same scan intent ('find all code paths performing operation X'), so it can be framed as a conditional specialization of P25 triggered by chokepoint/single-entry-point language, avoiding a redundant scan obligation. Both keep correctness structural (P33) via spec-law deltas + checklist output-schema rows + asset/command-consistency tests, which is the project's established enforcement pattern (document-only checklist backed by adv-discover spec rq-* + asset tests). Adding a brand-new standalone 'chokepoint phase' would be the clever-but-novel path and should be avoided.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "No contract/security/release blockers. Evidence access fully succeeded except adv_change_list timed out (known Temporal symptom; proposal already records prior lgrep timeouts). Coordination with tightenAdvScopeDiscipline must be verified at design to avoid duplicate spec deltas — flagged as follow-up, not a blocker."
+      },
+      "recommendation": "Adopt the trigger-scoped specialization approach: (a) define a precise trigger condition (chokepoint / sole entry point / single point of change / shared cross-cutting control surface claim) so narrow changes are NOT forced into repo-wide scans (honors proposal Must-Not); (b) extend the P25 Related-Pattern Scan step to require a comprehensive target-operation surface scan (lgrep_search_semantic + lgrep_search_symbols) when the trigger fires, with recorded methodology (terms searched, surfaces found, surfaces excluded + rationale, scope disposition); (c) wire the over-claim outcome into the existing B=Boundaries AMBIGUITY ANALYSIS as a CRITICAL finding so the existing halt-and-handoff-to-/adv-clarify path is reused; (d) make it durable via adv-discover spec rq-* delta + discover-checklist output-section row + an asset/command-consistency test, not prose alone. Confirm non-duplication with tightenAdvScopeDiscipline before minting spec deltas.",
+      "follow_ups": [
+        "Design must verify no overlapping/duplicate spec delta with active change tightenAdvScopeDiscipline (prep/review scope bounding) per proposal Constraints.",
+        "Rerun lgrep semantic/symbol search with fresh index during design; proposal records two prior semantic-search timeouts.",
+        "Design to decide durable home: extend adv-discover spec (recommended) vs advance-workflow spec vs both; recommend adv-discover to keep locality (P04).",
+        "Define exact trigger vocabulary bounds and an explicit opt-out marker for narrow changes to satisfy the 'do not force repo-wide scans' Must-Not."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addChokepointVerification",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-leverage-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design leverage scout — discovery completeness verification",
+      "sources": [
+        {
+          "label": "plugin/src/validator/completeness.ts (whole file, 225 lines)",
+          "locator": "/home/jon/dev/advance/plugin/src/validator/completeness.ts:209",
+          "summary": "runCompletenessChecks operates on Change.deltas + Change.tasks (scenarios, IDs, TDD evidence, contract). It is NOT a discovery-output-text validator. No seam to assert problem-completeness/solution-scope text. CONTEXT Q1 answer: no existing completeness validator the spec/asset test can reuse for discovery prose."
+        },
+        {
+          "label": "docs/checklists/discover-checklist.md ('All 10 protocol steps')",
+          "locator": "/home/jon/dev/advance/docs/checklists/discover-checklist.md:24",
+          "summary": "Hardcoded step count 'All 10 protocol steps' appears at :24 and again at :139 (Completeness Heuristics). Adding a Completeness Verification protocol step forces a lockstep edit of BOTH to 11 (DDC4-style drift). Output Section Schema table (:60-78) is the single derivation point for a Completeness Verification row."
+        },
+        {
+          "label": "plugin/src grep for protocol-step counts in *.test.ts",
+          "locator": "grep '10 protocol|All 10|step count' plugin/src/**/*.test.ts",
+          "summary": "No asset/spec test hardcodes the discovery protocol-step count. CONTEXT Q2 answer: drift risk is checklist-prose-only (2 lines), not test-enforced — low blast radius, but still must be updated in lockstep or the checklist self-contradicts."
+        },
+        {
+          "label": "plugin/src/adv-skill-backed-commands-assets.test.ts COMMAND_BASELINES + token-budgets.json",
+          "locator": "/home/jon/dev/advance/.opencode/token-budgets.json:7",
+          "summary": "adv-discover.md baseline = 358 lines; the warn-only test uses threshold = ceil(baseline*1.1)=394. A new Phase 1.8 block must stay under +36 lines or bump the baseline. Advisory (always passes) — not a hard gate, but surfaces noise."
+        },
+        {
+          "label": "adv-discover spec rq-disc-tax2 (B-CRITICAL halt) + rq-disc08 (P25)",
+          "locator": "/home/jon/dev/advance/.adv/specs/adv-discover/spec.json:389",
+          "summary": "rq-disc-tax2.1 already fires halt+handoff-to-/adv-clarify on a single CRITICAL B(Boundaries) finding. Checklist Trigger Evaluation table (:110-115) wires this. Sole-entry block reuses this existing path verbatim (design KD2 confirmed) — zero new halt machinery. CONTEXT Q4 answer: block is agent-emitted B-CRITICAL finding routed through existing trigger eval; no helper function exists or is needed."
+        },
+        {
+          "label": "discover-checklist Output Section Schema table",
+          "locator": "/home/jon/dev/advance/docs/checklists/discover-checklist.md:60",
+          "summary": "Command Phase prose and checklist each independently list output sections; there is NO shared constant. CONTEXT Q3 answer: no single 'discovery output section schema' constant — command + checklist + spec must each gain the Completeness Verification reference; they do not auto-propagate."
+        }
+      ],
+      "architecture_assessment": "Five leverage points, all favoring the boring/reuse path the draft design already chose. (1) The strongest simplification is NEGATIVE: completeness.ts is the wrong reuse target — it validates delta/task structure, not discovery prose — so the design must NOT wire a code validator; spec+command+checklist+asset-anchor text enforcement (KD5) is correct and is the only realistic structural home given OOS5 (no target-codebase validator) and C6 (no Temporal surface). (2) The sole-entry block correctly reuses rq-disc-tax2 B-CRITICAL halt (KD2) — confirmed it exists and is checklist-wired; no new helper, agent emits the finding manually and the existing trigger-eval table routes it. (3) Real drift hazard: 'All 10 protocol steps' is hardcoded at two checklist lines (:24, :139) and becomes 11 — must be edited in lockstep, but NO test enforces the count, so blast radius is just self-consistency of one file (low risk, easy to miss). (4) The Output Section Schema table is the single best insertion point: add ONE 'Completeness Verification' row there and reference it from command Phase 1.8 + spec rq-disc; there is no shared constant so all three surfaces need the reference but the checklist table is the canonical schema. (5) Parallelism: spec.json + docs/specs mirror + command + checklist can all be edited in ONE engineer task — no test sequences them, asset tests assert presence of tokens (spec IDs, section headers, phase names) independently, so a single atomic commit is stable. Token budget for adv-discover.md (+36 line warn threshold) is the only soft constraint.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "No contract/security/release blockers. All design KDs are evidence-supported. The only correction to surface: do not attempt to extend completeness.ts (validator operates on deltas/tasks, not discovery output) — confirm the design's KD5 keeps enforcement at spec/command/checklist/asset-anchor text only."
+      },
+      "recommendation": "Proceed with the draft design unchanged on architecture. Apply two boring leverage adjustments at planning: (A) Add the 'All 10 → 11 protocol steps' edit to BOTH discover-checklist.md:24 and :139 as an explicit task line item (DDC4-prevention) since no test will catch the miss. (B) Make spec.json + docs/specs/adv-discover.md mirror + .opencode/command/adv-discover.md + discover-checklist.md a SINGLE atomic engineer task (no sequencing needed — asset tests assert token presence independently), with the Output Section Schema 'Completeness Verification' row as the canonical anchor referenced by command Phase 1.8. Explicitly do NOT touch plugin/src/validator/completeness.ts — it is not the discovery-completeness seam. Keep new Phase 1.8 prose under +36 lines to stay below the adv-discover.md token warn threshold (baseline 358 → 394).",
+      "follow_ups": [
+        "Planning: add explicit task line to update 'All 10 protocol steps' → 11 at discover-checklist.md:24 AND :139 (untested drift, easy to miss).",
+        "Planning: single atomic engineer task for spec+docs-mirror+command+checklist (no sequencing required; asset tests are presence-based and independent).",
+        "Design/engineer note: completeness.ts is NOT reusable for discovery prose enforcement — keep KD5 text-anchor approach; do not wire a code validator.",
+        "Keep new Phase 1.8 command prose under ~36 added lines or bump token-budgets.json adv-discover.md baseline (358) to avoid the warn-only token-budget noise."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addChokepointVerification",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation — Add Discovery Completeness Verification",
+      "sources": [
+        {
+          "label": "adv-discover spec rq-disc08 (P25 Related-Pattern Scan)",
+          "locator": "adv_spec action:show capability:adv-discover (v1.3.0, rq-disc08)",
+          "summary": "P25 scan = 'detect similar bugs or gaps elsewhere'. Distinct question from completeness ('did we find the whole problem'). Confirms KD4 separation is spec-grounded, not redundant."
+        },
+        {
+          "label": "adv-discover spec rq-disc-tax1/tax2 (AMBIGUITY ANALYSIS + mandatory /adv-clarify trigger)",
+          "locator": "adv_spec action:show capability:adv-discover (rq-disc-tax1.1, rq-disc-tax2.1)",
+          "summary": "B=Boundaries is a REQUIRED v1 category; a CRITICAL B finding halts discovery and hands off to /adv-clarify with adv_gate_complete NOT called. Confirms KD2 reuse path exists and is exactly the plumbing the design claims (zero new halt code)."
+        },
+        {
+          "label": "adv-discover spec requirement ID space",
+          "locator": "adv_spec action:show capability:adv-discover (21/21 requirements, highest = rq-disc12 + rq-disc-tax3 + rq-sc01)",
+          "summary": "No existing rq-disc13/14/15. Proposed IDs do not collide. Spec version 1.3.0 — design's version-bump step is correct."
+        },
+        {
+          "label": "agreement.md constraints C1-C6 + avoidances DONT1-DONT6",
+          "locator": "adv_change_show include.agreement (addChokepointVerification)",
+          "summary": "Design KDs map 1:1 to constraints: KD1↔C1/DONT3, KD3↔C3, KD5↔C2, KD7↔C6, secondary-disposition↔AC4/DONT4. No avoidance violated."
+        },
+        {
+          "label": "P33 structural-before-heuristic (global rules.yaml)",
+          "locator": "~/.config/opencode/instructions/rules.yaml P33",
+          "summary": "Requires machine-checkable correctness over prose. Design honors via spec+command+checklist+asset-test anchors, but R3 concedes check DEPTH/QUALITY remains agent-honor — partial structural coverage, accepted per OOS5."
+        }
+      ],
+      "architecture_assessment": "Design is correct and spec-law compliant across all four dimensions. CORRECTNESS: the three-part discipline (problem-completeness, solution-scope, sole-entry blocking) maps directly to AC1/AC2/AC3; secondary-surface disposition maps to AC4; durable anchors to AC5; depth-scaling to AC6. The blocking case correctly reuses the existing rq-disc-tax2.1 B-CRITICAL→halt→/adv-clarify path (verified: B is a required ambiguity category, CRITICAL halts, gate not completed), so no new halt machinery is invented — KD2 is sound. SIMPLICITY: the boring/locally-correct choice. It extends the phase that already owns discovery rigor (sibling to rq-disc08 P25) and reuses battle-tested ambiguity plumbing; the standalone-analyzer alternative is correctly ruled OOS. No materially simpler approach meets AC3 (a real block) AND AC5 (durable structural anchors) — pure prose was explicitly rejected as the current weakness (R3/KD5). SPEC-LAW COMPLIANCE: no contradiction with existing adv-discover requirements; rq-disc13/14/15 IDs are free; spec version bump planned; KD3 keeps advance-workflow untouched per C3. KEY ALTERNATIVES: the one significant alternative (reuse completeness.ts validator) was investigated and correctly rejected in KD5 — that validator operates on deltas/tasks not discovery prose. One residual: a structural step-count invariant (DDC4) is enforced only by asset-test token presence, not by a computed check — minor brittleness, acceptable.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "VALIDATED. All 4 dimensions pass with spec evidence. Two non-blocking cautions: (1) P33 partial coverage — check depth/quality stays agent-honor (design discloses this in R3, bounded by OOS5 and the KD2 blocking backstop for the highest-stakes case; acceptable). (2) DDC4 step-count invariant is anchored by asset-test token presence rather than a derived count assertion — recommend the asset test assert the SAME literal step count in both command and checklist so they cannot drift independently."
+      },
+      "recommendation": "Proceed to planning. The design solves all six ACs with spec-grounded mechanics and chooses the simplest durable approach (extend Phase 1.7 sibling + reuse rq-disc-tax2 halt). No CONFLICT with existing adv-discover law; rq-disc13/14/15 are collision-free and advance-workflow is correctly left untouched (C3). Address one CAUTION in prep: make the DDC4 step-count invariant cross-checked by the asset test (assert command and checklist reference the identical protocol step count, e.g. both say 9/11) so they cannot silently diverge — this converts the weakest structural anchor from presence-only to drift-resistant, strengthening the P33 posture without new scope.",
+      "follow_ups": [
+        "adv_spec FTS search returned empty for completeness/chokepoint/boundary queries; validation relied on the full paginated spec.show (21/21 requirements) instead — note possible search-index staleness, not a design issue.",
+        "Prep: add a derived step-count cross-check in the asset test (DDC4) rather than independent presence tokens.",
+        "Confirm at prep that ADV_INSTRUCTIONS.md pointer edit does not collide with tightenAdvScopeDiscipline's shared-surface edits (C4)."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addChokepointVerification",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addChokepointVerification",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [
+        {
+          "id": "contract-praise-1",
+          "label": "praise",
+          "file": ".opencode/command/adv-discover.md",
+          "line": 190,
+          "what": "Phase 1.8 command content directly implements problem-completeness, solution-scope, sole-entry blocking, secondary-surface disposition, and scan-depth scaling.",
+          "why": "Command is the primary owned surface for always-on discovery behavior and matches rq-disc13/rq-disc14 plus AC1-AC4/AC6 after review.",
+          "fix": "n/a"
+        },
+        {
+          "id": "scope-praise-1",
+          "label": "praise",
+          "file": ".adv/specs/adv-discover/spec.json",
+          "line": 842,
+          "what": "rq-disc15.2 records co-presence rather than numeric step-count equality.",
+          "why": "Command and checklist intentionally use different step granularities; co-presence is a legitimate design refinement and avoids a false invariant.",
+          "fix": "n/a"
+        }
+      ],
+      "changes_made": [
+        {
+          "file": "plugin/src/workflow-noise-reduction-assets.test.ts",
+          "summary": "Strengthened the discovery completeness asset test to read `docs/specs/adv-discover.md` and assert rq-disc13/rq-disc14/rq-disc15 co-presence in both canonical spec JSON and docs mirror. This fixes AC5/rq-disc15 mismatch where the spec promised docs-mirror asset coverage but the test only inspected spec JSON, command, and checklist.",
+          "verification": "`bin/oc-test targeted -- src/workflow-noise-reduction-assets.test.ts src/adv-skill-backed-commands-assets.test.ts` passed: 2 files, 67 tests. `pnpm --dir plugin run check` passed schemas:check, typecheck, test-isolation, lockfile policy, lint, and format:check."
+        }
+      ],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "When command/checklist protocol surfaces intentionally use different granularities, asset tests should enforce semantic co-presence across durable surfaces rather than numeric step-count equality; if the spec text says docs mirror is covered, the test must actually read the docs mirror."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- plugin/src/workflow-noise-reduction-assets.test.ts plugin/src/adv-skill-backed-commands-assets.test.ts (failed: wrapper runs under plugin/, no matching files)",
+          "bin/oc-test targeted -- src/workflow-noise-reduction-assets.test.ts src/adv-skill-backed-commands-assets.test.ts",
+          "pnpm --dir plugin run check"
+        ],
+        "results": "pass",
+        "evidence": "Path-preflight passed for all 7 context files. First targeted test invocation used repo-root paths and exited 1 with no files found; rerun with plugin-relative paths passed 67/67 tests. Static check passed: schemas:check, typecheck, check-test-isolation, check-lockfile-policy, lint, format:check. Reviewed command/spec/docs/checklist/test surfaces for AC1-AC6, C3/C6, DONT/OOS; no remaining blockers or issues."
+      },
+      "scope_drift": null,
+      "risks": [],
+      "required_main_agent_actions": [
+        "If a contract review matrix is missing, orchestrator should persist one with adv_contract_review_matrix_set; subagent did not mutate ADV orchestration state.",
+        "Do not revisit numeric protocol step-count equality for rq-disc15.2; co-presence is the reviewed invariant because command and checklist use different granularities."
+      ],
+      "required_follow_ups": [],
+      "consumer_warnings": []
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-06-19T03:50:39.810Z",
+      "completed_by": "agent",
+      "approval_evidence": "User invoked exact shown continuation command `/adv-discover addChokepointVerification` while proposal approval was pending; per command-as-approval Tier A, this approves proposal and starts discovery inline. B/F/S scan showed no CRITICAL findings.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "ad4ab90c333a52a7b5fd88cd9b5ecf343e38ce87896aec00b8af0beae889ea81",
+        "non_whitespace_chars": 7863,
+        "checked_at": "2026-06-19T03:46:56.423Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-06-19T04:05:52.738Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved criteria via Tier A \"approve\" after validation pass. Proposal synced to always-on completeness check (broadened from trigger-based chokepoint verification). Agreement persisted with 3 SC, 6 AC, 6 C, 6 DONT, 6 OOS. Contract minted: 27 items (SC1-3, AC1-6, C1-6, DONT1-6, OOS1-6). B/F/S/M scan clean after user decisions.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "0817895ed5bc58862fdab32e465bc0add867bd184af2cebe85c5b72864848182",
+        "non_whitespace_chars": 5508,
+        "checked_at": "2026-06-19T03:46:56.424Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-06-19T04:15:12.128Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design: new always-on Phase 1.8 Completeness Verification in adv-discover + rq-disc13/14/15 in adv-discover spec + checklist + asset anchors. Sole-entry blocking reuses B-CRITICAL ambiguity halt (KD2). Validator: VALIDATED (1 caution on DDC4 step-count drift → integrated as cross-assert). Scout: 5 auto-adopt candidates integrated. No CONFLICT, no contract compromise. advance-workflow untouched (C3). No new Temporal surface (C6).",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "3872ed778360266f9df5b2a195cbe9d0a71865b369a6e7863401ee6d25f07a8e",
+        "non_whitespace_chars": 8206,
+        "checked_at": "2026-06-19T03:46:56.425Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-06-19T04:23:44.485Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved task graph via Tier A \"approve\". 3 tasks: tk-3eff (spec law rq-disc13/14/15, inline TDD), tk-930ad (command Phase 1.8 + checklist + ADV_INSTRUCTIONS pointer + step-count cross-assert, inline TDD, blocked by tk-3eff), tk-3a94 (pnpm run check verify gate, blocked by tk-930ad). All AC/SC covered; constraints/avoidances respected. Validation passed (NO_DELTAS warning expected pre-execution). Last human checkpoint before autonomous execution."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-06-19T04:34:59.523Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 3 tasks done (RED→GREEN per task, TDD-inline). Files: .adv/specs/adv-discover/spec.json (+rq-disc13/14/15, v1.4.0), docs/specs/adv-discover.md (mirror), .opencode/command/adv-discover.md (+Phase 1.8, step 9, output row), docs/checklists/discover-checklist.md (+Phase 1.8 step, 10→11, edge rows, schema row), ADV_INSTRUCTIONS.md (pointer), plugin/src/adv-skill-backed-commands-assets.test.ts (+spec ID anchors + campsite fix advance-workflow 1.17→1.18), plugin/src/workflow-noise-reduction-assets.test.ts (+completeness co-presence anchor). Design refinement: rq-disc15.2 revised to co-presence (command/checklist use different step granularities). pnpm run check exit 0. Commits: aca81d5, 15176be, 80f4979."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-06-19T04:39:58.868Z",
+      "completed_by": "agent",
+      "approval_evidence": "Reviewer verdict READY (1 in-scope AC5 remediation: docs-mirror assertion added, commit b902305). Contract review matrix 27/27 pass, 0 failing. 67/67 asset tests pass. pnpm run check exit 0. Executive summary persisted. No scope drift. Design refinement rq-disc15.2 (co-presence) recorded in spec + docs.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "354f7524dc353e4a68f6cf7b9dfb1f6fb8f74721b55f462475841ed47da0462e",
+        "non_whitespace_chars": 2043,
+        "checked_at": "2026-06-19T03:46:56.426Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "adhoc"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "0817895ed5bc58862fdab32e465bc0add867bd184af2cebe85c5b72864848182",
+      "approvedAt": "2026-06-19T04:05:42.730Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "Discovery stops treating \"found one symptom/path\" as \"found the full problem / full solution\" without explicit completeness evidence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0817895ed5bc58862fdab32e465bc0add867bd184af2cebe85c5b72864848182",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "Sole-path / chokepoint mistakes surface before design/prep, not at acceptance.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0817895ed5bc58862fdab32e465bc0add867bd184af2cebe85c5b72864848182",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "Design/review get an auditable record: searched surfaces, found surfaces, excluded surfaces, final scope disposition.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0817895ed5bc58862fdab32e465bc0add867bd184af2cebe85c5b72864848182",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "Every discovery runs an always-on **problem-completeness check**: was the full problem identified, not only an observed symptom/path?",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0817895ed5bc58862fdab32e465bc0add867bd184af2cebe85c5b72864848182",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Every discovery runs an always-on **solution-scope check**: is the full intended solution scoped, not only one implementation piece?",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0817895ed5bc58862fdab32e465bc0add867bd184af2cebe85c5b72864848182",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "When discovery relies on a sole-chokepoint / single-entry / single-control-surface claim, discovery **blocks** until the claim is verified or downgraded.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0817895ed5bc58862fdab32e465bc0add867bd184af2cebe85c5b72864848182",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Any secondary surfaces found during completeness verification must be classified **in scope / out of scope with rationale / unresolved user scope question** before agreement.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0817895ed5bc58862fdab32e465bc0add867bd184af2cebe85c5b72864848182",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "The obligation is durable in ADV law/docs/tests: `adv-discover` spec + docs mirror + command/checklist surface + asset-test anchor.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0817895ed5bc58862fdab32e465bc0add867bd184af2cebe85c5b72864848182",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "The completeness **check** always runs; the codebase surface-scan **depth** scales to what the completeness question demands, preserving proportionality for narrow changes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0817895ed5bc58862fdab32e465bc0add867bd184af2cebe85c5b72864848182",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Always-on completeness check; no trigger gate. Scan depth scales to the question; narrow changes are not forced into broad repository-wide scans.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0817895ed5bc58862fdab32e465bc0add867bd184af2cebe85c5b72864848182",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Correctness stays structural: spec law + command/checklist output shape + asset-test anchors own it; heuristics assist only (P33).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0817895ed5bc58862fdab32e465bc0add867bd184af2cebe85c5b72864848182",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Primary home: `adv-discover` spec/checklist/command. Touch `advance-workflow` only if design finds cross-gate law necessary.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0817895ed5bc58862fdab32e465bc0add867bd184af2cebe85c5b72864848182",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Coordinate with `tightenAdvScopeDiscipline` on any shared `ADV_INSTRUCTIONS.md` / `advance-workflow` edits.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0817895ed5bc58862fdab32e465bc0add867bd184af2cebe85c5b72864848182",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Preserve discovery as the phase that firms design-independent objectives, acceptance criteria, and scope boundaries.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0817895ed5bc58862fdab32e465bc0add867bd184af2cebe85c5b72864848182",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C6",
+        "kind": "constraint",
+        "text": "Structural checks are tool-layer/spec/checklist/asset anchors only — no new Temporal workflow signal, query, or `defineUpdate` surface.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0817895ed5bc58862fdab32e465bc0add867bd184af2cebe85c5b72864848182",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Don't treat first-found call sites or first-observed symptoms as proof of full problem/solution scope.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0817895ed5bc58862fdab32e465bc0add867bd184af2cebe85c5b72864848182",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Don't rely on heuristic prose alone where a structural spec/checklist/test anchor can own correctness.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0817895ed5bc58862fdab32e465bc0add867bd184af2cebe85c5b72864848182",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Don't gate the completeness *check* behind a trigger condition — the check is always-on; only scan *depth* scales.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0817895ed5bc58862fdab32e465bc0add867bd184af2cebe85c5b72864848182",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Don't silently defer secondary surfaces as \"future work\" without explicit scope rationale.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0817895ed5bc58862fdab32e465bc0add867bd184af2cebe85c5b72864848182",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "Don't force narrow changes into broad repository-wide scans when the completeness question does not demand it.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0817895ed5bc58862fdab32e465bc0add867bd184af2cebe85c5b72864848182",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT6",
+        "kind": "avoidance",
+        "text": "Don't replace discovery's P25 related-pattern scan wholesale — extend/specialize it.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0817895ed5bc58862fdab32e465bc0add867bd184af2cebe85c5b72864848182",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "Editing the pokeedge project or retroactively fixing `addResidentialProxyExternal`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0817895ed5bc58862fdab32e465bc0add867bd184af2cebe85c5b72864848182",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "Designing a language-specific static analyzer for every cross-cutting concern.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0817895ed5bc58862fdab32e465bc0add867bd184af2cebe85c5b72864848182",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "Replacing P25 related-pattern scan wholesale.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0817895ed5bc58862fdab32e465bc0add867bd184af2cebe85c5b72864848182",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS4",
+        "kind": "out_of_scope",
+        "text": "Changing the seven-gate lifecycle or moving discovery responsibilities into design/review.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0817895ed5bc58862fdab32e465bc0add867bd184af2cebe85c5b72864848182",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS5",
+        "kind": "out_of_scope",
+        "text": "Building a target-codebase-aware sole-entry validator (structural enforcement limited to spec + command + checklist + asset anchors).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0817895ed5bc58862fdab32e465bc0add867bd184af2cebe85c5b72864848182",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS6",
+        "kind": "out_of_scope",
+        "text": "Adding a new Temporal workflow signal/query/`defineUpdate` surface.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0817895ed5bc58862fdab32e465bc0add867bd184af2cebe85c5b72864848182",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-06-19T04:36:00.000Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Phase 1.8 problem-completeness check (adv-discover.md) + rq-disc13 require explicit rationale before a symptom is treated as the full problem."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "rq-disc14.2 + Phase 1.8 sole-entry blocking (B-CRITICAL via rq-disc-tax2) surfaces unverified chokepoint claims before design/prep."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Phase 1.8 target-operation surface scan evidence shape (searched terms/symbols, found/excluded surfaces, disposition) gives design/review an auditable record."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "workflow-noise-reduction-assets.test.ts asserts command contains 'problem-completeness'; Phase 1.8 step in adv-discover.md. 67/67 tests pass."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "workflow-noise-reduction-assets.test.ts asserts command contains 'solution-scope'; Phase 1.8 solution-scope check present."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "workflow-noise-reduction-assets.test.ts asserts B-CRITICAL/Boundaries CRITICAL; rq-disc14.2 + Phase 1.8 sole-entry blocking reuse rq-disc-tax2 halt."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Phase 1.8 secondary-surface disposition (in/out/unsolved) in command + checklist edge-case rows; discover-checklist.md requires classification before agreement."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "rq-disc13/14/15 in spec.json + docs mirror; Phase 1.8 in command + checklist; ADV_INSTRUCTIONS pointer; asset anchors in 2 test files. workflow-noise-reduction-assets.test.ts asserts spec IDs + command + checklist + docs mirror co-presence."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "workflow-noise-reduction-assets.test.ts asserts 'scan depth scales'; Phase 1.8 scan-depth-scaling section + rq-disc13.2."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Phase 1.8 is always-on (not trigger-gated); scan-depth-scaling section in adv-discover.md + checklist edge row."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Spec law (rq-disc13/14/15) + command + checklist + asset-test anchors own the obligation; no heuristic-only prose."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Primary home adv-discover; advance-workflow spec untouched (only stale test assertion campsite-fixed 1.17→1.18)."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "ADV_INSTRUCTIONS.md edit is a one-line pointer only (single-source-per-surface); sibling change touches prep/review."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Discovery still firms design-independent objectives/AC; completeness check does not move criteria firming out of discovery."
+        },
+        {
+          "contractId": "C6",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No new Temporal signal/query/defineUpdate; enforcement is spec/command/checklist/test only. workflow-bundle-boundary untouched."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Phase 1.8 explicitly requires verifying sole-entry claims; rq-disc14.2 blocks unverified claims."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Obligation owned by spec rq-* + asset tests, not prose alone."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Phase 1.8 runs always-on; only scan depth is conditional."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Phase 1.8 + checklist forbid silently deferring secondary surfaces; require explicit disposition."
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Scan-depth-scaling section + rq-disc13.2 record lightweight rationale for narrow changes; no forced broad scan."
+        },
+        {
+          "contractId": "DONT6",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Phase 1.8 is separate from P25 (rq-disc08); documented as complementary, not merged."
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "pokeedge not edited; only ADV repo surfaces touched."
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No language-specific static analyzer built."
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "P25 (rq-disc08) preserved; Phase 1.8 is additive."
+        },
+        {
+          "contractId": "OOS4",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Seven-gate lifecycle unchanged; discovery still owns agreement."
+        },
+        {
+          "contractId": "OOS5",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No target-codebase-aware validator; enforcement is spec/command/checklist/test anchors only."
+        },
+        {
+          "contractId": "OOS6",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No new Temporal surface added."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "Every discovery runs an always-on **problem-completeness check**: was the full problem identified, not only an observed symptom/path?",
+    "Every discovery runs an always-on **solution-scope check**: is the full intended solution scoped, not only one implementation piece?",
+    "When discovery relies on a sole-chokepoint / single-entry / single-control-surface claim, discovery **blocks** until the claim is verified or downgraded.",
+    "Any secondary surfaces found during completeness verification must be classified **in scope / out of scope with rationale / unresolved user scope question** before agreement.",
+    "The obligation is durable in ADV law/docs/tests: `adv-discover` spec + docs mirror + command/checklist surface + asset-test anchor.",
+    "The completeness **check** always runs; the codebase surface-scan **depth** scales to what the completeness question demands, preserving proportionality for narrow changes."
+  ],
+  "documents": {
+    "proposal": "# Add Discovery Completeness Verification\n\n> **Change ID note:** The immutable change ID remains `addChokepointVerification` (workflow/branch/directory key). The scope was broadened at discovery from \"chokepoint verification\" to always-on discovery completeness verification (problem + solution scope), with chokepoint/sole-entry as one hard-block instance. Artifacts carry the broadened framing.\n\n## Why\n\nDuring discovery, ADV can treat \"found one symptom/path\" as \"found the full problem,\" and \"scoped one implementation piece\" as \"scoped the full solution,\" without verifying completeness.\n\nObserved failure: in `addResidentialProxyExternal`, discovery identified `_download_image` in `firecrawl_handler.py` as the chokepoint for anonymous image fetches. A second path, `ImageDownloadClient.download()` in `clients/r2/r2_client.py`, served multiple handlers and was missed. Result: agreement said PikaQian image CDN would be proxied, but implementation only touched `_download_image`; PikaQian images flowed through untouched code.\n\nRoot cause: discovery searched narrow call sites for one function instead of asking whether the full problem and full solution scope were captured.\n\nDesired outcome: discovery runs an always-on completeness discipline — did we find the full problem (not just a symptom), and is the full intended solution scoped (not just one piece) — with structural evidence and explicit disposition.\n\n## What Changes\n\n- Add an **always-on problem-completeness check** to discovery: was the full problem identified, not only an observed symptom/path?\n- Add an **always-on solution-scope check**: is the full intended solution scoped, not only one implementation piece?\n- When discovery relies on a sole-chokepoint / single-entry / single-control-surface claim, discovery **blocks** until the claim is verified or downgraded.\n- Require any **secondary surfaces** found during completeness verification to be explicitly routed: in scope, out of scope with rationale, or unresolved user scope question.\n- Require **search-methodology evidence** (searched terms/symbols, found surfaces, excluded surfaces, disposition) carried forward so design/review can audit completeness.\n- Make the obligation **durable**: `adv-discover` spec law + docs mirror + command/checklist output shape + asset-test anchors.\n\n## User Outcomes\n\n- Users can trust that discovery asked \"did we find the whole problem and scope the whole solution,\" not just the first surface found.\n- Cross-cutting changes are less likely to miss parallel code paths that perform the same user-relevant operation.\n- Design, prep, and review receive auditable completeness evidence instead of validating only the implemented path.\n- When secondary surfaces exist, users see the scope decision before implementation planning rather than after a missed acceptance outcome.\n\n## Scope\n\n### In Scope\n\n- Discovery workflow/spec behavior for always-on problem- and solution-completeness checks.\n- Discovery checklist and command instructions that govern completeness evidence and surface disposition.\n- Spec-law deltas for the affected ADV discovery capability (primary home `adv-discover`).\n- Tests or asset checks needed to keep the new discovery obligation durable.\n- Documentation of how discovery records searched terms, scanned symbols/semantics, found surfaces, excluded surfaces, and scope disposition.\n\n### Out of Scope\n\n- Editing the pokeedge project or retroactively fixing `addResidentialProxyExternal`.\n- Designing a language-specific static analyzer for every possible cross-cutting concern.\n- Replacing discovery's existing P25 related-pattern scan wholesale (extend, don't replace).\n- Changing the seven-gate lifecycle or moving discovery responsibilities into design/review.\n- Building a target-codebase-aware sole-entry validator (out of scope per proposal; structural enforcement limited to spec + command + checklist + asset anchors).\n\n### Must Not\n\n- Must not treat first-found call sites or first-observed symptoms as proof of full problem/solution scope.\n- Must not rely on heuristic prose alone where a structural spec/checklist/test anchor can own correctness.\n- Must not gate the completeness *check* behind a trigger condition — the check is always-on; only scan *depth* scales to the question.\n- Must not silently defer secondary surfaces as \"future work\" without explicit scope rationale.\n- Must not force narrow changes into broad repository-wide scans when the completeness question does not demand it.\n\n## Affected Code\n\n- `.opencode/command/adv-discover.md` — discovery phase contract and required output sections.\n- `docs/checklists/discover-checklist.md` — discovery checklist, P25 related-pattern scan, completeness heuristics.\n- `.adv/specs/adv-discover/spec.json` and `docs/specs/adv-discover.md` — durable law for discovery rigor (primary home).\n- `.adv/specs/advance-workflow/spec.json` and `docs/specs/advance-workflow.md` — only if design finds cross-gate law necessary.\n- `ADV_INSTRUCTIONS.md` — only if a concise canonical invariant is warranted.\n- Asset or spec tests covering command/spec/checklist consistency (e.g., `plugin/src/workflow-noise-reduction-assets.test.ts`, `plugin/src/adv-skill-backed-commands-assets.test.ts`).\n\n## Related Repositories\n\n- Current repo: `advance`.\n- Primary affected capability: `advance-workflow`; discovery-specific spec `adv-discover` is the primary home.\n- The motivating miss occurred in the separate pokeedge project, but this change does not edit pokeedge. It uses that incident as evidence for ADV process behavior.\n- No product-linked multi-repo scope detected in `project.json`.\n\n## Constraints\n\n- **Always-on completeness check; no trigger gate.** Scan depth scales to the question; narrow changes are not forced into broad repository-wide scans.\n- Correctness stays structural: spec law + command/checklist output shape + asset-test anchors own it; heuristics assist only.\n- Primary home: `adv-discover` spec/checklist/command. Touch `advance-workflow` only if design finds cross-gate law necessary.\n- Coordinate with active change `tightenAdvScopeDiscipline` on any shared `ADV_INSTRUCTIONS.md` / `advance-workflow` edits.\n- Preserve discovery as the phase that firms design-independent objectives, acceptance criteria, and scope boundaries.\n\n## Impact\n\n- Discovery becomes more resistant to \"found one path = found the whole problem\" assumptions.\n- Design and review gain auditable evidence for whether the full problem and full solution scope were captured.\n- Every discovery runs the completeness check; only those whose question demands it run broad surface scans, so narrow changes stay proportional.\n- The new requirement adds discovery output, so design should keep evidence concise and structured.\n\n## Context\n\nQuick checks completed during proposal:\n\n- `adv-discover` owns current-state evidence, objectives, acceptance criteria, and agreement output.\n- `docs/checklists/discover-checklist.md` already requires P25 related-pattern scan and codebase searches, but does not mention problem/solution completeness or chokepoint verification.\n- Exact local searches for `chokepoint`, `single entry point`, `sole entry`, `single point of change`, `surface scan`, `secondary surface`, and `search methodology` returned no matching current rule.\n- Existing discovery spec `adv-discover` includes conflict scan, related-pattern scan, LBP check, ambiguity analysis, and acceptance-criteria checkpoint requirements; discovery extends that law rather than creating an unrelated mechanism.\n\n## Knowledge Gap Analysis\n\n### Codebase unknowns\n\n- Exact best insertion point resolved at discovery: extend `adv-discover` spec/checklist/command + asset anchors.\n- Existing tests identified: `workflow-noise-reduction-assets.test.ts` and `adv-skill-backed-commands-assets.test.ts` are suitable anchor homes.\n\n### Ecosystem unknowns\n\n- No external ecosystem dependency; internal workflow/spec-law change. \"No external alternatives apply.\"\n\n### Domain unknowns\n\n- Trigger vocabulary resolved by user decision: always-on check (no trigger); scan depth scales to the question.\n\n### Integration unknowns\n\n- `tightenAdvScopeDiscipline` is complementary (prep/review task→AC bounding vs discovery problem→solution scope); coordinate shared instruction/spec edits at design.\n- P25 related-pattern scan is extended/specialized, not replaced.\n\n## Discovery Agenda\n\n- All items resolved at discovery or deferred to design with rationale (see Discovery Findings and agreement).\n\n## Discovery Findings\n\n### Discovery Checklist\n\n| Step | Status | Reason |\n| --- | --- | --- |\n| Skill Discovery | PASS | Loaded `adv-instructions-audit` and `adv-audit`; no pending agent-created skill; no new skill needed. |\n| Prior Research Extension | PASS | `temp/*.md` absent; `docs/*-prep.md` packs inspected and not relevant; archived-list read timed out twice (degraded). |\n| Conflict & Related-Work Scan | PASS | `tightenAdvScopeDiscipline` related but complementary; own-change `NO_TASKS`/`NO_DELTAS` expected pre-prep; no chokepoint-specific agenda item. |\n| Edge Case Investigation | PASS | Edge cases listed below. |\n| Design Question Depth | PASS | Design questions annotated with trust model, blast radius, alternatives. |\n| Draft Spec Delta Shapes | PASS | Draft `rq-disc13`/`rq-disc14`/`rq-disc15` shapes below. |\n| P25 Related-Pattern Scan | PASS | Delegated codebase scan found no existing chokepoint/sole-entry rule; P25 is nearest extension point. |\n| LBP Check | PASS | Internal structural spec/checklist/asset-test route is LBP; no external alternatives apply. |\n| Discovery Opportunity Scout | PASS | 5 candidates; 3 auto-adopt, 2 design/user-surface. |\n\n### Skills Considered\n\n| Skill | Match | Action |\n| --- | --- | --- |\n| `adv-instructions-audit` | Strong — edits command/checklist/instruction surfaces needing anchor tests. | Loaded; apply trace-to-anchor in design. |\n| `adv-audit` | Strong — adds spec law; avoid spec/code drift. | Loaded; use spec-parser/drift-scanner framing. |\n| New `agent-*` skill | Not needed. | Not created. |\n\n### Extends\n\n- No relevant `temp/*.md` prior artifact.\n- `docs/*-prep.md` packs target unrelated domains (adv_run_test, slop-scan, repo perf).\n- New finding: discovery has no canonical completeness/chokepoint vocabulary and no surface-completeness rule.\n- Archived change scan degraded (timeouts); proceeds with limitation recorded.\n\n### Conflict Scan\n\n- `tightenAdvScopeDiscipline`: related, complementary (prep/review task→AC bounding vs discovery problem→solution scope). Coordinate shared `ADV_INSTRUCTIONS.md` / `advance-workflow` edits.\n- `adv_change_validate`: passed; `NO_TASKS`/`NO_DELTAS` expected pre-prep.\n- `adv_agenda_list`: no chokepoint-specific item.\n- Archived scan: timed out twice; not a blocker.\n\n### Current State\n\n- `.opencode/command/adv-discover.md:175-185` Phase 1.7 P25 related-pattern scan; `:195-208` output sections lack a completeness/surface section.\n- `docs/checklists/discover-checklist.md:5` states checklist enforcement is document-only; `:20` requires P25 scan.\n- `docs/specs/adv-discover.md:291-310` and `.adv/specs/adv-discover/spec.json` define `rq-disc08` (P25).\n- `plugin/src/workflow-noise-reduction-assets.test.ts:111-121` suitable anchor home (reads command + checklist).\n- `plugin/src/adv-skill-backed-commands-assets.test.ts:276-295` asserts `adv-discover` spec IDs.\n- `plugin/src/delegation-matrix.test.ts:432-449` + `.adv/specs/delegation-defaults/spec.json:17-25` route discovery P25 as delegated wide scan.\n- No current rule mentions `chokepoint`, `single entry point`, `sole entry`, or `single point of change`.\n\n### Edge Cases\n\n| Gap | Edge case / failure mode |\n| --- | --- |\n| False sole-chokepoint claim | Function is chokepoint for one provider but a parallel client serves others. |\n| False sole-chokepoint claim | Operation exists behind a different abstraction name; narrow lookup misses it. |\n| Completeness-check shallowness | Discovery says \"searched codebase\" without terms/symbols/results, leaving no auditable evidence. |\n| Completeness-check shallowness | Secondary surfaces found but left as vague future work. |\n| Scan-depth proportionality | Always-on check degenerates into broad repo scans on narrow changes. |\n| Coordination | `tightenAdvScopeDiscipline` edits shared instruction/spec surfaces; uncoordinated edits duplicate/conflict. |\n| Tool degradation | lgrep semantic search or archived visibility times out; workflow needs fallback evidence. |\n\n### Open Design Questions\n\n| Question | Trust model | Blast radius if wrong | Alternatives / recommendation |\n| --- | --- | --- | --- |\n| Completeness-check evidence shape | Agent-only | Weak evidence leaves design/review unable to audit. | Recommended: searched terms/symbols, found/excluded surfaces, disposition, confidence. |\n| Primary durable home | Agent-only | Wrong home scatters law, increases drift. | Recommended: `adv-discover` spec/checklist/command; `advance-workflow` only if cross-gate law needed. |\n| P25 extension vs standalone phase | Agent-only | Standalone duplicates P25; buried extension missed. | Recommended: extend P25 with trigger-scoped completeness subsection + output row. |\n| Asset-test scope | Agent-only | Prose-only drifts; over-testing brittle text slows iteration. | Recommended: anchor presence across spec, command, checklist, docs mirror, one asset test. |\n| ADV_INSTRUCTIONS.md invariant | Agent-only | Extra prose may bloat; absent invariant may be missed. | Deferred to design: decide if concise invariant warranted. |\n\n### Draft Spec Deltas\n\n- `rq-disc13` — **Always-On Problem Completeness Check**\n  - Given: a discovery invocation.\n  - When: discovery prepares findings for agreement.\n  - Then: discovery records an explicit problem-completeness check answering whether the full problem was identified, not only an observed symptom/path, with rationale.\n- `rq-disc14` — **Always-On Solution-Scope Completeness Check + Secondary Surface Disposition**\n  - Given: discovery identifies the intended solution scope, including any sole-chokepoint / single-entry / single-control-surface claim.\n  - When: discovery forms objectives/acceptance criteria.\n  - Then: discovery records a solution-scope check answering whether the full intended solution is scoped; any secondary surfaces found are classified in scope / out of scope with rationale / unresolved user scope question; an unverified sole-entry claim blocks until verified or downgraded.\n- `rq-disc15` — **Durable Completeness Verification Anchors**\n  - Given: discovery completeness obligations are added.\n  - When: implementation updates command/checklist/spec surfaces.\n  - Then: asset tests assert the obligation is present in `adv-discover` command, checklist, canonical spec, and docs mirror so prose cannot drift silently.\n\n### Related Pattern Scan\n\n- No existing chokepoint/sole-entry/surface-scan rule found.\n- Closest rule is P25 (`rq-disc08`): scans for similar bugs/gaps after a class is known; does not prove a claimed sole operational entry point is sole. Complementary, extended.\n- Related completeness patterns: archive completeness validation, cross-repo routing coverage, spec scenario completeness — support structural evidence over prose.\n\n### LBP Check\n\n- Direction: extend existing discovery law and P25 routing; always-on check, depth-scaled scan.\n- Rationale: locality of behavior keeps obligations near `rq-disc08`; structural correctness via spec law + output shape + asset anchors.\n- External-Solution Check: skipped with rationale — internal workflow/spec-law correction; no external alternative is realistic.\n\n### Discovery Opportunity Scout\n\n| Candidate | Route | Decision |\n| --- | --- | --- |\n| Reuse B=Boundaries ambiguity trigger for false sole-chokepoint claims | Auto-adopt | Adopted into AC (block unverified sole-entry). |\n| Specialize P25 into trigger-scoped surface scan | Auto-adopt | Adopted into design direction. |\n| Greenfield trigger vocabulary | User-surface | Resolved: always-on check (no trigger). |\n| Durable spec + checklist + asset-test enforcement | Auto-adopt | Adopted into AC. |\n| Coordinate with `tightenAdvScopeDiscipline` | Design-gate check | Carried as constraint. |\n\n### Discovery Question Resolutions (User Decisions)\n\n1. **Trigger scope** → \"Don't rely on a trigger; persistent always-on check that the FULL problem was found (not just a symptom) and the FULL solution is scoped (not just a piece).\" Reframed AC1/AC2 as always-on; AC6 captures depth-scaled scan.\n2. **Strictness** → \"Block until verified.\" Adopted as AC3.\n3. **Secondary paths** → \"Disposition required.\" Adopted as AC4.\n4. **Title/scope** → Broadened from \"Add chokepoint verification\" to \"Add discovery completeness verification.\" Chokepoint/sole-entry is one hard-block instance.\n\n### AMBIGUITY ANALYSIS\n\nM1  LOW  Missing Information  None remaining after user decisions.\n  Evidence: `(resolved via Discovery Question Resolutions)`\n  Reason: n/a.\n\nCoverage: B:C F:C S:C M:C\n\nTrigger evaluation: clean; proceed to agreement.\n\n### Recommended Objectives\n\n1. Add always-on problem-completeness and solution-scope checks to discovery.\n2. Require surface-scan methodology evidence and explicit disposition of secondary surfaces.\n3. Block unverified sole-chokepoint/single-entry claims until verified or downgraded.\n4. Extend P25/discovery output shape, not replace it.\n5. Make the obligation durable via `adv-discover` spec law + docs mirror + command/checklist + asset-test anchors.\n6. Coordinate with `tightenAdvScopeDiscipline` on shared instruction/workflow-spec surfaces.",
+    "problemStatement": "# Problem Statement: Add chokepoint completeness verification to discovery\n\n## Problem\n\nDuring `addResidentialProxyExternal` (pokeedge project), the discovery phase identified `_download_image` in `firecrawl_handler.py` as \"the chokepoint\" for anonymous image fetches — the single point where proxy routing should be applied. It wasn't. It was **one of two** parallel download surfaces in the codebase.\n\nA second surface, `ImageDownloadClient.download()` in `clients/r2/r2_client.py`, was used by 5 other handlers (poke52_handler, pikaqian_handler, image_download_worker, cn_image_rehost_service, _card_operations_service). None were identified during discovery. The design agreement explicitly said PikaQian image CDN would be proxied, but the implementation plan targeted `_download_image` only — PikaQian images actually flow through `ImageDownloadClient`, which was never touched.\n\n## Root Cause\n\nThe discovery searched for \"where does `_download_image` get called\" (narrow call-site lookup) instead of \"where does the codebase download images from external hosts\" (comprehensive surface-area scan). The chokepoint was identified from one surface without verifying it was the sole entry point.\n\n## Cascade\n\n1. Discovery: identified `_download_image` as the chokepoint — no verification it was the sole download path\n2. Researcher: confirmed call sites in `firecrawl_handler.py` — didn't ask \"are there other download paths?\"\n3. Design: scoped to `_download_image` — assumed PikaQian images go through it (they don't)\n4. Planning: 3 tasks, all in `firecrawl_handler.py`\n5. Review: verified implemented paths — didn't audit for missed surfaces\n6. Acceptance: contract matrix 20/20 — tested implemented scope, not intended scope\n\n## What Needs to Change\n\nWhen the discovery phase identifies a \"chokepoint\" or \"single point of change\" for a cross-cutting concern (proxy routing, auth, rate limiting, caching, etc.), it must:\n\n1. **Verify the chokepoint is the SOLE entry point** — not just one of multiple\n2. **Run a comprehensive surface scan** using semantic/symbol search (`lgrep_search_semantic` / `lgrep_search_symbols`) for ALL code paths that perform the target operation (e.g., \"download image from external host\", \"fetch from anonymous URL\")\n3. **Explicitly document secondary surfaces** — any additional entry points found must be either scoped into the change or marked out-of-scope with explicit rationale\n4. **Record the search methodology** — what was searched, what was found, what was excluded, so the design phase and reviewer can audit completeness\n\nThe fix is structural (P33): a deterministic verification step in the discovery workflow, not a heuristic assumption that the first surface found is the only one.\n",
+    "agreement": "# Agreement — addChokepointVerification (scope: Add Discovery Completeness Verification)\n\n> Change ID `addChokepointVerification` is immutable (workflow/branch/directory key). Scope broadened at discovery to always-on discovery completeness verification; chokepoint/sole-entry is one hard-block instance.\n\n## Objectives\n\n1. Add always-on problem-completeness and solution-scope checks to discovery.\n2. Require surface-scan methodology evidence and explicit disposition of secondary surfaces.\n3. Block unverified sole-chokepoint / single-entry / single-control-surface claims until verified or downgraded.\n4. Extend P25 / discovery output shape rather than replacing it or creating a broad always-on repository scan.\n5. Make the obligation durable through `adv-discover` spec law, command/checklist updates, docs mirror, and asset-test anchors.\n6. Coordinate with `tightenAdvScopeDiscipline` when touching shared instruction/workflow-spec surfaces.\n\n## Success Criteria\n\n- SC1: Discovery stops treating \"found one symptom/path\" as \"found the full problem / full solution\" without explicit completeness evidence.\n- SC2: Sole-path / chokepoint mistakes surface before design/prep, not at acceptance.\n- SC3: Design/review get an auditable record: searched surfaces, found surfaces, excluded surfaces, final scope disposition.\n\n## Acceptance Criteria\n\n- AC1: Every discovery runs an always-on **problem-completeness check**: was the full problem identified, not only an observed symptom/path?\n- AC2: Every discovery runs an always-on **solution-scope check**: is the full intended solution scoped, not only one implementation piece?\n- AC3: When discovery relies on a sole-chokepoint / single-entry / single-control-surface claim, discovery **blocks** until the claim is verified or downgraded.\n- AC4: Any secondary surfaces found during completeness verification must be classified **in scope / out of scope with rationale / unresolved user scope question** before agreement.\n- AC5: The obligation is durable in ADV law/docs/tests: `adv-discover` spec + docs mirror + command/checklist surface + asset-test anchor.\n- AC6: The completeness **check** always runs; the codebase surface-scan **depth** scales to what the completeness question demands, preserving proportionality for narrow changes.\n\n## Constraints\n\n- C1: Always-on completeness check; no trigger gate. Scan depth scales to the question; narrow changes are not forced into broad repository-wide scans.\n- C2: Correctness stays structural: spec law + command/checklist output shape + asset-test anchors own it; heuristics assist only (P33).\n- C3: Primary home: `adv-discover` spec/checklist/command. Touch `advance-workflow` only if design finds cross-gate law necessary.\n- C4: Coordinate with `tightenAdvScopeDiscipline` on any shared `ADV_INSTRUCTIONS.md` / `advance-workflow` edits.\n- C5: Preserve discovery as the phase that firms design-independent objectives, acceptance criteria, and scope boundaries.\n- C6: Structural checks are tool-layer/spec/checklist/asset anchors only — no new Temporal workflow signal, query, or `defineUpdate` surface.\n\n## Avoidances\n\n- DONT1: Don't treat first-found call sites or first-observed symptoms as proof of full problem/solution scope.\n- DONT2: Don't rely on heuristic prose alone where a structural spec/checklist/test anchor can own correctness.\n- DONT3: Don't gate the completeness *check* behind a trigger condition — the check is always-on; only scan *depth* scales.\n- DONT4: Don't silently defer secondary surfaces as \"future work\" without explicit scope rationale.\n- DONT5: Don't force narrow changes into broad repository-wide scans when the completeness question does not demand it.\n- DONT6: Don't replace discovery's P25 related-pattern scan wholesale — extend/specialize it.\n\n## Preview Applicability\n\n`visual_surface: false` — workflow/spec/test change; no front-end, browser-visible, or visual output affected.\n\n## Out of Scope\n\n- OOS1: Editing the pokeedge project or retroactively fixing `addResidentialProxyExternal`.\n- OOS2: Designing a language-specific static analyzer for every cross-cutting concern.\n- OOS3: Replacing P25 related-pattern scan wholesale.\n- OOS4: Changing the seven-gate lifecycle or moving discovery responsibilities into design/review.\n- OOS5: Building a target-codebase-aware sole-entry validator (structural enforcement limited to spec + command + checklist + asset anchors).\n- OOS6: Adding a new Temporal workflow signal/query/`defineUpdate` surface.\n\n## Decisions\n\n### User Decisions\n\n1. **Trigger scope** — \"Don't rely on a trigger; persistent always-on check that the FULL problem was found (not just a symptom) and the FULL solution is scoped (not just a piece).\" Why it matters: determines whether every discovery pays a completeness-check cost and whether narrow changes avoid broad scans. Reframed AC1/AC2 (always-on) and AC6 (depth-scaled scan).\n2. **Strictness** — \"Block until verified.\" Why it matters: an unverified sole-entry claim cannot silently proceed to design. Adopted as AC3.\n3. **Secondary paths** — \"Disposition required.\" Why it matters: found surfaces cannot hide as vague future work. Adopted as AC4.\n4. **Title/scope** — Broadened from \"Add chokepoint verification\" to \"Add discovery completeness verification.\" Chokepoint/sole-entry is one hard-block instance.\n\n### Agent Decisions (LBP)\n\n1. **Primary durable home = `adv-discover` spec** — keeps obligations co-located with `rq-disc08` (P25); locality of behavior. `advance-workflow` touched only if cross-gate law emerges at design.\n2. **Extend P25, don't replace** — P25 scans for similar bugs; completeness check verifies full problem/solution scope. Different questions, complementary.\n3. **Structural enforcement via spec + command + checklist + asset-test anchors** — pure prose is document-only (current P25 weakness). Strongest durable form without a target-codebase-aware validator.\n4. **No external alternatives apply** — internal workflow/spec-law correction; no external library/service/tool is a realistic solution.\n\n## Deferred Questions\n\n- Whether a concise canonical invariant belongs in `ADV_INSTRUCTIONS.md` or whether spec/checklist/command artifacts suffice — deferred to `/adv-design`.\n\n## Sign-Off\n\nUser approved criteria via Tier A \"approve\" after validation pass (F1 proposal-sync, F2 AC6 wording, F3 title broadening all resolved).\n",
+    "design": "# Design — addChokepointVerification (Add Discovery Completeness Verification)\n\n> Change ID immutable; scope broadened at discovery to always-on discovery completeness verification. Chokepoint/sole-entry is one hard-block instance.\n\n## Architecture Overview\n\nAdd an **always-on completeness discipline** to the `/adv-discover` command as a new **Phase 1.8: Completeness Verification**, plus matching law in the `adv-discover` spec, a checklist step, a docs mirror, and asset-test anchors. The discipline has two always-on checks and one blocking specialization:\n\n1. **Problem-completeness check (always-on)** — \"Was the full problem identified, or only an observed symptom/path?\" Discovery records a rationale + confidence.\n2. **Solution-scope check (always-on)** — \"Is the full intended solution scoped, or only one implementation piece?\" Discovery records rationale + confidence + any sole-entry/single-control-surface claims.\n3. **Sole-entry blocking specialization** — when discovery relies on a sole-chokepoint / single-entry / single-control-surface claim that is not verified, emit a **B-CRITICAL** ambiguity finding. The existing `rq-disc-tax2` halt-and-handoff-to-`/adv-clarify` path fires — **no new halt machinery**. Secondary surfaces found during verification require explicit disposition (in scope / out of scope with rationale / unresolved user scope question).\n\nScan depth scales to the question (AC6): the *check* always runs; a broad codebase surface scan (lgrep semantic + symbol) only runs when the completeness question demands it (sole-entry claim or cross-cutting operation). Narrow changes record a lightweight rationale and proceed.\n\n### Relationship to existing mechanisms\n\n- **P25 Related-Pattern Scan (`rq-disc08`, Phase 1.7)**: scans for *similar bugs* after a defect class is known. Completeness verification asks a different question: *did we find the whole problem/solution?* They are **complementary, not merged**.\n- **AMBIGUITY ANALYSIS B=Boundaries (`rq-disc-tax1`/`rq-disc-tax2`)**: the sole-entry blocking case reuses this existing CRITICAL→halt→`/adv-clarify` plumbing.\n- **`tightenAdvScopeDiscipline`**: prep/review task→AC bounding (downstream of discovery). Discovery-local; no collision.\n\n## Key Decisions\n\n### KD1 — New always-on Phase 1.8, not a trigger gate\nAlways-on checks (DONT3). The check is lightweight (rationale + confidence); only scan *depth* is conditional (AC6).\n\n### KD2 — Sole-entry blocking reuses B-CRITICAL ambiguity path\nUnverified sole-chokepoint / single-entry / single-control-surface claim = `B{N} CRITICAL Boundaries` with verbatim evidence; existing `rq-disc-tax2.1` halts discovery and hands off to `/adv-clarify`. Validator confirmed B=Boundaries is a REQUIRED category (`rq-disc-tax1.1`) and CRITICAL halts + skips gate completion (`rq-disc-tax2.1`). Zero new halt code paths.\n\n### KD3 — Primary spec home: `adv-discover` (not `advance-workflow`)\nLocality of behavior (P04). `advance-workflow` **not touched** (C3). Validator confirmed IDs `rq-disc13/14/15` are collision-free (highest existing = `rq-disc12`).\n\n### KD4 — Keep P25 and completeness verification as separate steps\nMerging conflates \"scan for sibling bugs\" with \"prove we found the whole problem/solution.\"\n\n### KD5 — Structural enforcement = spec + command + checklist + asset-test anchors\nValidator + scout confirmed `plugin/src/validator/completeness.ts` operates on deltas/tasks, NOT discovery prose — **wrong reuse target**. Asset tests assert *presence* (structural tokens: spec IDs, section headers, phase names), not semantic quality. Quality stays agent-honor with the KD2 blocking backstop.\n\n### KD6 — ADV_INSTRUCTIONS.md: pointer-only, no duplicated law\nSingle-source-per-surface (`adv-instructions-audit` skill).\n\n### KD7 — No new Temporal surface (C6)\nNo signal/query/`defineUpdate`. Honors `workflow-bundle-boundary.test.ts`.\n\n## Implementation Strategy\n\n1. **Spec law first** — add `rq-disc13` (problem-completeness), `rq-disc14` (solution-scope + sole-entry blocking + secondary disposition), `rq-disc15` (durable anchors) to `.adv/specs/adv-discover/spec.json`; mirror into `docs/specs/adv-discover.md`. Bump version.\n2. **Command contract** — add Phase 1.8 to `.opencode/command/adv-discover.md`; add \"Completeness Verification\" row to the Required Output Sections table and the Discovery Protocol step list (8→9 steps).\n3. **Checklist** — add Phase 1.8 step to `docs/checklists/discover-checklist.md`; \"All 10 protocol steps\" → 11 at `:24` and `:139`; add edge-case handling row. Canonical insertion point = Output Section Schema table `:60-78`.\n4. **Asset anchors** — extend `plugin/src/workflow-noise-reduction-assets.test.ts` (command + checklist anchors); add spec-ID assertions near `adv-skill-backed-commands-assets.test.ts:276-295`. **Cross-assert identical protocol step count in both command and checklist** (DDC4 strengthening per validator).\n5. **ADV_INSTRUCTIONS.md pointer** — one-line in the discovery protocol row.\n6. **Verify** — `bin/oc-test targeted`; `pnpm run check`.\n\nAtomic single engineer task (asset tests assert tokens independently → stable commit).\n\n## LBP Analysis\n\nBoring, locally-correct: extend discovery phase with a sibling step to P25; reuse the ambiguity halt path for blocking. The alternative (standalone chokepoint analyzer / target-codebase-aware sole-entry validator) is explicitly OOS (OOS2/OOS5).\n\n## Affected Components\n\n| Component | Change |\n|---|---|\n| `.adv/specs/adv-discover/spec.json` | +`rq-disc13`, `rq-disc14`, `rq-disc15`; version bump |\n| `docs/specs/adv-discover.md` | mirror the three requirements + scenarios |\n| `.opencode/command/adv-discover.md` | +Phase 1.8; +output-section row; protocol step count 8→9 |\n| `docs/checklists/discover-checklist.md` | +Phase 1.8 step; \"10 steps\"→11; +edge-case row |\n| `plugin/src/workflow-noise-reduction-assets.test.ts` | +anchor assertions (command + checklist) + step-count cross-assert |\n| `plugin/src/adv-skill-backed-commands-assets.test.ts` | +spec ID assertions (rq-disc13/14/15) |\n| `ADV_INSTRUCTIONS.md` | one-line pointer (no duplicated law) |\n\n## Design-Derived Criteria\n\nTechnical criteria caused by the chosen architecture; no new user-facing AC.\n\n- **DDC1 (bounded evidence)** — Completeness-check output must stay bounded: terms-searched ≤ a small N, surfaces listed ≤ top-N with rationale. Prevents always-on check from bloating every discovery output.\n- **DDC2 (deterministic anchors)** — Asset-test assertions check *presence* of stable structural tokens (spec IDs, section headers, phase name \"Completeness Verification\"), not prose quality. Keeps CI deterministic.\n- **DDC3 (no new Temporal surface)** — C6 honored; enforcement is command/spec/checklist/test only.\n- **DDC4 (step-count invariant, strengthened)** — The asset test **cross-asserts the identical protocol step count** in both `.opencode/command/adv-discover.md` and `docs/checklists/discover-checklist.md`, so the command (9 steps) and checklist (11 protocol items) cannot drift independently. Converts the weakest anchor from presence-only to drift-resistant (validator recommendation).\n\n## Risks / Mitigations\n\n| Risk | Mitigation |\n|---|---|\n| R1: Always-on check adds friction to every discovery | Check is lightweight (rationale + confidence); deep scan only on sole-entry claim / cross-cutting op (AC6). |\n| R2: Asset-test brittleness on prose | Anchor on stable tokens (spec IDs, headers), not sentences (DDC2). |\n| R3: Document-only enforcement weakness persists (depth/quality of the check is agent-honor) | Acceptable per OOS5; KD2 provides the blocking backstop for the highest-stakes case. |\n| R4: Coordination with `tightenAdvScopeDiscipline` | Discovery-local; sibling is prep/review. Only shared surface is `ADV_INSTRUCTIONS.md`. |\n| R5: lgrep semantic search timeouts | Existing fallback to symbol/text search; completeness scan inherits the degradation path. |\n\n## Validation\n\n### Design Leverage Scout\n5 candidates, all auto-adopt (low risk, contract-tied, no user-value tradeoff):\n1. `completeness.ts` is the WRONG reuse target → confirms KD5.\n2. Sole-entry block reuses `rq-disc-tax2` B-CRITICAL halt → confirms KD2.\n3. \"All 10 protocol steps\" lockstep drift → 11 → captured as DDC4.\n4. Output Section Schema table (`:60-78`) is the canonical single insertion point → captured in implementation strategy step 3.\n5. Single atomic engineer task viable → captured in implementation strategy.\n\n### Independent Design Validator\n**Verdict: VALIDATED** (one CAUTION, no CONFLICT, no contract compromise).\n\n- Correctness: three-part discipline maps cleanly to all six ACs; blocking case verified against `rq-disc-tax1.1` / `rq-disc-tax2.1`.\n- Simplicity: boring, locally-correct; no materially simpler approach meets AC3+AC5 together.\n- Spec-law compliance: no contradiction; `rq-disc13/14/15` collision-free; `advance-workflow` untouched per C3.\n- Key alternatives: completeness.ts reuse correctly rejected. CAUTION → DDC4 step-count cross-assert (integrated above).\n\n**Prep action from validator:** asset test cross-asserts identical protocol step count in command and checklist (DDC4) — converts weakest structural anchor from presence-only to drift-resistant. Integrated into DDC4 and implementation strategy step 4.\n\nCoordinator: no user-value tradeoff, no unresolved CONFLICT, no contract-compromise risk, validator VALIDATED → proceed to `/adv-prep` after gate completion.\n",
+    "executiveSummary": "# Executive Summary — Add Discovery Completeness Verification\n\n`/adv-discover` now runs an always-on **Completeness Verification** step (Phase 1.8) that prevents discovery from treating a found symptom or single code path as the full problem/full solution. The motivating failure — `addResidentialProxyExternal` missing a parallel `ImageDownloadClient` download surface — is now structurally guarded: discovery must answer whether the full problem was identified and the full solution is scoped, every time.\n\n**What shipped:**\n- Three new spec requirements in `adv-discover` (v1.4.0): `rq-disc13` (always-on problem-completeness check), `rq-disc14` (solution-scope check + sole-entry blocking + secondary-surface disposition), `rq-disc15` (durable anchors across spec/command/checklist/docs/tests).\n- New Phase 1.8 in `.opencode/command/adv-discover.md`: two always-on checks, scan-depth scaling (narrow changes record a lightweight rationale; broad scans run only for sole-entry/cross-cutting claims), sole-entry blocking that **reuses the existing B-CRITICAL ambiguity halt** (`rq-disc-tax2` → `/adv-clarify`) rather than new machinery, and mandatory secondary-surface disposition before agreement.\n- `discover-checklist.md`, `docs/specs/adv-discover.md` mirror, and a one-line `ADV_INSTRUCTIONS.md` pointer kept in sync.\n- Asset tests assert the obligation is co-present across spec, command, checklist, and docs mirror (rq-disc15 drift guard).\n\n**Key design decision:** the sole-entry block deliberately reuses the existing Boundaries-CRITICAL → halt → `/adv-clarify` plumbing (KD2). No new halt code, no new Temporal surface (C6). `advance-workflow` was left untouched (C3); only a stale test assertion (1.17.0→1.18.0) was campsite-fixed in the touched test file.\n\n**Design refinement during execution:** `rq-disc15.2` was revised from \"protocol step count equality\" to \"co-presence\" — the command (9 steps) and checklist (11 items) use different granularities, so numeric equality would be false; co-presence is the real drift guarantee. Recorded in spec + docs mirror.\n\n**Verified:** RED→GREEN TDD per implementation task; 67/67 asset tests pass; `pnpm run check` exit 0 (schemas/typecheck/lint/format); independent reviewer verdict READY (one in-scope AC5 gap remediated); contract review matrix 27/27 pass, 0 failing. No scope drift.\n",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-06-19T04:36:00.000Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | Discovery stops treating \"found one symptom/path\" as \"found the full problem / full solution\" without explicit completeness evidence. | pass | Phase 1.8 problem-completeness check (adv-discover.md) + rq-disc13 require explicit rationale before a symptom is treated as the full problem. |\n| SC2 | success_criterion | Sole-path / chokepoint mistakes surface before design/prep, not at acceptance. | pass | rq-disc14.2 + Phase 1.8 sole-entry blocking (B-CRITICAL via rq-disc-tax2) surfaces unverified chokepoint claims before design/prep. |\n| SC3 | success_criterion | Design/review get an auditable record: searched surfaces, found surfaces, excluded surfaces, final scope disposition. | pass | Phase 1.8 target-operation surface scan evidence shape (searched terms/symbols, found/excluded surfaces, disposition) gives design/review an auditable record. |\n| AC1 | acceptance_criterion | Every discovery runs an always-on **problem-completeness check**: was the full problem identified, not only an observed symptom/path? | pass | workflow-noise-reduction-assets.test.ts asserts command contains 'problem-completeness'; Phase 1.8 step in adv-discover.md. 67/67 tests pass. |\n| AC2 | acceptance_criterion | Every discovery runs an always-on **solution-scope check**: is the full intended solution scoped, not only one implementation piece? | pass | workflow-noise-reduction-assets.test.ts asserts command contains 'solution-scope'; Phase 1.8 solution-scope check present. |\n| AC3 | acceptance_criterion | When discovery relies on a sole-chokepoint / single-entry / single-control-surface claim, discovery **blocks** until the claim is verified or downgraded. | pass | workflow-noise-reduction-assets.test.ts asserts B-CRITICAL/Boundaries CRITICAL; rq-disc14.2 + Phase 1.8 sole-entry blocking reuse rq-disc-tax2 halt. |\n| AC4 | acceptance_criterion | Any secondary surfaces found during completeness verification must be classified **in scope / out of scope with rationale / unresolved user scope question** before agreement. | pass | Phase 1.8 secondary-surface disposition (in/out/unsolved) in command + checklist edge-case rows; discover-checklist.md requires classification before agreement. |\n| AC5 | acceptance_criterion | The obligation is durable in ADV law/docs/tests: `adv-discover` spec + docs mirror + command/checklist surface + asset-test anchor. | pass | rq-disc13/14/15 in spec.json + docs mirror; Phase 1.8 in command + checklist; ADV_INSTRUCTIONS pointer; asset anchors in 2 test files. workflow-noise-reduction-assets.test.ts asserts spec IDs + command + checklist + docs mirror co-presence. |\n| AC6 | acceptance_criterion | The completeness **check** always runs; the codebase surface-scan **depth** scales to what the completeness question demands, preserving proportionality for narrow changes. | pass | workflow-noise-reduction-assets.test.ts asserts 'scan depth scales'; Phase 1.8 scan-depth-scaling section + rq-disc13.2. |\n| C1 | constraint | Always-on completeness check; no trigger gate. Scan depth scales to the question; narrow changes are not forced into broad repository-wide scans. | respected | Phase 1.8 is always-on (not trigger-gated); scan-depth-scaling section in adv-discover.md + checklist edge row. |\n| C2 | constraint | Correctness stays structural: spec law + command/checklist output shape + asset-test anchors own it; heuristics assist only (P33). | respected | Spec law (rq-disc13/14/15) + command + checklist + asset-test anchors own the obligation; no heuristic-only prose. |\n| C3 | constraint | Primary home: `adv-discover` spec/checklist/command. Touch `advance-workflow` only if design finds cross-gate law necessary. | respected | Primary home adv-discover; advance-workflow spec untouched (only stale test assertion campsite-fixed 1.17→1.18). |\n| C4 | constraint | Coordinate with `tightenAdvScopeDiscipline` on any shared `ADV_INSTRUCTIONS.md` / `advance-workflow` edits. | respected | ADV_INSTRUCTIONS.md edit is a one-line pointer only (single-source-per-surface); sibling change touches prep/review. |\n| C5 | constraint | Preserve discovery as the phase that firms design-independent objectives, acceptance criteria, and scope boundaries. | respected | Discovery still firms design-independent objectives/AC; completeness check does not move criteria firming out of discovery. |\n| C6 | constraint | Structural checks are tool-layer/spec/checklist/asset anchors only — no new Temporal workflow signal, query, or `defineUpdate` surface. | respected | No new Temporal signal/query/defineUpdate; enforcement is spec/command/checklist/test only. workflow-bundle-boundary untouched. |\n| DONT1 | avoidance | Don't treat first-found call sites or first-observed symptoms as proof of full problem/solution scope. | respected | Phase 1.8 explicitly requires verifying sole-entry claims; rq-disc14.2 blocks unverified claims. |\n| DONT2 | avoidance | Don't rely on heuristic prose alone where a structural spec/checklist/test anchor can own correctness. | respected | Obligation owned by spec rq-* + asset tests, not prose alone. |\n| DONT3 | avoidance | Don't gate the completeness *check* behind a trigger condition — the check is always-on; only scan *depth* scales. | respected | Phase 1.8 runs always-on; only scan depth is conditional. |\n| DONT4 | avoidance | Don't silently defer secondary surfaces as \"future work\" without explicit scope rationale. | respected | Phase 1.8 + checklist forbid silently deferring secondary surfaces; require explicit disposition. |\n| DONT5 | avoidance | Don't force narrow changes into broad repository-wide scans when the completeness question does not demand it. | respected | Scan-depth-scaling section + rq-disc13.2 record lightweight rationale for narrow changes; no forced broad scan. |\n| DONT6 | avoidance | Don't replace discovery's P25 related-pattern scan wholesale — extend/specialize it. | respected | Phase 1.8 is separate from P25 (rq-disc08); documented as complementary, not merged. |\n| OOS1 | out_of_scope | Editing the pokeedge project or retroactively fixing `addResidentialProxyExternal`. | not_applicable | pokeedge not edited; only ADV repo surfaces touched. |\n| OOS2 | out_of_scope | Designing a language-specific static analyzer for every cross-cutting concern. | not_applicable | No language-specific static analyzer built. |\n| OOS3 | out_of_scope | Replacing P25 related-pattern scan wholesale. | not_applicable | P25 (rq-disc08) preserved; Phase 1.8 is additive. |\n| OOS4 | out_of_scope | Changing the seven-gate lifecycle or moving discovery responsibilities into design/review. | not_applicable | Seven-gate lifecycle unchanged; discovery still owns agreement. |\n| OOS5 | out_of_scope | Building a target-codebase-aware sole-entry validator (structural enforcement limited to spec + command + checklist + asset anchors). | not_applicable | No target-codebase-aware validator; enforcement is spec/command/checklist/test anchors only. |\n| OOS6 | out_of_scope | Adding a new Temporal workflow signal/query/`defineUpdate` surface. | not_applicable | No new Temporal surface added. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-06-19T04:05:32.719Z",
+      "contentHash": "9736e16a9a741c9233313d7cb9d0759636216833d384634452e66953b2c69539",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-06-19T03:46:56.451Z",
+      "contentHash": "1d91562a4c791bbda13f182edbf0094a02ad775119c264c79891403b41c824f2",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-06-19T04:05:32.719Z",
+      "contentHash": "0817895ed5bc58862fdab32e465bc0add867bd184af2cebe85c5b72864848182",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-06-19T04:15:02.767Z",
+      "contentHash": "3872ed778360266f9df5b2a195cbe9d0a71865b369a6e7863401ee6d25f07a8e",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-06-19T04:39:50.820Z",
+      "contentHash": "354f7524dc353e4a68f6cf7b9dfb1f6fb8f74721b55f462475841ed47da0462e",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-06-19T04:39:58.868Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true
+}

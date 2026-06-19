@@ -1,0 +1,36 @@
+# Acceptance
+
+Reviewed at: 2026-06-19T04:36:00.000Z
+
+## Contract Review Matrix
+
+| ID | Kind | Requirement | Status | Evidence |
+|---|---|---|---|---|
+| SC1 | success_criterion | Discovery stops treating "found one symptom/path" as "found the full problem / full solution" without explicit completeness evidence. | pass | Phase 1.8 problem-completeness check (adv-discover.md) + rq-disc13 require explicit rationale before a symptom is treated as the full problem. |
+| SC2 | success_criterion | Sole-path / chokepoint mistakes surface before design/prep, not at acceptance. | pass | rq-disc14.2 + Phase 1.8 sole-entry blocking (B-CRITICAL via rq-disc-tax2) surfaces unverified chokepoint claims before design/prep. |
+| SC3 | success_criterion | Design/review get an auditable record: searched surfaces, found surfaces, excluded surfaces, final scope disposition. | pass | Phase 1.8 target-operation surface scan evidence shape (searched terms/symbols, found/excluded surfaces, disposition) gives design/review an auditable record. |
+| AC1 | acceptance_criterion | Every discovery runs an always-on **problem-completeness check**: was the full problem identified, not only an observed symptom/path? | pass | workflow-noise-reduction-assets.test.ts asserts command contains 'problem-completeness'; Phase 1.8 step in adv-discover.md. 67/67 tests pass. |
+| AC2 | acceptance_criterion | Every discovery runs an always-on **solution-scope check**: is the full intended solution scoped, not only one implementation piece? | pass | workflow-noise-reduction-assets.test.ts asserts command contains 'solution-scope'; Phase 1.8 solution-scope check present. |
+| AC3 | acceptance_criterion | When discovery relies on a sole-chokepoint / single-entry / single-control-surface claim, discovery **blocks** until the claim is verified or downgraded. | pass | workflow-noise-reduction-assets.test.ts asserts B-CRITICAL/Boundaries CRITICAL; rq-disc14.2 + Phase 1.8 sole-entry blocking reuse rq-disc-tax2 halt. |
+| AC4 | acceptance_criterion | Any secondary surfaces found during completeness verification must be classified **in scope / out of scope with rationale / unresolved user scope question** before agreement. | pass | Phase 1.8 secondary-surface disposition (in/out/unsolved) in command + checklist edge-case rows; discover-checklist.md requires classification before agreement. |
+| AC5 | acceptance_criterion | The obligation is durable in ADV law/docs/tests: `adv-discover` spec + docs mirror + command/checklist surface + asset-test anchor. | pass | rq-disc13/14/15 in spec.json + docs mirror; Phase 1.8 in command + checklist; ADV_INSTRUCTIONS pointer; asset anchors in 2 test files. workflow-noise-reduction-assets.test.ts asserts spec IDs + command + checklist + docs mirror co-presence. |
+| AC6 | acceptance_criterion | The completeness **check** always runs; the codebase surface-scan **depth** scales to what the completeness question demands, preserving proportionality for narrow changes. | pass | workflow-noise-reduction-assets.test.ts asserts 'scan depth scales'; Phase 1.8 scan-depth-scaling section + rq-disc13.2. |
+| C1 | constraint | Always-on completeness check; no trigger gate. Scan depth scales to the question; narrow changes are not forced into broad repository-wide scans. | respected | Phase 1.8 is always-on (not trigger-gated); scan-depth-scaling section in adv-discover.md + checklist edge row. |
+| C2 | constraint | Correctness stays structural: spec law + command/checklist output shape + asset-test anchors own it; heuristics assist only (P33). | respected | Spec law (rq-disc13/14/15) + command + checklist + asset-test anchors own the obligation; no heuristic-only prose. |
+| C3 | constraint | Primary home: `adv-discover` spec/checklist/command. Touch `advance-workflow` only if design finds cross-gate law necessary. | respected | Primary home adv-discover; advance-workflow spec untouched (only stale test assertion campsite-fixed 1.17→1.18). |
+| C4 | constraint | Coordinate with `tightenAdvScopeDiscipline` on any shared `ADV_INSTRUCTIONS.md` / `advance-workflow` edits. | respected | ADV_INSTRUCTIONS.md edit is a one-line pointer only (single-source-per-surface); sibling change touches prep/review. |
+| C5 | constraint | Preserve discovery as the phase that firms design-independent objectives, acceptance criteria, and scope boundaries. | respected | Discovery still firms design-independent objectives/AC; completeness check does not move criteria firming out of discovery. |
+| C6 | constraint | Structural checks are tool-layer/spec/checklist/asset anchors only — no new Temporal workflow signal, query, or `defineUpdate` surface. | respected | No new Temporal signal/query/defineUpdate; enforcement is spec/command/checklist/test only. workflow-bundle-boundary untouched. |
+| DONT1 | avoidance | Don't treat first-found call sites or first-observed symptoms as proof of full problem/solution scope. | respected | Phase 1.8 explicitly requires verifying sole-entry claims; rq-disc14.2 blocks unverified claims. |
+| DONT2 | avoidance | Don't rely on heuristic prose alone where a structural spec/checklist/test anchor can own correctness. | respected | Obligation owned by spec rq-* + asset tests, not prose alone. |
+| DONT3 | avoidance | Don't gate the completeness *check* behind a trigger condition — the check is always-on; only scan *depth* scales. | respected | Phase 1.8 runs always-on; only scan depth is conditional. |
+| DONT4 | avoidance | Don't silently defer secondary surfaces as "future work" without explicit scope rationale. | respected | Phase 1.8 + checklist forbid silently deferring secondary surfaces; require explicit disposition. |
+| DONT5 | avoidance | Don't force narrow changes into broad repository-wide scans when the completeness question does not demand it. | respected | Scan-depth-scaling section + rq-disc13.2 record lightweight rationale for narrow changes; no forced broad scan. |
+| DONT6 | avoidance | Don't replace discovery's P25 related-pattern scan wholesale — extend/specialize it. | respected | Phase 1.8 is separate from P25 (rq-disc08); documented as complementary, not merged. |
+| OOS1 | out_of_scope | Editing the pokeedge project or retroactively fixing `addResidentialProxyExternal`. | not_applicable | pokeedge not edited; only ADV repo surfaces touched. |
+| OOS2 | out_of_scope | Designing a language-specific static analyzer for every cross-cutting concern. | not_applicable | No language-specific static analyzer built. |
+| OOS3 | out_of_scope | Replacing P25 related-pattern scan wholesale. | not_applicable | P25 (rq-disc08) preserved; Phase 1.8 is additive. |
+| OOS4 | out_of_scope | Changing the seven-gate lifecycle or moving discovery responsibilities into design/review. | not_applicable | Seven-gate lifecycle unchanged; discovery still owns agreement. |
+| OOS5 | out_of_scope | Building a target-codebase-aware sole-entry validator (structural enforcement limited to spec + command + checklist + asset anchors). | not_applicable | No target-codebase-aware validator; enforcement is spec/command/checklist/test anchors only. |
+| OOS6 | out_of_scope | Adding a new Temporal workflow signal/query/`defineUpdate` surface. | not_applicable | No new Temporal surface added. |
+
