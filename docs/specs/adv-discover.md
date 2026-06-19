@@ -1,7 +1,7 @@
 # ADV Discover Command
 
-> **Version:** 1.3.0
-> **Updated:** 2026-06-05
+> **Version:** 1.4.0
+> **Updated:** 2026-06-19
 
 ## Purpose
 
@@ -791,3 +791,124 @@ The Discovery Opportunity Scout MUST use the existing adv-researcher sub-agent f
 - No new sub-agent identity is created
 - The scout skill provides prompt templates and output schema
 - ADV state mutations are not performed by the scout
+
+---
+
+### Always-On Problem-Completeness Check
+
+**ID:** `rq-disc13` | **Priority:** **[MUST]**
+
+/adv-discover MUST run an always-on problem-completeness check: it records an explicit answer to whether the full problem was identified, not only an observed symptom or single code path, with rationale and a confidence note. The check is always-on (not gated behind a trigger condition); only the depth of any codebase surface scan scales to what the completeness question demands. This prevents discovery from treating a found symptom as the whole problem.
+
+**Tags:** `discover`, `completeness`, `problem-scope`, `always-on`
+
+#### Scenarios
+
+**Every discovery records a problem-completeness check** (`rq-disc13.1`)
+
+**Given:**
+- A /adv-discover invocation preparing findings for agreement
+
+**When:** Discovery reaches the completeness-verification step
+
+**Then:**
+- Discovery records an explicit problem-completeness check
+- The check answers whether the full problem was identified, not only an observed symptom/path
+- The record includes rationale and a confidence note
+- The check runs always-on; it is not gated behind a trigger condition
+
+**Scan depth scales to the question for narrow changes** (`rq-disc13.2`)
+
+**Given:**
+- A discovery whose problem-completeness question does not demand a broad codebase scan
+
+**When:** Discovery records the problem-completeness check
+
+**Then:**
+- A broad repository-wide surface scan is not forced
+- The check records a lightweight rationale and proceeds proportionally
+
+---
+
+### Solution-Scope Check, Sole-Entry Blocking, and Secondary Surface Disposition
+
+**ID:** `rq-disc14` | **Priority:** **[MUST]**
+
+/adv-discover MUST run an always-on solution-scope check recording whether the full intended solution is scoped, not only one implementation piece. When discovery relies on a sole-chokepoint / single-entry / single-control-surface claim for a cross-cutting operation that is not verified by a target-operation surface scan, discovery MUST block: it emits a Boundaries (B) CRITICAL ambiguity finding, and the existing `rq-disc-tax2` trigger halts discovery and hands off to `/adv-clarify` until the claim is verified or downgraded. Any secondary surfaces found during completeness verification MUST be explicitly classified as in scope, out of scope with rationale, or an unresolved user-facing scope question before agreement; they MUST NOT be silently deferred as future work. A target-operation surface scan records searched terms/symbols, found surfaces, excluded surfaces with rationale, and the final scope disposition.
+
+**Tags:** `discover`, `completeness`, `solution-scope`, `sole-entry`, `blocking`, `secondary-surfaces`
+
+#### Scenarios
+
+**Every discovery records a solution-scope check** (`rq-disc14.1`)
+
+**Given:**
+- A /adv-discover invocation forming objectives and acceptance criteria
+
+**When:** Discovery records the completeness-verification step
+
+**Then:**
+- Discovery records an explicit solution-scope check
+- The check answers whether the full intended solution is scoped, not only one implementation piece
+- The check is always-on; it is not gated behind a trigger condition
+
+**Unverified sole-entry claim blocks discovery** (`rq-disc14.2`)
+
+**Given:**
+- Discovery relies on a sole-chokepoint / single-entry / single-control-surface claim for a cross-cutting operation
+
+**When:** The claim is not verified by a target-operation surface scan
+
+**Then:**
+- Discovery emits a Boundaries (B) CRITICAL ambiguity finding with verbatim evidence
+- The existing `rq-disc-tax2` trigger halts discovery and hands off to `/adv-clarify`
+- No new halt machinery is introduced
+- Discovery does not complete until the claim is verified or downgraded
+
+**Secondary surfaces require explicit disposition before agreement** (`rq-disc14.3`)
+
+**Given:**
+- The completeness verification finds one or more secondary surfaces for the target operation
+
+**When:** Discovery forms objectives and acceptance criteria
+
+**Then:**
+- Each secondary surface is classified as in scope, out of scope with rationale, or an unresolved user-facing scope question
+- No secondary surface is silently deferred as future work
+- The target-operation surface scan records searched terms/symbols, found surfaces, excluded surfaces with rationale, and scope disposition
+
+---
+
+### Durable Completeness-Verification Anchors
+
+**ID:** `rq-disc15` | **Priority:** **[MUST]**
+
+The completeness-verification obligation MUST be made durable across ADV law, command, checklist, and docs: the adv-discover canonical spec contains `rq-disc13` and `rq-disc14`; the `/adv-discover` command contract contains a Phase 1.8 Completeness Verification step and a Completeness Verification output-section row; the discover checklist contains a Phase 1.8 step and a matching output-section row; and an asset test asserts the obligation is present in the command, checklist, canonical spec, and docs mirror so prose cannot drift silently. The asset test cross-asserts that the protocol step count in the command and the checklist stay identical.
+
+**Tags:** `discover`, `completeness`, `durable`, `anchors`, `asset-test`
+
+#### Scenarios
+
+**Completeness obligation present across all four surfaces** (`rq-disc15.1`)
+
+**Given:**
+- The completeness-verification obligations `rq-disc13` and `rq-disc14` are added
+
+**When:** Implementation updates command, checklist, spec, and docs surfaces
+
+**Then:**
+- The adv-discover canonical spec contains `rq-disc13` and `rq-disc14`
+- The `/adv-discover` command contains a Phase 1.8 Completeness Verification step and a Completeness Verification output-section row
+- The discover checklist contains a Phase 1.8 step and a matching output-section row
+- An asset test asserts presence in the command, checklist, canonical spec, and docs mirror
+
+**Protocol step count stays in sync across command and checklist** (`rq-disc15.2`)
+
+**Given:**
+- The Phase 1.8 step is added to both the command and the checklist
+
+**When:** An asset test cross-asserts the protocol step count
+
+**Then:**
+- The protocol step count in the command equals the protocol step count in the checklist
+- The asset test fails if the two surfaces drift apart

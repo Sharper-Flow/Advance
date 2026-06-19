@@ -3,8 +3,8 @@
   "name": "adv-discover",
   "title": "ADV Discover Command",
   "purpose": "Defines the rigor requirements for /adv-discover. The discover command gathers current-state evidence, investigates edge cases, scans for conflicts and related patterns, and produces the user-confirmed agreement. It owns firming design-independent behavioral acceptance criteria and success criteria before design. It must extend prior research rather than rehash it.",
-  "version": "1.3.0",
-  "updated_at": "2026-06-05T00:00:00.000Z",
+  "version": "1.4.0",
+  "updated_at": "2026-06-19T00:00:00.000Z",
   "requirements": [
     {
       "id": "rq-disc01",
@@ -741,6 +741,111 @@
             "No new sub-agent identity is created",
             "The scout skill provides prompt templates and output schema",
             "ADV state mutations are not performed by the scout"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-disc13",
+      "title": "Always-On Problem-Completeness Check",
+      "body": "/adv-discover MUST run an always-on problem-completeness check: it records an explicit answer to whether the full problem was identified, not only an observed symptom or single code path, with rationale and a confidence note. The check is always-on (not gated behind a trigger condition); only the depth of any codebase surface scan scales to what the completeness question demands. This prevents discovery from treating a found symptom as the whole problem.",
+      "priority": "must",
+      "tags": ["discover", "completeness", "problem-scope", "always-on"],
+      "scenarios": [
+        {
+          "id": "rq-disc13.1",
+          "title": "Every discovery records a problem-completeness check",
+          "given": ["A /adv-discover invocation preparing findings for agreement"],
+          "when": "Discovery reaches the completeness-verification step",
+          "then": [
+            "Discovery records an explicit problem-completeness check",
+            "The check answers whether the full problem was identified, not only an observed symptom/path",
+            "The record includes rationale and a confidence note",
+            "The check runs always-on; it is not gated behind a trigger condition"
+          ]
+        },
+        {
+          "id": "rq-disc13.2",
+          "title": "Scan depth scales to the question for narrow changes",
+          "given": ["A discovery whose problem-completeness question does not demand a broad codebase scan"],
+          "when": "Discovery records the problem-completeness check",
+          "then": [
+            "A broad repository-wide surface scan is not forced",
+            "The check records a lightweight rationale and proceeds proportionally"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-disc14",
+      "title": "Solution-Scope Check, Sole-Entry Blocking, and Secondary Surface Disposition",
+      "body": "/adv-discover MUST run an always-on solution-scope check recording whether the full intended solution is scoped, not only one implementation piece. When discovery relies on a sole-chokepoint / single-entry / single-control-surface claim for a cross-cutting operation that is not verified by a target-operation surface scan, discovery MUST block: it emits a Boundaries (B) CRITICAL ambiguity finding, and the existing rq-disc-tax2 trigger halts discovery and hands off to /adv-clarify until the claim is verified or downgraded. Any secondary surfaces found during completeness verification MUST be explicitly classified as in scope, out of scope with rationale, or an unresolved user-facing scope question before agreement; they MUST NOT be silently deferred as future work. A target-operation surface scan records searched terms/symbols, found surfaces, excluded surfaces with rationale, and the final scope disposition.",
+      "priority": "must",
+      "tags": ["discover", "completeness", "solution-scope", "sole-entry", "blocking", "secondary-surfaces"],
+      "scenarios": [
+        {
+          "id": "rq-disc14.1",
+          "title": "Every discovery records a solution-scope check",
+          "given": ["A /adv-discover invocation forming objectives and acceptance criteria"],
+          "when": "Discovery records the completeness-verification step",
+          "then": [
+            "Discovery records an explicit solution-scope check",
+            "The check answers whether the full intended solution is scoped, not only one implementation piece",
+            "The check is always-on; it is not gated behind a trigger condition"
+          ]
+        },
+        {
+          "id": "rq-disc14.2",
+          "title": "Unverified sole-entry claim blocks discovery",
+          "given": ["Discovery relies on a sole-chokepoint / single-entry / single-control-surface claim for a cross-cutting operation"],
+          "when": "The claim is not verified by a target-operation surface scan",
+          "then": [
+            "Discovery emits a Boundaries (B) CRITICAL ambiguity finding with verbatim evidence",
+            "The existing rq-disc-tax2 trigger halts discovery and hands off to /adv-clarify",
+            "No new halt machinery is introduced",
+            "Discovery does not complete until the claim is verified or downgraded"
+          ]
+        },
+        {
+          "id": "rq-disc14.3",
+          "title": "Secondary surfaces require explicit disposition before agreement",
+          "given": ["The completeness verification finds one or more secondary surfaces for the target operation"],
+          "when": "Discovery forms objectives and acceptance criteria",
+          "then": [
+            "Each secondary surface is classified as in scope, out of scope with rationale, or an unresolved user-facing scope question",
+            "No secondary surface is silently deferred as future work",
+            "The target-operation surface scan records searched terms/symbols, found surfaces, excluded surfaces with rationale, and scope disposition"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-disc15",
+      "title": "Durable Completeness-Verification Anchors",
+      "body": "The completeness-verification obligation MUST be made durable across ADV law, command, checklist, and docs: the adv-discover canonical spec contains rq-disc13 and rq-disc14; the /adv-discover command contract contains a Phase 1.8 Completeness Verification step and a Completeness Verification output-section row; the discover checklist contains a Phase 1.8 step and a matching output-section row; and an asset test asserts the obligation is present in the command, checklist, canonical spec, and docs mirror so prose cannot drift silently. The asset test cross-asserts that the protocol step count in the command and the checklist stay identical.",
+      "priority": "must",
+      "tags": ["discover", "completeness", "durable", "anchors", "asset-test"],
+      "scenarios": [
+        {
+          "id": "rq-disc15.1",
+          "title": "Completeness obligation present across all four surfaces",
+          "given": ["The completeness-verification obligations rq-disc13 and rq-disc14 are added"],
+          "when": "Implementation updates command, checklist, spec, and docs surfaces",
+          "then": [
+            "The adv-discover canonical spec contains rq-disc13 and rq-disc14",
+            "The /adv-discover command contains a Phase 1.8 Completeness Verification step and a Completeness Verification output-section row",
+            "The discover checklist contains a Phase 1.8 step and a matching output-section row",
+            "An asset test asserts presence in the command, checklist, canonical spec, and docs mirror"
+          ]
+        },
+        {
+          "id": "rq-disc15.2",
+          "title": "Protocol step count stays in sync across command and checklist",
+          "given": ["The Phase 1.8 step is added to both the command and the checklist"],
+          "when": "An asset test cross-asserts the protocol step count",
+          "then": [
+            "The protocol step count in the command equals the protocol step count in the checklist",
+            "The asset test fails if the two surfaces drift apart"
           ]
         }
       ]

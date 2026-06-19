@@ -281,7 +281,7 @@ describe("ambiguity taxonomy spec assets", () => {
       ),
     ) as { version: string; requirements: Array<{ id: string }> };
 
-    expect(spec.version).toBe("1.3.0");
+    expect(spec.version).toBe("1.4.0");
     expect(spec.requirements.map((rq) => rq.id)).toEqual(
       expect.arrayContaining([
         "rq-disc-tax1",
@@ -291,6 +291,9 @@ describe("ambiguity taxonomy spec assets", () => {
         "rq-discOpportunityScout02",
         "rq-stageDiscoveryFirmCriteria01",
         "rq-stageDiscoveryImplFreeGuard01",
+        "rq-disc13",
+        "rq-disc14",
+        "rq-disc15",
       ]),
     );
   });
@@ -310,7 +313,7 @@ describe("ambiguity taxonomy spec assets", () => {
     expect(prepSpec.requirements.map((rq) => rq.id)).toEqual(
       expect.arrayContaining(["rq-stagePrepNoCriteriaFirming01"]),
     );
-    expect(workflowSpec.version).toBe("1.17.0");
+    expect(workflowSpec.version).toBe("1.18.0");
     expect(workflowSpec.requirements.map((rq) => rq.id)).toEqual(
       expect.arrayContaining([
         "rq-stageDesignCriteriaBoundary01",
