@@ -54,10 +54,6 @@ Inline parallel reads (I/O bound, no sub-agents). 7 sources: GH issues, GH Proje
 
 Structural-first match (stable ref → body excerpt → title similarity). Build `represented[]` + `unrepresented[]`. Title-similarity is heuristic-only — stays in user-confirmation list, never auto-suppresses. See skill § Phase 2.
 
-If `unrepresented[]` empty AND represented have required fields → skip to Phase 7 ("No new issues, no field gaps.").
-
----
-
 ## Phase 3.5: Source Cleanup Validation (Tier B, batched)
 
 After `represented[]` / `unrepresented[]` are built and before any issue creation or user-owned scoring prompt, validate the whole source pool for cleanup decisions. Build command-local `cleanup_decisions[]` with source, stable ref, classification, evidence, proposed action, survivor/source when applicable, and source/reason approval group. Classifications: `relevant`, `stale/already-addressed`, `duplicate/superseded`, `should-merge`, `unclear`.
@@ -73,6 +69,8 @@ Source-specific actions after approval:
 - Agenda: `duplicate/superseded` and `should-merge` resolve through `adv_agenda_complete` with a note referencing the survivor/source; stale/not-planned uses agenda cancellation only after approval.
 
 MUST NOT create or open issue candidates before cleanup validation completes for the source pool. MUST NOT prompt for bug Priority or feature Value before cleanup validation completes. Title similarity and agent inference are advisory only (P33): they may flag cleanup candidates, never mutate, close, suppress, or remove without structural evidence and explicit approval. See skill § Source cleanup validation.
+
+If `unrepresented[]` is empty, represented issues have required fields, and cleanup validation has completed with no unresolved cleanup/clarification actions → skip to Phase 7 ("No new issues, no field gaps.").
 
 ---
 

@@ -62,14 +62,19 @@ describe("adv-triage relevance validation contract", () => {
     );
     const issueCreationIndex = content.indexOf("### 4a. Confirm new issues");
     const fieldAssignmentIndex = content.indexOf("### 4c. Field assignments");
+    const noWorkSkipIndex = content.indexOf(
+      "No new issues, no field gaps.",
+    );
 
     expect(matchIndex).toBeGreaterThanOrEqual(0);
     expect(cleanupIndex).toBeGreaterThanOrEqual(0);
     expect(issueCreationIndex).toBeGreaterThanOrEqual(0);
     expect(fieldAssignmentIndex).toBeGreaterThanOrEqual(0);
+    expect(noWorkSkipIndex).toBeGreaterThanOrEqual(0);
     expect(matchIndex).toBeLessThan(cleanupIndex);
     expect(cleanupIndex).toBeLessThan(issueCreationIndex);
     expect(cleanupIndex).toBeLessThan(fieldAssignmentIndex);
+    expect(cleanupIndex).toBeLessThan(noWorkSkipIndex);
     expect(content).toMatch(
       /MUST NOT (create|open)[^\n]*issue[^\n]*cleanup validation/i,
     );
