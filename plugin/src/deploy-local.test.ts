@@ -782,6 +782,8 @@ describe("deploy-local.sh", () => {
 
     test("canonical ADV prompt stays under the safe compression ceiling", () => {
       const lines = advAgent.split(/\r?\n/).length;
+      // Ceiling raised from 365 → 368 after adding compact adv-temporal-repair
+      // routing markers and packet anchors.
       // Ceiling raised from 363 → 365 after adding adv_archive_repair and
       // adv_change_status_repair to adv.md and adv-atc.md allowlists.
       // Ceiling raised from 362 → 363 after adding the release-stage
@@ -792,7 +794,7 @@ describe("deploy-local.sh", () => {
       // refactor exposed `adv_worktree_resume` and we added it to the
       // canonical allowlist to clear deploy-local tool-drift checks.
       // Re-ratchet here once the prompt has been audited for excess.
-      expect(lines).toBeLessThanOrEqual(365);
+      expect(lines).toBeLessThanOrEqual(368);
     });
 
     test("canonical ADV prompt keeps safety-critical markers", () => {
@@ -806,6 +808,9 @@ describe("deploy-local.sh", () => {
         "Cancellation",
         "Due diligence first",
         "acceptance reviews use `review`",
+        "adv-temporal-repair",
+        "SYMPTOM",
+        "RECENT_TOOL_ERROR",
       ]) {
         expect(advAgent).toContain(marker);
       }
