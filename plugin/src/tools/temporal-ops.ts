@@ -328,7 +328,7 @@ function restartFailureNextAction(reason: RestartFailureReason): string {
 export const temporalOpsTools = {
   adv_temporal_diagnose: {
     description:
-      "Read-only Temporal recovery diagnostic for ADV: classifies server, STSL, worker, workflow, search-attribute, stale-queue, and last-error health with a recommended next action.",
+      "Read-only Temporal recovery diagnostic for ADV: classifies server, worker, STSL, optional change-workflow reachability, queue serviceability, and recommended next action.",
     args: {
       changeId: z
         .string()
@@ -394,6 +394,7 @@ export const temporalOpsTools = {
         serverReachable,
         workerAlive,
         stslInitialized: bundle !== null,
+        serverServiceable,
         ...(changeWorkflow ? { changeWorkflow } : {}),
         recommendedNextAction,
       });

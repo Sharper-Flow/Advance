@@ -149,6 +149,27 @@ describe("classifySuspectWorkerLock", () => {
 });
 
 describe("temporal ops probe cache", () => {
+  test("diagnose description and output expose the thin classifier envelope", async () => {
+    expect(temporalOpsTools.adv_temporal_diagnose.description).toContain(
+      "server, worker, STSL, optional change-workflow reachability, queue serviceability",
+    );
+    expect(temporalOpsTools.adv_temporal_diagnose.description).not.toContain(
+      "search-attribute",
+    );
+
+    const result = parseToolOutput(
+      await temporalOpsTools.adv_temporal_diagnose.execute({}, store),
+    );
+
+    expect(result).toMatchObject({
+      serverReachable: true,
+      workerAlive: true,
+      stslInitialized: false,
+      serverServiceable: false,
+      recommendedNextAction: "Temporal is healthy",
+    });
+  });
+
   test("diagnose exposes freshness metadata and reuses cached health", async () => {
     const first = parseToolOutput(
       await temporalOpsTools.adv_temporal_diagnose.execute({}, store),
