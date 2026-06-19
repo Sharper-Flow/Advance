@@ -1,0 +1,1424 @@
+{
+  "id": "addTemporalRepairSpecialist",
+  "title": "Add temporal repair specialist",
+  "status": "archived",
+  "created_at": "2026-06-18T18:34:55.025Z",
+  "tasks": [
+    {
+      "id": "tk-454819fa4d34",
+      "title": "Add `adv-temporal-repair` agent asset and asset-test anchors",
+      "type": "code",
+      "section": "Agent + Tests",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-06-19T01:25:53.728Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_preferred"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "SC4",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "C7",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "DONT6"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-19T01:36:51.304Z",
+      "verification": "RED: pnpm test -- src/adv-temporal-repair-assets.test.ts src/subagent-reports-spec-assets.test.ts failed because the new agent asset was missing. GREEN: pnpm exec vitest run src/adv-temporal-repair-assets.test.ts src/subagent-reports-spec-assets.test.ts passed (17 tests).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added `.opencode/agents/adv-temporal-repair.md` with classifier-first repair guidance, hard ADV state access policy, minimal read/classifier/report tool allowlist, and blocked mutation/nested-delegation tools. Added `plugin/src/adv-temporal-repair-assets.test.ts` and enrolled the new agent in `subagent-reports-spec-assets.test.ts` state-access coverage. Verified RED missing-agent failure, then GREEN targeted vitest pass (17 tests).",
+      "filesTouched": [
+        ".opencode/agents/adv-temporal-repair.md",
+        "plugin/src/adv-temporal-repair-assets.test.ts",
+        "plugin/src/subagent-reports-spec-assets.test.ts"
+      ],
+      "touched_files": [
+        ".opencode/agents/adv-temporal-repair.md",
+        "plugin/src/adv-temporal-repair-assets.test.ts",
+        "plugin/src/subagent-reports-spec-assets.test.ts"
+      ],
+      "checkpointSha": "663a557f5cbc031dc280d7f2039e76f9ade55cb4",
+      "completedAt": "2026-06-19T01:41:52.391Z",
+      "completed_at": "2026-06-19T01:41:52.391Z",
+      "notes": "Implemented new hidden adv-temporal-repair agent asset and asset-test anchors. Checkpoint commit 663a557f5cbc031dc280d7f2039e76f9ade55cb4.",
+      "error_recovery": {
+        "last_error": "Initial green run used `pnpm test -- ...`, which in this repo ran broader tests and surfaced unrelated pre-existing failures/noise. Switched to direct targeted `pnpm exec vitest run ...` for scoped evidence.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "ENVIRONMENTAL",
+        "next_strategy": "Use `pnpm exec vitest run` for precise targeted asset tests; reserve broader `bin/oc-test`/check for verification task.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "`pnpm test -- ...` ran broader suite; failures included unrelated spec version/prompt ceiling/git-root tests.",
+            "diagnosis": "Command routing issue, not task implementation failure; targeted vitest command needed for scoped tests.",
+            "fix_tried": "Ran `pnpm exec vitest run src/adv-temporal-repair-assets.test.ts src/subagent-reports-spec-assets.test.ts`.",
+            "strategy_label": "targeted-vitest",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-19T01:41:31Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-19T01:42:07.521Z"
+    },
+    {
+      "id": "tk-3b587a93b2d5",
+      "title": "Wire primary ADV routing and specialist packet contract",
+      "type": "code",
+      "section": "Routing",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-06-19T01:26:13.389Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_preferred"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC3",
+          "SC4",
+          "AC2",
+          "AC3",
+          "AC4"
+        ],
+        "verifies": [
+          "AC2",
+          "AC3",
+          "AC4"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "DONT1",
+          "DONT2",
+          "DONT4",
+          "DONT5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-19T01:42:33.966Z",
+      "verification": "RED: pnpm exec vitest run src/deploy-local.test.ts failed on new adv-temporal-repair/SYMPTOM/RECENT_TOOL_ERROR markers. GREEN: same command passed (66 tests) after routing and packet anchors were added.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Updated `.opencode/agents/adv.md` worker routing and subagent table to include `adv-temporal-repair` for Temporal/session-pointer/artifact-phantom triage with packet anchors. Updated `ADV_INSTRUCTIONS.md` roster similarly. Extended deploy-local prompt safety markers and intentionally reratcheted the canonical prompt ceiling to 368 with comment. Verified RED marker absence, then GREEN `pnpm exec vitest run src/deploy-local.test.ts` (66 tests).",
+      "filesTouched": [
+        ".opencode/agents/adv.md",
+        "ADV_INSTRUCTIONS.md",
+        "plugin/src/deploy-local.test.ts"
+      ],
+      "touched_files": [
+        ".opencode/agents/adv.md",
+        "ADV_INSTRUCTIONS.md",
+        "plugin/src/deploy-local.test.ts"
+      ],
+      "checkpointSha": "193b0d356b1a6779cdc65e631b3bb5e04952ebf2",
+      "completedAt": "2026-06-19T01:43:53.369Z",
+      "completed_at": "2026-06-19T01:43:53.369Z",
+      "notes": "Wired primary ADV routing and packet anchors. Checkpoint commit 193b0d356b1a6779cdc65e631b3bb5e04952ebf2.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "updatedAt": "2026-06-19T01:44:04.698Z"
+    },
+    {
+      "id": "tk-0d3ea1d7f477",
+      "title": "Align `adv_temporal_diagnose` envelope with implementation and specialist needs",
+      "type": "code",
+      "section": "Temporal Diagnose",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-06-19T01:26:25.839Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_preferred"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC3",
+          "SC4",
+          "AC6"
+        ],
+        "verifies": [
+          "AC6"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C5",
+          "DONT2",
+          "DONT5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-19T01:44:20.939Z",
+      "verification": "RED: pnpm exec vitest run src/tools/temporal-ops.test.ts failed because adv_temporal_diagnose description/output lacked the narrowed classifier envelope and serverServiceable field. GREEN: same command passed (9 tests) after updating description and output.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Narrowed `adv_temporal_diagnose` description to actual response dimensions and added `serverServiceable` to output from the already-computed queue poller probe. Added `temporal-ops.test.ts` coverage that the description no longer promises search-attribute/stale-queue/last-error fields and that output exposes the thin classifier envelope. Verified RED/ GREEN targeted temporal ops tests.",
+      "filesTouched": [
+        "plugin/src/tools/temporal-ops.test.ts",
+        "plugin/src/tools/temporal-ops.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/temporal-ops.test.ts",
+        "plugin/src/tools/temporal-ops.ts"
+      ],
+      "checkpointSha": "792ee2a059165940a332a422717e803750f4f397",
+      "completedAt": "2026-06-19T01:45:27.605Z",
+      "completed_at": "2026-06-19T01:45:27.605Z",
+      "notes": "Aligned diagnose envelope and tests. Checkpoint commit 792ee2a059165940a332a422717e803750f4f397.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "updatedAt": "2026-06-19T01:45:40.153Z"
+    },
+    {
+      "id": "tk-e1b592958f0b",
+      "title": "Document phantom-pointer/artifact recovery decision tree",
+      "type": "code",
+      "section": "Docs",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-06-19T01:26:39.488Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_preferred"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "SC4",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC7"
+        ],
+        "verifies": [
+          "AC7"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C5",
+          "C6",
+          "DONT2",
+          "DONT3",
+          "DONT5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-19T01:45:59.228Z",
+      "verification": "RED: pnpm exec vitest run src/adv-stability-docs-assets.test.ts failed on missing phantom-pointer/artifact recovery anchors. GREEN: same command passed (5 tests) after docs decision tree and restart boundary were added.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added `docs/temporal-recovery.md` section for ADV phantom pointer / phantom artifact triage. The decision tree requires `adv_change_show` + `adv_gate_status`, treats `readable:false`/missing sidecars as artifact-readability mismatch, limits `adv_change_forget` to current-session pointer cleanup, and distinguishes worker restart from OpenCode restart. Added docs asset test anchors. Verified RED/GREEN `adv-stability-docs-assets.test.ts`.",
+      "filesTouched": [
+        "docs/temporal-recovery.md",
+        "plugin/src/adv-stability-docs-assets.test.ts"
+      ],
+      "touched_files": [
+        "docs/temporal-recovery.md",
+        "plugin/src/adv-stability-docs-assets.test.ts"
+      ],
+      "checkpointSha": "19a9b7d3fd868acfd7e99d73b8addba423fa6da9",
+      "completedAt": "2026-06-19T01:47:20.456Z",
+      "completed_at": "2026-06-19T01:47:20.456Z",
+      "notes": "Documented phantom-pointer/artifact recovery decision tree. Checkpoint commit 19a9b7d3fd868acfd7e99d73b8addba423fa6da9.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "updatedAt": "2026-06-19T01:47:32.438Z"
+    },
+    {
+      "id": "tk-ccc9f0ae8cf4",
+      "title": "Evaluate bounded artifact-only `adv_change_show` support",
+      "type": "code",
+      "section": "Tool Affordance",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-06-19T01:26:51.571Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_preferred"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC2",
+          "AC2",
+          "AC3",
+          "AC8"
+        ],
+        "verifies": [
+          "AC8"
+        ],
+        "respects": [
+          "C1",
+          "C3",
+          "C5",
+          "C6",
+          "DONT3",
+          "DONT5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-19T01:47:53.372Z",
+      "verification": "RED: pnpm exec vitest run src/tools/change.test.ts -t \"bounded artifact-only\" failed because artifactOnly was not returned and full change context was still included. GREEN: same command passed after adding include.artifactOnly bounded readback with unreadable-path suppression.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added optional `include.artifactOnly` to `adv_change_show`. When set with artifact include flags, the tool returns bounded artifact readback (`id`, `title`, `status`, normalized `artifacts`, requested `_artifact` content, `_artifactOnly:true`) without full tasks/clarify context and without exposing unreadable phantom paths. Added regression test for Temporal document content with `readable:false`. Verified RED/GREEN targeted change test.",
+      "filesTouched": [
+        "plugin/src/tools/change.test.ts",
+        "plugin/src/tools/change.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/change.test.ts",
+        "plugin/src/tools/change.ts"
+      ],
+      "checkpointSha": "f2bd799e5591e3e81144ef4e50ab00849b6081f3",
+      "completedAt": "2026-06-19T01:49:32.266Z",
+      "completed_at": "2026-06-19T01:49:32.266Z",
+      "notes": "Implemented bounded artifact-only adv_change_show support. Checkpoint commit f2bd799e5591e3e81144ef4e50ab00849b6081f3.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "updatedAt": "2026-06-19T01:49:45.956Z"
+    },
+    {
+      "id": "tk-4d1059ce4cf1",
+      "title": "Run cross-cutting verification and release-readiness checks for temporal repair specialist",
+      "type": "code",
+      "section": "Verification",
+      "status": "done",
+      "priority": 5,
+      "created_at": "2026-06-19T01:27:16.504Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-454819fa4d34"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-3b587a93b2d5"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-0d3ea1d7f477"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-e1b592958f0b"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-ccc9f0ae8cf4"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_preferred"
+      },
+      "contract_refs": {
+        "implements": [],
+        "verifies": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "SC4",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7",
+          "AC8"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "C7",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "DONT6"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-19T01:50:01.660Z",
+      "verification": "VERIFY: targeted suite passed (6 files, 161 tests); schemas:check passed; ./bin/oc-test smoke initially failed format:check on 3 files, then Prettier formatted them; targeted suite passed again; ./bin/oc-test smoke passed (check + smoke tests).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Ran targeted changed-surface tests (6 files, 161 tests), schemas:check, and repo smoke check. First smoke run failed Prettier format on three files; formatted them and reran. Final targeted suite passed and `./bin/oc-test smoke` passed, covering schemas:check, typecheck, test isolation, lockfile policy, lint, format:check, and smoke tests.",
+      "filesTouched": [
+        "plugin/src/adv-temporal-repair-assets.test.ts",
+        "plugin/src/tools/change.test.ts",
+        "plugin/src/tools/change.ts"
+      ],
+      "touched_files": [
+        "plugin/src/adv-temporal-repair-assets.test.ts",
+        "plugin/src/tools/change.test.ts",
+        "plugin/src/tools/change.ts"
+      ],
+      "checkpointSha": "2aed003fe7cdcc0e0f285c7077f51e226c8f61fb",
+      "completedAt": "2026-06-19T01:52:38.738Z",
+      "completed_at": "2026-06-19T01:52:38.738Z",
+      "notes": "Cross-cutting verification complete. Checkpoint commit 2aed003fe7cdcc0e0f285c7077f51e226c8f61fb.",
+      "error_recovery": {
+        "last_error": "`./bin/oc-test smoke` failed `format:check` for three changed TypeScript files.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "Formatting fixed with Prettier; final smoke passed.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "Prettier reported style issues in `src/adv-temporal-repair-assets.test.ts`, `src/tools/change.test.ts`, and `src/tools/change.ts`.",
+            "diagnosis": "Formatting drift from newly edited TypeScript files.",
+            "fix_tried": "Ran `pnpm exec prettier --write` on the three files, reran targeted suite and smoke.",
+            "strategy_label": "format-and-rerun",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-19T01:51:32Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-19T01:52:56.002Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "addTemporalRepairSpecialist",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:discovery-opportunity-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Discovery opportunity scout: adv-temporal-repair specialist (Temporal/session-pointer/phantom classifier)",
+      "sources": [
+        {
+          "label": "Report transport schema (scope-key + agent enum)",
+          "locator": "plugin/src/types/subagent-reports.ts:15-31,287-319,349-354",
+          "summary": "SubagentAgentSchema has no adv-temporal-repair member; ChangeReportScopeKeySchema regex only permits researcher|tron|scanner-bundle prefixes plus review:acceptance/harden:release. A bespoke repair schema requires enum + scope-key prefix + discriminated-union member + packet anchors + tests across 5+ surfaces."
+        },
+        {
+          "label": "Deploy auto-sync of agent assets",
+          "locator": "scripts/deploy-local.sh:1276-1318",
+          "summary": "Loop copies every .opencode/agents/*.md to global except REPO_LOCAL_ONLY (adv-tron.md) and SHARED_OVERLAY_ONLY. Adding adv-temporal-repair.md auto-deploys with no script edit; deploy-test should still pin its presence."
+        },
+        {
+          "label": "adv_temporal_diagnose description/output drift",
+          "locator": "plugin/src/tools/temporal-ops.ts:329-399",
+          "summary": "Description (l.330) claims it classifies server, STSL, worker, workflow, search-attribute, stale-queue, last-error. Actual output (l.391-399) returns only serverReachable, workerAlive, stslInitialized, optional changeWorkflow, recommendedNextAction. Comment l.341 'T13 simplification' confirms intentional narrowing. Real drift the proposal flags."
+        },
+        {
+          "label": "adv_change_forget contract",
+          "locator": "plugin/src/tools/change.ts:5115-5128",
+          "summary": "Pure in-memory session-pointer clear; does NOT touch persistent state; refuses on pointer mismatch and surfaces the actual pointer via index.ts post-output hook. Structurally safe for phantom-pointer recovery."
+        },
+        {
+          "label": "Closest agent analog (read-only specialist pattern)",
+          "locator": ".opencode/agents/adv-researcher.md:1-47",
+          "summary": "mode:subagent, hidden:true, temperature 0.10, task:false, write/edit/bash:false, ADV mutation tools off except adv_subagent_report_submit. Template for a minimal-grant adv-temporal-repair."
+        },
+        {
+          "label": "Phantom-misdiagnosis primary-agent guidance already exists",
+          "locator": "plugin/src/tools/change.ts:1671,1678; checkpoint.ts:91; adv-worktree.ts:206,265",
+          "summary": "Tool error strings already route operators to adv_change_show/adv_gate_status/adv_temporal_diagnose recovery. Specialist should consolidate the decision tree, not duplicate divergent prose."
+        }
+      ],
+      "architecture_assessment": "Considered 5 candidates. Highest-leverage finding: the bespoke repair report schema is NOT justified for the initial implementation — existing change-scoped researcher/tron transport plus the strict scope-key regex already cover read-only classification output, and adding a new agent literal + scope-key prefix multiplies the change-contract surface (enum, regex, union, packet anchors, ingest, tests) for no durable-evidence gain the proposal can name. The adv_temporal_diagnose drift is real and contract-tied: the specialist's decision tree leans on it as a 'broad classifier', so narrowing the description to the thin server/worker/changeWorkflow reality (cheaper, lower-risk) beats enriching output. Deploy auto-sync removes one assumed scope item. The phantom-pointer decision tree should reuse existing tool-error recovery phrasing to avoid prose divergence.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "No discovery blockers. Two items need user/orchestrator decision (report-schema reuse-vs-bespoke; diagnose narrow-vs-enrich); three are auto-adoptable low-risk contract-tied items."
+      },
+      "recommendation": "ADOPT NOW (low-risk, contract-tied, no user tradeoff): (1) Reuse existing adv-researcher change-scoped report transport for the specialist's read-only classification output instead of minting a bespoke repair schema for v1 — ties to 'Decide report transport: reuse... unless durable repair evidence requires' and 'Must not make ... repair safety depend on agent prose alone'. (2) Rely on deploy-local.sh auto-sync glob (scripts/deploy-local.sh:1295-1318) rather than adding repair-specific deploy wiring; just add a presence/drift test — ties to deploy-sync asset-test scope item. (3) Narrow adv_temporal_diagnose description to its actual thin output (server/worker/stsl/changeWorkflow/recommendedNextAction) rather than enriching it — ties to 'Fix or design around the current adv_temporal_diagnose description/output drift'; enrichment is higher-risk scope creep into Temporal classification internals. SURFACE TO USER (medium risk or tradeoff): (A) Whether a bespoke typed adv-temporal-repair report schema is in-scope LATER once durable repair-evidence requirements are concrete — only if v1 reuse proves insufficient; this is a user-value/maintenance tradeoff. (B) Whether adv_change_show needs an artifact-only/section-limited read mode to avoid output truncation (the discovery agenda already raises it, and this scout session itself hit truncated tool output) — user-facing capability scope decision.",
+      "follow_ups": [
+        "EDGE CASES for discovery agreement: (a) Target-project phantom — wrong target_path/shard makes a healthy change look lost; specialist must try adv_change_show target_path:<root> and adv_gate_status before any repair. (b) Pointer-mismatch refusal — adv_change_forget refuses when supplied changeId != current session pointer (change.ts:5122); specialist must read and report the actual pointer, not retry blindly. (c) Stale-but-valid sidecar — artifacts.*.readable:false (seen on THIS change: proposal/problemStatement readable:false) must NOT be treated as lost; ADV tool content is authoritative. (d) Worker-restart does not reload plugin tool code (AGENTS.md source-vs-dist gotcha + temporal-ops.ts l.46) — specialist must tell operator to restart OpenCode for tool-code drift, not just restart worker. (e) Peer-worker-serviceable-but-local-dead — diagnose already special-cases this (temporal-ops.ts:387-388, test l.198-218); specialist must NOT recommend restart when queue is serviceable via peers.",
+        "DECISION-TREE ORDERING (cite into design): adv_change_show + adv_gate_status (prove state loads) -> if loads: report 'not lost', resume from nextGate -> else adv_temporal_diagnose -> server unreachable: escalate; worker dead & no peer pollers: adv_temporal_worker_restart; search-attributes missing: adv_temporal_register_search_attributes (approval-gated); STSL down: adv_temporal_reconnect -> only if disk/tool state truly absent AND session pointer wrong: adv_change_forget(exact pointer). Reject filesystem-only evidence as invalid and re-run via tools.",
+        "WARNING: packet anchors TASK_SCOPE/IN_SCOPE/OUT_OF_SCOPE present but DONE_WHEN/STOP_WHEN/VERIFICATION blocks were not supplied in the orchestrator packet; proceeded with prompt scope per degradation policy.",
+        "Scout hit ADV:TOOL_OUTPUT_TRUNCATED reading temporal-ops.ts (28k chars) — concrete evidence supporting discovery-agenda item on section-limited adv_change_show / artifact reads."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addTemporalRepairSpecialist",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-leverage-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design leverage scout: adv-temporal-repair specialist — reuse anchors, test enrollment, and diagnose enrichment",
+      "sources": [
+        {
+          "label": "ADV-state-access policy test battery (hardcoded AGENT_PATHS)",
+          "locator": "plugin/src/subagent-reports-spec-assets.test.ts:15-22,61-91",
+          "summary": "AGENT_PATHS is a HARDCODED array (adv.md, adv-engineer, adv-reviewer, adv-designer, adv-researcher, build.md). Test 'worker agent policies cover artifact-wide ADV state access' asserts each listed agent contains the full anchor set: 'ADV State Access Policy', change.json, proposal/problem-statement/agreement/design/executive-summary/acceptance, agenda, wisdom, conformance, adv_change_show, include guidance, 'artifacts.*.path', 'readable'. This is the EXACT pre-built assertion battery that satisfies AC3. Enrolling the new agent = one-line array edit."
+        },
+        {
+          "label": "tool-name drift check (directory glob — auto-enrolls new agent)",
+          "locator": "plugin/src/tool-name-assets.test.ts:13-17,23,39-66",
+          "summary": "markdownFiles('.opencode/agents') globs the agents dir. New adv-temporal-repair.md auto-enrolls: every 'adv_*:' allowlist key must be in ADV_TOOL_NAMES, and every adv_* prose ref must be a real callable. Free guardrail with zero wiring — but design must only reference real tools."
+        },
+        {
+          "label": "Per-specialist asset-test template (read-only specialist, no report enum)",
+          "locator": "plugin/src/adv-tron-assets.test.ts:6-33; plugin/src/types/subagent-reports.ts:15-20",
+          "summary": "adv-tron is the closest analog: read-only specialist whose asset test pins agent presence + lgrep tool names + deploy-sync, and it is NOT in the SubagentAgentSchema enum (only adv-engineer/reviewer/designer/researcher/tron are). adv-tron-assets.test.ts is the template to copy for adv-temporal-repair-assets.test.ts, not adv-designer-assets.test.ts (which also pins a report-schema enum literal — extra surface the v1 reuse decision avoids)."
+        },
+        {
+          "label": "adv_temporal_diagnose already computes serverServiceable but doesn't return it",
+          "locator": "plugin/src/tools/temporal-ops.ts:330-331,367-399",
+          "summary": "Description promises 7 dimensions; output returns only serverReachable/workerAlive/stslInitialized/optional changeWorkflow/recommendedNextAction. BUT serverServiceable (peer-poller probe, l.367-381) is already computed and only consumed inside recommendedNextAction. Exposing it in the return envelope is near-zero-cost and gives the specialist the structural 'queue serviceable via peers → don't restart' signal its decision tree needs."
+        },
+        {
+          "label": "Deploy auto-sync glob (no deploy wiring needed)",
+          "locator": "scripts/deploy-local.sh:1276,1295-1318; plugin/src/deploy-local.test.ts:150-153",
+          "summary": "Loop copies every .opencode/agents/*.md to global except REPO_LOCAL_ONLY (adv-tron.md) and SHARED_OVERLAY_ONLY (build/general/plan). adv-temporal-repair.md auto-deploys with no script edit. deploy-local.test.ts already pins this pattern (e.g. adv-researcher not repo-local); add a matching presence assertion."
+        },
+        {
+          "label": "Hidden subagent frontmatter template + tool-grant pattern",
+          "locator": ".opencode/agents/adv-researcher.md:1-46",
+          "summary": "mode:subagent, hidden:true, temperature 0.10, task:false, write/edit/bash:false, ADV mutations off except adv_subagent_report_submit. Minimal-grant template; adv-temporal-repair drops research tools (context7/exa/searchcode/arxiv) and adds only the temporal-ops read tools it classifies against."
+        }
+      ],
+      "architecture_assessment": "Considered 5 leverage candidates against the draft design. The design's core architecture (classifier-first hidden subagent, KD1-KD5) is sound and validated by the discovery scout; this pass found concrete reuse anchors that make the AC items cheaper and one overlooked enrichment. Highest-leverage: AC3's 'tests anchor this policy' maps to a SINGLE one-line edit of the hardcoded AGENT_PATHS array in subagent-reports-spec-assets.test.ts, which then runs the full pre-built ADV-state-access assertion battery against the new agent — the design's Agent-Decision-4 ('extend ADV state-access asset tests') is correct but should name this exact anchor and the required policy-anchor strings the agent body must contain to pass. Second: tool-name-assets.test.ts globs the agents dir, so the new agent auto-enrolls in tool-name drift checking for free, but this constrains the design — the agent body may only reference real callables. Third: KD4 says 'narrow description'; but serverServiceable is ALREADY computed in adv_temporal_diagnose and only used internally — exposing it in the output envelope is a near-zero-cost enrichment that both fixes the drift AND feeds the specialist's 'serviceable-via-peers → do not restart' branch, which is strictly better than description-only narrowing for the decision tree's correctness. Fourth/Fifth: deploy auto-sync glob and the adv-tron asset-test template remove assumed wiring scope. No candidate proposes replacing the core architecture or touching constraints/avoidances.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "No design blockers. 3 auto-adopt (contract-tied, low risk: AGENT_PATHS enrollment, adv-tron asset-test template, deploy-glob reliance). 1 design-around (auto-adopt with note: tool-name glob constrains agent body to real callables). 1 surface-to-user (serverServiceable enrichment is a mild scope nudge vs KD4's pure-narrow decision — low risk but changes a stated key decision, so orchestrator/user should confirm)."
+      },
+      "recommendation": "AUTO-ADOPT (contract-tied, low risk, no user tradeoff): (1) Satisfy AC3 by adding '.opencode/agents/adv-temporal-repair.md' to the HARDCODED AGENT_PATHS array at subagent-reports-spec-assets.test.ts:15-22, and require the agent body to contain the policy anchor strings the test asserts (ADV State Access Policy, change.json, proposal/problem-statement/agreement/design/executive-summary/acceptance, agenda, wisdom, conformance, adv_change_show, include guidance, 'artifacts.*.path', 'readable'). Ties to AC3. (2) Template adv-temporal-repair-assets.test.ts from adv-tron-assets.test.ts (read-only specialist, NOT a SubagentAgentSchema enum member) rather than adv-designer-assets.test.ts — ties to AC1+AC5 (no bespoke schema in v1). (3) Rely on deploy-local.sh agent glob + add a presence assertion in deploy-local.test.ts; no deploy wiring. Ties to deploy/asset-test scope. DESIGN-AROUND (auto-adopt with note): (4) Because tool-name-assets.test.ts globs the agents dir, the design must constrain the agent body to reference ONLY registered callables (adv_temporal_diagnose, adv_temporal_reconnect, adv_temporal_worker_restart, adv_temporal_register_search_attributes, adv_change_show, adv_gate_status, adv_change_forget, adv_subagent_report_submit). Note this in the design as a hard authoring constraint. SURFACE TO USER (low risk, but changes KD4): (5) Instead of KD4's pure 'narrow the description', also expose the already-computed serverServiceable field in adv_temporal_diagnose output (temporal-ops.ts:391-399) so description matches output AND the specialist gets the structural 'serviceable-via-peers → do not recommend restart' signal. This is a 1-field, fully-additive change, but it nudges KD4 from narrow-only toward narrow+enrich, so confirm with orchestrator/user before adopting.",
+      "follow_ups": [
+        "AC3 anchor precision: the design's prep task for the state-access test should name the exact AGENT_PATHS edit (subagent-reports-spec-assets.test.ts:15-22) and the literal policy anchor strings, so the apply agent doesn't reinvent a bespoke policy test.",
+        "KD4 vs serverServiceable: if (5) is rejected, record exposing serverServiceable as a follow-up agenda item — it is already computed and currently discarded except in recommendedNextAction.",
+        "VERIFICATION/DONE_WHEN/STOP_WHEN packet anchors were present in this design-scout packet; IN_SCOPE/OUT_OF_SCOPE honored. No identity inference was needed.",
+        "Candidate count: 5 considered, 3 auto-adopt, 1 design-around (auto-adopt w/ note), 1 surface-to-user."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addTemporalRepairSpecialist",
+      "attempt": 2,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation — Add temporal repair specialist",
+      "sources": [
+        {
+          "label": "adv_temporal_diagnose definition (temporal-ops.ts)",
+          "locator": "plugin/src/tools/temporal-ops.ts:329-401",
+          "summary": "Description (L330-331) promises classification of server/STSL/worker/workflow/search-attribute/stale-queue/last-error health, but actual return envelope (L391-399) only includes serverReachable, workerAlive, stslInitialized, optional changeWorkflow, recommendedNextAction. Code self-labels 'Thin diagnostic (T13 simplification)'. Confirms real description/output drift → AC6 valid."
+        },
+        {
+          "label": "serverServiceable already computed",
+          "locator": "plugin/src/tools/temporal-ops.ts:367-388",
+          "summary": "serverServiceable is computed internally via probeTaskQueuePollers and drives recommendedNextAction (peer-serviceable branch) but is NOT in the returned object. KD4 'expose already-computed serverServiceable' is accurate, additive, low-risk, and directly supports the specialist peer_serviceable_local_worker_dead branch."
+        },
+        {
+          "label": "ADV state-access asset test battery",
+          "locator": "plugin/src/subagent-reports-spec-assets.test.ts:15-75",
+          "summary": "AGENT_PATHS (L15-22) enumerates per-agent files and the test asserts each contains the ADV State Access Policy anchors (change.json, proposal, agreement, design, etc.). Design step 6 'add adv-temporal-repair.md to AGENT_PATHS' is the correct, existing anchor layer for AC3."
+        },
+        {
+          "label": "Read-only subagent template (adv-tron)",
+          "locator": ".opencode/agents/adv-tron.md:1-40",
+          "summary": "Existing hidden subagent: mode:subagent, hidden:true, temperature:0.10, read-only ADV tools, write/edit/bash/morph/task:false, adv_subagent_report_submit:true. Validates KD/asset plan to model adv-temporal-repair on adv-tron rather than adv-designer."
+        },
+        {
+          "label": "adv-researcher report scope requirement",
+          "locator": ".opencode/agents/adv-researcher.md:1-30 + report schema",
+          "summary": "Researcher report schema requires change_id and scope {kind:'change',scope_key}. A repair specialist spawned for a phantom/no-change incident has no valid change_id; KD3 already hedges (text-only return when no change context). Reuse is sound but partial — flagged below."
+        },
+        {
+          "label": "Change contract + agreement",
+          "locator": "adv_change_show include.agreement (contract items SC1-4, AC1-8, C1-7, DONT1-6)",
+          "summary": "Design KD1-KD5 + implementation strategy map 1:1 onto approved contract: classifier-first (C4/SC4), hard-no direct reads (AC3/C5/C6), researcher reuse (AC5/DONT6), diagnose alignment (AC6), bounded artifact read opportunistic (AC8). No contract item left unaddressed; no avoidance violated."
+        }
+      ],
+      "architecture_assessment": "The design is correct, simple, and spec-law compliant. It is classifier-first context-offload (no new gate, no mutation authority), which respects C4/SC4/DONT1 and the signal-driven workflow model. Every load-bearing factual claim verified against source: (1) adv_temporal_diagnose description/output drift is real and confirmed at temporal-ops.ts:330 vs 391 — AC6 is justified, not speculative; (2) serverServiceable is genuinely already computed (L367-388) so KD4's additive exposure is low-risk and accurate; (3) the asset-test anchor layer (subagent-reports-spec-assets.test.ts AGENT_PATHS) exists and is the right place for AC3 state-read prohibition; (4) the adv-tron read-only subagent template confirms the proposed frontmatter/tool allowlist/denylist is proven and idiomatic. Simplicity is strong: reuses existing report transport, existing test battery, existing deploy copy mechanism — no new schema, enum, or report union. No overlooked simpler alternative found; a bespoke schema (correctly rejected by DONT6/KD3) would be strictly more complex with no current consumer. Decision tree correctly starts with adv_change_show + adv_gate_status before declaring lost (AC2/SC1/SC2), which is the structural-before-heuristic fix (C1) for the false-phantom failure mode.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "VALIDATED with two non-blocking cautions. CAUTION 1 (KD3 partial reuse): adv-researcher report schema requires change_id + scope.kind='change'. Repair specialist is frequently invoked for phantom/no-change incidents where no valid change_id exists, so the researcher transport cannot carry those reports — only the text-return path applies. KD3 already acknowledges this ('return final text to orchestrator... when spawned in a change context, submit a change-scoped report'), so it is consistent, but planning/execution should make the no-change text-return path the DEFAULT and the researcher-report path the conditional, not vice versa, to avoid agents trying to submit a report without a valid change_id. CAUTION 2 (AC6 scope): description currently over-promises 4 dimensions (workflow beyond reachability, search-attribute, stale-queue, last-error) that the thin envelope does not return. 'Fix or narrow' must mean narrow the DESCRIPTION to match output (plus optional serverServiceable add) — NOT silently leave the inflated description. Ensure the temporal-ops.test.ts assertion locks the narrowed description so drift cannot recur (the test file already exercises adv_temporal_diagnose at L154/157/214). Neither caution is a contract-compromise or conflict; design is internally consistent and ready for planning."
+      },
+      "recommendation": "Proceed to planning. Verdict: VALIDATED. (1) Keep classifier-first / no-mutation design as-is — it is the boring, correct choice and respects all constraints/avoidances. (2) In planning, make the no-change text-return path the primary report transport and the adv-researcher change-scoped report the conditional path (only when packet supplies a valid change_id), since phantom incidents typically lack one. (3) For AC6, the implementation task must (a) narrow the adv_temporal_diagnose description to the actual returned fields, (b) optionally add the already-computed serverServiceable to the return envelope, and (c) add/extend a temporal-ops.test.ts assertion that pins description-to-output parity so drift is regression-locked. (4) Add adv-temporal-repair.md to AGENT_PATHS in subagent-reports-spec-assets.test.ts and model frontmatter on adv-tron (mode:subagent, hidden:true, temperature:0.10, task:false, write/edit/bash/morph:false, no gate/mutation/worker-restart/SA-registration tools). (5) Treat AC8 artifact-only bounded read as opportunistic per KD5; if it cannot be a backward-compatible optional include extension, record a follow-up rather than expanding v1.",
+      "follow_ups": [
+        "Planning: invert KD3 transport default — text-return primary, researcher change-scoped report only when a valid change_id is present in the packet (phantom incidents lack change_id, which is a required researcher-report field).",
+        "Execution AC6: add a parity test in plugin/src/tools/temporal-ops.test.ts locking adv_temporal_diagnose description to its actual returned envelope so the T13 thin-diagnostic drift cannot reappear.",
+        "If artifact-only/section-limited adv_change_show read (AC8) is not a clean backward-compatible optional include, defer to a follow-up change rather than expanding v1 tool surface."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addTemporalRepairSpecialist",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation",
+      "sources": [
+        {
+          "label": "adv_change_show include.design/agreement",
+          "locator": "adv_change_show changeId=addTemporalRepairSpecialist",
+          "summary": "Design (KD1-KD5, impl steps 1-7) and approved agreement/contract (SC1-4, AC1-8, C1-7, DONT1-6). Verified design honors classifier-first authority, hard-no-direct-reads, researcher transport reuse, diagnose alignment, opportunistic artifact read."
+        },
+        {
+          "label": "plugin/src/tools/temporal-ops.ts:329-401",
+          "locator": "/home/jon/dev/advance/plugin/src/tools/temporal-ops.ts",
+          "summary": "adv_temporal_diagnose description (L330) claims server/STSL/worker/workflow/search-attribute/stale-queue/last-error; actual envelope (L391-399) returns only serverReachable, workerAlive, stslInitialized, optional changeWorkflow, recommendedNextAction. Confirms AC6 drift. serverServiceable IS computed (L367-381) but not returned — validates KD4 additive exposure."
+        },
+        {
+          "label": "plugin/src/tools/change.ts:5115-5134",
+          "locator": "/home/jon/dev/advance/plugin/src/tools/change.ts",
+          "summary": "adv_change_forget is pure in-memory; hook refuses when changeId != current active pointer. Structurally enforces AC4 (exact current-session pointer only, never persistent repair)."
+        },
+        {
+          "label": ".opencode/agents/adv-tron.md:1-40",
+          "locator": "/home/jon/dev/advance/.opencode/agents/adv-tron.md",
+          "summary": "Proven read-only hidden subagent template: mode:subagent, hidden:true, temperature:0.10, read-only ADV tools, task:false, mutations disabled, adv_subagent_report_submit:true. Validates design step6 template choice."
+        },
+        {
+          "label": "plugin/src/subagent-reports-spec-assets.test.ts:15-91",
+          "locator": "/home/jon/dev/advance/plugin/src/subagent-reports-spec-assets.test.ts",
+          "summary": "AGENT_PATHS battery enforces full ADV State Access Policy anchors (change.json, all artifacts, adv_change_show, artifacts.*.path warning, readable). Adding the new agent here directly satisfies AC2/AC3."
+        },
+        {
+          "label": "plugin/src/adv-instructions-assets.test.ts:63-70 & deploy-local.test.ts:783",
+          "locator": "/home/jon/dev/advance/plugin/src",
+          "summary": "Existing instructions-asset test anchors adv_temporal_diagnose; deploy-local test enforces canonical ADV prompt compression ceiling — routing additions must stay under it (validates design step6 caveat)."
+        }
+      ],
+      "architecture_assessment": "Design is sound, evidence-backed, and biased toward boring reuse. It correctly leverages the proven adv-tron read-only hidden-subagent template, reuses the existing adv-researcher report transport (no enum/union churn), and keeps mutation/approval authority with the primary orchestrator. Every key decision was verified against live source: the adv_temporal_diagnose description/output drift (AC6) is real and the proposed serverServiceable exposure is genuinely already-computed-but-unreturned; adv_change_forget is structurally enforced for the exact current-session pointer (AC4); the AGENT_PATHS asset battery is the correct anchor for state-access policy (AC2/AC3). No spec-law conflict found across advance-workflow, advance-meta, subagent-reports, or delegation-defaults — the change adds a hidden classifier subagent and narrows a tool description, neither of which contradicts an existing requirement. Cautions are minor and already named by the design itself.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "VALIDATED. Minor cautions, none blocking: (1) Field-name precision — design KD4/text says expose serverServiceable; ensure the diagnose output field is named exactly and tested, and the narrowed description drops the unimplemented search-attribute/stale-queue/last-error claims rather than only adding a field. (2) Prompt-ceiling risk — adv.md/ADV_INSTRUCTIONS.md routing additions must stay under the enforced compression ceiling (deploy-local.test.ts:783); keep routing prose terse. (3) AC8/KD5 artifact-only read is intentionally deferred-or-include; ensure a concrete follow-up is recorded if not implemented so AC8 is satisfiable either way. No simpler viable alternative overlooked — reusing adv-tron template + researcher transport is already the boring path."
+      },
+      "recommendation": "Proceed to planning. The design satisfies all approved acceptance criteria and constraints with verified source backing, and chooses the simplest proven pattern (adv-tron read-only hidden subagent + adv-researcher report reuse) over novel mechanisms, honoring DONT4/DONT6 and C1 (structural-before-heuristic). During planning/apply: (a) frame AC6 as a description-narrowing fix first (remove unimplemented dimensions from the description) plus the additive serverServiceable field with a contract test, not merely a field add; (b) gate routing-prose additions against the existing prompt compression ceiling test; (c) explicitly record the AC8 artifact-read follow-up if deferred. No re-entry to discovery needed.",
+      "follow_ups": [
+        "Plan task should name the exact diagnose output field (serverServiceable) and assert the narrowed description no longer claims search-attribute/stale-queue/last-error dimensions.",
+        "Ensure AC8 follow-up is created as a tracked item if bounded artifact-read is deferred during apply."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addTemporalRepairSpecialist",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addTemporalRepairSpecialist",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [
+        {
+          "file": ".opencode/agents/adv-temporal-repair.md",
+          "summary": "Clarified conformance-state guidance so the specialist does not appear to own or directly call ungranted/mutation-capable conformance tooling; it now instructs primary ADV to run `adv_conformance action: \"status\"` if needed.",
+          "verification": "`./bin/oc-test targeted -- src/adv-temporal-repair-assets.test.ts src/subagent-reports-spec-assets.test.ts src/deploy-local.test.ts src/tools/temporal-ops.test.ts src/tools/change.test.ts` passed: 5 files, 156 tests."
+        }
+      ],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "./bin/oc-test targeted -- src/adv-temporal-repair-assets.test.ts src/subagent-reports-spec-assets.test.ts src/deploy-local.test.ts src/tools/temporal-ops.test.ts src/tools/change.test.ts"
+        ],
+        "results": "pass",
+        "evidence": "Reviewed changed source/docs/tests against AC1-AC8 and 12 review dimensions. Targeted verification passed: adv-temporal-repair-assets (3), subagent-reports-spec-assets (14), deploy-local (66), temporal-ops (9), change (64); 156 tests total."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Live OpenCode sessions still need build/deploy plus OpenCode restart before new agent/tool behavior is visible; docs now state this boundary."
+      ],
+      "required_main_agent_actions": [
+        "Review the small reviewer-owned remediation in `.opencode/agents/adv-temporal-repair.md`; then proceed with acceptance/release if satisfied."
+      ],
+      "required_follow_ups": [],
+      "consumer_warnings": [
+        {
+          "kind": "consumer_failure",
+          "message": "Spawn packet requested scope_key `acceptance-review`, but current report schema accepts `review:acceptance`; report submitted with canonical accepted scope key."
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addTemporalRepairSpecialist",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addTemporalRepairSpecialist",
+      "scope": {
+        "kind": "change",
+        "scope_key": "harden:release"
+      },
+      "agent": "adv-reviewer",
+      "phase": "harden",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [
+        {
+          "file": "docs/temporal-recovery.md",
+          "summary": "Corrected stale search-attribute recovery guidance to use `adv_status view: \"health\"` / `search_attributes` for search-attribute health, preserving `adv_temporal_diagnose` as the narrowed server/STSL/worker/queue-serviceability classifier.",
+          "verification": "`bin/oc-test targeted -- src/adv-stability-docs-assets.test.ts src/adv-temporal-repair-assets.test.ts src/tools/temporal-ops.test.ts src/tools/change.test.ts src/deploy-local.test.ts src/subagent-reports-spec-assets.test.ts` passed 6 files / 161 tests; `pnpm --dir plugin run format:check` passed; `git diff --check origin/trunk...HEAD` clean."
+        },
+        {
+          "file": "plugin/src/adv-stability-docs-assets.test.ts",
+          "summary": "Added asset-test anchors preventing `docs/temporal-recovery.md` from reintroducing camel-case `searchAttributes.ok` or claiming `adv_temporal_diagnose` confirms search-attribute health.",
+          "verification": "Same targeted test run passed 6 files / 161 tests; format check passed."
+        }
+      ],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "When narrowing a diagnostic tool output, scan recovery docs for stale field names and old responsibility claims; source tests can pass while runbook guidance still points operators at removed fields."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "git diff --check origin/trunk...HEAD",
+          "bin/oc-test targeted -- plugin/src/adv-stability-docs-assets.test.ts plugin/src/adv-temporal-repair-assets.test.ts plugin/src/tools/temporal-ops.test.ts plugin/src/tools/change.test.ts plugin/src/deploy-local.test.ts plugin/src/subagent-reports-spec-assets.test.ts",
+          "bin/oc-test targeted -- src/adv-stability-docs-assets.test.ts src/adv-temporal-repair-assets.test.ts src/tools/temporal-ops.test.ts src/tools/change.test.ts src/deploy-local.test.ts src/subagent-reports-spec-assets.test.ts",
+          "pnpm --dir plugin run format:check"
+        ],
+        "results": "pass",
+        "evidence": "Path preflight OK for all 12 changed files. `git diff --check origin/trunk...HEAD` clean. First targeted test command used repo-relative `plugin/src/...` paths while `bin/oc-test` runs from `plugin/`, so Vitest found no files (exit 1); rerun with `src/...` paths passed 6 test files / 161 tests. `pnpm --dir plugin run format:check` initially flagged the touched asset test, then after Prettier rerun passed: all matched files use Prettier code style."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Full CI/build not rerun in this harden pass; targeted hardening tests and format check passed.",
+        "Live OpenCode sessions will not see new agent/tool prompt behavior until deploy-local sync and OpenCode restart, per documented restart boundary."
+      ],
+      "required_main_agent_actions": [
+        "Review the two release-hardening doc/test edits before archive; no blocker remains.",
+        "Run broader release gate if desired (`pnpm --dir plugin run check` and/or full CI) before merge/archive.",
+        "After merge/deploy of prompt/tool assets, restart OpenCode so live sessions load the new adv-temporal-repair agent and narrowed tool description."
+      ],
+      "required_follow_ups": [],
+      "consumer_warnings": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addTemporalRepairSpecialist",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addTemporalRepairSpecialist",
+      "scope": {
+        "kind": "change",
+        "scope_key": "scanner-bundle:harden"
+      },
+      "agent": "adv-scanner-bundle",
+      "phase": "harden",
+      "scanner_count": 2,
+      "dimensions": [
+        "test-coverage",
+        "residual-slop-maintainability",
+        "documentation-hygiene",
+        "cleanup-readiness",
+        "production-readiness",
+        "deployment-readiness"
+      ],
+      "summary": "Harden release readiness checked. adv-reviewer harden verdict READY; deterministic slop scan found 0 findings with coverage caveats; smoke and build passed; full suite attempted and failed on 3 unrelated/pre-existing tests outside changed files.",
+      "findings": [],
+      "follow_ups": [
+        "Live behavior requires pnpm run build, ./scripts/deploy-local.sh --fix, and OpenCode restart after merge/deploy.",
+        "Full suite failures observed in unrelated tests: spec version expectation, uncited existing rq-archiveBranchCleanup01, and clarify e2e git-root environment; changed-surface tests/smoke/build passed."
+      ],
+      "consumer_warnings": []
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-ged2ZP",
+      "type": "pattern",
+      "content": "When adding a new read-only ADV subagent that should reuse existing report transport, model asset tests after `adv-tron`/state-access assets rather than enum-backed `adv-designer`; add the new agent to `subagent-reports-spec-assets.test.ts` `AGENT_PATHS` to inherit the ADV state-access policy battery.",
+      "source_task": "tk-454819fa4d34",
+      "recorded_at": "2026-06-19T01:42:16.163Z"
+    },
+    {
+      "id": "ws-Ks_lns",
+      "type": "gotcha",
+      "content": "In Advance, `pnpm test -- <files>` can run broader tests than intended through the package script; for precise ADV `adv_run_test` TDD evidence on selected Vitest files, use `pnpm exec vitest run <files>`. Keep `./bin/oc-test smoke/full` for broader gated verification.",
+      "source_task": "tk-4d1059ce4cf1",
+      "recorded_at": "2026-06-19T01:53:06.252Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-06-19T01:01:27.830Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved proposal via chat: \"approve\" after asking whether direct reads of ADV state paths should be allowed. Answer: no; proposal already includes direct ADV state read prohibition and tool-state authority.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "5d31ed564189a10bd9145a55b5de10ba5101fdefb0943573bbdf533d52fc6b14",
+        "non_whitespace_chars": 6641,
+        "checked_at": "2026-06-18T18:34:55.056Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-06-19T01:17:39.586Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery complete. User approved criteria via chat: `approve`. Agreement persisted and contract minted. Decisions captured: hard-no direct ADV state reads, toolbox lineage valid, reuse researcher report in v1, artifact-only read included only if low-risk.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "a2c57996b2861dfe46863d66fce455655108b228da2a47902eb118c32a45bc5e",
+        "non_whitespace_chars": 3984,
+        "checked_at": "2026-06-18T18:34:55.057Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-06-19T01:24:53.938Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design recorded. Leverage scout completed and auto-adopted anchor/test refinements. Independent validator attempted twice; both attempts returned Task cancelled, so validator result recorded as INCONCLUSIVE. No unresolved conflict, user-value tradeoff, or contract-compromise risk identified.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "be1abcfa95575f37e9b87e4795e258962cca8d7c9e796a53ec63aee8db606257",
+        "non_whitespace_chars": 10395,
+        "checked_at": "2026-06-18T18:34:55.058Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-06-19T01:36:29.349Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved prep task graph via chat: `approve`. Planning gate owns final HITL checkpoint before autonomous implementation. Task graph has 6 tasks with contract refs and verification dependency."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-06-19T01:53:27.882Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 6 planned tasks completed. Verification evidence: targeted suite passed (6 files, 161 tests); schemas:check passed; ./bin/oc-test smoke passed after format remediation. Strict validation passed with only NO_DELTAS warning."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-06-19T02:02:15.640Z",
+      "completed_by": "user:jon",
+      "approval_evidence": "User approved acceptance via chat: `approve`. Acceptance proof persisted before prompt: review matrix 25/25 passed/respected; executive summary persisted; review verdict APPROVED/READY with 0 blockers/issues/suggestions/nits; preview URL not_applicable.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "b95b7dde1dc90c894899ea27ac441698f45c76ab24ce57f927b0160c4cc75853",
+        "non_whitespace_chars": 2093,
+        "checked_at": "2026-06-18T18:34:55.059Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "cross_project_origin": {
+    "source_project": "toolbox",
+    "source_path": "/home/jon/toolbox",
+    "source_change_id": "addTemporalRepairSpecialist",
+    "linked_at": "2026-06-18T18:34:53.690Z"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "a2c57996b2861dfe46863d66fce455655108b228da2a47902eb118c32a45bc5e",
+      "approvedAt": "2026-06-19T01:17:26.076Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "Agents classify false phantom-pointer reports using ADV tools before recommending Temporal repair.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a2c57996b2861dfe46863d66fce455655108b228da2a47902eb118c32a45bc5e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "Missing artifact sidecars no longer cause “workflow unreachable” conclusions when ADV tool state loads.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a2c57996b2861dfe46863d66fce455655108b228da2a47902eb118c32a45bc5e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "Repair guidance separates real Temporal failure, session pointer mismatch, target-path confusion, and artifact readability mismatch.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a2c57996b2861dfe46863d66fce455655108b228da2a47902eb118c32a45bc5e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC4",
+        "kind": "success_criterion",
+        "text": "Approval-gated repair actions still require explicit primary-agent/user approval.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a2c57996b2861dfe46863d66fce455655108b228da2a47902eb118c32a45bc5e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "`adv-temporal-repair` exists as hidden `mode: subagent`, with no nested delegation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a2c57996b2861dfe46863d66fce455655108b228da2a47902eb118c32a45bc5e",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Specialist instructions require `adv_change_show` and `adv_gate_status` before declaring change/artifact state lost.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a2c57996b2861dfe46863d66fce455655108b228da2a47902eb118c32a45bc5e",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Specialist forbids direct reads of ADV state paths; tests anchor this policy.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a2c57996b2861dfe46863d66fce455655108b228da2a47902eb118c32a45bc5e",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "`adv_change_forget` guidance is limited to matching current-session phantom pointers and never persistent state repair.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a2c57996b2861dfe46863d66fce455655108b228da2a47902eb118c32a45bc5e",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "V1 reuses existing change-scoped `adv-researcher` report transport; no bespoke schema unless design proves need.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a2c57996b2861dfe46863d66fce455655108b228da2a47902eb118c32a45bc5e",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "`adv_temporal_diagnose` description/output drift is fixed or narrowed with tests.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a2c57996b2861dfe46863d66fce455655108b228da2a47902eb118c32a45bc5e",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "Docs include phantom-pointer decision tree and OpenCode restart vs worker-restart distinction.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a2c57996b2861dfe46863d66fce455655108b228da2a47902eb118c32a45bc5e",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC8",
+        "kind": "acceptance_criterion",
+        "text": "If small/low-risk, artifact-only bounded read support is included; otherwise recorded as follow-up.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a2c57996b2861dfe46863d66fce455655108b228da2a47902eb118c32a45bc5e",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Repair correctness must be structural before heuristic.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a2c57996b2861dfe46863d66fce455655108b228da2a47902eb118c32a45bc5e",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Full repairs require available tool arguments/evidence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a2c57996b2861dfe46863d66fce455655108b228da2a47902eb118c32a45bc5e",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Approval evidence must remain tool-enforced.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a2c57996b2861dfe46863d66fce455655108b228da2a47902eb118c32a45bc5e",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "`adv-temporal-repair` is context offload, not new gate authority.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a2c57996b2861dfe46863d66fce455655108b228da2a47902eb118c32a45bc5e",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "ADV tool state is authoritative for artifacts; sidecar file presence is not.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a2c57996b2861dfe46863d66fce455655108b228da2a47902eb118c32a45bc5e",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C6",
+        "kind": "constraint",
+        "text": "Artifact paths may be read only when an ADV tool exposes `readable:true` for that path.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a2c57996b2861dfe46863d66fce455655108b228da2a47902eb118c32a45bc5e",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C7",
+        "kind": "constraint",
+        "text": "Running OpenCode sessions do not gain new specialist behavior until deployment and restart.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a2c57996b2861dfe46863d66fce455655108b228da2a47902eb118c32a45bc5e",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not create a new lifecycle gate.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a2c57996b2861dfe46863d66fce455655108b228da2a47902eb118c32a45bc5e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not make shell-script/manual runbooks the primary repair mechanism.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a2c57996b2861dfe46863d66fce455655108b228da2a47902eb118c32a45bc5e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not make sidecar artifact files the source of truth.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a2c57996b2861dfe46863d66fce455655108b228da2a47902eb118c32a45bc5e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not spawn nested subagents from `adv-temporal-repair`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a2c57996b2861dfe46863d66fce455655108b228da2a47902eb118c32a45bc5e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "Do not silently perform destructive or approval-gated repairs.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a2c57996b2861dfe46863d66fce455655108b228da2a47902eb118c32a45bc5e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT6",
+        "kind": "avoidance",
+        "text": "Do not add a bespoke repair report schema in v1 unless design proves existing report transport insufficient.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a2c57996b2861dfe46863d66fce455655108b228da2a47902eb118c32a45bc5e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-06-19T01:59:32Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "adv-reviewer verdict READY; agent/routing docs require `adv_change_show` + `adv_gate_status` before phantom classification; asset tests passed.",
+          "notes": "False phantom classification is tool-first."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "`include.artifactOnly` returns Temporal-backed artifact content and suppresses unreadable sidecar paths; `src/tools/change.test.ts` bounded artifact-only test passed.",
+          "notes": "Sidecar absence no longer equals workflow loss."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "`docs/temporal-recovery.md` decision tree separates real Temporal failure, pointer mismatch, target-path confusion, artifact readability mismatch; docs asset test passed.",
+          "notes": "Classifier branches documented and tested."
+        },
+        {
+          "contractId": "SC4",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Agent instructions preserve primary ADV ownership for lifecycle, user checkpoints, cancellation, destructive and approval-gated repair tools; review found no silent repair path.",
+          "notes": "Approval-gated actions remain outside specialist authority."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`.opencode/agents/adv-temporal-repair.md` added as hidden `mode: subagent`; `adv-temporal-repair-assets.test.ts` validates mode and no nested delegation. Targeted tests passed.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Specialist instructions and tests require `adv_change_show` and `adv_gate_status` before declaring state lost; targeted asset tests passed.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "State-access asset tests include new specialist and forbid direct ADV state path reads; targeted tests passed.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Specialist/docs limit `adv_change_forget` to exact current-session phantom pointer cleanup; asset/docs tests passed.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Specialist reuses change-scoped `adv-researcher` report transport; no bespoke report schema added. Asset tests and reviewer report submission passed.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`adv_temporal_diagnose` description narrowed and output adds `serverServiceable`; `src/tools/temporal-ops.test.ts` passed.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`docs/temporal-recovery.md` includes phantom-pointer decision tree plus OpenCode restart vs worker restart distinction; docs asset test passed.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC8",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Low-risk bounded `include.artifactOnly` support implemented in `adv_change_show`; targeted `change.test.ts` passed.",
+          "notes": ""
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Tool-first state classification, schema-backed report submission, asset tests, and typed matrix enforce structural correctness over heuristic file reads.",
+          "notes": ""
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Specialist has read/classifier/report scope only; full repair tools remain primary ADV actions requiring evidence and arguments.",
+          "notes": ""
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No mutation tool approvals were bypassed; instructions route destructive/approval-gated work to primary ADV/user approval.",
+          "notes": ""
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Specialist is hidden subagent context offload; no new gate authority or lifecycle mutation role added.",
+          "notes": ""
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Docs and agent instructions define ADV tool state as authoritative and sidecar presence as non-authoritative.",
+          "notes": ""
+        },
+        {
+          "contractId": "C6",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Agent instructions forbid dereferencing artifact paths unless metadata says `readable:true`; `artifactOnly` suppresses unreadable paths.",
+          "notes": ""
+        },
+        {
+          "contractId": "C7",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Docs/acceptance note: live sessions need build/deploy plus OpenCode restart. Preview URL not_applicable: agreement declares `visual_surface:false` and changed files are agent/tool/docs/tests, not browser-visible output.",
+          "notes": "Preview URL proof recorded as not_applicable."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No new lifecycle gate added; acceptance/release gates unchanged.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Primary mechanism is ADV tool-driven triage/specialist guidance, not shell scripts or manual runbooks.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Sidecar files remain non-authoritative; ADV tools expose artifact state/content metadata.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Specialist forbids nested subagents; asset tests anchor no delegation.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No silent destructive or approval-gated repair path added; primary/user approval remains required.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT6",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No bespoke repair report schema added; v1 reuses `adv-researcher` report transport.",
+          "notes": ""
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "`adv-temporal-repair` exists as hidden `mode: subagent`, with no nested delegation.",
+    "Specialist instructions require `adv_change_show` and `adv_gate_status` before declaring change/artifact state lost.",
+    "Specialist forbids direct reads of ADV state paths; tests anchor this policy.",
+    "`adv_change_forget` guidance is limited to matching current-session phantom pointers and never persistent state repair.",
+    "V1 reuses existing change-scoped `adv-researcher` report transport; no bespoke schema unless design proves need.",
+    "`adv_temporal_diagnose` description/output drift is fixed or narrowed with tests.",
+    "Docs include phantom-pointer decision tree and OpenCode restart vs worker-restart distinction.",
+    "If small/low-risk, artifact-only bounded read support is included; otherwise recorded as follow-up."
+  ],
+  "documents": {
+    "proposal": "## Why\n\nADV primary agents currently carry too much inline responsibility for diagnosing and repairing Advance Temporal service, worker, STSL, search-attribute, workflow, session-pointer, and target-project state failures. A focused ADV-spawnable specialist should offload this repair context while keeping repair correctness in structured ADV tools, schemas, invariants, and approval evidence.\n\n## New incident evidence: pokeedge / pokeedge-web phantom-pointer complaints\n\nAgents working in `pokeedge` / `pokeedge-web` misdiagnosed a target change as a Temporal phantom because they directly inspected presumed artifact paths:\n\n- Incorrect path assumption: `/home/jon/dev/pokeedge/.adv/changes/addPokedataCollectionImport/design.md`.\n- Incorrect follow-up: direct search under `~/.local/share/opencode-projects/**/opencode/plugins/advance/**`.\n- Actual ADV tool evidence: `adv_change_show target_path:/home/jon/dev/pokeedge changeId:addPokedataCollectionImport include.design:true` returns the change, design metadata, content hash, and pending design gate. `adv_gate_status` returns proposal/discovery done and design pending.\n- Root problem class: agents conflate missing sidecar files / unreadable artifact metadata with unreachable Temporal workflow state, then stop instead of using ADV tools (`adv_change_show`, `adv_gate_status`, `adv_change_forget` only for an actual current-session pointer mismatch).\n\nThis incident expands the specialist scope from generic Temporal repair into a classifier that separates:\n\n1. Real Temporal/STSL/worker/search-attribute failure.\n2. Session active-change phantom pointer recoverable by `adv_change_forget` in that same session.\n3. Target-project shard/path confusion.\n4. Artifact sidecar/readability mismatch where ADV tool state is authoritative.\n5. Agent policy violation: direct reads of ADV state files.\n\n## Cross-Project Origin\n\n- Source project: toolbox\n- Source change: addTemporalRepairSpecialist\n- Purpose: implement the Advance follow-up scope defined by the toolbox design.\n- Discovery confirmation: user confirmed this origin still matches intended context.\n\n## What Changes\n\n- Add an ADV-shipped hidden `mode: subagent` specialist named `adv-temporal-repair`.\n- Route top-level `adv` Temporal/worker/workflow/session-pointer repair signals to the specialist as operational delegation, not as a new lifecycle gate.\n- Preserve primary ADV ownership of gates, user checkpoints, scope drift, and safety.\n- Allow full tool repairs only when required arguments/evidence are available; approval-gated repair paths must preserve tool-enforced approval evidence.\n- Teach the specialist to classify phantom-pointer complaints before repair: first prove whether ADV tools can load the change and gate status; only then recommend `adv_change_forget`, worker restart, reconnect, search-attribute registration, or escalation.\n- Fix current `adv_temporal_diagnose` description/output drift by narrowing the description to its actual thin classifier unless design finds low-risk enrichment.\n- Add instruction/test coverage that ADV artifacts must never be verified by direct filesystem reads; artifact existence/content must flow through ADV tools.\n- Consider a small artifact-only / section-limited `adv_change_show` read mode if design proves it low-risk; otherwise defer it.\n\n## User Outcomes\n\n- ADV can delegate Temporal repair investigations to a focused specialist instead of loading all repair context into the primary agent.\n- Operators get tool-backed repair findings and next actions, not shell-lore runbooks.\n- Agents stop treating missing `.adv/changes/*/*.md` sidecars as proof of lost artifacts.\n- Missing repair capability becomes explicit Advance tooling work.\n\n## Scope\n\n### In Scope\n\n- Add `.opencode/agents/adv-temporal-repair.md` with hidden `mode: subagent`, no nested delegation, and minimal repair/read/report tool grants.\n- Update `.opencode/agents/adv.md` and `ADV_INSTRUCTIONS.md` so top-level `adv` knows when to spawn `adv-temporal-repair`.\n- Use existing repair tools as first-class primitives: `adv_temporal_diagnose`, `adv_temporal_reconnect`, `adv_temporal_register_search_attributes`, `adv_temporal_worker_restart`, `adv_change_show`, `adv_gate_status`, `adv_change_list`, `adv_session_list`, and `adv_change_forget`.\n- Define a diagnostic decision tree for phantom-pointer complaints:\n  - Load target change via `adv_change_show` and `adv_gate_status`.\n  - If tools load state, report \"not lost\" and continue lifecycle from `nextGate`.\n  - If only current session active pointer is wrong and no disk/tool state exists, use `adv_change_forget` for that session's exact pointer.\n  - If Temporal health is bad, use diagnose/reconnect/worker/search-attribute repair paths.\n  - If the evidence is filesystem-only, reject it as invalid and re-run with ADV tools.\n- Reuse an existing change-scoped `adv-researcher` report shape for v1 repair reports; no bespoke repair schema unless design identifies a concrete durable-evidence need.\n- Address `adv_temporal_diagnose` description/output drift by narrowing description/tests to actual output or by enriching output only if low-risk.\n- Add asset/drift tests for agent existence, `mode: subagent`, hidden status, no nested delegation, tool allowlist, roster/routing, deploy sync, existing report transport use, and direct-state-read prohibition reminders.\n- Update `docs/temporal-recovery.md` or adjacent docs with the specialist path, phantom-pointer decision tree, and OpenCode restart requirement.\n\n### Out of Scope\n\n- Broad Temporal architecture rewrite.\n- Generic non-Temporal repair agent.\n- New ADV lifecycle gate.\n- Shell-script/manual runbook as the primary repair mechanism.\n- Hot-path/background status spawning.\n- Making sidecar artifact files the source of truth.\n- Bespoke repair report schema in v1 unless design proves existing report transport insufficient.\n\n### Must Not\n\n- Must not make workflow-state, archive-state, worker-lock, or artifact-state repair safety depend on agent prose alone.\n- Must not silently perform destructive or approval-gated repairs without explicit tool-enforced invariants and approval policy.\n- Must not spawn nested subagents from `adv-temporal-repair`.\n- Must not claim new specialist behavior is available in running OpenCode sessions until deployment and restart happen.\n- Must not read ADV state files directly to prove artifact, gate, task, wisdom, agenda, or conformance state.\n\n## Affected Code\n\n- `.opencode/agents/adv-temporal-repair.md`\n- `.opencode/agents/adv.md`\n- `ADV_INSTRUCTIONS.md`\n- `docs/temporal-recovery.md`\n- `plugin/src/tools/temporal-ops.ts`\n- `plugin/src/tool-registry.ts` if tool affordances change\n- `plugin/src/types/subagent-reports.ts` only if design justifies a bespoke schema\n- bundled-agent, roster/delegation, deploy, subagent-report, diagnose-envelope, target-path, artifact-metadata, and instruction asset tests\n\n## Discovery Findings\n\n### Discovery Checklist\n\n| Step | Status | Result |\n|---|---:|---|\n| Skills Considered | PASS | Loaded `adv-agent-tool-contracts` and `adv-instructions-audit`; used `adv-opportunity-scout` via `adv-researcher`. No new skill needed. |\n| Prior Research Extension | PASS | Extended `docs/temporal-recovery.md` and `docs/repo-improve-prep.md`; found current artifact-state and diagnose drift evidence. |\n| Conflict Scan | PASS | `adv_change_validate` passed; active-change scan found no overlapping current repair-specialist change. Archived scan timed out; recorded as tool-latency evidence, not conflict. Agenda includes stale-design-path and target-path items that reinforce scope. |\n| Edge Case Investigation | PASS | Captured phantom artifact paths, target-project shard confusion, pointer mismatch, peer-serviceable worker, and tool-code reload edge cases. |\n| Design Question Depth | PASS | Open questions triaged; user answered lineage, hard-no state reads, report transport, and artifact section-read preference. |\n| Draft Spec Deltas | PASS | Draft rq IDs listed below. |\n| Related Pattern Scan | PASS | Found existing artifact path sanitization tests and agent-state-access asset tests; found related agenda stale-path item. |\n| LBP Check | PASS | Internal specialist + structural tool decision tree is LBP; no external tool/service viable for ADV workflow-state authority. |\n\n### Skills Considered\n\n- `adv-agent-tool-contracts`: matched because change adds subagent/tool packet/report contracts. Applied: schema/packet/prompt/tests must move together; no heuristic report inference.\n- `adv-instructions-audit`: matched because change edits ADV agent instructions and command/agent policy. Applied: direct-read prohibition needs executable anchors, not prose only.\n- `adv-opportunity-scout`: run by `adv-researcher`; auto-adopted reuse of existing researcher report, deploy glob assumption, and narrowing `adv_temporal_diagnose` description.\n\n### Extends\n\n- `docs/temporal-recovery.md`: already says proposal/discovery/design/acceptance artifact content is workflow state and manual `proposal.md`/`agreement.md`/`design.md` writes must not be used to satisfy gates. New finding: specialist needs a first-class phantom-pointer decision tree that covers current pokeedge/pokeedge-web sidecar-path confusion.\n- `docs/repo-improve-prep.md`: prior latency pack identified `adv_status`, `adv_change_list`, and `adv_change_show` hot-path cost/truncation issues. New finding: discovery itself hit `adv_change_list includeArchived:true` timeout and `adv_change_show include.design:true` truncation, supporting a possible section-limited artifact read affordance.\n- Existing test anchors: `plugin/src/tools/change.test.ts` and `plugin/src/tools/gate.test.ts` already strip unreadable/phantom paths while preserving Temporal document content, so the desired behavior is partly structurally anchored.\n\n### Conflict Scan\n\n- Active changes: no active duplicate of `adv-temporal-repair`; nearby `fixMultiSessionTemporalState` is completed/stale context, not competing scope.\n- Validation: passed with expected pre-prep warnings (`NO_TASKS`, `NO_DELTAS`).\n- Agenda: related follow-ups include stale design artifact path confusion and target-path mutation/cleanup items; these are evidence for the failure class, not blockers.\n- WIP state: current project has two older poisoned workflows (`migrateterminaltitletosessiont`, `addArchiveCleanupScanner`) that provide real repair-class examples distinct from the pokeedge false phantom.\n\n### Current State\n\n- `.opencode/agents/adv.md` explicitly forbids direct ADV state reads and requires ADV tools; it also says failed direct read attempts must stop and switch to `adv_change_show`.\n- `docs/adv-runtime-protocol-coverage.md` marks ADV state access as a covered runtime invariant, with `plugin/src/deploy-local.test.ts` asserting the runtime anchor exists.\n- `plugin/src/tools/change.test.ts` proves unreadable artifact paths are omitted and Temporal document content still returns through `adv_change_show include.design:true`.\n- `plugin/src/tools/gate.test.ts` proves phantom artifact evidence paths are stripped while readable materialized paths are preserved.\n- `plugin/src/tools/change.ts` defines `adv_change_forget` as pure in-memory recovery only for a current-session pointer matching an unreachable phantom change.\n- `plugin/src/tools/temporal-ops.ts` description claims broad classification, but implementation is currently a thin server/worker/STSL/changeWorkflow classifier.\n- `adv_temporal_diagnose changeId:addTemporalRepairSpecialist` reports current change workflow reachable and Temporal healthy.\n\n### Edge Cases\n\n1. Missing sidecar file but `adv_change_show include.*` returns content — report not lost; continue from gate state.\n2. `artifacts.*.readable:false` — do not read path; content must come from include flags or packet content.\n3. `adv_change_forget` pointer mismatch — hook refuses; specialist must report actual pointer and not retry blind.\n4. Target-path confusion — always prove `target_path` + project id through `adv_change_show`/`adv_gate_status` before repair.\n5. Peer-serviceable worker but local worker dead — may not block workflow; do not force restart if queue is serviceable.\n6. Worker restart vs plugin tool-code reload — `adv_temporal_worker_restart` does not reload host-loaded tool code; OpenCode restart may be required.\n7. Output truncation — tool state exists but artifact body is truncated; design may add section-limited read or require narrower include/reporting.\n8. Real poisoned history — distinguish from false phantom via `adv_wip_state`/diagnose evidence and recovery tools.\n\n### Open Design Questions\n\n1. Exact tool allowlist for `adv-temporal-repair`.\n   - Trust model: agent-owned with tool-schema constraints.\n   - Blast radius: over-granting enables orchestration mutation or unsafe repair; under-granting makes specialist useless.\n   - Alternatives: read-only classifier only; classifier plus non-destructive reconnect; approval-gated repair tool access. Recommendation: allow read/classify + non-destructive repair; approval-gated mutations surface to primary ADV for explicit approval.\n2. `adv_temporal_diagnose` drift fix.\n   - Trust model: agent-owned.\n   - Blast radius: specialist may rely on fields that do not exist.\n   - Alternatives: narrow description/tests; enrich output. Recommendation: narrow for v1; enrich only when separate AC requires it.\n3. Artifact-only read affordance.\n   - Trust model: joint; user approved “include if small”.\n   - Blast radius: schema/API expansion vs less truncation and fewer filesystem temptations.\n   - Alternatives: defer; add section-limited include; add new tool. Recommendation: design probes low-risk `adv_change_show` include/limit extension; defer if non-trivial.\n4. Report schema.\n   - Trust model: user answered + agent-owned schema review.\n   - Blast radius: bespoke schema expands schema registry, packet anchors, tests, and report consumers.\n   - Alternatives: reuse `adv-researcher` report; bespoke; no durable report. Recommendation: reuse existing change-scoped researcher report in v1.\n\n### Draft Spec Deltas\n\n- `rq-temporalRepairSpecialist01`: Given an ADV agent reports Temporal/session-pointer failure, when top-level ADV delegates repair triage, then a hidden `mode: subagent` `adv-temporal-repair` performs read-only classification and returns tool-backed next actions without owning gates.\n- `rq-advStateToolAuthority01`: Given an agent needs ADV change/artifact/task/gate state, when it verifies state, then it uses ADV tools and never direct filesystem reads; unreadable artifact paths are not authoritative.\n- `rq-sessionPointerForget01`: Given active session pointer references a phantom change, when `adv_change_forget` is used, then it only clears matching current-session pointer and never mutates persistent change/archive state.\n- `rq-temporalDiagnoseEnvelope01`: Given `adv_temporal_diagnose` is documented as a classifier, when called, then its machine-readable output and description agree on covered dimensions.\n- `rq-artifactSectionRead01` (conditional): Given artifact include output would exceed tool budget, when caller requests one artifact or section, then `adv_change_show` can return bounded artifact content without exposing unreadable paths.\n\n### Related Pattern Scan\n\n- Pokeedge incident exactly matches existing artifact-path phantom pattern already tested in `change.test.ts` and `gate.test.ts`.\n- Agenda item `ag-eTTd2IaW` records stale canonical vs legacy design path confusion; same failure family.\n- `docs/temporal-recovery.md` already warns not to manually create/edit active artifact files for state-backed gates; specialist should operationalize that rule.\n\n### LBP Check\n\nLBP is an internal ADV specialist backed by structural tool contracts, not an external repair framework. External alternatives cannot authoritatively classify ADV workflow IDs, session pointers, artifact metadata, and gate state without ADV tools. The best long-term path is a deterministic decision tree plus tests/spec anchors, with the model only summarizing tool evidence.\n\n### AMBIGUITY ANALYSIS — no blocking ambiguity findings\n\nCoverage: B:C F:C S:C M:C\n\n- Boundaries clear after user confirmed hard-no direct state reads and existing report reuse.\n- Functional scope clear for v1: specialist + instruction/docs/tests + diagnose drift fix; section-limited artifact reads conditional on design complexity.\n- Completion signals are now draftable as pass/fail AC.\n- Missing information resolved: lineage confirmed; report schema decision resolved; direct-read policy resolved.\n\n## User Decisions Captured During Discovery\n\n1. Toolbox origin is valid.\n2. Direct reads of ADV state paths are not allowed. Use ADV tools only; artifact paths are usable only when an ADV tool exposes `readable:true`.\n3. Reuse the existing `adv-researcher` change-scoped report transport for v1.\n4. Include artifact-only / section-limited `adv_change_show` only if design proves it small and low-risk.\n\n## Constraints\n\n- Repair correctness must be structural before heuristic.\n- Full repairs require available tool arguments/evidence.\n- Approval evidence must remain tool-enforced.\n- `adv-temporal-repair` is context offload, not new authority.\n- ADV tool state is authoritative for artifacts; sidecar file presence is not.",
+    "problemStatement": "ADV primary agents currently over-diagnose Temporal failures and under-use structured ADV state tools. In pokeedge/pokeedge-web, agents treated missing presumed artifact sidecars and direct filesystem searches as proof that a change workflow was unreachable, even though `adv_change_show` and `adv_gate_status` can load the target change and show design state/gate state. Advance needs an ADV-spawnable `adv-temporal-repair` specialist that classifies real Temporal failures versus session phantom pointers, target-path/shard confusion, artifact-readability mismatches, and agent state-access violations, while preserving repair safety through structured tools, invariants, tests, and approval evidence.",
+    "agreement": "# Agreement — Add Temporal Repair Specialist\n\n## Objectives\n\n1. Add an ADV-shipped hidden `mode: subagent` specialist named `adv-temporal-repair` for Temporal, worker, STSL, search-attribute, workflow, session-pointer, target-project, and artifact-readability repair triage.\n2. Make phantom-pointer classification structural: use ADV tools to distinguish real Temporal failures from session pointer mismatch, target-path/shard confusion, artifact sidecar/readability mismatch, and direct ADV state read violations.\n3. Preserve primary ADV ownership of lifecycle gates, user checkpoints, cancellation/safety approvals, scope drift, and destructive or approval-gated repairs.\n4. Keep v1 report transport simple by reusing the existing change-scoped `adv-researcher` report shape unless design proves a concrete durable-evidence need for a bespoke schema.\n5. Align `adv_temporal_diagnose` description/tests with its actual machine-readable output, or enrich output only if design shows low-risk need.\n6. Document and test the hard ADV state-access boundary: direct reads of ADV state paths are forbidden; ADV tools are authoritative.\n\n## Success Criteria\n\n1. Agents classify false phantom-pointer reports using ADV tools before recommending Temporal repair.\n2. Missing artifact sidecars no longer cause “workflow unreachable” conclusions when ADV tool state loads.\n3. Repair guidance separates real Temporal failure, session pointer mismatch, target-path confusion, and artifact readability mismatch.\n4. Approval-gated repair actions still require explicit primary-agent/user approval.\n\n## Acceptance Criteria\n\n1. `adv-temporal-repair` exists as hidden `mode: subagent`, with no nested delegation.\n2. Specialist instructions require `adv_change_show` and `adv_gate_status` before declaring change/artifact state lost.\n3. Specialist forbids direct reads of ADV state paths; tests anchor this policy.\n4. `adv_change_forget` guidance is limited to matching current-session phantom pointers and never persistent state repair.\n5. V1 reuses existing change-scoped `adv-researcher` report transport; no bespoke schema unless design proves need.\n6. `adv_temporal_diagnose` description/output drift is fixed or narrowed with tests.\n7. Docs include phantom-pointer decision tree and OpenCode restart vs worker-restart distinction.\n8. If small/low-risk, artifact-only bounded read support is included; otherwise recorded as follow-up.\n\n## Constraints\n\n1. Repair correctness must be structural before heuristic.\n2. Full repairs require available tool arguments/evidence.\n3. Approval evidence must remain tool-enforced.\n4. `adv-temporal-repair` is context offload, not new gate authority.\n5. ADV tool state is authoritative for artifacts; sidecar file presence is not.\n6. Artifact paths may be read only when an ADV tool exposes `readable:true` for that path.\n7. Running OpenCode sessions do not gain new specialist behavior until deployment and restart.\n\n## Avoidances\n\n1. Do not create a new lifecycle gate.\n2. Do not make shell-script/manual runbooks the primary repair mechanism.\n3. Do not make sidecar artifact files the source of truth.\n4. Do not spawn nested subagents from `adv-temporal-repair`.\n5. Do not silently perform destructive or approval-gated repairs.\n6. Do not add a bespoke repair report schema in v1 unless design proves existing report transport insufficient.\n\n## Preview Applicability\n\n`visual_surface: false`\n\nRationale: this change affects ADV agent/tool/docs/test behavior, not browser-visible UI or visual output.\n\n## Decisions\n\n### User Decisions\n\n1. Toolbox origin is valid and should be kept.\n2. Direct reads of ADV state paths are hard-forbidden. Use ADV tools only; artifact paths are usable only when an ADV tool exposes `readable:true`.\n3. V1 should reuse the existing change-scoped `adv-researcher` report transport.\n4. Artifact-only / section-limited `adv_change_show` support may be included if design proves it small and low-risk; otherwise defer.\n\n### Agent Decisions (LBP)\n\n1. Specialist should be an internal ADV subagent backed by structural tool decisions, not an external repair framework.\n2. `adv_temporal_diagnose` should be narrowed to actual output for v1 unless design finds a low-risk enrichment path.\n3. The decision tree starts with `adv_change_show` + `adv_gate_status`; only then branches to `adv_change_forget`, reconnect, worker restart, search-attribute registration, or escalation.\n4. Existing artifact path sanitization tests and ADV state-access asset tests are the anchor layer to extend.\n\n## Deferred Questions\n\nNone.\n\n## Sign-Off\n\nUser approved criteria via chat: `approve`.",
+    "design": "# Design — Add Temporal Repair Specialist\n\n## Architecture Overview\n\nAdd a bundled ADV subagent, `adv-temporal-repair`, that acts as a **tool-backed repair classifier**, not a lifecycle owner. Top-level ADV delegates noisy Temporal/session-pointer incidents to the specialist when diagnosis would otherwise consume primary-agent context.\n\nThe specialist receives an inline packet with the failing command, change ID if known, target path if known, and symptoms. It runs a deterministic decision tree:\n\n1. Identify project context and target change.\n2. Load change state through `adv_change_show` and gate state through `adv_gate_status` when a change ID exists.\n3. Run `adv_temporal_diagnose` only after state-tool reachability is tested, or immediately when the symptom is worker/STSL/search-attribute specific.\n4. Classify the incident into one of: `state_reachable_not_phantom`, `session_pointer_mismatch`, `target_path_confusion`, `artifact_readability_mismatch`, `temporal_unhealthy`, `peer_serviceable_local_worker_dead`, `poisoned_history`, `tool_output_truncated`, or `inconclusive`.\n5. Return exact next actions for the top-level ADV orchestrator. Approval-gated repairs remain orchestrator/user-controlled.\n\n```text\nUser/primary ADV symptom\n        │\n        ▼\nTop-level ADV spawns adv-temporal-repair\n        │\n        ▼\nadv-temporal-repair diagnostic decision tree\n        ├─ adv_change_show + adv_gate_status succeed → not lost; resume gate\n        ├─ target_path/project mismatch → rerun with corrected target_path\n        ├─ active pointer mismatch → primary runs adv_change_forget for exact pointer\n        ├─ artifact readable:false/missing sidecar → use include content, not path\n        ├─ queue peer-serviceable + local worker dead → don't force restart\n        ├─ Temporal unhealthy → recommend reconnect/worker/SA path with evidence\n        └─ poisoned/inconclusive → escalate with evidence and safe next command\n```\n\n## Key Decisions\n\n### KD1 — Specialist is classifier-first; primary ADV keeps repair authority\n\n`adv-temporal-repair` should not own gates, tasks, archives, cancellations, or user checkpoints. It may diagnose and recommend exact tool actions. The primary ADV remains responsible for running approval-gated mutations and for lifecycle progression.\n\nRationale: worker restart, search-attribute registration, and pointer forget are operationally sensitive. Keeping mutation authority with the orchestrator preserves existing approval and session-boundary semantics.\n\n### KD2 — Hard no direct ADV state reads\n\nThe specialist must not read ADV state files directly. It uses ADV tools or inline packet content. `artifacts.*.path` is not usable unless ADV metadata explicitly says `readable:true` and the task genuinely needs a materialized file.\n\nRationale: the pokeedge incident proves missing presumed sidecar files cause false phantom diagnoses. Existing tests already prove unreadable paths are stripped while Temporal document content is returned through `adv_change_show include.*`.\n\n### KD3 — Reuse `adv-researcher` change-scoped report transport in v1\n\nNo bespoke `adv-temporal-repair` report schema in v1. The specialist can return final text to the orchestrator and, when spawned in a change context, submit a change-scoped `adv-researcher` report until concrete durable-evidence consumers justify a dedicated schema.\n\nRationale: a bespoke schema would touch agent enums, report unions, packet anchors, ingest tests, and consumers with no current added correctness benefit.\n\n### KD4 — Align `adv_temporal_diagnose` to actual useful envelope\n\nThe tool description currently promises broad dimensions, while implementation returns a thin envelope. V1 should narrow description/tests to actual output and may add one low-risk field already computed internally: `serverServiceable`. This supports the specialist's peer-serviceable branch without a larger diagnose rewrite.\n\nRationale: specialist correctness must not depend on non-existent fields; exposing an already-computed serviceability boolean is additive and directly contract-tied.\n\n### KD5 — Artifact-only bounded read is opportunistic, not core v1\n\nDesign includes a prep task to evaluate a low-risk `adv_change_show` artifact-only/section-limited read affordance. Include it only if it can be implemented as a backward-compatible optional include/readback extension with focused tests. Otherwise record a follow-up and satisfy v1 through existing include flags plus truncation-aware guidance.\n\nRationale: output truncation is real, but tool-surface expansion should not block the repair specialist.\n\n## ADR Drafts\n\nNone. Decisions are important but not hard to reverse: report transport, tool allowlist, and diagnose envelope can evolve additively.\n\n## Implementation Strategy\n\n1. **Agent asset**\n   - Add `.opencode/agents/adv-temporal-repair.md`.\n   - Frontmatter: `mode: subagent`, `hidden: true`, low temperature.\n   - No `task` tool; no write/edit/bash/morph.\n   - Allow ADV read/classifier tools: `adv_change_show`, `adv_gate_status`, `adv_change_list`, `adv_status`, `adv_wip_state`, `adv_session_list`, `adv_snapshot_health` scan, `adv_temporal_diagnose`, `adv_project_context`, `adv_spec`, `adv_subagent_report_submit` if using researcher transport.\n   - Do not grant `adv_gate_complete`, task mutations, change mutations, archive/close, worktree mutations, `adv_temporal_worker_restart`, `adv_temporal_register_search_attributes`, or direct shell/file mutation. The specialist may mention those exact tool names as recommended primary-agent actions only.\n\n2. **Primary ADV routing**\n   - Update `.opencode/agents/adv.md` and `ADV_INSTRUCTIONS.md` to spawn `adv-temporal-repair` for Temporal/workflow/session-pointer/artifact-phantom complaints when diagnosis is operational and context-heavy.\n   - Packet anchors: `WORKING DIRECTORY`, `CHANGE` when known, `TARGET_PATH` when applicable, `SYMPTOM`, `RECENT_TOOL_ERROR`, `ATTEMPT`, `IN_SCOPE`, `OUT_OF_SCOPE`, `DONE_WHEN`, `STOP_WHEN`, `VERIFICATION`.\n\n3. **Decision-tree instructions**\n   - Encode ordered classification table in the specialist prompt.\n   - First-class false-phantom rule: if `adv_change_show` and `adv_gate_status` load target state, the workflow is not lost; continue from gate state.\n   - First-class artifact rule: missing sidecar or `readable:false` means use tool include content, not filesystem fallback.\n   - `adv_change_forget` rule: only primary ADV should run it for the exact current active pointer; it is not persistent state repair.\n\n4. **`adv_temporal_diagnose` alignment**\n   - Update description and docs/tests to match current output.\n   - Expose `serverServiceable` if the existing internally-computed value can be returned with a focused test. If not, narrow description only.\n   - Do not leave doc-only claims.\n\n5. **Docs**\n   - Update `docs/temporal-recovery.md` with a “phantom pointer / phantom artifact” decision tree.\n   - Explicitly distinguish worker restart from OpenCode restart: worker restart does not reload host-loaded tool code.\n\n6. **Tests and anchors**\n   - Use an `adv-tron`-style asset test template for the read-only specialist; do not model it after `adv-designer` because v1 avoids a dedicated report-schema enum.\n   - Agent asset test for file existence, frontmatter, hidden mode, no nested delegation, allowlist/denylist, state-access policy anchors, report-transport guidance, and exact valid tool names.\n   - Add `.opencode/agents/adv-temporal-repair.md` to `AGENT_PATHS` in `plugin/src/subagent-reports-spec-assets.test.ts` so the existing ADV state-access policy battery covers it.\n   - Add deploy presence assertion; `scripts/deploy-local.sh` already copies all non-excluded `.opencode/agents/*.md` files.\n   - ADV prompt/runtime coverage tests for the new routing mention without exceeding prompt ceiling.\n   - Temporal diagnose test for description/output anchor drift and optional `serverServiceable` field.\n   - Tool-name asset tests already glob the agents dir; ensure the new agent body references only real callables.\n\n7. **Optional bounded artifact read**\n   - During apply, evaluate whether `adv_change_show` can return a single requested artifact in a bounded shape without exposing unreadable paths.\n   - If simple, add optional backwards-compatible schema/tests.\n   - If not simple, add an agenda follow-up and keep the specialist truncation-aware.\n\n## LBP Analysis\n\nBest long-term practice is a deterministic repair classifier over ADV’s existing state tools. External repair agents or shell runbooks cannot authoritatively determine ADV workflow state, session pointer state, target-project shard mapping, or artifact metadata. The specialist reduces primary-agent context load while preserving structural correctness: tools own state, tests own drift guards, and primary ADV owns user-affecting mutations.\n\n## Affected Components\n\n| Component | Change |\n|---|---|\n| `.opencode/agents/adv-temporal-repair.md` | New hidden subagent asset and diagnostic decision tree. |\n| `.opencode/agents/adv.md` | Add routing trigger and packet requirements. |\n| `ADV_INSTRUCTIONS.md` | Add roster/routing details and specialist constraints. |\n| `docs/temporal-recovery.md` | Add phantom-pointer/artifact classifier and restart distinction. |\n| `plugin/src/tools/temporal-ops.ts` | Align `adv_temporal_diagnose` description/output contract; optionally return `serverServiceable`. |\n| `plugin/src/tools/temporal-ops.test.ts` | Anchor diagnose envelope behavior. |\n| New `plugin/src/adv-temporal-repair-assets.test.ts` | Anchor specialist file, tools, and policy text. |\n| `plugin/src/subagent-reports-spec-assets.test.ts` | Include specialist in state-access policy coverage. |\n| `plugin/src/deploy-local.test.ts` | Confirm new bundled agent presence/deploy coverage. |\n| Existing tool-name asset tests | Automatically guard exact callable names in new agent body. |\n\n## Design-Derived Criteria\n\n1. Tool allowlist must be minimal: no code writes, no shell, no nested `task`, no lifecycle mutation tools.\n2. Every diagnostic classification must cite at least one ADV tool result or explicit packet field.\n3. Filesystem evidence alone must never classify ADV state as missing/lost.\n4. Any approval-gated repair recommendation must include required approval evidence wording and hand control back to primary ADV.\n5. `adv_temporal_diagnose` must not document fields absent from its response.\n6. Optional artifact-only read support must preserve unreadable-path suppression.\n7. The agent body must reference only exact existing tool names so tool-name drift tests pass.\n\n## Risks / Mitigations\n\n| Risk | Mitigation |\n|---|---|\n| Specialist oversteps and performs repair mutations | Do not grant lifecycle/destructive/approval-gated repair tools; route repairs back to primary ADV. |\n| Prompt-only policy drifts | Add asset/spec tests for allowlist, denylist, state-access policy, and diagnose envelope. |\n| Existing report transport feels semantically odd | Reuse only for v1; record follow-up if durable repair evidence consumers emerge. |\n| Output truncation still tempts filesystem reads | Add truncation-aware guidance; optionally add bounded artifact read if low-risk. |\n| New agent not available in live sessions | Docs and final notes require deploy-local + OpenCode restart. |\n\n## Design Leverage Scout\n\nScout considered 5 candidates. Auto-adopted: add the new agent to `subagent-reports-spec-assets.test.ts` `AGENT_PATHS`, use `adv-tron`-style asset tests, rely on existing deploy glob plus a presence assertion, and constrain agent body to exact callable tool names. Also adopted a narrow+optional `serverServiceable` addition to `adv_temporal_diagnose` because it is already computed and supports the peer-serviceable branch.\n\n## Validator Result\n\nValidator: INCONCLUSIVE. Two mandatory validator spawn attempts were made; both returned `Task cancelled` without findings. Per design contract, validation failure is recorded as inconclusive and does not block when there is no `CONFLICT` or contract-compromise evidence. No contract-compromise risk identified by the orchestrator.",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\n\nDelivered a hidden ADV `adv-temporal-repair` specialist plus tool, prompt, documentation, and test support to classify Temporal/session-pointer/artifact phantom complaints safely through ADV tools. Acceptance review verdict is APPROVED/READY with no blocking or nonblocking findings after one small review remediation clarifying conformance guidance.\n\n## Verdict\n\nAPPROVED\n\n## What Was Built\n\n1. Added `.opencode/agents/adv-temporal-repair.md` as a hidden classifier-first subagent with no nested delegation, no direct ADV state-path reads, and primary-ADV ownership for repair authority.\n2. Wired primary ADV routing and packet anchors for Temporal/session-pointer/artifact phantom triage in `.opencode/agents/adv.md`, `ADV_INSTRUCTIONS.md`, and deployment prompt tests.\n3. Narrowed `adv_temporal_diagnose` description to actual classifier output and exposed `serverServiceable` with tests.\n4. Documented phantom-pointer/artifact recovery decision tree and OpenCode restart vs worker-restart boundary in `docs/temporal-recovery.md`.\n5. Added bounded `adv_change_show include.artifactOnly` support for artifact-only readback without exposing unreadable phantom paths.\n6. Added/updated asset and tool tests covering the specialist, state-access policy, docs anchors, diagnose envelope, routing markers, and artifact-only behavior.\n7. Applied review remediation commit `f73c3584`: clarified that `adv-temporal-repair` asks primary ADV to run `adv_conformance action: \"status\"` if needed, instead of implying direct conformance-tool ownership.\n\n## What Was Verified\n\n- Verdict: APPROVED/READY with 0 blockers, 0 issues, 0 suggestions, 0 nits.\n- Tests: targeted changed-surface suite passed (6 files, 161 tests); `pnpm run schemas:check` passed; `./bin/oc-test smoke` passed after formatting remediation; reviewer reran targeted suite (5 files, 156 tests) after review remediation.\n- Preview URL: not_applicable — agreement declares `visual_surface:false`; implementation touches ADV agents, tool code, docs, and tests, not browser-visible output.\n- Contract matrix: 25 required rows passed/respected; 0 failed, violated, unknown, or missing rows.\n\n## Remaining Concerns\n\nLive OpenCode sessions need `pnpm run build`, `./scripts/deploy-local.sh --fix`, and OpenCode restart before the new specialist/tool/prompt behavior is visible in deployed runtime sessions.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-06-19T01:59:32Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | Agents classify false phantom-pointer reports using ADV tools before recommending Temporal repair. | pass | adv-reviewer verdict READY; agent/routing docs require `adv_change_show` + `adv_gate_status` before phantom classification; asset tests passed. |\n| SC2 | success_criterion | Missing artifact sidecars no longer cause “workflow unreachable” conclusions when ADV tool state loads. | pass | `include.artifactOnly` returns Temporal-backed artifact content and suppresses unreadable sidecar paths; `src/tools/change.test.ts` bounded artifact-only test passed. |\n| SC3 | success_criterion | Repair guidance separates real Temporal failure, session pointer mismatch, target-path confusion, and artifact readability mismatch. | pass | `docs/temporal-recovery.md` decision tree separates real Temporal failure, pointer mismatch, target-path confusion, artifact readability mismatch; docs asset test passed. |\n| SC4 | success_criterion | Approval-gated repair actions still require explicit primary-agent/user approval. | pass | Agent instructions preserve primary ADV ownership for lifecycle, user checkpoints, cancellation, destructive and approval-gated repair tools; review found no silent repair path. |\n| AC1 | acceptance_criterion | `adv-temporal-repair` exists as hidden `mode: subagent`, with no nested delegation. | pass | `.opencode/agents/adv-temporal-repair.md` added as hidden `mode: subagent`; `adv-temporal-repair-assets.test.ts` validates mode and no nested delegation. Targeted tests passed. |\n| AC2 | acceptance_criterion | Specialist instructions require `adv_change_show` and `adv_gate_status` before declaring change/artifact state lost. | pass | Specialist instructions and tests require `adv_change_show` and `adv_gate_status` before declaring state lost; targeted asset tests passed. |\n| AC3 | acceptance_criterion | Specialist forbids direct reads of ADV state paths; tests anchor this policy. | pass | State-access asset tests include new specialist and forbid direct ADV state path reads; targeted tests passed. |\n| AC4 | acceptance_criterion | `adv_change_forget` guidance is limited to matching current-session phantom pointers and never persistent state repair. | pass | Specialist/docs limit `adv_change_forget` to exact current-session phantom pointer cleanup; asset/docs tests passed. |\n| AC5 | acceptance_criterion | V1 reuses existing change-scoped `adv-researcher` report transport; no bespoke schema unless design proves need. | pass | Specialist reuses change-scoped `adv-researcher` report transport; no bespoke report schema added. Asset tests and reviewer report submission passed. |\n| AC6 | acceptance_criterion | `adv_temporal_diagnose` description/output drift is fixed or narrowed with tests. | pass | `adv_temporal_diagnose` description narrowed and output adds `serverServiceable`; `src/tools/temporal-ops.test.ts` passed. |\n| AC7 | acceptance_criterion | Docs include phantom-pointer decision tree and OpenCode restart vs worker-restart distinction. | pass | `docs/temporal-recovery.md` includes phantom-pointer decision tree plus OpenCode restart vs worker restart distinction; docs asset test passed. |\n| AC8 | acceptance_criterion | If small/low-risk, artifact-only bounded read support is included; otherwise recorded as follow-up. | pass | Low-risk bounded `include.artifactOnly` support implemented in `adv_change_show`; targeted `change.test.ts` passed. |\n| C1 | constraint | Repair correctness must be structural before heuristic. | respected | Tool-first state classification, schema-backed report submission, asset tests, and typed matrix enforce structural correctness over heuristic file reads. |\n| C2 | constraint | Full repairs require available tool arguments/evidence. | respected | Specialist has read/classifier/report scope only; full repair tools remain primary ADV actions requiring evidence and arguments. |\n| C3 | constraint | Approval evidence must remain tool-enforced. | respected | No mutation tool approvals were bypassed; instructions route destructive/approval-gated work to primary ADV/user approval. |\n| C4 | constraint | `adv-temporal-repair` is context offload, not new gate authority. | respected | Specialist is hidden subagent context offload; no new gate authority or lifecycle mutation role added. |\n| C5 | constraint | ADV tool state is authoritative for artifacts; sidecar file presence is not. | respected | Docs and agent instructions define ADV tool state as authoritative and sidecar presence as non-authoritative. |\n| C6 | constraint | Artifact paths may be read only when an ADV tool exposes `readable:true` for that path. | respected | Agent instructions forbid dereferencing artifact paths unless metadata says `readable:true`; `artifactOnly` suppresses unreadable paths. |\n| C7 | constraint | Running OpenCode sessions do not gain new specialist behavior until deployment and restart. | respected | Docs/acceptance note: live sessions need build/deploy plus OpenCode restart. Preview URL not_applicable: agreement declares `visual_surface:false` and changed files are agent/tool/docs/tests, not browser-visible output. |\n| DONT1 | avoidance | Do not create a new lifecycle gate. | respected | No new lifecycle gate added; acceptance/release gates unchanged. |\n| DONT2 | avoidance | Do not make shell-script/manual runbooks the primary repair mechanism. | respected | Primary mechanism is ADV tool-driven triage/specialist guidance, not shell scripts or manual runbooks. |\n| DONT3 | avoidance | Do not make sidecar artifact files the source of truth. | respected | Sidecar files remain non-authoritative; ADV tools expose artifact state/content metadata. |\n| DONT4 | avoidance | Do not spawn nested subagents from `adv-temporal-repair`. | respected | Specialist forbids nested subagents; asset tests anchor no delegation. |\n| DONT5 | avoidance | Do not silently perform destructive or approval-gated repairs. | respected | No silent destructive or approval-gated repair path added; primary/user approval remains required. |\n| DONT6 | avoidance | Do not add a bespoke repair report schema in v1 unless design proves existing report transport insufficient. | respected | No bespoke repair report schema added; v1 reuses `adv-researcher` report transport. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-06-19T01:15:07.010Z",
+      "contentHash": "e855541a8794c2fe750ccd249e37833a220e33bd49c5506833185c403027034a",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-06-19T01:15:07.010Z",
+      "contentHash": "949604b8bd41242bf7da13d9b0e43a6097aed569dd972e8f9c6b3dca0ebd172c",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-06-19T01:17:19.564Z",
+      "contentHash": "a2c57996b2861dfe46863d66fce455655108b228da2a47902eb118c32a45bc5e",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-06-19T01:24:45.860Z",
+      "contentHash": "be1abcfa95575f37e9b87e4795e258962cca8d7c9e796a53ec63aee8db606257",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-06-19T02:00:25.411Z",
+      "contentHash": "b95b7dde1dc90c894899ea27ac441698f45c76ab24ce57f927b0160c4cc75853",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-06-19T02:15:00.299Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_MISSING_ERROR_HANDLING",
+      "severity": "warning",
+      "message": "Proposal describes behavior that could fail but doesn't mention error handling or rollback. What happens when things go wrong?",
+      "recorded_at": "2026-06-19T00:48:37.599Z",
+      "resolved": true,
+      "resolved_at": "2026-06-19T00:49:42.551Z"
+    }
+  ]
+}

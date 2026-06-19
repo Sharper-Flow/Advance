@@ -1,0 +1,19 @@
+{
+  "entries": [
+    {
+      "id": "ws-ged2ZP",
+      "type": "pattern",
+      "content": "When adding a new read-only ADV subagent that should reuse existing report transport, model asset tests after `adv-tron`/state-access assets rather than enum-backed `adv-designer`; add the new agent to `subagent-reports-spec-assets.test.ts` `AGENT_PATHS` to inherit the ADV state-access policy battery.",
+      "source_task": "tk-454819fa4d34",
+      "recorded_at": "2026-06-19T01:42:16.163Z"
+    },
+    {
+      "id": "ws-Ks_lns",
+      "type": "gotcha",
+      "content": "In Advance, `pnpm test -- <files>` can run broader tests than intended through the package script; for precise ADV `adv_run_test` TDD evidence on selected Vitest files, use `pnpm exec vitest run <files>`. Keep `./bin/oc-test smoke/full` for broader gated verification.",
+      "source_task": "tk-4d1059ce4cf1",
+      "recorded_at": "2026-06-19T01:53:06.252Z"
+    }
+  ],
+  "count": 2
+}
