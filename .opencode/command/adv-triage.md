@@ -149,7 +149,7 @@ Emit structured report: sources scanned, issues created/updated/autofilled/defer
 | GraphQL budget | `gh api graphql -f query='{ rateLimit { remaining resetAt } }'` + `x-ratelimit-remaining` header |
 | Project metadata | `adv_project_metadata` (read/write `github_project`) |
 | Active ADV changes | `adv_change_list status: 'in-flight'` |
-| Agenda | `adv_agenda_list`, `adv_agenda_complete` |
+| Agenda | `adv_agenda_list`, `adv_agenda_complete`, `adv_agenda_cancel` |
 | Wisdom | `adv_wisdom_list` |
 | Local source scan | `glob`, `read`, `lgrep_search_text` |
 | Phase 4c field assignments | `question` tool (batch control + per-item) |

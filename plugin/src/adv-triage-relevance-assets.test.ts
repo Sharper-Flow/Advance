@@ -94,6 +94,7 @@ describe("adv-triage relevance validation contract", () => {
     expect(prompts).toMatch(/source\/reason/i);
     expect(prompts).toMatch(/should-merge/i);
     expect(prompts).toMatch(/adv_agenda_complete/i);
+    expect(prompts).toMatch(/adv_agenda_cancel/i);
   });
 
   test("GitHub duplicate handling is capability-detected", () => {
