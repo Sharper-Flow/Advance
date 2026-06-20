@@ -365,6 +365,7 @@ import {
   getGateStatusQuery,
   phase9StatusUpdatedSignal,
 } from "../temporal/messages";
+import { getOpenOpsFollowupObligations } from "../temporal/gate-readiness";
 import {
   detectDefaultBranch,
   detectArchiveMode,
@@ -3826,6 +3827,13 @@ export const changeTools = {
       }
 
       const change = result.data;
+      const openOpsObligations = getOpenOpsFollowupObligations(
+        change.ops_followup_links,
+      );
+      const openOpsObligationsPayload =
+        openOpsObligations.length > 0
+          ? { openOpsObligations }
+          : ({} as Record<string, unknown>);
       const taskPreflightError = getArchiveTaskPreflightError(change);
       if (taskPreflightError) {
         return taskPreflightError;
@@ -4190,6 +4198,7 @@ export const changeTools = {
               ? { multiRepo: archiveResult.multiRepo }
               : {}),
             phase9: "pending",
+            ...openOpsObligationsPayload,
             ...(validationResult.warnings.length > 0
               ? {
                   validationWarnings: validationResult.warnings.map((w) => ({
@@ -4232,6 +4241,7 @@ export const changeTools = {
               version: `${s.originalVersion} → ${s.newVersion}`,
               deltas: s.deltaResults.length,
             })),
+            ...openOpsObligationsPayload,
           });
         }
 
@@ -4265,6 +4275,7 @@ export const changeTools = {
               path: finalization.mainCheckout,
               branch: finalization.defaultBranch,
             },
+            ...openOpsObligationsPayload,
             ...(validationResult.warnings.length > 0
               ? {
                   validationWarnings: validationResult.warnings.map((w) => ({
@@ -4303,6 +4314,7 @@ export const changeTools = {
               version: `${s.originalVersion} → ${s.newVersion}`,
               deltas: s.deltaResults.length,
             })),
+            ...openOpsObligationsPayload,
           });
         }
         const releaseEvidence = buildReleaseCompletionEvidence(finalization);
@@ -4331,6 +4343,7 @@ export const changeTools = {
               version: `${s.originalVersion} → ${s.newVersion}`,
               deltas: s.deltaResults.length,
             })),
+            ...openOpsObligationsPayload,
           });
         }
         releaseGateCompletion = {
@@ -4428,6 +4441,7 @@ export const changeTools = {
                       version: `${s.originalVersion} → ${s.newVersion}`,
                       deltas: s.deltaResults.length,
                     })),
+                    ...openOpsObligationsPayload,
                     _recoveryMutation: true,
                     reconciliationWarning: RECOVERY_RECONCILIATION_WARNING,
                   });
@@ -4565,6 +4579,7 @@ export const changeTools = {
               },
             }
           : {}),
+        ...openOpsObligationsPayload,
         ...(releaseGateCompletion
           ? {
               releaseGate: releaseGateCompletion.gate,

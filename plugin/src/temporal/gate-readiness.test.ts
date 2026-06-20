@@ -7,8 +7,11 @@ import {
   gateArtifactEvidenceSchema,
   stateBackedArtifactEvidence,
   stateBackedAcceptanceProof,
+  checkOpsFollowupReleaseBlockers,
+  getOpenOpsFollowupObligations,
 } from "./gate-readiness";
 import type { ChangeWorkflowState } from "./contracts";
+import type { OpsFollowupLink } from "../types";
 
 function makeState(
   overrides: Partial<ChangeWorkflowState> = {},
@@ -764,6 +767,174 @@ describe("gate readiness", () => {
       );
 
       expect(result.warnings).toBeUndefined();
+    });
+  });
+
+  describe("ops follow-up release blocking", () => {
+    function makeLink(
+      overrides: Partial<OpsFollowupLink> & {
+        id?: string;
+        relationship: OpsFollowupLink["relationship"];
+      },
+    ): OpsFollowupLink {
+      return {
+        id: overrides.id ?? "ofl-1",
+        changeId: overrides.changeId ?? "child-1",
+        relationship: overrides.relationship,
+        status: overrides.status ?? "not_started",
+        required_handoff: overrides.required_handoff ?? false,
+        linked_at: overrides.linked_at ?? "2026-05-20T00:00:00.000Z",
+        ...overrides,
+      };
+    }
+
+    it("blocks release when a blocks link is incomplete", () => {
+      const result = evaluateGateReadiness(
+        makeState({
+          gates: releaseReadyGates(),
+          ops_followup_links: [makeLink({ relationship: "blocks" })],
+        }),
+        "release",
+      );
+
+      expect(result.ready).toBe(false);
+      expect(result.blockers).toContainEqual(
+        expect.objectContaining({
+          code: "OPS_FOLLOWUP_BLOCKS_INCOMPLETE",
+          gateId: "release",
+          linkId: "ofl-1",
+          changeId: "child-1",
+          relationship: "blocks",
+        }),
+      );
+    });
+
+    it("does not block release for incomplete follows_release/monitors/cleanup_after without required_handoff", () => {
+      for (const relationship of [
+        "follows_release",
+        "monitors",
+        "cleanup_after",
+      ] as const) {
+        const result = evaluateGateReadiness(
+          makeState({
+            gates: releaseReadyGates(),
+            ops_followup_links: [
+              makeLink({ relationship, id: `ofl-${relationship}` }),
+            ],
+          }),
+          "release",
+        );
+
+        expect(result.ready).toBe(true);
+        expect(
+          result.blockers.some((b) => b.code.startsWith("OPS_FOLLOWUP")),
+        ).toBe(false);
+      }
+    });
+
+    it("blocks release for follows_release/monitors/cleanup_after when required_handoff is true and incomplete", () => {
+      for (const relationship of [
+        "follows_release",
+        "monitors",
+        "cleanup_after",
+      ] as const) {
+        const result = evaluateGateReadiness(
+          makeState({
+            gates: releaseReadyGates(),
+            ops_followup_links: [
+              makeLink({
+                relationship,
+                id: `ofl-${relationship}`,
+                required_handoff: true,
+              }),
+            ],
+          }),
+          "release",
+        );
+
+        expect(result.ready).toBe(false);
+        expect(result.blockers).toContainEqual(
+          expect.objectContaining({
+            code: "OPS_FOLLOWUP_HANDOFF_INCOMPLETE",
+            gateId: "release",
+            relationship,
+          }),
+        );
+      }
+    });
+
+    it("does not block release when ops follow-up links are complete", () => {
+      const result = evaluateGateReadiness(
+        makeState({
+          gates: releaseReadyGates(),
+          ops_followup_links: [
+            makeLink({
+              relationship: "blocks",
+              status: "complete",
+              id: "ofl-blocks",
+            }),
+            makeLink({
+              relationship: "follows_release",
+              status: "complete",
+              required_handoff: true,
+              id: "ofl-follows",
+            }),
+          ],
+        }),
+        "release",
+      );
+
+      expect(result.ready).toBe(true);
+      expect(
+        result.blockers.some((b) => b.code.startsWith("OPS_FOLLOWUP")),
+      ).toBe(false);
+    });
+
+    it("only evaluates ops follow-up blockers for release gate", () => {
+      const result = checkOpsFollowupReleaseBlockers(
+        makeState({
+          gates: releaseReadyGates(),
+          ops_followup_links: [makeLink({ relationship: "blocks" })],
+        }),
+        "acceptance",
+      );
+
+      expect(result).toHaveLength(0);
+    });
+  });
+
+  describe("getOpenOpsFollowupObligations", () => {
+    it("returns only incomplete ops follow-up links", () => {
+      const obligations = getOpenOpsFollowupObligations([
+        {
+          id: "ofl-open",
+          changeId: "child-1",
+          relationship: "blocks",
+          status: "not_started",
+          required_handoff: false,
+          linked_at: "2026-05-20T00:00:00.000Z",
+        },
+        {
+          id: "ofl-closed",
+          changeId: "child-2",
+          relationship: "follows_release",
+          status: "complete",
+          required_handoff: true,
+          linked_at: "2026-05-20T00:00:00.000Z",
+        },
+      ]);
+
+      expect(obligations).toHaveLength(1);
+      expect(obligations[0]).toMatchObject({
+        linkId: "ofl-open",
+        changeId: "child-1",
+        relationship: "blocks",
+        open: true,
+      });
+    });
+
+    it("returns empty array for undefined links", () => {
+      expect(getOpenOpsFollowupObligations(undefined)).toEqual([]);
     });
   });
 

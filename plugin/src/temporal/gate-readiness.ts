@@ -5,9 +5,19 @@ import {
   type GateArtifactKind,
   type GateId,
   type GateReadinessBlocker,
+  type OpsFollowupLink,
+  type OpsRelationship,
+  type OpsFollowupStatus,
 } from "../types";
 import type { ChangeWorkflowState } from "./contracts";
 import { isFailingContractReviewStatus } from "./recovery-classification";
+
+const HANDOFF_OPS_RELATIONSHIPS: OpsRelationship[] = [
+  "follows_release",
+  "monitors",
+  "cleanup_after",
+];
+const COMPLETE_OPS_STATUSES = ["complete"];
 
 export const ARTIFACT_BACKED_GATES: Partial<Record<GateId, GateArtifactKind>> =
   {
@@ -509,6 +519,92 @@ export function checkRequiredObligationRouting(
     });
 }
 
+function isOpsFollowupComplete(link: OpsFollowupLink): boolean {
+  return COMPLETE_OPS_STATUSES.includes(link.status);
+}
+
+/**
+ * Release gate enforcement for outbound ops follow-up links.
+ *
+ * - `blocks` relationships are hard release blockers while incomplete.
+ * - `follows_release`, `monitors`, and `cleanup_after` normally support
+ *   release-first sequencing and do not block release. If a link is marked
+ *   `required_handoff: true`, it represents an explicit surviving obligation
+ *   that must be completed (or handed off) before release.
+ */
+export function checkOpsFollowupReleaseBlockers(
+  state: ChangeWorkflowState,
+  gateId: GateId,
+): GateReadinessBlocker[] {
+  if (gateId !== "release") return [];
+  const links = state.ops_followup_links ?? [];
+
+  return links.flatMap((link) => {
+    if (isOpsFollowupComplete(link)) return [];
+
+    if (link.relationship === "blocks") {
+      return [
+        makeBlocker({
+          code: "OPS_FOLLOWUP_BLOCKS_INCOMPLETE",
+          gateId,
+          linkId: link.id,
+          changeId: link.changeId,
+          relationship: link.relationship,
+          message: `Blocking ops follow-up ${link.id} (${link.changeId}) is incomplete (status: ${link.status}).`,
+          remediation: `Complete the blocking ops follow-up change ${link.changeId} before releasing, or change the relationship to a non-blocking type.`,
+        }),
+      ];
+    }
+
+    if (
+      HANDOFF_OPS_RELATIONSHIPS.includes(link.relationship) &&
+      link.required_handoff
+    ) {
+      return [
+        makeBlocker({
+          code: "OPS_FOLLOWUP_HANDOFF_INCOMPLETE",
+          gateId,
+          linkId: link.id,
+          changeId: link.changeId,
+          relationship: link.relationship,
+          message: `Surviving-obligation handoff ${link.id} (${link.changeId}, ${link.relationship}) is incomplete (status: ${link.status}).`,
+          remediation: `Complete the required handoff for ops follow-up change ${link.changeId} before releasing, or clear required_handoff if it is not a release blocker.`,
+        }),
+      ];
+    }
+
+    return [];
+  });
+}
+
+export interface OpenOpsFollowupObligation {
+  linkId: string;
+  changeId: string;
+  relationship: OpsRelationship;
+  required_handoff: boolean;
+  status: OpsFollowupStatus;
+  open: boolean;
+}
+
+/**
+ * Return the set of outbound ops follow-up links that are not complete.
+ * Used by release/archive report surfaces to surface surviving obligations.
+ */
+export function getOpenOpsFollowupObligations(
+  links: OpsFollowupLink[] | undefined,
+): OpenOpsFollowupObligation[] {
+  return (links ?? [])
+    .filter((link) => !isOpsFollowupComplete(link))
+    .map((link) => ({
+      linkId: link.id,
+      changeId: link.changeId,
+      relationship: link.relationship,
+      required_handoff: link.required_handoff,
+      status: link.status,
+      open: true,
+    }));
+}
+
 export function renderAcceptanceProjection(state: ChangeWorkflowState): string {
   const contract = state.contract;
   if (!contract?.reviewMatrix) {
@@ -579,6 +675,7 @@ export function evaluateGateReadiness(
   if (gateId === "release") {
     blockers.push(...checkRequiredObligationReleaseBlockers(state, gateId));
     blockers.push(...checkRequiredObligationRouting(state, gateId));
+    blockers.push(...checkOpsFollowupReleaseBlockers(state, gateId));
   }
 
   const warnings = artifactCascadeWarnings(state, gateId);

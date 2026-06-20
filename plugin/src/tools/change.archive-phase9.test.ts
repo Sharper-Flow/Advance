@@ -8,7 +8,7 @@
 import { describe, expect, test, vi, beforeEach } from "vitest";
 import { changeTools } from "./change";
 import type { Store } from "../storage/store";
-import type { Change, Gates } from "../types";
+import type { Change, Gates, OpsFollowupLink } from "../types";
 
 const mocks = vi.hoisted(() => {
   const workflow = {
@@ -173,6 +173,7 @@ function createMockStore(
     releaseDone?: boolean;
     status?: Change["status"];
     durableReleasePending?: boolean;
+    ops_followup_links?: OpsFollowupLink[];
   } = {},
 ): Store {
   const gates: Gates = {
@@ -201,6 +202,7 @@ function createMockStore(
     deltas: {},
     wisdom: [],
     gates,
+    ops_followup_links: options.ops_followup_links,
   };
 
   mocks.workflow.gates = gates;
@@ -330,6 +332,62 @@ describe("adv_change_archive Phase 9 behavior", () => {
       completed_by: "adv-archive",
     });
     expect(parsed.continueFrom).toEqual({ path: "/tmp/main", branch: "trunk" });
+  });
+
+  test("surfaces open ops follow-up obligations in archive output", async () => {
+    const store = createMockStore({
+      ops_followup_links: [
+        {
+          id: "ofl-1",
+          changeId: "child-1",
+          relationship: "blocks",
+          status: "not_started",
+          required_handoff: false,
+          linked_at: "2026-01-01T00:00:00Z",
+        },
+        {
+          id: "ofl-2",
+          changeId: "child-2",
+          relationship: "follows_release",
+          status: "not_started",
+          required_handoff: true,
+          linked_at: "2026-01-01T00:00:00Z",
+        },
+        {
+          id: "ofl-3",
+          changeId: "child-3",
+          relationship: "cleanup_after",
+          status: "complete",
+          required_handoff: true,
+          linked_at: "2026-01-01T00:00:00Z",
+        },
+      ],
+    });
+    const result = await changeTools.adv_change_archive.execute(
+      { changeId: "example", worktreePath: "/tmp/worktree" },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(true);
+    expect(parsed.openOpsObligations).toHaveLength(2);
+    expect(parsed.openOpsObligations).toContainEqual(
+      expect.objectContaining({
+        linkId: "ofl-1",
+        changeId: "child-1",
+        relationship: "blocks",
+        open: true,
+      }),
+    );
+    expect(parsed.openOpsObligations).toContainEqual(
+      expect.objectContaining({
+        linkId: "ofl-2",
+        changeId: "child-2",
+        relationship: "follows_release",
+        required_handoff: true,
+        open: true,
+      }),
+    );
   });
 
   test("blocks archive success when store-backed release proof remains pending", async () => {

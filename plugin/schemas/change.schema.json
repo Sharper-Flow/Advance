@@ -879,6 +879,9 @@
                     ],
                     "type": "string"
                   },
+                  "changeId": {
+                    "type": "string"
+                  },
                   "code": {
                     "type": "string"
                   },
@@ -897,7 +900,13 @@
                     ],
                     "type": "string"
                   },
+                  "linkId": {
+                    "type": "string"
+                  },
                   "message": {
+                    "type": "string"
+                  },
+                  "relationship": {
                     "type": "string"
                   },
                   "remediation": {
@@ -1074,6 +1083,9 @@
                     ],
                     "type": "string"
                   },
+                  "changeId": {
+                    "type": "string"
+                  },
                   "code": {
                     "type": "string"
                   },
@@ -1092,7 +1104,13 @@
                     ],
                     "type": "string"
                   },
+                  "linkId": {
+                    "type": "string"
+                  },
                   "message": {
+                    "type": "string"
+                  },
+                  "relationship": {
                     "type": "string"
                   },
                   "remediation": {
@@ -1269,6 +1287,9 @@
                     ],
                     "type": "string"
                   },
+                  "changeId": {
+                    "type": "string"
+                  },
                   "code": {
                     "type": "string"
                   },
@@ -1287,7 +1308,13 @@
                     ],
                     "type": "string"
                   },
+                  "linkId": {
+                    "type": "string"
+                  },
                   "message": {
+                    "type": "string"
+                  },
+                  "relationship": {
                     "type": "string"
                   },
                   "remediation": {
@@ -1464,6 +1491,9 @@
                     ],
                     "type": "string"
                   },
+                  "changeId": {
+                    "type": "string"
+                  },
                   "code": {
                     "type": "string"
                   },
@@ -1482,7 +1512,13 @@
                     ],
                     "type": "string"
                   },
+                  "linkId": {
+                    "type": "string"
+                  },
                   "message": {
+                    "type": "string"
+                  },
+                  "relationship": {
                     "type": "string"
                   },
                   "remediation": {
@@ -1659,6 +1695,9 @@
                     ],
                     "type": "string"
                   },
+                  "changeId": {
+                    "type": "string"
+                  },
                   "code": {
                     "type": "string"
                   },
@@ -1677,7 +1716,13 @@
                     ],
                     "type": "string"
                   },
+                  "linkId": {
+                    "type": "string"
+                  },
                   "message": {
+                    "type": "string"
+                  },
+                  "relationship": {
                     "type": "string"
                   },
                   "remediation": {
@@ -1854,6 +1899,9 @@
                     ],
                     "type": "string"
                   },
+                  "changeId": {
+                    "type": "string"
+                  },
                   "code": {
                     "type": "string"
                   },
@@ -1872,7 +1920,13 @@
                     ],
                     "type": "string"
                   },
+                  "linkId": {
+                    "type": "string"
+                  },
                   "message": {
+                    "type": "string"
+                  },
+                  "relationship": {
                     "type": "string"
                   },
                   "remediation": {
@@ -2049,6 +2103,9 @@
                     ],
                     "type": "string"
                   },
+                  "changeId": {
+                    "type": "string"
+                  },
                   "code": {
                     "type": "string"
                   },
@@ -2067,7 +2124,13 @@
                     ],
                     "type": "string"
                   },
+                  "linkId": {
+                    "type": "string"
+                  },
                   "message": {
+                    "type": "string"
+                  },
+                  "relationship": {
                     "type": "string"
                   },
                   "remediation": {

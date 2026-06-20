@@ -287,6 +287,9 @@ export const GateReadinessBlockerSchema = z.object({
   blockingGateId: GateIdSchema.optional(),
   artifactKind: GateArtifactKindSchema.optional(),
   contractId: z.string().optional(),
+  linkId: z.string().optional(),
+  changeId: z.string().optional(),
+  relationship: z.string().optional(),
 });
 
 export type GateReadinessBlocker = z.infer<typeof GateReadinessBlockerSchema>;
