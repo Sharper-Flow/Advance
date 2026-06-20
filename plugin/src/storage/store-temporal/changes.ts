@@ -752,6 +752,8 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
             completedTasks: change.tasks.filter((t) => t.status === "done")
               .length,
             fast_follow_of: change.fast_follow_of,
+            ops_followup: change.ops_followup,
+            ops_followup_links: change.ops_followup_links,
           })),
           hydrationStats: {
             totalIds: filtered.length,
@@ -817,6 +819,8 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
         taskCount: number;
         completedTasks: number;
         fast_follow_of?: Change["fast_follow_of"];
+        ops_followup?: Change["ops_followup"];
+        ops_followup_links?: Change["ops_followup_links"];
       };
 
       const rows: SummaryRow[] = [];
@@ -835,6 +839,8 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
             completedTasks: cached.tasks.filter((t) => t.status === "done")
               .length,
             fast_follow_of: cached.fast_follow_of,
+            ops_followup: cached.ops_followup,
+            ops_followup_links: cached.ops_followup_links,
           });
           continue;
         }
@@ -851,6 +857,8 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
             taskCount: summary.taskCounts.total,
             completedTasks: summary.taskCounts.done,
             fast_follow_of: summary.fast_follow_of,
+            ops_followup: summary.ops_followup,
+            ops_followup_links: summary.ops_followup_links,
           });
           continue;
         }
@@ -872,6 +880,8 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
               completedTasks: change.tasks.filter((t) => t.status === "done")
                 .length,
               fast_follow_of: change.fast_follow_of,
+              ops_followup: change.ops_followup,
+              ops_followup_links: change.ops_followup_links,
             });
           }
         } catch (err) {

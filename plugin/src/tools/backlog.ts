@@ -35,6 +35,12 @@ import {
 import { getService } from "../temporal/service";
 import { getProjectId } from "../utils/project-id";
 import { queryActiveChangesByIssueNumbers } from "../temporal/visibility-claim-queries";
+import {
+  compactOpsFollowupAnnotation,
+  compactOpsFollowupLinkAnnotations,
+  type CompactOpsFollowupAnnotation,
+  type CompactOpsFollowupLinkAnnotation,
+} from "./ops-followup-readback";
 
 /** Materialized worktree shape returned from cross-change visibility. */
 export interface WipWorktreeEntry {
@@ -84,6 +90,8 @@ export interface WipStateResponse {
     lastActivityAt: string;
     taskCount: number;
     completedTasks: number;
+    ops_followup?: CompactOpsFollowupAnnotation;
+    ops_followup_links?: CompactOpsFollowupLinkAnnotation[];
   }>;
   worktrees: WipWorktreeEntry[];
   peer_sessions: WipPeerSessionEntry[];
@@ -282,6 +290,10 @@ export const backlogTools = {
           lastActivityAt: c.lastActivityAt,
           taskCount: c.taskCount,
           completedTasks: c.completedTasks,
+          ops_followup: compactOpsFollowupAnnotation(c.ops_followup),
+          ops_followup_links: compactOpsFollowupLinkAnnotations(
+            c.ops_followup_links,
+          ),
         }));
       } else {
         warnings.push({

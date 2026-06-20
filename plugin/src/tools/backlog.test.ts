@@ -154,6 +154,84 @@ describe("adv_wip_state (rq-backlogCoord04)", () => {
     expect(parsed.warnings).toEqual([]);
   });
 
+  it("exposes compact ops follow-up annotations on active_changes", async () => {
+    const store = makeMockStore([
+      {
+        id: "opsChange",
+        title: "Ops Change",
+        status: "active",
+        created_at: "2026-05-11T00:00:00.000Z",
+        lastActivityAt: "2026-05-11T01:00:00.000Z",
+        taskCount: 2,
+        completedTasks: 1,
+        ops_followup: {
+          kind: "cleanup",
+          source: {
+            source_change_id: "parent-1",
+            source_kind: "agenda",
+            source_agenda_id: "ag-1",
+          },
+          relationship: "cleanup_after",
+          status: "cleanup_needed",
+          created_at: "2026-05-11T00:00:00.000Z",
+          evidence: [
+            {
+              id: "ev-1",
+              recorded_at: "2026-05-11T00:00:00.000Z",
+              env: "staging",
+              action: "drop-temp-table",
+              status: "complete",
+              summary: "Cleanup complete",
+            },
+          ],
+        },
+        ops_followup_links: [
+          {
+            id: "ofl-1",
+            changeId: "child-1",
+            relationship: "follows_release",
+            status: "not_started",
+            required_handoff: true,
+            linked_at: "2026-05-11T00:00:00.000Z",
+          },
+        ],
+      } as any,
+    ]);
+
+    const result = await backlogTools.adv_wip_state.execute(
+      {},
+      store,
+      undefined,
+      {
+        worktreesProvider: async () => [],
+        sessionsProvider: async () => ({
+          sessions: [],
+          total: 0,
+          deadFiltered: 0,
+        }),
+      },
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.active_changes).toHaveLength(1);
+    const c = parsed.active_changes[0];
+    expect(c.ops_followup).toEqual({
+      kind: "cleanup",
+      relationship: "cleanup_after",
+      status: "cleanup_needed",
+      evidence_count: 1,
+    });
+    expect(c.ops_followup_links).toEqual([
+      {
+        id: "ofl-1",
+        changeId: "child-1",
+        relationship: "follows_release",
+        status: "not_started",
+        required_handoff: true,
+      },
+    ]);
+  });
+
   it("returns empty arrays when project has no in-flight state", async () => {
     const store = makeMockStore([]);
 

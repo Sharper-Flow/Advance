@@ -912,6 +912,180 @@ describe("change tools — signal-driven lifecycle", () => {
         await rm(tempRoot, { recursive: true, force: true });
       }
     });
+
+    test("exposes inbound ops_followup profile and outbound ops_followup_links", async () => {
+      const store = createMockStore({
+        ops_followup: {
+          kind: "cleanup",
+          source: {
+            source_change_id: "parent-1",
+            source_kind: "required_follow_up",
+          },
+          relationship: "cleanup_after",
+          status: "not_started",
+          created_at: "2026-01-01T00:00:00Z",
+          evidence: [],
+        },
+        ops_followup_links: [
+          {
+            id: "ofl-1",
+            changeId: "child-1",
+            relationship: "follows_release",
+            status: "not_started",
+            required_handoff: true,
+            linked_at: "2026-01-01T00:00:00Z",
+          },
+        ],
+      });
+
+      const result = await changeTools.adv_change_show.execute(
+        { changeId: "test-change" },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.ops_followup).toMatchObject({
+        kind: "cleanup",
+        relationship: "cleanup_after",
+        status: "not_started",
+      });
+      expect(parsed.ops_followup_links).toHaveLength(1);
+      expect(parsed.ops_followup_links[0]).toMatchObject({
+        id: "ofl-1",
+        changeId: "child-1",
+        required_handoff: true,
+      });
+    });
+
+    test("exposes compact ops annotations from full changes.list", async () => {
+      const store = createMockStore();
+      vi.mocked(store.changes.list).mockResolvedValue({
+        changes: [
+          {
+            id: "ops-change",
+            title: "Ops Change",
+            status: "active",
+            created_at: "2026-01-01T00:00:00Z",
+            lastActivityAt: "2026-01-01T01:00:00Z",
+            taskCount: 1,
+            completedTasks: 0,
+            ops_followup: {
+              kind: "migration",
+              source: {
+                source_change_id: "parent-2",
+                source_kind: "report_follow_up",
+              },
+              relationship: "blocks",
+              status: "running",
+              created_at: "2026-01-01T00:00:00Z",
+              evidence: [
+                {
+                  id: "ev-1",
+                  recorded_at: "2026-01-01T00:00:00Z",
+                  env: "prod",
+                  action: "migrate",
+                  status: "started",
+                  summary: "started",
+                },
+              ],
+            },
+            ops_followup_links: [
+              {
+                id: "ofl-2",
+                changeId: "child-2",
+                relationship: "monitors",
+                status: "partial",
+                required_handoff: false,
+                linked_at: "2026-01-01T00:00:00Z",
+              },
+            ],
+          },
+        ],
+      });
+
+      const result = await changeTools.adv_change_list.execute({}, store);
+      const parsed = JSON.parse(result);
+      expect(parsed.changes).toHaveLength(1);
+      const c = parsed.changes[0];
+      expect(c.ops_followup).toEqual({
+        kind: "migration",
+        relationship: "blocks",
+        status: "running",
+        evidence_count: 1,
+      });
+      expect(c.ops_followup_links).toEqual([
+        {
+          id: "ofl-2",
+          changeId: "child-2",
+          relationship: "monitors",
+          status: "partial",
+          required_handoff: false,
+        },
+      ]);
+    });
+
+    test("exposes compact ops annotations from listSummary", async () => {
+      const store = createMockStore();
+      store.changes.listSummary = vi.fn().mockResolvedValue({
+        changes: [
+          {
+            id: "summary-ops",
+            title: "Summary Ops",
+            status: "active",
+            created_at: "2026-01-01T00:00:00Z",
+            lastActivityAt: "2026-01-01T01:00:00Z",
+            taskCount: 0,
+            completedTasks: 0,
+            ops_followup: {
+              kind: "backfill",
+              source: {
+                source_change_id: "parent-3",
+                source_kind: "manual",
+              },
+              relationship: "follows_release",
+              status: "complete",
+              created_at: "2026-01-01T00:00:00Z",
+              evidence: [],
+            },
+            ops_followup_links: [
+              {
+                id: "ofl-3",
+                changeId: "child-3",
+                relationship: "cleanup_after",
+                status: "not_started",
+                required_handoff: true,
+                linked_at: "2026-01-01T00:00:00Z",
+              },
+            ],
+          },
+        ],
+        hydrationStats: {
+          totalIds: 1,
+          fromMemo: 1,
+          fromCache: 0,
+          fromHydration: 0,
+        },
+      });
+
+      const result = await changeTools.adv_change_list.execute({}, store);
+      const parsed = JSON.parse(result);
+      const c = parsed.changes[0];
+      expect(c.ops_followup).toEqual({
+        kind: "backfill",
+        relationship: "follows_release",
+        status: "complete",
+        evidence_count: 0,
+      });
+      expect(c.ops_followup_links).toEqual([
+        {
+          id: "ofl-3",
+          changeId: "child-3",
+          relationship: "cleanup_after",
+          status: "not_started",
+          required_handoff: true,
+        },
+      ]);
+    });
   });
 
   describe("adv_change_update", () => {

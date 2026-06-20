@@ -16,6 +16,7 @@
  */
 
 import type { ChangeStatus, FastFollowOf } from "../types";
+import type { OpsFollowupLink, OpsFollowupProfile } from "../types/changes";
 
 export type GateStatusValue = "pending" | "done" | "skipped" | "legacy";
 
@@ -55,6 +56,10 @@ export interface ChangeSummary {
   lastActivityAt: string;
   /** Same-project fast-follow lineage (optional) */
   fast_follow_of?: FastFollowOf;
+  /** Inbound ops follow-up profile when this change is a linked follow-up. */
+  ops_followup?: OpsFollowupProfile;
+  /** Outbound ops follow-up links when this change has promoted follow-ups. */
+  ops_followup_links?: OpsFollowupLink[];
 }
 
 export interface MemoStats {

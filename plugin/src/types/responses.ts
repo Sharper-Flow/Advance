@@ -6,7 +6,12 @@
  */
 
 import type { Task } from "./tasks";
-import type { ChangeStatus, FastFollowOf } from "./changes";
+import type {
+  ChangeStatus,
+  FastFollowOf,
+  OpsFollowupLink,
+  OpsFollowupProfile,
+} from "./changes";
 
 // =============================================================================
 // Tool Response Types
@@ -34,6 +39,10 @@ export interface ChangeListResponse {
     fast_follow_of?: FastFollowOf;
     /** Convenience top-level annotation when fast_follow_of is set (added by adv_change_list) */
     parent_change_id?: string;
+    /** Inbound ops follow-up profile when this change is a linked follow-up. */
+    ops_followup?: OpsFollowupProfile;
+    /** Outbound ops follow-up links when this change has promoted follow-ups. */
+    ops_followup_links?: OpsFollowupLink[];
   }>;
 }
 

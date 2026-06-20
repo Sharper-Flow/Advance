@@ -54,6 +54,10 @@ import {
 } from "../temporal/contracts";
 import { advWorktreeCleanup } from "./worktree";
 import { initStateDb as initWorktreeStateDb } from "./worktree/state";
+import {
+  compactOpsFollowupAnnotation,
+  compactOpsFollowupLinkAnnotations,
+} from "./ops-followup-readback";
 
 const logger = createLogger("change");
 
@@ -2079,6 +2083,10 @@ export const changeTools = {
               ...(change.fast_follow_of
                 ? { parent_change_id: change.fast_follow_of.parent_change_id }
                 : {}),
+              ops_followup: compactOpsFollowupAnnotation(change.ops_followup),
+              ops_followup_links: compactOpsFollowupLinkAnnotations(
+                change.ops_followup_links,
+              ),
             };
           });
 
@@ -2344,6 +2352,12 @@ export const changeTools = {
             _taskPagination: paged.pagination,
             ...(projectContext ? { _projectContext: projectContext } : {}),
           };
+
+          // Surface linked ops follow-up state structurally. The full profile
+          // remains on the change; this just guarantees it is visible even when
+          // downstream formatters would otherwise drop undefined keys.
+          output.ops_followup = change.ops_followup ?? null;
+          output.ops_followup_links = change.ops_followup_links ?? [];
 
           const changeDir = join(activeStore.paths.changes, changeId);
           const problemStatementPath = join(changeDir, "problem-statement.md");

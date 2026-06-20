@@ -99,6 +99,8 @@ export function createTemporalStoreBackend(
       },
       lastActivityAt: state.createdAt,
       fast_follow_of: state.fast_follow_of,
+      ops_followup: state.ops_followup,
+      ops_followup_links: state.ops_followup_links,
     };
   };
 
@@ -148,6 +150,8 @@ export function createTemporalStoreBackend(
       },
       lastActivityAt: change.created_at,
       fast_follow_of: change.fast_follow_of,
+      ops_followup: change.ops_followup,
+      ops_followup_links: change.ops_followup_links,
     });
     indexTasksFromChange(change);
     return change;
