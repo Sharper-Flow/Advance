@@ -1,0 +1,47 @@
+{
+  "entries": [
+    {
+      "id": "ws--E8R23",
+      "type": "pattern",
+      "content": "For Temporal-backed ADV state extensions, keep authority split explicit in types and tests: workflow state owns correctness, display snapshots are non-authoritative, signals are idempotent by structural IDs, and legacy optional-field normalization prevents old changes from failing strict parsing.",
+      "source_task": "tk-3aa2582f3e73",
+      "recorded_at": "2026-06-20T03:55:50.635Z"
+    },
+    {
+      "id": "ws-3uuktM",
+      "type": "pattern",
+      "content": "For follow-up promotion features, keep promotion as a thin dedicated tool that wraps existing change creation and fires typed workflow signals; preserve source identity structurally (report/change/scope/attempt/contract/agenda) and make duplicate detection use that identity, not title similarity.",
+      "source_task": "tk-ac8dbac8b723",
+      "recorded_at": "2026-06-20T04:24:18.361Z"
+    },
+    {
+      "id": "ws-7oCcWL",
+      "type": "pattern",
+      "content": "For evidence append tools, expose a caller-friendly operational status enum but map structurally to separate internal evidence-entry and aggregate-profile statuses; generate provenance fields (id, recorded_at) inside the tool and reject blank required evidence fields before signaling.",
+      "source_task": "tk-9f5e7c78df88",
+      "recorded_at": "2026-06-20T04:35:56.819Z"
+    },
+    {
+      "id": "ws-8cr2jx",
+      "type": "pattern",
+      "content": "For new change metadata that must appear in hot read paths, extend ChangeSummary/list projections first and share a compact projection helper across adv_change_list/adv_wip_state; this keeps readback structural without artifact hydration or duplicated display logic.",
+      "source_task": "tk-306e14486da2",
+      "recorded_at": "2026-06-20T04:49:29.099Z"
+    },
+    {
+      "id": "ws-6ztuSC",
+      "type": "pattern",
+      "content": "For release blockers, keep blocker metadata structural in GateReadinessBlocker (linkId/changeId/relationship) and separately expose non-blocking open obligations in archive/release reports; this distinguishes hard gates from surviving handoff context without message parsing.",
+      "source_task": "tk-b427160501a4",
+      "recorded_at": "2026-06-20T05:06:56.573Z"
+    },
+    {
+      "id": "ws-wKjVZD",
+      "type": "gotcha",
+      "content": "adv_status summary includes archived branch hygiene; because it is advisory and git-backed, wrap main-checkout resolution so non-git temp fixtures/degraded roots still return status instead of failing on git rev-parse.",
+      "source_task": "tk-2d32b4d9b2d4",
+      "recorded_at": "2026-06-20T05:15:58.260Z"
+    }
+  ],
+  "count": 6
+}
