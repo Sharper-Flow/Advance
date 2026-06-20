@@ -469,6 +469,8 @@ function withConsumerWarnings(
   return { ...report, consumer_warnings: merged } as ScopedSubagentReport;
 }
 
+// rq-opsFollowPromotion01: plain follow-ups are promotion candidates for typed
+// ops follow-up links; agenda remains the readable fallback, not the authority.
 async function consumeFollowUps(input: {
   store: Store;
   report: ScopedSubagentReport;
@@ -528,6 +530,8 @@ async function consumeFollowUps(input: {
 }
 
 // rq-subagentReports14: Required Follow-Up Preservation
+// rq-opsFollowPromotion01: required follow-ups carry obligation_class,
+// severity, and source_contract_id into typed ops follow-up promotion.
 async function consumeRequiredFollowUps(input: {
   store: Store;
   report: ScopedSubagentReport;

@@ -1,7 +1,7 @@
 # Advance Workflow
 
-> **Version:** 1.15.0
-> **Updated:** 2026-06-05
+> **Version:** 1.19.0
+> **Updated:** 2026-06-20
 
 ## Purpose
 
@@ -342,6 +342,34 @@ The canonical ADV workflow is seven sequential gates: proposal, discovery, desig
 - adv_change_archive is not called
 - The user is presented with the failing AC labels and three explicit options (fix locally, override, unlock + amend) per rq-confTriage01
 
+**Execution-gate requires all non-cancelled tasks done** (`rq-gatemodel01.4`)
+
+**Given:**
+
+- A change whose execution gate is being completed
+- The change has tasks with status not 'done' and not 'cancelled'
+
+**When:** adv_gate_complete is called with gateId 'execution'
+
+**Then:**
+
+- The call is rejected
+- The response lists each incomplete task with id, title, and status
+- The execution gate remains pending
+
+**Execution-gate passes when all tasks done or cancelled** (`rq-gatemodel01.5`)
+
+**Given:**
+
+- A change whose execution gate is being completed
+- All tasks are either 'done' or 'cancelled' (including zero tasks)
+
+**When:** adv_gate_complete is called with gateId 'execution'
+
+**Then:**
+
+- The gate completes normally
+
 ---
 
 ### External Conformance Gate Cross-Link
@@ -516,7 +544,7 @@ Phase 9 Git Finalization must refresh the current default-branch basis before de
 **Then:**
 
 - ADV commits all non-ignored tracked and untracked changes with an auditable checkpoint commit message referencing the change ID
-- The checkpoint commit SHA is recorded on `GitFinalizeOutcome.mainCheckpointCommitSha`
+- The checkpoint commit SHA is recorded on GitFinalizeOutcome.mainCheckpointCommitSha
 - The checkpoint SHA is surfaced in the archive terminal report
 - Finalization continues to remote freshness, merge, and push without user interruption
 - The checkpoint does not create new change-owned work on main; archive bundle/spec artifacts remain authored in the change worktree
@@ -532,12 +560,12 @@ Phase 9 Git Finalization must refresh the current default-branch basis before de
 **Then:**
 
 - Wrong main branch: archive blocks with diagnostics showing actual vs expected branch; does not switch branches
-- Missing git identity: archive blocks with `MISSING_GIT_IDENTITY` and instructs user to configure `user.name` and `user.email`
-- Active merge/rebase/cherry-pick/revert: archive blocks with `MAIN_IN_PROGRESS_STATE` and lists the detected in-progress operation
-- Checkpoint commit failure: archive blocks with `MAIN_CHECKPOINT_FAILED` and the underlying git error
+- Missing git identity: archive blocks with MISSING_GIT_IDENTITY and instructs user to configure `user.name` and `user.email`
+- Active merge/rebase/cherry-pick/revert: archive blocks with MAIN_IN_PROGRESS_STATE and lists the detected in-progress operation
+- Checkpoint commit failure: archive blocks with MAIN_CHECKPOINT_FAILED and the underlying git error
 - Merge conflict during merge-back: archive blocks with existing conflict reporting and does not delete the worktree
 - Required remote push failure: archive routes to `Pending auto-merge.` or `Blocked.` without release completion; no-remote archives are the only local-only success path
-- Unverifiable release evidence: archive blocks per `rq-releaseProjectionDurability01`
+- Unverifiable release evidence: archive blocks per rq-releaseProjectionDurability01
 
 **Phase 9 skip cannot bypass release proof** (`rq-releaseFinalization01.9`)
 
@@ -585,75 +613,6 @@ Phase 9 Git Finalization must refresh the current default-branch basis before de
 - Re-drive opens or reuses exactly one PR for the branch and arms GitHub auto-merge when possible
 - Re-drive never force-pushes and does not mark release complete until origin/default reachability or merged PR state is proven
 
-**PR handoff freshness** (`rq-releaseFinalization01.12`)
-
-**Given:**
-
-- `origin` exists and Phase 9 chooses a PR route
-
-**When:** The change branch is not current enough for repository policy
-
-**Then:**
-
-- ADV performs only safe non-force reconciliation or blocks with diagnostics before PR handoff
-- Force-push is never used to make the branch appear fresh
-
-**Merge queue is freshness, not proof** (`rq-releaseFinalization01.13`)
-
-**Given:**
-
-- Branch rules require merge queue and PR is queued or auto-merge armed
-
-**When:** Archive finalization reports outcome
-
-**Then:**
-
-- Status is `Pending` until PR state is `MERGED` or origin/default reachability is proven
-- Being queued or armed is not treated as release completion
-- Issue closure, branch deletion, and worktree cleanup do not run until merged proof exists
-
-**Unknown policy fails closed** (`rq-releaseFinalization01.14`)
-
-**Given:**
-
-- `gh` is unavailable, unauthenticated, rules are unreadable, or rules are unparseable
-
-**When:** Phase 9 would choose PR/queue handoff
-
-**Then:**
-
-- Archive reports `Blocked`
-- ADV does not arm the PR, record release, close issues, or clean up the worktree
-- Diagnostics direct the user to authenticate `gh` with a local user token that has `write` repo access
-
-**Merge queue detection uses structural evidence** (`rq-releaseFinalization01.15`)
-
-**Given:**
-
-- Branch rules response contains a `merge_queue` rule
-
-**When:** Phase 9 classifies finalization route
-
-**Then:**
-
-- The route records queue-required behavior
-- ADV uses documented GitHub queue handoff semantics (push `change/{change-id}`, open/reuse one PR, queue via `merge_group`)
-- Local reconciliation is skipped because the queue provides freshness via `merge_group`
-
-**Queue/auto-merge branch deletion guard** (`rq-releaseFinalization01.16`)
-
-**Given:**
-
-- Phase 9 arms or queues a PR
-
-**When:** Invoking GitHub CLI or API
-
-**Then:**
-
-- ADV must not pass delete-branch options
-- ADV must not delete the local or remote `change/{change-id}` branch before merged proof
-- Branch deletion is allowed only after merged PR state or origin/default reachability is verified
-
 ---
 
 ### Archive Success Requires Durable Release Projection
@@ -673,11 +632,11 @@ When `/adv-archive` Phase 9 finalization succeeds, archive success MUST be gated
 - Phase 9 finalization returns no-remote local proof, direct shipped origin proof, or merged PR proof
 - The release gate completion signal or recovery path has run
 
-**When:** `adv_change_archive phase9:"run"` is about to return success
+**When:** adv_change_archive phase9:"run" is about to return success
 
 **Then:**
 
-- The store-backed gate read used by `adv_gate_status` reports `gates.release.status === "done"`
+- The store-backed gate read used by adv_gate_status reports gates.release.status === "done"
 - The release completion record includes Phase 9 evidence
 - Archive does not report success while the gate-status-equivalent read would show release pending
 
@@ -688,11 +647,11 @@ When `/adv-archive` Phase 9 finalization succeeds, archive success MUST be gated
 - Phase 9 finalization has succeeded
 - The store-backed release gate proof is missing, stale, pending, unreadable, or lacks matching Phase 9 evidence
 
-**When:** `adv_change_archive` evaluates archive success
+**When:** adv_change_archive evaluates archive success
 
 **Then:**
 
-- The archive returns a blocked or recoverable result citing `rq-releaseProjectionDurability01`
+- The archive returns a blocked or recoverable result citing rq-releaseProjectionDurability01
 - The change is not retired as successfully archived
 - Linked issue closure and terminal worktree cleanup are not reported as successful retirement effects
 
@@ -717,7 +676,7 @@ When `/adv-archive` Phase 9 finalization succeeds, archive success MUST be gated
 
 **ID:** `rq-archiveVisibility01` | **Priority:** **[MUST]**
 
-`/adv-archive` terminal output MUST keep deploy and reflection status visible and prominent while treating deploy/reflection failures as nonblocking advisories unless they reveal a structural release-safety failure already governed by contract proof, conformance, merge reachability, push safety, release projection durability, or dirty-main safety checks. `/adv-reflect` MUST provide an archive-visible summary and rerun guidance. This policy MUST NOT absorb separate active-change scope such as archive cleanup scanner behavior or first-class executive-summary ownership; those remain coordinated boundaries, not duplicate implementation in this slice.
+/adv-archive terminal output MUST keep deploy and reflection status visible and prominent while treating deploy/reflection failures as nonblocking advisories unless they reveal a structural release-safety failure already governed by contract proof, conformance, merge reachability, push safety, release projection durability, or dirty-main safety checks. /adv-reflect MUST provide an archive-visible summary and rerun guidance. This policy MUST NOT absorb separate active-change scope such as archive cleanup scanner behavior or first-class executive-summary ownership; those remain coordinated boundaries, not duplicate implementation in this slice.
 
 **Tags:** `workflow`, `archive`, `reflection`, `deploy`, `noise`
 
@@ -727,7 +686,7 @@ When `/adv-archive` Phase 9 finalization succeeds, archive success MUST be gated
 
 **Given:**
 
-- A change is finalized through `/adv-archive`
+- A change is finalized through /adv-archive
 
 **When:** The archive terminal report is emitted
 
@@ -772,7 +731,7 @@ When `/adv-archive` Phase 9 finalization succeeds, archive success MUST be gated
 
 **ID:** `rq-productLinking01` | **Priority:** **[MUST]**
 
-ADV MAY link separate repositories into one product state plane. Linked products MUST keep two identity planes: `repo_project_id` for repo-local git/spec/worktree mechanics, and `product_project_id` for canonical product state (changes, agenda, wisdom, reflections, status aggregation). Product topology MUST live in `project.json` via `product` metadata plus `related_repos`; single-repo projects without product config stay unchanged. Missing primary resolution MUST fail structurally unless `missing_primary_policy` explicitly allows `read_only` or `isolated` degradation.
+ADV MAY link separate repositories into one product state plane. Linked products MUST keep two identity planes: repo_project_id for repo-local git/spec/worktree mechanics, and product_project_id for canonical product state (changes, agenda, wisdom, reflections, status aggregation). Product topology MUST be declared in project.json via product metadata plus related_repos entries; single-repo projects without product config MUST keep existing behavior unchanged. Missing or invalid primary repo resolution MUST fail structurally unless the explicit missing_primary_policy allows read_only or isolated degradation.
 
 **Tags:** `workflow`, `product`, `multi-repo`, `state`
 
@@ -782,15 +741,15 @@ ADV MAY link separate repositories into one product state plane. Linked products
 
 **Given:**
 
-- A secondary repo has `product.role = secondary`
-- `related_repos` identifies the primary repo with `repo_project_id` or resolvable path
+- A secondary repo has product.role = secondary
+- related_repos identifies the primary repo with repo_project_id or resolvable path
 
 **When:** ADV initializes product context
 
 **Then:**
 
-- `product_project_id` resolves to the primary repo ADV project id
-- `repo_project_id` remains the secondary repo ADV project id
+- product_project_id resolves to the primary repo ADV project id
+- repo_project_id remains the secondary repo ADV project id
 - Product changes, wisdom, reflections, agenda, and status queries use the product state plane
 
 **Single repo remains unchanged** (`rq-productLinking01.2`)
@@ -803,7 +762,7 @@ ADV MAY link separate repositories into one product state plane. Linked products
 
 **Then:**
 
-- `product_project_id` equals `repo_project_id`
+- product_project_id equals repo_project_id
 - No product filtering, origin tags, or multi-repo archive metadata is required
 
 **Missing primary handled structurally** (`rq-productLinking01.3`)
@@ -812,13 +771,13 @@ ADV MAY link separate repositories into one product state plane. Linked products
 
 - A secondary repo cannot resolve the primary repo project id
 
-**When:** `missing_primary_policy` is `block`, `read_only`, or `isolated`
+**When:** missing_primary_policy is block, read_only, or isolated
 
 **Then:**
 
-- `block` rejects initialization
-- `read_only` reports degraded product state
-- `isolated` reports degraded repo-local state
+- block rejects initialization
+- read_only reports degraded product state
+- isolated reports degraded repo-local state
 
 ---
 
@@ -826,7 +785,7 @@ ADV MAY link separate repositories into one product state plane. Linked products
 
 **ID:** `rq-productScopedChanges01` | **Priority:** **[MUST]**
 
-Product-linked changes MUST declare repository scope structurally with `scope_repos`. Entries MUST reference product repo ids from `ProductContext.repos` and MAY include `path`, `repo_project_id`, `required`, `role`, and `merge_order`. When product linking is enabled and no explicit `scope_repos` is provided, change creation MUST default to the current repo. `adv_change_list` and `adv_status` MUST default to current-repo scope while exposing explicit product-wide mode.
+Product-linked changes MUST declare repository scope structurally with scope_repos. scope_repos entries MUST reference product repo ids from ProductContext.repos and MAY include path, repo_project_id, required, role, and merge_order. When product linking is enabled and no explicit scope_repos is provided, change creation MUST default to the current repo. adv_change_list and adv_status MUST default to current-repo scope while exposing explicit product-wide mode.
 
 **Tags:** `workflow`, `product`, `scope`, `status`
 
@@ -838,11 +797,11 @@ Product-linked changes MUST declare repository scope structurally with `scope_re
 
 - ADV is running from a linked secondary repo
 
-**When:** `adv_change_create` is called without `scope_repos`
+**When:** adv_change_create is called without scope_repos
 
 **Then:**
 
-- The change has one `scope_repos` entry for the current repo
+- The change has one scope_repos entry for the current repo
 
 **List/status default to current repo** (`rq-productScopedChanges01.2`)
 
@@ -850,7 +809,7 @@ Product-linked changes MUST declare repository scope structurally with `scope_re
 
 - Product state contains backend-scoped and web-scoped changes
 
-**When:** `adv_change_list` or `adv_status` runs without `scope: product`
+**When:** adv_change_list or adv_status runs without scope: product
 
 **Then:**
 
@@ -864,7 +823,7 @@ Product-linked changes MUST declare repository scope structurally with `scope_re
 
 - Product state contains changes scoped to multiple repos
 
-**When:** `scope: product` is requested
+**When:** scope: product is requested
 
 **Then:**
 
@@ -876,7 +835,7 @@ Product-linked changes MUST declare repository scope structurally with `scope_re
 
 **ID:** `rq-productLearning01` | **Priority:** **[MUST]**
 
-Wisdom and reflection entries created in linked-product state MUST persist origin tags: `product_id`, `origin_repo_id`, `origin_repo_project_id`, and `origin_repo_path`. Default linked-repo wisdom queries MUST return current-repo-relevant change wisdom plus promoted/global project wisdom and legacy untagged entries. Explicit product-wide query mode MUST return all matching product wisdom. Reflection storage MUST preserve origin tags and support repo/product filtering for future query surfaces.
+Wisdom and reflection entries created in linked-product state MUST persist origin tags: product_id, origin_repo_id, origin_repo_project_id, and origin_repo_path. Default linked-repo wisdom queries MUST return current-repo-relevant change wisdom plus promoted/global project wisdom and legacy untagged entries. Explicit product-wide query mode MUST return all matching product wisdom. Reflection storage MUST preserve origin tags and support repo/product filtering for future query surfaces.
 
 **Tags:** `workflow`, `product`, `wisdom`, `reflection`
 
@@ -888,11 +847,11 @@ Wisdom and reflection entries created in linked-product state MUST persist origi
 
 - ADV runs from a linked product repo
 
-**When:** `adv_wisdom_add` records or promotes an entry
+**When:** adv_wisdom_add records or promotes an entry
 
 **Then:**
 
-- The entry includes `product_id`, `origin_repo_id`, `origin_repo_project_id`, and `origin_repo_path`
+- The entry includes product_id, origin_repo_id, origin_repo_project_id, and origin_repo_path
 
 **Repo query includes safe legacy and promoted entries** (`rq-productLearning01.2`)
 
@@ -900,7 +859,7 @@ Wisdom and reflection entries created in linked-product state MUST persist origi
 
 - Product wisdom contains current repo entries, other repo entries, promoted entries, and legacy untagged entries
 
-**When:** `adv_wisdom_list` runs with default scope
+**When:** adv_wisdom_list runs with default scope
 
 **Then:**
 
@@ -915,7 +874,7 @@ Wisdom and reflection entries created in linked-product state MUST persist origi
 
 - Product wisdom contains entries from multiple repos
 
-**When:** `adv_wisdom_list` runs with `scope: product`
+**When:** adv_wisdom_list runs with scope: product
 
 **Then:**
 
@@ -927,7 +886,7 @@ Wisdom and reflection entries created in linked-product state MUST persist origi
 
 **ID:** `rq-multiRepoArchive01` | **Priority:** **[MUST]**
 
-When a change has `scope_repos`, archive MUST collect multi-repo evidence before bundle write or merge. It MUST sort repos by `merge_order`, capture branch, default branch, before/after HEAD refs, `repo_project_id`, required flag, and verification evidence into `multi-repo-archive.json`. All required repos MUST pass ff-only ancestry preflight before any archive write or merge side effect. If any required repo fails preflight, archive MUST fail safely and write no archive bundle.
+When a change has scope_repos, archive MUST collect multi-repo evidence before bundle write or merge. It MUST sort repos by merge_order, capture branch, default branch, before/after HEAD refs, repo_project_id, required flag, and verification evidence into multi-repo-archive.json. All required repos MUST pass ff-only ancestry preflight before any archive write or merge side effect. If any required repo fails preflight, archive MUST fail safely and write no archive bundle.
 
 **Tags:** `workflow`, `archive`, `product`, `multi-repo`, `git`
 
@@ -937,15 +896,15 @@ When a change has `scope_repos`, archive MUST collect multi-repo evidence before
 
 **Given:**
 
-- A change has backend and web `scope_repos` with `merge_order`
+- A change has backend and web scope_repos with merge_order
 
-**When:** `adv_change_archive` creates the archive bundle
+**When:** adv_change_archive creates the archive bundle
 
 **Then:**
 
-- `multi-repo-archive.json` exists in the bundle
-- Repos are ordered by `merge_order`
-- Each repo has branch, `default_branch`, `head_before`, `head_after`, and `ff_only_preflight` fields
+- multi-repo-archive.json exists in the bundle
+- Repos are ordered by merge_order
+- Each repo has branch, default_branch, head_before, head_after, and ff_only_preflight fields
 - Done-task verification evidence is included
 
 **Preflight failure has no archive side effects** (`rq-multiRepoArchive01.2`)
@@ -954,11 +913,11 @@ When a change has `scope_repos`, archive MUST collect multi-repo evidence before
 
 - A required scoped repo cannot fast-forward merge to the default branch
 
-**When:** `adv_change_archive` runs preflight
+**When:** adv_change_archive runs preflight
 
 **Then:**
 
-- The tool returns `success: false`
+- The tool returns success: false
 - The error names the repo and ff-only preflight failure
 - No archive bundle is written
 
@@ -968,7 +927,7 @@ When a change has `scope_repos`, archive MUST collect multi-repo evidence before
 
 **ID:** `rq-archiveRetirement01` | **Priority:** **[MUST]**
 
-When adv_change_archive completes successfully, ADV MUST create the archive bundle first, transition the change workflow/status to archived, and only then remove the active changes/<id>/ source directory. Post-archive persistence MUST NOT recreate active change.json for archived changes. Archive orphan sweep recovery MUST repair any matching non-archived workflow/source state to archived before approved source-dir removal and MUST report repair errors separately from removal errors.
+When adv_change_archive completes successfully, ADV MUST create the archive bundle first, transition the change workflow/status to archived, and only then remove the active changes/<id>/ source directory. Post-archive persistence MUST NOT recreate active change.json for archived changes.
 
 **Tags:** `workflow`, `archive`, `recovery`, `cleanup`
 
@@ -1002,21 +961,19 @@ When adv_change_archive completes successfully, ADV MUST create the archive bund
 - No active changes/<id>/change.json is written for the archived change
 - Archived change lookups resolve from durable archived state or the archive bundle
 
-**Sweep repairs archive zombies before source cleanup** (`rq-archiveRetirement01.3`)
+**Cleanup refuses to remove active changes** (`rq-archiveRetirement01.3`)
 
 **Given:**
 
-- An archive bundle exists for a change
-- A matching source changes/<id>/ directory still exists
-- The workflow or source state is not marked archived
+- A change in active status still has a source changes/<id>/ directory
 
-**When:** A bulk-close or archive operation runs and leaves orphaned source dirs
+**When:** adv_cleanup or archive flow attempts source removal
 
 **Then:**
 
-- The change status is repaired to archived before source removal
-- Repair counts and repair errors are reported separately from removal counts and removal errors
-- A candidate with repair failure is not removed
+- The change status is verified as archived before source removal
+- Active changes are skipped with a structured warning
+- A candidate that is not archived is not removed
 
 ---
 
@@ -1119,7 +1076,7 @@ ADV must pause for human input only at explicit approval/judgment checkpoints an
 
 **ID:** `rq-contractTrace01` | **Priority:** **[MUST]**
 
-ADV changes with an approved agreement may carry a typed `change.contract` spine. Once minted, `contract.items` are the source of truth for success criteria, acceptance criteria, constraints, avoidances, and out-of-scope boundaries. Command workflows MUST project the typed contract into human-facing agreement/review/archive surfaces while preserving structured task refs and proof state.
+ADV changes with an approved agreement may carry a typed change.contract spine. Once minted, contract.items are the source of truth for success criteria, acceptance criteria, constraints, avoidances, and out-of-scope boundaries. Command workflows MUST project the typed contract into human-facing agreement/review/archive surfaces while preserving structured task refs and proof state.
 
 **Tags:** `workflow`, `contract`, `traceability`, `acceptance`
 
@@ -1446,7 +1403,7 @@ When an agent identifies that a proposed design can only be delivered by comprom
 
 **ID:** `rq-handoffVoice01` | **Priority:** **[MUST]**
 
-Every /adv-\* command that emits a user-facing gate-transition message MUST use the Gate Handoff Voice spine: Problem / Chosen direction / Delivered, followed by a blockquote wayfinder block. The blockquote MUST contain three rows: bolded `**{change-id}**`, the gate transition `{gate} ✓ → {next-gate}`, and an arrow-prefixed runnable command `→ `/adv-{next-command} {change-id}``. The command shown MUST be the single command needed to continue — no redundant or alternative command lines. Canonical source: docs/command-voice-standard.md § Gate Handoff Voice.
+Every /adv-* command that emits a user-facing gate-transition message MUST use the Gate Handoff Voice spine: Problem / Chosen direction / Delivered, followed by a blockquote wayfinder block. The blockquote MUST contain three rows: bolded `**{change-id}**`, the gate transition `{gate} ✓ → {next-gate}`, and an arrow-prefixed runnable command `→ `/adv-{next-command} {change-id}``. The command shown MUST be the single command needed to continue — no redundant or alternative command lines. Canonical source: docs/command-voice-standard.md § Gate Handoff Voice.
 
 **Tags:** `voice`, `handoff`, `presentation`
 
@@ -1456,7 +1413,7 @@ Every /adv-\* command that emits a user-facing gate-transition message MUST use 
 
 **Given:**
 
-- An /adv-\* command completes a gate and emits a user-facing gate-transition message
+- An /adv-* command completes a gate and emits a user-facing gate-transition message
 
 **When:** The handoff message is rendered
 
@@ -1473,7 +1430,7 @@ Every /adv-\* command that emits a user-facing gate-transition message MUST use 
 
 **Given:**
 
-- An /adv-\* command completes a gate and emits a user-facing gate-transition message
+- An /adv-* command completes a gate and emits a user-facing gate-transition message
 
 **When:** The handoff message is rendered
 
@@ -1504,7 +1461,7 @@ Every /adv-\* command that emits a user-facing gate-transition message MUST use 
 
 **Given:**
 
-- An /adv-\* command completes a gate and emits a user-facing gate-transition message
+- An /adv-* command completes a gate and emits a user-facing gate-transition message
 
 **When:** The handoff message is rendered
 
@@ -1519,7 +1476,7 @@ Every /adv-\* command that emits a user-facing gate-transition message MUST use 
 
 **Given:**
 
-- An /adv-\* command completes a gate and emits a user-facing gate-transition message
+- An /adv-* command completes a gate and emits a user-facing gate-transition message
 
 **When:** The blockquote wayfinder block is inspected
 
@@ -1719,6 +1676,66 @@ ADV tools that support cross-project coordination must use explicit `target_path
 
 #### Scenarios
 
+**Target path routes cross-project tools** (`rq-crossProjectCoordination01.1`)
+
+**Given:**
+
+- An ADV tool supports cross-project reads or contributions
+- The caller provides target_path
+
+**When:** The tool resolves the target project
+
+**Then:**
+
+- The tool validates target_path as a git-backed project root
+- The tool derives the target project identity from that repository
+- The tool never reads ADV state files directly
+
+**Untrusted target mutation requires confirmation** (`rq-crossProjectCoordination01.2`)
+
+**Given:**
+
+- A mutating ADV tool is called with target_path
+- The target is not configured as a trusted related repository
+
+**When:** The mutation is evaluated
+
+**Then:**
+
+- The tool requires explicit target confirmation evidence before changing target state
+- Without confirmation, the tool fails before any target state mutation
+
+**Cross-project create starts target workflow state** (`rq-crossProjectCoordination01.5`)
+
+**Given:**
+
+- adv_change_create is called with target_path for another ADV project
+- The target mutation is trusted or explicitly confirmed
+
+**When:** The target change is created
+
+**Then:**
+
+- Creation is routed through the target project's Temporal-backed store or equivalent workflow-start path
+- cross_project_origin is seeded before target workflow start
+- The source process does not issue a target workflow getState query after creation
+- If target workflow start fails, the tool returns an error and does not leave a new active disk-only target change
+
+**Active disk-only target changes reconcile through list/read** (`rq-crossProjectCoordination01.6`)
+
+**Given:**
+
+- A target project has non-terminal change.json records whose workflows are missing
+- The target project also has archived or closed disk records
+
+**When:** A Temporal-backed change read or list loads target project changes
+
+**Then:**
+
+- Each non-terminal disk-only change is reseeded into workflow state through the normal read/list path
+- Archived and closed disk records are returned only as terminal projections when requested and are not recreated as active workflows
+- No startup scanner or one-off repair path is required
+
 **Target mutation readiness accepts fresh server pollers** (`rq-targetMutationReadiness01`)
 
 **Given:**
@@ -1764,6 +1781,239 @@ ADV tools that support cross-project coordination must use explicit `target_path
 - Mutation readiness uses the same structural queue serviceability semantics as status and diagnostics
 - Mutation readiness does not contradict status by failing solely because the current process is client-only
 - Cached status or health evidence is not the sole authority for mutation readiness
+
+**Dependencies remain advisory** (`rq-crossProjectCoordination01.3`)
+
+**Given:**
+
+- A change has external_dependencies that reference another project
+
+**When:** Gate completion or archive readiness is evaluated
+
+**Then:**
+
+- Unmet external dependencies are reported as warnings or status metadata
+- Unmet external dependencies do not block gates or archive by default
+
+**Status defaults to summary with drilldown** (`rq-crossProjectCoordination01.4`)
+
+**Given:**
+
+- A change has cross_project_links or external_dependencies
+
+**When:** Cross-project status is displayed
+
+**Then:**
+
+- Default output summarizes linked projects and dependency health concisely
+- Detailed dependency graph and target diagnostics are available only through drilldown or coordinate output
+
+---
+
+### Task Mutations Route Through Target Project Store
+
+**ID:** `rq-crossProjectTaskMutation01` | **Priority:** **[MUST]**
+
+Task mutation tools that support task creation, cancellation, status updates, or TDD reclassification must accept explicit `target_path` routing when operating on another ADV-enabled project. The target store must own every task lookup, gate check, relational validation, Temporal signal, cache refresh, and context snapshot for that call. Real mutations of untrusted target projects require explicit confirmation evidence; dry-run previews may read target state without mutation confirmation because they must not write target state.
+
+**Tags:** `workflow`, `cross-project`, `target-path`, `tasks`, `mutation-safety`
+
+#### Scenarios
+
+**Task add uses target store end to end** (`rq-crossProjectTaskMutation01.1`)
+
+**Given:**
+
+- adv_task_add is called with target_path for a target ADV project
+
+**When:** The tool validates and creates the task
+
+**Then:**
+
+- Planning-gate checks use the target project state
+- blockedBy validation uses target project task ids
+- taskAddedSignal is sent to the target project change workflow
+- The returned context snapshot describes the target project change
+
+**Task cancel and TDD reclassify use target store end to end** (`rq-crossProjectTaskMutation01.2`)
+
+**Given:**
+
+- adv_task_cancel or adv_task_reclassify_tdd is called with target_path
+
+**When:** The tool validates task ids and applies the mutation
+
+**Then:**
+
+- Task lookup and change lookup use the target project store
+- The Temporal signal is sent to the target project change workflow
+- Cache refresh invalidates the target project cache, not the source project cache
+
+**Target dry-run task mutation is read-only** (`rq-crossProjectTaskMutation01.3`)
+
+**Given:**
+
+- A task mutation tool supports dryRun and is called with target_path
+
+**When:** dryRun is true
+
+**Then:**
+
+- The tool may read target state to validate the preview
+- The tool must not fire task mutation signals or write target state
+- Untrusted-target mutation confirmation is not required for the read-only preview
+
+---
+
+### Target Path Operations Use Target Project Canonical Shard
+
+**ID:** `rq-targetPathCanonicalShard01` | **Priority:** **[MUST]**
+
+ADV tools that resolve another ADV-enabled project via `target_path` MUST derive that target project's external ADV state root from the target project id, not from the caller project's per-process OpenCode shard. When `XDG_DATA_HOME` structurally matches the per-project shard layout `.../opencode-projects/{40-hex-project-id}`, target state MUST resolve to the sibling shard `.../opencode-projects/{target-project-id}/opencode/plugins/advance/{target-project-id}`. When the shard layout cannot be derived, tools MUST preserve the legacy `$XDG_DATA_HOME/opencode/plugins/advance/{target-project-id}` behavior. Existing shadow records in caller shards MUST NOT be automatically migrated by this routing rule.
+
+**Tags:** `workflow`, `cross-project`, `target-path`, `state-routing`, `opencode-sharding`
+
+#### Scenarios
+
+**Sharded target create writes target canonical shard** (`rq-targetPathCanonicalShard01.1`)
+
+**Given:**
+
+- The caller session has XDG_DATA_HOME set to .../opencode-projects/{sourceProjectId}
+- An ADV tool creates or mutates state for a different project via target_path
+- The target project id is targetProjectId
+
+**When:** The target store external root is resolved
+
+**Then:**
+
+- The external root is .../opencode-projects/{targetProjectId}/opencode/plugins/advance/{targetProjectId}
+- The target state is not written under the caller shard
+- Subsequent target_path reads use the same target canonical root
+
+**Non-sharded sessions preserve legacy target root** (`rq-targetPathCanonicalShard01.2`)
+
+**Given:**
+
+- XDG_DATA_HOME does not structurally match .../opencode-projects/{40-hex-project-id}
+- An ADV tool resolves a target project via target_path
+
+**When:** The target store external root is resolved
+
+**Then:**
+
+- The external root remains $XDG_DATA_HOME/opencode/plugins/advance/{targetProjectId}
+- The operation does not fail solely because the canonical shard layout is absent
+
+**Existing shadow records are not auto-migrated** (`rq-targetPathCanonicalShard01.3`)
+
+**Given:**
+
+- A prior target_path operation wrote target state under a caller project shard
+- The canonical target shard can now be derived
+
+**When:** A future target_path operation resolves target state
+
+**Then:**
+
+- The future operation uses the canonical target shard
+- The tool does not automatically copy, move, or delete the old caller-shard shadow record
+- Any recovery of old shadow state remains an explicit operator action
+
+---
+
+### Mutation Dry-Run Preview Is Same-Shape and Side-Effect Free
+
+**ID:** `rq-dryRunMutation01` | **Priority:** **[MUST]**
+
+ADV mutation tools that expose `dryRun` must execute schema and relational validation, return the normal success response shape with `dryRun: true`, and skip every side effect. Dry-run calls must not fire Temporal signals, save ADV state, delete worktrees, run worktree deletion hooks, write conformance audit entries, or write files. Validation failures must remain identical to real-run failures except for the absence of side effects.
+
+**Tags:** `workflow`, `dry-run`, `mutation-safety`, `preview`
+
+#### Scenarios
+
+**Dry-run validates and returns same-shape preview** (`rq-dryRunMutation01.1`)
+
+**Given:**
+
+- A mutation tool supports dryRun
+- The caller provides otherwise valid mutation arguments
+
+**When:** dryRun is true
+
+**Then:**
+
+- The tool performs the same schema and relational validation as the real mutation
+- The response includes the same success fields the real mutation would return
+- The response includes dryRun: true
+
+**Dry-run skips all mutation side effects** (`rq-dryRunMutation01.2`)
+
+**Given:**
+
+- A dry-run preview passes validation
+
+**When:** The tool returns the preview
+
+**Then:**
+
+- No Temporal mutation signal is fired
+- No ADV state or conformance audit file is saved
+- No worktree is deleted and no preDelete hook runs
+- No archive or cleanup filesystem write is performed
+
+**Dry-run validation failures match real-run failures** (`rq-dryRunMutation01.3`)
+
+**Given:**
+
+- A dry-run call has invalid arguments or invalid relational state
+
+**When:** The tool validates the call
+
+**Then:**
+
+- The tool fails before side effects
+- The error message identifies the same validation problem the real mutation would report
+
+---
+
+### Non-LLM ADV Tool Execution Requires Stable Structural Runtime Path
+
+**ID:** `rq-nonLlmToolExec01` | **Priority:** **[MUST]**
+
+ADV must not ship a direct non-LLM cross-project tool-execution CLI unless it can use a stable OpenCode tool execution API or an equivalent structural runtime path that preserves plugin initialization, Temporal service-layer access, target project resolution, validation, and audit semantics. When no stable path exists, the implementation outcome must be documented as blocked/deferred with evidence instead of duplicating the ADV runtime or bypassing trust gates.
+
+**Tags:** `workflow`, `cli`, `cross-project`, `tool-execution`, `runtime-safety`
+
+#### Scenarios
+
+**Stable runtime path is required before CLI execution ships** (`rq-nonLlmToolExec01.1`)
+
+**Given:**
+
+- A change proposes a non-LLM CLI that executes ADV tools across projects
+
+**When:** The design evaluates implementation feasibility
+
+**Then:**
+
+- The design identifies a stable OpenCode or equivalent structural tool execution path
+- The path preserves ADV plugin initialization, Temporal access, validation, and audit semantics
+- If no such path exists, the CLI execution behavior is not shipped
+
+**Blocked non-LLM execution is documented, not bypassed** (`rq-nonLlmToolExec01.2`)
+
+**Given:**
+
+- No stable non-LLM ADV tool execution path is available
+
+**When:** The change resolves the requirement
+
+**Then:**
+
+- The blocker and evidence are documented in the investigation notes or linked issue
+- ADV does not duplicate STSL, Temporal workflow access, or store lifecycle in an ad-hoc CLI
+- Existing LLM-mediated or session-mediated execution paths remain the supported fallback
 
 ---
 
@@ -1835,13 +2085,13 @@ When non-P23-campsite-eligible scope is discovered during /adv-apply, /adv-revie
 
 **ID:** `rq-scopeFollowupSurfacing01` | **Priority:** **[MUST]**
 
-Tools that surface change data must display fast-follow lineage: adv_change_show includes \_fastFollowOrigin, adv_change_list annotates entries with parent_change_id, and adv_status prefixes child labels and references parents in recommendations.
+Tools that surface change data must display fast-follow lineage: adv_change_show includes _fastFollowOrigin, adv_change_list annotates entries with parent_change_id, and adv_status prefixes child labels and references parents in recommendations.
 
 **Tags:** `lineage`, `surfacing`, `ui`
 
 #### Scenarios
 
-**adv_change_show surfaces \_fastFollowOrigin** (`rq-scopeFollowupSurfacing01.1`)
+**adv_change_show surfaces _fastFollowOrigin** (`rq-scopeFollowupSurfacing01.1`)
 
 **Given:**
 
@@ -1851,8 +2101,8 @@ Tools that surface change data must display fast-follow lineage: adv_change_show
 
 **Then:**
 
-- Output includes \_fastFollowOrigin parallel to \_crossProjectOrigin
-- \_fastFollowOrigin contains note, parent_change_id, and linked_at
+- Output includes _fastFollowOrigin parallel to _crossProjectOrigin
+- _fastFollowOrigin contains note, parent_change_id, and linked_at
 
 **adv_change_list annotates parent_change_id** (`rq-scopeFollowupSurfacing01.2`)
 
@@ -1877,7 +2127,7 @@ Tools that surface change data must display fast-follow lineage: adv_change_show
 
 **Then:**
 
-- Child change labels are prefixed with ↳
+- Child change labels are prefixed with ↳ 
 - Recommendations reference the parent change ID
 - Archived parents are annotated with (archived)
 
@@ -1936,7 +2186,7 @@ The /adv-atc agent provides autonomous ROADMAP execution that defers all HITL mo
 **Given:**
 
 - A change has proposal gate pending
-- `/adv-atc {change-id}` is invoked
+- /adv-atc {change-id} is invoked
 
 **When:** ATC workflow begins
 
@@ -2036,7 +2286,7 @@ The Temporal OperatorService search-attribute health check MUST use `listSearchA
 
 - A ChangeWorkflowInput with searchAttributesEnabled: false
 
-**When:** gateCompletedSignal, archiveChangeSignal, or closeChangeSignal handlers execute
+**When:** gateCompletedSignal, archiveRequestedSignal, or changeCancelledSignal handlers execute
 
 **Then:**
 
@@ -2079,7 +2329,7 @@ The Temporal OperatorService search-attribute health check MUST use `listSearchA
 
 **ID:** `rq-workflowVersioning01` | **Priority:** **[MUST]**
 
-Changes to Temporal workflow code under plugin/src/temporal/\*\* or other workflow-bundled command-producing helpers MUST be replay-verified against committed sanitized histories before archive. A workflow-code change that adds, removes, or reorders command-producing operations (Activities, timers, search-attribute upserts, patch markers, child workflows, continue-as-new, or similar Temporal commands) MUST include wf.patched, Worker Versioning, or an explicit reset/recovery plan. Patch markers MUST document the old branch, new branch, and a deprecation plan or non-deprecation rationale. Restarting a worker alone is not a repair for nondeterministic history mismatch.
+Changes to Temporal workflow code under plugin/src/temporal/** or other workflow-bundled command-producing helpers MUST be replay-verified against committed sanitized histories before archive. A workflow-code change that adds, removes, or reorders command-producing operations (Activities, timers, search-attribute upserts, patch markers, child workflows, continue-as-new, or similar Temporal commands) MUST include wf.patched, Worker Versioning, or an explicit reset/recovery plan. Patch markers MUST document the old branch, new branch, and a deprecation plan or non-deprecation rationale. Restarting a worker alone is not a repair for nondeterministic history mismatch.
 
 **Tags:** `temporal`, `replay`, `versioning`, `determinism`
 
@@ -2089,7 +2339,7 @@ Changes to Temporal workflow code under plugin/src/temporal/\*\* or other workfl
 
 **Given:**
 
-- A sanitized changeWorkflow history fixture is committed under `plugin/src/temporal/__tests__/replay/histories`
+- A sanitized changeWorkflow history fixture is committed under plugin/src/temporal/__tests__/replay/histories
 
 **When:** The replay determinism test runs
 
@@ -2124,6 +2374,948 @@ Changes to Temporal workflow code under plugin/src/temporal/\*\* or other workfl
 
 - The guidance does not classify worker restart as sufficient repair
 - Recovery starts with diagnosis, replay/versioning analysis, and audited quarantine/reset planning as appropriate
+
+---
+
+### Archive State Transition Must Be Resilient to Failed Disk Bundle Write
+
+**ID:** `rq-archiveOrdering01` | **Priority:** **[MUST]**
+
+adv_change_archive MUST be idempotent when retrying after a previous failure where the disk bundle was written but the Temporal status transition failed. On retry, if the archive bundle already exists on disk and the change status is not 'archived', the disk write MUST be skipped and the flow proceeds directly to the status transition. This prevents double-writing the bundle and allows recovery from transient Temporal failures.
+
+#### Scenarios
+
+**Idempotent retry skips disk write** (`rq-archiveOrdering01.1`)
+
+**Given:**
+
+- An archive bundle exists at {archiveDir}/{changeId}/change.json
+- The change status is not 'archived' (previous status transition failed)
+- dryRun is false
+
+**When:** adv_change_archive is called
+
+**Then:**
+
+- archiveChange() is NOT called (disk write skipped)
+- The status transition to 'archived' proceeds
+- The result includes the existing archivePath
+
+**Error output includes cause chain** (`rq-archiveOrdering01.2`)
+
+**Given:**
+
+- The archive disk write succeeded
+- store.changes.save(change) throws a Temporal WorkflowUpdateFailedError with a nested cause
+
+**When:** The error is caught
+
+**Then:**
+
+- The tool output includes the full cause chain (not just the outer error class name)
+- The output shows success: false with a descriptive error message
+
+---
+
+### Single ADV-controlled system entry per turn
+
+**ID:** `rq-singleSystemBlock01` | **Priority:** **[MUST]**
+
+The ADV plugin must emit at most one plugin-controlled entry into output.system per experimental.chat.system.transform invocation. All sections (degraded banner, session-health banner, provider-switch hint, worktree marker, active-change line, wisdom-recording prompt) must be assembled into a single string and appended to output.system[0]. Multi-block emission via output.system.push is prohibited because it triggers assistant-prefilling rejection on OpenAI-compatible providers. The factory-failure hook follows the same single-append rule.
+
+**Tags:** `workflow`, `providers`, `system-emission`, `openai-compat`
+
+#### Scenarios
+
+**Healthy turn produces at most one system entry** (`rq-singleSystemBlock01.1`)
+
+**Given:**
+
+- An active change is set
+- The plugin store initialized successfully
+
+**When:** experimental.chat.system.transform runs
+
+**Then:**
+
+- output.system.length is at most 1 after the hook returns
+- All ADV markers (active change, worktree, wisdom prompt) appear in output.system[0]
+
+**Degraded mode also obeys single-entry contract** (`rq-singleSystemBlock01.2`)
+
+**Given:**
+
+- The plugin store initialization failed
+
+**When:** experimental.chat.system.transform runs
+
+**Then:**
+
+- The [ADV:DEGRADED] banner is appended to output.system[0]
+- output.system.length is at most 1
+
+**Internal-call short-circuit** (`rq-singleSystemBlock01.3`)
+
+**Given:**
+
+- output.system[0] matches an OpenCode internal-call pattern (title generation or summarizer)
+
+**When:** experimental.chat.system.transform runs
+
+**Then:**
+
+- The assembler returns null and ADV content is NOT appended
+- output.system remains unchanged
+
+---
+
+### Compaction context fidelity parity with live snapshot
+
+**ID:** `rq-compactionFidelity01` | **Priority:** **[MUST]**
+
+experimental.session.compacting must use buildChangeContextSnapshot to produce its change-context block, ensuring the compacted context contains the same gate row, ledger phase, task counts, and current task as the live emission. A specs summary block is retained alongside the snapshot. A resume-hint block is composed from store.tasks.getRun for the in-progress task. Total output is bounded by an explicit byte budget.
+
+**Tags:** `workflow`, `compaction`, `fidelity`
+
+#### Scenarios
+
+**Compaction uses buildChangeContextSnapshot** (`rq-compactionFidelity01.1`)
+
+**Given:**
+
+- An active change with at least one task
+
+**When:** experimental.session.compacting runs
+
+**Then:**
+
+- output.context contains the rendered change-context snapshot
+- The snapshot uses the same formatter as the live system-block emission
+
+**Specs summary is retained** (`rq-compactionFidelity01.2`)
+
+**Given:**
+
+- The project has at least one spec
+
+**When:** experimental.session.compacting runs
+
+**Then:**
+
+- output.context includes an ADV SPECS CONTEXT block listing the specs
+
+---
+
+### 7-gate lifecycle is orthogonal to backlog coordination
+
+**ID:** `rq-aw-backlog01` | **Priority:** **[MUST]**
+
+Backlog coordination state (claims, search attributes, snapshot freshness) is updated as a side effect of normal change workflow signals. The 7-gate lifecycle (proposal/discovery/design/planning/execution/acceptance/release) and its semantics are unaffected by backlog-coordination changes (rq-backlogCoord01..07). Gate transitions emit search attribute upserts via buildChangeSearchAttributes; AdvBacklogIssueNumber participates in those upserts when state.origin.issue_number is set, but no gate logic depends on it.
+
+**Tags:** `backlog-coordination`, `gates`
+
+#### Scenarios
+
+**Gate transitions emit search attribute upserts including AdvBacklogIssueNumber when origin set** (`rq-aw-backlog01.1`)
+
+**Given:**
+
+- A change workflow with state.origin = { kind: roadmap, issue_number: 42 } progressing through gates
+
+**When:** Any gate completes (proposal, discovery, design, planning, execution, acceptance, release)
+
+**Then:**
+
+- The workflow upserts search attributes via buildChangeSearchAttributes
+- AdvBacklogIssueNumber remains populated with [42]
+- AdvCurrentGate reflects the newly completed gate semantics
+- Gate completion semantics are unchanged from baseline (rq-gatemodel01)
+
+**Changes without origin.issue_number do not emit AdvBacklogIssueNumber** (`rq-aw-backlog01.2`)
+
+**Given:**
+
+- A change workflow with state.origin undefined OR state.origin.issue_number undefined
+
+**When:** Any gate completes
+
+**Then:**
+
+- AdvBacklogIssueNumber is NOT present in the search-attribute upsert payload
+- Other gate-related search attributes (AdvCurrentGate, AdvChangeStatus, etc.) populate normally
+
+---
+
+### Project-wide ambiguity scanning in /adv-audit
+
+**ID:** `rq-ambiguityScan01` | **Priority:** **[MUST]**
+
+/adv-audit MUST detect ambiguity in committed spec laws using the B/F/S/Q/E taxonomy. Detection runs inline during Phase 3 Synthesis via runSpecAmbiguityChecks(markdown, capability) — not a sub-agent stage. Categories: B (Boundaries), F (Functional), S (Completion Signals), Q (Quality Attributes), E (Error Handling).
+
+#### Scenarios
+
+**Ambiguity detection runs for each spec audited** (`rq-ambiguityScan01.1`)
+
+**Given:**
+
+- An /adv-audit execution targeting one or more specs
+
+**When:** Phase 3 Synthesis executes
+
+**Then:**
+
+- runSpecAmbiguityChecks is called for each spec's markdown content
+- Findings use B/F/S/Q/E taxonomy categories
+- Each finding includes category, severity, spec ref, verbatim specText, issue, and fix
+
+**Ambiguity detection is pure-function and inline** (`rq-ambiguityScan01.2`)
+
+**Given:**
+
+- The audit command is executing Phase 3
+
+**When:** Ambiguity checks are invoked
+
+**Then:**
+
+- No sub-agent is spawned for ambiguity detection
+- The scan completes synchronously as a pure function call
+- Results are aggregated with other synthesis data
+
+---
+
+### Ambiguity findings in audit reports
+
+**ID:** `rq-ambiguityScan02` | **Priority:** **[MUST]**
+
+Ambiguity findings MUST appear as a distinct section in audit reports. Each finding MUST include: category (B|F|S|Q|E), severity (CRITICAL|HIGH|MEDIUM|LOW), spec reference, verbatim evidence (specText), issue description, and fix suggestion.
+
+#### Scenarios
+
+**Text report includes ambiguity section** (`rq-ambiguityScan02.1`)
+
+**Given:**
+
+- An audit produces ambiguity findings
+
+**When:** The text report is rendered
+
+**Then:**
+
+- A distinct ambiguity section appears in the report
+- Each finding shows category, severity, spec ref, verbatim text, issue, and fix
+
+**JSON report includes ambiguity array** (`rq-ambiguityScan02.2`)
+
+**Given:**
+
+- An audit produces ambiguity findings and --json is requested
+
+**When:** The JSON report is emitted
+
+**Then:**
+
+- The root object contains an ambiguity array
+- Each element has id, category, severity, spec, specText, issue, and fix fields
+
+---
+
+### Ambiguity-aware quality gates
+
+**ID:** `rq-ambiguityScan03` | **Priority:** **[MUST]**
+
+Quality gates MUST promote health status based on ambiguity severity. CRITICAL ambiguity ≥ 1 promotes to MAJOR_DRIFT. HIGH ambiguity > 3 (standard mode) or any HIGH (strict mode) promotes to DRIFT_DETECTED.
+
+#### Scenarios
+
+**CRITICAL ambiguity promotes to MAJOR_DRIFT** (`rq-ambiguityScan03.1`)
+
+**Given:**
+
+- An audit detects at least one CRITICAL ambiguity finding
+
+**When:** Quality gates are applied
+
+**Then:**
+
+- Health status is MAJOR_DRIFT regardless of other gate results
+
+**HIGH ambiguity threshold promotes to DRIFT_DETECTED** (`rq-ambiguityScan03.2`)
+
+**Given:**
+
+- Standard mode audit detects > 3 HIGH ambiguity findings
+
+**When:** Quality gates are applied
+
+**Then:**
+
+- Health status is DRIFT_DETECTED
+
+**Strict mode enforces zero HIGH ambiguity** (`rq-ambiguityScan03.3`)
+
+**Given:**
+
+- Strict mode audit detects any HIGH ambiguity finding
+
+**When:** Quality gates are applied
+
+**Then:**
+
+- Health status is DRIFT_DETECTED or MAJOR_DRIFT
+
+---
+
+### clarify_enforcement disables ambiguity detection
+
+**ID:** `rq-ambiguityScan04` | **Priority:** **[MUST]**
+
+When clarify_enforcement is 'off', ambiguity detection MUST be skipped entirely. When 'advisory', findings appear in reports but do not affect health status. When 'strict', ambiguity gates are enforced.
+
+#### Scenarios
+
+**off mode skips ambiguity detection** (`rq-ambiguityScan04.1`)
+
+**Given:**
+
+- clarify_enforcement is set to 'off'
+
+**When:** /adv-audit Phase 3 Synthesis runs
+
+**Then:**
+
+- runSpecAmbiguityChecks is NOT called
+- No ambiguity findings appear in the report
+
+**advisory mode includes findings without gate enforcement** (`rq-ambiguityScan04.2`)
+
+**Given:**
+
+- clarify_enforcement is set to 'advisory'
+
+**When:** Quality gates are applied
+
+**Then:**
+
+- Ambiguity findings appear in the report
+- Ambiguity findings do NOT affect health status promotion
+
+---
+
+### Informational remediation handoff for ambiguity
+
+**ID:** `rq-ambiguityScan05` | **Priority:** **[MUST]**
+
+Remediation handoff for ambiguity findings MUST be informational only. The audit report MAY suggest /adv-clarify as a resolution path, but MUST NOT mutate ADV change state or spawn clarification sub-agents directly.
+
+#### Scenarios
+
+**Audit report suggests clarify handoff without state mutation** (`rq-ambiguityScan05.1`)
+
+**Given:**
+
+- An audit produces ambiguity findings
+
+**When:** The remediation section is rendered
+
+**Then:**
+
+- The report contains informational text suggesting /adv-clarify
+- No ADV state is mutated (no task updates, no gate changes, no change creation)
+
+---
+
+### TodoWrite Projection From ADV Tasks
+
+**ID:** `rq-todoProjection01` | **Priority:** **[MUST]**
+
+ADV task-readiness surfaces MUST expose a TodoWrite-safe projection derived from ADV task state. The projection is a bounded UI window over the authoritative task graph, not a second task source of truth.
+
+**Tags:** `todowrite`, `tasks`, `projection`, `guardrails`
+
+#### Scenarios
+
+**adv_task_ready emits projection rows** (`rq-todoProjection01.1`)
+
+**Given:**
+
+- A change has pending or in-progress ADV tasks
+
+**When:** adv_task_ready is called
+
+**Then:**
+
+- The response includes _todoProjection rows derived from ADV task state
+- Each row content is formatted as `tk-id — title`
+- Completed ADV tasks are omitted from the projection
+
+**change show ready-task include emits same projection** (`rq-todoProjection01.2`)
+
+**Given:**
+
+- A change has ready tasks
+- adv_change_show is called with include.readyTasks true
+
+**When:** The response is built
+
+**Then:**
+
+- The response includes _todoProjection with the same row shape as adv_task_ready
+- The default projection window includes the current in-progress task when present plus the next three ready tasks
+- Legacy ready-task fields remain present for existing callers
+
+---
+
+### Scoped TodoWrite Drift Guardrails
+
+**ID:** `rq-todoGuard01` | **Priority:** **[MUST]**
+
+During top-level ADV execution after a planned task graph exists, TodoWrite calls MUST be checked against ADV task state. Hard blocks must be structural for task identity, ownership, and completion drift; warning-only paths must preserve non-ADV, early-gate, degraded-state, and subagent scratchpad usage.
+
+**Tags:** `todowrite`, `tasks`, `runtime-guard`, `projection`
+
+#### Scenarios
+
+**Unknown task IDs are blocked in active execution** (`rq-todoGuard01.1`)
+
+**Given:**
+
+- A top-level ADV session has an active change with a planned task graph
+
+**When:** TodoWrite contains a `tk-*` ID that is not known to the active change
+
+**Then:**
+
+- The TodoWrite call is rejected with a deterministic error
+
+**Other-change task IDs are blocked** (`rq-todoGuard01.2`)
+
+**Given:**
+
+- A top-level ADV session has an active change with a planned task graph
+
+**When:** TodoWrite contains a task ID structurally owned by another change
+
+**Then:**
+
+- The TodoWrite call is rejected with a deterministic error
+
+**TodoWrite completion cannot outrun ADV completion** (`rq-todoGuard01.3`)
+
+**Given:**
+
+- A TodoWrite entry references an ADV task whose ADV status is not done
+
+**When:** The TodoWrite entry status is completed during active top-level ADV execution
+
+**Then:**
+
+- The TodoWrite call is rejected with a deterministic error
+
+**Scratchpad and degraded scopes are preserved** (`rq-todoGuard01.4`)
+
+**Given:**
+
+- TodoWrite is used outside active top-level ADV execution or ADV state cannot be resolved safely
+
+**When:** TodoWrite contains no task IDs or local scratchpad entries
+
+**Then:**
+
+- The call is allowed or warning-only
+- Non-ADV work, early gates without tasks, degraded ADV state, and subagent scratchpads are not hard-blocked
+
+---
+
+### ADV Tool Argument Preflight
+
+**ID:** `rq-toolArgPreflight01` | **Priority:** **[MUST]**
+
+ADV tools MUST reject missing required arguments and high-risk empty mutation payloads at the plugin boundary before execution timeout safety nets. Validation errors must be deterministic, actionable, and redact sensitive received arguments.
+
+**Tags:** `tools`, `validation`, `guardrails`
+
+#### Scenarios
+
+**Missing required args fail fast** (`rq-toolArgPreflight01.1`)
+
+**Given:**
+
+- An ADV tool invocation omits required fields
+
+**When:** The tool registry receives the invocation
+
+**Then:**
+
+- The invocation returns `INVALID_TOOL_ARGS` before tool execution
+- The response lists missing fields
+- The response does not surface `ToolExecutionTimeout`
+
+**Cross-field constraints fail fast** (`rq-toolArgPreflight01.2`)
+
+**Given:**
+
+- An ADV tool has a cross-field mutation constraint such as artifact update requiring at least one non-empty artifact field
+
+**When:** The invocation omits all constrained fields or provides only empty strings
+
+**Then:**
+
+- The invocation returns `INVALID_TOOL_ARGS` before tool execution
+- The response explains the cross-field constraint
+
+**Received args are redacted** (`rq-toolArgPreflight01.3`)
+
+**Given:**
+
+- A rejected tool invocation includes secret-like argument keys
+
+**When:** The preflight error response is formatted
+
+**Then:**
+
+- Sensitive values in `received_args` are redacted
+
+---
+
+### Placeholder-Safe ADV Tool Arguments
+
+**ID:** `rq-toolPlaceholderPolicy01` | **Priority:** **[MUST]**
+
+ADV tool invocation preflight MUST centrally classify placeholder-sensitive arguments before tool execution through explicit `FIELD_POLICIES` metadata. Blank or whitespace-only strings, omission sentinels such as 'none'/'n/a'/'null'/'transcript', and empty arrays/objects MUST be rejected or normalized only by an explicit field policy. Required content, durable audit, path, lineage, origin, approval-evidence, command, and worktree branch/base fields MUST reject blank placeholders when provided. Omission-equivalent normalization is allowed only for fields whose schema and semantics make omission equivalent, such as scope_repos: [] on adv_change_create. Preflight MUST return deterministic `INVALID_TOOL_ARGS` field-level diagnostics and execute tools with normalized arguments so tool execution, workflow state, persistence, and spec compliance are not governed by heuristic caller interpretation. Drift guards MUST fail when audited placeholder-sensitive fields lack policy coverage or when registry-known policies reference dead tool fields.
+
+**Tags:** `tools`, `validation`, `placeholders`, `preflight`, `structural-correctness`
+
+#### Scenarios
+
+**Required content placeholders fail before execution** (`rq-toolPlaceholderPolicy01.1`)
+
+**Given:**
+
+- An ADV tool receives a blank required content field such as task content, wisdom content, run-test command, agenda title, or worktree branch
+
+**When:** Tool argument preflight runs
+
+**Then:**
+
+- The invocation returns INVALID_TOOL_ARGS before tool execution
+- The response names the offending field
+- No workflow signal, shell command, artifact write, git worktree operation, or durable state mutation occurs
+
+**Audit and linkage placeholders are rejected** (`rq-toolPlaceholderPolicy01.2`)
+
+**Given:**
+
+- An ADV mutation tool receives a blank or sentinel audit, approval-evidence, target path, origin, parent, source, supersession, recovery-evidence, or cancellation-reason value
+
+**When:** Tool argument preflight runs
+
+**Then:**
+
+- The invocation fails before mutation
+- The diagnostic names each invalid field or record entry
+- Placeholder strings are not persisted as workflow or audit facts
+
+**Omission-equivalent placeholders require explicit normalization policy** (`rq-toolPlaceholderPolicy01.3`)
+
+**Given:**
+
+- An ADV tool receives an empty array or other placeholder that might mean omitted
+
+**When:** The field has no explicit omit policy
+
+**Then:**
+
+- The placeholder is rejected or left to schema validation rather than silently normalized
+- Only explicitly whitelisted fields such as adv_change_create scope_repos: [] may be removed from normalizedArgs
+
+**Normalized arguments are the execute payload** (`rq-toolPlaceholderPolicy01.4`)
+
+**Given:**
+
+- Preflight applies a field policy that omits or otherwise normalizes a placeholder
+
+**When:** The tool registry calls the tool implementation
+
+**Then:**
+
+- The tool receives normalizedArgs rather than the raw caller payload
+- Execute paths contain only defensive safety checks needed for bypass resilience
+- Preflight and execute behavior do not diverge for placeholder-sensitive fields
+
+**Strict-mode optional fields normalize blanks to omitted** (`rq-toolPlaceholderPolicy01.5`)
+
+**Given:**
+
+- A strict-mode provider sends adv_change_create with optional fields filled with blank strings or zero
+
+**When:** Tool argument preflight runs
+
+**Then:**
+
+- Blank optional fields are normalized to omitted
+- The invocation succeeds with normalizedArgs
+- Required-when-present fields still reject blank values
+
+**Field policy drift guards cover audited tool args** (`rq-toolPlaceholderPolicy01.6`)
+
+**Given:**
+
+- A high-risk agent-callable ADV tool adds or renames a placeholder-sensitive argument
+
+**When:** The preflight policy and registry tests run
+
+**Then:**
+
+- Audited required content, audit, evidence, recovery, target path, command, and worktree fields have explicit `FIELD_POLICIES` coverage
+- Dead policy entries for removed or renamed tool fields fail tests
+- Representative malformed invocations return `INVALID_TOOL_ARGS` before handler execution or mutation
+
+---
+
+### Blank Artifact and Linkage Mutation Arguments
+
+**ID:** `rq-toolArgBlankArtifactLinkage01` | **Priority:** **[MUST]**
+
+ADV mutation tools MUST normalize provided blank or whitespace-only strings to omitted for fields that write durable narrative artifacts or origin linkage metadata. Required-when-present audit, evidence, and identity fields MUST still reject blank values. For adv_change_update this applies to proposal, problemStatement, agreement, design, and executiveSummary, including mixed payloads where another artifact field is non-blank. For adv_change_create this applies to provided narrative artifact fields and origin_source_artifact. Omitted fields preserve existing omission/default semantics. Normalization MUST occur before writes or workflow signals. Storage artifact write boundaries MUST also reject blank artifact content so bypassing preflight cannot erase an artifact.
+
+**Tags:** `tools`, `validation`, `artifacts`, `origin`
+
+#### Scenarios
+
+**Mixed update payload normalizes blank field to omitted; only writes provided non-blank artifacts** (`rq-toolArgBlankArtifactLinkage01.1`)
+
+**Given:**
+
+- adv_change_update receives a payload with proposal: 'real content' and design: ''
+
+**When:** The tool invocation is validated
+
+**Then:**
+
+- design is normalized to omitted
+- The invocation succeeds
+- Only proposal is written
+
+**Omitted artifact fields keep omission semantics** (`rq-toolArgBlankArtifactLinkage01.2`)
+
+**Given:**
+
+- adv_change_update receives proposal: 'new content' and omits design
+
+**When:** The update succeeds
+
+**Then:**
+
+- The proposal artifact may change
+- The omitted design artifact remains unchanged
+
+**Create normalizes blank provided narrative artifacts to omitted** (`rq-toolArgBlankArtifactLinkage01.3`)
+
+**Given:**
+
+- adv_change_create receives agreement: '   '
+
+**When:** The create invocation is validated
+
+**Then:**
+
+- agreement is normalized to omitted
+- The invocation succeeds
+- Omitted narrative artifact fields still use create defaults or skip behavior
+
+**Storage boundary rejects blank artifact writes** (`rq-toolArgBlankArtifactLinkage01.4`)
+
+**Given:**
+
+- A caller bypasses tool preflight and attempts to persist a blank artifact value
+
+**When:** The storage artifact write boundary validates the content
+
+**Then:**
+
+- The write is rejected before any artifact file is overwritten
+- The error identifies the blank artifact field
+
+**Blank origin source artifact is normalized to omitted** (`rq-toolArgBlankArtifactLinkage01.5`)
+
+**Given:**
+
+- adv_change_create receives origin_source_artifact: '   '
+
+**When:** The create invocation is validated
+
+**Then:**
+
+- origin_source_artifact is normalized to omitted
+- The invocation succeeds
+
+**Required-when-present audit fields still reject blank** (`rq-toolArgBlankArtifactLinkage01.6`)
+
+**Given:**
+
+- adv_change_update receives confirmationEvidence: ''
+
+**When:** The update invocation is validated
+
+**Then:**
+
+- The invocation fails before writes or workflow signals
+- The response names confirmationEvidence as an offending field
+
+---
+
+### Workflow-Level Gate Artifact Enforcement
+
+**ID:** `rq-gateArtifactEnforcement01` | **Priority:** **[MUST]**
+
+The Temporal change workflow MUST enforce required artifact preconditions before marking artifact-backed gates done. Proposal, discovery, design, and acceptance gate completion MUST be blocked when the required evidence is missing, unreadable, blank, stale, not workflow-visible, or below deterministic minimum-content rules, unless an explicit compatibility rationale is recorded for replay or migration safety. Required gate evidence MUST be durable before gate completion and MUST NOT be satisfied by caller-provided metadata or post-approval late writes. Artifact checks MUST use activities or tool/storage boundaries, never direct filesystem I/O in workflow code.
+
+**Tags:** `workflow`, `gates`, `artifacts`, `temporal`
+
+#### Scenarios
+
+**Missing artifact blocks artifact-backed gate** (`rq-gateArtifactEnforcement01.1`)
+
+**Given:**
+
+- An artifact-backed gate completion signal is handled by the change workflow
+
+**When:** The gate's required artifact is missing or unreadable
+
+**Then:**
+
+- The workflow does not mark the gate done
+- The gate remains pending or records a structured blocker
+- The blocker identifies the gate and missing artifact kind
+
+**Blank or undersized artifact blocks completion** (`rq-gateArtifactEnforcement01.2`)
+
+**Given:**
+
+- A required gate artifact exists
+
+**When:** The artifact is blank, whitespace-only, or below deterministic minimum-content rules
+
+**Then:**
+
+- The workflow refuses gate completion
+- The refusal is deterministic and does not depend on LLM quality scoring
+
+**Valid required artifact permits completion** (`rq-gateArtifactEnforcement01.3`)
+
+**Given:**
+
+- All prior gates are done
+- The required artifact exists and passes deterministic checks
+
+**When:** gateCompletedSignal is handled for the artifact-backed gate
+
+**Then:**
+
+- The workflow may mark the gate done
+- Artifact evidence is available for audit when configured
+
+**Compatibility requires explicit rationale** (`rq-gateArtifactEnforcement01.4`)
+
+**Given:**
+
+- A replay or migration fixture cannot provide the required artifact evidence
+
+**When:** Compatibility completion is allowed
+
+**Then:**
+
+- The completion records an explicit compatibility rationale
+- Silent legacy bypasses are not accepted for new gate completions
+
+**Post-approval late artifact write does not satisfy gate proof** (`rq-gateArtifactEnforcement01.5`)
+
+**Given:**
+
+- A user has approved an artifact-backed gate checkpoint
+- A required proof artifact was not durably persisted and workflow-visible before the approval prompt
+
+**When:** Gate completion is evaluated
+
+**Then:**
+
+- The workflow refuses completion or records a deterministic stuck blocker
+- The approval text alone is not treated as artifact proof
+- The blocker names the missing or stale artifact evidence
+
+---
+
+### Deterministic Gate Readiness Blockers
+
+**ID:** `rq-gateReadiness01` | **Priority:** **[MUST]**
+
+Gate readiness MUST be derived from workflow-owned state and expose deterministic blockers for incomplete prior gates and missing required artifacts. Tool-layer preflight may improve user experience, but workflow readiness remains authoritative and must not rely on heuristic agent judgment.
+
+**Tags:** `workflow`, `gates`, `readiness`, `blockers`
+
+#### Scenarios
+
+**Prior gate blocker is reported** (`rq-gateReadiness01.1`)
+
+**Given:**
+
+- A gate completion is requested while an earlier gate is not done
+
+**When:** Readiness is evaluated
+
+**Then:**
+
+- Readiness fails
+- The blocker identifies the prior incomplete gate
+- The workflow does not complete the requested gate
+
+**Artifact blocker is reported** (`rq-gateReadiness01.2`)
+
+**Given:**
+
+- Prior gates are complete
+- The requested gate requires an artifact
+
+**When:** The required artifact is missing or invalid
+
+**Then:**
+
+- Readiness fails with a stable blocker code
+- The blocker includes gateId, artifactKind, and remediation text
+
+**Tool surfaces workflow readiness blockers** (`rq-gateReadiness01.3`)
+
+**Given:**
+
+- Workflow readiness rejects a gate completion
+
+**When:** adv_gate_complete or adv_gate_status reports the result
+
+**Then:**
+
+- The tool response includes the workflow-derived blockers
+- Tool success is not reported unless workflow state actually advanced
+
+---
+
+### Gate Completion Artifact Audit Evidence
+
+**ID:** `rq-gateArtifactAudit01` | **Priority:** **[SHOULD]**
+
+When a gate requires artifact evidence, successful gate completion SHOULD record artifact audit metadata such as artifact kind, path or projection identity, content hash when available, checked timestamp, and compatibility rationale when used. For acceptance proof, executive-summary metadata MUST include workflow-visible content hash evidence for new contract-era changes. Audit metadata must not be caller-forgeable proof; workflow validation remains authoritative.
+
+**Tags:** `workflow`, `gates`, `audit`, `artifacts`
+
+#### Scenarios
+
+**Artifact evidence recorded on completion** (`rq-gateArtifactAudit01.1`)
+
+**Given:**
+
+- A gate requiring artifact evidence completes successfully
+
+**When:** The gate completion record is persisted
+
+**Then:**
+
+- The record includes the artifact kind and checked timestamp
+- The record includes artifact path or projection identity when available
+
+**Caller-provided audit data is not authoritative** (`rq-gateArtifactAudit01.2`)
+
+**Given:**
+
+- A caller sends gate completion payload data that claims artifact evidence
+
+**When:** The workflow handles the completion signal
+
+**Then:**
+
+- The workflow validates the artifact independently or rejects completion
+- Caller-provided metadata alone cannot mark the gate done
+
+**Executive summary proof uses workflow-visible hash metadata** (`rq-gateArtifactAudit01.3`)
+
+**Given:**
+
+- A new contract-era change reaches acceptance
+- executive-summary.md is required acceptance proof
+
+**When:** The workflow validates acceptance readiness
+
+**Then:**
+
+- The workflow requires executive-summary artifact metadata with a content hash
+- The current artifact hash must match workflow-visible metadata
+- Missing or stale metadata blocks acceptance
+
+---
+
+### Acceptance Projection from Typed Contract Review State
+
+**ID:** `rq-acceptanceProjection01` | **Priority:** **[MUST]**
+
+Acceptance gate completion MUST use typed contract, review matrix state, generated acceptance.md, and workflow-visible executive-summary.md evidence as the source of truth for acceptance proof. For new contract-era changes, the workflow MUST generate a durable acceptance.md projection from ChangeContract items and the contract review matrix before marking acceptance done. Manually edited markdown must not be treated as the authoritative acceptance proof.
+
+**Tags:** `workflow`, `acceptance`, `contract`, `artifacts`
+
+#### Scenarios
+
+**Missing contract blocks acceptance** (`rq-acceptanceProjection01.1`)
+
+**Given:**
+
+- A new contract-era change reaches acceptance gate completion
+
+**When:** ChangeContract state is missing and no explicit compatibility rationale applies
+
+**Then:**
+
+- The workflow refuses acceptance completion
+- The blocker identifies the missing contract proof
+
+**Incomplete or failing review matrix blocks acceptance** (`rq-acceptanceProjection01.2`)
+
+**Given:**
+
+- A ChangeContract exists
+
+**When:** A verification-required contract item lacks a review row or has a failing/violated status
+
+**Then:**
+
+- The workflow refuses acceptance completion
+- The blocker identifies the unmet contract item
+
+**Passing matrix generates durable acceptance projection** (`rq-acceptanceProjection01.3`)
+
+**Given:**
+
+- All verification-required contract items have acceptable review rows
+
+**When:** The acceptance gate is completed
+
+**Then:**
+
+- The workflow writes acceptance.md through an activity or storage boundary
+- The workflow records acceptance artifact evidence
+- The acceptance gate may be marked done
+
+**Executive summary evidence blocks acceptance when absent or stale** (`rq-acceptanceProjection01.4`)
+
+**Given:**
+
+- A new contract-era change reaches acceptance gate completion
+- The contract and review matrix pass
+
+**When:** executive-summary.md is missing, unreadable, undersized, lacks workflow-visible metadata, or its content hash is stale
+
+**Then:**
+
+- The workflow refuses acceptance completion
+- The blocker identifies executive-summary evidence as missing or stale
+- Chat approval alone does not mark acceptance done
 
 ---
 
@@ -2292,42 +3484,527 @@ Completed-workflow or poisoned-history acceptance recovery MUST be explicit and 
 
 ---
 
-### Archive State Transition Must Be Resilient to Failed Disk Bundle Write
+### Design Owns Design-Derived Technical Criteria Only
 
-**ID:** `rq-archiveOrdering01` | **Priority:** **[MUST]**
+**ID:** `rq-stageDesignCriteriaBoundary01` | **Priority:** **[MUST]**
 
-adv_change_archive MUST be idempotent when retrying after a previous failure where the disk bundle was written but the Temporal status transition failed. On retry, if the archive bundle already exists on disk and the change status is not 'archived', the disk write MUST be skipped and the flow proceeds directly to the status transition. This prevents double-writing the bundle and allows recovery from transient Temporal failures.
+/adv-design MUST produce validated architecture decisions, implementation strategy, and any design-derived technical criteria such as performance, security, scale, migration, or operational budgets. /adv-design MUST NOT invent new user-facing acceptance criteria. If design invalidates or requires changing approved user-facing criteria, the workflow MUST treat discovery re-entry as the routine path for criteria revision before prep resumes.
+
+**Tags:** `workflow`, `design`, `criteria`, `re-entry`, `stage-boundary`
 
 #### Scenarios
 
-**Idempotent retry skips disk write** (`rq-archiveOrdering01.1`)
+**Design records technical criteria without new user AC** (`rq-stageDesignCriteriaBoundary01.1`)
 
 **Given:**
 
-- An archive bundle exists at {archiveDir}/{changeId}/change.json
-- The change status is not 'archived' (previous status transition failed)
-- dryRun is false
+- A change reaches /adv-design with approved discovery criteria
 
-**When:** adv_change_archive is called
+**When:** /adv-design writes design.md
 
 **Then:**
 
-- archiveChange() is NOT called (disk write skipped)
-- The status transition to 'archived' proceeds
-- The result includes the existing archivePath
+- design.md may include a Design-Derived Criteria section for technical budgets and constraints
+- design.md does not add new user-facing acceptance criteria as if they were approved agreement items
+- The design explains how approved discovery criteria will be delivered
 
-**Error output includes cause chain** (`rq-archiveOrdering01.2`)
+**Design-invalidated AC uses discovery re-entry** (`rq-stageDesignCriteriaBoundary01.2`)
 
 **Given:**
 
-- The archive disk write succeeded
-- store.changes.save(change) throws a Temporal WorkflowUpdateFailedError with a nested cause
+- A design decision proves an approved acceptance criterion invalid, incomplete, or mechanism-derived
 
-**When:** The error is caught
+**When:** /adv-design handles the conflict
 
 **Then:**
 
-- The tool output includes the full cause chain (not just the outer error class name)
-- The output shows success: false with a descriptive error message
+- The conflict is surfaced before planning
+- adv_change_reenter is used from discovery when criteria must change
+- The design gate does not silently rewrite approved user-facing criteria
+
+---
+
+### Criteria Enforcement Anchors After Discovery
+
+**ID:** `rq-stageCriteriaEnforcementRetarget01` | **Priority:** **[MUST]**
+
+Workflow enforcement MUST NOT require proposal.md to contain testable success criteria. Proposal `## User Outcomes` are alignment inputs. Criteria-presence enforcement for full changes MUST anchor to discovery's agreement artifact and the minted ChangeContract. Planning, execution, acceptance, and release MUST continue to use the approved ChangeContract review matrix and evidence policies without reading proposal-level success criteria as contract law.
+
+**Tags:** `workflow`, `criteria`, `proposal`, `discovery`, `contract`
+
+#### Scenarios
+
+**Proposal without success criteria reaches planning** (`rq-stageCriteriaEnforcementRetarget01.1`)
+
+**Given:**
+
+- proposal.md contains `## User Outcomes` and no proposal-level `## Success Criteria` section
+
+**When:** The change reaches planning-gate readiness checks
+
+**Then:**
+
+- No clarify-readiness finding fires solely because proposal success criteria are absent
+- The planning gate is not blocked on that basis
+- Criteria checks use agreement.md and the ChangeContract instead
+
+**Acceptance contract behavior unchanged** (`rq-stageCriteriaEnforcementRetarget01.2`)
+
+**Given:**
+
+- The ChangeContract contains approved `AC*` items from discovery
+
+**When:** /adv-review builds the acceptance review matrix
+
+**Then:**
+
+- Each `AC*` item is reviewed with its evidence policy as before
+- No proposal `## User Outcomes` item is reviewed as an `AC*` unless it was approved through discovery agreement
+- The absence of proposal success criteria does not weaken acceptance review of approved contract items
+
+---
+
+### Mandatory Design Leverage Scout
+
+**ID:** `rq-designOpportunityScout01` | **Priority:** **[MUST]**
+
+/adv-design MUST execute a bounded Design Leverage Scout pass (Phase 2.5) for every full proposal workflow after draft design (Phase 2) and before independent validation (Phase 3.5). The scout uses a split-load contract: orchestrator owns ScoutCandidate schema, routing, fallback/degradation, adoption, and mutations; adv-researcher may load the adv-opportunity-scout skill in design mode for worker methodology. It returns ≤5 structured candidates. The scout identifies leverage points: shortcuts, reusable components, parallelism, simplification paths. The scout phase MUST include an INCONCLUSIVE degradation path. Trivially scoped changes MAY skip with rationale. Auto-adopted candidates are incorporated into the design before the validator runs.
+
+**Tags:** `design`, `scout`, `leverage`, `mandatory`
+
+#### Scenarios
+
+**Scout phase executes for full proposals** (`rq-designOpportunityScout01.1`)
+
+**Given:**
+
+- A /adv-design invocation for a full proposal workflow
+- Design Phase 2 (draft design) has completed
+
+**When:** Phase 2.5 executes
+
+**Then:**
+
+- The orchestrator prepares schema, routing, fallback/degradation, and adoption rules
+- adv-researcher is spawned with design-mode prompt and may load adv-opportunity-scout in worker context
+- ≤5 candidates are returned with 8-field ScoutCandidate schema
+- Candidates are sorted by payoff/risk ratio
+- Auto-adopted candidates are integrated into design before validator
+
+**Design validator remains distinct** (`rq-designOpportunityScout01.2`)
+
+**Given:**
+
+- Phase 2.5 (scout) has completed
+- Phase 3.5 (validator) runs after
+
+**When:** The design validation flow executes
+
+**Then:**
+
+- The existing design validator runs unchanged
+- The validator validates the design including any scout-adopted improvements
+- The scout and validator serve different purposes (opportunity vs correctness)
+
+---
+
+### Required Obligation Release Block
+
+**ID:** `rq-requiredObligation01` | **Priority:** **[MUST]**
+
+The review/harden flow MUST block release when required in-scope obligations remain unresolved. A required-critical contract item that is in-scope, has no notRequiredReason, and lacks verified completion evidence MUST prevent the release gate from completing. This is a structural safety invariant: unresolved required obligations represent unshipped work that cannot be silently released.
+
+**Tags:** `workflow`, `release`, `required-obligation`, `safety`, `contract`
+
+#### Scenarios
+
+**Unresolved required-critical item blocks release** (`rq-requiredObligation01.1`)
+
+**Given:**
+
+- A change has a required-critical contract item in-scope
+- The item has no notRequiredReason
+- The contract review matrix shows the item as unverified or failed
+
+**When:** The release gate is evaluated
+
+**Then:**
+
+- The release gate is NOT marked done
+- A REQUIRED_OBLIGATION_UNRESOLVED blocker is surfaced
+- The response identifies the specific contract item and required evidence
+
+**Verified required-critical item allows release** (`rq-requiredObligation01.2`)
+
+**Given:**
+
+- A change has a required-critical contract item in-scope
+- The contract review matrix shows the item as pass with evidence
+
+**When:** The release gate is evaluated
+
+**Then:**
+
+- The release gate may proceed if all other conditions are met
+
+**Not-required reason exempts item from release block** (`rq-requiredObligation01.3`)
+
+**Given:**
+
+- A change has a required-critical contract item
+- The item has an explicit notRequiredReason set
+
+**When:** The release gate is evaluated
+
+**Then:**
+
+- The item does not block release
+
+---
+
+### Required Obligation Explicit Routing
+
+**ID:** `rq-requiredObligation02` | **Priority:** **[MUST]**
+
+Out-of-scope required obligations MUST NOT be silently dropped or auto-resolved. When a required-critical contract item is classified as out-of-scope during execution or review, the workflow MUST require explicit routing: either re-enter the item into scope via adv_change_reenter with a rationale, or split the obligation into a new change with a tracking reference. Silent deferral or implicit postponement of required obligations is prohibited.
+
+**Tags:** `workflow`, `required-obligation`, `routing`, `scope`, `split`
+
+#### Scenarios
+
+**Out-of-scope required item requires explicit routing** (`rq-requiredObligation02.1`)
+
+**Given:**
+
+- A required-critical contract item is marked out-of-scope during execution or review
+
+**When:** The workflow evaluates release readiness
+
+**Then:**
+
+- The release gate is NOT marked done
+- A REQUIRED_OBLIGATION_ROUTING_MISSING blocker is surfaced
+- The response demands explicit re-enter or split action with rationale
+
+**Re-enter with rationale resolves routing blocker** (`rq-requiredObligation02.2`)
+
+**Given:**
+
+- An out-of-scope required-critical item is re-entered via adv_change_reenter
+- The re-enter rationale explains why the item is now in-scope
+
+**When:** The release gate is re-evaluated
+
+**Then:**
+
+- The REQUIRED_OBLIGATION_ROUTING_MISSING blocker is cleared
+- The item is treated as in-scope for release checks
+
+**Split into new change resolves routing blocker** (`rq-requiredObligation02.3`)
+
+**Given:**
+
+- An out-of-scope required-critical item is split into a new tracked change
+- The original change records the split reference (new change ID and rationale)
+
+**When:** The release gate is re-evaluated
+
+**Then:**
+
+- The REQUIRED_OBLIGATION_ROUTING_MISSING blocker is cleared
+- The original change may proceed to release
+- The new change carries the required obligation forward
+
+---
+
+### Truthful Artifact Path Read Surfaces
+
+**ID:** `rq-artifactPathTruth01` | **Priority:** **[MUST]**
+
+ADV read surfaces MUST NOT expose nonexistent active artifact filesystem paths as readable source-of-truth. When artifact content lives in Temporal state.documents, tools MUST expose content via ADV read/include fields and either omit filesystem paths or mark them machine-readably non-readable/source-tagged. Legacy disk and archive-bundle fallback reads MUST remain supported.
+
+**Tags:** `workflow`, `artifacts`, `temporal`, `read-surface`
+
+#### Scenarios
+
+**Temporal-only artifact content does not expose fake readable path** (`rq-artifactPathTruth01.1`)
+
+**Given:**
+
+- An active change has state.documents.design populated
+- No active design.md file exists on disk for the change
+
+**When:** adv_change_show is called with include.design true
+
+**Then:**
+
+- The response includes the design content in _design
+- The response does not present artifacts.design.path as a readable existing file
+- Artifact metadata is machine-readable enough to distinguish Temporal content from a materialized file
+
+**Legacy and archive artifact fallbacks remain readable** (`rq-artifactPathTruth01.2`)
+
+**Given:**
+
+- Artifact content exists only as a legacy active disk artifact or a materialized archive bundle artifact
+
+**When:** Artifact readback runs for that change
+
+**Then:**
+
+- The fallback content is returned
+- A filesystem path is exposed only when the file is actually materialized and readable
+
+**Recovery and archive evidence keeps verified real paths** (`rq-artifactPathTruth01.3`)
+
+**Given:**
+
+- A recovery or archive path intentionally writes or verifies an artifact file
+
+**When:** Gate or archive evidence is emitted
+
+**Then:**
+
+- The real verified filesystem path may be included in evidence
+- The behavior does not reintroduce active artifact-content disk writes as the primary source of truth
+
+---
+
+### Post-merge local branch cleanup for archived ADV changes
+
+**ID:** `rq-archiveBranchCleanup01` | **Priority:** **[MUST]**
+
+PR-mode ADV archives that survive through PR creation must be cleanable post-merge via an operator-explicit tool. Local deletion uses safe `git branch -d` semantics (refuses unmerged). The cleanup tool reuses the existing `adv_archive_repair` MCP tool surface with a new `cleanup_merged` action; it is operator-explicit (no background sweeps, no daemons, no session-start auto-cleanup per P37). Detection is squash-merge-safe via tree-SHA match (primary) with `git cherry` diff-equivalence fallback.
+
+**Tags:** `workflow`, `archive`, `branch-cleanup`, `release-finalization`
+
+#### Scenarios
+
+**Squash-merge-safe detection** (`rq-archiveBranchCleanup01.1`)
+
+**Given:**
+
+- An archived ADV change whose `change/{id}` branch was squash-merged into the default branch
+
+**When:** operator runs `adv_archive_repair action=cleanup_merged`
+
+**Then:**
+
+- The branch is detected as `tree-identical` (tree-SHA match) OR `patch-equivalent` (git cherry)
+- The branch is included in cleanup candidates
+
+**Worktree-checked-out refusal** (`rq-archiveBranchCleanup01.2`)
+
+**Given:**
+
+- An archived ADV change whose `change/{id}` branch is currently checked out in any active worktree
+
+**When:** operator runs `adv_archive_repair action=cleanup_merged`
+
+**Then:**
+
+- The branch is excluded from deletion candidates
+- The exclusion rationale cites the worktree path
+
+**Dry-run preview** (`rq-archiveBranchCleanup01.3`)
+
+**Given:**
+
+- Operator wants to preview before deleting
+
+**When:** operator runs `adv_archive_repair action=cleanup_merged dryRun=true`
+
+**Then:**
+
+- The tool returns the candidate list with per-branch merge proof
+- Zero deletions are performed
+
+**Status observability** (`rq-archiveBranchCleanup01.4`)
+
+**Given:**
+
+- At least 1 archived-change local branch is safely deletable
+
+**When:** operator runs `adv_status view:"summary"`
+
+**Then:**
+
+- A recommendation line appears in `recommendations[]`
+- When operator runs `adv_status view:"hygiene"`, a full `archived_branch_hygiene` section appears with per-branch detail
+
+**Non-regression of direct-archive path** (`rq-archiveBranchCleanup01.5`)
+
+**Given:**
+
+- A change archived via direct-archive mode
+
+**When:** archive finalization completes
+
+**Then:**
+
+- The existing branch cleanup gate at `change.ts:4436-4441` continues to delete the branch at archive time
+- Direct-archive cleanup behavior is unchanged by the addition of cleanup_merged action
+
+---
+
+### Linked Ops Follow-Up Provenance
+
+**ID:** `rq-opsFollowTrace01` | **Priority:** **[MUST]**
+
+Linked ops/enabler follow-up work MUST persist structural source provenance in authoritative workflow state. A follow-up change MUST record its source change, relationship kind, originating artifact/report/agenda source, and creation timestamp. The source/parent change MUST record an outbound ops_followup_link with matching relationship, target change, and linkage timestamp. Authoritative provenance MUST live in typed workflow state and query readbacks, not in free-text agenda descriptions.
+
+**Tags:** `workflow`, `ops-follow-up`, `provenance`, `traceability`, `state`
+
+#### Scenarios
+
+**Promoted required follow-up records provenance on both sides** (`rq-opsFollowTrace01.1`)
+
+**Given:**
+
+- A sub-agent report contains a required_critical follow-up tied to contract item C8
+- The parent change has no existing ops_followup_links
+
+**When:** adv_followup_promote creates the ops follow-up change
+
+**Then:**
+
+- The child change ops_followup.source records the parent change ID, source artifact ID, relationship, and created_at
+- The parent change ops_followup_links[] records the child ID and the same relationship
+- The provenance is structurally queryable from both sides
+
+**Manual ops follow-up records source rationale** (`rq-opsFollowTrace01.2`)
+
+**Given:**
+
+- An agent creates an ops follow-up from a manual source with a parent change
+- No report or agenda artifact exists
+
+**When:** adv_followup_promote uses source kind manual
+
+**Then:**
+
+- The child source provenance records the parent change ID and manual rationale
+- The parent link records the relationship and linked_at
+- The manual rationale is preserved as typed provenance, not agenda text
+
+**Cross-project ops link records target path** (`rq-opsFollowTrace01.3`)
+
+**Given:**
+
+- Parent project A creates an ops follow up in project B
+
+**When:** Promotion writes both sides of the link
+
+**Then:**
+
+- The child source records the origin project and path
+- The parent link records target_project_id and target_path
+- Product-scoped queries resolve the cross-project target
+
+---
+
+### Ops Follow-Up Evidence Trail
+
+**ID:** `rq-opsFollowEvidence01` | **Priority:** **[MUST]**
+
+An ops follow-up change MUST support append-only light evidence entries capturing environment, action/batch, status, timestamp, summary, and next step or completion signal. The profile status MUST update with each evidence entry and support outcomes: not_started, running, partial, failed, rerun_needed, rollback_needed, cleanup_needed, and complete.
+
+**Tags:** `workflow`, `ops-follow-up`, `evidence`, `status`, `traceability`
+
+#### Scenarios
+
+**Evidence append updates status** (`rq-opsFollowEvidence01.1`)
+
+**Given:**
+
+- An ops follow-up has status running
+
+**When:** adv_ops_evidence_add appends a batch result with status partial and 50% progress summary
+
+**Then:**
+
+- The evidence[] array contains the entry with env, action, status, timestamp, and summary
+- The profile status becomes partial
+
+**Completion signal records final state** (`rq-opsFollowEvidence01.2`)
+
+**Given:**
+
+- An ops follow-up cleanup runs after release
+
+**When:** The final evidence entry signals complete
+
+**Then:**
+
+- The profile status becomes complete
+- The completion_signal field records the final signal
+- The next step is omitted or marked done
+
+**Failed/rerun evidence is captured** (`rq-opsFollowEvidence01.3`)
+
+**Given:**
+
+- A backfill fails due to bad input data
+
+**When:** An evidence entry with status failed and rerun_needed rationale is appended
+
+**Then:**
+
+- The profile status becomes failed or rerun_needed
+- The entry preserves the error summary and next step
+- The evidence trail supports resumption without re-deriving state from chat
+
+---
+
+### Release-First Handoff and Blocking Linked Obligations
+
+**ID:** `rq-opsFollowRelease01` | **Priority:** **[MUST]**
+
+Parent release/archive reporting MUST surface open linked ops obligations and record explicit handoff for non-blocking release-first work. Blocking relationships (e.g. blocks, required-critical in-scope ops) MUST prevent release until complete. Non-blocking release-first relationships (e.g. follows_release, monitors, cleanup_after) MUST NOT block release once an explicit surviving-obligation handoff is recorded. Archive terminal output MUST list open ops follow-ups and their handoff status.
+
+**Tags:** `workflow`, `ops-follow-up`, `release`, `archive`, `handoff`, `blocking`
+
+#### Scenarios
+
+**Blocking ops obligation prevents release** (`rq-opsFollowRelease01.1`)
+
+**Given:**
+
+- A parent change has an ops_followup_link with relationship blocks and status not complete
+
+**When:** The release gate is evaluated
+
+**Then:**
+
+- The release gate is NOT marked done
+- An OPS_FOLLOWUP_BLOCKING_UNRESOLVED blocker is surfaced with the link ID
+
+**Non-blocking release-first allows release with handoff** (`rq-opsFollowRelease01.2`)
+
+**Given:**
+
+- A parent change has a follows_release link that is not complete
+- An explicit surviving-obligation handoff is recorded
+
+**When:** The release gate is evaluated
+
+**Then:**
+
+- Release may proceed if all other conditions are met
+- The archive report lists the surviving obligation and handoff
+
+**Archive reports open ops obligations** (`rq-opsFollowRelease01.3`)
+
+**Given:**
+
+- A parent change is archived with an open follows_release link
+
+**When:** /adv-archive terminal output is emitted
+
+**Then:**
+
+- The output includes the open ops follow-up list
+- Each entry shows relationship, status, and handoff note
+- The open obligation is not silently dropped
 
 ---

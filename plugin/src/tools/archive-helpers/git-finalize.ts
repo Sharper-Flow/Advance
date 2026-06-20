@@ -186,6 +186,9 @@ export interface DeleteChangeBranchResult {
  *
  * Local deletion uses `git branch -d` (safe — refuses if not fully merged).
  * Remote deletion is best-effort; failure is recorded but does not block.
+ *
+ * rq-archiveBranchCleanup01: post-merge local branch cleanup for archived
+ * ADV changes must be squash-merge-safe and not rely on `git branch --merged`.
  */
 export function deleteChangeBranch(
   mainCheckout: string,

@@ -194,6 +194,9 @@ export type ClarifyFindingSnapshot = z.infer<
  * Provenance metadata for changes created from another project.
  * Set when project A creates a follow-up change in project B (e.g. example-product
  * backend creating a follow-up in example-web).
+ *
+ * rq-opsFollowTrace01: source project/path/change provenance belongs in typed
+ * workflow state, not agenda text.
  */
 export const CrossProjectOriginSchema = z.object({
   /** Name of the source project that created this follow-up change */

@@ -3,8 +3,8 @@
   "name": "backlog-coordination",
   "title": "Backlog Coordination",
   "purpose": "Multi-agent backlog and WIP coordination via per-change Temporal workflows + cross-entity search attributes. Eliminates drift between agent view and user view in single-developer-multi-agent workflows. GitHub Project remains canonical for ranking and Value (V); the change workflow itself acts as the durable claim record (no separate claim primitive, no project-level shared workflow).",
-  "version": "1.2.0",
-  "updated_at": "2026-06-19T00:00:00.000Z",
+  "version": "1.3.0",
+  "updated_at": "2026-06-20T00:00:00.000Z",
   "requirements": [
     {
       "id": "rq-backlogCoord01",
@@ -31,21 +31,17 @@
             "A change workflow with state.origin undefined OR state.origin.issue_number undefined"
           ],
           "when": "buildChangeSearchAttributes runs",
-          "then": [
-            "The result does NOT include an AdvBacklogIssueNumber key"
-          ]
+          "then": ["The result does NOT include an AdvBacklogIssueNumber key"]
         },
         {
           "id": "rq-backlogCoord01.3",
           "title": "Peer session sees claim via Visibility query",
           "given": [
             "Session A creates a change with origin.issue_number = 51 in project pid-abc",
-            "Search attribute propagation has completed (≤ ~5s on SQLite dev server)"
+            "Search attribute propagation has completed (\u2264 ~5s on SQLite dev server)"
           ],
           "when": "Session B queries Temporal Visibility with 'AdvAffectedProjects = \"pid-abc\" AND AdvBacklogIssueNumber = \"51\" AND AdvChangeStatus IN (\"draft\", \"pending\", \"active\")'",
-          "then": [
-            "The response includes session A's change workflow ID"
-          ]
+          "then": ["The response includes session A's change workflow ID"]
         }
       ]
     },
@@ -84,9 +80,7 @@
         {
           "id": "rq-backlogCoord02.3",
           "title": "Claim check skipped when origin.kind !== 'roadmap'",
-          "given": [
-            "An existing active change holds origin.issue_number = 51"
-          ],
+          "given": ["An existing active change holds origin.issue_number = 51"],
           "when": "adv_change_create is called with origin_kind: 'discovery' (no issue_number)",
           "then": [
             "No Visibility query is fired",
@@ -133,7 +127,7 @@
     {
       "id": "rq-backlogCoord04",
       "title": "Single-call WIP visibility aggregator",
-      "body": "adv_wip_state returns a single aggregated view of an ADV project's in-flight coordination state: (a) active changes (status IN draft|pending|active) from Temporal Visibility, (b) worktree state from the worktree state DB, (c) peer sessions from the session registry. One tool call per agent session; no client-side composition required. Read-only — does not mutate state.",
+      "body": "adv_wip_state returns a single aggregated view of an ADV project's in-flight coordination state: (a) active changes (status IN draft|pending|active) from Temporal Visibility, (b) worktree state from the worktree state DB, (c) peer sessions from the session registry. One tool call per agent session; no client-side composition required. Read-only \u2014 does not mutate state.",
       "priority": "must",
       "tags": ["coordination", "wip", "aggregation"],
       "scenarios": [
@@ -205,13 +199,13 @@
     {
       "id": "rq-backlogCoord05",
       "title": "Active-change cross-reference uses O(1) Visibility query",
-      "body": "When the agent renders a backlog with active-change annotations (e.g., adv_backlog_state), it MUST use queryActiveChangesByIssueNumbers — a single Temporal Visibility query with an IN clause covering all snapshot issue numbers — and MUST NOT call store.changes.get() per change. This replaces the legacy O(n*m) buildActiveChangeIndex pattern in plugin/src/tools/roadmap.ts:703-737. Inputs > 100 issue numbers are batched at 100 per call to stay under Temporal query-string length limits.",
+      "body": "When the agent renders a backlog with active-change annotations (e.g., adv_backlog_state), it MUST use queryActiveChangesByIssueNumbers \u2014 a single Temporal Visibility query with an IN clause covering all snapshot issue numbers \u2014 and MUST NOT call store.changes.get() per change. This replaces the legacy O(n*m) buildActiveChangeIndex pattern in plugin/src/tools/roadmap.ts:703-737. Inputs > 100 issue numbers are batched at 100 per call to stay under Temporal query-string length limits.",
       "priority": "must",
       "tags": ["coordination", "performance", "visibility"],
       "scenarios": [
         {
           "id": "rq-backlogCoord05.1",
-          "title": "Single Visibility call for snapshots ≤ 100 issues",
+          "title": "Single Visibility call for snapshots \u2264 100 issues",
           "given": [
             "A snapshot with 50 features and 10 bugs (60 issue numbers total)"
           ],
@@ -224,9 +218,7 @@
         {
           "id": "rq-backlogCoord05.2",
           "title": "Batched Visibility calls for snapshots > 100 issues",
-          "given": [
-            "A snapshot with 250 issue numbers"
-          ],
+          "given": ["A snapshot with 250 issue numbers"],
           "when": "queryActiveChangesByIssueNumbers is called",
           "then": [
             "The helper makes exactly 3 Visibility calls (250 / 100 = ceil 3)",
@@ -245,9 +237,7 @@
         {
           "id": "rq-backlogCoord06.1",
           "title": "Schema rejects agent attempts to write V",
-          "given": [
-            "Any agent-facing tool that mutates backlog item metadata"
-          ],
+          "given": ["Any agent-facing tool that mutates backlog item metadata"],
           "when": "The tool schema is constructed",
           "then": [
             "The V field is absent from the mutation argument schema OR explicitly typed as read-only"
@@ -270,7 +260,7 @@
     {
       "id": "rq-backlogCoord07",
       "title": "Snapshot annotation freshness TTL contract",
-      "body": "Cached projection .adv/roadmap-snapshot.json carries optional TTL metadata: last_refreshed (ISO 8601), ttl_ms (default 300000 = 5 min), and next_refresh_after (computed). Consumers MUST treat absence of last_refreshed as 'stale, refresh now'. Default annotation TTL is 5 minutes — distinct from FILE_SNAPSHOT_STALE_AFTER_MS (2h) which covers WSJF-content staleness. The shorter window keeps active-change annotations fresh across multiple agent sessions while staying well under the 5000 req/hr gh CLI rate limit budget.",
+      "body": "Cached projection .adv/roadmap-snapshot.json carries optional TTL metadata: last_refreshed (ISO 8601), ttl_ms (default 300000 = 5 min), and next_refresh_after (computed). Consumers MUST treat absence of last_refreshed as 'stale, refresh now'. Default annotation TTL is 5 minutes \u2014 distinct from FILE_SNAPSHOT_STALE_AFTER_MS (2h) which covers WSJF-content staleness. The shorter window keeps active-change annotations fresh across multiple agent sessions while staying well under the 5000 req/hr gh CLI rate limit budget.",
       "priority": "must",
       "tags": ["coordination", "freshness", "ttl"],
       "scenarios": [
@@ -281,10 +271,7 @@
             "A snapshot with last_refreshed = now - 2 minutes and ttl_ms = 300000"
           ],
           "when": "assessAnnotationFreshness is called",
-          "then": [
-            "needs_refresh is false",
-            "age_ms is approximately 120000"
-          ]
+          "then": ["needs_refresh is false", "age_ms is approximately 120000"]
         },
         {
           "id": "rq-backlogCoord07.2",
@@ -293,32 +280,21 @@
             "A snapshot with last_refreshed = now - 6 minutes and ttl_ms = 300000"
           ],
           "when": "assessAnnotationFreshness is called",
-          "then": [
-            "needs_refresh is true"
-          ]
+          "then": ["needs_refresh is true"]
         },
         {
           "id": "rq-backlogCoord07.3",
           "title": "Snapshot without last_refreshed is treated as stale (backward-compat)",
-          "given": [
-            "A legacy snapshot with no last_refreshed field"
-          ],
+          "given": ["A legacy snapshot with no last_refreshed field"],
           "when": "assessAnnotationFreshness is called",
-          "then": [
-            "needs_refresh is true",
-            "age_ms is null"
-          ]
+          "then": ["needs_refresh is true", "age_ms is null"]
         },
         {
           "id": "rq-backlogCoord07.4",
           "title": "Default ttl_ms applies when missing",
-          "given": [
-            "A snapshot with last_refreshed set but ttl_ms absent"
-          ],
+          "given": ["A snapshot with last_refreshed set but ttl_ms absent"],
           "when": "assessAnnotationFreshness is called",
-          "then": [
-            "The default 300000ms (DEFAULT_ANNOTATION_TTL_MS) is used"
-          ]
+          "then": ["The default 300000ms (DEFAULT_ANNOTATION_TTL_MS) is used"]
         }
       ]
     },
@@ -332,9 +308,7 @@
         {
           "id": "rq-backlogCoord08.1",
           "title": "Roadmap origin requires issue and rejects source artifact",
-          "given": [
-            "adv_change_create is called with origin_kind: 'roadmap'"
-          ],
+          "given": ["adv_change_create is called with origin_kind: 'roadmap'"],
           "when": "The create invocation is validated",
           "then": [
             "The invocation fails if origin_issue_number is absent",
@@ -345,9 +319,7 @@
         {
           "id": "rq-backlogCoord08.2",
           "title": "Triage origin accepts optional issue and source artifact",
-          "given": [
-            "adv_change_create is called with origin_kind: 'triage'"
-          ],
+          "given": ["adv_change_create is called with origin_kind: 'triage'"],
           "when": "origin_issue_number or non-blank origin_source_artifact is provided",
           "then": [
             "The linkage fields are accepted",
@@ -397,13 +369,7 @@
       "title": "Triage source cleanup before issue creation and scoring",
       "body": "/adv-triage MUST run source cleanup validation after structural match/gap analysis and before new issue creation, bug Priority prompts, or feature Value prompts. Cleanup validation covers represented and unrepresented ADV changes, GitHub issues/project items, agenda items, and local sources gathered by /adv-triage. Each non-relevant cleanup candidate MUST include source, stable ref, classification, evidence, proposed action, and approval group. Heuristics such as title similarity or agent inference are advisory only and MUST NOT close, complete, cancel, remove, suppress, merge-note, deprioritize, or otherwise mutate items without structural evidence and explicit approval batched by source/reason. Agenda duplicate/superseded/should-merge candidates approved for cleanup MUST complete with a note referencing the survivor/source. Bug Priority and feature Value remain user-owned and must not be requested until cleanup validation has completed for the candidate pool.",
       "priority": "must",
-      "tags": [
-        "triage",
-        "cleanup",
-        "backlog",
-        "human-authority",
-        "p33"
-      ],
+      "tags": ["triage", "cleanup", "backlog", "human-authority", "p33"],
       "scenarios": [
         {
           "id": "rq-backlogCoord09.1",
@@ -466,6 +432,58 @@
           "then": [
             "The agenda item is completed rather than silently deleted",
             "The completion note references the survivor/source"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-opsFollowWip01",
+      "title": "Planning and WIP Collision Detection for Linked Ops Work",
+      "body": "Planning, WIP, and collision checks MUST surface active linked ops/enabler work from structural workflow state or Visibility-backed discovery, not from agenda text search. adv_wip_state and related planning readbacks MUST include active ops_followup_links and their status when queried in the context of a source/parent change. Collision detection MUST treat an active blocking ops_followup_link as an in-flight dependency.",
+      "priority": "must",
+      "tags": [
+        "coordination",
+        "wip",
+        "ops-follow-up",
+        "collision",
+        "planning",
+        "visibility"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-opsFollowWip01.1",
+          "title": "WIP state includes active ops follow-ups",
+          "given": [
+            "A parent change has active ops_followup_links with status running"
+          ],
+          "when": "adv_wip_state is queried for the project",
+          "then": [
+            "The response includes an ops_follow_ups section",
+            "Each entry contains link ID, target, relationship, and status"
+          ]
+        },
+        {
+          "id": "rq-opsFollowWip01.2",
+          "title": "Planning collision uses structural state",
+          "given": [
+            "/adv-prep evaluates a change whose parent has a blocks link that is not complete"
+          ],
+          "when": "The readiness/collision check runs",
+          "then": [
+            "The blocker is surfaced from ops_followup_links",
+            "No agenda text search is used as the correctness authority"
+          ]
+        },
+        {
+          "id": "rq-opsFollowWip01.3",
+          "title": "Cross-project ops link is discoverable",
+          "given": [
+            "A parent in project A links to a child follow-up in project B"
+          ],
+          "when": "A product-scoped WIP query runs",
+          "then": [
+            "The query resolves the target through the product state plane",
+            "The status is surfaced in the WIP view"
           ]
         }
       ]

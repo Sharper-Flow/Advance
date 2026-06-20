@@ -3,8 +3,8 @@
   "name": "subagent-reports",
   "title": "Sub-Agent Reports",
   "purpose": "Typed, durable ADV sub-agent report ingestion and readback. Replaces ADV worker final-message fenced JSON with Zod-validated tool-call submission, sidecar report persistence, deterministic scope-aware dedupe, and machine-readable downstream consumers.",
-  "version": "1.2.0",
-  "updated_at": "2026-06-15T00:00:00.000Z",
+  "version": "1.3.0",
+  "updated_at": "2026-06-20T00:00:00.000Z",
   "conformance_required": false,
   "requirements": [
     {
@@ -28,7 +28,9 @@
         {
           "id": "rq-subagentReports01.2",
           "title": "Known optimized handoff agents validate structurally",
-          "given": ["A report uses agent adv-researcher, adv-tron, or adv-scanner-bundle with its required fields"],
+          "given": [
+            "A report uses agent adv-researcher, adv-tron, or adv-scanner-bundle with its required fields"
+          ],
           "when": "adv_subagent_report_submit runs in v1",
           "then": [
             "The strict payload schema validates the agent-specific object",
@@ -39,7 +41,9 @@
         {
           "id": "rq-subagentReports01.3",
           "title": "adv-designer report variant validates structurally",
-          "given": ["A report uses agent adv-designer with task-scoped identity anchors and design_dimensions plus neighboring_recommendations"],
+          "given": [
+            "A report uses agent adv-designer with task-scoped identity anchors and design_dimensions plus neighboring_recommendations"
+          ],
           "when": "adv_subagent_report_submit validates the payload in v1",
           "then": [
             "The strict DESIGNER_REPORT schema accepts only the typed payload",
@@ -59,7 +63,9 @@
         {
           "id": "rq-subagentReports02.1",
           "title": "Duplicate report key is idempotent",
-          "given": ["The sidecar already stores a report for change_id, scope, agent, and attempt"],
+          "given": [
+            "The sidecar already stores a report for change_id, scope, agent, and attempt"
+          ],
           "when": "The same report is submitted again",
           "then": [
             "No duplicate sidecar report entry is appended",
@@ -70,7 +76,9 @@
         {
           "id": "rq-subagentReports02.2",
           "title": "Blockers feed error recovery",
-          "given": ["A submitted engineer blocker or reviewer blocking finding exists"],
+          "given": [
+            "A submitted engineer blocker or reviewer blocking finding exists"
+          ],
           "when": "The workflow applies subagentReportSubmittedSignal",
           "then": [
             "The task error_recovery.last_error summarizes blocker location and issue",
@@ -90,7 +98,9 @@
         {
           "id": "rq-subagentReports03.1",
           "title": "Reports are queryable by change",
-          "given": ["A change has one or more persisted sidecar or legacy sub-agent reports"],
+          "given": [
+            "A change has one or more persisted sidecar or legacy sub-agent reports"
+          ],
           "when": "adv_change_show is called with include.subagentReports true",
           "then": [
             "The response includes _subagentReports",
@@ -151,7 +161,9 @@
         {
           "id": "rq-subagentReports05.1",
           "title": "Typed worker packets provide schema-derived identity",
-          "given": ["ADV spawns adv-engineer, adv-reviewer, or adv-designer for implementation or remediation work"],
+          "given": [
+            "ADV spawns adv-engineer, adv-reviewer, or adv-designer for implementation or remediation work"
+          ],
           "when": "The worker builds ENGINEER_REPORT, REVIEWER_REPORT, or DESIGNER_REPORT for adv_subagent_report_submit",
           "then": [
             "task-scoped packets provide strict identity anchors WORKING DIRECTORY, CHANGE, TASK, and ATTEMPT",
@@ -174,7 +186,9 @@
         {
           "id": "rq-subagentReports05.3",
           "title": "Scope and stop semantics are explicit",
-          "given": ["A worker packet contains scope/done/stop/verification anchors"],
+          "given": [
+            "A worker packet contains scope/done/stop/verification anchors"
+          ],
           "when": "The worker encounters an out-of-scope finding or verification need",
           "then": [
             "The worker uses TASK_SCOPE, IN_SCOPE, and OUT_OF_SCOPE to identify owned work",
@@ -196,7 +210,9 @@
         {
           "id": "rq-subagentReports06.1",
           "title": "Invalid agent scope pair rejected",
-          "given": ["A report pairs adv-researcher with scope.kind task, adv-engineer with scope.kind change, or adv-designer with scope.kind change"],
+          "given": [
+            "A report pairs adv-researcher with scope.kind task, adv-engineer with scope.kind change, or adv-designer with scope.kind change"
+          ],
           "when": "adv_subagent_report_submit validates the payload",
           "then": [
             "The schema rejects the report as INVALID_REPORT",
@@ -208,7 +224,9 @@
         {
           "id": "rq-subagentReports06.3",
           "title": "Independent reviewer reports are change-scoped",
-          "given": ["ADV performs independent review or harden at the change level"],
+          "given": [
+            "ADV performs independent review or harden at the change level"
+          ],
           "when": "An adv-reviewer report is submitted for acceptance review or release hardening",
           "then": [
             "The report uses scope.kind change with a structural scope_key",
@@ -250,7 +268,9 @@
         {
           "id": "rq-subagentReports07.2",
           "title": "Scanner bundle isolation",
-          "given": ["Review or harden scanners produce dimension-specific analysis"],
+          "given": [
+            "Review or harden scanners produce dimension-specific analysis"
+          ],
           "when": "Scanner output is persisted",
           "then": [
             "Only the orchestrator-submitted scanner bundle can be persisted",
@@ -270,7 +290,9 @@
         {
           "id": "rq-subagentReports08.1",
           "title": "Follow-up generation is bounded",
-          "given": ["A submitted report contains more follow_ups[] than the configured bound"],
+          "given": [
+            "A submitted report contains more follow_ups[] than the configured bound"
+          ],
           "when": "Report consumers create agenda items",
           "then": [
             "Only the bounded number of follow-ups is written",
@@ -301,7 +323,9 @@
         {
           "id": "rq-subagentReports09.1",
           "title": "Legacy report history replays",
-          "given": ["A workflow history contains legacy task-scoped report submissions"],
+          "given": [
+            "A workflow history contains legacy task-scoped report submissions"
+          ],
           "when": "New workflow code replays the history",
           "then": [
             "Temporal replay does not fail due to report key shape changes",
@@ -312,7 +336,9 @@
         {
           "id": "rq-subagentReports09.2",
           "title": "Task/checkpoint compatibility remains intact",
-          "given": ["A task has either sidecar task-scoped reports or legacy task.subagent_reports[]"],
+          "given": [
+            "A task has either sidecar task-scoped reports or legacy task.subagent_reports[]"
+          ],
           "when": "Task completion and checkpoint consumers evaluate persisted reports",
           "then": [
             "The consumer recognizes persisted report evidence from both sources",
@@ -332,7 +358,9 @@
         {
           "id": "rq-subagentReports10.1",
           "title": "Legacy missing report fields normalize safely",
-          "given": ["A persisted task or sidecar worker report lacks scope_drift or required_main_agent_actions"],
+          "given": [
+            "A persisted task or sidecar worker report lacks scope_drift or required_main_agent_actions"
+          ],
           "when": "ADV loads, seeds, or projects the change state",
           "then": [
             "scope_drift is treated as null",
@@ -343,7 +371,9 @@
         {
           "id": "rq-subagentReports10.2",
           "title": "New malformed reports remain invalid",
-          "given": ["A new worker report submission omits scope_drift or required_main_agent_actions"],
+          "given": [
+            "A new worker report submission omits scope_drift or required_main_agent_actions"
+          ],
           "when": "adv_subagent_report_submit validates the payload",
           "then": [
             "The strict report schema rejects the payload as INVALID_REPORT",
@@ -415,7 +445,9 @@
         {
           "id": "rq-subagentReports13.1",
           "title": "New worker examples use structural scope",
-          "given": ["ADV prompt or command assets show a report payload example"],
+          "given": [
+            "ADV prompt or command assets show a report payload example"
+          ],
           "when": "The example includes report scope",
           "then": [
             "The example uses a structural scope object",
@@ -431,7 +463,13 @@
       "title": "Required Follow-Up Preservation",
       "body": "Report ingestion MUST preserve the required-obligation classification and severity of follow-ups when creating agenda items. A follow-up tagged as required_critical MUST receive elevated priority. Standard follow-ups without required classification receive medium priority.",
       "priority": "must",
-      "tags": ["subagents", "reports", "follow-ups", "required-obligation", "agenda"],
+      "tags": [
+        "subagents",
+        "reports",
+        "follow-ups",
+        "required-obligation",
+        "agenda"
+      ],
       "scenarios": [
         {
           "id": "rq-subagentReports14.1",
@@ -501,6 +539,57 @@
           "then": [
             "The policy covers proposal, problem statement, agreement, design, executive summary, and acceptance artifacts",
             "The policy also covers change, agenda, wisdom, and conformance state files"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-opsFollowPromotion01",
+      "title": "Typed Follow-Up Promotion from Reports",
+      "body": "Report follow-ups and required_follow_ups MUST be promotable into durable linked ops follow-up changes with typed provenance. Promotion MUST prefer structured report sources (required_follow_ups, follow_ups, report metadata) over agenda text, MUST detect duplicate promotions from source identity, and MUST preserve obligation class, severity, and source_contract_id in the linked change. Agenda text MUST remain a readable fallback but not the authority.",
+      "priority": "must",
+      "tags": [
+        "subagents",
+        "reports",
+        "follow-ups",
+        "ops-follow-up",
+        "promotion",
+        "provenance"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-opsFollowPromotion01.1",
+          "title": "Required follow-up promotes with obligation class",
+          "given": [
+            "An engineer report contains required_follow_up {text, obligation_class: required_critical, severity: critical, source_contract_id: C8}"
+          ],
+          "when": "Promotion runs",
+          "then": [
+            "A linked change is created",
+            "The provenance records source_contract_id C8",
+            "The ops_followup profile records obligation class and severity",
+            "Duplicate detection uses the report source identity, not title matching"
+          ]
+        },
+        {
+          "id": "rq-opsFollowPromotion01.2",
+          "title": "Duplicate promotion returns existing link",
+          "given": ["The same required follow-up has already been promoted"],
+          "when": "Promotion is called again with the same source artifact ID",
+          "then": [
+            "The tool returns the existing link/change without creating a duplicate",
+            "The response references the original promotion"
+          ]
+        },
+        {
+          "id": "rq-opsFollowPromotion01.3",
+          "title": "Plain follow-up promotes as non-blocking",
+          "given": ["A report follow_ups[] contains an advisory item"],
+          "when": "It is promoted",
+          "then": [
+            "A linked change is created",
+            "The relationship is follows_release or cleanup_after per agent choice",
+            "The severity is standard, not required-critical"
           ]
         }
       ]

@@ -3,8 +3,8 @@
   "name": "advance-workflow",
   "title": "Advance Workflow",
   "purpose": "Capability: Workflow contract layer for ADV \u2014 gate model, autonomy boundaries, design validation, scope management, releases, approvals, handoff voice, review remediation, and touched-scope quality. Split from `advance` capability.",
-  "version": "1.18.0",
-  "updated_at": "2026-06-17T00:00:00.000Z",
+  "version": "1.19.0",
+  "updated_at": "2026-06-20T00:00:00.000Z",
   "requirements": [
     {
       "id": "rq-problemSpecLaw01",
@@ -383,7 +383,7 @@
     {
       "id": "rq-releaseFinalization01",
       "title": "Archive Finalization Requires Origin or PR Merge Proof",
-      "body": "Phase 9 Git Finalization must refresh the current default-branch basis before deciding local direct merge versus PR workflow. If no `origin` remote exists, `no_remote` may complete as local-only and report `Merged locally.`. If `origin` exists, release completion and archive retirement MUST require post-fetch `origin/{default-branch}` reachability or merged PR state. Remote-backed push failure, skipped push, protected-branch rejection, unarmed PR, or pending auto-merge MUST NOT record `release ✓`, archive status, issue closure, branch deletion, or worktree cleanup. Protected or risky cases route to PR workflow: `Pending auto-merge.` only when GitHub auto-merge is armed and the change remains active; `Blocked.` when PR/auto-merge cannot be established. `phase9:\"skip\"` and release recovery must revalidate the same origin/default or merged PR proof before recording release. `adv_archive_repair` must detect archived-but-unmerged remote `change/*` branches and re-drive them through idempotent PR auto-merge without force-push.",
+      "body": "Phase 9 Git Finalization must refresh the current default-branch basis before deciding local direct merge versus PR workflow. If no `origin` remote exists, `no_remote` may complete as local-only and report `Merged locally.`. If `origin` exists, release completion and archive retirement MUST require post-fetch `origin/{default-branch}` reachability or merged PR state. Remote-backed push failure, skipped push, protected-branch rejection, unarmed PR, or pending auto-merge MUST NOT record `release \u2713`, archive status, issue closure, branch deletion, or worktree cleanup. Protected or risky cases route to PR workflow: `Pending auto-merge.` only when GitHub auto-merge is armed and the change remains active; `Blocked.` when PR/auto-merge cannot be established. `phase9:\"skip\"` and release recovery must revalidate the same origin/default or merged PR proof before recording release. `adv_archive_repair` must detect archived-but-unmerged remote `change/*` branches and re-drive them through idempotent PR auto-merge without force-push.",
       "priority": "must",
       "tags": ["workflow", "archive", "worktree", "git"],
       "scenarios": [
@@ -1297,7 +1297,7 @@
           "then": [
             "## Next stage and ## Next headings are absent from the handoff",
             "A blockquote wayfinder block appears after ## Delivered with three rows: change-id, gate transition, arrow-prefixed runnable command",
-            "The archive terminal variant ends with a single-line blockquote using `release ✓` only for final states (Shipped. or no-remote Merged locally.); Pending auto-merge. and Blocked. use `release pending` or `release blocked` and no separate labeled block",
+            "The archive terminal variant ends with a single-line blockquote using `release \u2713` only for final states (Shipped. or no-remote Merged locally.); Pending auto-merge. and Blocked. use `release pending` or `release blocked` and no separate labeled block",
             "Optional reply instructions for human checkpoints (Inline Approval Voice) appear as plain prose below the blockquote, not inside it"
           ]
         },
@@ -3184,7 +3184,13 @@
       "title": "Required Obligation Release Block",
       "body": "The review/harden flow MUST block release when required in-scope obligations remain unresolved. A required-critical contract item that is in-scope, has no notRequiredReason, and lacks verified completion evidence MUST prevent the release gate from completing. This is a structural safety invariant: unresolved required obligations represent unshipped work that cannot be silently released.",
       "priority": "must",
-      "tags": ["workflow", "release", "required-obligation", "safety", "contract"],
+      "tags": [
+        "workflow",
+        "release",
+        "required-obligation",
+        "safety",
+        "contract"
+      ],
       "scenarios": [
         {
           "id": "rq-requiredObligation01.1",
@@ -3209,7 +3215,9 @@
             "The contract review matrix shows the item as pass with evidence"
           ],
           "when": "The release gate is evaluated",
-          "then": ["The release gate may proceed if all other conditions are met"]
+          "then": [
+            "The release gate may proceed if all other conditions are met"
+          ]
         },
         {
           "id": "rq-requiredObligation01.3",
@@ -3329,7 +3337,9 @@
         {
           "id": "rq-archiveBranchCleanup01.1",
           "title": "Squash-merge-safe detection",
-          "given": ["An archived ADV change whose `change/{id}` branch was squash-merged into the default branch"],
+          "given": [
+            "An archived ADV change whose `change/{id}` branch was squash-merged into the default branch"
+          ],
           "when": "operator runs `adv_archive_repair action=cleanup_merged`",
           "then": [
             "The branch is detected as `tree-identical` (tree-SHA match) OR `patch-equivalent` (git cherry)",
@@ -3339,7 +3349,9 @@
         {
           "id": "rq-archiveBranchCleanup01.2",
           "title": "Worktree-checked-out refusal",
-          "given": ["An archived ADV change whose `change/{id}` branch is currently checked out in any active worktree"],
+          "given": [
+            "An archived ADV change whose `change/{id}` branch is currently checked out in any active worktree"
+          ],
           "when": "operator runs `adv_archive_repair action=cleanup_merged`",
           "then": [
             "The branch is excluded from deletion candidates",
@@ -3359,7 +3371,9 @@
         {
           "id": "rq-archiveBranchCleanup01.4",
           "title": "Status observability",
-          "given": ["At least 1 archived-change local branch is safely deletable"],
+          "given": [
+            "At least 1 archived-change local branch is safely deletable"
+          ],
           "when": "operator runs `adv_status view:\"summary\"`",
           "then": [
             "A recommendation line appears in `recommendations[]`",
@@ -3374,6 +3388,161 @@
           "then": [
             "The existing branch cleanup gate at `change.ts:4436-4441` continues to delete the branch at archive time",
             "Direct-archive cleanup behavior is unchanged by the addition of cleanup_merged action"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-opsFollowTrace01",
+      "title": "Linked Ops Follow-Up Provenance",
+      "body": "Linked ops/enabler follow-up work MUST persist structural source provenance in authoritative workflow state. A follow-up change MUST record its source change, relationship kind, originating artifact/report/agenda source, and creation timestamp. The source/parent change MUST record an outbound ops_followup_link with matching relationship, target change, and linkage timestamp. Authoritative provenance MUST live in typed workflow state and query readbacks, not in free-text agenda descriptions.",
+      "priority": "must",
+      "tags": [
+        "workflow",
+        "ops-follow-up",
+        "provenance",
+        "traceability",
+        "state"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-opsFollowTrace01.1",
+          "title": "Promoted required follow-up records provenance on both sides",
+          "given": [
+            "A sub-agent report contains a required_critical follow-up tied to contract item C8",
+            "The parent change has no existing ops_followup_links"
+          ],
+          "when": "adv_followup_promote creates the ops follow-up change",
+          "then": [
+            "The child change ops_followup.source records the parent change ID, source artifact ID, relationship, and created_at",
+            "The parent change ops_followup_links[] records the child ID and the same relationship",
+            "The provenance is structurally queryable from both sides"
+          ]
+        },
+        {
+          "id": "rq-opsFollowTrace01.2",
+          "title": "Manual ops follow-up records source rationale",
+          "given": [
+            "An agent creates an ops follow-up from a manual source with a parent change",
+            "No report or agenda artifact exists"
+          ],
+          "when": "adv_followup_promote uses source kind manual",
+          "then": [
+            "The child source provenance records the parent change ID and manual rationale",
+            "The parent link records the relationship and linked_at",
+            "The manual rationale is preserved as typed provenance, not agenda text"
+          ]
+        },
+        {
+          "id": "rq-opsFollowTrace01.3",
+          "title": "Cross-project ops link records target path",
+          "given": ["Parent project A creates an ops follow up in project B"],
+          "when": "Promotion writes both sides of the link",
+          "then": [
+            "The child source records the origin project and path",
+            "The parent link records target_project_id and target_path",
+            "Product-scoped queries resolve the cross-project target"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-opsFollowEvidence01",
+      "title": "Ops Follow-Up Evidence Trail",
+      "body": "An ops follow-up change MUST support append-only light evidence entries capturing environment, action/batch, status, timestamp, summary, and next step or completion signal. The profile status MUST update with each evidence entry and support outcomes: not_started, running, partial, failed, rerun_needed, rollback_needed, cleanup_needed, and complete.",
+      "priority": "must",
+      "tags": [
+        "workflow",
+        "ops-follow-up",
+        "evidence",
+        "status",
+        "traceability"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-opsFollowEvidence01.1",
+          "title": "Evidence append updates status",
+          "given": ["An ops follow-up has status running"],
+          "when": "adv_ops_evidence_add appends a batch result with status partial and 50% progress summary",
+          "then": [
+            "The evidence[] array contains the entry with env, action, status, timestamp, and summary",
+            "The profile status becomes partial"
+          ]
+        },
+        {
+          "id": "rq-opsFollowEvidence01.2",
+          "title": "Completion signal records final state",
+          "given": ["An ops follow-up cleanup runs after release"],
+          "when": "The final evidence entry signals complete",
+          "then": [
+            "The profile status becomes complete",
+            "The completion_signal field records the final signal",
+            "The next step is omitted or marked done"
+          ]
+        },
+        {
+          "id": "rq-opsFollowEvidence01.3",
+          "title": "Failed/rerun evidence is captured",
+          "given": ["A backfill fails due to bad input data"],
+          "when": "An evidence entry with status failed and rerun_needed rationale is appended",
+          "then": [
+            "The profile status becomes failed or rerun_needed",
+            "The entry preserves the error summary and next step",
+            "The evidence trail supports resumption without re-deriving state from chat"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-opsFollowRelease01",
+      "title": "Release-First Handoff and Blocking Linked Obligations",
+      "body": "Parent release/archive reporting MUST surface open linked ops obligations and record explicit handoff for non-blocking release-first work. Blocking relationships (e.g. blocks, required-critical in-scope ops) MUST prevent release until complete. Non-blocking release-first relationships (e.g. follows_release, monitors, cleanup_after) MUST NOT block release once an explicit surviving-obligation handoff is recorded. Archive terminal output MUST list open ops follow-ups and their handoff status.",
+      "priority": "must",
+      "tags": [
+        "workflow",
+        "ops-follow-up",
+        "release",
+        "archive",
+        "handoff",
+        "blocking"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-opsFollowRelease01.1",
+          "title": "Blocking ops obligation prevents release",
+          "given": [
+            "A parent change has an ops_followup_link with relationship blocks and status not complete"
+          ],
+          "when": "The release gate is evaluated",
+          "then": [
+            "The release gate is NOT marked done",
+            "An OPS_FOLLOWUP_BLOCKING_UNRESOLVED blocker is surfaced with the link ID"
+          ]
+        },
+        {
+          "id": "rq-opsFollowRelease01.2",
+          "title": "Non-blocking release-first allows release with handoff",
+          "given": [
+            "A parent change has a follows_release link that is not complete",
+            "An explicit surviving-obligation handoff is recorded"
+          ],
+          "when": "The release gate is evaluated",
+          "then": [
+            "Release may proceed if all other conditions are met",
+            "The archive report lists the surviving obligation and handoff"
+          ]
+        },
+        {
+          "id": "rq-opsFollowRelease01.3",
+          "title": "Archive reports open ops obligations",
+          "given": [
+            "A parent change is archived with an open follows_release link"
+          ],
+          "when": "/adv-archive terminal output is emitted",
+          "then": [
+            "The output includes the open ops follow-up list",
+            "Each entry shows relationship, status, and handoff note",
+            "The open obligation is not silently dropped"
           ]
         }
       ]
