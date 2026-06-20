@@ -84,6 +84,9 @@ export const CHANGE_WORKFLOW_SIGNAL_NAMES = {
   archiveRequested: "adv.change.archiveRequested",
   phase9StatusUpdated: "adv.change.phase9StatusUpdated",
   changeCancelled: "adv.change.changeCancelled",
+  opsFollowupSeeded: "adv.change.opsFollowupSeeded",
+  opsFollowupLinkAdded: "adv.change.opsFollowupLinkAdded",
+  opsEvidenceAppended: "adv.change.opsEvidenceAppended",
   updateArtifactMetadata: "adv.change.updateArtifactMetadata",
   archiveChange: "adv.change.archiveChange",
   closeChange: "adv.change.closeChange",
@@ -227,6 +230,8 @@ export interface ChangeWorkflowInput {
       | "seenReportIds"
       | "signal_rejections"
       | "signal_rejections_total"
+      | "ops_followup"
+      | "ops_followup_links"
     >
   >;
 }
@@ -420,6 +425,17 @@ export interface ChangeWorkflowState extends ChangeWorkflowInput {
    */
   signal_rejections?: SignalRejection[];
   signal_rejections_total?: number;
+  /**
+   * Ops/enabler follow-up profile on the child/follow-up change. Mirrors
+   * `ChangeSchema.ops_followup` on disk. Set by `opsFollowupSeededSignal`.
+   */
+  ops_followup?: Change["ops_followup"];
+  /**
+   * Outbound ops follow-up links from the parent/source change. Mirrors
+   * `ChangeSchema.ops_followup_links` on disk. Set by
+   * `opsFollowupLinkAddedSignal` (idempotent by link id).
+   */
+  ops_followup_links?: Change["ops_followup_links"];
   /**
    * Per-gate criteria evaluated at completion time.
    * Advisory audit trail — criteria are not blocking.

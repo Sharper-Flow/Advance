@@ -2155,6 +2155,241 @@
     "lastSignalAt": {
       "type": "string"
     },
+    "ops_followup": {
+      "additionalProperties": false,
+      "properties": {
+        "completion_signal": {
+          "type": "string"
+        },
+        "created_at": {
+          "type": "string"
+        },
+        "evidence": {
+          "default": [],
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "action": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "batch": {
+                "type": "string"
+              },
+              "completion_signal": {
+                "type": "string"
+              },
+              "env": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "id": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "next_step": {
+                "type": "string"
+              },
+              "recorded_at": {
+                "type": "string"
+              },
+              "status": {
+                "enum": [
+                  "started",
+                  "partial",
+                  "pass",
+                  "fail",
+                  "rerun_needed",
+                  "rollback_needed",
+                  "cleanup_needed",
+                  "complete"
+                ],
+                "type": "string"
+              },
+              "summary": {
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "recorded_at",
+              "env",
+              "action",
+              "status",
+              "summary"
+            ],
+            "type": "object"
+          },
+          "type": "array"
+        },
+        "kind": {
+          "enum": [
+            "migration",
+            "backfill",
+            "deploy_config",
+            "monitoring",
+            "cleanup",
+            "teardown",
+            "other"
+          ],
+          "type": "string"
+        },
+        "relationship": {
+          "enum": [
+            "blocks",
+            "follows_release",
+            "monitors",
+            "cleanup_after"
+          ],
+          "type": "string"
+        },
+        "source": {
+          "additionalProperties": false,
+          "properties": {
+            "source_agenda_id": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "source_artifact": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "source_change_id": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "source_contract_id": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "source_kind": {
+              "enum": [
+                "required_follow_up",
+                "report_follow_up",
+                "agenda",
+                "manual"
+              ],
+              "type": "string"
+            },
+            "source_path": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "source_project_id": {
+              "pattern": "^[0-9a-f]{40}$",
+              "type": "string"
+            },
+            "source_report_key": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "source_task_id": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "source_change_id",
+            "source_kind"
+          ],
+          "type": "object"
+        },
+        "status": {
+          "enum": [
+            "not_started",
+            "running",
+            "partial",
+            "failed",
+            "rerun_needed",
+            "rollback_needed",
+            "cleanup_needed",
+            "complete"
+          ],
+          "type": "string"
+        },
+        "updated_at": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "source",
+        "relationship",
+        "status",
+        "created_at",
+        "evidence"
+      ],
+      "type": "object"
+    },
+    "ops_followup_links": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "changeId": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "id": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "linked_at": {
+            "type": "string"
+          },
+          "relationship": {
+            "enum": [
+              "blocks",
+              "follows_release",
+              "monitors",
+              "cleanup_after"
+            ],
+            "type": "string"
+          },
+          "required_handoff": {
+            "default": false,
+            "type": "boolean"
+          },
+          "source_artifact": {
+            "type": "string"
+          },
+          "source_contract_id": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "not_started",
+              "running",
+              "partial",
+              "failed",
+              "rerun_needed",
+              "rollback_needed",
+              "cleanup_needed",
+              "complete"
+            ],
+            "type": "string"
+          },
+          "target_path": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "target_project_id": {
+            "pattern": "^[0-9a-f]{40}$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "changeId",
+          "relationship",
+          "status",
+          "required_handoff",
+          "linked_at"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    },
     "origin": {
       "additionalProperties": false,
       "properties": {

@@ -10,10 +10,7 @@ const ANTI_PATTERNS_PATH = join(
   "skills/adv-triage/ANTI-PATTERNS.md",
 );
 const SCHEMA_PATH = join(REPO_ROOT, "skills/adv-triage/SCHEMA.md");
-const SPEC_PATH = join(
-  REPO_ROOT,
-  ".adv/specs/backlog-coordination/spec.json",
-);
+const SPEC_PATH = join(REPO_ROOT, ".adv/specs/backlog-coordination/spec.json");
 
 describe("adv-triage relevance validation contract", () => {
   test("command requires relevance validation before field prompts", () => {
@@ -62,9 +59,7 @@ describe("adv-triage relevance validation contract", () => {
     );
     const issueCreationIndex = content.indexOf("### 4a. Confirm new issues");
     const fieldAssignmentIndex = content.indexOf("### 4c. Field assignments");
-    const noWorkSkipIndex = content.indexOf(
-      "No new issues, no field gaps.",
-    );
+    const noWorkSkipIndex = content.indexOf("No new issues, no field gaps.");
 
     expect(matchIndex).toBeGreaterThanOrEqual(0);
     expect(cleanupIndex).toBeGreaterThanOrEqual(0);

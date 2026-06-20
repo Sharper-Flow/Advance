@@ -43,6 +43,9 @@ import {
   applyGateInProgressToState,
   applyGateReenteredToState,
   applyGateStuckToState,
+  applyOpsEvidenceAppendedToState,
+  applyOpsFollowupLinkAddedToState,
+  applyOpsFollowupSeededToState,
   applyProblemStatementUpdatedToState,
   applyProposalUpdatedToState,
   applyReflectionRecordedToState,
@@ -342,6 +345,15 @@ const phase9StatusUpdatedSignal = wf.defineSignal<
 const changeCancelledSignal = wf.defineSignal<
   [import("../types").ChangeCancelledSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.changeCancelled);
+const opsFollowupSeededSignal = wf.defineSignal<
+  [import("../types").OpsFollowupSeededSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.opsFollowupSeeded);
+const opsFollowupLinkAddedSignal = wf.defineSignal<
+  [import("../types").OpsFollowupLinkAddedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.opsFollowupLinkAdded);
+const opsEvidenceAppendedSignal = wf.defineSignal<
+  [import("../types").OpsEvidenceAppendedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.opsEvidenceAppended);
 const updateArtifactMetadataSignal = wf.defineSignal<
   [
     {
@@ -533,6 +545,12 @@ export async function changeWorkflow(
     }
     if (typeof input.seedState.signal_rejections_total === "number") {
       state.signal_rejections_total = input.seedState.signal_rejections_total;
+    }
+    if (input.seedState.ops_followup) {
+      state.ops_followup = input.seedState.ops_followup;
+    }
+    if (input.seedState.ops_followup_links) {
+      state.ops_followup_links = [...input.seedState.ops_followup_links];
     }
   }
 
@@ -1388,6 +1406,24 @@ export async function changeWorkflow(
     ),
   );
   wf.setHandler(
+    opsFollowupSeededSignal,
+    signalMutation("opsFollowupSeeded", (payload) =>
+      applyOpsFollowupSeededToState(state, payload),
+    ),
+  );
+  wf.setHandler(
+    opsFollowupLinkAddedSignal,
+    signalMutation("opsFollowupLinkAdded", (payload) =>
+      applyOpsFollowupLinkAddedToState(state, payload),
+    ),
+  );
+  wf.setHandler(
+    opsEvidenceAppendedSignal,
+    signalMutation("opsEvidenceAppended", (payload) =>
+      applyOpsEvidenceAppendedToState(state, payload),
+    ),
+  );
+  wf.setHandler(
     archiveChangeSignal,
     signalAsync(
       "archiveChange",
@@ -1520,6 +1556,8 @@ export async function changeWorkflow(
       seenReportIds: state.seenReportIds,
       signal_rejections: state.signal_rejections,
       signal_rejections_total: state.signal_rejections_total,
+      ops_followup: state.ops_followup,
+      ops_followup_links: state.ops_followup_links,
     },
   };
   await wf.condition(wf.allHandlersFinished);

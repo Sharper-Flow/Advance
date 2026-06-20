@@ -36,6 +36,9 @@ import type {
   GateInProgressSignalPayload,
   GateReenteredSignalPayload,
   GateStuckSignalPayload,
+  OpsEvidenceAppendedSignalPayload,
+  OpsFollowupLinkAddedSignalPayload,
+  OpsFollowupSeededSignalPayload,
   ProblemStatementUpdatedSignalPayload,
   ProposalUpdatedSignalPayload,
   Phase9StatusUpdatedSignalPayload,
@@ -238,6 +241,15 @@ export const phase9StatusUpdatedSignal = wf.defineSignal<
 export const changeCancelledSignal = wf.defineSignal<
   [ChangeCancelledSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.changeCancelled);
+export const opsFollowupSeededSignal = wf.defineSignal<
+  [OpsFollowupSeededSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.opsFollowupSeeded);
+export const opsFollowupLinkAddedSignal = wf.defineSignal<
+  [OpsFollowupLinkAddedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.opsFollowupLinkAdded);
+export const opsEvidenceAppendedSignal = wf.defineSignal<
+  [OpsEvidenceAppendedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.opsEvidenceAppended);
 export const updateArtifactMetadataSignal = wf.defineSignal<
   [
     {

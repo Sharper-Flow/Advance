@@ -22,6 +22,10 @@ import {
   ContractAmendmentSchema,
   ContractReviewMatrixSchema,
   Phase9FinalizationStatusSchema,
+  OpsEvidenceEntrySchema,
+  OpsFollowupLinkSchema,
+  OpsFollowupProfileSchema,
+  OpsFollowupStatusSchema,
 } from "./changes";
 
 const IsoTimestampSchema = z.string();
@@ -400,6 +404,32 @@ export const Phase9StatusUpdatedSignalPayloadSchema = z.object({
 });
 export type Phase9StatusUpdatedSignalPayload = z.infer<
   typeof Phase9StatusUpdatedSignalPayloadSchema
+>;
+
+export const OpsFollowupSeededSignalPayloadSchema = z.object({
+  profile: OpsFollowupProfileSchema,
+  seededAt: IsoTimestampSchema,
+});
+export type OpsFollowupSeededSignalPayload = z.infer<
+  typeof OpsFollowupSeededSignalPayloadSchema
+>;
+
+export const OpsFollowupLinkAddedSignalPayloadSchema = z.object({
+  link: OpsFollowupLinkSchema,
+  addedAt: IsoTimestampSchema,
+});
+export type OpsFollowupLinkAddedSignalPayload = z.infer<
+  typeof OpsFollowupLinkAddedSignalPayloadSchema
+>;
+
+export const OpsEvidenceAppendedSignalPayloadSchema = z.object({
+  entry: OpsEvidenceEntrySchema,
+  /** Optional status override applied to the child profile. */
+  status: OpsFollowupStatusSchema.optional(),
+  appendedAt: IsoTimestampSchema,
+});
+export type OpsEvidenceAppendedSignalPayload = z.infer<
+  typeof OpsEvidenceAppendedSignalPayloadSchema
 >;
 
 export const ChangeCancelledSignalPayloadSchema = z.object({

@@ -22,6 +22,9 @@ import type {
   GateInProgressSignalPayload,
   GateReenteredSignalPayload,
   GateStuckSignalPayload,
+  OpsEvidenceAppendedSignalPayload,
+  OpsFollowupLinkAddedSignalPayload,
+  OpsFollowupSeededSignalPayload,
   ProblemStatementUpdatedSignalPayload,
   ProposalUpdatedSignalPayload,
   ReflectionRecordedSignalPayload,
@@ -145,6 +148,8 @@ export function changeSeedStateFromChange(
     seenReportIds: safeChange.seenReportIds,
     signal_rejections: safeChange.signal_rejections,
     signal_rejections_total: safeChange.signal_rejections_total,
+    ops_followup: safeChange.ops_followup,
+    ops_followup_links: safeChange.ops_followup_links,
   };
 }
 
@@ -218,6 +223,49 @@ export function applySignalRejectionToState(
   );
   state.signal_rejections_total = (state.signal_rejections_total ?? 0) + 1;
   setLastSignalAt(state, input.rejectedAt);
+  return state;
+}
+
+export function applyOpsFollowupSeededToState(
+  state: ChangeWorkflowState,
+  payload: OpsFollowupSeededSignalPayload,
+): ChangeWorkflowState {
+  state.ops_followup = payload.profile;
+  setLastSignalAt(state, payload.seededAt);
+  return state;
+}
+
+export function applyOpsFollowupLinkAddedToState(
+  state: ChangeWorkflowState,
+  payload: OpsFollowupLinkAddedSignalPayload,
+): ChangeWorkflowState {
+  const existing = state.ops_followup_links ?? [];
+  const index = existing.findIndex((link) => link.id === payload.link.id);
+  const next =
+    index >= 0
+      ? existing.map((link, i) => (i === index ? payload.link : link))
+      : [...existing, payload.link];
+  state.ops_followup_links = next;
+  setLastSignalAt(state, payload.addedAt);
+  return state;
+}
+
+export function applyOpsEvidenceAppendedToState(
+  state: ChangeWorkflowState,
+  payload: OpsEvidenceAppendedSignalPayload,
+): ChangeWorkflowState {
+  if (!state.ops_followup) {
+    throw new Error(
+      "Cannot append ops evidence: change has no ops_followup profile",
+    );
+  }
+  state.ops_followup = {
+    ...state.ops_followup,
+    evidence: [...(state.ops_followup.evidence ?? []), payload.entry],
+    ...(payload.status ? { status: payload.status } : {}),
+    updated_at: payload.appendedAt,
+  };
+  setLastSignalAt(state, payload.appendedAt);
   return state;
 }
 

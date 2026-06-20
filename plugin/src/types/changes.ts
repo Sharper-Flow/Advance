@@ -313,6 +313,157 @@ export const FastFollowOfSchema = z.object({
 export type FastFollowOf = z.infer<typeof FastFollowOfSchema>;
 
 // =============================================================================
+// Ops Follow-up Traceability
+// =============================================================================
+
+/**
+ * Ops/enabler follow-up kind. Covers migrations, backfills, deploy config,
+ * monitoring, cleanup, teardown, docs, and similar enablers. Keeps ADV from
+ * drifting into a project-manager clone while preserving structural lineage.
+ */
+export const OpsFollowupKindSchema = z.enum([
+  "migration",
+  "backfill",
+  "deploy_config",
+  "monitoring",
+  "cleanup",
+  "teardown",
+  "other",
+]);
+export type OpsFollowupKind = z.infer<typeof OpsFollowupKindSchema>;
+
+/**
+ * Single ops relationship vocabulary. `blocks` is the hard-blocking path for
+ * in-scope release-safety work; the other relationships support release-first
+ * sequencing and post-release follow-through.
+ */
+export const OpsRelationshipSchema = z.enum([
+  "blocks",
+  "follows_release",
+  "monitors",
+  "cleanup_after",
+]);
+export type OpsRelationship = z.infer<typeof OpsRelationshipSchema>;
+
+/**
+ * Follow-up status for the child/follow-up change profile. Distinct from the
+ * seven ADV gates — this is the operational execution state.
+ */
+export const OpsFollowupStatusSchema = z.enum([
+  "not_started",
+  "running",
+  "partial",
+  "failed",
+  "rerun_needed",
+  "rollback_needed",
+  "cleanup_needed",
+  "complete",
+]);
+export type OpsFollowupStatus = z.infer<typeof OpsFollowupStatusSchema>;
+
+/**
+ * Source provenance for an ops follow-up. Mirrors the structural source of the
+ * promotion (typed required follow-up, sub-agent report, agenda item, or manual
+ * fallback), not agenda text. The source change/project/path is always recorded
+ * so the link is repairable from the child context.
+ */
+export const OpsFollowupSourceSchema = z.object({
+  /** The change that originated this follow-up. */
+  source_change_id: z.string().min(1),
+  /** Stable ADV project ID of the originating project, when known. */
+  source_project_id: z
+    .string()
+    .regex(/^[0-9a-f]{40}$/)
+    .optional(),
+  /** Absolute path to the originating project repository, when known. */
+  source_path: z.string().min(1).optional(),
+  /** Source artifact kind/reference (e.g. report key, agenda id, contract id). */
+  source_artifact: z.string().min(1).optional(),
+  /** Contract item ID that motivated the follow-up, when applicable. */
+  source_contract_id: z.string().min(1).optional(),
+  /** Task ID in the originating change, when applicable. */
+  source_task_id: z.string().min(1).optional(),
+  /** Sidecar sub-agent report key, when promoted from a report. */
+  source_report_key: z.string().min(1).optional(),
+  /** Agenda item ID, only used as a legacy/fallback source. */
+  source_agenda_id: z.string().min(1).optional(),
+  /** Promotion source kind — ordered from most to least structured. */
+  source_kind: z.enum([
+    "required_follow_up",
+    "report_follow_up",
+    "agenda",
+    "manual",
+  ]),
+});
+export type OpsFollowupSource = z.infer<typeof OpsFollowupSourceSchema>;
+
+/**
+ * Lightweight operational evidence entry. Runbook-shaped but minimal: enough
+ * for an agent to resume, validate, rerun, or clean up the follow-up work.
+ */
+export const OpsEvidenceEntrySchema = z.object({
+  id: z.string().min(1),
+  recorded_at: z.string(),
+  env: z.string().min(1),
+  action: z.string().min(1),
+  batch: z.string().optional(),
+  status: z.enum([
+    "started",
+    "partial",
+    "pass",
+    "fail",
+    "rerun_needed",
+    "rollback_needed",
+    "cleanup_needed",
+    "complete",
+  ]),
+  summary: z.string().min(1),
+  next_step: z.string().optional(),
+  completion_signal: z.string().optional(),
+});
+export type OpsEvidenceEntry = z.infer<typeof OpsEvidenceEntrySchema>;
+
+/**
+ * Ops follow-up profile on the child/follow-up change. The child owns its own
+ * source provenance, status, and evidence; the parent/source owns the outbound
+ * link edge for release/discovery.
+ */
+export const OpsFollowupProfileSchema = z.object({
+  kind: OpsFollowupKindSchema,
+  source: OpsFollowupSourceSchema,
+  relationship: OpsRelationshipSchema,
+  status: OpsFollowupStatusSchema,
+  created_at: z.string(),
+  updated_at: z.string().optional(),
+  completion_signal: z.string().optional(),
+  evidence: z.array(OpsEvidenceEntrySchema).default([]),
+});
+export type OpsFollowupProfile = z.infer<typeof OpsFollowupProfileSchema>;
+
+/**
+ * Outbound ops follow-up link recorded on the parent/source change. The parent
+ * owns edge existence for release/archive reporting and discovery; the `status`
+ * field is a last-known display snapshot only — the child profile is the source
+ * of truth for operational status/evidence.
+ */
+export const OpsFollowupLinkSchema = z.object({
+  id: z.string().min(1),
+  target_project_id: z
+    .string()
+    .regex(/^[0-9a-f]{40}$/)
+    .optional(),
+  target_path: z.string().min(1).optional(),
+  changeId: z.string().min(1),
+  relationship: OpsRelationshipSchema,
+  status: OpsFollowupStatusSchema,
+  required_handoff: z.boolean().default(false),
+  linked_at: z.string(),
+  source_artifact: z.string().optional(),
+  source_contract_id: z.string().optional(),
+});
+export type OpsFollowupLink = z.infer<typeof OpsFollowupLinkSchema>;
+
+// =============================================================================
 // Change Contract Traceability
 // =============================================================================
 
@@ -675,6 +826,19 @@ export const ChangeSchema = z
      * observe this field via adv_change_show to confirm completion.
      */
     phase9_status: Phase9FinalizationStatusSchema.optional(),
+
+    /**
+     * Ops/enabler follow-up profile on this change (child/follow-up context).
+     * Optional for backward compatibility; set via ops-follow-up promotion or
+     * by seeding a change that already carries the profile.
+     */
+    ops_followup: OpsFollowupProfileSchema.optional(),
+
+    /**
+     * Outbound ops follow-up links from this change (parent/source context).
+     * Optional for backward compatibility; additive and idempotent by link id.
+     */
+    ops_followup_links: z.array(OpsFollowupLinkSchema).optional(),
   })
   .passthrough(); // Allow extra fields for forward/backward compatibility
 

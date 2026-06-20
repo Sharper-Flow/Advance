@@ -241,6 +241,20 @@ export {
   type ChangeContract,
   ChangeSchema,
   type Change,
+  OpsFollowupKindSchema,
+  type OpsFollowupKind,
+  OpsRelationshipSchema,
+  type OpsRelationship,
+  OpsFollowupStatusSchema,
+  type OpsFollowupStatus,
+  OpsFollowupSourceSchema,
+  type OpsFollowupSource,
+  OpsEvidenceEntrySchema,
+  type OpsEvidenceEntry,
+  OpsFollowupProfileSchema,
+  type OpsFollowupProfile,
+  OpsFollowupLinkSchema,
+  type OpsFollowupLink,
 } from "./changes";
 
 // =============================================================================

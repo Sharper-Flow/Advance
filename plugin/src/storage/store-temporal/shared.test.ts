@@ -165,4 +165,48 @@ describe("mapTemporalChangeStateToChange", () => {
       required_main_agent_actions: [],
     });
   });
+
+  test("projects ops_followup and ops_followup_links into Change read model", () => {
+    const state = createChangeWorkflowState({
+      changeId: "ops-projection",
+      title: "Ops projection",
+      createdAt: "2026-06-20T04:00:00.000Z",
+    });
+    state.ops_followup = {
+      kind: "cleanup",
+      source: {
+        source_change_id: "parent-1",
+        source_kind: "manual",
+      },
+      relationship: "cleanup_after",
+      status: "cleanup_needed",
+      created_at: "2026-06-20T04:00:00.000Z",
+      evidence: [
+        {
+          id: "ev-1",
+          recorded_at: "2026-06-20T04:01:00.000Z",
+          env: "prod",
+          action: "drop temp table",
+          status: "complete",
+          summary: "Cleanup done",
+        },
+      ],
+    };
+    state.ops_followup_links = [
+      {
+        id: "ofl-1",
+        changeId: "child-1",
+        relationship: "follows_release",
+        status: "not_started",
+        linked_at: "2026-06-20T04:00:00.000Z",
+      },
+    ];
+
+    const change = mapTemporalChangeStateToChange(state);
+
+    expect(change.ops_followup?.kind).toBe("cleanup");
+    expect(change.ops_followup?.evidence).toHaveLength(1);
+    expect(change.ops_followup_links).toHaveLength(1);
+    expect(change.ops_followup_links?.[0]?.changeId).toBe("child-1");
+  });
 });

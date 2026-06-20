@@ -47,6 +47,9 @@ import {
   WorktreeAutoManagedSignalPayloadSchema,
   WorktreeCreatedSignalPayloadSchema,
   WorktreeDeletedSignalPayloadSchema,
+  OpsEvidenceAppendedSignalPayloadSchema,
+  OpsFollowupLinkAddedSignalPayloadSchema,
+  OpsFollowupSeededSignalPayloadSchema,
 } from "../types";
 
 const designSignalKeys = [
@@ -87,6 +90,9 @@ const designSignalKeys = [
   "archiveRequested",
   "phase9StatusUpdated",
   "changeCancelled",
+  "opsFollowupSeeded",
+  "opsFollowupLinkAdded",
+  "opsEvidenceAppended",
   "updateArtifactMetadata",
   "archiveChange",
   "closeChange",
@@ -106,7 +112,7 @@ describe("change workflow message contract", () => {
     const surfacedKeys = Object.keys(CHANGE_WORKFLOW_SIGNAL_NAMES);
 
     expect(surfacedKeys).toEqual([...designSignalKeys]);
-    expect(surfacedKeys).toHaveLength(40);
+    expect(surfacedKeys).toHaveLength(43);
 
     for (const key of designSignalKeys) {
       expect(CHANGE_WORKFLOW_SIGNAL_NAMES[key]).toBe(`adv.change.${key}`);
@@ -374,6 +380,50 @@ describe("change workflow message contract", () => {
         {
           phase9_status: { status: "pending", startedAt: timestamp },
           updatedAt: timestamp,
+        },
+      ],
+      [
+        OpsFollowupSeededSignalPayloadSchema,
+        {
+          profile: {
+            kind: "migration",
+            source: {
+              source_change_id: "parent-1",
+              source_kind: "required_follow_up",
+            },
+            relationship: "follows_release",
+            status: "not_started",
+            created_at: timestamp,
+            evidence: [],
+          },
+          seededAt: timestamp,
+        },
+      ],
+      [
+        OpsFollowupLinkAddedSignalPayloadSchema,
+        {
+          link: {
+            id: "ofl-1",
+            changeId: "child-1",
+            relationship: "follows_release",
+            status: "not_started",
+            linked_at: timestamp,
+          },
+          addedAt: timestamp,
+        },
+      ],
+      [
+        OpsEvidenceAppendedSignalPayloadSchema,
+        {
+          entry: {
+            id: "ev-1",
+            recorded_at: timestamp,
+            env: "prod",
+            action: "run migration",
+            status: "started",
+            summary: "migration started",
+          },
+          appendedAt: timestamp,
         },
       ],
       [
