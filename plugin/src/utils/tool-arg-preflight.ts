@@ -269,6 +269,16 @@ const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
     scopeDelta: { blank: "omit" },
     approvalEvidence: { blank: "omit" },
   },
+  adv_followup_promote: {
+    source_report_key: { blank: "omit" },
+    source_agenda_id: { blank: "omit" },
+    source_contract_id: { blank: "omit" },
+    source_task_id: { blank: "omit" },
+    capability: { blank: "omit" },
+    proposal: { blank: "omit" },
+    target_path: { blank: "omit" },
+    confirmationEvidence: { blank: "omit" },
+  },
 };
 
 export function listToolArgFieldPolicies(): Readonly<
