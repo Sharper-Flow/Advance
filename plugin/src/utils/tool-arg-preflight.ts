@@ -279,6 +279,16 @@ const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
     target_path: { blank: "omit" },
     confirmationEvidence: { blank: "omit" },
   },
+  adv_ops_evidence_add: {
+    changeId: { blank: "reject" },
+    env: { blank: "reject" },
+    action: { blank: "reject" },
+    status: { blank: "reject" },
+    summary: { blank: "reject" },
+    batch: { blank: "omit" },
+    next_step: { blank: "omit" },
+    completion_signal: { blank: "omit" },
+  },
 };
 
 export function listToolArgFieldPolicies(): Readonly<

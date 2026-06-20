@@ -32,6 +32,7 @@ import { roadmapTools } from "./tools/roadmap";
 import { backlogTools } from "./tools/backlog";
 import { changeTools } from "./tools/change";
 import { followupTools } from "./tools/followup";
+import { opsEvidenceTools } from "./tools/ops-evidence";
 import { contractTools } from "./tools/contract";
 import { taskTools } from "./tools/task";
 import { subagentReportTools } from "./tools/subagent-report";
@@ -337,6 +338,13 @@ export function createToolMap(
     adv_followup_promote: bindTool(
       followupTools.adv_followup_promote,
       "adv_followup_promote",
+      store,
+    ),
+
+    // Ops Evidence Append Tool
+    adv_ops_evidence_add: bindTool(
+      opsEvidenceTools.adv_ops_evidence_add,
+      "adv_ops_evidence_add",
       store,
     ),
 
@@ -743,6 +751,7 @@ export const ADV_TOOL_NAMES: readonly string[] = [
   "adv_change_reenter",
   "adv_change_forget",
   "adv_followup_promote",
+  "adv_ops_evidence_add",
   "adv_contract_mint",
   "adv_contract_review_matrix_set",
   "adv_task_show",

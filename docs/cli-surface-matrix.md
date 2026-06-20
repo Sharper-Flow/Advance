@@ -83,6 +83,7 @@
 | `adv_change_close` | `no-cli-dangerous` | Change mutation |
 | `adv_change_forget` | `keep-mcp-only` | Session pointer clear (in-memory only) |
 | `adv_followup_promote` | `no-cli-dangerous` | Promotes a linked ops follow-up change; mutation |
+| `adv_ops_evidence_add` | `no-cli-dangerous` | Appends ops evidence and updates follow-up status; mutation |
 | `adv_change_bulk_close` | `no-cli-dangerous` | Change mutation |
 | `adv_change_archive` | `no-cli-dangerous` | Archive mutation + spec delta |
 | `adv_archive_repair` | `no-cli-dangerous` | Archive release repair mutation |

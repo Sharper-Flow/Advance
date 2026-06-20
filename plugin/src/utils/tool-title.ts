@@ -94,6 +94,8 @@ const TITLE_BUILDERS: Record<string, TitleBuilder> = {
     operator(`Forget change pointer${suffix(args, "changeId")}`),
   adv_followup_promote: (args) =>
     write(`Promote follow-up${suffix(args, "source_change_id")}`),
+  adv_ops_evidence_add: (args) =>
+    write(`Add ops evidence${suffix(args, "changeId")}`),
   adv_contract_mint: (args) =>
     write(`Mint contract${suffix(args, "changeId")}`),
   adv_contract_review_matrix_set: (args) =>
