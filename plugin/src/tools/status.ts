@@ -1603,18 +1603,23 @@ export const statusTools = {
 
           let archivedBranchHygiene: ArchivedBranchHygieneSection | undefined;
           if (plan.archivedBranchHygiene) {
-            const mainCheckout = resolveMainCheckout(activeStore.paths.root);
-            const hygieneStatus: {
-              recommendations: string[];
-              archived_branch_hygiene?: ArchivedBranchHygieneSection;
-            } = { recommendations: status.recommendations };
-            await appendArchivedBranchHygieneRecommendations(
-              hygieneStatus,
-              activeStore,
-              mainCheckout,
-            );
-            status.recommendations = hygieneStatus.recommendations;
-            archivedBranchHygiene = hygieneStatus.archived_branch_hygiene;
+            try {
+              const mainCheckout = resolveMainCheckout(activeStore.paths.root);
+              const hygieneStatus: {
+                recommendations: string[];
+                archived_branch_hygiene?: ArchivedBranchHygieneSection;
+              } = { recommendations: status.recommendations };
+              await appendArchivedBranchHygieneRecommendations(
+                hygieneStatus,
+                activeStore,
+                mainCheckout,
+              );
+              status.recommendations = hygieneStatus.recommendations;
+              archivedBranchHygiene = hygieneStatus.archived_branch_hygiene;
+            } catch {
+              // Archived branch hygiene is advisory and git-backed. Non-git
+              // project fixtures and degraded runtimes must still get status.
+            }
           }
 
           let snapshotHealth: SnapshotHealthSnapshot | undefined;
