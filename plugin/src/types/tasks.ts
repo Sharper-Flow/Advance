@@ -6,6 +6,7 @@
  */
 
 import { z } from "zod";
+import { ContractEvidencePolicySchema } from "./evidence-policy";
 import { DependencySchema } from "./specs";
 import { SubagentReportSchema } from "./subagent-reports";
 import { TaskStructuredOutputSchema } from "./task-output";
@@ -201,6 +202,11 @@ export const TaskSchema = z
     tdd_reclassification: TddReclassificationSchema.optional(),
     /** Structured links from task work back to approved change-contract items. */
     contract_refs: TaskContractRefsSchema.optional(),
+    /**
+     * Evidence policy that governs what kind of proof satisfies task completion.
+     * Uses the shared contract evidence-policy vocabulary.
+     */
+    evidence_policy: ContractEvidencePolicySchema.optional(),
     /**
      * Arbitrary key-value metadata for agent-driven filtering and routing.
      * All values are strings. Examples: { env: "production", target_repo: "backend" }
