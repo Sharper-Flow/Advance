@@ -1,0 +1,2152 @@
+{
+  "id": "addNonCodeWorkflowRigor",
+  "title": "Add non-code workflow rigor",
+  "status": "archived",
+  "created_at": "2026-06-22T01:22:07.267Z",
+  "tasks": [
+    {
+      "id": "tk-b7cef90ef441",
+      "title": "Author spec-law deltas for non-code workflow rigor",
+      "type": "code",
+      "section": "Spec-Law Foundation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-06-22T01:41:24.831Z",
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "inline_required",
+        "evidence_policy": "artifact_reference"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC9"
+        ],
+        "verifies": [],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "DONT1",
+          "DONT2",
+          "DONT4"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-22T01:56:13.270Z",
+      "verification": "Spec JSON parse passed via node JSON.parse for five spec files (runId tr_mqoki7oj_ff2f8c5a). Prettier check passed for changed spec JSON and docs mirrors (runId tr_mqokjekp_9596bb2b).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added durable spec requirements for large non-code deliverable routing, non-code prep evidence policy synthesis, no-fake-TDD evidence policy boundary, prep-readiness non-code evidence validation, and review packet/review-matrix non-code evidence handling. Mirrored applicable specs in docs/specs. Verified JSON parse and Prettier formatting.",
+      "filesTouched": [
+        ".adv/specs/adv-prep/spec.json",
+        ".adv/specs/advance-workflow/spec.json",
+        ".adv/specs/prep-readiness/spec.json",
+        ".adv/specs/subagent-reports/spec.json",
+        ".adv/specs/tdd-contract/spec.json",
+        "docs/specs/adv-prep.md",
+        "docs/specs/advance-workflow.md",
+        "docs/specs/prep-readiness.md",
+        "docs/specs/tdd-contract.md"
+      ],
+      "touched_files": [
+        ".adv/specs/adv-prep/spec.json",
+        ".adv/specs/advance-workflow/spec.json",
+        ".adv/specs/prep-readiness/spec.json",
+        ".adv/specs/subagent-reports/spec.json",
+        ".adv/specs/tdd-contract/spec.json",
+        "docs/specs/adv-prep.md",
+        "docs/specs/advance-workflow.md",
+        "docs/specs/prep-readiness.md",
+        "docs/specs/tdd-contract.md"
+      ],
+      "checkpointSha": "493510e6550bf624a25f11af8b59f4d4a710f322",
+      "completedAt": "2026-06-22T02:01:00.687Z",
+      "completed_at": "2026-06-22T02:01:00.687Z",
+      "notes": "Spec-law deltas authored and formatted. Checkpoint commit 493510e6550bf624a25f11af8b59f4d4a710f322.",
+      "error_recovery": {
+        "last_error": "Initial Prettier check failed for changed spec JSON and docs mirrors.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "Formatting fixed via prettier --write; no remaining issue.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "Prettier check reported code style issues in 7 changed files.",
+            "diagnosis": "Manual JSON/markdown patch was syntactically valid but not Prettier-formatted.",
+            "fix_tried": "Ran pnpm exec prettier --write on changed spec JSON and docs mirrors, then reran prettier --check.",
+            "strategy_label": "format-changed-spec-files",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-22T01:59:00.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-22T02:01:17.526Z"
+    },
+    {
+      "id": "tk-4989abfc0d67",
+      "title": "Expose task type and evidence policy through task schema and adv_task_add",
+      "type": "code",
+      "section": "Task Model + Tool Contract",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-06-22T01:41:47.156Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-b7cef90ef441"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed",
+        "evidence_policy": "test"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC4",
+          "AC5"
+        ],
+        "verifies": [
+          "SC2"
+        ],
+        "respects": [
+          "C5",
+          "C6",
+          "DONT2"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-22T02:01:53.046Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "addNonCodeWorkflowRigor",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addNonCodeWorkflowRigor",
+          "task_id": "tk-4989abfc0d67",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-4989abfc0d67"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/types/evidence-policy.ts",
+            "plugin/src/types/tasks.ts",
+            "plugin/src/types/changes.ts",
+            "plugin/src/tools/task.ts",
+            "plugin/src/tools/task.test.ts",
+            "plugin/src/types/contract.test.ts",
+            "plugin/schemas/change.schema.json",
+            "plugin/schemas/task.schema.json"
+          ],
+          "verification": [
+            {
+              "command": "../bin/oc-test targeted -- src/tools/task.test.ts src/types/contract.test.ts",
+              "exit_code": 0,
+              "summary": "49 tests pass (adv_run_test runId: tr_mqokxq6x_1d9dedf1)"
+            },
+            {
+              "command": "../bin/oc-test smoke",
+              "exit_code": 0,
+              "summary": "Smoke tier passed (schemas:check, typecheck, lint, format:check, 47 tests)"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Extracted ContractEvidencePolicySchema into plugin/src/types/evidence-policy.ts",
+              "why": "Avoids a circular import between tasks.ts and changes.ts while letting both share the same schema and type."
+            },
+            {
+              "what": "Imported ContractEvidencePolicySchema directly from ./evidence-policy in tasks.ts rather than from ../types",
+              "why": "Keeps the type module acyclic; changes.ts still re-exports the schema so external consumers see no API break."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "none",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Task type and evidence_policy structural support is implemented. adv_task_add now accepts optional type (defaults code) and evidence_policy, persists both, and derives metadata.tdd_intent by type. ContractEvidencePolicySchema was extended with source_citation, source_audit, rubric_review, stakeholder_acceptance, artifact_reference. Public JSON schemas regenerated and check green. Typecheck, lint, format all pass. No Temporal workflow surface changes beyond additive optional task fields.",
+            "suggested_next_action": "Run the full test suite (bin/oc-test full) before moving to the next task, or hand off to tk-7e7356b8172e for prep-readiness/contract coverage validator behavior."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: ../bin/oc-test targeted -- src/tools/task.test.ts src/types/contract.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: ../bin/oc-test smoke"
+            }
+          ]
+        }
+      ],
+      "verification": "Verified task type/evidence policy schema and adv_task_add changes. `../bin/oc-test targeted -- src/deploy-local.test.ts src/tools/task.test.ts src/types/contract.test.ts` passed: 3 files, 115 tests (runId tr_mqol1jkd_1647182b). Prior reported ReferenceError in src/types/changes.ts not reproducible; deploy-local.test.ts passed in same run. Subagent evidence also reported targeted task/contract tests and smoke passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/schemas/change.schema.json",
+        "plugin/schemas/task.schema.json",
+        "plugin/src/tools/task.test.ts",
+        "plugin/src/tools/task.ts",
+        "plugin/src/types/changes.ts",
+        "plugin/src/types/contract.test.ts",
+        "plugin/src/types/evidence-policy.ts",
+        "plugin/src/types/tasks.ts"
+      ],
+      "touched_files": [
+        "plugin/schemas/change.schema.json",
+        "plugin/schemas/task.schema.json",
+        "plugin/src/tools/task.test.ts",
+        "plugin/src/tools/task.ts",
+        "plugin/src/types/changes.ts",
+        "plugin/src/types/contract.test.ts",
+        "plugin/src/types/evidence-policy.ts",
+        "plugin/src/types/tasks.ts"
+      ],
+      "checkpointSha": "dd41d7dc7080985bdcc5f1ce565e172a5a141230",
+      "completedAt": "2026-06-22T02:15:56.334Z",
+      "completed_at": "2026-06-22T02:15:56.334Z"
+    },
+    {
+      "id": "tk-460b311fe671",
+      "title": "Update routing, adv-improve handoff, and research fallback safety text",
+      "type": "code",
+      "section": "Routing + Research Safety",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-06-22T01:41:47.229Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-b7cef90ef441"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "delegate_allowed",
+        "evidence_policy": "artifact_reference"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC8"
+        ],
+        "verifies": [
+          "SC1",
+          "SC4"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "DONT1",
+          "DONT4"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-22T02:01:53.189Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "addNonCodeWorkflowRigor",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addNonCodeWorkflowRigor",
+          "task_id": "tk-460b311fe671",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-460b311fe671"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            ".opencode/agents/adv.md",
+            "ADV_INSTRUCTIONS.md",
+            ".opencode/command/adv-improve.md",
+            ".opencode/command/adv-comp-scan.md",
+            "docs/adv-runtime-protocol-coverage.md"
+          ],
+          "verification": [
+            {
+              "command": "bin/oc-test targeted -- src/adv-improve-assets.test.ts src/orchestrator-ops-delegation-assets.test.ts",
+              "exit_code": 0,
+              "summary": "Passed 35 asset tests covering adv-improve command shape and orchestrator delegation"
+            },
+            {
+              "command": "bin/oc-test targeted -- src/adv-instructions-assets.test.ts src/adv-autonomy-quality-assets.test.ts src/manifest-doc-drift.test.ts",
+              "exit_code": 0,
+              "summary": "Passed 71 asset tests covering ADV_INSTRUCTIONS.md, autonomy quality, and manifest/doc drift"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Updated docs/adv-runtime-protocol-coverage.md to keep the intent-routing coverage row in sync with the new non-code deliverable row in adv.md",
+              "why": "The coverage matrix documents runtime invariants; leaving it stale would silently contradict the updated intent routing. The edit is a one-word/token extension, not a new invariant."
+            },
+            {
+              "what": "Did not add new asset-test assertions for the new prose anchors",
+              "why": "Existing tests pass and the task scope says asset tests are updated only when required by changed anchor text; the new content adds anchors rather than changing existing ones."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": {
+            "items": [
+              "docs/adv-runtime-protocol-coverage.md"
+            ],
+            "details": "Updated the intent-routing coverage row to mention large non-code deliverable routing. This file was not listed in IN_SCOPE; it is a coverage doc, not an instruction/command doc.",
+            "recommendation": "finish_owned_scope_then_report"
+          },
+          "follow_ups": [
+            "src/deploy-local.test.ts currently fails with ReferenceError: ContractEvidencePolicySchema is not defined in src/types/changes.ts. This is type/schema/tool code owned by tk-4989abfc0d67 and outside this task's scope; verify/fix in that task."
+          ],
+          "required_main_agent_actions": [],
+          "related_scan": "none",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Doc-only task complete: intent routing now names large non-code deliverables with 5+ examples and requires tracked ADV changes unless one-off/read-only; adv-improve clarifies its handoff to /adv-proposal and preserves no-state-mutation; adv-comp-scan adds public-source/redaction/no-confidential-data safety boundary. Focused asset tests pass. deploy-local.test.ts has an unrelated pre-existing ReferenceError in src/types/changes.ts.",
+            "suggested_next_action": "Proceed with tk-4989abfc0d67 (type/schema/tool code) and address the ContractEvidencePolicySchema ReferenceError; rerun deploy-local.test.ts after that fix."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/adv-improve-assets.test.ts src/orchestrator-ops-delegation-assets.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/adv-instructions-assets.test.ts src/adv-autonomy-quality-assets.test.ts src/manifest-doc-drift.test.ts"
+            }
+          ]
+        }
+      ],
+      "verification": "Verified routing/docs/research safety changes. `../bin/oc-test targeted -- src/adv-improve-assets.test.ts src/orchestrator-ops-delegation-assets.test.ts src/adv-instructions-assets.test.ts src/adv-autonomy-quality-assets.test.ts src/manifest-doc-drift.test.ts` passed: 5 files, 106 tests (runId tr_mqol1qdb_c05cd869).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".opencode/agents/adv.md",
+        ".opencode/command/adv-comp-scan.md",
+        ".opencode/command/adv-improve.md",
+        "ADV_INSTRUCTIONS.md",
+        "docs/adv-runtime-protocol-coverage.md"
+      ],
+      "touched_files": [
+        ".opencode/agents/adv.md",
+        ".opencode/command/adv-comp-scan.md",
+        ".opencode/command/adv-improve.md",
+        "ADV_INSTRUCTIONS.md",
+        "docs/adv-runtime-protocol-coverage.md"
+      ],
+      "checkpointSha": "8d3a44b69c8dbcf2a8ad88f9ba0aa6072109ad57",
+      "completedAt": "2026-06-22T02:16:18.483Z",
+      "completed_at": "2026-06-22T02:16:18.483Z"
+    },
+    {
+      "id": "tk-7e7356b8172e",
+      "title": "Implement prep readiness and contract coverage for non-code evidence policies",
+      "type": "code",
+      "section": "Validators + Contract Coverage",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-06-22T01:42:10.887Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-4989abfc0d67"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed",
+        "evidence_policy": "test"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC6",
+          "AC7"
+        ],
+        "verifies": [
+          "SC2",
+          "SC3"
+        ],
+        "respects": [
+          "C5",
+          "C6",
+          "DONT2",
+          "DONT3"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-22T02:17:03.839Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "addNonCodeWorkflowRigor",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addNonCodeWorkflowRigor",
+          "task_id": "tk-7e7356b8172e",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-7e7356b8172e"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/validator/prep-readiness.ts",
+            "plugin/src/validator/prep-readiness.test.ts",
+            "plugin/src/validator/contract.ts",
+            "plugin/src/validator/contract.test.ts",
+            "plugin/src/adv-skill-backed-commands-assets.test.ts",
+            "plugin/src/ops-follow-up-assets.test.ts",
+            "plugin/src/subagent-reports-spec-assets.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "../bin/oc-test targeted -- src/validator/prep-readiness.test.ts src/validator/contract.test.ts",
+              "exit_code": 0,
+              "summary": "45 targeted tests pass (24 prep-readiness + 21 contract)"
+            },
+            {
+              "command": "pnpm run check",
+              "exit_code": 0,
+              "summary": "Pre-push gate passes: schemas:check, typecheck, test-isolation, lockfile-policy, lint, format:check"
+            },
+            {
+              "command": "../bin/oc-test full",
+              "exit_code": 0,
+              "summary": "Full suite passes: 280 test files passed, 1 skipped; 3924 tests passed, 2 skipped"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Added prep-readiness check NON_CODE_EVIDENCE_POLICY_MISSING for non-code deliverable tasks and required a bounded not_applicable_reason when evidence_policy is not_applicable.",
+              "why": "Implements rq-PR008nonCodeEvidence / AC6 / SC2 / SC3 / C6 without weakening code-task TDD."
+            },
+            {
+              "what": "Broadened contract.ts CONTRACT_TASK_REFS_MISSING enforcement from code-only to all non-cancelled task types under standard/strict rigor.",
+              "why": "Closes the contract coverage hole per design Decision 6 and AC7; non-code tasks must trace to approved contract items or provide not_applicable_reason."
+            },
+            {
+              "what": "Updated version-pinning asset tests and added spec-law citations for the new non-code requirements.",
+              "why": "Spec versions and requirement IDs were bumped by prior tasks; asset tests must reflect authoritative spec state and the spec-citation invariant must see implementing code."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Applied coverage broadening and evidence-policy checks uniformly across docs, research, approval, verification, and ops task types; updated related asset tests for advance-workflow, adv-prep, subagent-reports specs.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Prep-readiness now blocks non-code tasks missing evidence_policy and requires not_applicable to carry a rationale. Contract coverage now applies to all non-cancelled task types, not just code tasks. Full test suite and pre-push check gate pass. Asset tests and spec citations were updated to match bumped spec versions/new requirement IDs introduced by prior tasks in this change.",
+            "suggested_next_action": "Proceed to task tk-6668a79328ec (Update prep/review evidence surfaces for non-code deliverables); the underlying validators are now in place. Remind that live tool behavior changes require rebuild/deploy before end-to-end validation in a fresh OpenCode session."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: ../bin/oc-test targeted -- src/validator/prep-readiness.test.ts src/validator/contract.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run check"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: ../bin/oc-test full"
+            }
+          ]
+        }
+      ],
+      "verification": "Implemented prep-readiness non-code evidence policy validation and broadened contract coverage to all non-cancelled task types. Subagent reported red-first tests for NON_CODE_EVIDENCE_POLICY_MISSING and CONTRACT_TASK_REFS_MISSING, then green verification. Durable verification: `../bin/oc-test targeted -- src/validator/prep-readiness.test.ts src/validator/contract.test.ts` passed 2 files, 45 tests (runId tr_mqolzb1y_1a53a2db). Subagent also reported `pnpm run check` passed and `../bin/oc-test full` passed (280 files, 3924 tests, 2 skipped).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/adv-skill-backed-commands-assets.test.ts",
+        "plugin/src/ops-follow-up-assets.test.ts",
+        "plugin/src/subagent-reports-spec-assets.test.ts",
+        "plugin/src/validator/contract.test.ts",
+        "plugin/src/validator/contract.ts",
+        "plugin/src/validator/prep-readiness.test.ts",
+        "plugin/src/validator/prep-readiness.ts"
+      ],
+      "touched_files": [
+        "plugin/src/adv-skill-backed-commands-assets.test.ts",
+        "plugin/src/ops-follow-up-assets.test.ts",
+        "plugin/src/subagent-reports-spec-assets.test.ts",
+        "plugin/src/validator/contract.test.ts",
+        "plugin/src/validator/contract.ts",
+        "plugin/src/validator/prep-readiness.test.ts",
+        "plugin/src/validator/prep-readiness.ts"
+      ],
+      "checkpointSha": "8a53e70c5cae28f407d16cdf0bcd97f2be8dc5fc",
+      "completedAt": "2026-06-22T02:41:06.775Z",
+      "completed_at": "2026-06-22T02:41:06.775Z"
+    },
+    {
+      "id": "tk-6668a79328ec",
+      "title": "Update prep/review evidence surfaces for non-code deliverables",
+      "type": "code",
+      "section": "Prep + Review Surfaces",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-06-22T01:42:10.992Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-4989abfc0d67"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-460b311fe671"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "delegate_allowed",
+        "evidence_policy": "artifact_reference"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC6",
+          "AC7"
+        ],
+        "verifies": [
+          "SC3"
+        ],
+        "respects": [
+          "C2",
+          "C5",
+          "C6",
+          "DONT1",
+          "DONT3",
+          "DONT4"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-22T02:41:31.244Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "addNonCodeWorkflowRigor",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addNonCodeWorkflowRigor",
+          "task_id": "tk-6668a79328ec",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-6668a79328ec"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            ".opencode/command/adv-prep.md",
+            ".opencode/command/adv-review.md",
+            "plugin/src/adv-prep-assets.test.ts",
+            "plugin/src/adv-review-assets.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "../bin/oc-test targeted -- src/adv-prep-assets.test.ts src/adv-review-assets.test.ts src/validator/prep-readiness.test.ts src/tools/task.test.ts src/types/contract.test.ts",
+              "exit_code": 0,
+              "summary": "87 tests passed across new asset tests and related source tests"
+            },
+            {
+              "command": "pnpm run check",
+              "exit_code": 0,
+              "summary": "schemas:check, typecheck, test-isolation, lockfile-policy, lint, format:check all passed"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Updated command checklists (.opencode/command/adv-prep.md and adv-review.md) instead of source code",
+              "why": "The task model, evidence-policy enum, prep-readiness validator, and task tool already support evidence_policy; the gap was in agent-facing command guidance and acceptance review packet instructions."
+            },
+            {
+              "what": "Added two asset-style tests to lock command guidance in place",
+              "why": "Existing repo convention uses co-located asset tests to enforce command/agent instruction content; this makes the new non-code evidence policy surface machine-checkable."
+            },
+            {
+              "what": "Linked command sections to existing spec anchors rq-prepNonCodeEvidence01 and rq-subagentNonCodeEvidence01",
+              "why": "Ties new command text to existing spec law and avoids inventing parallel lifecycle or new commands."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "none — changes were localized to the two command files and their asset tests; no same-pattern source issues found.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Prep and review commands now explicitly instruct non-code evidence policies (source_citation, source_audit, rubric_review, stakeholder_acceptance, artifact_reference) and tie them to contract refs/review matrix rows. The existing prep-readiness validator and task tool already enforce evidence_policy, so no source-code changes were required. Two new asset tests ensure the guidance remains present.",
+            "suggested_next_action": "Run the full test suite via bin/oc-test full or proceed to the next task."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: ../bin/oc-test targeted -- src/adv-prep-assets.test.ts src/adv-review-assets.test.ts src/validator/prep-readiness.test.ts src/tools/task.test.ts src/types/contract.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run check"
+            }
+          ]
+        }
+      ],
+      "verification": "Updated prep/review command evidence surfaces for non-code deliverables and added asset tests. Verified `../bin/oc-test targeted -- src/adv-prep-assets.test.ts src/adv-review-assets.test.ts src/validator/prep-readiness.test.ts src/tools/task.test.ts src/types/contract.test.ts` passed 5 files, 87 tests (runId tr_mqomcjf2_a0f99537). Subagent also reported `pnpm run check` passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".opencode/command/adv-prep.md",
+        ".opencode/command/adv-review.md",
+        "plugin/src/adv-prep-assets.test.ts",
+        "plugin/src/adv-review-assets.test.ts"
+      ],
+      "touched_files": [
+        ".opencode/command/adv-prep.md",
+        ".opencode/command/adv-review.md",
+        "plugin/src/adv-prep-assets.test.ts",
+        "plugin/src/adv-review-assets.test.ts"
+      ],
+      "checkpointSha": "c872280524ec19cb903ded29cd05a19191596603",
+      "completedAt": "2026-06-22T02:51:23.890Z",
+      "completed_at": "2026-06-22T02:51:23.890Z"
+    },
+    {
+      "id": "tk-d831ba8148a4",
+      "title": "Add regression and asset coverage for non-code workflow rigor",
+      "type": "code",
+      "section": "Regression Coverage",
+      "status": "done",
+      "priority": 5,
+      "created_at": "2026-06-22T01:42:39.092Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-4989abfc0d67"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-460b311fe671"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-7e7356b8172e"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-6668a79328ec"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_allowed",
+        "evidence_policy": "test"
+      },
+      "contract_refs": {
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7",
+          "AC8",
+          "AC10",
+          "SC1",
+          "SC2",
+          "SC3",
+          "SC4",
+          "SC5"
+        ],
+        "respects": [
+          "DONT2",
+          "DONT3"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-22T02:51:46.844Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "addNonCodeWorkflowRigor",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addNonCodeWorkflowRigor",
+          "task_id": "tk-d831ba8148a4",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-d831ba8148a4"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/adv-improve-assets.test.ts",
+            "plugin/src/adv-instructions-assets.test.ts",
+            "plugin/src/adv-comp-scan-assets.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "../bin/oc-test targeted -- src/adv-improve-assets.test.ts src/adv-instructions-assets.test.ts src/adv-comp-scan-assets.test.ts src/adv-prep-assets.test.ts src/adv-review-assets.test.ts src/validator/task-classifier.test.ts src/validator/prep-readiness.test.ts src/validator/contract.test.ts src/tools/task.test.ts",
+              "exit_code": 0,
+              "summary": "198 tests passed across non-code workflow rigor AC1-AC8 coverage surfaces."
+            },
+            {
+              "command": "pnpm run check",
+              "exit_code": 0,
+              "summary": "Plugin check gate passed: schemas:check, typecheck, test isolation, lockfile policy, lint, format:check."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Extended existing asset-test files rather than creating one mega-test file for all ACs.",
+              "why": "Preserves locality and avoids duplicating broad existing tests (AC4-AC7 already covered by task.test.ts, prep-readiness.test.ts, contract.test.ts, adv-prep-assets.test.ts, adv-review-assets.test.ts)."
+            },
+            {
+              "what": "Added AC2/AC3 assertions to adv-instructions-assets.test.ts instead of a new file.",
+              "why": "Non-code deliverable routing is instruction-level policy; keeping it with other ADV_INSTRUCTIONS.md asset tests follows the repo's per-surface asset-test convention."
+            },
+            {
+              "what": "Created adv-comp-scan-assets.test.ts for AC8.",
+              "why": "Research-command fallback safety is a distinct command surface (adv-comp-scan.md) with no existing asset coverage; a dedicated file mirrors adv-prep/review asset patterns."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "No same-pattern subsystem fixes required; coverage is additive and localized. Existing tests for task type/evidence policy, prep readiness, contract review, and review matrix already cover AC4-AC7.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "AC1-AC8 regression/asset coverage is now explicit. Added 7 new assertions across 2 existing asset files and 1 new asset file. All targeted tests (198) and the full plugin check gate pass. No implementation changes were made; only test additions.",
+            "suggested_next_action": "Run the full plugin test suite (`../bin/oc-test full` from plugin/) before acceptance if not already run, then proceed to acceptance gate."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: ../bin/oc-test targeted -- src/adv-improve-assets.test.ts src/adv-instructions-assets.test.ts src/adv-comp-scan-assets.test.ts src/adv-prep-assets.test.ts src/adv-review-assets.test.ts src/validator/task-classifier.test.ts src/validator/prep-readiness.test.ts src/validator/contract.test.ts src/tools/task.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run check"
+            }
+          ]
+        }
+      ],
+      "verification": "Added explicit regression/asset coverage for AC1-AC8 including new adv-comp-scan safety asset test. Verified `../bin/oc-test targeted -- src/adv-improve-assets.test.ts src/adv-instructions-assets.test.ts src/adv-comp-scan-assets.test.ts src/adv-prep-assets.test.ts src/adv-review-assets.test.ts src/validator/task-classifier.test.ts src/validator/prep-readiness.test.ts src/validator/contract.test.ts src/tools/task.test.ts` passed 9 files, 198 tests (runId tr_mqoms2s3_19bbe893). Subagent also reported `pnpm run check` passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/adv-comp-scan-assets.test.ts",
+        "plugin/src/adv-improve-assets.test.ts",
+        "plugin/src/adv-instructions-assets.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/adv-comp-scan-assets.test.ts",
+        "plugin/src/adv-improve-assets.test.ts",
+        "plugin/src/adv-instructions-assets.test.ts"
+      ],
+      "checkpointSha": "f91e3752986b2f0618e2a4e6b53d2835f6ed144d",
+      "completedAt": "2026-06-22T03:03:29.473Z",
+      "completed_at": "2026-06-22T03:03:29.473Z"
+    },
+    {
+      "id": "tk-02af760e65a6",
+      "title": "Full validation pass and release-readiness reconciliation",
+      "type": "code",
+      "section": "Full Validation",
+      "status": "done",
+      "priority": 6,
+      "created_at": "2026-06-22T01:42:39.185Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-4989abfc0d67"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-460b311fe671"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-7e7356b8172e"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-6668a79328ec"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "inline_required",
+        "evidence_policy": "static_check"
+      },
+      "contract_refs": {
+        "verifies": [
+          "AC9",
+          "AC10",
+          "SC5"
+        ],
+        "respects": [
+          "C1",
+          "C5",
+          "DONT2"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-22T03:03:53.691Z",
+      "verification": "Release-readiness validation pass complete. `adv_change_validate strict:true` passed with 0 errors and 1 non-blocking NO_DELTAS warning. `pnpm run check` passed (runId tr_mqomtrp2_c527ea2a). `../bin/oc-test full` passed (runId tr_mqomvkwc_c4c1c576).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "f91e3752986b2f0618e2a4e6b53d2835f6ed144d",
+      "completedAt": "2026-06-22T03:06:13.909Z",
+      "completed_at": "2026-06-22T03:06:13.909Z"
+    },
+    {
+      "id": "tk-6c65aec9cbb4",
+      "title": "Final post-regression validation and planning reconciliation",
+      "type": "code",
+      "section": "Full Validation",
+      "status": "done",
+      "priority": 7,
+      "created_at": "2026-06-22T01:43:34.128Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-d831ba8148a4"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-02af760e65a6"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "inline_required",
+        "evidence_policy": "static_check"
+      },
+      "contract_refs": {
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7",
+          "AC8",
+          "AC9",
+          "AC10",
+          "SC5"
+        ],
+        "respects": [
+          "C1",
+          "C5",
+          "DONT2"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-06-22T03:06:42.777Z",
+      "verification": "Final post-regression reconciliation complete. `adv_change_validate strict:true` passed with 0 errors and one non-blocking NO_DELTAS warning; task list showed 7 completed tasks before final checkpoint and no blocked work. Git worktree clean at HEAD f91e3752986b2f0618e2a4e6b53d2835f6ed144d. Prior full validation evidence remains current: `pnpm run check` passed (runId tr_mqomtrp2_c527ea2a); `../bin/oc-test full` passed (runId tr_mqomvkwc_c4c1c576); AC1-AC8 targeted regression passed (runId tr_mqoms2s3_19bbe893).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "f91e3752986b2f0618e2a4e6b53d2835f6ed144d",
+      "completedAt": "2026-06-22T03:07:03.771Z",
+      "completed_at": "2026-06-22T03:07:03.771Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "addNonCodeWorkflowRigor",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-leverage-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design leverage scout — non-code workflow rigor",
+      "sources": [
+        {
+          "label": "task.ts hard-coded type",
+          "locator": "plugin/src/tools/task.ts:1091",
+          "summary": "task.type is hard-coded to 'code'; design decision #2 (args.type ?? 'code') is accurate and minimal."
+        },
+        {
+          "label": "contract.ts code-only coverage gate",
+          "locator": "plugin/src/validator/contract.ts:83-97",
+          "summary": "CONTRACT_TASK_REFS_MISSING fires only when task.type === 'code'. Non-code tasks currently escape contract-ref enforcement — this is the latent gap design decision #6/risk-D must close."
+        },
+        {
+          "label": "shared evidence-policy enum",
+          "locator": "plugin/src/types/changes.ts:482-491,533,544",
+          "summary": "ContractEvidencePolicySchema is a single 5-value enum reused by both ContractItem and ContractReviewMatrixRow. ~75 references mostly literal 'test' in tests (rg evidencePolicy across src)."
+        },
+        {
+          "label": "prep-readiness tdd_intent validation",
+          "locator": "plugin/src/validator/prep-readiness.ts:357-412",
+          "summary": "tdd_intent presence/validity already structurally enforced; non-code path needs only 'not_applicable'/'separate_verification' acceptance, not new machinery."
+        },
+        {
+          "label": "TaskTypeSchema already exists",
+          "locator": "plugin/src/types/tasks.ts:135-143",
+          "summary": "docs/ops/research/approval/verification task types already modeled and defaulted; only the adv_task_add arg surface is missing."
+        },
+        {
+          "label": "overlap doc",
+          "locator": "docs/non-coding-task-rigor-prep.md:66,122 + .adv/archive/2026-06-19-addChokepointVerification",
+          "summary": "tightenAdvScopeDiscipline owns reverse-traceability/bounded-tasks/SoW signoff; coordination required to avoid duplicate traceability logic."
+        }
+      ],
+      "architecture_assessment": "Design is sound, boring, and reuse-first: it extends existing gates, the existing TaskTypeSchema, the existing evidence-policy enum, and the existing tdd_intent validator rather than inventing parallel lifecycle. The single highest-leverage finding is that contract.ts:85 already scopes contract-ref enforcement to task.type==='code', so making non-code tasks first-class REQUIRES flipping/broadening that condition or non-code tasks will silently bypass contract coverage — turning the new task type into an enforcement hole. This couples directly to decision #6 and risk D and should be elevated from risk to explicit AC-tied design step. Evidence-enum extension is the main blast-radius cost (~75 literal call sites, almost all test 'test' fixtures) but is additive and replay-safe (optional/default fields).",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "No contract compromise or user-value tradeoff requiring orchestrator decision. All five candidates are design-internal optimizations. tightenAdvScopeDiscipline coordination is a sequencing concern already named in agreement constraints, not a blocker."
+      },
+      "recommendation": "Adopt candidates 1 and 2 now (close the contract.ts code-only enforcement hole as an explicit AC-tied design step; centralize evidence-policy enum extension with a single fixture-update sweep). Design-around candidate 3 (gate reverse-traceability behind a coordination check with tightenAdvScopeDiscipline rather than reimplementing). Defer candidate 4 (separate non-code archive shape) and reject candidate 5 (new /adv-work command). Keep all changes additive/optional for Temporal replay safety.",
+      "follow_ups": [
+        "Confirm whether tightenAdvScopeDiscipline has landed before design finalizes reverse-traceability wiring (agreement: 'reuse tightenAdvScopeDiscipline if landed').",
+        "TASK_SCOPE/IN_SCOPE/OUT_OF_SCOPE/DONE_WHEN/STOP_WHEN/VERIFICATION anchors were present in packet; no anchor defects."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addNonCodeWorkflowRigor",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation — Add non-code workflow rigor",
+      "sources": [
+        {
+          "label": "TaskTypeSchema + TaskSchema (existing types)",
+          "locator": "plugin/src/types/tasks.ts:135-163",
+          "summary": "TaskTypeSchema already enumerates code/docs/ops/research/approval/verification and TaskSchema.type defaults to 'code'. Design decision #2 (expose existing TaskTypeSchema via adv_task_add) reuses real surface, no new enum needed."
+        },
+        {
+          "label": "ContractEvidencePolicySchema (central enum)",
+          "locator": "plugin/src/types/changes.ts:482-491",
+          "summary": "Central evidence-policy enum currently {test, review, static_check, design_proof, not_applicable}. Design decision #3 extends this single source; ContractItemSchema (l.533) and ContractReviewMatrixRowSchema (l.544) both reference it, so extension propagates to acceptance proof automatically. Confirms AC5/AC7 wiring."
+        },
+        {
+          "label": "Contract validator code-only enforcement hole",
+          "locator": "plugin/src/validator/contract.ts:83-97",
+          "summary": "CONTRACT_TASK_REFS_MISSING is gated by `task.type === \"code\"` — non-code tasks escape contract-ref enforcement. Design decision #6 (broaden beyond code) targets exactly this line. Confirms the scout-identified hole is real."
+        },
+        {
+          "label": "adv_task_add handler hard-codes type and tdd_intent",
+          "locator": "plugin/src/tools/task.ts:1083-1091",
+          "summary": "Handler hard-codes `type: \"code\"` (l.1091) and forces `tdd_intent = \"inline\"` for any task missing intent (l.1083-1085), ignoring task type. Design decisions #2 (args.type ?? code) and #5 (type-driven tdd_intent derivation) are the precise minimal edits at this site."
+        },
+        {
+          "label": "Prep-readiness already enforces explicit tdd_intent with not_applicable",
+          "locator": "plugin/src/validator/prep-readiness.ts:371-416",
+          "summary": "checkTddIntentAssigned already requires explicit tdd_intent per non-cancelled task and accepts not_applicable as valid. AC6 (no fake red/green; not_applicable needs rationale) extends an existing check rather than adding parallel machinery."
+        },
+        {
+          "label": "adv-improve no-state-mutation asset test",
+          "locator": "plugin/src/adv-improve-assets.test.ts:36-41,121-124",
+          "summary": "Existing asset tests assert Command Boundary declares no ADV state mutation and no gate ownership. Design decision #8 preserves these; AC1 anchor exists and is testable."
+        },
+        {
+          "label": "Prior-art prep doc on overlap with tightenAdvScopeDiscipline",
+          "locator": "docs/non-coding-task-rigor-prep.md:66,122",
+          "summary": "Repo doc records that tightenAdvScopeDiscipline covers reverse-traceability/bounded-tasks/SoW signoff but NOT non-code evidence policies or large-deliverable routing. Supports design constraint 'do not duplicate tightenAdvScopeDiscipline' and decision #6 'integrate if landed'."
+        }
+      ],
+      "architecture_assessment": "Design reuses the seven-gate lifecycle and extends three existing, centralized structural surfaces (TaskTypeSchema, ContractEvidencePolicySchema, prep-readiness tdd_intent check) rather than introducing a parallel non-code workflow. Every claimed edit site verified in source: the code-only contract-ref hole (validator/contract.ts:85), the hard-coded type/tdd_intent in adv_task_add (task.ts:1083-1091), the central evidence-policy enum (changes.ts:482), and the no-state-mutation asset test (adv-improve-assets.test.ts). The design honors the structural-over-heuristic constraint (P33) by driving behavior off task.type and a validated evidence_policy enum instead of title heuristics. New fields are optional/defaulted, preserving legacy safety. No spec contradiction observed; deltas land on existing law surfaces.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "VERDICT: VALIDATED. Dim1 Correctness: solves all objectives; each AC maps to a verified code surface; no logical gaps found. Dim2 Simplicity: reuses central enum/schema/validator rather than parallel machinery — materially simpler than a separate non-code lifecycle; one CAUTION (below). Dim3 Spec-law: no contradiction; extends existing structural surfaces; honors 'do not duplicate tightenAdvScopeDiscipline'. Dim4 Alternatives: scout correctly rejected /adv-work parallel lifecycle. CAUTIONS (non-blocking): (a) Decision #4 adds evidence_policy to BOTH TaskSchema and adv_task_add — confirm whether evidence_policy could be derived from contract_refs.verifies + contract item evidencePolicy rather than stored redundantly on the task, to avoid two sources of truth; if kept on task, add a consistency check. (b) Decision #5 derivation order must be tested: explicit caller metadata.tdd_intent must win over type-derived default — task.ts:1083 currently only checks presence, so the new derivation must slot before the inline fallback. (c) Decision #6 'integrate with tightenAdvScopeDiscipline if landed' is conditional — ensure the contract.ts:85 broadening is unconditional and not blocked on that other change."
+      },
+      "recommendation": "Proceed. The design is structurally sound and minimal: it extends three verified central surfaces (TaskTypeSchema, ContractEvidencePolicySchema, prep-readiness tdd_intent) instead of building a parallel non-code lifecycle, satisfying the no-parallel-lifecycle and structural-over-heuristic constraints. Before execution, resolve three non-blocking cautions: (1) decide whether task-level evidence_policy is authoritative or derived from contract_refs to avoid dual source-of-truth, adding a consistency check if stored on the task; (2) ensure type-driven tdd_intent derivation slots before the existing inline fallback at task.ts:1083 so explicit caller metadata still wins, with a test; (3) make the contract.ts:85 code-only broadening unconditional rather than gated on tightenAdvScopeDiscipline landing. None of these block design-gate completion.",
+      "follow_ups": [
+        "Add test: explicit metadata.tdd_intent overrides type-derived default in adv_task_add (decision #5 ordering).",
+        "Decide evidence_policy source-of-truth: task-stored vs derived from contract_refs; add consistency validation if stored.",
+        "Confirm contract.ts:85 broadening is unconditional, independent of tightenAdvScopeDiscipline landing."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addNonCodeWorkflowRigor",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addNonCodeWorkflowRigor",
+      "task_id": "tk-460b311fe671",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-460b311fe671"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        ".opencode/agents/adv.md",
+        "ADV_INSTRUCTIONS.md",
+        ".opencode/command/adv-improve.md",
+        ".opencode/command/adv-comp-scan.md",
+        "docs/adv-runtime-protocol-coverage.md"
+      ],
+      "verification": [
+        {
+          "command": "bin/oc-test targeted -- src/adv-improve-assets.test.ts src/orchestrator-ops-delegation-assets.test.ts",
+          "exit_code": 0,
+          "summary": "Passed 35 asset tests covering adv-improve command shape and orchestrator delegation"
+        },
+        {
+          "command": "bin/oc-test targeted -- src/adv-instructions-assets.test.ts src/adv-autonomy-quality-assets.test.ts src/manifest-doc-drift.test.ts",
+          "exit_code": 0,
+          "summary": "Passed 71 asset tests covering ADV_INSTRUCTIONS.md, autonomy quality, and manifest/doc drift"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Updated docs/adv-runtime-protocol-coverage.md to keep the intent-routing coverage row in sync with the new non-code deliverable row in adv.md",
+          "why": "The coverage matrix documents runtime invariants; leaving it stale would silently contradict the updated intent routing. The edit is a one-word/token extension, not a new invariant."
+        },
+        {
+          "what": "Did not add new asset-test assertions for the new prose anchors",
+          "why": "Existing tests pass and the task scope says asset tests are updated only when required by changed anchor text; the new content adds anchors rather than changing existing ones."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": {
+        "items": [
+          "docs/adv-runtime-protocol-coverage.md"
+        ],
+        "details": "Updated the intent-routing coverage row to mention large non-code deliverable routing. This file was not listed in IN_SCOPE; it is a coverage doc, not an instruction/command doc.",
+        "recommendation": "finish_owned_scope_then_report"
+      },
+      "follow_ups": [
+        "src/deploy-local.test.ts currently fails with ReferenceError: ContractEvidencePolicySchema is not defined in src/types/changes.ts. This is type/schema/tool code owned by tk-4989abfc0d67 and outside this task's scope; verify/fix in that task."
+      ],
+      "required_main_agent_actions": [],
+      "related_scan": "none",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Doc-only task complete: intent routing now names large non-code deliverables with 5+ examples and requires tracked ADV changes unless one-off/read-only; adv-improve clarifies its handoff to /adv-proposal and preserves no-state-mutation; adv-comp-scan adds public-source/redaction/no-confidential-data safety boundary. Focused asset tests pass. deploy-local.test.ts has an unrelated pre-existing ReferenceError in src/types/changes.ts.",
+        "suggested_next_action": "Proceed with tk-4989abfc0d67 (type/schema/tool code) and address the ContractEvidencePolicySchema ReferenceError; rerun deploy-local.test.ts after that fix."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/adv-improve-assets.test.ts src/orchestrator-ops-delegation-assets.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/adv-instructions-assets.test.ts src/adv-autonomy-quality-assets.test.ts src/manifest-doc-drift.test.ts"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addNonCodeWorkflowRigor",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addNonCodeWorkflowRigor",
+      "task_id": "tk-4989abfc0d67",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-4989abfc0d67"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/types/evidence-policy.ts",
+        "plugin/src/types/tasks.ts",
+        "plugin/src/types/changes.ts",
+        "plugin/src/tools/task.ts",
+        "plugin/src/tools/task.test.ts",
+        "plugin/src/types/contract.test.ts",
+        "plugin/schemas/change.schema.json",
+        "plugin/schemas/task.schema.json"
+      ],
+      "verification": [
+        {
+          "command": "../bin/oc-test targeted -- src/tools/task.test.ts src/types/contract.test.ts",
+          "exit_code": 0,
+          "summary": "49 tests pass (adv_run_test runId: tr_mqokxq6x_1d9dedf1)"
+        },
+        {
+          "command": "../bin/oc-test smoke",
+          "exit_code": 0,
+          "summary": "Smoke tier passed (schemas:check, typecheck, lint, format:check, 47 tests)"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Extracted ContractEvidencePolicySchema into plugin/src/types/evidence-policy.ts",
+          "why": "Avoids a circular import between tasks.ts and changes.ts while letting both share the same schema and type."
+        },
+        {
+          "what": "Imported ContractEvidencePolicySchema directly from ./evidence-policy in tasks.ts rather than from ../types",
+          "why": "Keeps the type module acyclic; changes.ts still re-exports the schema so external consumers see no API break."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "none",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Task type and evidence_policy structural support is implemented. adv_task_add now accepts optional type (defaults code) and evidence_policy, persists both, and derives metadata.tdd_intent by type. ContractEvidencePolicySchema was extended with source_citation, source_audit, rubric_review, stakeholder_acceptance, artifact_reference. Public JSON schemas regenerated and check green. Typecheck, lint, format all pass. No Temporal workflow surface changes beyond additive optional task fields.",
+        "suggested_next_action": "Run the full test suite (bin/oc-test full) before moving to the next task, or hand off to tk-7e7356b8172e for prep-readiness/contract coverage validator behavior."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: ../bin/oc-test targeted -- src/tools/task.test.ts src/types/contract.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: ../bin/oc-test smoke"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addNonCodeWorkflowRigor",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addNonCodeWorkflowRigor",
+      "task_id": "tk-7e7356b8172e",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-7e7356b8172e"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/validator/prep-readiness.ts",
+        "plugin/src/validator/prep-readiness.test.ts",
+        "plugin/src/validator/contract.ts",
+        "plugin/src/validator/contract.test.ts",
+        "plugin/src/adv-skill-backed-commands-assets.test.ts",
+        "plugin/src/ops-follow-up-assets.test.ts",
+        "plugin/src/subagent-reports-spec-assets.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "../bin/oc-test targeted -- src/validator/prep-readiness.test.ts src/validator/contract.test.ts",
+          "exit_code": 0,
+          "summary": "45 targeted tests pass (24 prep-readiness + 21 contract)"
+        },
+        {
+          "command": "pnpm run check",
+          "exit_code": 0,
+          "summary": "Pre-push gate passes: schemas:check, typecheck, test-isolation, lockfile-policy, lint, format:check"
+        },
+        {
+          "command": "../bin/oc-test full",
+          "exit_code": 0,
+          "summary": "Full suite passes: 280 test files passed, 1 skipped; 3924 tests passed, 2 skipped"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Added prep-readiness check NON_CODE_EVIDENCE_POLICY_MISSING for non-code deliverable tasks and required a bounded not_applicable_reason when evidence_policy is not_applicable.",
+          "why": "Implements rq-PR008nonCodeEvidence / AC6 / SC2 / SC3 / C6 without weakening code-task TDD."
+        },
+        {
+          "what": "Broadened contract.ts CONTRACT_TASK_REFS_MISSING enforcement from code-only to all non-cancelled task types under standard/strict rigor.",
+          "why": "Closes the contract coverage hole per design Decision 6 and AC7; non-code tasks must trace to approved contract items or provide not_applicable_reason."
+        },
+        {
+          "what": "Updated version-pinning asset tests and added spec-law citations for the new non-code requirements.",
+          "why": "Spec versions and requirement IDs were bumped by prior tasks; asset tests must reflect authoritative spec state and the spec-citation invariant must see implementing code."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Applied coverage broadening and evidence-policy checks uniformly across docs, research, approval, verification, and ops task types; updated related asset tests for advance-workflow, adv-prep, subagent-reports specs.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Prep-readiness now blocks non-code tasks missing evidence_policy and requires not_applicable to carry a rationale. Contract coverage now applies to all non-cancelled task types, not just code tasks. Full test suite and pre-push check gate pass. Asset tests and spec citations were updated to match bumped spec versions/new requirement IDs introduced by prior tasks in this change.",
+        "suggested_next_action": "Proceed to task tk-6668a79328ec (Update prep/review evidence surfaces for non-code deliverables); the underlying validators are now in place. Remind that live tool behavior changes require rebuild/deploy before end-to-end validation in a fresh OpenCode session."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: ../bin/oc-test targeted -- src/validator/prep-readiness.test.ts src/validator/contract.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run check"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: ../bin/oc-test full"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addNonCodeWorkflowRigor",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addNonCodeWorkflowRigor",
+      "task_id": "tk-6668a79328ec",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-6668a79328ec"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        ".opencode/command/adv-prep.md",
+        ".opencode/command/adv-review.md",
+        "plugin/src/adv-prep-assets.test.ts",
+        "plugin/src/adv-review-assets.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "../bin/oc-test targeted -- src/adv-prep-assets.test.ts src/adv-review-assets.test.ts src/validator/prep-readiness.test.ts src/tools/task.test.ts src/types/contract.test.ts",
+          "exit_code": 0,
+          "summary": "87 tests passed across new asset tests and related source tests"
+        },
+        {
+          "command": "pnpm run check",
+          "exit_code": 0,
+          "summary": "schemas:check, typecheck, test-isolation, lockfile-policy, lint, format:check all passed"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Updated command checklists (.opencode/command/adv-prep.md and adv-review.md) instead of source code",
+          "why": "The task model, evidence-policy enum, prep-readiness validator, and task tool already support evidence_policy; the gap was in agent-facing command guidance and acceptance review packet instructions."
+        },
+        {
+          "what": "Added two asset-style tests to lock command guidance in place",
+          "why": "Existing repo convention uses co-located asset tests to enforce command/agent instruction content; this makes the new non-code evidence policy surface machine-checkable."
+        },
+        {
+          "what": "Linked command sections to existing spec anchors rq-prepNonCodeEvidence01 and rq-subagentNonCodeEvidence01",
+          "why": "Ties new command text to existing spec law and avoids inventing parallel lifecycle or new commands."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "none — changes were localized to the two command files and their asset tests; no same-pattern source issues found.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Prep and review commands now explicitly instruct non-code evidence policies (source_citation, source_audit, rubric_review, stakeholder_acceptance, artifact_reference) and tie them to contract refs/review matrix rows. The existing prep-readiness validator and task tool already enforce evidence_policy, so no source-code changes were required. Two new asset tests ensure the guidance remains present.",
+        "suggested_next_action": "Run the full test suite via bin/oc-test full or proceed to the next task."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: ../bin/oc-test targeted -- src/adv-prep-assets.test.ts src/adv-review-assets.test.ts src/validator/prep-readiness.test.ts src/tools/task.test.ts src/types/contract.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run check"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addNonCodeWorkflowRigor",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addNonCodeWorkflowRigor",
+      "task_id": "tk-d831ba8148a4",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-d831ba8148a4"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/adv-improve-assets.test.ts",
+        "plugin/src/adv-instructions-assets.test.ts",
+        "plugin/src/adv-comp-scan-assets.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "../bin/oc-test targeted -- src/adv-improve-assets.test.ts src/adv-instructions-assets.test.ts src/adv-comp-scan-assets.test.ts src/adv-prep-assets.test.ts src/adv-review-assets.test.ts src/validator/task-classifier.test.ts src/validator/prep-readiness.test.ts src/validator/contract.test.ts src/tools/task.test.ts",
+          "exit_code": 0,
+          "summary": "198 tests passed across non-code workflow rigor AC1-AC8 coverage surfaces."
+        },
+        {
+          "command": "pnpm run check",
+          "exit_code": 0,
+          "summary": "Plugin check gate passed: schemas:check, typecheck, test isolation, lockfile policy, lint, format:check."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Extended existing asset-test files rather than creating one mega-test file for all ACs.",
+          "why": "Preserves locality and avoids duplicating broad existing tests (AC4-AC7 already covered by task.test.ts, prep-readiness.test.ts, contract.test.ts, adv-prep-assets.test.ts, adv-review-assets.test.ts)."
+        },
+        {
+          "what": "Added AC2/AC3 assertions to adv-instructions-assets.test.ts instead of a new file.",
+          "why": "Non-code deliverable routing is instruction-level policy; keeping it with other ADV_INSTRUCTIONS.md asset tests follows the repo's per-surface asset-test convention."
+        },
+        {
+          "what": "Created adv-comp-scan-assets.test.ts for AC8.",
+          "why": "Research-command fallback safety is a distinct command surface (adv-comp-scan.md) with no existing asset coverage; a dedicated file mirrors adv-prep/review asset patterns."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "No same-pattern subsystem fixes required; coverage is additive and localized. Existing tests for task type/evidence policy, prep readiness, contract review, and review matrix already cover AC4-AC7.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "AC1-AC8 regression/asset coverage is now explicit. Added 7 new assertions across 2 existing asset files and 1 new asset file. All targeted tests (198) and the full plugin check gate pass. No implementation changes were made; only test additions.",
+        "suggested_next_action": "Run the full plugin test suite (`../bin/oc-test full` from plugin/) before acceptance if not already run, then proceed to acceptance gate."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: ../bin/oc-test targeted -- src/adv-improve-assets.test.ts src/adv-instructions-assets.test.ts src/adv-comp-scan-assets.test.ts src/adv-prep-assets.test.ts src/adv-review-assets.test.ts src/validator/task-classifier.test.ts src/validator/prep-readiness.test.ts src/validator/contract.test.ts src/tools/task.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run check"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addNonCodeWorkflowRigor",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addNonCodeWorkflowRigor",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- plugin/src/adv-improve-assets.test.ts plugin/src/adv-instructions-assets.test.ts plugin/src/adv-prep-assets.test.ts plugin/src/adv-review-assets.test.ts plugin/src/adv-comp-scan-assets.test.ts plugin/src/tools/task.test.ts plugin/src/validator/prep-readiness.test.ts plugin/src/validator/contract.test.ts plugin/src/types/contract.test.ts",
+          "bin/oc-test targeted -- src/adv-improve-assets.test.ts src/adv-instructions-assets.test.ts src/adv-prep-assets.test.ts src/adv-review-assets.test.ts src/adv-comp-scan-assets.test.ts src/tools/task.test.ts src/validator/prep-readiness.test.ts src/validator/contract.test.ts src/types/contract.test.ts"
+        ],
+        "results": "pass",
+        "evidence": "Initial targeted invocation used repo-root-prefixed paths and failed with 'No test files found' (test runner filter path issue, no product failure). Corrected targeted suite passed: 9 test files, 173 tests. git status remained clean after verification."
+      },
+      "scope_drift": null,
+      "risks": [],
+      "required_main_agent_actions": [],
+      "required_follow_ups": [],
+      "consumer_warnings": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addNonCodeWorkflowRigor",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addNonCodeWorkflowRigor",
+      "scope": {
+        "kind": "change",
+        "scope_key": "harden:release"
+      },
+      "agent": "adv-reviewer",
+      "phase": "harden",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [
+        {
+          "id": "harden-praise-1",
+          "label": "praise",
+          "file": "plugin/src/validator/prep-readiness.ts",
+          "line": 451,
+          "what": "Non-code evidence policy is enforced structurally during prep readiness, not by prose/title heuristics.",
+          "why": "Release risk stays low because non-code task types, evidence policies, and not_applicable rationale checks are Zod/validator-backed and covered by targeted tests.",
+          "fix": "No fix needed."
+        },
+        {
+          "id": "harden-praise-2",
+          "label": "praise",
+          "file": ".opencode/command/adv-review.md",
+          "line": 230,
+          "what": "Review command now names non-code deliverable evidence policy as an explicit review dimension.",
+          "why": "Acceptance review can evaluate research/docs/approval/ops deliverables against contract rows without demanding fake red/green TDD.",
+          "fix": "No fix needed."
+        }
+      ],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "test -e <referenced paths> && printf OK || printf MISSING",
+          "git diff --check origin/trunk...HEAD",
+          "bin/oc-test targeted -- plugin/src/validator/prep-readiness.test.ts plugin/src/validator/contract.test.ts plugin/src/types/contract.test.ts plugin/src/tools/task.test.ts plugin/src/adv-prep-assets.test.ts plugin/src/adv-review-assets.test.ts plugin/src/adv-improve-assets.test.ts plugin/src/adv-comp-scan-assets.test.ts plugin/src/adv-instructions-assets.test.ts",
+          "bin/oc-test targeted -- src/validator/prep-readiness.test.ts src/validator/contract.test.ts src/types/contract.test.ts src/tools/task.test.ts src/adv-prep-assets.test.ts src/adv-review-assets.test.ts src/adv-improve-assets.test.ts src/adv-comp-scan-assets.test.ts src/adv-instructions-assets.test.ts",
+          "pnpm run schemas:check",
+          "git status --short",
+          "adv_gate_status changeId:addNonCodeWorkflowRigor"
+        ],
+        "results": "pass",
+        "evidence": "Path preflight OK. Whitespace check passed. First targeted test command failed because oc-test runs inside plugin/ and paths were incorrectly prefixed with plugin/; rerun with plugin-relative paths passed: 9 files, 173 tests. schemas:check passed. git status clean. Gate status confirms acceptance done, contract review matrix complete: 30 rows for 30 items, all passing; release pending."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Live OpenCode sessions may still expose pre-change deployed tool schemas until normal build/deploy/restart; source validation and build evidence already passed, so this is a deployment-process note rather than a release blocker.",
+        "Repo-root slop scan had tool-coverage degradation for eslint/knip/ast-grep/jscpd as noted in context; independent pnpm run check and targeted tests cover changed source/asset surfaces."
+      ],
+      "required_main_agent_actions": [
+        "Proceed with release/archive if no newer changes landed after this harden report.",
+        "After merge/deploy, restart OpenCode/plugin host before relying on live adv_* schemas for the expanded evidence-policy enum."
+      ],
+      "required_follow_ups": [],
+      "consumer_warnings": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addNonCodeWorkflowRigor",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addNonCodeWorkflowRigor",
+      "scope": {
+        "kind": "change",
+        "scope_key": "scanner-bundle:harden"
+      },
+      "agent": "adv-scanner-bundle",
+      "phase": "harden",
+      "scanner_count": 1,
+      "dimensions": [
+        "release-deploy-readiness",
+        "production-readiness",
+        "documentation-hygiene",
+        "cleanup-readiness",
+        "residual-slop-maintainability",
+        "test-coverage"
+      ],
+      "summary": "Release hardening READY. Acceptance complete, contract matrix 30/30 all passing, dry-run merge clean, build passed, worktree clean, prior check/full suite passed. adv-reviewer harden report found 0 blockers and 0 issues. Slop scan had 0 findings with degraded detector coverage; eslint independently passed in pnpm run check.",
+      "findings": [
+        {
+          "scanner": "adv-reviewer harden",
+          "severity": "info",
+          "summary": "READY with 0 blockers/issues; 2 praise findings; no fixes applied.",
+          "evidence": [
+            {
+              "label": "harden report",
+              "locator": "adv-reviewer report addNonCodeWorkflowRigor|change:harden:release|adv-reviewer|1",
+              "summary": "Report submitted by release hardening reviewer."
+            }
+          ]
+        },
+        {
+          "scanner": "deterministic slop scan",
+          "severity": "info",
+          "summary": "0 slop findings; detector coverage degraded for eslint/knip/ast-grep/jscpd, with eslint covered separately by pnpm run check and semgrep externally covered by PR CI config.",
+          "evidence": [
+            {
+              "label": "slop scan",
+              "locator": "bin/adv slop-scan plugin --json",
+              "summary": "0 findings; degraded/unavailable detectors recorded."
+            },
+            {
+              "label": "check gate",
+              "locator": "pnpm run check tr_mqomtrp2_c527ea2a",
+              "summary": "eslint, typecheck, schema check, format check passed."
+            }
+          ]
+        }
+      ],
+      "follow_ups": [
+        "After merge/deploy, restart OpenCode/plugin host before relying on live adv_* schemas for expanded evidence-policy enum."
+      ],
+      "consumer_warnings": []
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-06-22T01:28:11.903Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved proposal via reply \"approve\" after staged proposal handoff. Problem statement and proposal persisted; origin research pack docs/non-coding-task-rigor-prep.md cited.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "2a282b4caa6064040368d6cfd11ccda2417792f89eb4dd10622db627eb13a490",
+        "non_whitespace_chars": 5680,
+        "checked_at": "2026-06-22T01:22:07.355Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-06-22T01:31:58.073Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved agreement via reply \"approve\". Agreement persisted with discovery findings, 9-step checklist, objectives, success criteria, acceptance criteria, constraints, avoidances, out-of-scope. Contract minted standard rigor with 30 items.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "4005abe3170953d49677eb9256bb3c3e8e9d3c98591cbcb89c5028b4b3c641ed",
+        "non_whitespace_chars": 8145,
+        "checked_at": "2026-06-22T01:22:07.356Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-06-22T01:40:22.795Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design completed after mandatory leverage scout and independent adv-researcher validation. Validator verdict VALIDATED; non-blocking cautions resolved in persisted design: evidence-policy authority/consistency, type-driven tdd fallback order, unconditional contract coverage broadening. No user-value tradeoff, no CONFLICT, no contract-compromise risk.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "af47bcb9ec48ed5f391c6c7940f51ad244afc0c2228a3c0eb19d8d171da7a888",
+        "non_whitespace_chars": 12419,
+        "checked_at": "2026-06-22T01:22:07.357Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-06-22T01:55:41.103Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved prep task graph via reply \"approve\". 8 tasks staged with contract refs, tdd_intent, evidence_policy metadata, and dependency graph. Strict validation passed with only expected NO_DELTAS warning; deltas are first execution task."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-06-22T03:07:23.174Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 8 planned tasks completed and checkpointed. Worktree clean. Validation passed with no blocking errors; full suite and check passed. Evidence: check run tr_mqomtrp2_c527ea2a, full run tr_mqomvkwc_c4c1c576, AC regression run tr_mqoms2s3_19bbe893."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-06-22T03:15:22.150Z",
+      "completed_by": "user:jon",
+      "approval_evidence": "User approved acceptance summary via reply \"approve\". Review verdict READY with 0 blockers/issues. Contract matrix 30/30 pass/respected/not_applicable; executive summary persisted and verified before prompt.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "017c7e33abc16c67fe901bc1e82759fb09f8f702c5a4dc1ebaa0e583ec25c619",
+        "non_whitespace_chars": 1797,
+        "checked_at": "2026-06-22T01:22:07.358Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "discovery",
+    "source_artifact": "docs/non-coding-task-rigor-prep.md"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "4005abe3170953d49677eb9256bb3c3e8e9d3c98591cbcb89c5028b4b3c641ed",
+      "approvedAt": "2026-06-22T01:31:45.719Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "Agent routing contains explicit rule: large non-code deliverable work routes to a tracked ADV change unless marked one-off/read-only.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4005abe3170953d49677eb9256bb3c3e8e9d3c98591cbcb89c5028b4b3c641ed",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "Non-code tasks have structural kind/evidence policy, not title-only inference.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4005abe3170953d49677eb9256bb3c3e8e9d3c98591cbcb89c5028b4b3c641ed",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "Prep/review can verify at least 5 non-code evidence modes: citations, source audit, rubric/critique, stakeholder acceptance, artifact reference.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4005abe3170953d49677eb9256bb3c3e8e9d3c98591cbcb89c5028b4b3c641ed",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC4",
+        "kind": "success_criterion",
+        "text": "`adv-improve` remains no-state-mutation utility with research-pack handoff into proposal/discovery.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4005abe3170953d49677eb9256bb3c3e8e9d3c98591cbcb89c5028b4b3c641ed",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC5",
+        "kind": "success_criterion",
+        "text": "Tests/specs prevent regressions for routing, task kind/evidence policy, and no fake TDD requirement.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4005abe3170953d49677eb9256bb3c3e8e9d3c98591cbcb89c5028b4b3c641ed",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "`adv-improve` docs/tests still assert no `adv_change_create`, `adv_task_add`, or `adv_gate_complete`; output must state research packs feed proposal/discovery, not replace tracked workflow.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4005abe3170953d49677eb9256bb3c3e8e9d3c98591cbcb89c5028b4b3c641ed",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "ADV intent routing names “large non-code deliverable” with at least 5 examples: market research, design improvement, competitive research, writing, analysis/planning.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4005abe3170953d49677eb9256bb3c3e8e9d3c98591cbcb89c5028b4b3c641ed",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Large non-code deliverable routing states: create/continue tracked change unless explicitly one-off/read-only; `adv-improve` may precede proposal to clarify direction.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4005abe3170953d49677eb9256bb3c3e8e9d3c98591cbcb89c5028b4b3c641ed",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Task creation or task metadata exposes a validated non-code kind/evidence contract covering at minimum `code`, `docs`, `research`, `approval`, and `verification`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4005abe3170953d49677eb9256bb3c3e8e9d3c98591cbcb89c5028b4b3c641ed",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Non-code task verification supports at least these evidence policies: `source_citation`, `source_audit`, `rubric_review`, `stakeholder_acceptance`, `artifact_reference`, and `not_applicable`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4005abe3170953d49677eb9256bb3c3e8e9d3c98591cbcb89c5028b4b3c641ed",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Prep guidance maps approved AC/SC to non-code tasks without forcing fake red/green TDD; TDD `not_applicable` must require evidence-policy rationale for non-code deliverables.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4005abe3170953d49677eb9256bb3c3e8e9d3c98591cbcb89c5028b4b3c641ed",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "Review/acceptance guidance evaluates non-code deliverables against contract rows and evidence policies, including pass/fail status for each applicable AC/SC.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4005abe3170953d49677eb9256bb3c3e8e9d3c98591cbcb89c5028b4b3c641ed",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC8",
+        "kind": "acceptance_criterion",
+        "text": "Research-command fallback safety text includes redaction/no-confidential-data/public-source boundary guidance for external research paths.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4005abe3170953d49677eb9256bb3c3e8e9d3c98591cbcb89c5028b4b3c641ed",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC9",
+        "kind": "acceptance_criterion",
+        "text": "Spec deltas cover workflow routing, prep/task modeling, TDD/non-code evidence boundary, and sub-agent/report evidence as applicable.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4005abe3170953d49677eb9256bb3c3e8e9d3c98591cbcb89c5028b4b3c641ed",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC10",
+        "kind": "acceptance_criterion",
+        "text": "Regression tests or asset tests prove AC1–AC8 with explicit assertions; full repo check/test pass before acceptance.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4005abe3170953d49677eb9256bb3c3e8e9d3c98591cbcb89c5028b4b3c641ed",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Keep `adv-improve` read-only and docs-pack-only.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4005abe3170953d49677eb9256bb3c3e8e9d3c98591cbcb89c5028b4b3c641ed",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Do not add a parallel gate lifecycle.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4005abe3170953d49677eb9256bb3c3e8e9d3c98591cbcb89c5028b4b3c641ed",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Do not adopt external orchestration frameworks.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4005abe3170953d49677eb9256bb3c3e8e9d3c98591cbcb89c5028b4b3c641ed",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Do not duplicate `tightenAdvScopeDiscipline`; reuse if landed.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4005abe3170953d49677eb9256bb3c3e8e9d3c98591cbcb89c5028b4b3c641ed",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Prefer structural types/schemas/validators over title heuristics.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4005abe3170953d49677eb9256bb3c3e8e9d3c98591cbcb89c5028b4b3c641ed",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C6",
+        "kind": "constraint",
+        "text": "No fake TDD for non-code deliverables.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4005abe3170953d49677eb9256bb3c3e8e9d3c98591cbcb89c5028b4b3c641ed",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Avoid treating all non-code work as “small tracked change”; large/ambiguous non-code work needs full proposal/discovery/design/prep flow.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4005abe3170953d49677eb9256bb3c3e8e9d3c98591cbcb89c5028b4b3c641ed",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Avoid making `metadata.tdd_intent` carry every non-code semantic alone if a typed field is cleaner.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4005abe3170953d49677eb9256bb3c3e8e9d3c98591cbcb89c5028b4b3c641ed",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Avoid accepting citation lists without source-quality/audit notes where research credibility matters.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4005abe3170953d49677eb9256bb3c3e8e9d3c98591cbcb89c5028b4b3c641ed",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Avoid making `adv-comp-scan` metadata-only output the durable acceptance record for major competitive-research deliverables.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4005abe3170953d49677eb9256bb3c3e8e9d3c98591cbcb89c5028b4b3c641ed",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "New external workflow engine.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4005abe3170953d49677eb9256bb3c3e8e9d3c98591cbcb89c5028b4b3c641ed",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "`adv-improve` state mutation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4005abe3170953d49677eb9256bb3c3e8e9d3c98591cbcb89c5028b4b3c641ed",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "Universal research methodology framework for every domain.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4005abe3170953d49677eb9256bb3c3e8e9d3c98591cbcb89c5028b4b3c641ed",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS4",
+        "kind": "out_of_scope",
+        "text": "Rewriting all old changes/tasks.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4005abe3170953d49677eb9256bb3c3e8e9d3c98591cbcb89c5028b4b3c641ed",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS5",
+        "kind": "out_of_scope",
+        "text": "Repositories not using ADV.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4005abe3170953d49677eb9256bb3c3e8e9d3c98591cbcb89c5028b4b3c641ed",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-06-22T03:13:59.281Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "READY review verified routing in ADV_INSTRUCTIONS.md and .opencode/agents/adv.md: large non-code deliverables route to tracked ADV changes unless one-off/read-only.",
+          "notes": "No blockers/issues."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "READY review verified structural task type/evidence_policy support in plugin/src/types/tasks.ts, plugin/src/tools/task.ts, plugin/src/types/evidence-policy.ts, and validators; not title-only inference.",
+          "notes": "No blockers/issues."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "READY review verified prep/review and validator support for source_citation, source_audit, rubric_review, stakeholder_acceptance, and artifact_reference evidence modes.",
+          "notes": "No blockers/issues."
+        },
+        {
+          "contractId": "SC4",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "READY review verified .opencode/command/adv-improve.md remains no-state-mutation and hands research packs to proposal/discovery; adv-improve asset tests cover this.",
+          "notes": "No blockers/issues."
+        },
+        {
+          "contractId": "SC5",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "READY review verified regression/asset tests plus full validation: pnpm run check tr_mqomtrp2_c527ea2a; ../bin/oc-test full tr_mqomvkwc_c4c1c576; AC regression tr_mqoms2s3_19bbe893.",
+          "notes": "No blockers/issues."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "adv-improve asset coverage passed in targeted AC regression run tr_mqoms2s3_19bbe893; review verified command docs state research packs feed proposal/discovery and no adv_change_create/task_add/gate_complete replacement path.",
+          "notes": "Explicit assertion present."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "adv-instructions asset coverage passed in run tr_mqoms2s3_19bbe893; review verified large non-code deliverable routing names market research, design improvement, competitive research, writing, and analysis/planning examples.",
+          "notes": "Explicit assertion present."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "adv-instructions asset coverage passed in run tr_mqoms2s3_19bbe893; review verified tracked-change routing unless explicitly one-off/read-only and adv-improve may precede proposal.",
+          "notes": "Explicit assertion present."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Task/schema targeted tests passed: tr_mqol1jkd_1647182b and AC regression tr_mqoms2s3_19bbe893; review verified TaskType/evidence_policy validates code/docs/research/approval/verification.",
+          "notes": "Structural schema/tool support present."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Evidence policy schema/tests passed: tr_mqol1jkd_1647182b, tr_mqomcjf2_a0f99537, tr_mqoms2s3_19bbe893; review verified required non-code policies are in shared enum and command/validator surfaces.",
+          "notes": "Required policies present."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Prep assets and prep-readiness tests passed: tr_mqolzb1y_1a53a2db, tr_mqomcjf2_a0f99537, tr_mqoms2s3_19bbe893; review verified no fake TDD and not_applicable rationale enforcement.",
+          "notes": "Explicit tests and command guidance present."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Review assets and contract validator tests passed: tr_mqolzb1y_1a53a2db, tr_mqomcjf2_a0f99537, tr_mqoms2s3_19bbe893; review verified review matrix/evidence policy pass/fail guidance.",
+          "notes": "Explicit tests and command guidance present."
+        },
+        {
+          "contractId": "AC8",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "adv-comp-scan asset test passed in AC regression run tr_mqoms2s3_19bbe893; review verified fallback safety text includes redaction, no confidential data, and public-source boundary.",
+          "notes": "Explicit assertion present."
+        },
+        {
+          "contractId": "AC9",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Spec-law task checkpoint 493510e6550bf624a25f11af8b59f4d4a710f322 changed advance-workflow, adv-prep, tdd-contract, prep-readiness, and subagent-reports specs/docs; JSON parse tr_mqoki7oj_ff2f8c5a and Prettier tr_mqokjekp_9596bb2b passed; review verified coverage.",
+          "notes": "adv_change_validate still reports non-blocking NO_DELTAS projection warning; git-backed spec deltas exist in worktree commits."
+        },
+        {
+          "contractId": "AC10",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Regression/asset tests prove AC1-AC8: targeted AC regression run tr_mqoms2s3_19bbe893 passed 198 tests; full validation check tr_mqomtrp2_c527ea2a and full suite tr_mqomvkwc_c4c1c576 passed.",
+          "notes": "Full repo check/test pass before acceptance."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Review verified adv-improve remains read-only/docs-pack utility; asset tests and command text preserve no-state-mutation boundary.",
+          "notes": "No violation found."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Review found no parallel gate lifecycle; implementation extends existing ADV gates, task model, validators, and review matrix.",
+          "notes": "No violation found."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Review found no external orchestration framework added; implementation stays in existing ADV TypeScript/plugin command surfaces.",
+          "notes": "No violation found."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Design/task evidence kept scope to non-code workflow rigor and did not duplicate tightenAdvScopeDiscipline mechanisms; no duplicate SoW/reverse-traceability subsystem added.",
+          "notes": "No violation found."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Review verified structural schemas/validators: TaskTypeSchema, evidence_policy enum, prep-readiness validation, and contract coverage enforcement.",
+          "notes": "No violation found."
+        },
+        {
+          "contractId": "C6",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Review verified non-code tasks use evidence policies and not_applicable rationale rather than forced fake red/green TDD.",
+          "notes": "No violation found."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Review verified routing distinguishes large/ambiguous non-code deliverables from one-off/read-only tasks and keeps full proposal/discovery/design/prep flow for consequential deliverables.",
+          "notes": "Avoidance honored."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Review verified explicit task type/evidence_policy field and validators; metadata.tdd_intent is not sole semantic carrier.",
+          "notes": "Avoidance honored."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Review verified source_citation guidance requires source-quality/audit notes where credibility matters and rejects bare citation lists in prep/review surfaces.",
+          "notes": "Avoidance honored."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Review verified adv-comp-scan remains research utility/fallback and major competitive-research deliverables route into tracked ADV evidence/acceptance, not metadata-only durable acceptance.",
+          "notes": "Avoidance honored."
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No new external workflow engine was implemented or required.",
+          "notes": "Out of scope."
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "adv-improve state mutation remained out of scope and was not implemented.",
+          "notes": "Out of scope."
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No universal research methodology framework for every domain was implemented.",
+          "notes": "Out of scope."
+        },
+        {
+          "contractId": "OOS4",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No rewrite of old changes/tasks was performed.",
+          "notes": "Out of scope."
+        },
+        {
+          "contractId": "OOS5",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No repositories outside ADV were changed.",
+          "notes": "Out of scope."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "`adv-improve` docs/tests still assert no `adv_change_create`, `adv_task_add`, or `adv_gate_complete`; output must state research packs feed proposal/discovery, not replace tracked workflow.",
+    "ADV intent routing names “large non-code deliverable” with at least 5 examples: market research, design improvement, competitive research, writing, analysis/planning.",
+    "Large non-code deliverable routing states: create/continue tracked change unless explicitly one-off/read-only; `adv-improve` may precede proposal to clarify direction.",
+    "Task creation or task metadata exposes a validated non-code kind/evidence contract covering at minimum `code`, `docs`, `research`, `approval`, and `verification`.",
+    "Non-code task verification supports at least these evidence policies: `source_citation`, `source_audit`, `rubric_review`, `stakeholder_acceptance`, `artifact_reference`, and `not_applicable`.",
+    "Prep guidance maps approved AC/SC to non-code tasks without forcing fake red/green TDD; TDD `not_applicable` must require evidence-policy rationale for non-code deliverables.",
+    "Review/acceptance guidance evaluates non-code deliverables against contract rows and evidence policies, including pass/fail status for each applicable AC/SC.",
+    "Research-command fallback safety text includes redaction/no-confidential-data/public-source boundary guidance for external research paths.",
+    "Spec deltas cover workflow routing, prep/task modeling, TDD/non-code evidence boundary, and sub-agent/report evidence as applicable.",
+    "Regression tests or asset tests prove AC1–AC8 with explicit assertions; full repo check/test pass before acceptance."
+  ],
+  "documents": {
+    "proposal": "# Add Non-Code Workflow Rigor\n\n## Why\n\nADV already has the right direction for `adv-improve`: it researches before the full change workflow and persists a reusable `docs/*-prep.md` research pack so the proposal/discovery phases start from evidence instead of vague intent.\n\nThe gap is downstream of that research handoff. When a user gives ADV a large task whose deliverable is not primarily code — market research, design improvement, competitive research, writing, analysis, planning, or similar knowledge work — agents can treat the task as a utility/report activity instead of a tracked deliverable workflow. That loses the rigor ADV applies to coding changes: explicit problem framing, criteria, design/research plan, task graph, evidence policies, acceptance review, and durable resume state.\n\nResearch pack: `docs/non-coding-task-rigor-prep.md`.\n\nObserved issues from the pack:\n\n1. `adv-improve` is correctly read-only/pre-proposal, but no explicit routing says large non-coding deliverables should become tracked changes after direction is clarified.\n2. `adv-comp-scan` and similar research utilities can produce useful outputs without the same durable gates, task ledgers, acceptance matrix, or archive path as coding changes.\n3. Non-code task types exist in the internal schema (`docs`, `research`, `approval`, `verification`) but are not clearly exposed or enforced through the public task-creation workflow.\n4. Evidence for non-code deliverables is not first-class enough: citations, source audit, reviewer rubric, stakeholder acceptance, and deliverable artifacts need explicit policies parallel to test/TDD evidence.\n5. Research safety constraints are stronger in `adv-comp-research` skill prose than in command fallback prose, so fallback paths may be less explicit about confidentiality/redaction.\n\n## What Changes\n\nAdd a unified non-code deliverable workflow model that keeps `adv-improve` as pre-change research, then routes large non-code deliverables through the same ADV rigor as coding changes.\n\n### In Scope\n\n- Clarify `adv-improve` role as pre-proposal direction-solidification, not replacement for tracked workflow.\n- Add ADV routing guidance: large non-code deliverable work should start or continue as a tracked change unless explicitly one-off/read-only.\n- Define non-code evidence policies for tracked tasks and acceptance review:\n  - source citation matrix\n  - source quality/audit notes\n  - reviewer rubric or critique pass\n  - stakeholder/user acceptance proof\n  - deliverable artifact reference\n  - explicit not-applicable rationale for code/TDD-only checks\n- Decide and implement structural handling for task kind/type, either by exposing existing `TaskTypeSchema` through task creation or by defining validated metadata as the public contract.\n- Extend prep/review guidance so research, docs, writing, competitive analysis, and design-improvement tasks get traceable AC/SC coverage and appropriate verification, not forced fake TDD.\n- Align command fallbacks for research safety: redaction, no confidential data in external tools, respect public-source boundaries.\n- Add specs/tests/assets to prevent regression.\n- Account for overlap with active change `tightenAdvScopeDiscipline`: reuse its Statement-of-Work and reverse-traceability concepts where relevant; avoid duplicate mechanisms.\n\n### Out of Scope\n\n- Replacing Temporal or adding external orchestration frameworks (LangGraph, CrewAI, n8n, etc.).\n- Turning `adv-improve` into a state-mutating command.\n- Building a separate parallel gate lifecycle for non-code work.\n- Solving every research methodology variant; only establish the workflow/evidence foundation.\n- Implementing changes in repositories that do not use ADV.\n\n### Must Not\n\n- Must not weaken `adv-improve` read-only/no-ADV-state boundary.\n- Must not make fake test/TDD evidence mandatory for non-code deliverables.\n- Must not route consequential non-code deliverables through ad hoc chat when a tracked change is warranted.\n- Must not duplicate `tightenAdvScopeDiscipline` mechanisms if that change lands first.\n- Must not rely on title heuristics as the sole authority for non-code task correctness.\n\n## User Outcomes\n\n- A user can ask ADV for a large research/writing/design deliverable and get the same workflow discipline as a coding change.\n- `adv-improve` remains useful as a research-first precursor that clarifies direction before proposal creation.\n- Non-code tasks have explicit, auditable evidence instead of awkward or fake code-test requirements.\n- Review and acceptance can evaluate research/writing/design deliverables against agreed criteria.\n- Future agents know when to use a read-only utility scan versus when to create a tracked change.\n\n## Affected Areas\n\nLikely affected capabilities/specs:\n\n- `advance-workflow`\n- `advance-delivery`\n- `adv-prep`\n- `adv-discover`\n- `tdd-contract`\n- `subagent-reports`\n- possibly `advance-meta` for routing/instruction-surface policy\n\nLikely affected files/surfaces:\n\n- `.opencode/agents/adv.md`\n- `ADV_INSTRUCTIONS.md`\n- `.opencode/command/adv-improve.md`\n- `.opencode/command/adv-comp-scan.md`\n- `.opencode/command/adv-prep.md`\n- `.opencode/command/adv-review.md`\n- `plugin/src/types/tasks.ts`\n- `plugin/src/tools/task.ts`\n- prep/readiness and contract review validators as needed\n- relevant asset/spec tests\n\n## Discovery Agenda\n\n- Confirm best structural representation for non-code task kind: explicit `type` argument vs validated metadata.\n- Define exact non-code evidence policy enum and which policies block acceptance.\n- Decide how prep should present non-code deliverables in Statement-of-Work and task graph.\n- Decide whether archive needs special preservation for non-code deliverable artifacts beyond existing docs/spec/wisdom/archive summary.\n- Map overlap with `tightenAdvScopeDiscipline` after checking its landed state: reverse traceability and SoW should be reused, not duplicated.\n- Identify every command fallback that performs external research and needs minimum redaction/confidentiality text.\n\n## Evidence Base\n\nPrimary prior research: `docs/non-coding-task-rigor-prep.md`.\n\nKey local evidence cited there:\n\n- `adv-improve` command is read-only and persists only research packs.\n- ADV 7-gate model already supports durable tracked deliverables.\n- Task schema has non-code task types but task tool surface does not clearly expose them.\n- Acceptance review already has contract/review-matrix foundations that can be extended to non-code evidence.\n- External landscape supports durable, HITL, structured research pipelines as current best practice.\n",
+    "problemStatement": "Large non-coding ADV deliverables need the same rigor as coding changes after pre-change research clarifies direction. `adv-improve` should remain a read-only research-pack precursor, but consequential research/writing/design/competitive-analysis work should route into tracked ADV changes with explicit criteria, task graph, evidence policies, review, acceptance, and archive-ready durability.",
+    "agreement": "# Agreement — addNonCodeWorkflowRigor\n\n## Discovery Findings\n\n### Extends\n\n- Prior research pack: `docs/non-coding-task-rigor-prep.md`.\n- New finding beyond pack: `adv_task_add` currently defaults every created task to `type: \"code\"` and fills missing `metadata.tdd_intent` with `\"inline\"` (`plugin/src/tools/task.ts:1082-1092`). This makes non-code task kind and evidence policy non-structural at creation time.\n- Relevant existing workflow law: `adv-discover` already treats `docs/*-prep.md` research packs, including `/adv-improve` packs, as prior research that discovery must cite and extend (`.opencode/command/adv-discover.md:286-298`).\n\n### Conflict Scan\n\n- `adv_change_validate addNonCodeWorkflowRigor` passed with expected pre-prep warnings: `NO_TASKS`, `NO_DELTAS`.\n- Active overlap: `tightenAdvScopeDiscipline` covers Statement-of-Work and reverse-traceability concepts. This change should reuse those mechanisms if they land first; it should not duplicate them.\n- Agenda scan returned many unrelated pending follow-ups and no exact visible non-code workflow-rigor duplicate in the returned slice. Treat agenda dedupe as partial due truncated output.\n\n### Edge Cases\n\n- Large market-research deliverable starts with `/adv-improve`: research pack clarifies direction, then proposal/discovery must create tracked criteria and evidence policy; `adv-improve` must not mutate ADV state.\n- User asks for a one-off quick summary: routing may stay read-only/ad hoc when explicitly one-off/read-only and not a consequential deliverable.\n- Competitive-research fallback runs without skill loaded: command fallback must still warn against confidential data, redaction violations, and non-public-source scraping.\n- Writing/design deliverable has no runnable test: task must use non-code evidence policy, not fake red/green TDD.\n- Existing code task remains code: new non-code semantics must not weaken inline TDD enforcement for real implementation tasks.\n\n### Open Design Questions\n\n1. Task kind contract: expose existing `TaskTypeSchema` as an `adv_task_add` argument, or use validated metadata?\n   - Trust model: agent-owned structural implementation, user sees behavior.\n   - Blast radius: affects tool schema, task persistence, tests, and future task creation.\n   - Alternatives: typed `type` field preferred for structural correctness; validated metadata acceptable only for compatibility if schema change proves too disruptive.\n2. Evidence policy storage: contract refs, task metadata, new field, or review matrix extension?\n   - Trust model: agent-owned, affects acceptance proof.\n   - Blast radius: task completion, review, contract matrix, archive proof.\n   - Alternatives: typed task metadata or explicit task evidence-policy field; review consumes same structure.\n3. Archive handling: existing archive summary vs special non-code artifact preservation?\n   - Trust model: agent-owned unless user-facing release presentation changes.\n   - Blast radius: archive bundle contents and release sign-off.\n   - Recommendation: start with existing docs/spec/wisdom/executive-summary surfaces; add special preservation only if design proves a gap.\n\n### LBP Check\n\n- Local best practice: ADV's seven-gate model already provides durable problem framing, agreement, design, planning, execution, acceptance, release, and archive (`docs/adv-gates.md:1-19`). Reusing it is sound.\n- Temporal-backed durable workflow remains the right architecture; no external orchestration framework is needed.\n- Zod/type-backed task and evidence-policy validation matches P33 structural correctness better than title heuristics.\n- `/adv-improve` is correctly read-only and should remain a pre-proposal research pack generator, not a stateful workflow command.\n\n### Completeness Verification\n\n- Full problem: not just `adv-improve`; the gap spans routing, task typing, evidence policies, prep, review, tests/specs, and research safety fallbacks.\n- Full intended solution: establish workflow/evidence foundation for large non-code deliverables; not every research methodology variant.\n- Secondary surfaces: `adv-comp-scan`, `adv-prep`, `adv-review`, `tdd-contract`, `subagent-reports`, and task tool schema all need consideration.\n\n### Discovery Checklist\n\n| Step | Status | Reason |\n|---|---|---|\n| Skill Discovery | PASS | Loaded `adv-improve`; loaded `adv-agent-tool-contracts` for tool/agent schema contract implications. |\n| Prior Research Extension | PASS | Cited and extended `docs/non-coding-task-rigor-prep.md` with `adv_task_add` type/default finding. |\n| Conflict & Related-Work Scan | PASS | Validated change; checked active overlap with `tightenAdvScopeDiscipline`; agenda scan partially deduped. |\n| Edge Case Investigation | PASS | Covered one-off/read-only, improve handoff, fallback research safety, no-runnable-test, and code-task preservation cases. |\n| Design Question Depth | PASS | Task kind, evidence policy storage, and archive preservation questions annotated. |\n| Draft Spec Delta Shapes | PASS | Spec-law expected in `advance-workflow`, `adv-prep`, `tdd-contract`, `subagent-reports`, and possibly `advance-meta` / `advance-delivery`. |\n| Related Pattern Scan | PASS | Found existing `TaskTypeSchema`, TDD classifier, improve/comp-scan command surfaces, and discover research-pack handoff. |\n| LBP Check | PASS | Reuse ADV/Temporal workflow and structural schemas; reject parallel gate lifecycle or external framework. |\n| Completeness Verification | PASS | Full problem spans routing, evidence, prep/review, safety fallbacks, and tests/specs. |\n\n## Objectives\n\n- Preserve `adv-improve` as read-only pre-change research.\n- Make large non-code deliverables first-class tracked ADV work after direction is clear.\n- Add structural non-code task/evidence semantics.\n- Ensure research, writing, design, competitive-analysis, and planning deliverables get criteria, task graph, evidence, review, and acceptance.\n- Align research-command fallback safety text.\n\n## Success Criteria\n\n- SC1: Agent routing contains explicit rule: large non-code deliverable work routes to a tracked ADV change unless marked one-off/read-only.\n- SC2: Non-code tasks have structural kind/evidence policy, not title-only inference.\n- SC3: Prep/review can verify at least 5 non-code evidence modes: citations, source audit, rubric/critique, stakeholder acceptance, artifact reference.\n- SC4: `adv-improve` remains no-state-mutation utility with research-pack handoff into proposal/discovery.\n- SC5: Tests/specs prevent regressions for routing, task kind/evidence policy, and no fake TDD requirement.\n\n## Acceptance Criteria\n\n- AC1: `adv-improve` docs/tests still assert no `adv_change_create`, `adv_task_add`, or `adv_gate_complete`; output must state research packs feed proposal/discovery, not replace tracked workflow.\n- AC2: ADV intent routing names “large non-code deliverable” with at least 5 examples: market research, design improvement, competitive research, writing, analysis/planning.\n- AC3: Large non-code deliverable routing states: create/continue tracked change unless explicitly one-off/read-only; `adv-improve` may precede proposal to clarify direction.\n- AC4: Task creation or task metadata exposes a validated non-code kind/evidence contract covering at minimum `code`, `docs`, `research`, `approval`, and `verification`.\n- AC5: Non-code task verification supports at least these evidence policies: `source_citation`, `source_audit`, `rubric_review`, `stakeholder_acceptance`, `artifact_reference`, and `not_applicable`.\n- AC6: Prep guidance maps approved AC/SC to non-code tasks without forcing fake red/green TDD; TDD `not_applicable` must require evidence-policy rationale for non-code deliverables.\n- AC7: Review/acceptance guidance evaluates non-code deliverables against contract rows and evidence policies, including pass/fail status for each applicable AC/SC.\n- AC8: Research-command fallback safety text includes redaction/no-confidential-data/public-source boundary guidance for external research paths.\n- AC9: Spec deltas cover workflow routing, prep/task modeling, TDD/non-code evidence boundary, and sub-agent/report evidence as applicable.\n- AC10: Regression tests or asset tests prove AC1–AC8 with explicit assertions; full repo check/test pass before acceptance.\n\n## Constraints\n\n- C1: Keep `adv-improve` read-only and docs-pack-only.\n- C2: Do not add a parallel gate lifecycle.\n- C3: Do not adopt external orchestration frameworks.\n- C4: Do not duplicate `tightenAdvScopeDiscipline`; reuse if landed.\n- C5: Prefer structural types/schemas/validators over title heuristics.\n- C6: No fake TDD for non-code deliverables.\n\n## Avoidances\n\n- DONT1: Avoid treating all non-code work as “small tracked change”; large/ambiguous non-code work needs full proposal/discovery/design/prep flow.\n- DONT2: Avoid making `metadata.tdd_intent` carry every non-code semantic alone if a typed field is cleaner.\n- DONT3: Avoid accepting citation lists without source-quality/audit notes where research credibility matters.\n- DONT4: Avoid making `adv-comp-scan` metadata-only output the durable acceptance record for major competitive-research deliverables.\n\n## Out of Scope\n\n- OOS1: New external workflow engine.\n- OOS2: `adv-improve` state mutation.\n- OOS3: Universal research methodology framework for every domain.\n- OOS4: Rewriting all old changes/tasks.\n- OOS5: Repositories not using ADV.\n",
+    "design": "# Design — Add Non-Code Workflow Rigor\n\n## Architecture Overview\n\nReuse ADV's existing seven-gate lifecycle for consequential non-code deliverables. Keep `/adv-improve` as a read-only, pre-proposal research-pack generator. Add a routing and evidence-policy layer so large non-code deliverables become normal tracked changes after direction is clarified.\n\nThe design is additive and structural:\n\n- Existing gates stay unchanged: proposal → discovery → design → planning → execution → acceptance → release.\n- Existing `docs/*-prep.md` research packs remain prior-research inputs to proposal/discovery.\n- Task kind and evidence policy become explicit typed data, not title-only inference.\n- Prep and review use the same contract spine and review matrix, extended with non-code evidence policies.\n\n## Key Decisions\n\n### Decision 1 — No parallel lifecycle\n\nUse existing ADV gates. Do not add `/adv-work`, a non-code-specific gate machine, or external orchestration framework.\n\nRationale:\n\n- `docs/adv-gates.md` already defines the durable workflow and artifacts for all deliverables.\n- The user problem is routing/evidence semantics, not missing lifecycle machinery.\n- A parallel lifecycle would duplicate proposal/discovery/design/prep/review concerns and violate the agreement constraints.\n\n### Decision 2 — Expose task type structurally\n\nExpose existing `TaskTypeSchema` through `adv_task_add` as optional `type`.\n\nCurrent local evidence:\n\n- `plugin/src/types/tasks.ts:135-142` defines `code`, `docs`, `ops`, `research`, `approval`, `verification`.\n- `plugin/src/tools/task.ts:1088-1092` currently hard-codes new tasks to `type: \"code\"`.\n\nDesign:\n\n- Add optional `type?: TaskType` to `adv_task_add` args.\n- Default remains `code` for backward compatibility.\n- Handler sets `task.type = args.type ?? \"code\"`.\n- Task type becomes the primary structural classification for deliverable kind.\n- Metadata may remain available for routing hints, but correctness must not depend on title heuristics.\n\n### Decision 3 — Centralize evidence-policy enum extension\n\nExtend the existing `ContractEvidencePolicySchema` instead of creating a parallel non-code enum.\n\nCurrent local evidence:\n\n- `plugin/src/types/changes.ts:482-488` defines `test`, `review`, `static_check`, `design_proof`, `not_applicable`.\n- The same enum is used by contract items and review matrix rows (`plugin/src/types/changes.ts:533-545`).\n\nDesign:\n\nAdd these enum values:\n\n- `source_citation`\n- `source_audit`\n- `rubric_review`\n- `stakeholder_acceptance`\n- `artifact_reference`\n\nRetain existing values for compatibility. `not_applicable` remains valid only with rationale in task/review evidence.\n\n### Decision 4 — Add typed task evidence policy\n\nAdd optional `evidence_policy?: ContractEvidencePolicy` to `TaskSchema` and `adv_task_add`.\n\nAuthority rule:\n\n- `task.evidence_policy` is authoritative for task completion proof: it tells apply/review what evidence the task must produce.\n- `contract.items[].evidencePolicy` remains obligation-level default from the agreement/contract.\n- `contract.reviewMatrix.rows[].evidencePolicy` records the actual acceptance proof policy used for the contract row.\n- If a task verifies a contract item with a different policy than the item's default, review must cite the rationale in row notes/evidence. This is an explicit consistency check, not a hidden heuristic.\n\nBehavior:\n\n- `code` tasks default to evidence policy `test` unless caller supplies a more precise existing policy.\n- `docs`, `research`, `approval`, and `verification` tasks require an explicit `evidence_policy` unless a validator-approved default is documented for that type.\n- Recommended defaults for prep synthesis:\n  - `docs` → `artifact_reference`\n  - `research` → `source_citation` plus source-audit requirement in task body or review notes\n  - `approval` → `stakeholder_acceptance`\n  - `verification` → `static_check`, `review`, or `artifact_reference` depending on scope\n  - `ops` → `static_check`, `test`, or `artifact_reference` depending on deliverable\n\nThis avoids fake TDD while preserving auditable proof.\n\n### Decision 5 — Derive TDD intent from task type safely\n\nKeep `metadata.tdd_intent` as the TDD classifier input, but set better defaults at task creation.\n\nCurrent local evidence:\n\n- `adv_task_add` currently fills missing `metadata.tdd_intent` with `inline` (`plugin/src/tools/task.ts:1082-1085`).\n- Prep readiness requires all non-cancelled tasks to have explicit `metadata.tdd_intent` (`plugin/src/validator/prep-readiness.ts:371-419`).\n\nDesign:\n\n- If caller explicitly supplies `metadata.tdd_intent`, preserve it.\n- If omitted, derive before the current inline fallback:\n  - `code` → `inline`\n  - `verification` → `separate_verification`\n  - `docs`, `research`, `approval`, `ops` → `not_applicable`\n- Add tests proving explicit metadata wins and the fallback does not override type-derived defaults.\n- For non-code tasks with `not_applicable`, prep/review must require task evidence policy and rationale; `not_applicable` is not proof by itself.\n\n### Decision 6 — Close contract coverage hole for all deliverable tasks\n\nBroaden contract-reference enforcement beyond `code` tasks unconditionally.\n\nCurrent local evidence:\n\n- `plugin/src/validator/contract.ts:83-97` only raises `CONTRACT_TASK_REFS_MISSING` when `task.type === \"code\"`.\n\nDesign:\n\n- Standard/strict rigor requires every non-cancelled task that produces deliverable work to carry `contract_refs` or a bounded `not_applicable_reason`, regardless of task type.\n- Approval-only bookkeeping tasks may use `not_applicable_reason` when they do not implement/verify contract items.\n- Do not gate this broadening on `tightenAdvScopeDiscipline`; implement it here. If that change lands first, integrate with its richer reverse-traceability checker and avoid duplicate user-facing logic.\n\n### Decision 7 — Review matrix remains acceptance proof\n\nUse the existing typed `contract.reviewMatrix` as the acceptance proof spine.\n\nDesign:\n\n- Extend review guidance to include task `type` and `evidence_policy` in the task evidence summary.\n- Review rows may use the extended evidence-policy enum.\n- Acceptance remains blocked by missing/failing/unknown rows through existing gate readiness.\n- No special non-code archive mechanism is needed initially because archive already renders evidence policy rows and preserves artifacts; add special artifact preservation only if execution discovers a concrete gap.\n\n### Decision 8 — Preserve and clarify `/adv-improve`\n\n`/adv-improve` remains no-state-mutation and docs-pack-only.\n\nDesign:\n\n- Add explicit handoff wording: research pack clarifies direction before proposal/discovery; it does not replace tracked workflow for consequential deliverables.\n- Keep asset tests asserting absence of `adv_change_create`, `adv_task_add`, and `adv_gate_complete`.\n- Add asset assertions for the handoff wording.\n\n### Decision 9 — Research fallback safety is command-level minimum law\n\nCommands that perform external research must include minimum fallback safety guidance even when a skill is unavailable.\n\nDesign:\n\n- Add redaction/no-confidential-data/public-source boundary text to research command fallbacks, starting with `adv-comp-scan`.\n- Keep richer methodology in skills, but command fallback must not omit safety-critical boundaries.\n\n## ADR Drafts\n\nNone. Decisions are additive, compatibility-preserving, and not hard to reverse after spec/test coverage exists.\n\n## Implementation Strategy\n\n1. **Spec-law foundation**\n   - Add/update requirements in `advance-workflow`, `adv-prep`, `tdd-contract`, `subagent-reports`, and possibly `advance-meta` / `advance-delivery`.\n   - Cover routing, task type, evidence policy, no fake TDD, review matrix proof, and `adv-improve` pre-change role.\n\n2. **Type/schema changes**\n   - Extend `ContractEvidencePolicySchema` in `plugin/src/types/changes.ts`.\n   - Add optional `evidence_policy` to `TaskSchema` in `plugin/src/types/tasks.ts` using the contract evidence-policy type/schema or a shared exported schema.\n   - Export schema/type through `plugin/src/types/index.ts` if needed.\n\n3. **Tool contract changes**\n   - Update `adv_task_add` args with optional `type` and `evidence_policy`.\n   - Update handler to set `task.type = args.type ?? \"code\"`.\n   - Derive missing `metadata.tdd_intent` by task type as described above.\n   - Add preflight/tool-arg tests per `adv-agent-tool-contracts` skill guidance.\n\n4. **Validator changes**\n   - Update prep readiness to require non-code evidence policy and rationale when TDD is `not_applicable`.\n   - Update contract checks so non-code deliverable tasks cannot bypass contract coverage.\n   - Add consistency review/check guidance when task evidence policy differs from the contract item's default policy.\n   - Keep existing inline TDD enforcement for code tasks.\n\n5. **Command/instruction changes**\n   - Update `.opencode/agents/adv.md` and `ADV_INSTRUCTIONS.md` intent routing for large non-code deliverables.\n   - Update `.opencode/command/adv-improve.md` handoff wording without adding state mutation.\n   - Update `.opencode/command/adv-comp-scan.md` fallback safety text.\n   - Update `.opencode/command/adv-prep.md` and `.opencode/command/adv-review.md` to surface task type/evidence policy.\n\n6. **Tests**\n   - Asset tests for routing/handoff/safety wording.\n   - Unit tests for `adv_task_add` task type and evidence policy persistence.\n   - Unit tests for TDD default derivation by task type.\n   - Prep readiness tests for missing non-code evidence policy.\n   - Contract validation tests proving non-code tasks require refs or bounded not-applicable reason.\n   - Contract/review matrix schema tests for new evidence policies.\n   - Full repo check/test before acceptance.\n\n## LBP Analysis\n\n- Reusing the seven-gate workflow is the lowest-risk long-term model.\n- Centralizing evidence policy in `ContractEvidencePolicySchema` avoids dual enums and keeps contract item and review matrix semantics aligned.\n- Exposing existing `TaskTypeSchema` is cleaner than inventing `metadata.task_type`; the domain type already exists but is not wired into the tool surface.\n- Deriving TDD defaults from task type is safer than forcing every non-code task through `inline` and then reclassifying later.\n- Review matrix proof already blocks acceptance on missing/failing rows; extending its evidence policies is more maintainable than new acceptance machinery.\n\n## Affected Components\n\n- `.opencode/agents/adv.md`\n- `ADV_INSTRUCTIONS.md`\n- `.opencode/command/adv-improve.md`\n- `.opencode/command/adv-comp-scan.md`\n- `.opencode/command/adv-prep.md`\n- `.opencode/command/adv-review.md`\n- `plugin/src/types/tasks.ts`\n- `plugin/src/types/changes.ts`\n- `plugin/src/types/index.ts`\n- `plugin/src/tools/task.ts`\n- `plugin/src/validator/prep-readiness.ts`\n- `plugin/src/validator/contract.ts`\n- `plugin/src/tools/contract.ts` tests and related schema tests\n- `.adv/specs/*` and `docs/specs/*` mirrors as applicable\n- Asset tests for command/agent surfaces\n\n## Design-Derived Criteria\n\n- DDC1: New task fields must be optional/defaulted so legacy tasks and workflow histories remain readable.\n- DDC2: `adv_task_add` must reject invalid task type or evidence policy through schema/preflight before signaling.\n- DDC3: Non-code task evidence policy must be machine-readable at prep/review time.\n- DDC4: Code tasks must retain inline TDD default and red→green enforcement behavior.\n- DDC5: Acceptance proof must remain `contract.reviewMatrix`-backed; missing/failing/unknown rows continue to block acceptance.\n- DDC6: `adv-improve` tests must continue to prove no ADV state mutation.\n- DDC7: `task.evidence_policy`, contract item `evidencePolicy`, and review row `evidencePolicy` must have an explicit consistency rule when they differ.\n\n## Risks / Mitigations\n\n- Risk: Extending `ContractEvidencePolicySchema` touches many fixtures.\n  - Mitigation: additive enum change plus targeted fixture/assertion updates; existing literal `test` values remain valid.\n- Risk: Non-code tasks bypass contract coverage.\n  - Mitigation: explicitly broaden `contract.ts` check for all deliverable task types.\n- Risk: Metadata and type fields diverge.\n  - Mitigation: task `type` owns deliverable kind; `metadata.tdd_intent` owns TDD applicability only.\n- Risk: Evidence policy has dual source-of-truth ambiguity.\n  - Mitigation: task policy owns task proof; contract item policy owns obligation default; review row policy owns actual acceptance proof, with notes required when these differ.\n- Risk: New semantics weaken code-task TDD.\n  - Mitigation: preserve `code → inline` default and existing TDD validators.\n- Risk: Duplicate SoW/reverse-traceability work with `tightenAdvScopeDiscipline`.\n  - Mitigation: implement unconditional non-code coverage broadening here, then integrate with richer reverse-traceability if already landed.\n\n## Design Leverage Scout\n\n- Candidates considered: 5.\n- Auto-adopted:\n  - Close `contract.ts` code-only enforcement hole by making non-code contract coverage explicit.\n  - Centralize evidence-policy enum extension in `ContractEvidencePolicySchema`.\n- Design-around:\n  - Coordinate reverse-traceability with `tightenAdvScopeDiscipline` rather than duplicating it.\n- Deferred:\n  - Separate non-code archive shape; existing archive/review-matrix output is sufficient initially.\n- Rejected:\n  - New `/adv-work` command; violates no parallel lifecycle and adds low value.\n\n## Validator Result\n\nIndependent validator: VALIDATED.\n\nFindings:\n\n- Correctness: design solves all objectives and maps ACs to verified local surfaces (`TaskTypeSchema`, `ContractEvidencePolicySchema`, hard-coded `type: \"code\"`, `tdd_intent` fallback, prep readiness, improve asset tests).\n- Simplicity: design is simpler than alternatives; caution resolved by explicit evidence-policy authority/consistency rule.\n- Spec-law compliance: no spec contradiction; additive optional fields and no parallel lifecycle.\n- Alternatives: no materially better viable alternative; `/adv-work` rejected.\n\nValidator cautions resolved in this design revision:\n\n1. `task.evidence_policy` authority vs contract/review policy consistency clarified.\n2. Type-driven `tdd_intent` derivation explicitly slots before the current inline fallback and preserves explicit caller metadata.\n3. `contract.ts` broadening is unconditional, not gated on `tightenAdvScopeDiscipline`.\n",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\n\nDelivered non-code workflow rigor across ADV routing, task modeling, validators, review guidance, and regression coverage. Large consequential research/writing/design deliverables now route into tracked ADV changes after read-only research clarification, while one-off/read-only utility work remains allowed.\n\n## Verdict\n\nAPPROVED\n\n## What Was Built\n\n1. Spec-law deltas for non-code deliverable routing, prep evidence policy synthesis, no-fake-TDD boundaries, prep-readiness validation, and review/report evidence handling.\n2. Structural task model/tool support for task `type` and `evidence_policy`, including shared evidence-policy schema values for source citations, source audits, rubric review, stakeholder acceptance, artifact references, and not-applicable rationale.\n3. ADV routing and command guidance updates for `adv-improve`, `adv-comp-scan`, `adv-prep`, and `adv-review`, preserving `adv-improve` as read-only pre-proposal research.\n4. Prep-readiness and contract validators requiring non-code evidence policies and broadening contract coverage to all non-cancelled task types.\n5. Regression and asset tests proving AC1–AC8 with explicit assertions.\n\n## What Was Verified\n\n- Verdict: READY acceptance review with 0 blockers, 0 issues, 0 suggestions/nits.\n- Tests: `pnpm run check` passed (runId `tr_mqomtrp2_c527ea2a`); `../bin/oc-test full` passed (runId `tr_mqomvkwc_c4c1c576`); AC regression targeted suite passed (runId `tr_mqoms2s3_19bbe893`).\n- Preview URL: not_applicable — plugin/instruction/validator change; no browser-visible visual surface or live preview required.\n- Contract matrix: 30/30 rows passed, respected, or not_applicable; 0 failed/violated/unknown rows.\n\n## Remaining Concerns\n\nNon-blocking: `adv_change_validate strict:true` reports `NO_DELTAS` in workflow projection, while git-backed spec files and docs mirrors are committed and verified. Release review should treat this as projection warning, not shipped-work failure, unless archive tooling requires explicit delta metadata.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-06-22T03:13:59.281Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | Agent routing contains explicit rule: large non-code deliverable work routes to a tracked ADV change unless marked one-off/read-only. | pass | READY review verified routing in ADV_INSTRUCTIONS.md and .opencode/agents/adv.md: large non-code deliverables route to tracked ADV changes unless one-off/read-only. |\n| SC2 | success_criterion | Non-code tasks have structural kind/evidence policy, not title-only inference. | pass | READY review verified structural task type/evidence_policy support in plugin/src/types/tasks.ts, plugin/src/tools/task.ts, plugin/src/types/evidence-policy.ts, and validators; not title-only inference. |\n| SC3 | success_criterion | Prep/review can verify at least 5 non-code evidence modes: citations, source audit, rubric/critique, stakeholder acceptance, artifact reference. | pass | READY review verified prep/review and validator support for source_citation, source_audit, rubric_review, stakeholder_acceptance, and artifact_reference evidence modes. |\n| SC4 | success_criterion | `adv-improve` remains no-state-mutation utility with research-pack handoff into proposal/discovery. | pass | READY review verified .opencode/command/adv-improve.md remains no-state-mutation and hands research packs to proposal/discovery; adv-improve asset tests cover this. |\n| SC5 | success_criterion | Tests/specs prevent regressions for routing, task kind/evidence policy, and no fake TDD requirement. | pass | READY review verified regression/asset tests plus full validation: pnpm run check tr_mqomtrp2_c527ea2a; ../bin/oc-test full tr_mqomvkwc_c4c1c576; AC regression tr_mqoms2s3_19bbe893. |\n| AC1 | acceptance_criterion | `adv-improve` docs/tests still assert no `adv_change_create`, `adv_task_add`, or `adv_gate_complete`; output must state research packs feed proposal/discovery, not replace tracked workflow. | pass | adv-improve asset coverage passed in targeted AC regression run tr_mqoms2s3_19bbe893; review verified command docs state research packs feed proposal/discovery and no adv_change_create/task_add/gate_complete replacement path. |\n| AC2 | acceptance_criterion | ADV intent routing names “large non-code deliverable” with at least 5 examples: market research, design improvement, competitive research, writing, analysis/planning. | pass | adv-instructions asset coverage passed in run tr_mqoms2s3_19bbe893; review verified large non-code deliverable routing names market research, design improvement, competitive research, writing, and analysis/planning examples. |\n| AC3 | acceptance_criterion | Large non-code deliverable routing states: create/continue tracked change unless explicitly one-off/read-only; `adv-improve` may precede proposal to clarify direction. | pass | adv-instructions asset coverage passed in run tr_mqoms2s3_19bbe893; review verified tracked-change routing unless explicitly one-off/read-only and adv-improve may precede proposal. |\n| AC4 | acceptance_criterion | Task creation or task metadata exposes a validated non-code kind/evidence contract covering at minimum `code`, `docs`, `research`, `approval`, and `verification`. | pass | Task/schema targeted tests passed: tr_mqol1jkd_1647182b and AC regression tr_mqoms2s3_19bbe893; review verified TaskType/evidence_policy validates code/docs/research/approval/verification. |\n| AC5 | acceptance_criterion | Non-code task verification supports at least these evidence policies: `source_citation`, `source_audit`, `rubric_review`, `stakeholder_acceptance`, `artifact_reference`, and `not_applicable`. | pass | Evidence policy schema/tests passed: tr_mqol1jkd_1647182b, tr_mqomcjf2_a0f99537, tr_mqoms2s3_19bbe893; review verified required non-code policies are in shared enum and command/validator surfaces. |\n| AC6 | acceptance_criterion | Prep guidance maps approved AC/SC to non-code tasks without forcing fake red/green TDD; TDD `not_applicable` must require evidence-policy rationale for non-code deliverables. | pass | Prep assets and prep-readiness tests passed: tr_mqolzb1y_1a53a2db, tr_mqomcjf2_a0f99537, tr_mqoms2s3_19bbe893; review verified no fake TDD and not_applicable rationale enforcement. |\n| AC7 | acceptance_criterion | Review/acceptance guidance evaluates non-code deliverables against contract rows and evidence policies, including pass/fail status for each applicable AC/SC. | pass | Review assets and contract validator tests passed: tr_mqolzb1y_1a53a2db, tr_mqomcjf2_a0f99537, tr_mqoms2s3_19bbe893; review verified review matrix/evidence policy pass/fail guidance. |\n| AC8 | acceptance_criterion | Research-command fallback safety text includes redaction/no-confidential-data/public-source boundary guidance for external research paths. | pass | adv-comp-scan asset test passed in AC regression run tr_mqoms2s3_19bbe893; review verified fallback safety text includes redaction, no confidential data, and public-source boundary. |\n| AC9 | acceptance_criterion | Spec deltas cover workflow routing, prep/task modeling, TDD/non-code evidence boundary, and sub-agent/report evidence as applicable. | pass | Spec-law task checkpoint 493510e6550bf624a25f11af8b59f4d4a710f322 changed advance-workflow, adv-prep, tdd-contract, prep-readiness, and subagent-reports specs/docs; JSON parse tr_mqoki7oj_ff2f8c5a and Prettier tr_mqokjekp_9596bb2b passed; review verified coverage. |\n| AC10 | acceptance_criterion | Regression tests or asset tests prove AC1–AC8 with explicit assertions; full repo check/test pass before acceptance. | pass | Regression/asset tests prove AC1-AC8: targeted AC regression run tr_mqoms2s3_19bbe893 passed 198 tests; full validation check tr_mqomtrp2_c527ea2a and full suite tr_mqomvkwc_c4c1c576 passed. |\n| C1 | constraint | Keep `adv-improve` read-only and docs-pack-only. | respected | Review verified adv-improve remains read-only/docs-pack utility; asset tests and command text preserve no-state-mutation boundary. |\n| C2 | constraint | Do not add a parallel gate lifecycle. | respected | Review found no parallel gate lifecycle; implementation extends existing ADV gates, task model, validators, and review matrix. |\n| C3 | constraint | Do not adopt external orchestration frameworks. | respected | Review found no external orchestration framework added; implementation stays in existing ADV TypeScript/plugin command surfaces. |\n| C4 | constraint | Do not duplicate `tightenAdvScopeDiscipline`; reuse if landed. | respected | Design/task evidence kept scope to non-code workflow rigor and did not duplicate tightenAdvScopeDiscipline mechanisms; no duplicate SoW/reverse-traceability subsystem added. |\n| C5 | constraint | Prefer structural types/schemas/validators over title heuristics. | respected | Review verified structural schemas/validators: TaskTypeSchema, evidence_policy enum, prep-readiness validation, and contract coverage enforcement. |\n| C6 | constraint | No fake TDD for non-code deliverables. | respected | Review verified non-code tasks use evidence policies and not_applicable rationale rather than forced fake red/green TDD. |\n| DONT1 | avoidance | Avoid treating all non-code work as “small tracked change”; large/ambiguous non-code work needs full proposal/discovery/design/prep flow. | respected | Review verified routing distinguishes large/ambiguous non-code deliverables from one-off/read-only tasks and keeps full proposal/discovery/design/prep flow for consequential deliverables. |\n| DONT2 | avoidance | Avoid making `metadata.tdd_intent` carry every non-code semantic alone if a typed field is cleaner. | respected | Review verified explicit task type/evidence_policy field and validators; metadata.tdd_intent is not sole semantic carrier. |\n| DONT3 | avoidance | Avoid accepting citation lists without source-quality/audit notes where research credibility matters. | respected | Review verified source_citation guidance requires source-quality/audit notes where credibility matters and rejects bare citation lists in prep/review surfaces. |\n| DONT4 | avoidance | Avoid making `adv-comp-scan` metadata-only output the durable acceptance record for major competitive-research deliverables. | respected | Review verified adv-comp-scan remains research utility/fallback and major competitive-research deliverables route into tracked ADV evidence/acceptance, not metadata-only durable acceptance. |\n| OOS1 | out_of_scope | New external workflow engine. | not_applicable | No new external workflow engine was implemented or required. |\n| OOS2 | out_of_scope | `adv-improve` state mutation. | not_applicable | adv-improve state mutation remained out of scope and was not implemented. |\n| OOS3 | out_of_scope | Universal research methodology framework for every domain. | not_applicable | No universal research methodology framework for every domain was implemented. |\n| OOS4 | out_of_scope | Rewriting all old changes/tasks. | not_applicable | No rewrite of old changes/tasks was performed. |\n| OOS5 | out_of_scope | Repositories not using ADV. | not_applicable | No repositories outside ADV were changed. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-06-22T01:22:07.382Z",
+      "contentHash": "2a282b4caa6064040368d6cfd11ccda2417792f89eb4dd10622db627eb13a490",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-06-22T01:22:07.382Z",
+      "contentHash": "cba06704c84c6a38fb9b73ca68209c3e2f6f4c0d38d9a3e406aed5d6824a5357",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-06-22T01:31:39.662Z",
+      "contentHash": "4005abe3170953d49677eb9256bb3c3e8e9d3c98591cbcb89c5028b4b3c641ed",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-06-22T01:39:57.511Z",
+      "contentHash": "af47bcb9ec48ed5f391c6c7940f51ad244afc0c2228a3c0eb19d8d171da7a888",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-06-22T03:14:19.265Z",
+      "contentHash": "017c7e33abc16c67fe901bc1e82759fb09f8f702c5a4dc1ebaa0e583ec25c619",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-06-22T03:23:44.881Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true
+}
