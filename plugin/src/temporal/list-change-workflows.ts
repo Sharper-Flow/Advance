@@ -45,6 +45,8 @@ const DEFAULT_STATUSES: readonly ChangeStatus[] = [
   "active",
 ];
 
+const RUNNING_EXECUTION_STATUSES = new Set<ChangeStatus>(DEFAULT_STATUSES);
+
 export interface ListChangeWorkflowIdsOptions {
   projectId: string;
   /**
@@ -106,6 +108,13 @@ export function buildVisibilityQuery(
   if (effectiveStatuses) {
     const list = effectiveStatuses.map((s) => `"${s}"`).join(", ");
     parts.push(`AdvChangeStatus IN (${list})`);
+    if (
+      effectiveStatuses.every((status) =>
+        RUNNING_EXECUTION_STATUSES.has(status),
+      )
+    ) {
+      parts.push(`ExecutionStatus = "Running"`);
+    }
   }
 
   return parts.join(" AND ");

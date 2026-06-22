@@ -59,6 +59,7 @@ describe("buildVisibilityQuery", () => {
     expect(q).toContain('AdvAffectedProjects = "abc123"');
     expect(q).not.toContain("AdvProjectId");
     expect(q).toContain("AdvChangeStatus IN");
+    expect(q).toContain('ExecutionStatus = "Running"');
     expect(q).toContain('"draft"');
     expect(q).toContain('"pending"');
     expect(q).toContain('"active"');
@@ -73,6 +74,16 @@ describe("buildVisibilityQuery", () => {
     });
     expect(q).toContain('"archived"');
     expect(q).not.toContain('"draft"');
+    expect(q).not.toContain("ExecutionStatus");
+  });
+
+  it("adds a running execution guard for explicit active-status queries", () => {
+    const q = buildVisibilityQuery({
+      projectId: "abc",
+      statuses: ["active"],
+    });
+    expect(q).toContain('AdvChangeStatus IN ("active")');
+    expect(q).toContain('ExecutionStatus = "Running"');
   });
 
   it("omits status filter when statuses=null (all-statuses mode)", () => {
@@ -82,6 +93,7 @@ describe("buildVisibilityQuery", () => {
     });
     expect(q).toContain('AdvAffectedProjects = "abc"');
     expect(q).not.toContain("AdvChangeStatus");
+    expect(q).not.toContain("ExecutionStatus");
   });
 
   it("escapes double-quotes in projectId to prevent query injection", () => {
@@ -142,6 +154,7 @@ describe("listChangeWorkflowIds", () => {
     });
     expect(fakeClient.lastQuery).toContain('AdvAffectedProjects = "proj1"');
     expect(fakeClient.lastQuery).toContain('AdvChangeStatus IN ("active")');
+    expect(fakeClient.lastQuery).toContain('ExecutionStatus = "Running"');
   });
 
   it("handles 1500 paginated results without dropping any", async () => {
