@@ -6,7 +6,7 @@ description: Suggest targeted improvements to existing specs or implementation
 
 # ADV Improve — Analyze Improvement Opportunities
 
-Evidence-backed improvement analysis across current-state gaps, LBP/reference architecture, and external landscape. Persists research pack under `docs/*-prep.md`. Does not mutate ADV state.
+Evidence-backed improvement analysis across current-state gaps, LBP/reference architecture, and external landscape. Persists research pack under `docs/*-prep.md`. Clarifies direction before `/adv-proposal` or `/adv-discover`; does not mutate ADV state or replace the tracked workflow for consequential deliverables.
 
 <UserRequest>
   $ARGUMENTS
@@ -21,6 +21,8 @@ Fallback: run phases in this file; cap findings; cite evidence; write only `docs
 ## Command Boundary
 
 **Produces:** improvement report + `docs/{target-slug}-prep.md` research pack.
+
+**Handoff:** if the scoped work is a consequential non-code deliverable (market research, design improvement, competitive research, writing, analysis/planning, etc.), produce the pack, then route to `/adv-proposal` for a tracked ADV change. Do not deliver consequential work solely as a utility report.
 
 **× MUST NOT:** create changes, tasks, gates, spec deltas, agenda items, or mutate ADV state. × MUST NOT write outside `docs/*-prep.md`.
 

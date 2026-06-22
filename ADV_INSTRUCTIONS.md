@@ -180,6 +180,12 @@ Each workflow command has a defined phase goal. Canonical in `manifest.ts` (`pha
 - Deployment is outside ADV's gate lifecycle — ADV stops at push. Post-release deploy is a separate, user-initiated step
 - Commands that own boundary-sensitive workflow steps should include `## Command Boundary` details
 
+### Large Non-Code Deliverable Routing
+
+Large non-code deliverables — for example **market research, design improvement, competitive research, writing, analysis/planning** — MUST route to a tracked ADV change after any optional pre-change research clarifies direction, unless the user explicitly scopes the work as **one-off/read-only**.
+
+`/adv-improve` and `/adv-research` are read-only pre-proposal research commands. They may produce `docs/*-prep.md` evidence packs consumed by `/adv-proposal` or `/adv-discover`, but they MUST NOT replace the tracked workflow for consequential deliverables or mutate ADV change/task/gate state.
+
 ## Status Markers
 
 Emit at START of each response:

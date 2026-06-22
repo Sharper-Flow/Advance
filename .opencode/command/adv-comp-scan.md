@@ -33,6 +33,16 @@ Parse `$ARGUMENTS`:
 3. **Worktree context** — `pwd` → record as `{workdir}`. Include `WORKING DIRECTORY: {workdir}` in all sub-agent prompts.
 
 ---
+## Source Safety Boundary
+
+All research MUST stay on public sources only.
+
+- **Redact before querying:** strip secrets, internal URLs, private identifiers, proprietary code snippets, credentials, and confidential project details from prompts, search queries, and scraped URLs.
+- **No confidential data:** do not submit internal-only roadmaps, unreleased designs, private user data, or proprietary metrics to competitor sites, search engines, or scraping tools.
+- **Public-source boundary:** if a competitor target is private, authenticated, or paywalled beyond public view, stop and surface the boundary rather than bypassing it with credentials, trial sign-ups, or internal access.
+- **Fallback safety:** when Exa or Firecrawl fallback is used, keep queries generic and source-cited; never leak project internals to obtain competitor data.
+
+---
 ## Phase 1: Source Mode (GitHub Repos)
 When mode is `source`:
 
