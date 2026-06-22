@@ -243,6 +243,49 @@ describe("ADV_INSTRUCTIONS.md adv-designer roster", () => {
   });
 });
 
+describe("ADV_INSTRUCTIONS.md non-code deliverable routing (AC2, AC3)", () => {
+  const content = readFileSync(ADV_INSTRUCTIONS_PATH, "utf8");
+
+  test("names 'large non-code deliverable' intent", () => {
+    expect(content).toMatch(/large non-code deliverable/i);
+  });
+
+  test("lists at least five non-code deliverable examples", () => {
+    const examples = [
+      "market research",
+      "design improvement",
+      "competitive research",
+      "writing",
+      "analysis/planning",
+    ];
+    for (const example of examples) {
+      expect(content.toLowerCase()).toContain(example.toLowerCase());
+    }
+  });
+
+  test("requires tracked ADV change unless explicitly one-off/read-only", () => {
+    expect(content).toMatch(
+      /MUST route to a tracked ADV change[^\n]*unless[^\n]*one-off\/read-only/i,
+    );
+  });
+
+  test("allows adv-improve/adv-research to precede proposal for direction clarification", () => {
+    expect(content).toMatch(
+      /pre-change research[^\n]*clarifies direction|clarifies direction[^\n]*pre-change research/i,
+    );
+    expect(content).toMatch(/adv-improve/);
+    expect(content).toMatch(/adv-proposal/);
+  });
+
+  test("forbids read-only research commands from replacing tracked workflow", () => {
+    expect(content).toMatch(
+      /MUST NOT replace[^\n]*tracked workflow|tracked workflow[^\n]*MUST NOT replace/i,
+    );
+    expect(content).toMatch(
+      /MUST NOT[^\n]*mutate ADV change\/task\/gate state|mutate ADV change\/task\/gate state[^\n]*MUST NOT/i,
+    );
+  });
+});
 describe("ADV_INSTRUCTIONS.md compression guards", () => {
   const content = readFileSync(ADV_INSTRUCTIONS_PATH, "utf8");
 

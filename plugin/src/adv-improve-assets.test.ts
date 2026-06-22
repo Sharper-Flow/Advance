@@ -124,6 +124,17 @@ describe("adv-improve ADV state mutation contract", () => {
       /ADV State Mutation:\s*none|[Ss]tate [Mm]utation:\s*none|[Nn]o (ADV )?state mutation/i,
     );
   });
+
+  test("handoff states research pack feeds proposal/discovery, not replace tracked workflow", () => {
+    const content = readFileSync(COMMAND_PATH, "utf8");
+    expect(content).toMatch(/proposal\/discovery|adv-proposal|adv-discover/);
+    expect(content).toMatch(
+      /research pack[^\n]*(?:route to|clarifies direction before|feeds|consumed by|input to)[^\n]*(?:adv-proposal|adv-discover|proposal\/discovery)|(?:route to|clarifies direction before|feeds|consumed by|input to)[^\n]*(?:adv-proposal|adv-discover|proposal\/discovery)[^\n]*research pack/i,
+    );
+    expect(content).toMatch(
+      /not replace[^\n]*tracked workflow|tracked workflow[^\n]*not replace|does not[^\n]*replace[^\n]*tracked workflow|replace[^\n]*tracked workflow/i,
+    );
+  });
 });
 
 describe("adv-improve research pack persistence contract", () => {
