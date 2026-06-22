@@ -3,8 +3,8 @@
   "name": "adv-prep",
   "title": "ADV Prep Command",
   "purpose": "Defines the responsibilities and boundaries of /adv-prep. The prep command is the sole creator and sequencer of tasks. It synthesizes tasks from the approved agreement and validated design decisions, runs gap analysis, validates task ordering, and ensures implementation readiness. It does not firm or rewrite acceptance criteria or success criteria.",
-  "version": "1.3.0",
-  "updated_at": "2026-06-05T00:00:00.000Z",
+  "version": "1.4.0",
+  "updated_at": "2026-06-22T00:00:00.000Z",
   "requirements": [
     {
       "id": "rq-prep-out1",
@@ -190,6 +190,53 @@
           "then": [
             "The missing artifact is reported as a readiness gap",
             "Prep does not silently approve a task graph without showing the relevant source basis"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-prepNonCodeEvidence01",
+      "title": "Prep Synthesizes Non-Code Deliverable Tasks with Evidence Policies",
+      "body": "/adv-prep MUST map approved agreement and design decisions into structurally typed non-code tasks when the deliverable is docs, research, approval, verification, ops, writing, analysis, design improvement, or competitive research. Non-code tasks MUST carry a task type, contract_refs or bounded not_applicable_reason, metadata.tdd_intent appropriate to the task type, and a machine-readable evidence policy. Prep MUST NOT force fake red/green TDD for non-code deliverables; it must instead assign evidence policies such as source_citation, source_audit, rubric_review, stakeholder_acceptance, artifact_reference, static_check, review, or not_applicable with rationale.",
+      "priority": "must",
+      "tags": ["prep", "non-code", "tasks", "evidence", "tdd"],
+      "scenarios": [
+        {
+          "id": "rq-prepNonCodeEvidence01.1",
+          "title": "Research task receives source evidence policy",
+          "given": [
+            "An approved agreement requires a competitive research or market analysis deliverable"
+          ],
+          "when": "/adv-prep creates the task graph",
+          "then": [
+            "The research task is structurally identified as a non-code deliverable task",
+            "The task carries contract_refs to the relevant approved criteria",
+            "The task carries a source_citation or source_audit evidence policy",
+            "The task does not require inline red/green TDD"
+          ]
+        },
+        {
+          "id": "rq-prepNonCodeEvidence01.2",
+          "title": "Documentation task uses artifact evidence",
+          "given": [
+            "An approved agreement requires a documentation or writing deliverable"
+          ],
+          "when": "/adv-prep creates the task graph",
+          "then": [
+            "The task is structurally identified as a docs or non-code deliverable task",
+            "The task carries artifact_reference or rubric_review evidence policy as appropriate",
+            "metadata.tdd_intent is not_applicable with evidence-policy rationale"
+          ]
+        },
+        {
+          "id": "rq-prepNonCodeEvidence01.3",
+          "title": "Code tasks retain inline TDD",
+          "given": ["A task implements logic-bearing code"],
+          "when": "/adv-prep creates or validates the task graph",
+          "then": [
+            "The task remains a code task by default",
+            "metadata.tdd_intent is inline unless explicitly and validly reclassified",
+            "The non-code evidence-policy model does not weaken red/green TDD requirements for code tasks"
           ]
         }
       ]

@@ -1,7 +1,7 @@
 # Prep Readiness
 
-> **Version:** 1.3.0
-> **Updated:** 2026-04-07
+> **Version:** 1.6.0
+> **Updated:** 2026-06-22
 
 ## Purpose
 
@@ -103,6 +103,46 @@ The validator must scan requirement titles and bodies in spec deltas for languag
 **Then:**
 
 - No smell issues are emitted (nothing to check)
+
+---
+
+### Non-Code Task Evidence Policy Readiness
+
+**ID:** `rq-PR008nonCodeEvidence` | **Priority:** **[MUST]**
+
+Prep readiness MUST fail when a non-cancelled non-code deliverable task lacks a valid machine-readable evidence policy or uses metadata.tdd_intent='not_applicable' without a task evidence-policy rationale. The check MUST apply to docs, research, approval, ops, and verification tasks as applicable while preserving existing inline TDD enforcement for code tasks.
+
+**Tags:** `prep`, `readiness`, `non-code`, `evidence`, `tdd`
+
+#### Scenarios
+
+**Non-code task missing evidence policy blocks prep** (`rq-PR008nonCodeEvidence.1`)
+
+**Given:**
+
+- A non-cancelled task has type research or docs
+- The task has no evidence_policy and no bounded evidence-policy rationale
+
+**When:** runPrepReadinessChecks is called
+
+**Then:**
+
+- A non-code evidence readiness error is returned
+- The planning gate remains blocked until the task has a valid evidence policy or bounded not_applicable rationale
+
+**Non-code task with valid evidence policy passes readiness** (`rq-PR008nonCodeEvidence.2`)
+
+**Given:**
+
+- A non-cancelled research task has metadata.tdd_intent='not_applicable'
+- The task has evidence_policy='source_citation' and contract_refs to approved criteria
+
+**When:** runPrepReadinessChecks is called
+
+**Then:**
+
+- No non-code evidence readiness error is returned for that task
+- The task remains eligible for review-matrix proof instead of red/green TDD proof
 
 ---
 

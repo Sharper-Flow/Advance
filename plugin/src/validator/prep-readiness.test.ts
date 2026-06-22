@@ -14,7 +14,7 @@ import {
   runPrepReadinessChecks,
   checkCriticalOpsCoverage,
 } from "./prep-readiness";
-import type { Change } from "../types";
+import type { Change, TaskType } from "../types";
 
 /**
  * Two metadata-less tasks: a test task (by title heuristic) blocked_by an
@@ -232,13 +232,168 @@ describe("checkCriticalOpsCoverage", () => {
     expect(issues[0].code).toBe("CRITICAL_OPS_UNCOVERED");
     expect(issues[0].severity).toBe("error");
   });
+});
 
-  test("runPrepReadinessChecks includes checkCriticalOpsCoverage in checksPerformed", () => {
-    const change = buildChangeWithContract(
-      [{ id: "AC-1", requiredCritical: true }],
-      [],
+// =============================================================================
+// Non-Code Task Evidence Policy Readiness (rq-PR008nonCodeEvidence)
+// =============================================================================
+
+const NON_CODE_TYPES: TaskType[] = [
+  "docs",
+  "research",
+  "approval",
+  "verification",
+  "ops",
+];
+
+const NON_CODE_EVIDENCE_POLICIES = [
+  "source_citation",
+  "source_audit",
+  "rubric_review",
+  "stakeholder_acceptance",
+  "artifact_reference",
+];
+
+function buildNonCodeTask(
+  type: TaskType,
+  opts: {
+    evidence_policy?: string;
+    tdd_intent?: string;
+    status?: string;
+    not_applicable_reason?: string;
+  } = {},
+): any {
+  const tddIntentByType: Record<TaskType, string> = {
+    code: "inline",
+    verification: "separate_verification",
+    docs: "not_applicable",
+    research: "not_applicable",
+    approval: "not_applicable",
+    ops: "not_applicable",
+  };
+  return {
+    id: `tk-${type}`,
+    title: `${type} task`,
+    type,
+    status: opts.status ?? "pending",
+    deps: [],
+    metadata: {
+      tdd_intent: opts.tdd_intent ?? tddIntentByType[type],
+    },
+    ...(opts.evidence_policy && { evidence_policy: opts.evidence_policy }),
+    ...(opts.not_applicable_reason && {
+      contract_refs: { not_applicable_reason: opts.not_applicable_reason },
+    }),
+  };
+}
+
+function buildNonCodeChange(tasks: any[]): Change {
+  return {
+    id: "c-noncode",
+    title: "Non-code fixture",
+    status: "active",
+    created_at: "2026-06-02T00:00:00.000Z",
+    deltas: {},
+    tasks,
+  } as unknown as Change;
+}
+
+describe("checkNonCodeEvidencePolicy — rq-PR008nonCodeEvidence", () => {
+  test.each(NON_CODE_TYPES)(
+    "non-code task %s without evidence_policy blocks prep",
+    (type) => {
+      const result = runPrepReadinessChecks(
+        buildNonCodeChange([buildNonCodeTask(type)]),
+        "strict",
+      );
+      expect(
+        result.mustFailures.some(
+          (i) => i.code === "NON_CODE_EVIDENCE_POLICY_MISSING",
+        ),
+      ).toBe(true);
+      expect(result.passed).toBe(false);
+    },
+  );
+
+  test.each(NON_CODE_EVIDENCE_POLICIES)(
+    "research task with %s evidence policy passes readiness",
+    (policy) => {
+      const result = runPrepReadinessChecks(
+        buildNonCodeChange([
+          buildNonCodeTask("research", { evidence_policy: policy }),
+        ]),
+        "strict",
+      );
+      expect(
+        result.mustFailures.some(
+          (i) => i.code === "NON_CODE_EVIDENCE_POLICY_MISSING",
+        ),
+      ).toBe(false);
+      expect(result.passed).toBe(true);
+    },
+  );
+
+  test("code task without evidence_policy does not trigger non-code error", () => {
+    const result = runPrepReadinessChecks(
+      buildNonCodeChange([buildNonCodeTask("code")]),
+      "strict",
     );
-    const result = runPrepReadinessChecks(change, "strict");
-    expect(result.checksPerformed).toContain("checkCriticalOpsCoverage");
+    expect(
+      result.mustFailures.some(
+        (i) => i.code === "NON_CODE_EVIDENCE_POLICY_MISSING",
+      ),
+    ).toBe(false);
+    expect(
+      result.warnings.some(
+        (i) => i.code === "NON_CODE_EVIDENCE_POLICY_MISSING",
+      ),
+    ).toBe(false);
+  });
+
+  test("cancelled non-code task missing evidence_policy is exempt", () => {
+    const result = runPrepReadinessChecks(
+      buildNonCodeChange([
+        buildNonCodeTask("research", { status: "cancelled" }),
+      ]),
+      "strict",
+    );
+    expect(
+      result.mustFailures.some(
+        (i) => i.code === "NON_CODE_EVIDENCE_POLICY_MISSING",
+      ),
+    ).toBe(false);
+  });
+
+  test("non-code task with evidence_policy not_applicable requires rationale", () => {
+    const result = runPrepReadinessChecks(
+      buildNonCodeChange([
+        buildNonCodeTask("docs", { evidence_policy: "not_applicable" }),
+      ]),
+      "strict",
+    );
+    expect(
+      result.mustFailures.some(
+        (i) => i.code === "NON_CODE_EVIDENCE_POLICY_MISSING",
+      ),
+    ).toBe(true);
+    expect(result.passed).toBe(false);
+  });
+
+  test("non-code task with evidence_policy not_applicable and rationale passes", () => {
+    const result = runPrepReadinessChecks(
+      buildNonCodeChange([
+        buildNonCodeTask("docs", {
+          evidence_policy: "not_applicable",
+          not_applicable_reason: "Approval bookkeeping only",
+        }),
+      ]),
+      "strict",
+    );
+    expect(
+      result.mustFailures.some(
+        (i) => i.code === "NON_CODE_EVIDENCE_POLICY_MISSING",
+      ),
+    ).toBe(false);
+    expect(result.passed).toBe(true);
   });
 });

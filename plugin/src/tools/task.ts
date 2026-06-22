@@ -13,6 +13,8 @@ import type { Store } from "../storage/store";
 import {
   ErrorRecoverySchema,
   TaskContractRefsSchema,
+  TaskTypeSchema,
+  ContractEvidencePolicySchema,
   type ErrorRecovery,
   type TaskContractRefs,
   type TddReclassification,
@@ -931,6 +933,12 @@ export const taskTools = {
         .describe(
           "Task description. First line becomes the title; the rest is the body. Include affected files, RED/GREEN plan, and acceptance criteria inline for traceability.",
         ),
+      type: TaskTypeSchema.default("code").describe(
+        "Task type — classifies the deliverable kind (code, docs, ops, research, approval, verification). Defaults to 'code' for backward compatibility.",
+      ),
+      evidence_policy: ContractEvidencePolicySchema.optional().describe(
+        "Evidence policy that governs what kind of proof satisfies task completion (e.g., 'test', 'review', 'source_citation', 'stakeholder_acceptance').",
+      ),
       metadata: z
         .record(z.string(), z.string())
         .optional()
@@ -956,6 +964,8 @@ export const taskTools = {
       args: {
         changeId: string;
         content: string;
+        type?: import("../types").TaskType;
+        evidence_policy?: import("../types").ContractEvidencePolicy;
         metadata?: Record<string, string>;
         contract_refs?: TaskContractRefs;
         blockedBy?: string[];
@@ -979,6 +989,8 @@ export const taskTools = {
         const {
           changeId,
           content,
+          type,
+          evidence_policy,
           metadata,
           contract_refs,
           blockedBy,
@@ -1081,14 +1093,27 @@ export const taskTools = {
 
         const mergedMetadata = { ...metadata };
         if (!mergedMetadata.tdd_intent) {
-          mergedMetadata.tdd_intent = "inline";
+          switch (type ?? "code") {
+            case "code":
+              mergedMetadata.tdd_intent = "inline";
+              break;
+            case "verification":
+              mergedMetadata.tdd_intent = "separate_verification";
+              break;
+            case "docs":
+            case "research":
+            case "approval":
+            case "ops":
+              mergedMetadata.tdd_intent = "not_applicable";
+              break;
+          }
         }
 
         const now = new Date().toISOString();
         const task: Task = {
           id: makeTaskId(),
           title: content.split("\n")[0] || content,
-          type: "code",
+          type: type ?? "code",
           section,
           status: "pending",
           priority: nextPriority,
@@ -1101,6 +1126,7 @@ export const taskTools = {
             ? { metadata: mergedMetadata }
             : {}),
           ...(contract_refs ? { contract_refs } : {}),
+          ...(evidence_policy ? { evidence_policy } : {}),
         };
 
         let recoveredViaPoisoned = false;

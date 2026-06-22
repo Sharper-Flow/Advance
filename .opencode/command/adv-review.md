@@ -158,7 +158,7 @@ CONTRACT ITEMS:
   - {id}: {kind} | {evidencePolicy} | {text}
   - ...
 TASK EVIDENCE SUMMARY:
-  - {task-id}: {title} | {status} | tdd: {phase}
+  - {task-id}: {title} | {status} | type: {type} | evidence_policy: {evidence_policy} | tdd: {phase}
   - ...
 EXPECTED OUTPUT: {dimension-specific JSON schema}
 ```
@@ -202,7 +202,7 @@ EXPECTED ACTION: orchestrator calls adv_subagent_report_submit with SCANNER_BUND
 
 Review uses risk-triggered scanner selection instead of fixed broad fan-out.
 
-Always assess and record evidence for the review-owned dimensions: contract traceability, correctness/edge cases, security surface, tests/TDD evidence, and scope conformance. For narrow low-risk changes, the orchestrator may perform these checks inline and submit a scanner bundle with the checked dimensions. Spawn `explore` scanners only when risk triggers apply.
+Always assess and record evidence for the review-owned dimensions: contract traceability, correctness/edge cases, security surface, tests/TDD evidence, scope conformance, and non-code deliverable evidence policy. For narrow low-risk changes, the orchestrator may perform these checks inline and submit a scanner bundle with the checked dimensions. Spawn `explore` scanners only when risk triggers apply.
 
 Risk triggers requiring dedicated scanner workers:
 
@@ -227,7 +227,20 @@ Verify tests fail when code breaks where practical, task evidence includes red/g
 #### Architecture & Quality
 Check: pattern conformance, module boundaries, naming, complexity (>50 lines, cyclomatic >10), DRY violations, SOLID. Return: `dimension`, `issues`, `complexity_hotspots`, `praise_worthy`.
 
+#### Non-Code Deliverables / Evidence Policy
+For each non-code task (`type` is `docs`, `research`, `approval`, `ops`, or non-`code` verification), evaluate the deliverable against the contract items it `implements`, `verifies`, or `respects` using its `evidence_policy`. Check:
+
+- `source_citation` — citations are present and include source-quality/audit notes where credibility matters. Do not accept bare citation lists.
+- `source_audit` — audit scope, sources checked, and findings are recorded.
+- `rubric_review` — rubric criteria are listed with pass/fail per criterion.
+- `stakeholder_acceptance` — stakeholder/decision and acceptance evidence are named.
+- `artifact_reference` — referenced artifact and checkpoint/version are identified.
+- `not_applicable` — `contract_refs.not_applicable_reason` is present and bounded.
+
+Return: `dimension`, `issues`, `evidence_policy_status` (per non-code task and contract item).
+
 ---
+
 ## Phase 3: Synthesis
 > Anti-Loop: after sub-agents → `>>> SYNTHESIS COMPLETE <<<` → aggregate immediately.
 1. Combine all issues → group by label (blocker > issue > suggestion > nit) → deduplicate
@@ -443,6 +456,21 @@ Rules:
 - Any required contract item with `fail`, `violated`, `unknown`, or missing evidence blocks acceptance until remediated or formally amended/re-entered.
 - Keep evidence bounded and structured; do not paste raw logs into the matrix.
 - For poisoned-history recovery only, use `adv_contract_review_matrix_set recoveryMode: "poisoned_history"` with explicit `recoveryEvidence`, `recoveryReason`, and `priorApprovalEvidence`, then complete the gate with `compatibilityReason: "..."`, `recoveryEvidence`, `recoveryReason`, and `priorApprovalEvidence` after the inline acceptance checkpoint when the legacy/replay rationale is valid. This repairs the disk projection only and does not heal the poisoned workflow.
+
+#### Non-Code Evidence Policy in the Review Matrix
+
+<!-- rq-subagentNonCodeEvidence01 -->
+
+For each non-code task, create or verify `contract.reviewMatrix` rows using the task's `evidence_policy`:
+
+- `source_citation` — cite sources; include source-quality/audit notes where credibility matters. Do not accept bare citation lists.
+- `source_audit` — record audit scope, sources checked, and findings.
+- `rubric_review` — list rubric criteria and pass/fail status per criterion.
+- `stakeholder_acceptance` — name the stakeholder/decision and acceptance evidence.
+- `artifact_reference` — identify the artifact and version/checkpoint.
+- `not_applicable` — requires `contract_refs.not_applicable_reason`.
+
+Each applicable `AC*`/`SC*` row must have `pass` or `fail` status (or `not_applicable` with rationale). Failing, `unknown`, or missing evidence blocks acceptance.
 
 The acceptance summary must include a contract proof line: required rows passed/respected, failed/violated/unknown counts, and remaining caveats.
 

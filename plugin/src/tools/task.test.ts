@@ -7,6 +7,7 @@
 import { describe, test, expect, vi, beforeEach, afterEach } from "vitest";
 import { taskTools } from "./task";
 import type { Store } from "../storage/store";
+import { ContractEvidencePolicySchema, TaskTypeSchema } from "../types";
 
 const mocks = vi.hoisted(() => {
   const signalMock = vi.fn();
@@ -880,6 +881,90 @@ describe("task tools — signal/query adapters", () => {
           metadata: { tdd_intent: "inline" },
         }),
       });
+    });
+
+    test("accepts task type and evidence_policy", async () => {
+      const store = createMockStore();
+      mocks.querySignal.mockResolvedValue([]);
+
+      const result = await taskTools.adv_task_add.execute(
+        {
+          changeId: "test-change",
+          content: "Research task",
+          type: "research",
+          evidence_policy: "source_citation",
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.error).toBeUndefined();
+      expect(parsed.task.type).toBe("research");
+      expect(parsed.task.evidence_policy).toBe("source_citation");
+      expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
+      const signalCall = mocks.fireSignalAndRefresh.mock.calls[0];
+      expect(signalCall[4]).toMatchObject({
+        task: expect.objectContaining({
+          type: "research",
+          evidence_policy: "source_citation",
+        }),
+      });
+    });
+
+    test("derives metadata.tdd_intent from task type when missing", async () => {
+      const store = createMockStore();
+      mocks.querySignal.mockResolvedValue([]);
+
+      const cases: Array<{
+        type: Parameters<typeof taskTools.adv_task_add.execute>[0]["type"];
+        expected: string;
+      }> = [
+        { type: "code", expected: "inline" },
+        { type: "verification", expected: "separate_verification" },
+        { type: "docs", expected: "not_applicable" },
+        { type: "research", expected: "not_applicable" },
+        { type: "approval", expected: "not_applicable" },
+        { type: "ops", expected: "not_applicable" },
+      ];
+
+      for (const { type, expected } of cases) {
+        vi.clearAllMocks();
+        mocks.querySignal.mockResolvedValue([]);
+
+        const result = await taskTools.adv_task_add.execute(
+          { changeId: "test-change", content: `${type} task`, type },
+          store,
+        );
+
+        const parsed = JSON.parse(result);
+        expect(parsed.task.metadata.tdd_intent).toBe(expected);
+      }
+    });
+
+    test("preserves explicit metadata.tdd_intent over derived default", async () => {
+      const store = createMockStore();
+      mocks.querySignal.mockResolvedValue([]);
+
+      const result = await taskTools.adv_task_add.execute(
+        {
+          changeId: "test-change",
+          content: "Docs task with TDD",
+          type: "docs",
+          metadata: { tdd_intent: "inline" },
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.task.metadata.tdd_intent).toBe("inline");
+    });
+
+    test("rejects invalid task type at schema level", () => {
+      expect(() => TaskTypeSchema.parse("design")).toThrow();
+    });
+
+    test("rejects invalid evidence policy at schema level", () => {
+      expect(() => ContractEvidencePolicySchema.parse("opinion")).toThrow();
     });
 
     test("rejects task creation after planning gate is done", async () => {

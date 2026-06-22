@@ -1,7 +1,7 @@
 # Advance Workflow
 
-> **Version:** 1.19.0
-> **Updated:** 2026-06-20
+> **Version:** 1.20.0
+> **Updated:** 2026-06-22
 
 ## Purpose
 
@@ -62,11 +62,64 @@ Capability: Workflow contract layer for ADV — gate model, autonomy boundaries,
 
 ---
 
+### Large Non-Code Deliverables Use Tracked ADV Workflow
+
+**ID:** `rq-nonCodeWorkflow01` | **Priority:** **[MUST]**
+
+Large non-code deliverables such as market research, design improvement, competitive research, writing, analysis, and planning MUST route to a tracked ADV change after any optional pre-change research clarifies direction, unless the user explicitly scopes the work as one-off/read-only. /adv-improve remains a read-only pre-proposal research-pack command: it may create docs/\*-prep.md evidence packs consumed by proposal/discovery, but it MUST NOT replace the tracked workflow for consequential deliverables or mutate ADV change/task/gate state.
+
+**Tags:** `workflow`, `non-code`, `routing`, `adv-improve`, `deliverables`
+
+#### Scenarios
+
+**Large non-code deliverable becomes tracked change** (`rq-nonCodeWorkflow01.1`)
+
+**Given:**
+
+- A user asks ADV for a consequential market research, design improvement, competitive research, writing, analysis, or planning deliverable
+
+**When:** The agent classifies the requested work after any needed clarification
+
+**Then:**
+
+- The work is routed to a tracked ADV change with proposal, discovery, design, prep, execution, acceptance, and release gates
+- The agent does not deliver the consequential work solely as ad hoc chat or a utility report
+- The change agreement defines acceptance criteria and evidence expectations for the non-code deliverable
+
+**Explicit one-off read-only work may stay untracked** (`rq-nonCodeWorkflow01.2`)
+
+**Given:**
+
+- A user explicitly asks for a one-off or read-only summary, scan, or analysis
+
+**When:** The requested output is not a consequential durable deliverable
+
+**Then:**
+
+- The agent may complete the read-only work without creating ADV change/task/gate state
+- If durable implementation or acceptance criteria emerge, the agent routes the follow-up through a tracked ADV change
+
+**adv-improve remains a pre-proposal research pack** (`rq-nonCodeWorkflow01.3`)
+
+**Given:**
+
+- /adv-improve produces a docs/\*-prep.md research pack
+
+**When:** The pack identifies a significant improvement or direction
+
+**Then:**
+
+- The pack is cited by /adv-proposal or /adv-discover as prior research
+- /adv-improve does not create changes, tasks, gates, spec deltas, or agenda items
+- The pack does not replace tracked acceptance evidence for the resulting deliverable
+
+---
+
 ### Fast-Track Tasks Preserve Spec-Law Intent and Crash-Safe Tracking
 
 **ID:** `rq-taskSpecLaw01` | **Priority:** **[MUST]**
 
-/adv-task MUST include a spec-law impact assessment for small well-understood durable changes before planning completes. The assessment MUST classify impact as add, modify, remove, No spec law update required, or Uncertain. Add/modify/remove outcomes MUST persist draft spec-delta obligations with concrete rq-* requirement IDs and at least one Given/When/Then scenario per obligation before implementation tasks are generated. No-update outcomes MUST persist a no-delta rationale. Uncertain outcomes MUST NOT complete planning or create implementation tasks for the uncertain scope; they route to /adv-proposal or deeper discovery. ADV agent routing SHOULD prefer /adv-task over ad hoc/direct implementation when full /adv-proposal ceremony is not warranted but durable change/task state exists before implementation for crash recovery.
+/adv-task MUST include a spec-law impact assessment for small well-understood durable changes before planning completes. The assessment MUST classify impact as add, modify, remove, No spec law update required, or Uncertain. Add/modify/remove outcomes MUST persist draft spec-delta obligations with concrete rq-\* requirement IDs and at least one Given/When/Then scenario per obligation before implementation tasks are generated. No-update outcomes MUST persist a no-delta rationale. Uncertain outcomes MUST NOT complete planning or create implementation tasks for the uncertain scope; they route to /adv-proposal or deeper discovery. ADV agent routing SHOULD prefer /adv-task over ad hoc/direct implementation when full /adv-proposal ceremony is not warranted but durable change/task state exists before implementation for crash recovery.
 
 **Tags:** `workflow`, `adv-task`, `spec-law`, `tracking`
 
@@ -83,7 +136,7 @@ Capability: Workflow contract layer for ADV — gate model, autonomy boundaries,
 **Then:**
 
 - The change artifacts include draft spec-delta obligations before planning completes
-- Each obligation has a concrete rq-* requirement ID
+- Each obligation has a concrete rq-\* requirement ID
 - Each obligation has at least one Given/When/Then scenario
 
 **No-delta fast-track records rationale** (`rq-taskSpecLaw01.2`)
@@ -1403,7 +1456,7 @@ When an agent identifies that a proposed design can only be delivered by comprom
 
 **ID:** `rq-handoffVoice01` | **Priority:** **[MUST]**
 
-Every /adv-* command that emits a user-facing gate-transition message MUST use the Gate Handoff Voice spine: Problem / Chosen direction / Delivered, followed by a blockquote wayfinder block. The blockquote MUST contain three rows: bolded `**{change-id}**`, the gate transition `{gate} ✓ → {next-gate}`, and an arrow-prefixed runnable command `→ `/adv-{next-command} {change-id}``. The command shown MUST be the single command needed to continue — no redundant or alternative command lines. Canonical source: docs/command-voice-standard.md § Gate Handoff Voice.
+Every /adv-\* command that emits a user-facing gate-transition message MUST use the Gate Handoff Voice spine: Problem / Chosen direction / Delivered, followed by a blockquote wayfinder block. The blockquote MUST contain three rows: bolded `**{change-id}**`, the gate transition `{gate} ✓ → {next-gate}`, and an arrow-prefixed runnable command `→ `/adv-{next-command} {change-id}``. The command shown MUST be the single command needed to continue — no redundant or alternative command lines. Canonical source: docs/command-voice-standard.md § Gate Handoff Voice.
 
 **Tags:** `voice`, `handoff`, `presentation`
 
@@ -1413,7 +1466,7 @@ Every /adv-* command that emits a user-facing gate-transition message MUST use t
 
 **Given:**
 
-- An /adv-* command completes a gate and emits a user-facing gate-transition message
+- An /adv-\* command completes a gate and emits a user-facing gate-transition message
 
 **When:** The handoff message is rendered
 
@@ -1430,7 +1483,7 @@ Every /adv-* command that emits a user-facing gate-transition message MUST use t
 
 **Given:**
 
-- An /adv-* command completes a gate and emits a user-facing gate-transition message
+- An /adv-\* command completes a gate and emits a user-facing gate-transition message
 
 **When:** The handoff message is rendered
 
@@ -1461,7 +1514,7 @@ Every /adv-* command that emits a user-facing gate-transition message MUST use t
 
 **Given:**
 
-- An /adv-* command completes a gate and emits a user-facing gate-transition message
+- An /adv-\* command completes a gate and emits a user-facing gate-transition message
 
 **When:** The handoff message is rendered
 
@@ -1476,7 +1529,7 @@ Every /adv-* command that emits a user-facing gate-transition message MUST use t
 
 **Given:**
 
-- An /adv-* command completes a gate and emits a user-facing gate-transition message
+- An /adv-\* command completes a gate and emits a user-facing gate-transition message
 
 **When:** The blockquote wayfinder block is inspected
 
@@ -2085,13 +2138,13 @@ When non-P23-campsite-eligible scope is discovered during /adv-apply, /adv-revie
 
 **ID:** `rq-scopeFollowupSurfacing01` | **Priority:** **[MUST]**
 
-Tools that surface change data must display fast-follow lineage: adv_change_show includes _fastFollowOrigin, adv_change_list annotates entries with parent_change_id, and adv_status prefixes child labels and references parents in recommendations.
+Tools that surface change data must display fast-follow lineage: adv_change_show includes \_fastFollowOrigin, adv_change_list annotates entries with parent_change_id, and adv_status prefixes child labels and references parents in recommendations.
 
 **Tags:** `lineage`, `surfacing`, `ui`
 
 #### Scenarios
 
-**adv_change_show surfaces _fastFollowOrigin** (`rq-scopeFollowupSurfacing01.1`)
+**adv_change_show surfaces \_fastFollowOrigin** (`rq-scopeFollowupSurfacing01.1`)
 
 **Given:**
 
@@ -2101,8 +2154,8 @@ Tools that surface change data must display fast-follow lineage: adv_change_show
 
 **Then:**
 
-- Output includes _fastFollowOrigin parallel to _crossProjectOrigin
-- _fastFollowOrigin contains note, parent_change_id, and linked_at
+- Output includes \_fastFollowOrigin parallel to \_crossProjectOrigin
+- \_fastFollowOrigin contains note, parent_change_id, and linked_at
 
 **adv_change_list annotates parent_change_id** (`rq-scopeFollowupSurfacing01.2`)
 
@@ -2127,7 +2180,7 @@ Tools that surface change data must display fast-follow lineage: adv_change_show
 
 **Then:**
 
-- Child change labels are prefixed with ↳ 
+- Child change labels are prefixed with ↳
 - Recommendations reference the parent change ID
 - Archived parents are annotated with (archived)
 
@@ -2329,7 +2382,7 @@ The Temporal OperatorService search-attribute health check MUST use `listSearchA
 
 **ID:** `rq-workflowVersioning01` | **Priority:** **[MUST]**
 
-Changes to Temporal workflow code under plugin/src/temporal/** or other workflow-bundled command-producing helpers MUST be replay-verified against committed sanitized histories before archive. A workflow-code change that adds, removes, or reorders command-producing operations (Activities, timers, search-attribute upserts, patch markers, child workflows, continue-as-new, or similar Temporal commands) MUST include wf.patched, Worker Versioning, or an explicit reset/recovery plan. Patch markers MUST document the old branch, new branch, and a deprecation plan or non-deprecation rationale. Restarting a worker alone is not a repair for nondeterministic history mismatch.
+Changes to Temporal workflow code under plugin/src/temporal/\*\* or other workflow-bundled command-producing helpers MUST be replay-verified against committed sanitized histories before archive. A workflow-code change that adds, removes, or reorders command-producing operations (Activities, timers, search-attribute upserts, patch markers, child workflows, continue-as-new, or similar Temporal commands) MUST include wf.patched, Worker Versioning, or an explicit reset/recovery plan. Patch markers MUST document the old branch, new branch, and a deprecation plan or non-deprecation rationale. Restarting a worker alone is not a repair for nondeterministic history mismatch.
 
 **Tags:** `temporal`, `replay`, `versioning`, `determinism`
 
@@ -2339,7 +2392,7 @@ Changes to Temporal workflow code under plugin/src/temporal/** or other workflow
 
 **Given:**
 
-- A sanitized changeWorkflow history fixture is committed under plugin/src/temporal/__tests__/replay/histories
+- A sanitized changeWorkflow history fixture is committed under plugin/src/temporal/**tests**/replay/histories
 
 **When:** The replay determinism test runs
 
@@ -2745,7 +2798,7 @@ ADV task-readiness surfaces MUST expose a TodoWrite-safe projection derived from
 
 **Then:**
 
-- The response includes _todoProjection rows derived from ADV task state
+- The response includes \_todoProjection rows derived from ADV task state
 - Each row content is formatted as `tk-id — title`
 - Completed ADV tasks are omitted from the projection
 
@@ -2760,7 +2813,7 @@ ADV task-readiness surfaces MUST expose a TodoWrite-safe projection derived from
 
 **Then:**
 
-- The response includes _todoProjection with the same row shape as adv_task_ready
+- The response includes \_todoProjection with the same row shape as adv_task_ready
 - The default projection window includes the current in-progress task when present plus the next three ready tasks
 - Legacy ready-task fields remain present for existing callers
 
@@ -3014,7 +3067,7 @@ ADV mutation tools MUST normalize provided blank or whitespace-only strings to o
 
 **Given:**
 
-- adv_change_create receives agreement: '   '
+- adv_change_create receives agreement: ' '
 
 **When:** The create invocation is validated
 
@@ -3041,7 +3094,7 @@ ADV mutation tools MUST normalize provided blank or whitespace-only strings to o
 
 **Given:**
 
-- adv_change_create receives origin_source_artifact: '   '
+- adv_change_create receives origin_source_artifact: ' '
 
 **When:** The create invocation is validated
 
@@ -3738,7 +3791,7 @@ ADV read surfaces MUST NOT expose nonexistent active artifact filesystem paths a
 
 **Then:**
 
-- The response includes the design content in _design
+- The response includes the design content in \_design
 - The response does not present artifacts.design.path as a readable existing file
 - Artifact metadata is machine-readable enough to distinguish Temporal content from a materialized file
 

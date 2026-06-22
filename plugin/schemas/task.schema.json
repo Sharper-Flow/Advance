@@ -249,6 +249,21 @@
       ],
       "type": "object"
     },
+    "evidence_policy": {
+      "enum": [
+        "test",
+        "review",
+        "static_check",
+        "design_proof",
+        "not_applicable",
+        "source_citation",
+        "source_audit",
+        "rubric_review",
+        "stakeholder_acceptance",
+        "artifact_reference"
+      ],
+      "type": "string"
+    },
     "filesTouched": {
       "items": {
         "type": "string"

@@ -1,7 +1,7 @@
 # TDD Contract
 
-> **Version:** 1.5.0
-> **Updated:** 2026-05-03
+> **Version:** 1.7.0
+> **Updated:** 2026-06-22
 
 ## Purpose
 
@@ -57,6 +57,45 @@ Implementation tasks MUST use inline TDD by default: the red phase (write failin
 
 - The task is treated as tdd_intent='inline' for TDD compliance purposes
 - Title-based heuristics are used as fallback to determine if the task is test-relevant or implementation-relevant
+
+---
+
+### Non-Code Deliverables Use Evidence Policies Instead of Fake TDD
+
+**ID:** `rq-TDD011nonCodeEvidence` | **Priority:** **[MUST]**
+
+Tasks whose deliverable type is docs, research, approval, ops, or other non-code work MUST NOT be forced through fake red/green TDD. Their TDD intent may be not_applicable or separate_verification as appropriate, but task completion and acceptance MUST still require machine-readable evidence through an evidence policy such as source_citation, source_audit, rubric_review, stakeholder_acceptance, artifact_reference, static_check, review, or not_applicable with rationale. Code tasks retain inline TDD as the default.
+
+**Tags:** `tdd`, `non-code`, `evidence`, `task-model`
+
+#### Scenarios
+
+**Research task skips fake red green but requires evidence** (`rq-TDD011nonCodeEvidence.1`)
+
+**Given:**
+
+- A task has a research deliverable type
+
+**When:** TDD compliance and task readiness are evaluated
+
+**Then:**
+
+- metadata.tdd_intent may be not_applicable
+- No red/green TDD evidence is required solely because the task is tracked
+- A source_citation or source_audit evidence policy is required for completion/review proof
+
+**Explicit code task still uses inline TDD** (`rq-TDD011nonCodeEvidence.2`)
+
+**Given:**
+
+- A task has type code or otherwise performs logic-bearing implementation
+
+**When:** TDD compliance is evaluated
+
+**Then:**
+
+- Inline red/green TDD remains the default
+- The non-code evidence-policy path does not exempt the task from TDD unless it is explicitly and validly reclassified
 
 ---
 

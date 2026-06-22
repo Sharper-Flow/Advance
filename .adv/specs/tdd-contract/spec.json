@@ -3,8 +3,8 @@
   "name": "tdd-contract",
   "title": "TDD Contract",
   "purpose": "Canonical definition of how TDD phases integrate with the ADV task model. Inline TDD (red/green within each implementation task) is the default. Separate verification tasks are reserved for cross-cutting tests spanning multiple implementation tasks.",
-  "version": "1.6.0",
-  "updated_at": "2026-06-17T00:00:00.000Z",
+  "version": "1.7.0",
+  "updated_at": "2026-06-22T00:00:00.000Z",
   "requirements": [
     {
       "id": "rq-TDD001inl",
@@ -380,11 +380,45 @@
         {
           "id": "rq-TDD010qual.4",
           "title": "Mock detection uses API-qualified patterns only",
-          "given": ["A test file containing the word 'mock' in comments or variable names"],
+          "given": [
+            "A test file containing the word 'mock' in comments or variable names"
+          ],
           "when": "mockSurface is computed",
           "then": [
             "The bare token 'mock' is not matched",
             "Only API-qualified patterns (vi.mock, jest.mock, sinon.stub, unittest.mock.patch, etc.) are detected"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-TDD011nonCodeEvidence",
+      "title": "Non-Code Deliverables Use Evidence Policies Instead of Fake TDD",
+      "body": "Tasks whose deliverable type is docs, research, approval, ops, or other non-code work MUST NOT be forced through fake red/green TDD. Their TDD intent may be not_applicable or separate_verification as appropriate, but task completion and acceptance MUST still require machine-readable evidence through an evidence policy such as source_citation, source_audit, rubric_review, stakeholder_acceptance, artifact_reference, static_check, review, or not_applicable with rationale. Code tasks retain inline TDD as the default.",
+      "priority": "must",
+      "tags": ["tdd", "non-code", "evidence", "task-model"],
+      "scenarios": [
+        {
+          "id": "rq-TDD011nonCodeEvidence.1",
+          "title": "Research task skips fake red green but requires evidence",
+          "given": ["A task has a research deliverable type"],
+          "when": "TDD compliance and task readiness are evaluated",
+          "then": [
+            "metadata.tdd_intent may be not_applicable",
+            "No red/green TDD evidence is required solely because the task is tracked",
+            "A source_citation or source_audit evidence policy is required for completion/review proof"
+          ]
+        },
+        {
+          "id": "rq-TDD011nonCodeEvidence.2",
+          "title": "Explicit code task still uses inline TDD",
+          "given": [
+            "A task has type code or otherwise performs logic-bearing implementation"
+          ],
+          "when": "TDD compliance is evaluated",
+          "then": [
+            "Inline red/green TDD remains the default",
+            "The non-code evidence-policy path does not exempt the task from TDD unless it is explicitly and validly reclassified"
           ]
         }
       ]

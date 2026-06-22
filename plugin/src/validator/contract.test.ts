@@ -206,6 +206,69 @@ describe("contract validation", () => {
   });
 });
 
+// =============================================================================
+// Non-Code Task Contract Coverage (rq-prepNonCodeEvidence01 / Decision 6)
+// =============================================================================
+
+describe("non-code task contract coverage", () => {
+  test.each([
+    ["docs"],
+    ["research"],
+    ["approval"],
+    ["verification"],
+    ["ops"],
+  ] as const)(
+    "errors on standard %s task without contract refs or exemption",
+    async (type) => {
+      const result = await validate({
+        tasks: [task({ type, contract_refs: undefined })],
+      });
+
+      expect(result.errors.map((error) => error.code)).toContain(
+        "CONTRACT_TASK_REFS_MISSING",
+      );
+    },
+  );
+
+  test.each([
+    ["docs"],
+    ["research"],
+    ["approval"],
+    ["verification"],
+    ["ops"],
+  ] as const)(
+    "allows %s task with not_applicable_reason to bypass coverage",
+    async (type) => {
+      const result = await validate({
+        tasks: [
+          task({
+            type,
+            contract_refs: { not_applicable_reason: "Bookkeeping checkpoint" },
+          }),
+        ],
+      });
+
+      expect(result.errors.map((error) => error.code)).not.toContain(
+        "CONTRACT_TASK_REFS_MISSING",
+      );
+    },
+  );
+
+  test("minimal rigor skips non-code contract_refs check", async () => {
+    const result = await validate({
+      contract: {
+        ...change().contract!,
+        rigor: "minimal",
+      },
+      tasks: [task({ type: "research", contract_refs: undefined })],
+    });
+
+    expect(result.errors.map((error) => error.code)).not.toContain(
+      "CONTRACT_TASK_REFS_MISSING",
+    );
+  });
+});
+
 describe("proposal-task drift validation", () => {
   test("ignores narrative proposal sections", async () => {
     const result = await validateProposalDrift(

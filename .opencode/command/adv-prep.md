@@ -104,6 +104,28 @@ Prioritize gaps via MoSCoW. Proceed immediately — invocation is implicit appro
 
 Fix gaps: `adv_task_add` for missing tasks, `adv_task_cancel` (with approval) for absorption/merges, document N/A for non-applicable concerns. Assign `metadata.tdd_intent` to every task.
 
+### Non-Code Deliverable Evidence Policy
+
+<!-- rq-prepNonCodeEvidence01 -->
+
+For tasks whose deliverable is non-code (`docs`, `research`, `approval`, `verification`, `ops`, writing, analysis, design improvement, competitive research), set a machine-readable `evidence_policy` and trace the task to approved contract items instead of forcing fake red/green TDD.
+
+| Deliverable | Suggested evidence policy | TDD intent |
+| --- | --- | --- |
+| Research / competitive analysis | `source_citation` or `source_audit` | `not_applicable` |
+| Documentation / writing | `artifact_reference` or `rubric_review` | `not_applicable` |
+| Approval checkpoint | `stakeholder_acceptance` | `not_applicable` |
+| Design critique / review | `rubric_review` | `not_applicable` |
+| Ops / configuration | `artifact_reference` or `static_check` | `not_applicable` or `separate_verification` |
+| Cross-cutting verification | `test`, `review`, or `static_check` | `separate_verification` |
+
+Rules:
+
+- Non-code tasks MUST NOT be forced through fake red/green TDD.
+- `evidence_policy: not_applicable` is allowed only with `contract_refs.not_applicable_reason`.
+- Every non-code task MUST have `contract_refs` (`implements`/`verifies`/`respects`) or a bounded `not_applicable_reason`.
+- Use the shared `ContractEvidencePolicy` vocabulary: `source_citation`, `source_audit`, `rubric_review`, `stakeholder_acceptance`, `artifact_reference`, `static_check`, `review`, `test`, `design_proof`, `not_applicable`.
+
 ### Contract Traceability
 
 When `ChangeContract` exists, `/adv-prep` must synthesize task refs alongside task graph decisions:
@@ -215,13 +237,15 @@ Action: `adv_task_cancel` (with approval) → update parent description → redi
 
 #### B. TDD Ordering
 
-Inline TDD is default. Use `metadata.tdd_intent`:
+Inline TDD is default. Use `metadata.tdd_intent` and a concrete `evidence_policy`:
 
-| Value                   | Meaning                 | Evidence? |
-| ----------------------- | ----------------------- | --------- |
-| `inline` (or unset)     | Red/green within task   | Yes       |
-| `separate_verification` | Cross-cutting test      | No        |
-| `not_applicable`        | Non-code (docs, config) | No        |
+| Value                   | Meaning                 | Evidence policy | Evidence? |
+| ----------------------- | ----------------------- | --------------- | --------- |
+| `inline` (or unset)     | Red/green within task   | `test` or `review` | Yes       |
+| `separate_verification` | Cross-cutting test      | `test`, `review`, or `static_check` | No        |
+| `not_applicable`        | Non-code (docs, config, research, approval, ops) | `source_citation`, `source_audit`, `rubric_review`, `stakeholder_acceptance`, `artifact_reference`, `static_check`, `review`, or `not_applicable` with rationale | No        |
+
+For non-code tasks, use `evidence_policy` instead of fake TDD. See **Non-Code Deliverable Evidence Policy** above.
 
 Anti-pattern: same-scope test task blocked_by impl task (code-first, not test-first). Fix: merge test into impl, cancel test task.
 

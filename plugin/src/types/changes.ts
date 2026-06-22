@@ -11,11 +11,16 @@
  */
 
 import { z } from "zod";
+import { ContractEvidencePolicySchema } from "./evidence-policy";
 import { TaskSchema } from "./tasks";
 import { ScopedSubagentReportSchema } from "./subagent-reports";
 import { DeltaSchema } from "./specs";
 import { WisdomEntrySchema } from "./wisdom";
 import { GatesSchema, GateIdSchema } from "./gates";
+export {
+  ContractEvidencePolicySchema,
+  type ContractEvidencePolicy,
+} from "./evidence-policy";
 
 // =============================================================================
 // Validation Result (private — used only by ChangeSchema)
@@ -478,17 +483,6 @@ export const ContractItemKindSchema = z.enum([
   "out_of_scope",
 ]);
 export type ContractItemKind = z.infer<typeof ContractItemKindSchema>;
-
-export const ContractEvidencePolicySchema = z.enum([
-  "test",
-  "review",
-  "static_check",
-  "design_proof",
-  "not_applicable",
-]);
-export type ContractEvidencePolicy = z.infer<
-  typeof ContractEvidencePolicySchema
->;
 
 export const ContractItemStatusSchema = z.enum([
   "draft",

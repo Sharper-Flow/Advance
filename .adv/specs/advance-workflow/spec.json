@@ -3,8 +3,8 @@
   "name": "advance-workflow",
   "title": "Advance Workflow",
   "purpose": "Capability: Workflow contract layer for ADV \u2014 gate model, autonomy boundaries, design validation, scope management, releases, approvals, handoff voice, review remediation, and touched-scope quality. Split from `advance` capability.",
-  "version": "1.19.0",
-  "updated_at": "2026-06-20T00:00:00.000Z",
+  "version": "1.20.0",
+  "updated_at": "2026-06-22T00:00:00.000Z",
   "requirements": [
     {
       "id": "rq-problemSpecLaw01",
@@ -3543,6 +3543,57 @@
             "The output includes the open ops follow-up list",
             "Each entry shows relationship, status, and handoff note",
             "The open obligation is not silently dropped"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-nonCodeWorkflow01",
+      "title": "Large Non-Code Deliverables Use Tracked ADV Workflow",
+      "body": "Large non-code deliverables such as market research, design improvement, competitive research, writing, analysis, and planning MUST route to a tracked ADV change after any optional pre-change research clarifies direction, unless the user explicitly scopes the work as one-off/read-only. /adv-improve remains a read-only pre-proposal research-pack command: it may create docs/*-prep.md evidence packs consumed by proposal/discovery, but it MUST NOT replace the tracked workflow for consequential deliverables or mutate ADV change/task/gate state.",
+      "priority": "must",
+      "tags": [
+        "workflow",
+        "non-code",
+        "routing",
+        "adv-improve",
+        "deliverables"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-nonCodeWorkflow01.1",
+          "title": "Large non-code deliverable becomes tracked change",
+          "given": [
+            "A user asks ADV for a consequential market research, design improvement, competitive research, writing, analysis, or planning deliverable"
+          ],
+          "when": "The agent classifies the requested work after any needed clarification",
+          "then": [
+            "The work is routed to a tracked ADV change with proposal, discovery, design, prep, execution, acceptance, and release gates",
+            "The agent does not deliver the consequential work solely as ad hoc chat or a utility report",
+            "The change agreement defines acceptance criteria and evidence expectations for the non-code deliverable"
+          ]
+        },
+        {
+          "id": "rq-nonCodeWorkflow01.2",
+          "title": "Explicit one-off read-only work may stay untracked",
+          "given": [
+            "A user explicitly asks for a one-off or read-only summary, scan, or analysis"
+          ],
+          "when": "The requested output is not a consequential durable deliverable",
+          "then": [
+            "The agent may complete the read-only work without creating ADV change/task/gate state",
+            "If durable implementation or acceptance criteria emerge, the agent routes the follow-up through a tracked ADV change"
+          ]
+        },
+        {
+          "id": "rq-nonCodeWorkflow01.3",
+          "title": "adv-improve remains a pre-proposal research pack",
+          "given": ["/adv-improve produces a docs/*-prep.md research pack"],
+          "when": "The pack identifies a significant improvement or direction",
+          "then": [
+            "The pack is cited by /adv-proposal or /adv-discover as prior research",
+            "/adv-improve does not create changes, tasks, gates, spec deltas, or agenda items",
+            "The pack does not replace tracked acceptance evidence for the resulting deliverable"
           ]
         }
       ]

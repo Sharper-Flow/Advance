@@ -2,10 +2,12 @@ import { describe, expect, test } from "vitest";
 import {
   ChangeContractSchema,
   ChangeSchema,
+  ContractEvidencePolicySchema,
   ContractItemSchema,
   ContractReviewMatrixSchema,
   TaskContractRefsSchema,
   TaskSchema,
+  TaskTypeSchema,
 } from "./index";
 
 describe("change contract schemas", () => {
@@ -133,6 +135,42 @@ describe("change contract schemas", () => {
     });
 
     expect(item.requiredCritical).toBe(true);
+  });
+
+  test("accepts extended contract evidence policies", () => {
+    const policies: Array<
+      ReturnType<typeof ContractEvidencePolicySchema.parse>
+    > = [
+      ContractEvidencePolicySchema.parse("source_citation"),
+      ContractEvidencePolicySchema.parse("source_audit"),
+      ContractEvidencePolicySchema.parse("rubric_review"),
+      ContractEvidencePolicySchema.parse("stakeholder_acceptance"),
+      ContractEvidencePolicySchema.parse("artifact_reference"),
+    ];
+    expect(policies).toEqual([
+      "source_citation",
+      "source_audit",
+      "rubric_review",
+      "stakeholder_acceptance",
+      "artifact_reference",
+    ]);
+  });
+
+  test("validates task evidence_policy using shared contract policy", () => {
+    const task = TaskSchema.parse({
+      id: "tk-evidence",
+      title: "Cite sources",
+      type: "research",
+      status: "pending",
+      created_at: "2026-05-08T00:00:00.000Z",
+      evidence_policy: "source_citation",
+    });
+
+    expect(task.evidence_policy).toBe("source_citation");
+  });
+
+  test("rejects invalid task type", () => {
+    expect(() => TaskTypeSchema.parse("design")).toThrow();
   });
 
   test("preserves backward compat without requiredCritical", () => {

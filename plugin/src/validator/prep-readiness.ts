@@ -10,7 +10,8 @@
  * - All check IDs defined in PrepReadinessCodes for human/tool contract alignment
  */
 
-import type { Change } from "../types";
+import type { Change, ContractEvidencePolicy } from "../types";
+import { ContractEvidencePolicySchema } from "../types";
 import type { ValidationIssue } from "./types";
 import {
   isTestTask as classifierIsTestTask,
@@ -39,6 +40,9 @@ const PrepReadinessCodes = {
 
   // TDD intent assignment (rq-PR006tdi)
   TASK_TDD_INTENT_MISSING: "TASK_TDD_INTENT_MISSING", // must (error), advisory-downgradable
+
+  // Non-code deliverable evidence policy (rq-PR008nonCodeEvidence)
+  NON_CODE_EVIDENCE_POLICY_MISSING: "NON_CODE_EVIDENCE_POLICY_MISSING", // must (error)
 
   // Cross-repo routing
   CROSS_REPO_MISSING_METADATA: "CROSS_REPO_MISSING_METADATA", // must (error)
@@ -419,6 +423,84 @@ export function checkTddIntentAssigned(
 }
 
 // =============================================================================
+// Check: Non-Code Evidence Policy Readiness (rq-PR008nonCodeEvidence)
+// Enforces rq-TDD011nonCodeEvidence: non-code deliverables must not be forced
+// through fake red/green TDD; they need a machine-readable evidence policy.
+// =============================================================================
+
+/** Non-code deliverable task types that require an explicit evidence policy */
+const NON_CODE_DELIVERABLE_TYPES = new Set([
+  "docs",
+  "research",
+  "approval",
+  "ops",
+  "verification",
+]);
+
+const VALID_EVIDENCE_POLICIES = new Set(ContractEvidencePolicySchema.options);
+
+/**
+ * Ensure every non-cancelled non-code deliverable task carries a valid
+ * machine-readable evidence policy. Tasks with TDD intent not_applicable must
+ * still provide an evidence-policy rationale; not_applicable without a bounded
+ * reason is not sufficient proof.
+ *
+ * Implements rq-nonCodeWorkflow01 by gating prep readiness for tracked
+ * non-code deliverables on explicit evidence policy coverage.
+ */
+export function checkNonCodeEvidencePolicy(change: Change): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+
+  for (const task of change.tasks ?? []) {
+    if (task.status === "cancelled") continue;
+    if (task.type === "code") continue;
+    if (!NON_CODE_DELIVERABLE_TYPES.has(task.type)) continue;
+
+    const policy = task.evidence_policy;
+
+    if (
+      policy === undefined ||
+      policy === null ||
+      !VALID_EVIDENCE_POLICIES.has(policy as ContractEvidencePolicy)
+    ) {
+      issues.push({
+        code: PrepReadinessCodes.NON_CODE_EVIDENCE_POLICY_MISSING,
+        severity: "error",
+        message: `Non-code task "${task.id}" (${task.type}) is missing a valid machine-readable evidence_policy. Non-code deliverables must declare how they will be verified (e.g., source_citation, artifact_reference, stakeholder_acceptance).`,
+        path: `tasks.${task.id}.evidence_policy`,
+        details: {
+          taskId: task.id,
+          taskType: task.type,
+          remediation:
+            "Set task.evidence_policy to a valid ContractEvidencePolicy value. If the task truly cannot be evidenced, use evidence_policy 'not_applicable' with contract_refs.not_applicable_reason.",
+        },
+      });
+      continue;
+    }
+
+    if (
+      policy === "not_applicable" &&
+      !task.contract_refs?.not_applicable_reason
+    ) {
+      issues.push({
+        code: PrepReadinessCodes.NON_CODE_EVIDENCE_POLICY_MISSING,
+        severity: "error",
+        message: `Non-code task "${task.id}" uses evidence_policy "not_applicable" without a bounded rationale. Provide contract_refs.not_applicable_reason or choose a concrete evidence policy.`,
+        path: `tasks.${task.id}.evidence_policy`,
+        details: {
+          taskId: task.id,
+          taskType: task.type,
+          remediation:
+            "Add contract_refs.not_applicable_reason explaining why no evidence policy applies, or select a concrete evidence policy such as source_citation or artifact_reference.",
+        },
+      });
+    }
+  }
+
+  return issues;
+}
+
+// =============================================================================
 // Check: Critical-Ops Coverage (rq-PR007coc)
 // =============================================================================
 
@@ -532,6 +614,7 @@ export function runPrepReadinessChecks(
     ...checkTaskGraphIntegrity(change),
     ...checkCrossRepoRouting(change),
     ...checkCriticalOpsCoverage(change),
+    ...checkNonCodeEvidencePolicy(change),
     ...checkTaskOrderingProvisional(change),
     ...(tddEnforcement !== "off"
       ? checkTddIntentAssigned(
@@ -554,6 +637,7 @@ export function runPrepReadinessChecks(
       "checkTaskGraphIntegrity",
       "checkCrossRepoRouting",
       "checkCriticalOpsCoverage",
+      "checkNonCodeEvidencePolicy",
       "checkTaskOrderingProvisional",
       "checkTddIntentAssigned",
     ],
