@@ -1,0 +1,703 @@
+{
+  "id": "fixStaleStatus",
+  "title": "Fix stale status",
+  "status": "archived",
+  "created_at": "2026-06-22T15:27:56.991Z",
+  "tasks": [
+    {
+      "id": "tk-cd0ab3e0f8c9",
+      "title": "Guard CLI status Visibility query against completed workflows",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-06-22T15:32:57.643Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "C1",
+          "C2",
+          "C3"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "OOS1",
+          "OOS2"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "verification": "RED: bun test bin/lib/live-status.test.ts failed on missing ExecutionStatus guard. GREEN: bun test bin/lib/live-status.test.ts passed (13 tests). VERIFY: bun test bin/ passed (107 tests).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added `ExecutionStatus = \"Running\"` to the CLI `summariesFromVisibility` Temporal Visibility query so completed archived workflows are excluded even if custom `AdvChangeStatus` remains stale active. Extended `bin/lib/live-status.test.ts` fake Visibility client to record query strings and simulate server-side execution-status filtering; added regression covering completed stale-active workflow exclusion and running active inclusion. Verified RED/GREEN plus full bin test surface.",
+      "filesTouched": [
+        "bin/lib/live-status.test.ts",
+        "bin/lib/live-status.ts"
+      ],
+      "touched_files": [
+        "bin/lib/live-status.test.ts",
+        "bin/lib/live-status.ts"
+      ],
+      "checkpointSha": "604a844c3091e7bd4d126b773085211608bdb773",
+      "completedAt": "2026-06-22T15:36:56.766Z",
+      "completed_at": "2026-06-22T15:36:56.766Z",
+      "notes": "Implemented ExecutionStatus guard and regression coverage. Checkpoint commit 604a844c3091e7bd4d126b773085211608bdb773.",
+      "error_recovery": {
+        "last_error": "Initial RED test failed because query lacked `ExecutionStatus = \"Running\"`, allowing the regression fixture to expose stale active completed rows.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "N/A — implemented query guard and verification passed.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "RED: expected query to contain `ExecutionStatus = \"Running\"`; received only project + AdvChangeStatus filters.",
+            "diagnosis": "CLI active Visibility query filtered only on custom search attributes and did not structurally exclude completed workflows.",
+            "fix_tried": "Added server-owned Temporal `ExecutionStatus = \"Running\"` guard and regression coverage.",
+            "strategy_label": "visibility-execution-status-guard",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-22T15:36:00.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-22T15:37:22.571Z"
+    },
+    {
+      "id": "tk-ac9c574356ac",
+      "title": "Guard shared change workflow enumeration against completed workflows",
+      "type": "code",
+      "section": "Review remediation",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-06-22T15:47:35.209Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "C1",
+          "C2",
+          "C3"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "OOS1",
+          "OOS2"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "verification": "RED: bin/oc-test targeted -- src/temporal/list-change-workflows.test.ts failed on missing ExecutionStatus guard. GREEN: same targeted test passed (11 tests). VERIFY: bun test bin/ passed (107 tests); bin/oc-test targeted -- src/temporal/list-change-workflows.test.ts src/storage/store-temporal/index.test.ts passed (33 tests).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added `ExecutionStatus = \"Running\"` to `buildVisibilityQuery` when the requested status set is active-only (`draft`, `pending`, `active`). Preserved terminal/all-status behavior by omitting the guard for `statuses: null` and archived-only status override. Added regression assertions for default active queries, explicit active queries, terminal override, all-status mode, and `listChangeWorkflowIds` SDK query construction. Verified targeted Temporal list tests, related store-temporal tests, and bin CLI tests.",
+      "filesTouched": [
+        "plugin/src/temporal/list-change-workflows.test.ts",
+        "plugin/src/temporal/list-change-workflows.ts"
+      ],
+      "touched_files": [
+        "plugin/src/temporal/list-change-workflows.test.ts",
+        "plugin/src/temporal/list-change-workflows.ts"
+      ],
+      "checkpointSha": "d169b941c89c6b181cc4c8168cc0341b8b4c7a00",
+      "completedAt": "2026-06-22T15:51:23.097Z",
+      "completed_at": "2026-06-22T15:51:23.097Z",
+      "notes": "Implemented shared active visibility enumeration guard. Checkpoint commit d169b941c89c6b181cc4c8168cc0341b8b4c7a00.",
+      "error_recovery": {
+        "last_error": "RED test failed because `buildVisibilityQuery` did not include `ExecutionStatus = \"Running\"` for default or explicit active status queries.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "N/A — implemented active-only running guard and verification passed.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "Expected default/active visibility query to contain `ExecutionStatus = \"Running\"`; received only project + AdvChangeStatus filters.",
+            "diagnosis": "Shared MCP/listResolvedChanges enumeration had the same stale completed workflow candidate leak as the CLI path.",
+            "fix_tried": "Added active-only `ExecutionStatus = \"Running\"` guard while preserving terminal/all-status mode.",
+            "strategy_label": "shared-visibility-running-guard",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-22T15:51:00.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-22T15:51:44.876Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixStaleStatus",
+          "attempt": 2,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixStaleStatus",
+          "task_id": "tk-ac9c574356ac",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-ac9c574356ac"
+          },
+          "agent": "adv-reviewer",
+          "phase": "review",
+          "verdict": "READY",
+          "blocking_findings": [],
+          "nonblocking_findings": [
+            {
+              "id": "review-praise-1",
+              "label": "praise",
+              "file": "plugin/src/temporal/list-change-workflows.ts",
+              "line": 111,
+              "what": "Shared visibility query now adds ExecutionStatus guard only when effective statuses are active-lifecycle statuses.",
+              "why": "Preserves statuses:null archive/closed sweeps and archived override paths while excluding completed workflows with stale active custom attributes.",
+              "fix": "No action needed."
+            },
+            {
+              "id": "review-praise-2",
+              "label": "praise",
+              "file": "bin/lib/live-status.ts",
+              "line": 306,
+              "what": "CLI active-row path uses worker-free Visibility query with ExecutionStatus = \"Running\" and keeps terminal counts separate.",
+              "why": "Maintains no-disk-fallback authority for active rows and preserves terminal-mode behavior/counting without reintroducing per-change workflow queries.",
+              "fix": "No action needed."
+            }
+          ],
+          "changes_made": [],
+          "wisdom_candidates": [],
+          "verification": {
+            "tests_run": [
+              "bun test bin/",
+              "bin/oc-test targeted -- src/temporal/list-change-workflows.test.ts src/storage/store-temporal/index.test.ts"
+            ],
+            "results": "pass",
+            "evidence": "Path preflight OK for all scoped files. Reviewed agreement: active rows must be Temporal-backed, archived excluded, no disk fallback for active rows, no status shape rework. Source review found buildVisibilityQuery defaults to draft/pending/active plus ExecutionStatus = \"Running\"; statuses:null omits both AdvChangeStatus and ExecutionStatus for terminal sweeps; archived explicit status omits running guard. CLI summariesFromVisibility also filters AdvAffectedProjects + draft/pending/active + ExecutionStatus = \"Running\" and only uses disk for archived/closed counts. Regression tests cover default/explicit active running guard, statuses:null preservation, archived override dominance in store-temporal, and CLI stale completed-workflow exclusion. `bun test bin/` passed 107 tests. Initial targeted command was run from plugin cwd and failed with `zsh:1: no such file or directory: bin/oc-test`; rerun from workdir passed 2 files / 33 tests."
+          },
+          "scope_drift": null,
+          "risks": [],
+          "required_main_agent_actions": [],
+          "required_follow_ups": [],
+          "consumer_warnings": []
+        }
+      ]
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "fixStaleStatus",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:stale-status-execstatus-guard"
+      },
+      "agent": "adv-researcher",
+      "topic": "Validate ExecutionStatus = \"Running\" Visibility guard for /adv-status stale active rows",
+      "sources": [
+        {
+          "label": "Temporal Search Attributes (official docs)",
+          "locator": "https://docs.temporal.io/search-attribute",
+          "summary": "ExecutionStatus is a default Search Attribute of type Keyword. Valid values: Running, Completed, Failed, Canceled, Terminated, ContinuedAsNew, TimedOut. With advanced Visibility you may combine default + custom Search Attributes in one List Filter."
+        },
+        {
+          "label": "Temporal List Filter (official docs)",
+          "locator": "https://docs.temporal.io/list-filter",
+          "summary": "List Filter is an SQL-like string supporting =, IN, AND, OR, (). Documented examples combine WorkflowId/WorkflowType with ExecutionStatus = 'Running' / != 'Running' via AND. ExecutionStatus and string literals with double quotes are valid."
+        },
+        {
+          "label": "Temporal Visibility (official docs)",
+          "locator": "https://docs.temporal.io/visibility",
+          "summary": "Standard Visibility (limited default-only filters) deprecated v1.21, removed v1.24. All current deployments use advanced Visibility, which supports combining default and custom Search Attributes in one List Filter."
+        },
+        {
+          "label": "Repo: bin/lib/live-status.ts summariesFromVisibility",
+          "locator": "/home/jon/dev/advance/bin/lib/live-status.ts:306-308",
+          "summary": "Current CLI query is `AdvAffectedProjects = \"<pid>\" AND AdvChangeStatus IN (\"draft\",\"pending\",\"active\")` — relies solely on custom AdvChangeStatus, no execution-state guard."
+        },
+        {
+          "label": "Repo: plugin/src/temporal/workflows.ts archive/close handlers",
+          "locator": "/home/jon/dev/advance/plugin/src/temporal/workflows.ts:1437-1504",
+          "summary": "Archive upserts AdvChangeStatus=['archived'] then workflow Completes; but upsert is skipped when searchAttributesEnabled===false and any upsert error is caught+swallowed (logged warn). On those paths AdvChangeStatus stays 'active' while ExecutionStatus becomes Completed — exactly the leak."
+        },
+        {
+          "label": "Repo grep: ExecutionStatus usage",
+          "locator": "/home/jon/dev/advance/plugin/src/temporal",
+          "summary": "ExecutionStatus is NOT used in any existing ADV Visibility query; this guard is net-new and does not conflict with existing query construction."
+        }
+      ],
+      "architecture_assessment": "Existing pattern: CLI active rows filter only on the custom AdvChangeStatus Keyword. Reference pattern: Temporal docs explicitly support and demonstrate guarding active/inactive listings with the default ExecutionStatus = \"Running\" attribute, combined with custom attributes via AND under advanced Visibility (universal since Server v1.24). Deviation: MINOR and corrective. The proposed `AdvAffectedProjects = \"<pid>\" AND AdvChangeStatus IN (\"draft\",\"pending\",\"active\") AND ExecutionStatus = \"Running\"` is a boring, server-native, by-the-book filter. It makes correctness structural (server-side execution state) instead of trusting the swallowed custom-attribute upsert. Worker-free read path is preserved (still pure client.workflow.list, no getState query, no disk fallback). Root-cause note: custom AdvChangeStatus on archive is best-effort (try/catch + searchAttributesEnabled gate + poisoned/recovery disk-only archive paths that never fire the workflow signal), so any of those leaves a Completed workflow with stale active AdvChangeStatus. ExecutionStatus is set by the server on completion and cannot be swallowed, so it closes the leak class at the source.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "ExecutionStatus = \"Running\" is a valid, documented default Search Attribute and List Filter term, combinable with custom attributes via AND under advanced Visibility (the only mode in any supported Temporal Server). Verdict: CONFIRMED. Edge cases to handle in implementation/tests: (1) ExecutionStatus is the ALIAS of the default attribute; aliasing of default SAs requires Server v1.30+ for arbitrary defaults, but ExecutionStatus has been usable unprefixed in List Filters in long-standing docs/CLI examples — if a target Temporal Server rejects the unprefixed name, fall back to TemporalExecutionStatus. Add a comment documenting both names. (2) Verify ADV has NOT registered a CUSTOM attribute named ExecutionStatus that would shadow the default (grep shows it has not). (3) ContinuedAsNew rotation: change workflows continue-as-new on history threshold (workflows.ts:1497) — a rotated workflow's prior run is Completed/ContinuedAsNew while the new run is Running, so listing by ExecutionStatus=Running still surfaces the live run; confirm the Visibility list returns the open run for CAN'd changes and does not drop a legitimately-active change mid-rotation. (4) Keyword exact-match: ExecutionStatus is Keyword, so `=` is exact; no tokenization risk. (5) String literal quoting: docs accept both single and double quotes; keep double quotes for consistency with existing query and the projectId escaping already present."
+      },
+      "recommendation": "Proceed with the fix as designed. Append ` AND ExecutionStatus = \"Running\"` to the summariesFromVisibility query in bin/lib/live-status.ts. Keep it worker-free and disk-fallback-free. Add a code comment citing https://docs.temporal.io/list-filter and noting TemporalExecutionStatus as the Temporal-prefixed fallback name if an older/newer server rejects the unprefixed alias. Suggested test assertions: (a) the constructed query string contains `AdvChangeStatus IN (\"draft\", \"pending\", \"active\")` AND `ExecutionStatus = \"Running\"` joined by AND; (b) given a fake VisibilityListClient whose list() only yields executions matching the full query, a completed/archived workflow with stale AdvChangeStatus=[\"active\"] is NOT yielded (i.e. the boundary excludes it at the query level, not in post-filter) — assert the test client's recorded query and that summaries excludes the stale id; (c) a genuinely-active draft/pending/active Running workflow IS included; (d) projectId double-quote escaping is preserved when ExecutionStatus is appended; (e) regression: query is a single AND-joined string with exactly one ExecutionStatus term. Optionally add a contract test in plugin/src/temporal to assert ADV registers no custom 'ExecutionStatus' attribute (prevents future shadowing).",
+      "follow_ups": [
+        "Consider applying the same ExecutionStatus = \"Running\" guard to plugin/src/temporal/list-change-workflows.ts buildVisibilityQuery so MCP cold-start enumeration and CLI stay structurally aligned (out of this change's stated scope but same leak class).",
+        "Implementation should decide unprefixed `ExecutionStatus` vs `TemporalExecutionStatus`; if the project pins a Temporal Server version, verify which name that server accepts before locking the test assertion string.",
+        "Packet anchors TASK_SCOPE/IN_SCOPE/OUT_OF_SCOPE/DONE_WHEN/STOP_WHEN/VERIFICATION were not provided as explicit labeled blocks; proceeded with the inline TASK description as scope."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixStaleStatus",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixStaleStatus",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "BLOCKED",
+      "blocking_findings": [
+        {
+          "id": "acceptance-1",
+          "label": "issue",
+          "file": "plugin/src/temporal/list-change-workflows.ts",
+          "line": 108,
+          "what": "`adv_status view:\"changes\"` active-list path is not structurally covered by the new `ExecutionStatus = \"Running\"` guard.",
+          "why": "Agreement requires `/adv-status` and `adv_status view:\"changes\"` to return the same active changes/count. Scoped diff only updates `bin/lib/live-status.ts`; MCP status still reaches `listChangeWorkflowIds`, whose query filters only `AdvAffectedProjects` and `AdvChangeStatus` and lacks the execution-status filter that excludes completed workflows with stale active search attributes.",
+          "fix": "Update the MCP/status visibility path (likely shared `listChangeWorkflowIds` or its status caller) to filter running executions where appropriate, and add a regression proving stale completed active workflows are excluded from `adv_status view:\"changes\"`."
+        }
+      ],
+      "nonblocking_findings": [
+        {
+          "id": "review-praise-1",
+          "label": "praise",
+          "file": "bin/lib/live-status.test.ts",
+          "line": 263,
+          "what": "CLI regression directly records the visibility query and simulates stale completed workflow exclusion while retaining a running active workflow.",
+          "why": "This covers the reported stale custom search-attribute failure mode without requiring a live worker or disk fallback.",
+          "fix": "No change needed."
+        }
+      ],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "bun test bin/lib/live-status.test.ts",
+          "bun test bin/"
+        ],
+        "results": "pass",
+        "evidence": "Targeted live-status tests: 13 pass, 0 fail. Full bin test suite: 107 pass, 0 fail. Git diff against origin/trunk is limited to bin/lib/live-status.ts and bin/lib/live-status.test.ts."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Scoped CLI fix is good, but agreement parity with `adv_status view:\"changes\"` remains unproven and likely incomplete until MCP/status visibility path gets the same running-execution guard.",
+        "No source edits made during review; no new dependency/package changes observed."
+      ],
+      "required_main_agent_actions": [
+        "Decide whether acceptance requires MCP `adv_status view:\"changes\"` parity now. If yes, route a follow-up/remediation to update the status/listSummary visibility path and tests outside the current scoped files.",
+        "If treating this task as CLI-only, record explicit acceptance rationale explaining why MCP parity is deferred despite the agreement criterion."
+      ],
+      "required_follow_ups": [],
+      "consumer_warnings": [
+        {
+          "kind": "consumer_failure",
+          "message": "Context packet did not provide a concrete task_id; submitted as change-scope review:acceptance report."
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixStaleStatus",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixStaleStatus",
+      "task_id": "tk-ac9c574356ac",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-ac9c574356ac"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [
+        {
+          "id": "review-praise-1",
+          "label": "praise",
+          "file": "plugin/src/temporal/list-change-workflows.ts",
+          "line": 111,
+          "what": "Shared visibility query now adds ExecutionStatus guard only when effective statuses are active-lifecycle statuses.",
+          "why": "Preserves statuses:null archive/closed sweeps and archived override paths while excluding completed workflows with stale active custom attributes.",
+          "fix": "No action needed."
+        },
+        {
+          "id": "review-praise-2",
+          "label": "praise",
+          "file": "bin/lib/live-status.ts",
+          "line": 306,
+          "what": "CLI active-row path uses worker-free Visibility query with ExecutionStatus = \"Running\" and keeps terminal counts separate.",
+          "why": "Maintains no-disk-fallback authority for active rows and preserves terminal-mode behavior/counting without reintroducing per-change workflow queries.",
+          "fix": "No action needed."
+        }
+      ],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "bun test bin/",
+          "bin/oc-test targeted -- src/temporal/list-change-workflows.test.ts src/storage/store-temporal/index.test.ts"
+        ],
+        "results": "pass",
+        "evidence": "Path preflight OK for all scoped files. Reviewed agreement: active rows must be Temporal-backed, archived excluded, no disk fallback for active rows, no status shape rework. Source review found buildVisibilityQuery defaults to draft/pending/active plus ExecutionStatus = \"Running\"; statuses:null omits both AdvChangeStatus and ExecutionStatus for terminal sweeps; archived explicit status omits running guard. CLI summariesFromVisibility also filters AdvAffectedProjects + draft/pending/active + ExecutionStatus = \"Running\" and only uses disk for archived/closed counts. Regression tests cover default/explicit active running guard, statuses:null preservation, archived override dominance in store-temporal, and CLI stale completed-workflow exclusion. `bun test bin/` passed 107 tests. Initial targeted command was run from plugin cwd and failed with `zsh:1: no such file or directory: bin/oc-test`; rerun from workdir passed 2 files / 33 tests."
+      },
+      "scope_drift": null,
+      "risks": [],
+      "required_main_agent_actions": [],
+      "required_follow_ups": [],
+      "consumer_warnings": []
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-y6A4WD",
+      "type": "pattern",
+      "content": "For worker-free Temporal Visibility status tables, combine ADV custom lifecycle search attributes with server-owned `ExecutionStatus = \"Running\"` to exclude completed workflows when custom status upserts are best-effort or stale.",
+      "source_task": "tk-cd0ab3e0f8c9",
+      "recorded_at": "2026-06-22T15:37:43.894Z"
+    },
+    {
+      "id": "ws-iUocMm",
+      "type": "gotcha",
+      "content": "When adding `ExecutionStatus = \"Running\"` to shared Temporal Visibility enumeration, preserve `statuses: null` all-status mode and terminal-status overrides; archive/audit callers need completed/archived executions visible.",
+      "source_task": "tk-ac9c574356ac",
+      "recorded_at": "2026-06-22T15:51:58.367Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-06-22T15:28:06.128Z",
+      "completed_by": "agent",
+      "approval_evidence": "Fast-track small-fix proposal confirmed by user via QUICK CONTRACT: selected \"Confirmed — execute\" after /adv-problem triage.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "3c1b2938e040aac41b9472a626404dba674968c42da0e97bc554474ada9c49df",
+        "non_whitespace_chars": 1030,
+        "checked_at": "2026-06-22T15:27:57.010Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "started_at": "2026-06-22T15:31:05.739Z",
+      "completed_at": "2026-06-22T15:31:59.283Z",
+      "completed_by": "agent",
+      "approval_evidence": "Spec-law assessment complete: no spec update required. Relevant advance-meta requirements already cover live CLI status, worker-free Visibility rows, stale active fallback prohibition, and terminal exclusion. Temporal docs/research validate ExecutionStatus=Running list filter.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "ddb7ba6846f542a8e88ce1c0667bc1eac43c8fc156ab07d460e79935c6be9418",
+        "non_whitespace_chars": 960,
+        "checked_at": "2026-06-22T15:27:57.011Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-06-22T15:32:08.739Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design validated by independent adv-researcher: CONFIRMED. Use server-owned Temporal ExecutionStatus=Running in Visibility query to exclude completed archived workflows while preserving worker-free/no-disk-fallback CLI status path.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "25f46e750d53bd9294bde96db752a144f526747397f131f1ccda36fbbc26ba4c",
+        "non_whitespace_chars": 1606,
+        "checked_at": "2026-06-22T15:27:57.012Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-06-22T15:47:45.364Z",
+      "completed_by": "agent",
+      "approval_evidence": "Re-entry planning: added review-remediation task to guard shared MCP/Temporal workflow enumeration with ExecutionStatus=Running while preserving statuses:null terminal mode. User's original fix-now/quick-contract approval covers the same acceptance boundary; review found this task required for AC parity."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-06-22T15:52:16.553Z",
+      "completed_by": "agent",
+      "approval_evidence": "All planned tasks done after review re-entry. Verification: CLI bin tests passed, shared visibility/store-temporal tests passed, strict validation passed with expected NO_DELTAS warning due no spec law update required. Worktree clean after checkpoints."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-06-22T16:04:10.295Z",
+      "completed_by": "user:jon",
+      "approval_evidence": "User accepted delivered work. Approval evidence: user replied `approve` after acceptance summary showing implementation, tests, and review READY.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "4ebf422a4c208078bce687ffabe5ea8cca14d8792dc7d74edeeaa1d066739b66",
+        "non_whitespace_chars": 803,
+        "checked_at": "2026-06-22T15:27:57.013Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [
+    {
+      "from_gate": "planning",
+      "reason": "Acceptance review found contract gap: MCP `adv_status view:\"changes\"` can still enumerate stale completed workflows because shared `plugin/src/temporal/list-change-workflows.ts` visibility query lacks `ExecutionStatus = \"Running\"`. Need expand task graph to cover parity requirement.",
+      "scope_delta": "Add guard and regression coverage for shared `listChangeWorkflowIds` / `buildVisibilityQuery` active-status enumeration, preserving statuses:null terminal/audit mode.",
+      "reopened_by": "agent",
+      "reopened_at": "2026-06-22T15:46:54.242Z",
+      "gates_reset": [
+        "planning",
+        "execution",
+        "acceptance",
+        "release"
+      ]
+    }
+  ],
+  "origin": {
+    "kind": "adhoc"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "ddb7ba6846f542a8e88ce1c0667bc1eac43c8fc156ab07d460e79935c6be9418",
+      "approvedAt": "2026-06-22T15:31:27.304Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "Running `/adv-status` and `adv_status view:\"changes\"` for the same project within the same session returns the same active changes and active count.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "ddb7ba6846f542a8e88ce1c0667bc1eac43c8fc156ab07d460e79935c6be9418",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Archived changes are excluded from the active table.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "ddb7ba6846f542a8e88ce1c0667bc1eac43c8fc156ab07d460e79935c6be9418",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Regression test covers a completed/archived workflow with stale active `AdvChangeStatus` / non-done gate attributes and proves it is excluded.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "ddb7ba6846f542a8e88ce1c0667bc1eac43c8fc156ab07d460e79935c6be9418",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "If status output uses a cache, freshness/cached-at is surfaced or invalidated after archive; if no cache backs CLI active rows, test/rationale states so.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "ddb7ba6846f542a8e88ce1c0667bc1eac43c8fc156ab07d460e79935c6be9418",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "No new dependency.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "ddb7ba6846f542a8e88ce1c0667bc1eac43c8fc156ab07d460e79935c6be9418",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "No disk fallback as source for active rows.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "ddb7ba6846f542a8e88ce1c0667bc1eac43c8fc156ab07d460e79935c6be9418",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Default `/adv-status` remains thin CLI bridge over `adv status --no-color`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "ddb7ba6846f542a8e88ce1c0667bc1eac43c8fc156ab07d460e79935c6be9418",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "Reworking MCP `adv_status` response shape.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "ddb7ba6846f542a8e88ce1c0667bc1eac43c8fc156ab07d460e79935c6be9418",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "Changing archive workflow semantics beyond status visibility filtering.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "ddb7ba6846f542a8e88ce1c0667bc1eac43c8fc156ab07d460e79935c6be9418",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-06-22T15:59:54.957Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`bun test bin/` passed 107 tests; CLI query in `bin/lib/live-status.ts` includes `ExecutionStatus = \"Running\"`; shared `buildVisibilityQuery` active paths include same guard.",
+          "notes": "CLI and shared MCP active enumeration now use running-execution guard."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`bin/lib/live-status.test.ts` regression excludes completed workflow with stale `AdvChangeStatus=\"active\"`; `list-change-workflows.test.ts` asserts active queries include `ExecutionStatus = \"Running\"`.",
+          "notes": "Archived/completed workflows excluded at Visibility query boundary."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "RED/GREEN tests added for stale completed workflow exclusion and shared active visibility query guard; targeted and bin suites pass.",
+          "notes": "Regression coverage added."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "design_proof",
+          "evidence": "No cache added to CLI active rows; `loadLiveSummaries` still creates Temporal client and executes `summariesFromVisibility` per call. Active rows remain live Visibility-backed.",
+          "notes": "Freshness/cached-at clause satisfied by no active-row cache introduced."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Diff touches existing TypeScript/test files only; no package or lockfile changes.",
+          "notes": "No new dependency."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Active rows still come from Temporal Visibility queries; disk reads remain terminal counts/archive modes only.",
+          "notes": "No disk fallback as active-row source."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": ".opencode/command/adv-status.md unchanged and remains `adv status --no-color` bridge.",
+          "notes": "Slash command bridge preserved."
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No changes to `plugin/src/tools/status.ts` response shape.",
+          "notes": "MCP response shape not reworked."
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Archive workflow semantics unchanged; only status Visibility filters/tests changed.",
+          "notes": "Archive workflow behavior unchanged."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "Running `/adv-status` and `adv_status view:\"changes\"` for the same project within the same session returns the same active changes and active count.",
+    "Archived changes are excluded from the active table.",
+    "Regression test covers a completed/archived workflow with stale active `AdvChangeStatus` / non-done gate attributes and proves it is excluded.",
+    "If status output uses a cache, freshness/cached-at is surfaced or invalidated after archive; if no cache backs CLI active rows, test/rationale states so."
+  ],
+  "documents": {
+    "proposal": "# Fix stale status\n\n## Intent\nFix `/adv-status` CLI active table so archived or completed changes cannot appear as active when Temporal Visibility custom search attributes are stale.\n\n## LBP Targets\n- Preserve worker-free Temporal Visibility read path for default CLI status.\n- Filter active rows structurally using Temporal Visibility execution state, not disk fallback.\n- Keep MCP `adv_status view:\"changes\"` and CLI `/adv-status` active rows aligned.\n\n## Scope\n- `bin/lib/live-status.ts`\n- `bin/lib/live-status.test.ts`\n- Contract tests only if needed to lock behavior.\n\n## User Outcomes\n- `/adv-status` active count and rows match `adv_status view:\"changes\"` for active changes in the same project/session.\n- Archived changes are excluded from `/adv-status` active table.\n- Regression coverage prevents archived/completed workflows with stale active custom attributes from leaking into active output.\n\n## Spec-law impact\nNo spec law update required: existing `advance-meta` requirements already require `/adv-status` to be live Temporal-backed, fail closed instead of stale fallback, and exclude terminal-complete changes from active rows. This fix enforces that existing law more structurally.",
+    "problemStatement": "# Problem statement\n\n`/adv-status` can show archived ADV changes as active. In pokeedge-web, `/adv-status` reported 18 active changes while fresh MCP reads showed 7 active; several rows shown by `/adv-status` were already archived via `adv_change_list`.\n\nExpected: `/adv-status` active table matches authoritative active state and never lists archived changes.\n\nActual: CLI active rows can diverge from MCP state, likely because the CLI reads custom Temporal Visibility search attributes without also requiring the workflow execution to still be running.",
+    "agreement": "# Agreement\n\n## Objectives\n- Exclude archived/completed change workflows from `/adv-status` active rows.\n- Preserve worker-free Temporal Visibility status path.\n- Keep disk projections out of active-row authority.\n- Add regression coverage for stale custom search attributes on completed workflows.\n\n## Acceptance criteria\n- Running `/adv-status` and `adv_status view:\"changes\"` for the same project within the same session returns the same active changes and active count.\n- Archived changes are excluded from the active table.\n- Regression test covers a completed/archived workflow with stale active `AdvChangeStatus` / non-done gate attributes and proves it is excluded.\n- If status output uses a cache, freshness/cached-at is surfaced or invalidated after archive; if no cache backs CLI active rows, test/rationale states so.\n\n## Constraints\n- No new dependency.\n- No disk fallback as source for active rows.\n- Default `/adv-status` remains thin CLI bridge over `adv status --no-color`.\n\n## Out of scope\n- Reworking MCP `adv_status` response shape.\n- Changing archive workflow semantics beyond status visibility filtering.",
+    "design": "# Design\n\n## Approach\nUpdate the CLI Visibility query used by `summariesFromVisibility` to require both:\n\n- `AdvChangeStatus IN (\"draft\", \"pending\", \"active\")`\n- `ExecutionStatus = \"Running\"`\n\nRationale: archived/closed change workflows complete after terminal status. Temporal exposes `ExecutionStatus` as a default Search Attribute and supports list filters such as `ExecutionStatus = \"Running\"`. Adding this guard keeps the CLI worker-free and live-Temporal-backed while excluding completed workflows even if custom `AdvChangeStatus` is stale.\n\n## Validation evidence\n- Internal spec `advance-meta` `rq-statusCliBridge01` and `rq-statusCliWorkerFree01` require live CLI status, no stale disk active fallback, worker-free Visibility active rows, and terminal-complete exclusion.\n- Temporal docs confirm `ExecutionStatus` is a default Search Attribute with values including `Running` and `Completed`, and TypeScript/Visibility APIs accept list filter queries such as `ExecutionStatus = \"Running\"`.\n- Independent `adv-researcher` verdict: CONFIRMED. It identified the same root cause: archive upsert of custom `AdvChangeStatus` is best-effort, while server-set `ExecutionStatus` cannot be swallowed.\n\n## Implementation notes\n- Add `ExecutionStatus = \"Running\"` to `summariesFromVisibility` query construction.\n- Add regression test asserting the query contains the execution-state guard.\n- Add regression test with fake Visibility client honoring `ExecutionStatus`: completed workflow with stale active custom attributes is excluded; running active workflow is included.\n- Keep active counts based on returned summaries; terminal counts remain from archive disk bundles as existing CLI behavior.\n\n## Spec-law impact\nNo spec law update required: this enforces existing `advance-meta` status CLI law. No new behavior or contract shape is introduced.",
+    "executiveSummary": "# Executive Summary\n\nFixed stale `/adv-status` active-change output by requiring Temporal server-owned running execution state on active Visibility queries.\n\n## What changed\n- CLI `/adv-status` active rows now query `ExecutionStatus = \"Running\"` alongside active ADV status search attributes.\n- Shared `listChangeWorkflowIds` active enumeration now uses the same running-execution guard, keeping MCP/status parity while preserving `statuses: null` terminal/audit mode.\n- Added regression coverage for completed workflows with stale active custom search attributes.\n\n## Verification\n- RED: targeted status tests failed before the guard.\n- GREEN: `bun test bin/lib/live-status.test.ts` passed 13 tests.\n- VERIFY: `bun test bin/` passed 107 tests.\n- VERIFY: `bin/oc-test targeted -- src/temporal/list-change-workflows.test.ts src/storage/store-temporal/index.test.ts` passed 33 tests.\n- Independent review verdict: READY.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-06-22T15:59:54.957Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| AC1 | acceptance_criterion | Running `/adv-status` and `adv_status view:\"changes\"` for the same project within the same session returns the same active changes and active count. | pass | `bun test bin/` passed 107 tests; CLI query in `bin/lib/live-status.ts` includes `ExecutionStatus = \"Running\"`; shared `buildVisibilityQuery` active paths include same guard. |\n| AC2 | acceptance_criterion | Archived changes are excluded from the active table. | pass | `bin/lib/live-status.test.ts` regression excludes completed workflow with stale `AdvChangeStatus=\"active\"`; `list-change-workflows.test.ts` asserts active queries include `ExecutionStatus = \"Running\"`. |\n| AC3 | acceptance_criterion | Regression test covers a completed/archived workflow with stale active `AdvChangeStatus` / non-done gate attributes and proves it is excluded. | pass | RED/GREEN tests added for stale completed workflow exclusion and shared active visibility query guard; targeted and bin suites pass. |\n| AC4 | acceptance_criterion | If status output uses a cache, freshness/cached-at is surfaced or invalidated after archive; if no cache backs CLI active rows, test/rationale states so. | pass | No cache added to CLI active rows; `loadLiveSummaries` still creates Temporal client and executes `summariesFromVisibility` per call. Active rows remain live Visibility-backed. |\n| C1 | constraint | No new dependency. | respected | Diff touches existing TypeScript/test files only; no package or lockfile changes. |\n| C2 | constraint | No disk fallback as source for active rows. | respected | Active rows still come from Temporal Visibility queries; disk reads remain terminal counts/archive modes only. |\n| C3 | constraint | Default `/adv-status` remains thin CLI bridge over `adv status --no-color`. | respected | .opencode/command/adv-status.md unchanged and remains `adv status --no-color` bridge. |\n| OOS1 | out_of_scope | Reworking MCP `adv_status` response shape. | respected | No changes to `plugin/src/tools/status.ts` response shape. |\n| OOS2 | out_of_scope | Changing archive workflow semantics beyond status visibility filtering. | respected | Archive workflow semantics unchanged; only status Visibility filters/tests changed. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-06-22T15:27:57.038Z",
+      "contentHash": "3c1b2938e040aac41b9472a626404dba674968c42da0e97bc554474ada9c49df",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-06-22T15:27:57.038Z",
+      "contentHash": "2ee6c1ff14ecfc207b61a65db9a7211f54bd0ed04a1c7cc8b440340250a42ca2",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-06-22T15:27:57.038Z",
+      "contentHash": "ddb7ba6846f542a8e88ce1c0667bc1eac43c8fc156ab07d460e79935c6be9418",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-06-22T15:30:49.967Z",
+      "contentHash": "25f46e750d53bd9294bde96db752a144f526747397f131f1ccda36fbbc26ba4c",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-06-22T16:00:09.954Z",
+      "contentHash": "4ebf422a4c208078bce687ffabe5ea8cca14d8792dc7d74edeeaa1d066739b66",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-06-22T16:04:10.295Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true
+}

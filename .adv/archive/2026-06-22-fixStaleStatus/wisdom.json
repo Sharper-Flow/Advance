@@ -1,0 +1,19 @@
+{
+  "entries": [
+    {
+      "id": "ws-y6A4WD",
+      "type": "pattern",
+      "content": "For worker-free Temporal Visibility status tables, combine ADV custom lifecycle search attributes with server-owned `ExecutionStatus = \"Running\"` to exclude completed workflows when custom status upserts are best-effort or stale.",
+      "source_task": "tk-cd0ab3e0f8c9",
+      "recorded_at": "2026-06-22T15:37:43.894Z"
+    },
+    {
+      "id": "ws-iUocMm",
+      "type": "gotcha",
+      "content": "When adding `ExecutionStatus = \"Running\"` to shared Temporal Visibility enumeration, preserve `statuses: null` all-status mode and terminal-status overrides; archive/audit callers need completed/archived executions visible.",
+      "source_task": "tk-ac9c574356ac",
+      "recorded_at": "2026-06-22T15:51:58.367Z"
+    }
+  ],
+  "count": 2
+}
