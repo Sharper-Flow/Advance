@@ -1,7 +1,7 @@
 # ADV Prep Command
 
-> **Version:** 1.3.0
-> **Updated:** 2026-06-05
+> **Version:** 1.4.0
+> **Updated:** 2026-06-22
 
 ## Purpose
 
@@ -22,11 +22,13 @@ Defines the responsibilities and boundaries of /adv-prep. The prep command is th
 **Prep creates tasks from design decisions** (`rq-prep-out1.1`)
 
 **Given:**
+
 - A change with design gate complete and zero tasks
 
 **When:** /adv-prep is invoked
 
 **Then:**
+
 - Design decisions from design.md are consumed
 - Tasks are created via adv_task_add based on validated decisions
 - Tasks are sequenced with proper blocked_by dependencies
@@ -35,11 +37,13 @@ Defines the responsibilities and boundaries of /adv-prep. The prep command is th
 **Prep handles changes that already have tasks** (`rq-prep-out1.2`)
 
 **Given:**
+
 - A change with existing tasks (e.g., from /adv-task fast-track)
 
 **When:** /adv-prep is invoked
 
 **Then:**
+
 - Existing tasks are analyzed for gaps
 - Missing tasks are added
 - Task sequencing is validated and corrected
@@ -60,11 +64,13 @@ Defines the responsibilities and boundaries of /adv-prep. The prep command is th
 **Gap analysis covers all dimensions** (`rq-prep-scope1.1`)
 
 **Given:**
+
 - A change ready for prep
 
 **When:** /adv-prep runs gap analysis
 
 **Then:**
+
 - Approved agreement and design coverage is checked against the task graph
 - Criteria-quality gaps are reported as discovery/design re-entry candidates instead of being rewritten by prep
 - Task completeness is verified against requirements
@@ -74,11 +80,13 @@ Defines the responsibilities and boundaries of /adv-prep. The prep command is th
 **Prep completes the planning gate** (`rq-prep-scope1.2`)
 
 **Given:**
+
 - All gaps are fixed and validation passes
 
 **When:** /adv-prep finishes
 
 **Then:**
+
 - adv_gate_complete is called with gateId 'planning'
 - The planning gate is marked done
 
@@ -97,12 +105,14 @@ When a change has zero tasks and design gate is complete, /adv-prep must synthes
 **Empty task list triggers synthesis from design decisions** (`rq-prep-synth1.1`)
 
 **Given:**
+
 - A change with design gate complete
 - Zero existing tasks
 
 **When:** /adv-prep is invoked
 
 **Then:**
+
 - Design decisions in design.md are read
 - Tasks are synthesized from action items and findings
 - Architecture correction tasks are created first with highest priority
@@ -111,11 +121,13 @@ When a change has zero tasks and design gate is complete, /adv-prep must synthes
 **Task synthesis respects TDD ordering** (`rq-prep-synth1.2`)
 
 **Given:**
+
 - Tasks are being synthesized from design findings
 
 **When:** Implementation tasks are created
 
 **Then:**
+
 - Each implementation task includes inline TDD instructions
 - No separate test tasks are created for the same scope
 - Cross-cutting verification tasks are marked with tdd_intent separate_verification
@@ -135,11 +147,13 @@ When a change has zero tasks and design gate is complete, /adv-prep must synthes
 **Prep only completes the planning gate** (`rq-prep-neg1.1`)
 
 **Given:**
+
 - A user invokes /adv-prep
 
 **When:** The command completes
 
 **Then:**
+
 - Only adv_gate_complete with gateId 'planning' is called
 - No other gates are completed
 
@@ -158,11 +172,13 @@ When a change has zero tasks and design gate is complete, /adv-prep must synthes
 **Prep maps approved criteria to tasks** (`rq-stagePrepNoCriteriaFirming01.1`)
 
 **Given:**
+
 - agreement.md contains approved `AC*` and `SC*` items and design.md is complete
 
 **When:** /adv-prep synthesizes the task graph
 
 **Then:**
+
 - Each implementation task is traced to approved agreement criteria, design decisions, or explicit technical readiness work
 - No new user-facing acceptance criterion is introduced by /adv-prep
 - The planning checkpoint asks the user to approve tasks, not to approve newly firmed criteria
@@ -170,11 +186,13 @@ When a change has zero tasks and design gate is complete, /adv-prep must synthes
 **Criteria gap routes to re-entry** (`rq-stagePrepNoCriteriaFirming01.2`)
 
 **Given:**
+
 - /adv-prep detects that an approved criterion is missing, contradictory, or invalidated by design
 
 **When:** The planning readiness result is prepared
 
 **Then:**
+
 - The gap is reported as requiring discovery or design re-entry
 - /adv-prep does not rewrite agreement.md to fix the criterion
 - The planning gate remains pending until the upstream criteria gap is resolved
@@ -194,11 +212,13 @@ When a change has zero tasks and design gate is complete, /adv-prep must synthes
 **Planning approval includes relevant artifact excerpts** (`rq-prepArtifactExcerpt01.1`)
 
 **Given:**
+
 - A change has proposal, agreement, and design artifacts
 
 **When:** /adv-prep presents the planning approval checkpoint
 
 **Then:**
+
 - The approval view includes concise excerpts from proposal, agreement, and design relevant to task synthesis
 - The approval view identifies the generated task graph derived from those artifacts
 - The underlying artifacts remain the source of truth
@@ -206,10 +226,67 @@ When a change has zero tasks and design gate is complete, /adv-prep must synthes
 **Missing excerpt source is reported** (`rq-prepArtifactExcerpt01.2`)
 
 **Given:**
+
 - A source artifact expected by prep is missing or unavailable
 
 **When:** /adv-prep prepares the approval checkpoint
 
 **Then:**
+
 - The missing artifact is reported as a readiness gap
 - Prep does not silently approve a task graph without showing the relevant source basis
+
+---
+
+### Prep Synthesizes Non-Code Deliverable Tasks with Evidence Policies
+
+**ID:** `rq-prepNonCodeEvidence01` | **Priority:** **[MUST]**
+
+/adv-prep MUST map approved agreement and validated design decisions into structurally typed non-code tasks when the deliverable is docs, research, approval, verification, ops, writing, analysis, design improvement, or competitive research. Non-code tasks MUST carry a task type, contract_refs or bounded not_applicable_reason, metadata.tdd_intent appropriate to the task type, and a machine-readable evidence policy. Prep MUST NOT force fake red/green TDD for non-code deliverables; it must instead assign evidence policies such as source_citation, source_audit, rubric_review, stakeholder_acceptance, artifact_reference, static_check, review, or not_applicable with rationale.
+
+**Tags:** `prep`, `non-code`, `tasks`, `evidence`, `tdd`
+
+#### Scenarios
+
+**Research task receives source evidence policy** (`rq-prepNonCodeEvidence01.1`)
+
+**Given:**
+
+- An approved agreement requires a competitive research or market analysis deliverable
+
+**When:** /adv-prep creates the task graph
+
+**Then:**
+
+- The research task is structurally identified as a non-code deliverable task
+- The task carries contract_refs to the relevant approved criteria
+- The task carries a source_citation or source_audit evidence policy
+- The task does not require inline red/green TDD
+
+**Documentation task uses artifact evidence** (`rq-prepNonCodeEvidence01.2`)
+
+**Given:**
+
+- An approved agreement requires a documentation or writing deliverable
+
+**When:** /adv-prep creates the task graph
+
+**Then:**
+
+- The task is structurally identified as a docs or non-code deliverable task
+- The task carries artifact_reference or rubric_review evidence policy as appropriate
+- metadata.tdd_intent is not_applicable with evidence-policy rationale
+
+**Code tasks retain inline TDD** (`rq-prepNonCodeEvidence01.3`)
+
+**Given:**
+
+- A task implements logic-bearing code
+
+**When:** /adv-prep creates or validates the task graph
+
+**Then:**
+
+- The task remains a code task by default
+- metadata.tdd_intent is inline unless explicitly and validly reclassified
+- The non-code evidence-policy model does not weaken red/green TDD requirements for code tasks

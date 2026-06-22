@@ -3,8 +3,8 @@
   "name": "prep-readiness",
   "title": "Prep Readiness",
   "purpose": "Machine-enforced readiness checks that gate the prep phase. Answers: 'Do we have everything we need ready to make the full change?'",
-  "version": "1.5.0",
-  "updated_at": "2026-06-17T00:00:00.000Z",
+  "version": "1.6.0",
+  "updated_at": "2026-06-22T00:00:00.000Z",
   "requirements": [
     {
       "id": "rq-PR001sml",
@@ -430,7 +430,9 @@
             "At least one task in the task graph references that item via contract_refs.implements or contract_refs.verifies"
           ],
           "when": "runPrepReadinessChecks is called",
-          "then": ["No CRITICAL_OPS_MISSING_COVERAGE error is returned for that item"]
+          "then": [
+            "No CRITICAL_OPS_MISSING_COVERAGE error is returned for that item"
+          ]
         },
         {
           "id": "rq-PR007coc.2",
@@ -454,7 +456,9 @@
             "No task references that item via contract_refs"
           ],
           "when": "runPrepReadinessChecks is called",
-          "then": ["No CRITICAL_OPS_MISSING_COVERAGE error is returned for that item"]
+          "then": [
+            "No CRITICAL_OPS_MISSING_COVERAGE error is returned for that item"
+          ]
         }
       ]
     },
@@ -487,6 +491,41 @@
           "when": "runPrepReadinessChecks is called",
           "then": [
             "No TASK_ORDERING_PROVISIONAL advisory is returned for the task"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-PR008nonCodeEvidence",
+      "title": "Non-Code Task Evidence Policy Readiness",
+      "body": "Prep readiness MUST fail when a non-cancelled non-code deliverable task lacks a valid machine-readable evidence policy or uses metadata.tdd_intent='not_applicable' without a task evidence-policy rationale. The check MUST apply to docs, research, approval, ops, and verification tasks as applicable while preserving existing inline TDD enforcement for code tasks.",
+      "priority": "must",
+      "tags": ["prep", "readiness", "non-code", "evidence", "tdd"],
+      "scenarios": [
+        {
+          "id": "rq-PR008nonCodeEvidence.1",
+          "title": "Non-code task missing evidence policy blocks prep",
+          "given": [
+            "A non-cancelled task has type research or docs",
+            "The task has no evidence_policy and no bounded evidence-policy rationale"
+          ],
+          "when": "runPrepReadinessChecks is called",
+          "then": [
+            "A non-code evidence readiness error is returned",
+            "The planning gate remains blocked until the task has a valid evidence policy or bounded not_applicable rationale"
+          ]
+        },
+        {
+          "id": "rq-PR008nonCodeEvidence.2",
+          "title": "Non-code task with valid evidence policy passes readiness",
+          "given": [
+            "A non-cancelled research task has metadata.tdd_intent='not_applicable'",
+            "The task has evidence_policy='source_citation' and contract_refs to approved criteria"
+          ],
+          "when": "runPrepReadinessChecks is called",
+          "then": [
+            "No non-code evidence readiness error is returned for that task",
+            "The task remains eligible for review-matrix proof instead of red/green TDD proof"
           ]
         }
       ]

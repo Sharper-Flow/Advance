@@ -3,8 +3,8 @@
   "name": "subagent-reports",
   "title": "Sub-Agent Reports",
   "purpose": "Typed, durable ADV sub-agent report ingestion and readback. Replaces ADV worker final-message fenced JSON with Zod-validated tool-call submission, sidecar report persistence, deterministic scope-aware dedupe, and machine-readable downstream consumers.",
-  "version": "1.3.0",
-  "updated_at": "2026-06-20T00:00:00.000Z",
+  "version": "1.4.0",
+  "updated_at": "2026-06-22T00:00:00.000Z",
   "conformance_required": false,
   "requirements": [
     {
@@ -590,6 +590,41 @@
             "A linked change is created",
             "The relationship is follows_release or cleanup_after per agent choice",
             "The severity is standard, not required-critical"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-subagentNonCodeEvidence01",
+      "title": "Review Packets Surface Non-Code Evidence Policies",
+      "body": "ADV review and scanner worker packets MUST surface task type and evidence policy for non-code deliverables so reviewers can evaluate research, writing, design, approval, and documentation tasks against the approved contract without requiring fake TDD evidence. Persisted reviewer or scanner-bundle reports MUST preserve enough evidence summary for the orchestrator to build contract.reviewMatrix rows using the applicable evidence policy.",
+      "priority": "must",
+      "tags": ["subagents", "review", "non-code", "evidence", "contracts"],
+      "scenarios": [
+        {
+          "id": "rq-subagentNonCodeEvidence01.1",
+          "title": "Reviewer packet includes non-code task evidence policy",
+          "given": [
+            "A change includes a research or documentation task with an evidence policy"
+          ],
+          "when": "ADV prepares an acceptance review packet",
+          "then": [
+            "The packet includes the task type",
+            "The packet includes the task evidence policy",
+            "The packet includes the contract items the task implements, verifies, or respects"
+          ]
+        },
+        {
+          "id": "rq-subagentNonCodeEvidence01.2",
+          "title": "Review matrix can use non-code evidence policy",
+          "given": [
+            "A reviewer verifies a non-code deliverable against a contract item"
+          ],
+          "when": "The orchestrator persists contract.reviewMatrix rows",
+          "then": [
+            "The row uses the applicable non-code evidence policy",
+            "The row evidence cites the artifact, source audit, rubric review, or stakeholder acceptance proof",
+            "Missing, failing, or unknown proof remains blocking"
           ]
         }
       ]
