@@ -10,15 +10,32 @@ import {
 } from "./live-status";
 
 function fakeVisibilityClient(
-  executions: Array<{ id: string; attrs: Record<string, unknown[]> }>,
+  executions: Array<{
+    id: string;
+    attrs: Record<string, unknown[]>;
+    executionStatus?: "Running" | "Completed";
+  }>,
   listError?: Error,
 ) {
+  const queries: string[] = [];
   return {
+    queries,
     workflow: {
-      list: () => {
+      list: (opts: { query: string }) => {
         if (listError) throw listError;
+        queries.push(opts.query);
         async function* iter() {
+          const requiresRunning = /ExecutionStatus\s*=\s*"Running"/.test(
+            opts.query,
+          );
           for (const exec of executions) {
+            if (
+              requiresRunning &&
+              exec.executionStatus !== undefined &&
+              exec.executionStatus !== "Running"
+            ) {
+              continue;
+            }
             yield {
               workflowId: `adv/change/project123/${exec.id}`,
               searchAttributes: exec.attrs,
@@ -241,6 +258,44 @@ describe("visibility search-attribute status reader", () => {
     );
 
     expect(summaries.map((s) => s.id)).toEqual(["newer", "older"]);
+  });
+
+  test("filters active rows to running executions so stale completed workflows are excluded", async () => {
+    const client = fakeVisibilityClient([
+      {
+        id: "archivedButStaleActive",
+        executionStatus: "Completed",
+        attrs: {
+          AdvChangeTitle: ["Archived but stale active"],
+          AdvChangeStatus: ["active"],
+          AdvCurrentGate: ["release"],
+          AdvLastSignalAt: ["2026-06-05T16:30:00.000Z"],
+        },
+      },
+      {
+        id: "runningActive",
+        executionStatus: "Running",
+        attrs: {
+          AdvChangeTitle: ["Running active"],
+          AdvChangeStatus: ["active"],
+          AdvCurrentGate: ["execution"],
+          AdvLastSignalAt: ["2026-06-05T16:45:00.000Z"],
+        },
+      },
+    ]);
+
+    const summaries = await summariesFromVisibility(client, {
+      projectId: "project123",
+      now,
+    });
+
+    expect(client.queries).toHaveLength(1);
+    expect(client.queries[0]).toContain('AdvAffectedProjects = "project123"');
+    expect(client.queries[0]).toContain(
+      'AdvChangeStatus IN ("draft", "pending", "active")',
+    );
+    expect(client.queries[0]).toContain('ExecutionStatus = "Running"');
+    expect(summaries.map((s) => s.id)).toEqual(["runningActive"]);
   });
 
   test("summariesFromVisibility fails closed when visibility listing fails", async () => {

@@ -305,7 +305,8 @@ export async function summariesFromVisibility(
   const safeProjectId = projectId.replace(/"/g, '\\"');
   const query =
     `AdvAffectedProjects = "${safeProjectId}" ` +
-    `AND AdvChangeStatus IN ("draft", "pending", "active")`;
+    `AND AdvChangeStatus IN ("draft", "pending", "active") ` +
+    `AND ExecutionStatus = "Running"`;
 
   const collect = async (): Promise<ChangeSummary[]> => {
     const summaries: ChangeSummary[] = [];
