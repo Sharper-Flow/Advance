@@ -1,6 +1,14 @@
 import type { Change, Task } from "../types";
 import type { ValidationIssue } from "./types";
 
+// Contract traceability enforcement:
+// - rq-prepNonCodeEvidence01: non-code tasks must carry contract_refs or a
+//   bounded not_applicable_reason.
+// - rq-subagentNonCodeEvidence01: review matrix rows surface non-code evidence
+//   policies and statuses for acceptance evaluation.
+// - rq-nonCodeWorkflow01: tracked non-code deliverables participate in the same
+//   contract spine as code deliverables.
+
 type TaskWithContractRefs = Task & {
   contract_refs?: {
     implements?: string[];
@@ -82,7 +90,6 @@ export function runContractChecks(change: Change): ValidationIssue[] {
 
     if (
       contract.rigor !== "minimal" &&
-      task.type === "code" &&
       task.status !== "cancelled" &&
       !hasAnyTaskRef(refs) &&
       !refs?.not_applicable_reason
@@ -90,7 +97,7 @@ export function runContractChecks(change: Change): ValidationIssue[] {
       issues.push({
         code: "CONTRACT_TASK_REFS_MISSING",
         severity: "error",
-        message: `Code task "${task.title}" (${task.id}) needs contract_refs or not_applicable_reason for ${contract.rigor} rigor`,
+        message: `Task "${task.title}" (${task.id}) needs contract_refs or not_applicable_reason for ${contract.rigor} rigor`,
         path: `tasks.${task.id}.contract_refs`,
         details: { taskId: task.id, rigor: contract.rigor },
       });
