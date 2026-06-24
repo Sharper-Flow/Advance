@@ -1291,6 +1291,41 @@ function buildPendingMergePhase9Status(input: {
   };
 }
 
+function buildFailedPhase9Classification(input: {
+  change: Change;
+  finalization: GitFinalizeOutcome;
+}):
+  | {
+      phase9Failure: {
+        status: "failed";
+        error?: string;
+        blocker?: string;
+        recoverable: false;
+        remediation?: string;
+        details?: string[];
+      };
+    }
+  | Record<string, never> {
+  const phase9Status = input.change.phase9_status;
+  if (phase9Status?.status !== "failed") {
+    return {};
+  }
+  const blocked =
+    input.finalization.status === "blocked"
+      ? input.finalization.blocked
+      : undefined;
+  return {
+    phase9Failure: {
+      status: "failed",
+      error: phase9Status.error,
+      blocker: blocked?.reason,
+      recoverable: false,
+      remediation: blocked?.remediation,
+      details: blocked?.details,
+    },
+  };
+}
+
 async function recordPhase9Status(input: {
   store: Store;
   changeId: string;
@@ -4234,6 +4269,7 @@ export const changeTools = {
             requirement: "rq-releaseFinalization01",
             remediation: finalization.blocked?.remediation,
             details: finalization.blocked?.details,
+            ...buildFailedPhase9Classification({ change, finalization }),
             changeId,
             archivePath: archiveResult.archivePath,
             specsUpdated: archiveResult.specsUpdated.map((s) => ({
@@ -4344,6 +4380,21 @@ export const changeTools = {
               deltas: s.deltaResults.length,
             })),
             ...openOpsObligationsPayload,
+          });
+        }
+        if (
+          change.phase9_status?.status &&
+          change.phase9_status.status !== "done"
+        ) {
+          await recordPhase9Status({
+            store,
+            changeId,
+            status: {
+              status: "done",
+              startedAt:
+                change.phase9_status.startedAt ?? new Date().toISOString(),
+              completedAt: new Date().toISOString(),
+            },
           });
         }
         releaseGateCompletion = {

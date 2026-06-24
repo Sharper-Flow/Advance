@@ -172,6 +172,7 @@ function createMockStore(
   options: {
     releaseDone?: boolean;
     status?: Change["status"];
+    phase9_status?: Change["phase9_status"];
     durableReleasePending?: boolean;
     ops_followup_links?: OpsFollowupLink[];
   } = {},
@@ -202,6 +203,7 @@ function createMockStore(
     deltas: {},
     wisdom: [],
     gates,
+    phase9_status: options.phase9_status,
     ops_followup_links: options.ops_followup_links,
   };
 
@@ -555,6 +557,93 @@ describe("adv_change_archive Phase 9 behavior", () => {
       status: "shipped",
       pushStatus: "pushed",
     });
+  });
+
+  test("finalizes PR-merged pending_merge from existing bundle and records phase9 done", async () => {
+    mocks.findArchiveBundle.mockResolvedValue("/tmp/archive/example");
+    mocks.resolveReleaseReachability.mockReturnValueOnce({
+      reachable: true,
+      proof: "pr_merged",
+      prNumber: 42,
+      mergeCommitOid: "merge-42",
+      details: ["PR #42 merged"],
+    });
+    const store = createMockStore({
+      phase9_status: {
+        status: "pending_merge",
+        startedAt: "2026-01-01T00:00:00Z",
+        prNumber: 42,
+        prUrl: "https://github.com/Sharper-Flow/Advance/pull/42",
+        autoMergeArmed: true,
+        route: "pr_auto_merge",
+      },
+    });
+
+    const result = await changeTools.adv_change_archive.execute(
+      { changeId: "example" },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(true);
+    expect(mocks.resolveReleaseReachability).toHaveBeenCalledWith(
+      expect.objectContaining({
+        prNumber: 42,
+        route: expect.objectContaining({ route: "pr_auto_merge" }),
+      }),
+    );
+    expect(parsed.finalization).toMatchObject({
+      status: "shipped",
+      prNumber: 42,
+      mergeCommitSha: "merge-42",
+      pushStatus: "pushed",
+    });
+    expect(mocks.workflow.signalPayloads).toContainEqual(
+      expect.objectContaining({
+        phase9_status: expect.objectContaining({
+          status: "done",
+          startedAt: "2026-01-01T00:00:00Z",
+        }),
+      }),
+    );
+    expect(store.changes.save).toHaveBeenCalledWith(
+      expect.objectContaining({ status: "archived" }),
+    );
+  });
+
+  test("classifies failed phase9 without marking archived when recovery proof is missing", async () => {
+    mocks.findArchiveBundle.mockResolvedValue("/tmp/archive/example");
+    mocks.resolveReleaseReachability.mockReturnValueOnce({
+      reachable: false,
+      proof: "origin_unmerged",
+      details: ["change/example is not reachable from origin/trunk"],
+    });
+    const store = createMockStore({
+      phase9_status: {
+        status: "failed",
+        startedAt: "2026-01-01T00:00:00Z",
+        completedAt: "2026-01-01T00:05:00Z",
+        error: "Archive finalization blocked: PR_BRANCH_PUSH_FAILED",
+      },
+    });
+
+    const result = await changeTools.adv_change_archive.execute(
+      { changeId: "example" },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(false);
+    expect(parsed.phase9Failure).toMatchObject({
+      status: "failed",
+      error: "Archive finalization blocked: PR_BRANCH_PUSH_FAILED",
+      blocker: "CHANGE_BRANCH_NOT_REACHABLE_FROM_ORIGIN",
+      recoverable: false,
+    });
+    expect(parsed.phase9Failure.details).toContain(
+      "change/example is not reachable from origin/trunk",
+    );
+    expect(store.changes.save).not.toHaveBeenCalled();
   });
 
   test("blocks no-worktree reconciliation when Phase 9 evidence is missing", async () => {
