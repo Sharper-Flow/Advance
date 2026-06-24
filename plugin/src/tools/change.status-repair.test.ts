@@ -87,11 +87,9 @@ function createMockStore(change: Change): Store {
       })),
       list: vi.fn(async ({ status }: { status?: string } = {}) => ({
         changes: changes.filter((candidate) => {
-          if (status === "in-flight") {
+          if (status === undefined)
             return !["archived", "closed"].includes(candidate.status);
-          }
           if (status) return candidate.status === status;
-          return true;
         }),
       })),
       save: vi.fn(),
@@ -138,9 +136,9 @@ describe("adv_change_status_repair", () => {
         changes:
           status === "archived"
             ? [archivedChange]
-            : status === "in-flight"
+            : status === undefined
               ? []
-              : [archivedChange],
+              : [],
       }),
     );
 
@@ -178,7 +176,7 @@ describe("adv_change_status_repair", () => {
     (store.changes.list as ReturnType<typeof vi.fn>).mockImplementation(
       async ({ status }: { status?: string } = {}) => ({
         changes:
-          status === "archived" ? [] : status === "in-flight" ? [change] : [],
+          status === "archived" ? [] : status === undefined ? [change] : [],
       }),
     );
 
@@ -198,6 +196,34 @@ describe("adv_change_status_repair", () => {
       showStatus: "draft",
       inFlightCount: 1,
       archivedCount: 0,
+    });
+    expect(mocks.saveRecoveredChangeStatus).toHaveBeenCalledTimes(1);
+  });
+
+  test("fails closed when status repair readback throws after disk repair", async () => {
+    const change = wedgedChange();
+    const store = createMockStore(change);
+    (store.changes.get as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce({ success: true, data: change })
+      .mockRejectedValueOnce(new Error("workflow projection unavailable"));
+
+    const result = await changeTools.adv_change_status_repair.execute(
+      {
+        changeId: "wedgedChange",
+        approvedByUser: true,
+        approvalEvidence: "WorkflowNotFoundError + operator approved",
+      },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(false);
+    expect(parsed.error).toContain("read-after-write verification failed");
+    expect(parsed.error).toContain("readback threw");
+    expect(parsed.error).toContain("workflow projection unavailable");
+    expect(parsed.readback).toMatchObject({
+      inFlightCount: -1,
+      archivedCount: -1,
     });
     expect(mocks.saveRecoveredChangeStatus).toHaveBeenCalledTimes(1);
   });

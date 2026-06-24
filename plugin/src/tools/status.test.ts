@@ -1228,6 +1228,49 @@ Vague in-flight work.
         expect(parsed.recommendations_omitted).toBe(5);
       });
 
+      test("changes view keeps full recent-change drilldown uncapped", async () => {
+        const recent = Array.from({ length: 120 }, (_, index) => ({
+          id: `change-${index + 1}`,
+          title: `Change ${index + 1}`,
+          status: "active",
+          minutesSinceActivity: index + 1,
+          completedTasks: 0,
+          taskCount: 1,
+        }));
+        store.status = vi.fn(async () => ({
+          specs: { count: 1, capabilities: [] },
+          changes: {
+            active: 120,
+            byStatus: {
+              draft: 0,
+              pending: 0,
+              active: 120,
+              archived: 0,
+              closed: 0,
+            },
+            recent,
+          },
+          recommendations: Array.from(
+            { length: 15 },
+            (_, index) => `recommendation-${index + 1}`,
+          ),
+        }));
+        const getSpy = vi.spyOn(store.changes, "get");
+
+        const result = await statusTools.adv_status.execute(
+          { view: "changes" },
+          store,
+        );
+        const parsed = parseToolOutput(result);
+
+        expect(parsed.view).toBe("changes");
+        expect(parsed.changes.recent).toHaveLength(120);
+        expect(parsed.changes.omitted).toBeUndefined();
+        expect(parsed.recommendations).toHaveLength(15);
+        expect(parsed.recommendations_omitted).toBeUndefined();
+        expect(getSpy).toHaveBeenCalledTimes(120);
+      });
+
       test("health view: returns temporal_health + search_attributes + diagnostics", async () => {
         const result = await statusTools.adv_status.execute(
           { view: "health" },

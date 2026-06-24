@@ -1739,14 +1739,31 @@ async function verifyStatusRepairReadAfterWrite(input: {
   store: Store;
   changeId: string;
 }): Promise<StatusRepairReadbackResult> {
-  const showResult = await input.store.changes.get(input.changeId);
+  let showResult: Awaited<ReturnType<Store["changes"]["get"]>>;
+  let inFlight: Awaited<ReturnType<Store["changes"]["list"]>>;
+  let archived: Awaited<ReturnType<Store["changes"]["list"]>>;
+  try {
+    showResult = await input.store.changes.get(input.changeId);
+    [inFlight, archived] = await Promise.all([
+      // `in-flight` is a tool-layer union, not a persisted status. The
+      // default list surface is the durable draft/pending/active projection.
+      input.store.changes.list({}),
+      input.store.changes.list({ status: "archived", includeArchived: true }),
+    ]);
+  } catch (error) {
+    const readback = {
+      inFlightCount: -1,
+      archivedCount: -1,
+    } satisfies StatusRepairReadback;
+    return {
+      ok: false,
+      error: `readback threw: ${collectErrorText(error)}`,
+      readback,
+    };
+  }
   const showStatus = showResult.success
     ? (showResult.data?.status as Change["status"] | undefined)
     : undefined;
-  const [inFlight, archived] = await Promise.all([
-    input.store.changes.list({ status: "in-flight" }),
-    input.store.changes.list({ status: "archived", includeArchived: true }),
-  ]);
   const inFlightCount = inFlight.changes.filter(
     (change) => change.id === input.changeId,
   ).length;
@@ -5213,18 +5230,18 @@ export const changeTools = {
       },
       store: Store,
     ) => {
+      if (!approvalEvidence || approvalEvidence.trim().length === 0) {
+        return formatToolOutput({
+          error: "approvalEvidence is required for change status repair",
+          changeId,
+          hint: "Cite the wedged-state evidence (WorkflowNotFoundError / phase9_status.failed) and operator approval.",
+        });
+      }
+
       const runRepair = async (
         activeStore: Store,
         projectContext?: TargetProjectOutputContext,
       ) => {
-        if (!approvalEvidence || approvalEvidence.trim().length === 0) {
-          return formatToolOutput({
-            error: "approvalEvidence is required for change status repair",
-            changeId,
-            hint: "Cite the wedged-state evidence (WorkflowNotFoundError / phase9_status.failed) and operator approval.",
-          });
-        }
-
         const result = await activeStore.changes.get(changeId);
         if (!result.success) {
           return formatToolOutput({ error: result.error });

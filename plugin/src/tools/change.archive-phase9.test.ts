@@ -611,6 +611,62 @@ describe("adv_change_archive Phase 9 behavior", () => {
     );
   });
 
+  test("re-running after PR-merged pending_merge recovery remains idempotent", async () => {
+    mocks.findArchiveBundle.mockResolvedValue("/tmp/archive/example");
+    mocks.resolveReleaseReachability.mockReturnValue({
+      reachable: true,
+      proof: "pr_merged",
+      prNumber: 42,
+      mergeCommitOid: "merge-42",
+      details: ["PR #42 merged"],
+    });
+    const store = createMockStore({
+      phase9_status: {
+        status: "pending_merge",
+        startedAt: "2026-01-01T00:00:00Z",
+        prNumber: 42,
+        prUrl: "https://github.com/Sharper-Flow/Advance/pull/42",
+        autoMergeArmed: true,
+        route: "pr_auto_merge",
+      },
+    });
+
+    const first = JSON.parse(
+      await changeTools.adv_change_archive.execute(
+        { changeId: "example" },
+        store,
+      ),
+    );
+    const second = JSON.parse(
+      await changeTools.adv_change_archive.execute(
+        { changeId: "example" },
+        store,
+      ),
+    );
+
+    expect(first.success).toBe(true);
+    expect(second.success).toBe(true);
+    expect(first.finalization).toMatchObject({
+      status: "shipped",
+      prNumber: 42,
+      mergeCommitSha: "merge-42",
+    });
+    expect(second.finalization).toMatchObject({
+      status: "shipped",
+      prNumber: 42,
+      mergeCommitSha: "merge-42",
+    });
+    expect(second.archivePath).toBe("/tmp/archive/example");
+    expect(mocks.resolveReleaseReachability).toHaveBeenCalledTimes(2);
+    expect(store.changes.save).toHaveBeenCalledTimes(1);
+    const doneSignals = mocks.workflow.signalPayloads.filter(
+      (payload) =>
+        (payload.phase9_status as { status?: string } | undefined)?.status ===
+        "done",
+    );
+    expect(doneSignals).toHaveLength(2);
+  });
+
   test("classifies failed phase9 without marking archived when recovery proof is missing", async () => {
     mocks.findArchiveBundle.mockResolvedValue("/tmp/archive/example");
     mocks.resolveReleaseReachability.mockReturnValueOnce({
