@@ -358,6 +358,14 @@ export function buildLiveStatusPayloadFromSummaries(
   };
 }
 
+export function filterTerminalSummaries(
+  summaries: ChangeSummary[],
+  terminalChangeIds: ReadonlySet<string>,
+): ChangeSummary[] {
+  if (terminalChangeIds.size === 0) return summaries;
+  return summaries.filter((summary) => !terminalChangeIds.has(summary.id));
+}
+
 export async function loadLiveSummaries(
   projectId: string,
   now: Date,

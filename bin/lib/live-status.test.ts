@@ -4,6 +4,7 @@ import {
   buildLiveStatusPayload,
   buildLiveStatusPayloadFromSummaries,
   buildSummaryFromSearchAttributes,
+  filterTerminalSummaries,
   listLiveChangeStates,
   QUERY_TIMEOUT_MS,
   summariesFromVisibility,
@@ -329,5 +330,73 @@ describe("visibility search-attribute status reader", () => {
     expect(payload.stale).toBe(false);
     expect(payload.changes.map((c) => c.id)).toEqual(["c1"]);
     expect(payload.counts).toEqual({ active: 1, archived: 3, closed: 0 });
+  });
+
+  test("filters stale visibility rows proven terminal by disk ids while preserving stale-open rows", () => {
+    const archivedLookingOpen = buildSummaryFromSearchAttributes(
+      "archivedButStaleVisibility",
+      {
+        AdvChangeTitle: ["Archived but stale visibility"],
+        AdvChangeStatus: ["draft"],
+        AdvCurrentGate: ["acceptance"],
+        AdvLastSignalAt: ["2026-06-05T10:00:00.000Z"],
+      },
+      now,
+    );
+    const staleOpen = buildSummaryFromSearchAttributes(
+      "staleOpen",
+      {
+        AdvChangeTitle: ["Stale open"],
+        AdvChangeStatus: ["draft"],
+        AdvCurrentGate: ["execution"],
+        AdvLastSignalAt: ["2026-06-05T10:00:00.000Z"],
+      },
+      now,
+    );
+
+    const filtered = filterTerminalSummaries(
+      [archivedLookingOpen, staleOpen].filter(
+        (s): s is NonNullable<typeof s> => s !== null,
+      ),
+      new Set(["archivedButStaleVisibility"]),
+    );
+
+    expect(filtered.map((summary) => summary.id)).toEqual(["staleOpen"]);
+    expect(filtered[0]?.recency).toBe("stale");
+  });
+
+  test("does not filter live visibility rows merely because disk has no matching change dir", () => {
+    const staleOpen = buildSummaryFromSearchAttributes(
+      "staleOpen",
+      {
+        AdvChangeTitle: ["Stale open"],
+        AdvChangeStatus: ["draft"],
+        AdvCurrentGate: ["execution"],
+        AdvLastSignalAt: ["2026-06-05T10:00:00.000Z"],
+      },
+      now,
+    );
+    const phantom = buildSummaryFromSearchAttributes(
+      "visibilityOnlyActive",
+      {
+        AdvChangeTitle: ["Visibility only active"],
+        AdvChangeStatus: ["draft"],
+        AdvCurrentGate: ["design"],
+        AdvLastSignalAt: ["2026-06-05T10:00:00.000Z"],
+      },
+      now,
+    );
+
+    const filtered = filterTerminalSummaries(
+      [staleOpen, phantom].filter(
+        (s): s is NonNullable<typeof s> => s !== null,
+      ),
+      new Set(),
+    );
+
+    expect(filtered.map((summary) => summary.id)).toEqual([
+      "staleOpen",
+      "visibilityOnlyActive",
+    ]);
   });
 });

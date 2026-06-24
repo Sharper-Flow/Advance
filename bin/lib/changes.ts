@@ -55,6 +55,7 @@ import { join } from "path";
 
 export async function* listChanges(
   changesDir: string,
+  options: { quiet?: boolean } = {},
 ): AsyncGenerator<ChangeRecord> {
   let entries: string[];
   try {
@@ -65,13 +66,14 @@ export async function* listChanges(
 
   for (const entry of entries) {
     const changePath = join(changesDir, entry, "change.json");
-    const record = await loadChangeJson(changePath);
+    const record = await loadChangeJson(changePath, options);
     if (record) yield record;
   }
 }
 
 export async function loadChangeJson(
   filePath: string,
+  options: { quiet?: boolean } = {},
 ): Promise<ChangeRecord | null> {
   try {
     const raw = await readFile(filePath, "utf-8");
@@ -79,8 +81,10 @@ export async function loadChangeJson(
     if (!data.id || !data.created_at) return null;
     return data as ChangeRecord;
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    process.stderr.write(`warn: skipping ${filePath}: ${msg}\n`);
+    if (!options.quiet) {
+      const msg = err instanceof Error ? err.message : String(err);
+      process.stderr.write(`warn: skipping ${filePath}: ${msg}\n`);
+    }
     return null;
   }
 }

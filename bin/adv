@@ -31,6 +31,7 @@ import { renderSlopScanReport } from "./lib/slop-scan/render";
 import {
   buildLiveStatusFailure,
   buildLiveStatusPayloadFromSummaries,
+  filterTerminalSummaries,
   QUERY_TIMEOUT_MS,
   loadLiveSummaries,
 } from "./lib/live-status";
@@ -48,15 +49,22 @@ const VERSION = "0.1.0";
 async function countTerminalChanges(root: string): Promise<{
   archivedCount: number;
   closedCount: number;
+  terminalChangeIds: Set<string>;
 }> {
   let archivedCount = 0;
   let closedCount = 0;
+  const terminalChangeIds = new Set<string>();
   const archiveDir = join(root, "archive");
-  for await (const change of listChanges(archiveDir)) {
-    if (change.status === "archived") archivedCount++;
-    else if (change.status === "closed") closedCount++;
+  for await (const change of listChanges(archiveDir, { quiet: true })) {
+    if (change.status === "archived") {
+      archivedCount++;
+      terminalChangeIds.add(change.id);
+    } else if (change.status === "closed") {
+      closedCount++;
+      terminalChangeIds.add(change.id);
+    }
   }
-  return { archivedCount, closedCount };
+  return { archivedCount, closedCount, terminalChangeIds };
 }
 
 async function runStatus(noColor: boolean, json: boolean): Promise<number> {
@@ -98,7 +106,11 @@ async function runStatus(noColor: boolean, json: boolean): Promise<number> {
       loadLiveSummaries(projectId, now, timeoutMs),
       countTerminalChanges(root),
     ]);
-    const payload = buildLiveStatusPayloadFromSummaries(summaries, {
+    const visibleSummaries = filterTerminalSummaries(
+      summaries,
+      terminalCounts.terminalChangeIds,
+    );
+    const payload = buildLiveStatusPayloadFromSummaries(visibleSummaries, {
       projectId,
       now,
       ...terminalCounts,
@@ -177,7 +189,8 @@ async function runSlopScanCommand(
   const repoRoot = await resolveRepoRoot(process.cwd());
   const report = await runSlopScan({ repoRoot, requestedPath });
   if (json) process.stdout.write(emitJson(report) + "\n");
-  else process.stdout.write(renderSlopScanReport(report, shouldUseColor(noColor)));
+  else
+    process.stdout.write(renderSlopScanReport(report, shouldUseColor(noColor)));
   return 0;
 }
 
