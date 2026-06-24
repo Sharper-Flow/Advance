@@ -6,6 +6,7 @@ import type { Store } from "../storage/store";
 const mocks = vi.hoisted(() => ({
   findArchiveBundle: vi.fn(),
   saveRecoveredChangeStatus: vi.fn(),
+  withTargetPathStore: vi.fn(),
 }));
 
 vi.mock("../archive", async () => {
@@ -24,6 +25,17 @@ vi.mock("./_recovery-writers", async () => {
   return {
     ...actual,
     saveRecoveredChangeStatus: mocks.saveRecoveredChangeStatus,
+  };
+});
+
+vi.mock("./target-project", async () => {
+  const actual =
+    await vi.importActual<typeof import("./target-project")>(
+      "./target-project",
+    );
+  return {
+    ...actual,
+    withTargetPathStore: mocks.withTargetPathStore,
   };
 });
 
@@ -60,6 +72,7 @@ function wedgedChange(overrides: Partial<Change> = {}): Change {
 }
 
 function createMockStore(change: Change): Store {
+  const changes = [change];
   return {
     paths: {
       root: "/tmp/main",
@@ -70,7 +83,16 @@ function createMockStore(change: Change): Store {
     changes: {
       get: vi.fn(async (changeId: string) => ({
         success: true,
-        data: changeId === change.id ? change : null,
+        data: changes.find((candidate) => candidate.id === changeId) ?? null,
+      })),
+      list: vi.fn(async ({ status }: { status?: string } = {}) => ({
+        changes: changes.filter((candidate) => {
+          if (status === "in-flight") {
+            return !["archived", "closed"].includes(candidate.status);
+          }
+          if (status) return candidate.status === status;
+          return true;
+        }),
       })),
       save: vi.fn(),
       refresh: vi.fn(),
@@ -84,12 +106,43 @@ describe("adv_change_status_repair", () => {
     mocks.findArchiveBundle.mockResolvedValue(
       "/tmp/.adv/archive/2026-01-01-wedgedChange",
     );
-    mocks.saveRecoveredChangeStatus.mockImplementation(async () => undefined);
+    mocks.saveRecoveredChangeStatus.mockImplementation(
+      async (input: { change: Change; status: Change["status"] }) => {
+        input.change.status = input.status;
+      },
+    );
+    mocks.withTargetPathStore.mockImplementation(async (_input, fn) =>
+      fn({
+        context: {
+          root: "/target/project",
+          projectId: "target-project-id",
+          externalRoot: "/target/external",
+          trusted: true,
+          trustSource: "explicit",
+          stateMode: "temporal",
+        },
+        store: createMockStore(wedgedChange()),
+      }),
+    );
   });
 
   test("flips wedged status to archived when gates done + bundle present", async () => {
     const change = wedgedChange();
     const store = createMockStore(change);
+    const archivedChange = { ...change, status: "archived" as const };
+    (store.changes.get as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce({ success: true, data: change })
+      .mockResolvedValue({ success: true, data: archivedChange });
+    (store.changes.list as ReturnType<typeof vi.fn>).mockImplementation(
+      async ({ status }: { status?: string } = {}) => ({
+        changes:
+          status === "archived"
+            ? [archivedChange]
+            : status === "in-flight"
+              ? []
+              : [archivedChange],
+      }),
+    );
 
     const result = await changeTools.adv_change_status_repair.execute(
       {
@@ -109,6 +162,123 @@ describe("adv_change_status_repair", () => {
     expect(call.status).toBe("archived");
     expect(call.authorization.reason).toBe("operator_status_repair");
     expect(call.authorization.evidence).toContain("WorkflowNotFoundError");
+    expect(parsed.readback).toMatchObject({
+      showStatus: "archived",
+      inFlightCount: 0,
+      archivedCount: 1,
+    });
+  });
+
+  test("fails when status repair read-after-write still sees in-flight state", async () => {
+    const change = wedgedChange();
+    const store = createMockStore(change);
+    (store.changes.get as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce({ success: true, data: change })
+      .mockResolvedValue({ success: true, data: wedgedChange() });
+    (store.changes.list as ReturnType<typeof vi.fn>).mockImplementation(
+      async ({ status }: { status?: string } = {}) => ({
+        changes:
+          status === "archived" ? [] : status === "in-flight" ? [change] : [],
+      }),
+    );
+
+    const result = await changeTools.adv_change_status_repair.execute(
+      {
+        changeId: "wedgedChange",
+        approvedByUser: true,
+        approvalEvidence: "WorkflowNotFoundError + operator approved",
+      },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(false);
+    expect(parsed.error).toContain("read-after-write verification failed");
+    expect(parsed.readback).toMatchObject({
+      showStatus: "draft",
+      inFlightCount: 1,
+      archivedCount: 0,
+    });
+    expect(mocks.saveRecoveredChangeStatus).toHaveBeenCalledTimes(1);
+  });
+
+  test("routes target_path repair through target store with project context", async () => {
+    const targetChange = wedgedChange();
+    const targetStore = createMockStore(targetChange);
+    mocks.withTargetPathStore.mockImplementationOnce(async (input, fn) =>
+      fn({
+        context: {
+          root: input.target_path,
+          projectId: "target-project-id",
+          externalRoot: "/target/external",
+          trusted: true,
+          trustSource: "explicit",
+          stateMode: "temporal",
+        },
+        store: targetStore,
+      }),
+    );
+
+    const result = await changeTools.adv_change_status_repair.execute(
+      {
+        changeId: "wedgedChange",
+        approvedByUser: true,
+        approvalEvidence: "WorkflowNotFoundError + operator approved",
+        target_path: "/target/project",
+        target_confirmed: true,
+        confirmationEvidence: "user approved target mutation",
+      },
+      createMockStore(wedgedChange()),
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(true);
+    expect(parsed.status).toBe("archived");
+    expect(parsed._projectContext).toMatchObject({
+      root: "/target/project",
+      projectId: "target-project-id",
+      stateMode: "temporal",
+    });
+    expect(mocks.withTargetPathStore).toHaveBeenCalledWith(
+      expect.objectContaining({
+        target_path: "/target/project",
+        stateRequirement: "temporal-required",
+        target_confirmed: true,
+        confirmationEvidence: "user approved target mutation",
+      }),
+      expect.any(Function),
+    );
+  });
+
+  test("returns same-project repair packet when target_path is not serviceable", async () => {
+    mocks.withTargetPathStore.mockRejectedValueOnce(
+      new Error("Target project Temporal queue is not serviceable"),
+    );
+
+    const result = await changeTools.adv_change_status_repair.execute(
+      {
+        changeId: "wedgedChange",
+        approvedByUser: true,
+        approvalEvidence: "WorkflowNotFoundError + operator approved",
+        target_path: "/target/project",
+        target_confirmed: true,
+        confirmationEvidence: "user approved target mutation",
+      },
+      createMockStore(wedgedChange()),
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(false);
+    expect(parsed.error).toContain("Target project status repair unavailable");
+    expect(parsed.targetRepairPacket).toEqual({
+      workdir: "/target/project",
+      tool: "adv_change_status_repair",
+      args: {
+        changeId: "wedgedChange",
+        approvedByUser: true,
+        approvalEvidence: "WorkflowNotFoundError + operator approved",
+      },
+    });
   });
 
   test("dry run previews without writing the status flip", async () => {
@@ -231,9 +401,11 @@ describe("adv_change_status_repair", () => {
       await vi.importActual<typeof import("./_recovery-writers")>(
         "./_recovery-writers",
       );
-    mocks.saveRecoveredChangeStatus.mockImplementation(
-      realSaveRecoveredChangeStatus,
-    );
+    mocks.saveRecoveredChangeStatus.mockImplementation(async (input) => {
+      const updated = await realSaveRecoveredChangeStatus(input);
+      Object.assign(input.change, updated);
+      return updated;
+    });
 
     const change = wedgedChange();
     const store = createMockStore(change);
