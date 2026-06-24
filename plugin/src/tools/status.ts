@@ -147,6 +147,13 @@ const healthSnapshotCache = new Map<
 const STATUS_PROBE_TTL_MS = 2_000;
 const STATUS_PROBE_TIMEOUT_MS = 2_000;
 const MISSING_PROJECT_ID_CACHE_KEY = "__current_project__";
+const STATUS_SUMMARY_RECENT_LIMIT = 10;
+const STATUS_SUMMARY_RECOMMENDATION_LIMIT = 10;
+
+interface StatusSummaryOmissions {
+  recentChanges: number;
+  recommendations: number;
+}
 
 const statusTemporalHealthProbeCache = createProbeCache<
   TemporalHealthSnapshot,
@@ -788,6 +795,21 @@ async function loadMigrationStatus(_store: Store) {
   return null;
 }
 
+function capSummaryRecommendations(status: {
+  recommendations: string[];
+}): number {
+  const omitted = Math.max(
+    0,
+    status.recommendations.length - STATUS_SUMMARY_RECOMMENDATION_LIMIT,
+  );
+  if (omitted === 0) return 0;
+  status.recommendations = [
+    ...status.recommendations.slice(0, STATUS_SUMMARY_RECOMMENDATION_LIMIT),
+    `… ${omitted} additional recommendation(s) omitted from summary view — use view:"changes", view:"hygiene", or view:"health" for details.`,
+  ];
+  return omitted;
+}
+
 const STATUS_BOOTSTRAP_RETRY_DELAY_MS = 50;
 const STATUS_BOOTSTRAP_MAX_ATTEMPTS = 3;
 
@@ -1014,6 +1036,9 @@ export function applyStatusView(
         byStatus?: Record<string, number>;
       }
     | undefined;
+  const statusSummaryOmissions = full.status_summary_omissions as
+    | StatusSummaryOmissions
+    | undefined;
   const temporalHealth = full.temporal_health as
     | { server_alive?: boolean }
     | undefined;
@@ -1030,8 +1055,15 @@ export function applyStatusView(
           recency: c.recency,
           minutesSinceActivity: c.minutesSinceActivity,
         })),
+        ...(statusSummaryOmissions?.recentChanges
+          ? { omitted: statusSummaryOmissions.recentChanges }
+          : {}),
       };
       projection.recommendations = full.recommendations ?? [];
+      if (statusSummaryOmissions?.recommendations) {
+        projection.recommendations_omitted =
+          statusSummaryOmissions.recommendations;
+      }
       projection.temporal_health_ok = !!temporalHealth?.server_alive;
       projection.worktree_count = worktreeCensus?.total ?? 0;
       projection.terminal_cleanup_retained = full.terminal_cleanup_retained;
@@ -1348,6 +1380,10 @@ export const statusTools = {
         { store, target_path },
         async (activeStore, projectContext) => {
           const plan = buildStatusViewPlan(view);
+          const summaryOmissions: StatusSummaryOmissions = {
+            recentChanges: 0,
+            recommendations: 0,
+          };
           const { status, bootstrapDiagnostic } = await withRecordedPhase(
             "adv_status",
             "statusLoad",
@@ -1467,7 +1503,7 @@ export const statusTools = {
           );
 
           if (plan.recentEnrichment) {
-            const recentChanges = await withRecordedPhase(
+            let recentChanges = await withRecordedPhase(
               "adv_status",
               "recentChangeScopeFilter",
               () =>
@@ -1477,6 +1513,17 @@ export const statusTools = {
                   scope,
                 ),
             );
+            if (
+              view === "summary" &&
+              recentChanges.length > STATUS_SUMMARY_RECENT_LIMIT
+            ) {
+              summaryOmissions.recentChanges =
+                recentChanges.length - STATUS_SUMMARY_RECENT_LIMIT;
+              recentChanges = recentChanges.slice(
+                0,
+                STATUS_SUMMARY_RECENT_LIMIT,
+              );
+            }
             status.changes.recent = recentChanges;
             const features = activeStore.config?.features as
               | FeatureFlags
@@ -1620,6 +1667,11 @@ export const statusTools = {
               // Archived branch hygiene is advisory and git-backed. Non-git
               // project fixtures and degraded runtimes must still get status.
             }
+          }
+
+          if (view === "summary") {
+            summaryOmissions.recommendations =
+              capSummaryRecommendations(status);
           }
 
           let snapshotHealth: SnapshotHealthSnapshot | undefined;
@@ -1794,6 +1846,7 @@ export const statusTools = {
             snapshot_health: snapshotHealth,
             _healthSnapshot: healthSnapshot,
             archived_branch_hygiene: archivedBranchHygiene,
+            status_summary_omissions: summaryOmissions,
             // AC6: in-memory counters surfaced via view: "health".
             // Counters reset on plugin init (JC-1).
             metrics: getMetrics(),

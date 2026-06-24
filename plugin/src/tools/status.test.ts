@@ -1183,6 +1183,51 @@ Vague in-flight work.
         expect(parsed.diagnostics).toBeUndefined();
       });
 
+      test("summary view caps recent changes before enrichment and reports omitted counts", async () => {
+        const recent = Array.from({ length: 120 }, (_, index) => ({
+          id: `change-${index + 1}`,
+          title: `Change ${index + 1}`,
+          status: "active",
+          minutesSinceActivity: index + 1,
+          completedTasks: 0,
+          taskCount: 1,
+        }));
+        store.status = vi.fn(async () => ({
+          specs: { count: 1, capabilities: [] },
+          changes: {
+            active: 120,
+            byStatus: {
+              draft: 0,
+              pending: 0,
+              active: 120,
+              archived: 0,
+              closed: 0,
+            },
+            recent,
+          },
+          recommendations: Array.from(
+            { length: 15 },
+            (_, index) => `recommendation-${index + 1}`,
+          ),
+        }));
+        const getSpy = vi.spyOn(store.changes, "get");
+
+        const result = await statusTools.adv_status.execute(
+          { view: "summary" },
+          store,
+        );
+        const parsed = parseToolOutput(result);
+
+        expect(parsed.changes.recent).toHaveLength(10);
+        expect(parsed.changes.omitted).toBe(110);
+        expect(getSpy).toHaveBeenCalledTimes(10);
+        expect(parsed.recommendations).toHaveLength(11);
+        expect(parsed.recommendations[10]).toContain(
+          "additional recommendation(s) omitted from summary view",
+        );
+        expect(parsed.recommendations_omitted).toBe(5);
+      });
+
       test("health view: returns temporal_health + search_attributes + diagnostics", async () => {
         const result = await statusTools.adv_status.execute(
           { view: "health" },
