@@ -1,0 +1,1421 @@
+{
+  "id": "fixArchiveStatusDrift",
+  "title": "Fix archive status drift",
+  "status": "archived",
+  "created_at": "2026-06-24T02:40:11.544Z",
+  "tasks": [
+    {
+      "id": "tk-da4695ad6a2f",
+      "title": "Verify Advance status fix and live reload boundary",
+      "type": "verification",
+      "status": "cancelled",
+      "priority": 0,
+      "created_at": "2026-06-24T03:00:04.541Z",
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "contract_refs": {
+        "verifies": [
+          "AC3",
+          "AC4",
+          "AC6"
+        ],
+        "respects": [
+          "C4",
+          "DONT1"
+        ]
+      },
+      "evidence_policy": "test",
+      "cancelApproval": "User approved via question tool: selected \"Approve cancellations\".",
+      "cancelledAt": "2026-06-24T17:10:13.205Z",
+      "completed_at": "2026-06-24T17:10:13.205Z",
+      "cancellation": {
+        "reason": "Superseded by expanded verification task tk-bce8a79e709a after discovery/design re-entry.",
+        "approved_by_user": true,
+        "approval_evidence": "User approved via question tool: selected \"Approve cancellations\".",
+        "approved_at": "2026-06-24T17:10:13.205Z"
+      }
+    },
+    {
+      "id": "tk-cd42c912e80b",
+      "title": "Fix /adv-status archive-bundle dominance",
+      "type": "code",
+      "status": "cancelled",
+      "priority": 0,
+      "created_at": "2026-06-24T03:00:04.549Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC3",
+          "AC4"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "DONT4"
+        ]
+      },
+      "evidence_policy": "test",
+      "cancelApproval": "User approved via question tool: selected \"Approve cancellations\".",
+      "cancelledAt": "2026-06-24T17:10:13.205Z",
+      "completed_at": "2026-06-24T17:10:13.205Z",
+      "cancellation": {
+        "reason": "Superseded by expanded status performance and repair consistency tasks tk-b44f201306ef and tk-0d0ebb995496 after discovery/design re-entry.",
+        "approved_by_user": true,
+        "approval_evidence": "User approved via question tool: selected \"Approve cancellations\".",
+        "approved_at": "2026-06-24T17:10:13.205Z"
+      }
+    },
+    {
+      "id": "tk-176e46b737a3",
+      "title": "Add archive/status drift regression coverage",
+      "type": "code",
+      "status": "cancelled",
+      "priority": 0,
+      "created_at": "2026-06-24T03:00:04.550Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC4",
+          "AC6"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "DONT3"
+        ]
+      },
+      "evidence_policy": "test",
+      "cancelApproval": "User approved via question tool: selected \"Approve cancellations\".",
+      "cancelledAt": "2026-06-24T17:10:13.205Z",
+      "completed_at": "2026-06-24T17:10:13.205Z",
+      "cancellation": {
+        "reason": "Superseded by expanded regression coverage across archive recovery, repair consistency, status performance, and verification tasks after discovery/design re-entry.",
+        "approved_by_user": true,
+        "approval_evidence": "User approved via question tool: selected \"Approve cancellations\".",
+        "approved_at": "2026-06-24T17:10:13.205Z"
+      }
+    },
+    {
+      "id": "tk-81f50b1f3a8c",
+      "title": "Implement archive finalization recovery and failed phase9 classification",
+      "type": "code",
+      "section": "Archive Recovery",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-06-24T16:44:46.379Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "SC1",
+          "SC5"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC6"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C5",
+          "DONT2",
+          "DONT3"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-24T17:14:46.241Z",
+      "verification": "pnpm test -- src/tools/change.archive-phase9.test.ts passed (adv_run_test runId tr_mqschp7c_af2d436d). Added RED coverage first for PR-merged pending_merge recovery and failed phase9 classification, then made it pass.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added regression coverage for existing-bundle PR-merged pending_merge recovery, including PR route/prNumber reachability proof, phase9_status done recording, and archive status save. Added regression coverage for phase9_status failed with missing structural proof, requiring a phase9Failure classification and no archive status save. Implemented buildFailedPhase9Classification and sync-path phase9_status done recording after durable release gate proof and before archive status transition.",
+      "filesTouched": [
+        "plugin/src/tools/change.archive-phase9.test.ts",
+        "plugin/src/tools/change.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/change.archive-phase9.test.ts",
+        "plugin/src/tools/change.ts"
+      ],
+      "checkpointSha": "b56afebdf1b550e8dc56e5028de07d2948a410a8",
+      "completedAt": "2026-06-24T17:26:57.361Z",
+      "completed_at": "2026-06-24T17:26:57.361Z",
+      "notes": "Implemented archive finalization recovery for PR-merged pending_merge re-entry and failed phase9 blocker classification. Verification passed: pnpm test -- src/tools/change.archive-phase9.test.ts (adv_run_test tr_mqschp7c_af2d436d). Checkpoint b56afebdf1b550e8dc56e5028de07d2948a410a8 recorded.",
+      "error_recovery": {
+        "last_error": "Initial RED run failed as expected: phase9_status done was not recorded on sync existing-bundle recovery, and failed phase9 blocker output lacked phase9Failure classification.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "Proceed to next ready task after checkpoint.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "RED tests failed: expected phase9_status done signal and phase9Failure classification were absent.",
+            "diagnosis": "Archive sync recovery finalized release/status but did not persist phase9 done for stale pending_merge; blocked failed phase9 output did not structurally classify the failed state.",
+            "fix_tried": "Added buildFailedPhase9Classification and recordPhase9Status(done) in the sync shipped path after durable release proof.",
+            "strategy_label": "add_structural_phase9_recovery_outputs",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-24T17:25:00.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-24T17:27:36.700Z"
+    },
+    {
+      "id": "tk-b44f201306ef",
+      "title": "Implement bounded status summary before enrichment",
+      "type": "code",
+      "section": "Status Performance",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-06-24T16:44:46.468Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC4",
+          "AC5",
+          "SC3"
+        ],
+        "verifies": [
+          "AC4",
+          "AC5",
+          "AC6"
+        ],
+        "respects": [
+          "C4",
+          "DONT4"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-24T17:28:36.796Z",
+      "verification": "pnpm test -- src/tools/status.test.ts passed (adv_run_test runId tr_mqscv5z5_3eaad03e). Added RED coverage first for 120-change summary capping before enrichment and 15-recommendation omission marker, then made it pass.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added summary view caps: recent changes are sliced to 10 before recentChangeEnrichment, preventing unbounded store.changes.get/readArtifact work on large WIP sets. Added recommendation cap of 10 plus an omitted-count marker. Summary projection now exposes changes.omitted and recommendations_omitted. Regression covers 120 recent changes, 15 recommendations, capped enrichment calls, and omitted markers.",
+      "filesTouched": [
+        "plugin/src/tools/status.test.ts",
+        "plugin/src/tools/status.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/status.test.ts",
+        "plugin/src/tools/status.ts"
+      ],
+      "checkpointSha": "2086c312740f04e9431f3b81ce91e9904342823a",
+      "completedAt": "2026-06-24T17:37:24.331Z",
+      "completed_at": "2026-06-24T17:37:24.331Z",
+      "notes": "Implemented bounded summary before enrichment. Verification passed: pnpm test -- src/tools/status.test.ts (adv_run_test tr_mqscv5z5_3eaad03e). Checkpoint 2086c312740f04e9431f3b81ce91e9904342823a recorded.",
+      "error_recovery": {
+        "last_error": "Initial RED run failed as expected: summary returned 120 recent changes and enriched all 120 instead of capping before enrichment.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "Proceed to next ready task after checkpoint.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "RED test failed: parsed.changes.recent length was 120 instead of 10.",
+            "diagnosis": "Summary view projected full recent list and bounded neither recent changes nor recommendations before enrichment/projection.",
+            "fix_tried": "Added summary recent cap before enrichment and summary recommendation cap with structured omitted counts.",
+            "strategy_label": "summary_pre_enrichment_cap",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-24T17:36:00.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-24T17:37:45.106Z"
+    },
+    {
+      "id": "tk-3d5aff890fad",
+      "title": "Add archive/status repair spec requirements",
+      "type": "docs",
+      "section": "Spec Law",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-06-24T16:44:47.970Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "SC4",
+          "SC5"
+        ],
+        "verifies": [
+          "AC6"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C4",
+          "C5",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "static_check",
+      "assignedTo": "agent",
+      "started_at": "2026-06-24T17:38:33.010Z",
+      "verification": "Spec JSON parsed successfully via node. pnpm run schemas:check passed (adv_run_test tr_mqsd855r_11b2276e). Asset/citation tests passed: pnpm exec vitest run src/archive-release-finalization-assets.test.ts src/adv-skill-backed-commands-assets.test.ts src/ops-follow-up-assets.test.ts src/__tests__/spec-citation-invariant.test.ts (adv_run_test tr_mqsde3sd_cca1881d).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Bumped advance-workflow to 1.21.0 with rq-archiveRecoveryConsistency01 covering PR-merged pending_merge recovery, failed phase9 fail-closed classification, status repair read-after-write visibility, target direct-or-packet behavior, and no direct external ADV state edits. Bumped advance-meta to 1.17.0 with rq-advStatusBoundedSummary01 covering summary recent cap before enrichment, recommendation cap with omitted marker, and detailed-view drilldowns. Updated docs/spec mirrors, version asset expectations, and code citations for spec-citation invariant.",
+      "filesTouched": [
+        ".adv/specs/advance-meta/spec.json",
+        ".adv/specs/advance-workflow/spec.json",
+        "docs/specs/advance-meta.md",
+        "docs/specs/advance-workflow.md",
+        "plugin/src/adv-skill-backed-commands-assets.test.ts",
+        "plugin/src/ops-follow-up-assets.test.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/status.ts"
+      ],
+      "touched_files": [
+        ".adv/specs/advance-meta/spec.json",
+        ".adv/specs/advance-workflow/spec.json",
+        "docs/specs/advance-meta.md",
+        "docs/specs/advance-workflow.md",
+        "plugin/src/adv-skill-backed-commands-assets.test.ts",
+        "plugin/src/ops-follow-up-assets.test.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/status.ts"
+      ],
+      "checkpointSha": "1f8bc8dbf4d61ebb9df2a50658a293fdf4678776",
+      "completedAt": "2026-06-24T17:52:30.710Z",
+      "completed_at": "2026-06-24T17:52:30.710Z",
+      "notes": "Added archive/status repair and bounded summary spec law. Verification passed: JSON parse, pnpm run schemas:check (tr_mqsd855r_11b2276e), asset/citation tests (tr_mqsde3sd_cca1881d). Checkpoint 1f8bc8dbf4d61ebb9df2a50658a293fdf4678776 recorded.",
+      "error_recovery": {
+        "last_error": "First asset verification exposed required spec-law maintenance: version asset tests expected advance-workflow 1.20.0 and spec citation invariant flagged new requirement IDs without external citations.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "Proceed to repair read-after-write/target packet task.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "Asset tests failed after spec version bump and new requirements: expected workflow version 1.20.0; new requirements lacked external citations.",
+            "diagnosis": "Spec-law changes require coordinated version asset updates and code/test citations outside docs/spec mirrors.",
+            "fix_tried": "Updated version asset tests to 1.21.0 and added rq-archiveRecoveryConsistency01 / rq-advStatusBoundedSummary01 code citations.",
+            "strategy_label": "spec_asset_citation_alignment",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-24T17:49:00.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-24T17:53:18.195Z"
+    },
+    {
+      "id": "tk-0d0ebb995496",
+      "title": "Implement repair read-after-write verifier and target direct-or-packet path",
+      "type": "code",
+      "section": "Repair Consistency",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-06-24T16:44:48.124Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC3",
+          "AC8",
+          "SC2",
+          "SC4",
+          "SC5"
+        ],
+        "verifies": [
+          "AC3",
+          "AC6",
+          "AC7",
+          "AC8"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "DONT1",
+          "DONT3"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-24T17:54:01.247Z",
+      "verification": "PASS: bin/oc-test targeted -- src/tools/change.status-repair.test.ts (11 tests); PASS: pnpm run typecheck; PASS: pnpm run lint; PASS: pnpm run format:check",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added verifyStatusRepairReadAfterWrite to require canonical readback after disk-projection status repair: store.changes.get reports archived, in-flight list excludes the change, and archived list includes it exactly once. Extended adv_change_status_repair with target_path/target_confirmed/confirmationEvidence routing via withTargetPathStore; non-serviceable target mutation fails closed with a same-project targetRepairPacket. Added regression coverage for readback mismatch, target_store routing/project context, target serviceability packet fallback, and real recovery writer no-refresh behavior.",
+      "filesTouched": [
+        "plugin/src/tools/change.status-repair.test.ts",
+        "plugin/src/tools/change.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/change.status-repair.test.ts",
+        "plugin/src/tools/change.ts"
+      ],
+      "checkpointSha": "c8373fe0c24de9ff371e07935c751417e876a396",
+      "completedAt": "2026-06-24T18:13:47.453Z",
+      "completed_at": "2026-06-24T18:13:47.453Z",
+      "notes": "Implemented status repair read-after-write verification and target_path direct-or-packet routing. Checkpoint c8373fe0c24de9ff371e07935c751417e876a396.",
+      "error_recovery": {
+        "last_error": "Initial targeted test failed because real saveRecoveredChangeStatus writes disk directly and the mock store did not reflect the post-write archived readback.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "n/a — fixed mock readback expectations and reran verification successfully",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "bin/oc-test targeted -- src/tools/change.status-repair.test.ts failed: expected parsed.success true, got false in real saveRecoveredChangeStatus test.",
+            "diagnosis": "New read-after-write verifier correctly required store readback, but the unit test's mock Store did not model disk-direct recovery readback after using the real writer.",
+            "fix_tried": "Updated test to return archived data for post-write get/list readback while still asserting store.changes.refresh is not called.",
+            "strategy_label": "align-unit-mock-with-readback-contract",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-24T18:10:16Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-24T18:14:11.465Z"
+    },
+    {
+      "id": "tk-bce8a79e709a",
+      "title": "Run full repository verification and report live reload boundary",
+      "type": "verification",
+      "section": "Verification",
+      "status": "done",
+      "priority": 5,
+      "created_at": "2026-06-24T16:45:45.118Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "contract_refs": {
+        "implements": [],
+        "verifies": [
+          "AC9",
+          "AC6"
+        ],
+        "respects": [
+          "C4",
+          "DONT1"
+        ],
+        "not_applicable_reason": "Verification-only task."
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-24T18:15:05.291Z",
+      "verification": "Review remediation verification passed: bin/oc-test targeted -- src/tools/change.status-repair.test.ts src/tools/status.test.ts src/tools/change.archive-phase9.test.ts; pnpm run lint; pnpm run format:check; pnpm run check. Earlier pnpm run check exit 139 was isolated to eslint segfault; rerun lint and full check passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/change.archive-phase9.test.ts",
+        "plugin/src/tools/change.status-repair.test.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/status.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/change.archive-phase9.test.ts",
+        "plugin/src/tools/change.status-repair.test.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/status.test.ts"
+      ],
+      "checkpointSha": "f5cca0261324c4c3232165280a08619a61b36e9b",
+      "completedAt": "2026-06-24T18:51:05.419Z",
+      "completed_at": "2026-06-24T18:51:05.419Z",
+      "notes": "Full repository verification passed. Checkpoint clean at c8373fe0c24de9ff371e07935c751417e876a396. Live reload boundary: current source/worktree verified; OpenCode must rebuild/sync/restart before live tool schema changes are available in an existing session.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "n/a — verification passed",
+        "attempts": []
+      },
+      "updatedAt": "2026-06-24T18:18:47.554Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "fixArchiveStatusDrift",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:discovery-opportunity-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Discovery opportunity scout: archive status drift + status performance",
+      "sources": [
+        {
+          "label": "GH issue #168 (critical bug)",
+          "locator": "https://github.com/Sharper-Flow/Advance/issues/168",
+          "summary": "Critical: adv_change_status_repair returns success (status:archived, _recoveryMutation:true) but adv_change_show returns draft and adv_change_list(in-flight) still includes it -> read-after-write split-brain. Desired: repair success gated on same durable source reads use; in-flight and archived lists cannot both include the same change."
+        },
+        {
+          "label": "_recovery-writers.ts saveRecoveredChangeStatus",
+          "locator": "plugin/src/tools/_recovery-writers.ts:175-189",
+          "summary": "Status repair writes disk-ONLY via saveChange and intentionally skips refresh (comment lines 24-28 claims Temporal read path treats archive bundle as dominant). Split-brain occurs when no bundle exists for the wedged change, so bundle-dominance reconciliation never fires."
+        },
+        {
+          "label": "change.ts async phase9 pending_merge early-return",
+          "locator": "plugin/src/tools/change.ts:4077-4087",
+          "summary": "When finalization returns pending_merge, the async dispatch records phase9_status:pending_merge and returns BEFORE writing an archive bundle or completing the release gate. No re-drive path re-enters this state on a later run -> recovery dead zone."
+        },
+        {
+          "label": "adv_change_status_repair invariants",
+          "locator": "plugin/src/tools/change.ts:5048-5180",
+          "summary": "Repair refuses unless ALL 7 gates done (5114-5125) AND archive bundle present on disk (5129-5137). pending_merge PokeEdge cases have release gate PENDING and no bundle, so this tool cannot recover them. fixPtcgdataCatalogParser (pending_merge after PR #584 merged) falls in this gap."
+        },
+        {
+          "label": "resolveReleaseReachability PR-merge detection",
+          "locator": "plugin/src/tools/archive-helpers/git-finalize.ts:2156-2245",
+          "summary": "Rich structural PR evidence already exists: readPrMergeState MERGED+mergedAt -> proof:pr_merged, plus discoverMergedPr auto-discovery and detectSquashMergeByTree fallback. Leverage point: this proof is NOT invoked to finalize a stale pending_merge change outside the original async dispatch."
+        },
+        {
+          "label": "adv_archive_repair redrive scope",
+          "locator": "plugin/src/tools/change.ts:4788-4843",
+          "summary": "redrive operates only on ALREADY-archived changes (archivedChangeIds.includes(changeId) guard at 4795). It cannot recover a change wedged at pending_merge that never reached archived status."
+        },
+        {
+          "label": "status.ts unbounded recommendations + enrichment",
+          "locator": "plugin/src/tools/status.ts:1034,1469-1507,607-676",
+          "summary": "Summary view sets projection.recommendations = full.recommendations ?? [] with NO cap (1034). recentEnrichment loops ALL non-terminal recent changes (1491-1505), each doing store.changes.get + readArtifact + snapshot render (615-635) and pushing 1-3 recs each (654-675). 118 in-flight -> ~118 gets + 118 artifact reads + ~210 recs -> ~90k char output."
+        },
+        {
+          "label": "store-temporal recent builder",
+          "locator": "plugin/src/storage/store-temporal/index.ts:876-893",
+          "summary": "recent[] includes every non-archived/non-closed change unbounded before enrichment; no top-N slice prior to the expensive per-change enrichment."
+        },
+        {
+          "label": "Boring reference: bounded slice already used in-repo",
+          "locator": "plugin/src/tools/backlog.ts:419 and roadmap.ts:608",
+          "summary": "features.slice(0, top) is the existing boring bounded-output pattern in the same codebase; same approach (cap recent enrichment + recommendations) is the proven, non-novel fix."
+        }
+      ],
+      "architecture_assessment": "Two structural defect families confirmed within approved scope.\n\nDEFECT FAMILY A — recovery dead zone for pending_merge: The async phase9 path records phase9_status:pending_merge and returns early without bundle/release-gate completion (change.ts:4077-4087). There is NO idempotent re-drive that re-enters this state on a later session. adv_archive_repair redrive only handles already-archived changes (4795 guard). adv_change_status_repair refuses because release gate is pending and no bundle exists (5114-5137). Meanwhile resolveReleaseReachability (git-finalize.ts:2156-2245) ALREADY has the exact structural PR-merge proof (readPrMergeState MERGED, discoverMergedPr, detectSquashMergeByTree) needed to finalize fixPtcgdataCatalogParser-class cases. The fix is wiring existing proof into a re-entrant finalization path keyed on phase9_status:pending_merge — not new heuristics. This directly serves AC1/AC2.\n\nDEFECT FAMILY B — read-after-write split-brain (GH #168, priority:critical): saveRecoveredChangeStatus (_recovery-writers.ts:175-189) writes disk-only and skips refresh, trusting bundle-dominance in listResolvedChanges. But the wedged class has NO bundle, so reads (Temporal Visibility) keep returning draft while repair claims archived. Status repair success must be gated on the same durable source the read paths use, or fail with evidence mismatch. This is a structural-correctness requirement (P33), not cosmetic.\n\nDEFECT FAMILY C — unbounded status output: status.ts summary view applies no cap to recommendations (1034) and enriches all non-terminal changes (1469-1507) with per-change get+artifact+snapshot. The boring fix (cap recent enrichment + slice recommendations, mirroring backlog.ts:419 slice(0,top)) is already the in-repo idiom. Serves AC3.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "All claims sourced to code locations and GH #168. No contradictory evidence. One coordination note for orchestrator: GH #168 (priority:critical, read-after-write split-brain) is arguably MORE severe than the proposal's primary framing because it makes repair success untrustworthy and can double-list a change. Discovery agreement should explicitly add the read-after-write consistency invariant from #168 AC list (it overlaps but is not identical to current AC1/AC2). Cross-project mutation blocker noted in #168 (target queue not_serviceable / peer_owned_without_serviceability_evidence) ties to linked issue #175 and may make the cross-project recovery path (proposal item 4 / Design step 3) infeasible to mutate from this session — recommend scoping item 4 to documenting the limitation + a same-project repair tool rather than implementing cross-project mutation now."
+      },
+      "recommendation": "Adopt 3 candidates into discovery scope; surface 2 to user; defer 0.\n\nAUTO-ADOPT into discovery agreement:\n1. (Family A) Add re-entrant pending_merge finalization that reuses resolveReleaseReachability PR-merge proof to complete release gate + bundle + status->archived idempotently. Ties to AC1/AC2, C1/C2. Reuses existing structural proof — boring, no new heuristics.\n2. (Family B) Make adv_change_status_repair (and any disk-projection status write) read-after-write consistent: gate success on the same durable source adv_change_show/adv_change_list use, or fail with source/evidence mismatch instead of returning success. Ties to GH #168 AC, C1. Add the #168 read-after-write invariant explicitly to the agreement AC set.\n3. (Family C) Bound status summary: cap recommendations (slice top-N) and cap/skip recentEnrichment in summary view; gate heavy per-change archaeology behind view:changes|hygiene|health with pagination. Mirror existing backlog.ts:419 slice idiom. Ties to AC3/AC4/C4.\n\nUSER-SURFACE:\n4. Scope of proposal item 4 (cross-project operator ergonomics): #168 + #175 evidence suggests cross-project MUTATION from this session is blocked (target queue not_serviceable). Ask whether to (a) implement a same-project audited repair tool + document the cross-project limitation, or (b) invest in the peer-owned serviceability path (#175) now. Recommend (a) for this change.\n5. Severity reframing: confirm with user that GH #168 read-after-write split-brain is treated as the critical anchor (it makes repair success untrustworthy). It overlaps but is broader than the proposal's pending_merge framing.\n\nAVOID (agreement DONT alignment): do not add title/name-based status flips (DONT3); do not rely on git branch --merged for squash-merge proof (DONT2 — use existing detectSquashMergeByTree/readPrMergeState); do not add unbounded GitHub API calls to default status (DONT4 — keep PR evidence only in explicit repair/finalization paths, not /adv-status summary).",
+      "follow_ups": [
+        "Orchestrator: consider adding explicit AC for read-after-write consistency from GH #168 to discovery agreement (overlaps but extends current AC1/AC2).",
+        "Verify whether listResolvedChanges bundle-dominance (store-temporal/index.ts:762-801) can be extended to treat a typed terminal phase9 evidence record (not just bundle presence) as archived-dominant, closing the no-bundle split-brain at the read layer.",
+        "Confirm cross-project mutation feasibility (#175 peer_owned serviceability) before committing proposal item 4 to implementation vs documentation."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixArchiveStatusDrift",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-leverage-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design leverage scout — archive/status drift fix",
+      "sources": [
+        {
+          "label": "_recovery-writers.ts (saveRecoveredChangeStatus + module header)",
+          "locator": "plugin/src/tools/_recovery-writers.ts:24-29,175-190",
+          "summary": "Status-transition writer is disk-direct via saveChange and intentionally skips refresh; header documents that the Temporal read path already treats archive bundles as terminal/dominant and invalidates stale active cache. Read-after-write verifier can lean on this, not re-implement dominance."
+        },
+        {
+          "label": "store-temporal getStatus recent projection",
+          "locator": "plugin/src/storage/store-temporal/index.ts:876-906",
+          "summary": "getStatus returns ALL non-terminal changes in changes.recent with no cap. On 100+ WIP this is unbounded; the source slice is the single highest-leverage cap point for AC4."
+        },
+        {
+          "label": "status.ts recent enrichment loop",
+          "locator": "plugin/src/tools/status.ts:1469-1508,1747-1754",
+          "summary": "enrichRecentChangeStatus loops over every recentChange with no cap; summary view only blanks health/worktree/session sections, it does not bound recent rows or recommendations. DDC1 cap must be added before this loop with omittedRecent/omittedRecommendations counts."
+        },
+        {
+          "label": "Temporal archive-bundle dominance in list + single get",
+          "locator": "plugin/src/storage/store-temporal/index.ts:714-819,392-444; changes.ts:417-423",
+          "summary": "List path and changes.get (via getTemporalChange) already project archived status from the archive bundle even when disk/workflow is stale. Read-after-write proof (AC3) is achievable by re-calling existing store.changes.get + list({status:'archived'|'in-flight'}) with no new read logic."
+        },
+        {
+          "label": "target-project.ts direct-or-packet toolkit",
+          "locator": "plugin/src/tools/target-project.ts:withTargetPathStore,ensureTargetMutationQueueReady,localQueueServiceability,formatTargetMutationReadinessError,hasConfirmation",
+          "summary": "All Slice-4 primitives already exist: confirmation gate, queue serviceability proof, fail-closed readiness error formatting, and target store wrapper. Direct-or-packet is assembly of existing helpers, not new infra."
+        },
+        {
+          "label": "verifyReleaseEvidenceFromMain wrapping resolveReleaseReachability",
+          "locator": "plugin/src/tools/change.ts:1325-1360,3859,4064,4223; git-finalize.ts:2156 resolveReleaseReachability; 25901 readPrMergeState",
+          "summary": "PR/tree-equivalence merge proof is already factored into verifyReleaseEvidenceFromMain and used at all three archive/finalization sites. Slice-2 classification (shipped/pending_merge/blocked) can reuse this directly instead of inventing new proof."
+        }
+      ],
+      "architecture_assessment": "Design is sound and LBP-aligned; its main risk is REINVENTING infrastructure that already exists. Four of five slices map to existing, tested primitives: (1) read-after-write dominance is already enforced in both list and single-get Temporal read paths, so Slice 3 verifier should re-call store.changes.get/list rather than add dominance logic; (2) PR/tree merge proof is already centralized in verifyReleaseEvidenceFromMain → resolveReleaseReachability + readPrMergeState, satisfying constraint C5 and avoiding ancestry-only/title proof; (3) target direct-or-packet (Slice 4) is fully covered by target-project.ts helpers (withTargetPathStore, ensureTargetMutationQueueReady, formatTargetMutationReadinessError, hasConfirmation). The genuine NEW work is narrow: a shared read-after-write verifier helper, and the status boundedness cap (the one real unfixed defect — getStatus.recent + enrichRecentChangeStatus are both unbounded). Recommend the design explicitly cite these reuse seams so planning does not author parallel proof/dominance code.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "No design blockers. Evidence confirms reuse seams exist for Slices 2-4; only the status cap (Slice 5) and a thin verifier wrapper (Slice 3) are net-new. Cap should carry omittedRecent/omittedRecommendations metadata per DDC1/AC4."
+      },
+      "recommendation": "Adopt the design with two scoping notes for planning: (A) Slice 3 verifier should compose existing store.changes.get + list archive-bundle-dominant reads, not new read logic; (B) Slice 5 must cap at BOTH the getStatus source projection (index.ts:876) and the status.ts enrichment loop (1469-1508), defaulting to 10 with omitted-count markers, since summary view currently bounds nothing.",
+      "follow_ups": [
+        "Slice 2 should reuse verifyReleaseEvidenceFromMain for shipped/pending_merge/blocked classification rather than authoring new proof.",
+        "Confirm whether the cap belongs at the store getStatus source (cheaper, skips enrichment of omitted rows) vs status.ts (keeps store generic) — a planning-time decision."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixArchiveStatusDrift",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation for archive/status drift fix",
+      "sources": [
+        {
+          "label": "verifyReleaseEvidenceFromMain (existing PR/release proof)",
+          "locator": "plugin/src/tools/change.ts:function:verifyReleaseEvidenceFromMain (byte 41199)",
+          "summary": "Existing helper verifies release evidence from main checkout via resolveReleaseReachability without re-merging/pushing; returns shipped/blocked. Confirms design KD1/KD2 reuse claim is real."
+        },
+        {
+          "label": "resolveReleaseReachability + readPrMergeState (PR/tree/patch proof)",
+          "locator": "plugin/src/tools/archive-helpers/git-finalize.ts (bytes 45126, 25901); ArchivedMergedBranch mergeProof tree-identical/patch-equivalent",
+          "summary": "PR merge state + reachability with tree-identical/patch-equivalent proof exist; not ancestry-only. Supports C5/DONT2 and DDC3."
+        },
+        {
+          "label": "withTargetPathStore serviceability + trust gate",
+          "locator": "plugin/src/tools/target-project.ts:function:withTargetPathStore (byte 7876)",
+          "summary": "Mutation path requires Temporal-backed store, calls ensureTargetMutationQueueReady (serviceability) and resolveTargetProject mutation trust gate; throws TargetProjectError when not serviceable. Directly backs design decision 6 fail-closed direct-or-packet."
+        },
+        {
+          "label": "adv_change_status_repair current behavior (read-after-write gap)",
+          "locator": "plugin/src/tools/change.ts:5048-5180",
+          "summary": "Existing repair is idempotent, gate-invariant, archive-bundle-dominance gated, calls saveRecoveredChangeStatus, then returns success:true IMMEDIATELY with no readback. Confirms Slice 3 read-after-write verifier is genuinely new and addresses AC3/SC2/#168/DDC2."
+        },
+        {
+          "label": "status summary unbounded enrichment (slowness root cause)",
+          "locator": "plugin/src/tools/status.ts:1486-1507 (recentChangeEnrichment loop) + enrichRecentChangeStatus 607-676 + summary projection 1023-1042",
+          "summary": "recentChangeEnrichment loops over ALL recentChanges; each enrich does store.changes.get + readArtifact(proposal) + snapshot build + dependency status. Summary projection at line 1027 maps recent post-hoc with no .slice cap and no omittedRecent marker. Confirms no pre-enrichment cap exists today; Slice 5 design (bound before enrichment) targets the real cost."
+        },
+        {
+          "label": "WorkflowNotFoundError completed-workflow recovery model",
+          "locator": "plugin/src/tools/_recovery-writers.test.ts:147,162,292; change.status-repair.test.ts:98,245",
+          "summary": "Completed/poisoned-workflow disk-projection recovery is an established, tested pattern. Design reliance on it (avoid signaling completed workflows as sole recovery path) is consistent with existing code, not novel."
+        }
+      ],
+      "architecture_assessment": "Design is structurally sound and reuses verified, pre-existing helpers (verifyReleaseEvidenceFromMain, resolveReleaseReachability, readPrMergeState, withTargetPathStore, saveRecoveredChangeStatus) rather than inventing new proof or new archive-dominance mechanisms. Source confirms two real gaps the design correctly targets: (1) adv_change_status_repair returns success immediately after saveRecoveredChangeStatus with no read-after-write verification (the #168/AC3 inconsistency root), and (2) adv_status performs unbounded per-change enrichment (store.changes.get + proposal read + snapshot) over the full recent set before the summary projection trims fields post-hoc, which is the 100+ WIP slowness root. Target recovery's direct-or-packet fail-closed model is already enforced by withTargetPathStore serviceability + trust gates, so the design rides existing safety. All avoidances are respected: no state-file edits (reuses store read surfaces), PR/tree proof not ancestry-only, no title matching, bounded default status. Simplicity is good — three thin additions (readback verifier, status cap-before-enrich, target wrapper) over existing surfaces, no second dominance mechanism. One minor caution: the design names verifyReleaseEvidenceFromMain (in change.ts) as a reuse target but Slice 2 also proposes 'factor a thin reusable recovery helper around existing Phase 9 finalization logic' — ensure that helper wraps the existing verifier rather than duplicating reachability logic, to avoid a parallel proof path. No spec conflict found: advance-workflow rq-gatemodel01 (archive requires all 7 gates) and rq-extConfGate01 are respected because repair/finalization only completes release after structural proof and status repair already enforces all-gates-done + bundle-present invariants.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "VALIDATED. All cited helpers exist and behave as the design claims. The two core gaps (read-after-write, unbounded status enrichment) are confirmed real in source. Design respects all agreement constraints/avoidances and does not contradict advance-workflow or advance-meta specs. Minor non-blocking caution: Slice 2's 'thin reusable recovery helper' should wrap verifyReleaseEvidenceFromMain, not re-derive reachability, to avoid a parallel proof path. Recommend an explicit DDC or task note that the status cap is applied to the recentChanges array BEFORE the recentChangeEnrichment loop (status.ts:1491), not merely in the post-hoc summary projection (status.ts:1027), since trimming only at projection would not fix the slowness."
+      },
+      "recommendation": "Proceed to planning. The design is correct, simple, and source-verified — it reuses real helpers and targets the two confirmed gaps without inventing proof or duplicate dominance logic. Two refinements to carry into planning, both non-blocking: (1) Make explicit that the status cap (DDC1, cap=10) is applied to the recentChanges array before the recentChangeEnrichment loop at status.ts:1491 — the current summary projection at status.ts:1027 trims fields after all per-change store.changes.get/proposal reads already executed, so capping only there would not deliver the boundedness objective; (2) Slice 2's new recovery helper should wrap verifyReleaseEvidenceFromMain rather than re-derive reachability, preventing a second PR-proof code path. No alternative approach is materially simpler; building on the established WorkflowNotFoundError disk-projection recovery model is the boring, proven path.",
+      "follow_ups": [
+        "Planning: add DDC/task note that status boundedness cap must be applied before recentChangeEnrichment (status.ts:1491), not only in the post-hoc summary projection (status.ts:1027).",
+        "Planning: ensure Slice 2 recovery helper wraps verifyReleaseEvidenceFromMain to avoid a parallel reachability/proof path."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixArchiveStatusDrift",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArchiveStatusDrift",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [
+        {
+          "id": "review-praise-1",
+          "label": "praise",
+          "file": "plugin/src/tools/change.ts",
+          "line": 5311,
+          "what": "Status repair success now performs show/list readback before reporting success.",
+          "why": "Covers agreement AC3 by checking show status, in-flight omission, and archived-list exact inclusion after the disk-projection write.",
+          "fix": "n/a"
+        },
+        {
+          "id": "review-praise-2",
+          "label": "praise",
+          "file": "plugin/src/tools/status.ts",
+          "line": 1518,
+          "what": "Summary status caps recent changes before per-change enrichment and reports omitted counts.",
+          "why": "Covers bounded-summary AC4 while preserving explicit detailed views.",
+          "fix": "n/a"
+        }
+      ],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- plugin/src/tools/change.archive-phase9.test.ts plugin/src/tools/change.status-repair.test.ts plugin/src/tools/status.test.ts",
+          "bin/oc-test targeted -- src/tools/change.archive-phase9.test.ts src/tools/change.status-repair.test.ts src/tools/status.test.ts",
+          "pnpm run check"
+        ],
+        "results": "pass",
+        "evidence": "First targeted invocation used repo-root-prefixed paths and failed with 'No test files found'; corrected targeted run passed 3 files / 81 tests. pnpm run check passed schemas:check, typecheck, test-isolation, lockfile policy, lint, and format:check. Scope key normalized from requested acceptance-review to schema-valid review:acceptance for durable report submission."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Live deployed OpenCode plugin behavior still requires build/deploy/restart per repo Source-vs-Dist Reload Gotcha; source tests and check passed in this worktree."
+      ],
+      "required_main_agent_actions": [
+        "Proceed with acceptance gate if orchestrator's remaining acceptance evidence is satisfied."
+      ],
+      "required_follow_ups": [],
+      "consumer_warnings": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixArchiveStatusDrift",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArchiveStatusDrift",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [
+        {
+          "id": "acceptance-praise-1",
+          "label": "praise",
+          "file": "plugin/src/tools/change.ts",
+          "line": 1745,
+          "what": "Status-repair read-after-write verification now wraps canonical readback in fail-closed handling.",
+          "why": "A thrown canonical readback after disk repair returns success:false with explicit readback failure details instead of masking projection uncertainty.",
+          "fix": "n/a"
+        },
+        {
+          "id": "acceptance-praise-2",
+          "label": "praise",
+          "file": "plugin/src/tools/status.ts",
+          "line": 1518,
+          "what": "Summary-only caps do not affect changes-view drilldown.",
+          "why": "Recent-change and recommendation caps are guarded by view === \"summary\"; changes view projects full changes and recommendations arrays.",
+          "fix": "n/a"
+        },
+        {
+          "id": "acceptance-praise-3",
+          "label": "praise",
+          "file": "plugin/src/tools/change.ts",
+          "line": 4459,
+          "what": "PR-merged pending_merge reruns are idempotent after release proof is re-detected.",
+          "why": "Rerun path verifies release evidence from main, completes durable release proof, records done phase9 status, and skips duplicate archived save when already archived.",
+          "fix": "n/a"
+        }
+      ],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "test -e referenced acceptance test files",
+          "git show f5cca0261324c4c3232165280a08619a61b36e9b -- plugin/src/tools/change.ts plugin/src/tools/change.status-repair.test.ts plugin/src/tools/status.test.ts plugin/src/tools/change.archive-phase9.test.ts",
+          "bin/oc-test targeted -- src/tools/change.status-repair.test.ts src/tools/status.test.ts src/tools/change.archive-phase9.test.ts",
+          "git status --short"
+        ],
+        "results": "pass",
+        "evidence": "Path preflight returned OK. Reviewed checkpoint f5cca026 post-remediation source/tests. Targeted tests passed from worktree root: 3 files, 84 tests passed in 2.10s. Worktree clean after tests. Initial attempt from plugin/ failed before test startup because bin/oc-test is repo-root relative; rerun from correct workdir passed."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Live deployed ADV plugin behavior still requires normal rebuild/deploy/restart before validating through cached OpenCode runtime tools; source-level targeted tests passed."
+      ],
+      "required_main_agent_actions": [
+        "Proceed with acceptance/release flow; no reviewer blockers or issues remain."
+      ],
+      "required_follow_ups": [],
+      "consumer_warnings": [
+        {
+          "kind": "consumer_failure",
+          "message": "Requested scope_key acceptance-review-post-remediation is rejected by current report schema; persisted under schema-valid review:acceptance instead."
+        }
+      ]
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-0UEpPW",
+      "type": "gotcha",
+      "content": "Archive sync recovery can finish release/status without touching phase9_status; PR-merged pending_merge recovery should record phase9_status done after durable release-gate proof and before archived status save so future status/repair reads do not see stale pending_merge/failed state.",
+      "source_task": "tk-81f50b1f3a8c",
+      "recorded_at": "2026-06-24T17:27:58.248Z"
+    },
+    {
+      "id": "ws-Ed60aE",
+      "type": "pattern",
+      "content": "For status performance fixes, cap summary-view recent changes immediately after scope filtering and before enrichment. Capping only in applyStatusView still pays the per-change enrichment/readArtifact cost and does not solve large-WIP latency.",
+      "source_task": "tk-b44f201306ef",
+      "recorded_at": "2026-06-24T17:37:56.569Z"
+    },
+    {
+      "id": "ws-GsG_TN",
+      "type": "gotcha",
+      "content": "Read-after-write verification tests around disk-direct recovery writers must model the post-write canonical read path explicitly. saveRecoveredChangeStatus bypasses store.changes.save/refresh by design, so unit mocks will not observe archived state unless get/list readbacks are updated or backed by real disk projection.",
+      "source_task": "tk-0d0ebb995496",
+      "recorded_at": "2026-06-24T18:14:25.043Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-06-24T02:40:30.575Z",
+      "completed_by": "agent",
+      "approval_evidence": "Problem statement and proposal persisted for user-requested fix: repair PokeEdge wedged accepted/merged ADV changes and fix Advance archive/status behavior long term.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "587518d7492657118c4293b1e6dcd000b4dfb13bb52affdba6709c1f1dc423cc",
+        "non_whitespace_chars": 1876,
+        "checked_at": "2026-06-24T02:40:11.566Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "started_at": "2026-06-24T03:00:19.478Z",
+      "completed_at": "2026-06-24T16:31:00.926Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery completed. User approved criteria/agreement with reply `approve`. Contract minted with 26 items. Discovery covered GH #168/#136/#175, PokeEdge examples, PR pending_merge recovery, read-after-write repair, failed phase9 classification, target repair direct-or-packet, and bounded status summary.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "208815ef1bc8f0e7a1a45254bcb419f0580586da5ec005496cdc9b900d5e04ce",
+        "non_whitespace_chars": 4810,
+        "checked_at": "2026-06-24T02:40:11.569Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-06-24T16:43:42.189Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design updated after discovery re-entry. Leverage scout run and auto-adopted reuse of existing archive-bundle dominance, verifyReleaseEvidenceFromMain, and target serviceability helpers. Independent validator verdict VALIDATED; cautions incorporated: cap before enrichment and wrap existing PR proof instead of re-deriving.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "7dbb8cb21ca600afc72d5b6bd4c3c0f925ff3e41c8cf8380b6d02de5e8cca62b",
+        "non_whitespace_chars": 9017,
+        "checked_at": "2026-06-24T02:40:11.570Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-06-24T17:10:25.915Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved prep with reply `approve`. Stale pre-reentry tasks cancelled with explicit question-tool approval. Final task graph covers spec law, archive finalization recovery, repair read-after-write/target packet, bounded status summary, and verification."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-06-24T18:19:17.311Z",
+      "completed_by": "agent",
+      "approval_evidence": "All implementation and verification tasks are done. Evidence: targeted status repair tests passed (11 tests), pnpm run check passed, bin/oc-test full passed, pnpm run build passed. Checkpoint c8373fe0c24de9ff371e07935c751417e876a396."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-06-24T19:02:57.613Z",
+      "completed_by": "user:jon",
+      "approval_evidence": "User accepted delivered work after refreshed acceptance proof and post-remediation review. Evidence reviewed: executive summary persisted (hash 964d1480...), reviewer verdict READY, contract matrix 26/26 pass/respected, targeted tests passed runId tr_mqsfehzn_c8ba07c5, pnpm run check passed runId tr_mqsfhu08_d64fcb5b.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "964d1480dd8b68c2f913aaef78866fc47fc36f9b1a79aa394f2e165f259d18d5",
+        "non_whitespace_chars": 1857,
+        "checked_at": "2026-06-24T02:40:11.572Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [
+    {
+      "from_gate": "design",
+      "reason": "Discovery agreement was updated after prior design/planning state; existing task slice is narrower than approved agreement and must be revalidated against expanded archive/status repair scope.",
+      "scope_delta": "Agreement now explicitly includes GH #168 read-after-write consistency, PR-merged pending_merge re-entrant finalization, failed phase9 classification, target direct-or-packet recovery, and bounded status summary.",
+      "reopened_by": "agent",
+      "reopened_at": "2026-06-24T16:31:43.862Z",
+      "gates_reset": [
+        "design",
+        "planning",
+        "execution",
+        "acceptance",
+        "release"
+      ]
+    },
+    {
+      "from_gate": "acceptance",
+      "reason": "Review remediation changed source/tests after prior acceptance sign-off; acceptance evidence and executive summary must be refreshed before release.",
+      "scope_delta": "No new product scope. Added acceptance-review remediations: fail-closed readback throw handling in adv_change_status_repair, detailed changes-view uncapped regression, and PR-merged pending_merge rerun idempotency regression.",
+      "reopened_by": "agent",
+      "reopened_at": "2026-06-24T18:51:55.135Z",
+      "gates_reset": [
+        "acceptance",
+        "release"
+      ]
+    }
+  ],
+  "origin": {
+    "kind": "triage",
+    "source_artifact": "ag-kc12wvU5; ag-Pu9AaBst"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "208815ef1bc8f0e7a1a45254bcb419f0580586da5ec005496cdc9b900d5e04ce",
+      "approvedAt": "2026-06-24T03:00:55.786Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "PR-merged accepted ADV changes no longer remain ordinary in-flight WIP after archive/finalization recovery.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "208815ef1bc8f0e7a1a45254bcb419f0580586da5ec005496cdc9b900d5e04ce",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "Archive/status repair success is read-after-write consistent across `adv_change_show`, in-flight lists, and archived lists.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "208815ef1bc8f0e7a1a45254bcb419f0580586da5ec005496cdc9b900d5e04ce",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "`/adv-status` default path remains fast and bounded on 100+ WIP projects.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "208815ef1bc8f0e7a1a45254bcb419f0580586da5ec005496cdc9b900d5e04ce",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC4",
+        "kind": "success_criterion",
+        "text": "Cross-project recovery either mutates target safely or emits an exact same-project repair packet.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "208815ef1bc8f0e7a1a45254bcb419f0580586da5ec005496cdc9b900d5e04ce",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC5",
+        "kind": "success_criterion",
+        "text": "Incomplete evidence fails closed with exact remediation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "208815ef1bc8f0e7a1a45254bcb419f0580586da5ec005496cdc9b900d5e04ce",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "Given a `fixPtcgdataCatalogParser`-class change with acceptance done, PR merged, green terminal checks, and `phase9_status: pending_merge`, when repair/finalization runs, then release/status finalizes idempotently or emits an exact same-project packet if target mutation is not serviceable.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "208815ef1bc8f0e7a1a45254bcb419f0580586da5ec005496cdc9b900d5e04ce",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Given a `remediatePt011BroadRaises`-class `phase9_status: failed`, when evidence lacks merged PR/archive proof, then the tool classifies the exact blocker and does not mark the change archived.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "208815ef1bc8f0e7a1a45254bcb419f0580586da5ec005496cdc9b900d5e04ce",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Given status repair reports success, immediate `adv_change_show` returns `archived`, in-flight list omits the change, and archived list includes it exactly once.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "208815ef1bc8f0e7a1a45254bcb419f0580586da5ec005496cdc9b900d5e04ce",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Given 100+ active/stale changes, `adv_status view:summary` returns bounded recent rows/recommendations plus an omitted-count marker.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "208815ef1bc8f0e7a1a45254bcb419f0580586da5ec005496cdc9b900d5e04ce",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Given explicit `view:changes|hygiene|health`, detailed output remains available but is capped or paginated where needed.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "208815ef1bc8f0e7a1a45254bcb419f0580586da5ec005496cdc9b900d5e04ce",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Regression tests cover PR-merged pending-merge recovery, #168 read-after-write consistency, failed phase9 classification, target-path serviceability fallback, and large-WIP status boundedness.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "208815ef1bc8f0e7a1a45254bcb419f0580586da5ec005496cdc9b900d5e04ce",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "No ADV external state files are read or written directly.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "208815ef1bc8f0e7a1a45254bcb419f0580586da5ec005496cdc9b900d5e04ce",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC8",
+        "kind": "acceptance_criterion",
+        "text": "Target project mutation requires explicit target confirmation and fails closed when queue/serviceability is not proven.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "208815ef1bc8f0e7a1a45254bcb419f0580586da5ec005496cdc9b900d5e04ce",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC9",
+        "kind": "acceptance_criterion",
+        "text": "`pnpm run check` and targeted modified-tool tests pass.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "208815ef1bc8f0e7a1a45254bcb419f0580586da5ec005496cdc9b900d5e04ce",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Evidence must be typed/structural: gate map, phase9 status, PR state/check conclusions, archive bundle presence when required, and read-after-write result.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "208815ef1bc8f0e7a1a45254bcb419f0580586da5ec005496cdc9b900d5e04ce",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Recovery must be idempotent and safe to rerun.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "208815ef1bc8f0e7a1a45254bcb419f0580586da5ec005496cdc9b900d5e04ce",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Cross-project repair must not bypass target confirmation or target queue/serviceability checks.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "208815ef1bc8f0e7a1a45254bcb419f0580586da5ec005496cdc9b900d5e04ce",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Status speed fixes must not hide explicit health/hygiene/change-detail views.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "208815ef1bc8f0e7a1a45254bcb419f0580586da5ec005496cdc9b900d5e04ce",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "PR-mode recovery must use durable PR merge evidence or existing tree/patch-equivalence proof; branch ancestry alone is insufficient for squash merges.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "208815ef1bc8f0e7a1a45254bcb419f0580586da5ec005496cdc9b900d5e04ce",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C6",
+        "kind": "constraint",
+        "text": "Current-repo scope for Advance code; PokeEdge is only the observed target project for recovery verification.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "208815ef1bc8f0e7a1a45254bcb419f0580586da5ec005496cdc9b900d5e04ce",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not edit external ADV state files directly.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "208815ef1bc8f0e7a1a45254bcb419f0580586da5ec005496cdc9b900d5e04ce",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not use `git branch --merged` as sole proof for squash-merged PR cleanup/finalization.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "208815ef1bc8f0e7a1a45254bcb419f0580586da5ec005496cdc9b900d5e04ce",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not mark a release archived from title/name matching alone.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "208815ef1bc8f0e7a1a45254bcb419f0580586da5ec005496cdc9b900d5e04ce",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not make `/adv-status` perform unbounded GitHub/API calls by default.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "208815ef1bc8f0e7a1a45254bcb419f0580586da5ec005496cdc9b900d5e04ce",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "Do not close or mutate unrelated PokeEdge bugs/features.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "208815ef1bc8f0e7a1a45254bcb419f0580586da5ec005496cdc9b900d5e04ce",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT6",
+        "kind": "avoidance",
+        "text": "Do not absorb worktree registry cleanup issue #174 except as a non-blocking status-summary performance consideration.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "208815ef1bc8f0e7a1a45254bcb419f0580586da5ec005496cdc9b900d5e04ce",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-06-24T18:52:00.000Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Reviewer verdict READY after post-remediation; archive pending_merge recovery implemented in plugin/src/tools/change.ts and covered by change.archive-phase9.test.ts including rerun idempotency. Targeted suite passed runId tr_mqsfehzn_c8ba07c5.",
+          "notes": "PR-merged accepted changes recover to release/status instead of remaining WIP when proof exists."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "verifyStatusRepairReadAfterWrite requires show=archived, default in-flight list omits change, archived list contains exactly once, and fails closed on thrown readback. change.status-repair.test.ts passed runId tr_mqsfehzn_c8ba07c5.",
+          "notes": "Read-after-write consistency now structural."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "adv_status summary caps recent changes before enrichment and recommendations with omitted counts; status.test.ts 120-change regression passed runId tr_mqsfehzn_c8ba07c5.",
+          "notes": "Default status bounded for large WIP."
+        },
+        {
+          "contractId": "SC4",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "adv_change_status_repair target_path routes through withTargetPathStore with temporal-required and emits targetRepairPacket on unserviceable target. change.status-repair.test.ts passed runId tr_mqsfehzn_c8ba07c5.",
+          "notes": "Direct-or-packet behavior present."
+        },
+        {
+          "contractId": "SC5",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Failed phase9 without reachability proof returns phase9Failure recoverable:false and does not save archived; status repair readback throws return success:false. Targeted suite passed runId tr_mqsfehzn_c8ba07c5.",
+          "notes": "Incomplete evidence fails closed."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "change.archive-phase9.test.ts covers PR-merged pending_merge recovery and rerun idempotency; targeted suite passed runId tr_mqsfehzn_c8ba07c5.",
+          "notes": "Finalizes when PR merge proof exists; rerun remains safe."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "change.archive-phase9.test.ts `classifies failed phase9 without marking archived when recovery proof is missing`; targeted suite passed runId tr_mqsfehzn_c8ba07c5.",
+          "notes": "No archive mark without structural proof."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "change.status-repair.test.ts covers successful archived readback and stale/throwing readback failures; targeted suite passed runId tr_mqsfehzn_c8ba07c5.",
+          "notes": "Show/list archived/in-flight consistency verified."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "status.test.ts `summary view caps recent changes before enrichment and reports omitted counts`; targeted suite passed runId tr_mqsfehzn_c8ba07c5.",
+          "notes": "120 active changes reduced to 10 summary rows plus omitted marker."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "status.test.ts `changes view keeps full recent-change drilldown uncapped`; targeted suite passed runId tr_mqsfehzn_c8ba07c5.",
+          "notes": "Explicit changes view keeps full 120-row drilldown and uncapped recommendations."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Regression coverage spans change.archive-phase9.test.ts, change.status-repair.test.ts, and status.test.ts; targeted suite passed 84 tests runId tr_mqsfehzn_c8ba07c5.",
+          "notes": "Required regression classes covered."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Implementation uses ADV store/readback APIs and recovery writer; reviewer verdict READY found no direct external ADV state reads/writes. pnpm run check passed runId tr_mqsfhu08_d64fcb5b.",
+          "notes": "No direct external state file access introduced."
+        },
+        {
+          "contractId": "AC8",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "target_path repair tests assert target_confirmed/confirmationEvidence and temporal-required serviceability; fallback packet emitted on target queue failure. Targeted suite passed runId tr_mqsfehzn_c8ba07c5.",
+          "notes": "Target mutation fails closed without serviceability."
+        },
+        {
+          "contractId": "AC9",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "pnpm run check passed runId tr_mqsfhu08_d64fcb5b; targeted modified-tool suite passed runId tr_mqsfehzn_c8ba07c5.",
+          "notes": "Earlier pnpm run check exit 139 was isolated to eslint segfault; lint and full check reran green."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Outputs use gates/phase9_status, PR reachability result, archive bundle existence, target serviceability, and canonical readback counts/status. No title/name inference used.",
+          "notes": "Typed structural evidence only."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Existing-bundle archive retry and post-PR pending_merge rerun tests prove safe rerun; status repair readback fail-closed prevents false success.",
+          "notes": "Idempotency preserved."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "adv_change_status_repair validates approval evidence before target routing and passes target_confirmed/confirmationEvidence into withTargetPathStore with temporal-required for mutation.",
+          "notes": "No target bypass."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Summary is capped before enrichment; explicit changes/health/hygiene view plans remain available. Changes-view uncapped regression passed.",
+          "notes": "Detailed views not hidden."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "PR-mode recovery uses resolveReleaseReachability/readPrMergeState path via verifyReleaseEvidenceFromMain; no git branch --merged-only proof.",
+          "notes": "Squash-merge-safe proof path retained."
+        },
+        {
+          "contractId": "C6",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Files touched are Advance repo files only; PokeEdge remains downstream observation target for later repair verification.",
+          "notes": "Scope contained."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Reviewer READY found no direct external ADV state file edits; code uses store APIs and recovery writer.",
+          "notes": "External state not hand-edited."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Archive recovery test/proof path uses PR merge/reachability helpers; no `git branch --merged` sole authority introduced.",
+          "notes": "Squash PR safety preserved."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Recovery keyed by changeId, gates, archive bundle, phase9 status, PR proof, and readback; no title/name matching path added.",
+          "notes": "No heuristic archive marking."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Default adv_status summary skips detailed providers and caps rows/recommendations; no unbounded default GitHub/API calls introduced.",
+          "notes": "Default status bounded."
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No PokeEdge issue or change mutation performed during Advance implementation; downstream repair deferred until release.",
+          "notes": "Unrelated PokeEdge work untouched."
+        },
+        {
+          "contractId": "DONT6",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Worktree registry cleanup not absorbed; changes limited to status summary boundedness, archive recovery, and repair consistency.",
+          "notes": "Issue #174 remains out of scope."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "Given a `fixPtcgdataCatalogParser`-class change with acceptance done, PR merged, green terminal checks, and `phase9_status: pending_merge`, when repair/finalization runs, then release/status finalizes idempotently or emits an exact same-project packet if target mutation is not serviceable.",
+    "Given a `remediatePt011BroadRaises`-class `phase9_status: failed`, when evidence lacks merged PR/archive proof, then the tool classifies the exact blocker and does not mark the change archived.",
+    "Given status repair reports success, immediate `adv_change_show` returns `archived`, in-flight list omits the change, and archived list includes it exactly once.",
+    "Given 100+ active/stale changes, `adv_status view:summary` returns bounded recent rows/recommendations plus an omitted-count marker.",
+    "Given explicit `view:changes|hygiene|health`, detailed output remains available but is capped or paginated where needed.",
+    "Regression tests cover PR-merged pending-merge recovery, #168 read-after-write consistency, failed phase9 classification, target-path serviceability fallback, and large-WIP status boundedness.",
+    "No ADV external state files are read or written directly.",
+    "Target project mutation requires explicit target confirmation and fails closed when queue/serviceability is not proven.",
+    "`pnpm run check` and targeted modified-tool tests pass."
+  ],
+  "documents": {
+    "proposal": "# Proposal — Fix archive status drift and slow status output\n\n## What\nRepair two ADV operational failures found while inspecting `/home/jon/dev/pokeedge`:\n\n1. **Current-state recovery path:** provide a safe, supported way to recover changes that are already accepted and PR-merged but still show `status: draft`, `release: pending`, or `phase9_status: pending_merge/failed`.\n2. **Long-term archive finalization fix:** make PR-mode archive/finalization detect merged PR evidence and finalize the ADV status/archive state idempotently instead of leaving a wedged in-flight change.\n3. **Long-term status performance fix:** make `/adv-status` bounded and fast on projects with large WIP sets; detailed hygiene/recommendation archaeology must be opt-in/capped, not default-heavy.\n4. **Cross-project operator ergonomics:** document or implement the correct operator path for repairing another ADV project from the current session without direct state-file edits.\n\n## Evidence\n- PokeEdge target snapshot has 118 in-flight changes.\n- `adv_status view:changes` emitted about 90k chars; `view:hygiene` emitted about 65k chars before truncation.\n- `fixPtcgdataCatalogParser` has proposal→acceptance done, release pending, `phase9_status: pending_merge`, PR #584 merged 2026-06-22 with green checks.\n- `remediatePt011BroadRaises` has proposal→acceptance done, release pending, `phase9_status: failed`, error `Archive finalization blocked: PR_BRANCH_PUSH_FAILED`.\n- Open PokeEdge bugs #389 and #205 are not the root cause; this is ADV lifecycle/status debt.\n- Related Advance bugs are directly relevant: #168, #136, #175.\n\n## Scope\n- ADV archive repair/finalization tools and tests.\n- ADV status/read-path boundedness and tests.\n- Operator recovery docs/UX for current-state repair.\n\n## Out of scope\n- Editing PokeEdge ADV external state files directly.\n- Closing unrelated PokeEdge feature backlog.\n- Changing PokeEdge product code.\n\n## Safety\n- Recovery must require structural evidence: all gates done through acceptance, release/phase9 terminal evidence, archive bundle or merged PR evidence, and no failing/open PR checks.\n- No heuristic status flips.\n- Cross-project mutation must require explicit target confirmation where supported.\n\n## Discovery Findings\n\n### Discovery Checklist\n\n| Step | Result | Reason |\n|---|---|---|\n| Skill Discovery | PASS | Examined available skills; loaded `adv-agent-tool-contracts`, `adv-cleanup`, `adv-worktree`, `adv-ci-release`; no pending-review skill frontmatter found. |\n| Prior Research Extension | PASS | Extended linked GH issues #168/#136/#175, active `addArchiveCleanupScanner`, archived status/release changes, and agenda `ag-kc12wvU5`/`ag-Pu9AaBst`. New finding: #168 is the critical root bug and is broader than the initial pending-merge symptom. |\n| Conflict & Related-Work Scan | PASS | `adv_change_validate` passed with expected pre-prep warnings (`NO_TASKS`, `NO_DELTAS`). Related active/archived work found but no blocking conflict. |\n| Edge Case Investigation | PASS | Edge cases recorded for PR merge proofs, failed phase9, split-brain reads, target path repair, and status boundedness. |\n| Design Question Depth | PASS | Open questions annotated below with trust model, blast radius, alternatives. |\n| Draft Spec Delta Shapes | PASS | Draft `rq-archivePrFinalizationRecovery01`, `rq-statusRepairReadAfterWrite01`, and `rq-advStatusBoundedSummary01` deltas. |\n| P25 Related-Pattern Scan | PASS | Related patterns found in archive finalization, status repair, target-path wrappers, and status enrichment. |\n| LBP Check | PASS | Best direction is in-repo structural repair: re-enter existing PR proof, align repair writes with read source, bound status summary. No external service/tool viable. |\n| Completeness Verification | PASS | Full problem includes archive finalization wedge, repair/read split-brain, target-path recovery ergonomics, and status WIP scaling. |\n\n### Skills Considered\n\n| Skill | Match | Action |\n|---|---|---|\n| `adv-agent-tool-contracts` | Strong | Loaded for tool schema/target_path/report/test alignment. |\n| `adv-cleanup` | Partial | Loaded; cleanup triage confirms ready-to-archive changes should not be silently closed/archived. |\n| `adv-worktree` | Partial | Loaded for PR/merge/worktree safety; confirms no `git branch --merged` sole proof. |\n| `adv-ci-release` | Partial | Loaded for PR/CI release-proof discipline. |\n| `lgrep` | Tooling | Used text/symbol search after semantic search timed out twice. |\n\n### Extends\n\n- **GH #168** — “Archive status repair reports success but read paths remain draft/in-flight.” New finding: this change must adopt #168 as a primary bug, not only handle PokeEdge `pending_merge`.\n- **GH #136** — archive release gate ordering after terminal archive. New finding: stale `pending_merge` must complete release gate/status in one idempotent path after PR merge proof.\n- **GH #175** — peer-owned `target_path` create. New finding: PokeEdge current-state repair is blocked by target-path mutation gaps; this change should either add target-aware repair/finalization or explicitly produce a same-project command path.\n- **`addArchiveCleanupScanner` active draft** — adjacent archive terminal cleanup work; this change must avoid overlap and keep scope to archive status/finalization, not cleanup scanning.\n- **Archived related changes**: `fixSquashMergeRelease`, `fixSquashMergeRelease2`, `fixStatusRepairCache`, `cleanupMergedArchiveBranches`, `readCliStatusVisibility`, `fixTargetPathSharding`, `addTargetCleanup`. New finding: PR merge and tree-equivalence proof helpers already exist; the gap is re-entrant wiring and read-source consistency.\n\n### Conflict Scan\n\n- Active changes: no direct same-scope active change besides stale/poisoned `addArchiveCleanupScanner` adjacency.\n- Archived related work: `fixSquashMergeRelease*` and `fixStatusRepairCache` are prior repair attempts and constraints.\n- Agenda overlap: `ag-kc12wvU5` (archive finalization wedge) and `ag-Pu9AaBst` (status slow) are direct sources.\n- Validation: passed; `NO_TASKS`/`NO_DELTAS` expected before planning.\n- PokeEdge open bugs #389/#205 are not root cause; Advance #168/#136/#175 are root-cause aligned.\n\n### Current State\n\n- `change.ts:4077-4087`: async phase9 callback returns after recording `pending_merge`; no re-entrant completion after PR later merges.\n- `change.ts:1325-1419`: `verifyReleaseEvidenceFromMain` can call `resolveReleaseReachability` with `phase9_status.prNumber` and detect PR-merged proof.\n- `git-finalize.ts:2156-2307`: `resolveReleaseReachability` already reads PR merge state and can return `proof: \"pr_merged\"`; it also has merged-PR discovery/tree fallback for direct route.\n- `change.ts:5048-5180`: `adv_change_status_repair` requires all 7 gates done + archive bundle; PokeEdge examples have release pending, so current tool cannot repair them from this session.\n- `change.ts:5151-5179`: status repair writes through `_recovery-writers`; GH #168 shows success can still leave read paths in draft/in-flight, so success needs read-after-write proof.\n- `status.ts:1469-1507`: `adv_status` enriches every recent non-terminal change and pushes per-change recommendations.\n- `status.ts:1023-1034`: summary projection returns unbounded recent changes and full recommendations.\n- `store-temporal/index.ts:876-904`: status builds recent for all non-terminal changes.\n- Existing `target_path` wrappers exist for several read/mutation tools, but not `adv_change_status_repair` or `adv_archive_repair`.\n\n### Edge Cases\n\n| Gap | Edge cases / failure modes |\n|---|---|\n| PR-merged pending_merge | (1) PR merged after async callback returned `pending_merge`. (2) PR branch deleted/squash-merged, so ancestry-only proof fails. |\n| Failed phase9 | (1) Branch push failed before PR creation; no merged PR proof exists. (2) Archive bundle exists but release gate pending, so status-only repair must not lie. |\n| Read/write split-brain | (1) Disk projection says archived but Temporal/visibility still lists in-flight. (2) Archived and in-flight list both show same change. |\n| Target project recovery | (1) Current session is in `/home/jon/dev/advance`, target is `/home/jon/dev/pokeedge`; repair tools lack `target_path`. (2) Target queue is peer-owned/not serviceable; mutation must fail with a safe operator path, not edit files. |\n| Status scaling | (1) 100+ stale changes produce hundreds of recommendations. (2) Hygiene scans and archived-branch checks run in summary/default path. |\n| PR evidence | (1) PR checks include skipped expected jobs; acceptance should allow success/skipped terminal policies. (2) Open/failing checks must block status finalization. |\n\n### Open Design Questions\n\n| Question | Trust model | Blast radius | Alternatives / recommendation |\n|---|---|---|---|\n| How should current PokeEdge repair be delivered if target mutation is unavailable from this session? | Joint/user outcome | Wrong choice either leaves current state wedged or adds unsafe cross-project mutation. | Recommend: implement target-aware repair/finalize where safe; if queue/serviceability blocks, emit exact same-project command packet for user to run from PokeEdge. |\n| Should stale `phase9_status.failed` ever auto-finalize? | Agent technical | Auto-finalizing without PR proof could corrupt state. | Recommendation: only finalize failed phase9 if structural merged PR/archive evidence exists; otherwise classify and surface exact remediation. |\n| What should `/adv-status` summary show by default? | Joint/user workflow | Too little hides work; too much repeats current slowness. | Recommend bounded top-N recent/actionable rows + aggregate counts + “more omitted” marker; detailed views remain opt-in. |\n| How strong must status-repair success proof be? | Agent technical | Weak proof repeats #168. | Recommendation: repair success must read back through the same source used by `adv_change_show`/`adv_change_list` or return failure. |\n| Should #174 worktree registry cleanup be included? | Agent technical | Including it grows scope into worktree lifecycle. | Recommendation: out of scope except ensure status does not make summary depend on heavy worktree registry scans. |\n\n### Draft Spec Deltas\n\n- `rq-archivePrFinalizationRecovery01`\n  - Given an accepted change has `phase9_status: pending_merge` with PR number recorded,\n  - When the PR later becomes merged with terminal acceptable checks,\n  - Then an audited archive/finalization repair rerun completes release, records phase9 done, and transitions status archived idempotently.\n- `rq-archivePrFinalizationRecovery02`\n  - Given `phase9_status: failed`,\n  - When structural PR/archive evidence is absent,\n  - Then the tool classifies the exact failed state and safe next action instead of treating it as ordinary active WIP.\n- `rq-statusRepairReadAfterWrite01`\n  - Given a status repair returns success,\n  - When `adv_change_show` and `adv_change_list` are called immediately,\n  - Then the repaired change appears archived exactly once and is absent from in-flight lists.\n- `rq-advStatusBoundedSummary01`\n  - Given a project has more than the summary cap of in-flight changes,\n  - When `adv_status view:summary` or `/adv-status` runs,\n  - Then output includes aggregate counts and bounded recent/recommendation rows with an omitted-count marker.\n- `rq-targetArchiveRepair01`\n  - Given an operator repairs another ADV project via `target_path`,\n  - When mutation is safe and explicitly confirmed,\n  - Then the tool uses the target store/queue; if not serviceable, it fails closed with a same-project recovery command path.\n\n### Related Pattern Scan\n\n- `change.ts` phase9 status handling: `pending_merge`, `failed`, `done` already modeled; missing re-entrant stale-finalization path.\n- `git-finalize.ts` PR proof helpers already exist: `readPrMergeState`, `discoverMergedPr`, `detectSquashMergeByTree`, `resolveReleaseReachability`.\n- `target-project.ts` wrappers exist and are used by gate/task/subagent/worktree tools; archive repair/status repair lack this surface.\n- `_recovery-writers.ts` and `change.status-repair.test.ts` cover recovery write path but not #168 read-after-write consistency across list/show.\n- `status.ts` already has a view plan but summary still enriches all recent changes and returns unbounded recommendations.\n- `backlog` tools already use top-N/capped responses; status should follow that bounded-output pattern.\n\n### Completeness Verification\n\n- Problem-completeness: full problem is not only PokeEdge `fixPtcgdataCatalogParser`. It includes (1) PR-mode pending-merge finalization, (2) failed phase9 classification, (3) repair success/read split-brain (#168), (4) target-path recovery ergonomics (#175), and (5) status summary scaling.\n- Solution-scope: full intended solution needs three control surfaces: archive/finalization repair path, status repair read-after-write invariant, and status summary caps/lazy detail. No single sole-entry claim is used; secondary surfaces are classified below.\n- Secondary surfaces:\n  - `adv_change_archive`: in scope for re-entrant finalization behavior.\n  - `adv_change_status_repair`: in scope for read-after-write and target-path support or explicit limitation.\n  - `adv_archive_repair`: in scope if it becomes the operator-facing PR-merged recovery path.\n  - `adv_status`: in scope for bounded summary/default behavior.\n  - `adv_worktree_triage` / #174: out of scope; separate worktree lifecycle issue.\n  - PokeEdge product bugs #389/#205: out of scope; not root cause.\n\n### LBP Check\n\nLikely direction matches long-term best practice:\n- Use structural evidence already modeled in ADV: gate map, phase9 status, PR number/state, check conclusions, archive bundle, read-after-write proof.\n- Avoid direct state-file edits and title heuristics.\n- Make archive recovery idempotent and re-entrant.\n- Make status summary bounded and lazy; detailed/hygiene views remain opt-in.\n- External-solution check skipped: this is internal ADV workflow/tool correctness; no external service/library is a realistic replacement. Temporal docs confirm workflow handles can query running or completed workflows, while signaling missing/completed external workflows can throw “not found”; recovery should not depend on signaling completed workflows.\n\n### Discovery Opportunity Scout\n\nScout: run. `adv-researcher` submitted report `fixArchiveStatusDrift|change:researcher:discovery-opportunity-scout|adv-researcher|1`.\n\nAuto-adopted:\n1. Re-entrant `pending_merge` finalization reusing existing PR-merge proof.\n2. Read-after-write consistent status repair from GH #168.\n3. Bounded `/adv-status` summary.\n\nSurfaced to user:\n1. Whether cross-project current-state repair should be in-scope as direct target mutation or same-project command path.\n2. Whether #168 should be treated as the critical anchor rather than only the PokeEdge symptom.\n\n### Recommended Objectives\n\n1. Recover PokeEdge-class PR-merged pending-merge changes through a safe, audited, idempotent repair/finalization path.\n2. Make status repair success read-after-write consistent across `show`, `list in-flight`, and `list archived`.\n3. Classify failed phase9 states with exact structural remediation instead of ordinary WIP recommendations.\n4. Bound `/adv-status` summary/default output for large WIP projects while preserving explicit detailed views.\n5. Support safe target-project recovery or produce an explicit same-project recovery command path when target mutation cannot be proven serviceable.\n\n### AMBIGUITY ANALYSIS\n\nCoverage: B:C F:C S:C M:C\n\nNo blocking ambiguity findings.\n\nAdvisory:\n- F1 LOW Functional Scope — cross-project repair extent is a user-facing workflow choice.\n  Evidence: “Cross-project operator ergonomics: document or implement the correct operator path…”\n  Reason: both direct `target_path` repair and same-project command packet are viable, but either can satisfy current-state repair if explicit.\n",
+    "problemStatement": "# Problem — Accepted PR-merged ADV changes can stay in-flight, and `/adv-status` becomes unusably slow\n\nPokeEdge shows accepted changes that appear shipped at GitHub/PR level but remain ADV-active as `status: draft` with `release: pending` or stale `phase9_status`. This leaves the project with a large in-flight set, obscures real work, and makes `/adv-status` very slow because it generates recommendations and hygiene output across many stale entries.\n\nThe immediate state needs a safe recovery path. The durable fix belongs in Advance: archive finalization must be idempotent over PR-merged evidence, and status output must be bounded by default for large WIP sets.",
+    "agreement": "# Agreement\n\n## Objectives\n\n1. Recover PokeEdge-class accepted/PR-merged ADV changes through a safe, audited, idempotent archive/finalization path.\n2. Make archive/status repair success read-after-write consistent across `adv_change_show`, in-flight lists, and archived lists.\n3. Classify failed phase9 states with exact structural remediation instead of ordinary WIP recommendations.\n4. Make `/adv-status` default/summary fast and bounded on large WIP projects.\n5. Support safe target-project recovery when serviceable; otherwise emit an exact same-project recovery command packet.\n6. Preserve structural correctness: gate/phase9/PR/archive/readback evidence owns repair decisions, not titles, branch ancestry-only heuristics, or prose claims.\n\n## Success Criteria\n\n1. PR-merged accepted ADV changes no longer remain ordinary in-flight WIP after archive/finalization recovery.\n2. Archive/status repair success is read-after-write consistent across `adv_change_show`, in-flight lists, and archived lists.\n3. `/adv-status` default path remains fast and bounded on 100+ WIP projects.\n4. Cross-project recovery either mutates target safely or emits an exact same-project repair packet.\n5. Incomplete evidence fails closed with exact remediation.\n\n## Acceptance Criteria\n\n1. Given a `fixPtcgdataCatalogParser`-class change with acceptance done, PR merged, green terminal checks, and `phase9_status: pending_merge`, when repair/finalization runs, then release/status finalizes idempotently or emits an exact same-project packet if target mutation is not serviceable.\n2. Given a `remediatePt011BroadRaises`-class `phase9_status: failed`, when evidence lacks merged PR/archive proof, then the tool classifies the exact blocker and does not mark the change archived.\n3. Given status repair reports success, immediate `adv_change_show` returns `archived`, in-flight list omits the change, and archived list includes it exactly once.\n4. Given 100+ active/stale changes, `adv_status view:summary` returns bounded recent rows/recommendations plus an omitted-count marker.\n5. Given explicit `view:changes|hygiene|health`, detailed output remains available but is capped or paginated where needed.\n6. Regression tests cover PR-merged pending-merge recovery, #168 read-after-write consistency, failed phase9 classification, target-path serviceability fallback, and large-WIP status boundedness.\n7. No ADV external state files are read or written directly.\n8. Target project mutation requires explicit target confirmation and fails closed when queue/serviceability is not proven.\n9. `pnpm run check` and targeted modified-tool tests pass.\n\n## Constraints\n\n1. Evidence must be typed/structural: gate map, phase9 status, PR state/check conclusions, archive bundle presence when required, and read-after-write result.\n2. Recovery must be idempotent and safe to rerun.\n3. Cross-project repair must not bypass target confirmation or target queue/serviceability checks.\n4. Status speed fixes must not hide explicit health/hygiene/change-detail views.\n5. PR-mode recovery must use durable PR merge evidence or existing tree/patch-equivalence proof; branch ancestry alone is insufficient for squash merges.\n6. Current-repo scope for Advance code; PokeEdge is only the observed target project for recovery verification.\n\n## Avoidances\n\n1. Do not edit external ADV state files directly.\n2. Do not use `git branch --merged` as sole proof for squash-merged PR cleanup/finalization.\n3. Do not mark a release archived from title/name matching alone.\n4. Do not make `/adv-status` perform unbounded GitHub/API calls by default.\n5. Do not close or mutate unrelated PokeEdge bugs/features.\n6. Do not absorb worktree registry cleanup issue #174 except as a non-blocking status-summary performance consideration.\n\n## Preview Applicability\n\nvisual_surface: false\n\nRationale: change affects ADV tools, workflow state, CLI/status text, and operator commands. It does not affect browser-visible UI or visual output.\n\n## Decisions\n\n### User Decisions\n\n1. Question: For current PokeEdge repair, what operator outcome should this change guarantee if cross-project mutation is not serviceable from the Advance session?\n   User answer: Direct or packet.\n   Why it matters: design may implement safe target-aware repair but must still provide an exact same-project command path when serviceability is blocked.\n\n2. Question: What should `/adv-status` show by default on large WIP projects?\n   User answer: Bounded summary.\n   Why it matters: status default should preserve useful orientation without unbounded per-change output.\n\n3. Question: How strict should archive/status repair be when evidence is incomplete?\n   User answer: Fail closed.\n   Why it matters: prevents recurrence of split-brain or false archived state.\n\n### Agent Decisions (LBP)\n\n1. Treat GH #168 as the critical anchor. PokeEdge `pending_merge` is one symptom of broader archive/status repair read-source inconsistency.\n2. Reuse existing structural PR proof helpers (`readPrMergeState`, `resolveReleaseReachability`, tree/patch equivalence) instead of adding new heuristics.\n3. Make stale `pending_merge` re-entrant: rerun finalization from current main checkout/PR evidence and complete release/status only after proof.\n4. Failed phase9 states are recoverable only when structural merged PR/archive evidence exists; otherwise they are blocker classifications.\n5. Bound status summary by default; detailed views remain explicit opt-ins.\n\n## Deferred Questions\n\nNone.\n\n## Sign-Off\n\nUser approved criteria and agreement via inline Tier A reply: `approve`.",
+    "design": "# Design\n\n## Architecture Overview\n\nFix archive/status drift as three structural paths sharing one evidence model:\n\n1. **Archive finalization recovery path** — re-enter phase9 finalization when a change is accepted and has stale `phase9_status: pending_merge` or recoverable `failed` state. The path reuses existing PR/merge proof helpers and completes release/status only after proof.\n2. **Status repair read-after-write path** — status repair may return success only after the same durable source used by `adv_change_show` and `adv_change_list` reads archived state consistently.\n3. **Bounded status read path** — default `/adv-status` / `adv_status view:summary` must cap recent rows and recommendations; detailed views remain explicit and bounded/paginated.\n\nCurrent-state PokeEdge recovery uses the same architecture: try target-aware repair only when target mutation is confirmed and serviceable; otherwise emit an exact same-project repair packet for `/home/jon/dev/pokeedge`.\n\n## Key Decisions\n\n1. **Use existing PR merge proof; do not invent proof.**\n   - Reuse `verifyReleaseEvidenceFromMain`, `resolveReleaseReachability`, `readPrMergeState`, PR-number state from `phase9_status`, and existing tree/patch-equivalence fallbacks.\n   - Rationale: squash merges and deleted branches make ancestry-only checks invalid; existing helpers already model safer proof.\n\n2. **Make stale pending_merge re-entrant.**\n   - Add/extend an operator-facing repair/finalization path that loads the current change, detects accepted/release-pending `phase9_status: pending_merge`, verifies PR merge evidence from main checkout, completes release gate, records `phase9_status: done`, and transitions archived.\n   - Idempotent rerun returns already-finalized/archived success.\n\n3. **Failed phase9 is classified, not blindly repaired.**\n   - `phase9_status: failed` can finalize only if structural merged PR/archive proof exists.\n   - Without proof, output blocker reason, remediation, target-path packet if applicable, and leave status unchanged.\n\n4. **Repair success requires read-after-write proof using existing archive-bundle dominance.**\n   - Do not reimplement a second archive-dominance mechanism.\n   - After `saveRecoveredChangeStatus` or equivalent final archive transition, immediately read through existing canonical store surfaces used by `adv_change_show` and `adv_change_list`.\n   - Success condition: show/list agree the change is archived and absent from in-flight. Otherwise return failure with evidence mismatch.\n\n5. **Default status is bounded at source and projection.**\n   - Summary caps recent change rows and recommendations; include aggregate counts and omitted-count metadata.\n   - Bound before expensive per-change enrichment so omitted rows do not trigger artifact/proposal reads.\n   - `view:changes|hygiene|health` remain explicit deeper views; do not perform unbounded GitHub/API calls on summary.\n\n6. **Target recovery is direct-or-packet through existing target tooling.**\n   - Use `withTargetPathStore`, target confirmation helpers, and target serviceability/readiness errors.\n   - If target queue/serviceability fails, return an exact same-project command packet to run from the target checkout; do not edit target state files.\n\n## ADR Drafts\n\nNo ADR. This is important but not a hard-to-reverse architectural choice; it is a correctness repair within existing ADV state/tool architecture.\n\n## Implementation Strategy\n\n### Slice 1 — Regression tests first\n\nAdd failing tests for:\n- accepted + PR-merged + `phase9_status: pending_merge` finalizes release/status idempotently;\n- `phase9_status: failed` without structural proof returns classification and leaves status unchanged;\n- status repair success read-after-write consistency (`show` archived, in-flight omitted, archived exactly once);\n- large-WIP status summary caps recent/recommendations and reports omitted counts;\n- target-path repair fallback returns exact same-project packet when target mutation is not serviceable.\n\n### Slice 2 — Archive/finalization recovery\n\n- Factor a thin reusable recovery helper around existing Phase 9 finalization logic:\n  - input: store, change, archive mode/route, optional target context;\n  - proof: wrap `verifyReleaseEvidenceFromMain` / `resolveReleaseReachability` instead of re-deriving reachability;\n  - output: `shipped`, `pending_merge`, `blocked` classification.\n- For `pending_merge + PR merged`, complete release gate via existing release completion path, record `phase9_status: done`, and persist archived state.\n- For `failed`, run the same proof; finalize only if proof reaches shipped. Otherwise return blocker classification.\n\n### Slice 3 — Read-after-write repair consistency\n\n- Add a post-repair verifier used by `adv_change_status_repair` and any new archive-finalization repair path.\n- Verifier calls existing read surfaces; it does not read state files directly:\n  - `store.changes.get(changeId)` returns `archived`;\n  - `store.changes.list({ status: \"in-flight\" })` excludes change;\n  - `store.changes.list({ status: \"archived\", includeArchived: true })` includes change exactly once.\n- If any readback fails, return `success:false` with structured mismatch details.\n\n### Slice 4 — Target recovery direct-or-packet\n\n- Add `target_path`, `target_confirmed`, and `confirmationEvidence` to repair/finalization tool(s) that mutate state.\n- Route mutation through `withTargetPathStore` when target_path is present.\n- If target serviceability blocks mutation, return fail-closed output containing:\n  - reason;\n  - exact working directory;\n  - exact same-project command/tool sequence to run from target project;\n  - no mutation claim.\n\n### Slice 5 — Status summary boundedness\n\n- Keep status provider plan lazy: summary skips heavy hygiene/health providers.\n- Bound summary projection:\n  - recent rows cap: 10;\n  - recommendation cap: 10;\n  - `omittedRecent`, `omittedRecommendations` counts.\n- Bound before `recentChangeEnrichment` for summary so only the cap-sized row set gets per-change `store.changes.get`, proposal reads, clarify checks, and recency recommendations.\n- For `view:changes`, keep pagination/capping explicit; do not emit unbounded recommendation arrays.\n\n## LBP Analysis\n\nThis is the long-term best practice path because it makes correctness structural:\n- PR merge evidence and gate state are typed inputs.\n- Recovery is idempotent and read-after-write verified.\n- Existing archive-bundle dominance/read surfaces stay the source of truth.\n- Incomplete evidence fails closed.\n- Status default is bounded and predictable.\n- Target mutation is safe-by-default and never falls back to direct state-file edits.\n\nExternal alternatives are not applicable; this is internal ADV workflow/tool consistency. Temporal TypeScript docs confirm workflow handles can query workflows and describe status, while signaling missing/completed external workflows can throw not-found style errors. The design therefore avoids relying on signals to completed workflows as the only recovery path.\n\n## Affected Components\n\n- `plugin/src/tools/change.ts` — archive repair/status repair/finalization tool behavior.\n- `plugin/src/tools/archive-helpers/git-finalize.ts` — existing PR merge proof reuse/classification if needed.\n- `plugin/src/tools/_recovery-writers.ts` — caller-side read-after-write integration if needed.\n- `plugin/src/tools/status.ts` — summary caps/recommendation bounds/lazy enrichment.\n- `plugin/src/storage/store-temporal/index.ts` — status recency source may need cap-aware helper to avoid enriching all changes.\n- `plugin/src/tools/target-project.ts` integration points — target-safe repair wrappers.\n- Tests near `change.status-repair.test.ts`, `change.archive-repair.test.ts`, `change.archive-phase9.test.ts`, `status.test.ts`, and target-project tests.\n- Specs: `advance-workflow` and `advance-meta` if new requirements are added.\n\n## Design-Derived Criteria\n\n- **DDC1** Summary status caps recent rows and recommendations at 10 unless caller explicitly asks for a deeper view.\n- **DDC2** Repair success must perform read-after-write verification through store read APIs before returning `success:true`.\n- **DDC3** PR-merged recovery must not use title matching or branch ancestry-only proof.\n- **DDC4** Target-path repair mutation must require target confirmation and serviceability; fallback packet output is success:false or explicit no-mutation status, never a fake repair success.\n- **DDC5** All recovery helpers are idempotent: rerun after archived state returns no-op archived result.\n- **DDC6** Summary enrichment only enriches the bounded summary row set, not every historical active change.\n\n## Risks / Mitigations\n\n| Risk | Mitigation |\n|---|---|\n| Repair path mutates wrong project | Use `withTargetPathStore`, explicit confirmation, and project context in output. |\n| False archived state from partial evidence | Fail closed unless PR/archive/readback evidence passes. |\n| Status summary hides needed detail | Include omitted counts and preserve explicit detailed views. |\n| Tests overfit PokeEdge data | Use synthetic changes plus one read-only manual PokeEdge verification. |\n| Current OpenCode session cannot live-test deployed tool code | Verify source with tests; note rebuild/deploy/restart requirement for live tool behavior. |\n\n## Design Leverage Scout\n\nScout: validated with reuse-scoping notes. Report submitted for `researcher:design-leverage-scout`.\n\nAuto-adopted:\n1. Reuse existing archive-bundle dominance/read surfaces for read-after-write verifier.\n2. Reuse `verifyReleaseEvidenceFromMain` for phase9 classification.\n3. Assemble target direct-or-packet path from existing `withTargetPathStore` and serviceability helpers.\n\nSurfaced/deferred:\n1. Status cap placement should be both source/projection and enrichment loop; adopted in implementation strategy.\n2. Exact source-vs-status cap placement can be finalized during planning/implementation as long as DDC1/DDC6 hold.\n\n## Validator Result\n\nValidator: `VALIDATED` with two cautions incorporated into this design.\n\n- Caution resolved: status cap must apply before `recentChangeEnrichment`, not only projection. Incorporated in Key Decision 5, Slice 5, and DDC6.\n- Caution resolved: recovery helper should wrap `verifyReleaseEvidenceFromMain` instead of re-deriving reachability. Incorporated in Slice 2.\n\nValidator recommendation: proceed to planning; design is correct, simple, source-verified.",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\n\nAdvance now handles archive/status drift with structural recovery paths and bounded default status output. Post-acceptance review remediation added fail-closed status-repair readback error handling plus regressions for detailed status drilldowns and PR-merged pending_merge reruns.\n\n## Verdict\n\nREADY\n\n## What Was Built\n\n1. Archive finalization recovery for existing-bundle PR-merged `pending_merge` changes, including phase9 `done` recording and failed phase9 blocker classification without marking archived.\n2. Bounded `adv_status view:\"summary\"`: recent changes capped before enrichment, recommendations capped with omitted-count metadata, and detailed views preserved.\n3. Archive/status repair spec law for recovery consistency and bounded status summary behavior.\n4. `adv_change_status_repair` read-after-write verifier requiring `show=archived`, in-flight omission, archived-list inclusion exactly once, plus fail-closed behavior when canonical readback throws.\n5. Target-path repair routing via target store with `temporal-required` serviceability and exact same-project repair packet fallback.\n6. Post-review regressions for readback throws, uncapped `view:\"changes\"` drilldown, and PR-merged `pending_merge` rerun idempotency.\n\n## What Was Verified\n\n- Verdict: READY; reviewer found no remaining blockers/issues after post-remediation checkpoint `f5cca026`.\n- Tests: `bin/oc-test targeted -- src/tools/change.status-repair.test.ts src/tools/status.test.ts src/tools/change.archive-phase9.test.ts` passed (84 tests, runId `tr_mqsfehzn_c8ba07c5`).\n- Quality gate: `pnpm run check` passed (runId `tr_mqsfhu08_d64fcb5b`). Earlier `pnpm run check` exit 139 was isolated to an eslint process segfault; `pnpm run lint` and the rerun full check passed.\n- Preview URL: not_applicable — backend/tooling-only ADV plugin change; no browser-visible or visual-output surface.\n- Contract matrix: 26/26 rows pass/respected; no failing rows.\n\n## Remaining Concerns\n\n- Live OpenCode sessions must rebuild/sync/restart before newly changed ADV tool behavior is available from deployed `dist`.\n",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-06-24T18:52:00.000Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | PR-merged accepted ADV changes no longer remain ordinary in-flight WIP after archive/finalization recovery. | pass | Reviewer verdict READY after post-remediation; archive pending_merge recovery implemented in plugin/src/tools/change.ts and covered by change.archive-phase9.test.ts including rerun idempotency. Targeted suite passed runId tr_mqsfehzn_c8ba07c5. |\n| SC2 | success_criterion | Archive/status repair success is read-after-write consistent across `adv_change_show`, in-flight lists, and archived lists. | pass | verifyStatusRepairReadAfterWrite requires show=archived, default in-flight list omits change, archived list contains exactly once, and fails closed on thrown readback. change.status-repair.test.ts passed runId tr_mqsfehzn_c8ba07c5. |\n| SC3 | success_criterion | `/adv-status` default path remains fast and bounded on 100+ WIP projects. | pass | adv_status summary caps recent changes before enrichment and recommendations with omitted counts; status.test.ts 120-change regression passed runId tr_mqsfehzn_c8ba07c5. |\n| SC4 | success_criterion | Cross-project recovery either mutates target safely or emits an exact same-project repair packet. | pass | adv_change_status_repair target_path routes through withTargetPathStore with temporal-required and emits targetRepairPacket on unserviceable target. change.status-repair.test.ts passed runId tr_mqsfehzn_c8ba07c5. |\n| SC5 | success_criterion | Incomplete evidence fails closed with exact remediation. | pass | Failed phase9 without reachability proof returns phase9Failure recoverable:false and does not save archived; status repair readback throws return success:false. Targeted suite passed runId tr_mqsfehzn_c8ba07c5. |\n| AC1 | acceptance_criterion | Given a `fixPtcgdataCatalogParser`-class change with acceptance done, PR merged, green terminal checks, and `phase9_status: pending_merge`, when repair/finalization runs, then release/status finalizes idempotently or emits an exact same-project packet if target mutation is not serviceable. | pass | change.archive-phase9.test.ts covers PR-merged pending_merge recovery and rerun idempotency; targeted suite passed runId tr_mqsfehzn_c8ba07c5. |\n| AC2 | acceptance_criterion | Given a `remediatePt011BroadRaises`-class `phase9_status: failed`, when evidence lacks merged PR/archive proof, then the tool classifies the exact blocker and does not mark the change archived. | pass | change.archive-phase9.test.ts `classifies failed phase9 without marking archived when recovery proof is missing`; targeted suite passed runId tr_mqsfehzn_c8ba07c5. |\n| AC3 | acceptance_criterion | Given status repair reports success, immediate `adv_change_show` returns `archived`, in-flight list omits the change, and archived list includes it exactly once. | pass | change.status-repair.test.ts covers successful archived readback and stale/throwing readback failures; targeted suite passed runId tr_mqsfehzn_c8ba07c5. |\n| AC4 | acceptance_criterion | Given 100+ active/stale changes, `adv_status view:summary` returns bounded recent rows/recommendations plus an omitted-count marker. | pass | status.test.ts `summary view caps recent changes before enrichment and reports omitted counts`; targeted suite passed runId tr_mqsfehzn_c8ba07c5. |\n| AC5 | acceptance_criterion | Given explicit `view:changes|hygiene|health`, detailed output remains available but is capped or paginated where needed. | pass | status.test.ts `changes view keeps full recent-change drilldown uncapped`; targeted suite passed runId tr_mqsfehzn_c8ba07c5. |\n| AC6 | acceptance_criterion | Regression tests cover PR-merged pending-merge recovery, #168 read-after-write consistency, failed phase9 classification, target-path serviceability fallback, and large-WIP status boundedness. | pass | Regression coverage spans change.archive-phase9.test.ts, change.status-repair.test.ts, and status.test.ts; targeted suite passed 84 tests runId tr_mqsfehzn_c8ba07c5. |\n| AC7 | acceptance_criterion | No ADV external state files are read or written directly. | pass | Implementation uses ADV store/readback APIs and recovery writer; reviewer verdict READY found no direct external ADV state reads/writes. pnpm run check passed runId tr_mqsfhu08_d64fcb5b. |\n| AC8 | acceptance_criterion | Target project mutation requires explicit target confirmation and fails closed when queue/serviceability is not proven. | pass | target_path repair tests assert target_confirmed/confirmationEvidence and temporal-required serviceability; fallback packet emitted on target queue failure. Targeted suite passed runId tr_mqsfehzn_c8ba07c5. |\n| AC9 | acceptance_criterion | `pnpm run check` and targeted modified-tool tests pass. | pass | pnpm run check passed runId tr_mqsfhu08_d64fcb5b; targeted modified-tool suite passed runId tr_mqsfehzn_c8ba07c5. |\n| C1 | constraint | Evidence must be typed/structural: gate map, phase9 status, PR state/check conclusions, archive bundle presence when required, and read-after-write result. | respected | Outputs use gates/phase9_status, PR reachability result, archive bundle existence, target serviceability, and canonical readback counts/status. No title/name inference used. |\n| C2 | constraint | Recovery must be idempotent and safe to rerun. | respected | Existing-bundle archive retry and post-PR pending_merge rerun tests prove safe rerun; status repair readback fail-closed prevents false success. |\n| C3 | constraint | Cross-project repair must not bypass target confirmation or target queue/serviceability checks. | respected | adv_change_status_repair validates approval evidence before target routing and passes target_confirmed/confirmationEvidence into withTargetPathStore with temporal-required for mutation. |\n| C4 | constraint | Status speed fixes must not hide explicit health/hygiene/change-detail views. | respected | Summary is capped before enrichment; explicit changes/health/hygiene view plans remain available. Changes-view uncapped regression passed. |\n| C5 | constraint | PR-mode recovery must use durable PR merge evidence or existing tree/patch-equivalence proof; branch ancestry alone is insufficient for squash merges. | respected | PR-mode recovery uses resolveReleaseReachability/readPrMergeState path via verifyReleaseEvidenceFromMain; no git branch --merged-only proof. |\n| C6 | constraint | Current-repo scope for Advance code; PokeEdge is only the observed target project for recovery verification. | respected | Files touched are Advance repo files only; PokeEdge remains downstream observation target for later repair verification. |\n| DONT1 | avoidance | Do not edit external ADV state files directly. | respected | Reviewer READY found no direct external ADV state file edits; code uses store APIs and recovery writer. |\n| DONT2 | avoidance | Do not use `git branch --merged` as sole proof for squash-merged PR cleanup/finalization. | respected | Archive recovery test/proof path uses PR merge/reachability helpers; no `git branch --merged` sole authority introduced. |\n| DONT3 | avoidance | Do not mark a release archived from title/name matching alone. | respected | Recovery keyed by changeId, gates, archive bundle, phase9 status, PR proof, and readback; no title/name matching path added. |\n| DONT4 | avoidance | Do not make `/adv-status` perform unbounded GitHub/API calls by default. | respected | Default adv_status summary skips detailed providers and caps rows/recommendations; no unbounded default GitHub/API calls introduced. |\n| DONT5 | avoidance | Do not close or mutate unrelated PokeEdge bugs/features. | respected | No PokeEdge issue or change mutation performed during Advance implementation; downstream repair deferred until release. |\n| DONT6 | avoidance | Do not absorb worktree registry cleanup issue #174 except as a non-blocking status-summary performance consideration. | respected | Worktree registry cleanup not absorbed; changes limited to status summary boundedness, archive recovery, and repair consistency. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-06-24T02:59:14.833Z",
+      "contentHash": "84f9abe8da4f0dc0003700e3085d9154beaf917c5bd2340a7d42cea2f991bdf5",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-06-24T02:40:11.583Z",
+      "contentHash": "0b6c6c1d93c46c20e0081c59685ab5c4fbcbd193c149aa6dc5a249d67f8328fa",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-06-24T16:30:34.294Z",
+      "contentHash": "208815ef1bc8f0e7a1a45254bcb419f0580586da5ec005496cdc9b900d5e04ce",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-06-24T16:43:30.807Z",
+      "contentHash": "7dbb8cb21ca600afc72d5b6bd4c3c0f925ff3e41c8cf8380b6d02de5e8cca62b",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-06-24T19:01:41.351Z",
+      "contentHash": "964d1480dd8b68c2f913aaef78866fc47fc36f9b1a79aa394f2e165f259d18d5",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-06-24T19:02:57.613Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d"
+}
