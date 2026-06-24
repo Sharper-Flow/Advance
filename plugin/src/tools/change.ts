@@ -1306,6 +1306,8 @@ function buildFailedPhase9Classification(input: {
       };
     }
   | Record<string, never> {
+  // rq-archiveRecoveryConsistency01: failed Phase 9 recovery without
+  // structural release proof must classify the blocker and fail closed.
   const phase9Status = input.change.phase9_status;
   if (phase9Status?.status !== "failed") {
     return {};

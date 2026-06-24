@@ -1,7 +1,7 @@
 # Advance Workflow
 
-> **Version:** 1.20.0
-> **Updated:** 2026-06-22
+> **Version:** 1.21.0
+> **Updated:** 2026-06-24
 
 ## Purpose
 
@@ -722,6 +722,82 @@ When `/adv-archive` Phase 9 finalization succeeds, archive success MUST be gated
 - Direct archive mode re-verifies the change branch is reachable from and pushed with the default branch before repair
 - PR archive mode re-verifies the change branch was pushed for PR handoff before repair
 - If finalization evidence is missing or invalid, repair is rejected and release remains not done
+
+---
+
+### Archive Recovery Requires Structural Proof and Readback Consistency
+
+**ID:** `rq-archiveRecoveryConsistency01` | **Priority:** **[MUST]**
+
+Archive finalization recovery and status repair MUST be structural, idempotent, and read-after-write verified. A stale `phase9_status: pending_merge` MAY be finalized only when merged PR evidence, no-remote local proof, or post-fetch `origin/{default-branch}` reachability proves release completion; successful recovery MUST record `phase9_status: done` before archived status is reported. A `phase9_status: failed` state without structural release proof MUST return a typed blocker classification and MUST NOT mark the change archived. `adv_change_status_repair` success MUST be gated by the same durable read model used by `adv_change_show` and `adv_change_list`: immediate show reads archived, in-flight lists omit the change, and archived lists include it exactly once. Target-project repair MUST mutate the target directly only when target confirmation and fresh queue/serviceability proof are present; otherwise it MUST emit an exact same-project recovery packet and fail closed without target mutation. No archive recovery path may read or write ADV external state files directly.
+
+**Tags:** `workflow`, `archive`, `repair`, `status`, `target-path`
+
+#### Scenarios
+
+**PR-merged pending_merge finalizes idempotently** (`rq-archiveRecoveryConsistency01.1`)
+
+**Given:**
+
+- A change has acceptance done, an archive bundle, and `phase9_status: pending_merge` with a PR number
+- The PR is structurally proven merged or equivalent release proof exists
+
+**When:** Archive finalization recovery runs
+
+**Then:**
+
+- Recovery uses PR merge evidence, no-remote local proof, or post-fetch `origin/{default-branch}` reachability rather than title matching or branch ancestry alone
+- The release gate is recorded done with Phase 9 evidence before archived status is saved
+- `phase9_status` is recorded as `done` before success is reported
+- Re-running the recovery remains safe and idempotent
+
+**Failed phase9 without proof fails closed** (`rq-archiveRecoveryConsistency01.2`)
+
+**Given:**
+
+- A change has `phase9_status: failed`
+- Merged PR, no-remote local, and post-fetch origin/default release proof are absent or unverifiable
+
+**When:** Archive finalization recovery runs
+
+**Then:**
+
+- The tool returns a typed phase9 failure classification with blocker, remediation, and details when available
+- The release gate remains incomplete
+- The change status is not marked archived
+- Issue closure, branch deletion, and worktree cleanup do not run as successful retirement effects
+
+**Status repair success proves read-after-write visibility** (`rq-archiveRecoveryConsistency01.3`)
+
+**Given:**
+
+- All seven gates are done
+- The archive bundle exists
+- A status repair attempts to flip a non-archived status to archived
+
+**When:** The repair is about to report success
+
+**Then:**
+
+- The same durable source used by `adv_change_show` reads status `archived`
+- The in-flight change list omits the repaired change
+- The archived change list includes the repaired change exactly once
+- If any readback check fails, the repair reports failure with source/evidence mismatch instead of success
+
+**Target repair mutates directly or emits packet** (`rq-archiveRecoveryConsistency01.4`)
+
+**Given:**
+
+- Archive/status repair is requested for a target_path project
+
+**When:** The target mutation boundary is evaluated
+
+**Then:**
+
+- If target confirmation and fresh target queue/serviceability proof are present, the repair uses the target project's store/read model directly
+- If target serviceability is absent, stale, or failed, the source project does not mutate target state
+- The response emits an exact same-project recovery packet for the operator to run from the target project
+- No recovery path reads or writes ADV external state files directly
 
 ---
 

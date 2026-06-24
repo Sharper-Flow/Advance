@@ -147,6 +147,8 @@ const healthSnapshotCache = new Map<
 const STATUS_PROBE_TTL_MS = 2_000;
 const STATUS_PROBE_TIMEOUT_MS = 2_000;
 const MISSING_PROJECT_ID_CACHE_KEY = "__current_project__";
+// rq-advStatusBoundedSummary01: summary must bound compute before enrichment
+// and bound output recommendations with omitted-count metadata.
 const STATUS_SUMMARY_RECENT_LIMIT = 10;
 const STATUS_SUMMARY_RECOMMENDATION_LIMIT = 10;
 

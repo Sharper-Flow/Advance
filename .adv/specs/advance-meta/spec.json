@@ -3,8 +3,8 @@
   "name": "advance-meta",
   "title": "Advance Meta",
   "purpose": "Capability: Cross-cutting ADV concerns — config diagnostics, metadata filters, shutdown lifecycle, due-diligence routing, and synthetic-state guards. Split from `advance` capability.",
-  "version": "1.16.0",
-  "updated_at": "2026-06-17T00:00:00.000Z",
+  "version": "1.17.0",
+  "updated_at": "2026-06-24T00:00:00.000Z",
   "requirements": [
     {
       "id": "rq-synthstate01",
@@ -1995,6 +1995,54 @@
           "then": [
             "The corresponding detailed providers run",
             "The detailed payload exposes the required diagnostic fields"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-advStatusBoundedSummary01",
+      "title": "adv_status Summary Output Is Bounded Before Enrichment",
+      "body": "`adv_status view: \"summary\"` MUST keep both compute and output bounded for large WIP projects. The summary view MUST cap recent changes before any per-change enrichment, artifact reads, or recommendation generation that depends on the recent-change list. It MUST cap summary recommendations to a small fixed window and include omitted-count metadata or an omitted-count marker when truncation occurs. Detailed views (`changes`, `hygiene`, and `health`) remain explicit drilldowns for fuller diagnostics and MUST NOT be used as implicit default fanout.",
+      "priority": "must",
+      "tags": ["adv_status", "latency", "summary", "bounded-output"],
+      "scenarios": [
+        {
+          "id": "rq-advStatusBoundedSummary01.1",
+          "title": "Summary caps recent changes before enrichment",
+          "given": [
+            "A project has more active or recent changes than the summary recent-change limit"
+          ],
+          "when": "adv_status is called with view: \"summary\"",
+          "then": [
+            "The recent-change list is sliced to the fixed summary limit before per-change enrichment runs",
+            "Per-change enrichment, artifact reads, and recommendation generation are not run for omitted recent changes",
+            "The response reports how many recent changes were omitted"
+          ]
+        },
+        {
+          "id": "rq-advStatusBoundedSummary01.2",
+          "title": "Summary caps recommendations with omitted marker",
+          "given": [
+            "Summary recommendation generation produces more entries than the summary recommendation limit"
+          ],
+          "when": "adv_status builds the summary response",
+          "then": [
+            "Only the fixed recommendation window is returned",
+            "An omitted-count marker or metadata reports how many recommendations were omitted",
+            "The marker directs callers to explicit detailed views for full diagnostics"
+          ]
+        },
+        {
+          "id": "rq-advStatusBoundedSummary01.3",
+          "title": "Detailed views remain explicit drilldowns",
+          "given": [
+            "A caller requests view: \"changes\", view: \"hygiene\", or view: \"health\""
+          ],
+          "when": "adv_status builds the selected detailed view",
+          "then": [
+            "The detailed view may expose fuller diagnostics required by that view",
+            "The detailed view is not invoked by default summary routing",
+            "Detailed output remains bounded or paginated when exposing large collections"
           ]
         }
       ]

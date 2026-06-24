@@ -1,7 +1,7 @@
 # Advance Meta
 
-> **Version:** 1.16.0
-> **Updated:** 2026-06-17
+> **Version:** 1.17.0
+> **Updated:** 2026-06-24
 
 ## Purpose
 
@@ -55,6 +55,60 @@ Supported internal validation or parity flows must not leave synthetic draft cha
 
 - Stale synthetic parity-validation drafts are absent from live draft results
 - Real user-authored drafts remain visible
+
+---
+
+### adv_status Summary Output Is Bounded Before Enrichment
+
+**ID:** `rq-advStatusBoundedSummary01` | **Priority:** **[MUST]**
+
+`adv_status view: "summary"` MUST keep both compute and output bounded for large WIP projects. The summary view MUST cap recent changes before any per-change enrichment, artifact reads, or recommendation generation that depends on the recent-change list. It MUST cap summary recommendations to a small fixed window and include omitted-count metadata or an omitted-count marker when truncation occurs. Detailed views (`changes`, `hygiene`, and `health`) remain explicit drilldowns for fuller diagnostics and MUST NOT be used as implicit default fanout.
+
+**Tags:** `adv_status`, `latency`, `summary`, `bounded-output`
+
+#### Scenarios
+
+**Summary caps recent changes before enrichment** (`rq-advStatusBoundedSummary01.1`)
+
+**Given:**
+
+- A project has more active or recent changes than the summary recent-change limit
+
+**When:** adv_status is called with view: "summary"
+
+**Then:**
+
+- The recent-change list is sliced to the fixed summary limit before per-change enrichment runs
+- Per-change enrichment, artifact reads, and recommendation generation are not run for omitted recent changes
+- The response reports how many recent changes were omitted
+
+**Summary caps recommendations with omitted marker** (`rq-advStatusBoundedSummary01.2`)
+
+**Given:**
+
+- Summary recommendation generation produces more entries than the summary recommendation limit
+
+**When:** adv_status builds the summary response
+
+**Then:**
+
+- Only the fixed recommendation window is returned
+- An omitted-count marker or metadata reports how many recommendations were omitted
+- The marker directs callers to explicit detailed views for full diagnostics
+
+**Detailed views remain explicit drilldowns** (`rq-advStatusBoundedSummary01.3`)
+
+**Given:**
+
+- A caller requests view: "changes", view: "hygiene", or view: "health"
+
+**When:** adv_status builds the selected detailed view
+
+**Then:**
+
+- The detailed view may expose fuller diagnostics required by that view
+- The detailed view is not invoked by default summary routing
+- Detailed output remains bounded or paginated when exposing large collections
 
 ---
 
