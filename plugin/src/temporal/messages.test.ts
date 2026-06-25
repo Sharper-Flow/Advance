@@ -72,6 +72,7 @@ const designSignalKeys = [
   "subagentReportSubmitted",
   "taskBlocked",
   "taskCancelled",
+  "designConcernDispositioned",
   "gateInProgress",
   "gateAwaitingApproval",
   "gateStuck",
@@ -108,11 +109,11 @@ const designQueryKeys = [
 ] as const;
 
 describe("change workflow message contract", () => {
-  it("defines the 40 signal surface", () => {
+  it("defines the 44 signal surface", () => {
     const surfacedKeys = Object.keys(CHANGE_WORKFLOW_SIGNAL_NAMES);
 
     expect(surfacedKeys).toEqual([...designSignalKeys]);
-    expect(surfacedKeys).toHaveLength(43);
+    expect(surfacedKeys).toHaveLength(44);
 
     for (const key of designSignalKeys) {
       expect(CHANGE_WORKFLOW_SIGNAL_NAMES[key]).toBe(`adv.change.${key}`);

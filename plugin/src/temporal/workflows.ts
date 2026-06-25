@@ -45,6 +45,7 @@ import {
   applyGateStuckToState,
   applyOpsEvidenceAppendedToState,
   applyOpsFollowupLinkAddedToState,
+  applyDesignConcernDispositionedToState,
   applyOpsFollowupSeededToState,
   applyProblemStatementUpdatedToState,
   applyProposalUpdatedToState,
@@ -292,6 +293,9 @@ const taskBlockedSignal = wf.defineSignal<
 const taskCancelledSignal = wf.defineSignal<
   [import("../types").TaskCancelledSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.taskCancelled);
+const designConcernDispositionedSignal = wf.defineSignal<
+  [import("../types").DesignConcernDispositionedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.designConcernDispositioned);
 const gateInProgressSignal = wf.defineSignal<
   [import("../types").GateInProgressSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.gateInProgress);
@@ -1206,6 +1210,12 @@ export async function changeWorkflow(
     taskCancelledSignal,
     signalMutation("taskCancelled", (payload) =>
       applyTaskCancelledToState(state, payload),
+    ),
+  );
+  wf.setHandler(
+    designConcernDispositionedSignal,
+    signalMutation("designConcernDispositioned", (payload) =>
+      applyDesignConcernDispositionedToState(state, payload),
     ),
   );
   wf.setHandler(

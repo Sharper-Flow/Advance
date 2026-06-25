@@ -29,6 +29,7 @@ import type {
   ContractAmendedSignalPayload,
   ContractReviewMatrixSetSignalPayload,
   ContractSetSignalPayload,
+  DesignConcernDispositionedSignalPayload,
   DesignUpdatedSignalPayload,
   ExecutiveSummaryUpdatedSignalPayload,
   GateAwaitingApprovalSignalPayload,
@@ -187,6 +188,9 @@ export const taskBlockedSignal = wf.defineSignal<[TaskBlockedSignalPayload]>(
 export const taskCancelledSignal = wf.defineSignal<
   [TaskCancelledSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.taskCancelled);
+export const designConcernDispositionedSignal = wf.defineSignal<
+  [DesignConcernDispositionedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.designConcernDispositioned);
 export const gateInProgressSignal = wf.defineSignal<
   [GateInProgressSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.gateInProgress);
