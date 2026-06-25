@@ -2109,7 +2109,7 @@
           "title": "OperatorService method name is listSearchAttributes",
           "given": [
             "A Temporal connection with operatorService available",
-            "Search attributes AdvChangeId, AdvChangeStatus, AdvActiveGate, AdvProjectId, AdvDoomLoopActive are registered"
+            "Search attributes AdvChangeId, AdvChangeStatus, AdvLifecycleState, AdvChangeTitle, AdvAffectedProjects, AdvCurrentGate, AdvCurrentBucket, AdvLastSignalAt, AdvCreatedAt, AdvWorktreeBranches, AdvWorktreePaths, and AdvBacklogIssueNumber are registered"
           ],
           "when": "checkAdvSearchAttributes is called",
           "then": [

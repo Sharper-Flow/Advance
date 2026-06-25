@@ -3,7 +3,7 @@
  * enumeration path.
  *
  * Tests cover:
- *   - Visibility query construction (AdvAffectedProjects + AdvChangeStatus filter)
+ *   - Visibility query construction (AdvAffectedProjects + lifecycle/running filter)
  *   - Pagination correctness via async-iterator drain
  *   - Default statuses (excludes archived + closed)
  *   - Custom statuses override

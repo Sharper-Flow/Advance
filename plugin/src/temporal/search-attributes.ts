@@ -217,8 +217,8 @@ export function buildChangeSearchAttributes(
   // rq-backlogCoord01: populate AdvBacklogIssueNumber from state.origin so
   // peer agent sessions can detect claim collisions via Visibility queries
   // (`AdvAffectedProjects = pid AND AdvBacklogIssueNumber = N AND
-  // AdvChangeStatus IN ("draft","pending","active")`). Keyword search
-  // attributes carry string values, so the issue number is stringified.
+  // AdvLifecycleState = "open" AND ExecutionStatus = "Running"`). Keyword
+  // search attributes carry string values, so the issue number is stringified.
   if (state.origin?.issue_number !== undefined) {
     attrs.AdvBacklogIssueNumber = [String(state.origin.issue_number)];
   }

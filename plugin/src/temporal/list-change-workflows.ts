@@ -22,11 +22,12 @@
  * filtering and an optional hard `limit` cap.
  *
  * Search-attribute strategy: ADV registers `AdvAffectedProjects`
- * (KeywordList) and `AdvChangeStatus` (Keyword) as custom search
- * attributes (see `search-attributes.ts:ADV_SEARCH_ATTRIBUTES` and
- * `service.ts:registerAdvSearchAttributes`). The visibility query filters
- * on these to scope reads to one project + non-archived statuses by
- * default. `AdvAffectedProjects` matches the backlog-claim Visibility
+ * (KeywordList), `AdvLifecycleState` (Keyword), and `AdvChangeStatus`
+ * (Keyword) as custom search attributes (see
+ * `search-attributes.ts:ADV_SEARCH_ATTRIBUTES` and
+ * `service.ts:registerAdvSearchAttributes`). The default visibility query
+ * filters on project scope + `AdvLifecycleState = "open"` + running
+ * executions. `AdvAffectedProjects` matches the backlog-claim Visibility
  * scope (`visibility-claim-queries.ts`) so list/claim paths use the same
  * registered attribute.
  */

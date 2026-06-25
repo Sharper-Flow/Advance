@@ -1318,6 +1318,7 @@ export async function changeWorkflow(
       "archiveRequested",
       async (payload) => {
         const previousStatus = state.status;
+        const previousLifecycleState = state.lifecycleState;
         const previousTerminated = state.terminated;
         applyArchiveRequestedToState(state, payload);
         upsertSignalSearchAttributes("archiveRequested");
@@ -1327,6 +1328,7 @@ export async function changeWorkflow(
           : false;
         if (!projected || !archived) {
           state.status = previousStatus;
+          state.lifecycleState = previousLifecycleState;
           if (typeof previousTerminated === "undefined")
             delete state.terminated;
           else state.terminated = previousTerminated;
@@ -1361,6 +1363,7 @@ export async function changeWorkflow(
       "changeCancelled",
       async (payload) => {
         const previousStatus = state.status;
+        const previousLifecycleState = state.lifecycleState;
         const previousTerminated = state.terminated;
         const previousClosure = state.closure;
         applyChangeCancelledToState(state, payload);
@@ -1371,6 +1374,7 @@ export async function changeWorkflow(
           : false;
         if (!projected || !archived) {
           state.status = previousStatus;
+          state.lifecycleState = previousLifecycleState;
           if (typeof previousTerminated === "undefined")
             delete state.terminated;
           else state.terminated = previousTerminated;
