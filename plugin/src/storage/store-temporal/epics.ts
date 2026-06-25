@@ -7,6 +7,7 @@ import {
   shellAddedSignal,
   shellPromotedSignal,
   changeLinkedSignal,
+  changeProjectionStatusUpdatedSignal,
   changeUnlinkedSignal,
   entriesReorderedSignal,
   getEpicQuery,
@@ -391,6 +392,43 @@ export function createEpicOps(deps: StoreDeps): Store["epics"] {
         changeUnlinkedSignal,
         payload,
       );
+    },
+
+    setEntryMembershipStatus: async (
+      epicId,
+      { entryId, membershipStatus, evidence },
+    ) => {
+      await assertEpicExists(epicId);
+      const handle = getEpicHandle(epicId);
+      const updatedAt = new Date().toISOString();
+      const payload = {
+        entryId,
+        membershipStatus,
+        evidence,
+        idempotencyKey: idempotencyKey(
+          "projection-status",
+          epicId,
+          entryId,
+          membershipStatus,
+        ),
+        updatedAt,
+      };
+
+      await fireEpicSignal(
+        handle,
+        "changeProjectionStatusUpdated",
+        changeProjectionStatusUpdatedSignal,
+        payload,
+      );
+
+      const epic = await queryEpic(epicId);
+      const entry = epic?.entries.find((e) => e.entry_id === entryId);
+      if (!entry) {
+        throw new Error(
+          `Change entry not found after status update: ${entryId}`,
+        );
+      }
+      return entry;
     },
 
     reorder: async (epicId, entryIds, expectedVersion) => {

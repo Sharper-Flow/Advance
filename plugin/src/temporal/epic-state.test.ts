@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { EpicWorkflowState } from "./contracts";
 import {
   applyChangeLinkedToState,
+  applyChangeProjectionStatusUpdatedToState,
   applyChangeUnlinkedToState,
   applyEntriesReorderedToState,
   applyEntryTerminalSummaryToState,
@@ -419,6 +420,42 @@ describe("epic-state", () => {
       });
       expect(result.ok).toBe(true);
       expect(state.epic.entries[0].kind).toBe("change");
+    });
+  });
+
+  describe("applyChangeProjectionStatusUpdatedToState", () => {
+    it("updates a change entry membership status for repair surfaces", () => {
+      const state = makeState({
+        entries: [
+          {
+            kind: "change",
+            entry_id: "entry-1",
+            order: 0,
+            change_ref: { change_id: "change-1", project_id: "project-api" },
+            title: "API Change",
+            membership_status: "projection_pending",
+            linked_at: "2026-06-24T00:01:00.000Z",
+            linked_by: "agent",
+            link_evidence: "linked during test",
+          },
+        ],
+      });
+
+      const result = applyChangeProjectionStatusUpdatedToState(state, {
+        entryId: "entry-1",
+        membershipStatus: "target_unreachable",
+        evidence: "target queue unavailable",
+        idempotencyKey: "status-entry-1",
+        updatedAt: "2026-06-24T00:02:00.000Z",
+      });
+
+      expect(result.ok).toBe(true);
+      expect(state.epic.entries[0]).toMatchObject({
+        kind: "change",
+        membership_status: "target_unreachable",
+      });
+      expect(state.epic.version).toBe(1);
+      expect(state.idempotencyLedger["status-entry-1"]).toBeDefined();
     });
   });
 

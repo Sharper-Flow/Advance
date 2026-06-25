@@ -81,6 +81,7 @@ import {
 } from "./change-state";
 import {
   applyChangeLinkedToState,
+  applyChangeProjectionStatusUpdatedToState,
   applyChangeUnlinkedToState,
   applyEntriesReorderedToState,
   applyEntryTerminalSummaryToState,
@@ -419,6 +420,9 @@ const shellPromotedSignal = wf.defineSignal<
 const changeLinkedSignal = wf.defineSignal<
   [import("../types").ChangeLinkedSignalPayload]
 >(EPIC_WORKFLOW_SIGNAL_NAMES.changeLinked);
+const changeProjectionStatusUpdatedSignal = wf.defineSignal<
+  [import("../types").ChangeProjectionStatusUpdatedSignalPayload]
+>(EPIC_WORKFLOW_SIGNAL_NAMES.changeProjectionStatusUpdated);
 const changeUnlinkedSignal = wf.defineSignal<
   [import("../types").ChangeUnlinkedSignalPayload]
 >(EPIC_WORKFLOW_SIGNAL_NAMES.changeUnlinked);
@@ -1799,6 +1803,13 @@ export async function epicWorkflow(input: EpicWorkflowInput): Promise<void> {
     signalAsync("changeLinked", (payload) => {
       const result = applyChangeLinkedToState(state, payload);
       handleMutationResult("changeLinked", result);
+    }),
+  );
+  wf.setHandler(
+    changeProjectionStatusUpdatedSignal,
+    signalAsync("changeProjectionStatusUpdated", (payload) => {
+      const result = applyChangeProjectionStatusUpdatedToState(state, payload);
+      handleMutationResult("changeProjectionStatusUpdated", result);
     }),
   );
   wf.setHandler(

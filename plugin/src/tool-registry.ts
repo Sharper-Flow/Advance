@@ -368,6 +368,16 @@ export function createToolMap(
       "adv_epic_unlink_change",
       store,
     ),
+    adv_epic_move_change: bindTool(
+      epicTools.adv_epic_move_change,
+      "adv_epic_move_change",
+      store,
+    ),
+    adv_epic_repair_membership: bindTool(
+      epicTools.adv_epic_repair_membership,
+      "adv_epic_repair_membership",
+      store,
+    ),
     adv_epic_reorder: bindTool(
       epicTools.adv_epic_reorder,
       "adv_epic_reorder",
@@ -798,6 +808,8 @@ export const ADV_TOOL_NAMES: readonly string[] = [
   "adv_epic_promote_shell",
   "adv_epic_link_change",
   "adv_epic_unlink_change",
+  "adv_epic_move_change",
+  "adv_epic_repair_membership",
   "adv_epic_reorder",
   "adv_followup_promote",
   "adv_ops_evidence_add",

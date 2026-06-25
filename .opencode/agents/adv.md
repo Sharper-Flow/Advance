@@ -108,6 +108,8 @@ tools:
   adv_epic_promote_shell: true
   adv_epic_link_change: true
   adv_epic_unlink_change: true
+  adv_epic_move_change: true
+  adv_epic_repair_membership: true
   adv_epic_reorder: true
   # === Worktree — orchestrator owns lifecycle ===
   adv_worktree_create: true

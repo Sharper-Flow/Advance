@@ -117,6 +117,8 @@
 | `adv_epic_promote_shell` | `no-cli-dangerous` | Epic mutation |
 | `adv_epic_link_change` | `no-cli-dangerous` | Epic mutation |
 | `adv_epic_unlink_change` | `no-cli-dangerous` | Epic mutation |
+| `adv_epic_move_change` | `no-cli-dangerous` | Epic membership mutation across Epics |
+| `adv_epic_repair_membership` | `no-cli-dangerous` | Epic/child projection repair mutation |
 | `adv_epic_reorder` | `no-cli-dangerous` | Epic mutation |
 
 ## Deferred

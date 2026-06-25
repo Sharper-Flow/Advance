@@ -24,6 +24,7 @@ import type {
   ArchiveRequestedSignalPayload,
   ChangeCancelledSignalPayload,
   ChangeLinkedSignalPayload,
+  ChangeProjectionStatusUpdatedSignalPayload,
   ChangeUnlinkedSignalPayload,
   ConformanceLockedSignalPayload,
   ConformanceOverriddenSignalPayload,
@@ -308,6 +309,9 @@ export const shellPromotedSignal = wf.defineSignal<
 export const changeLinkedSignal = wf.defineSignal<[ChangeLinkedSignalPayload]>(
   EPIC_WORKFLOW_SIGNAL_NAMES.changeLinked,
 );
+export const changeProjectionStatusUpdatedSignal = wf.defineSignal<
+  [ChangeProjectionStatusUpdatedSignalPayload]
+>(EPIC_WORKFLOW_SIGNAL_NAMES.changeProjectionStatusUpdated);
 export const changeUnlinkedSignal = wf.defineSignal<
   [ChangeUnlinkedSignalPayload]
 >(EPIC_WORKFLOW_SIGNAL_NAMES.changeUnlinked);

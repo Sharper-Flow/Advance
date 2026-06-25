@@ -69,6 +69,17 @@ function makeStore(epicOverrides?: Partial<Epic>): Store {
         makeChangeEntry({ entry_id: "entry-2", change_id: "change-2" }),
       ),
       unlinkChange: vi.fn(async () => {}),
+      setEntryMembershipStatus: vi.fn(async () =>
+        makeChangeEntry({
+          entry_id: "entry-2",
+          change_ref: { change_id: "change-2", project_id: "project-api" },
+          title: "Linked Change",
+          membership_status: "target_unreachable",
+          linked_at: "2026-06-25T00:00:00.000Z",
+          linked_by: "agent",
+          link_evidence: "target failed",
+        }),
+      ),
       reorder: vi.fn(async () => epic),
     },
     changes: {
@@ -368,6 +379,60 @@ describe("adv_epic_show", () => {
       kind: "shell",
       status: "future",
     });
+  });
+
+  test("compact view includes bounded member status for active change entries", async () => {
+    const now = new Date().toISOString();
+    const store = makeStore({
+      entries: [
+        {
+          kind: "change",
+          entry_id: "api-entry",
+          order: 0,
+          change_ref: {
+            change_id: "apiChange",
+            project_id: "project-api",
+            repo_id: "pokeedge-api",
+            target_path: "/workspace/pokeedge-api",
+          },
+          title: "API Change",
+          membership_status: "target_unreachable",
+          linked_at: now,
+          linked_by: "agent",
+          link_evidence: "target unavailable during repair",
+        },
+      ],
+      progress: {
+        status: "active",
+        total_entries: 1,
+        completed_entries: 0,
+        active_entries: 1,
+        next_entry_id: "api-entry",
+        updated_at: now,
+      },
+    });
+
+    const output = await epicTools.adv_epic_show.execute(
+      { epic_id: "addAuthEpic" },
+      store,
+    );
+    const parsed = parseToolOutput(output);
+
+    expect(parsed.success).toBe(true);
+    expect(parsed.epic.next_work).toEqual([
+      expect.objectContaining({
+        entry_id: "api-entry",
+        change_id: "apiChange",
+        member_status: expect.objectContaining({
+          status: "target_unreachable",
+          message: expect.stringContaining("target"),
+        }),
+      }),
+    ]);
+    expect(parsed.epic.next_work[0].member_status.last_checked_at).toEqual(
+      expect.any(String),
+    );
+    expect(parsed.epic.entries).toBeUndefined();
   });
 });
 
@@ -720,6 +785,85 @@ describe("adv_epic_move_change", () => {
       "fromEpic",
       "from-entry",
     );
+  });
+});
+
+describe("adv_epic_repair_membership", () => {
+  test("sync_child_projection refreshes target change membership from Epic entry", async () => {
+    const store = makeStore({
+      entries: [
+        makeChangeEntry({
+          entry_id: "entry-2",
+          change_ref: {
+            change_id: "change-2",
+            project_id: "epic-test-project",
+            repo_id: "repo-web",
+          },
+          title: "Linked Change",
+          membership_status: "projection_stale",
+          linked_at: "2026-06-25T00:00:00.000Z",
+          linked_by: "agent",
+          link_evidence: "repair test",
+        }),
+      ],
+    });
+
+    const output = await epicTools.adv_epic_repair_membership.execute(
+      {
+        epic_id: "addAuthEpic",
+        entry_id: "entry-2",
+        mode: "sync_child_projection",
+        evidence: "Operator verified child projection needs refresh.",
+      },
+      store,
+    );
+    const parsed = parseToolOutput(output);
+
+    expect(parsed.success).toBe(true);
+    expect(parsed.repaired).toBe(true);
+    expect(store.changes.setEpicMembership).toHaveBeenCalledWith(
+      "change-2",
+      expect.objectContaining({
+        membership: expect.objectContaining({
+          epic_id: "addAuthEpic",
+          entry_id: "entry-2",
+          repo_id: "repo-web",
+        }),
+      }),
+    );
+  });
+
+  test("dry-run mark_target_unreachable previews Epic status update without mutation", async () => {
+    const store = makeStore({
+      entries: [
+        makeChangeEntry({
+          entry_id: "entry-2",
+          change_ref: { change_id: "change-2", project_id: "project-api" },
+          title: "Linked Change",
+          membership_status: "projection_pending",
+          linked_at: "2026-06-25T00:00:00.000Z",
+          linked_by: "agent",
+          link_evidence: "repair test",
+        }),
+      ],
+    });
+
+    const output = await epicTools.adv_epic_repair_membership.execute(
+      {
+        epic_id: "addAuthEpic",
+        entry_id: "entry-2",
+        mode: "mark_target_unreachable",
+        evidence: "Target queue unavailable during repair.",
+        dryRun: true,
+      },
+      store,
+    );
+    const parsed = parseToolOutput(output);
+
+    expect(parsed.success).toBe(true);
+    expect(parsed.dryRun).toBe(true);
+    expect(parsed.member_status.status).toBe("target_unreachable");
+    expect(store.epics.setEntryMembershipStatus).not.toHaveBeenCalled();
   });
 });
 

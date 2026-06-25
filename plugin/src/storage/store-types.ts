@@ -371,6 +371,14 @@ export interface Store {
       },
     ) => Promise<EpicEntry>;
     unlinkChange: (epicId: string, entryId: string) => Promise<void>;
+    setEntryMembershipStatus: (
+      epicId: string,
+      input: {
+        entryId: string;
+        membershipStatus: import("../types").EpicMembershipStatus;
+        evidence: string;
+      },
+    ) => Promise<EpicEntry>;
     reorder: (
       epicId: string,
       entryIds: string[],

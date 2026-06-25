@@ -530,6 +530,20 @@ export type ChangeLinkedSignalPayload = z.infer<
   typeof ChangeLinkedSignalPayloadSchema
 >;
 
+/**
+ * Update an Epic change entry's child projection status after repair/enrichment.
+ */
+export const ChangeProjectionStatusUpdatedSignalPayloadSchema = z.object({
+  entryId: z.string().min(1),
+  membershipStatus: EpicMembershipStatusSchema,
+  evidence: z.string().min(1),
+  idempotencyKey: z.string().min(1),
+  updatedAt: IsoTimestampSchema,
+});
+export type ChangeProjectionStatusUpdatedSignalPayload = z.infer<
+  typeof ChangeProjectionStatusUpdatedSignalPayloadSchema
+>;
+
 const EpicMembershipIdentitySchema = z.object({
   epic_id: z.string().min(1),
   entry_id: z.string().min(1),

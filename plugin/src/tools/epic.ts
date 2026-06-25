@@ -9,7 +9,7 @@
 
 import { z } from "zod";
 import type { Store } from "../storage/store-types";
-import type { EpicEntry } from "../types";
+import type { EpicEntry, EpicMembershipStatus } from "../types";
 import { formatToolOutput, paginate } from "../utils/tool-output";
 import {
   appendTargetProjectContextOutput,
@@ -53,6 +53,7 @@ function mapEpicEntry(entry: EpicEntry) {
           change_ref: entry.change_ref,
           title: entry.title,
           membership_status: entry.membership_status,
+          member_status: memberStatusForEntry(entry),
           linked_at: entry.linked_at,
           linked_by: entry.linked_by,
           link_evidence: entry.link_evidence,
@@ -71,7 +72,45 @@ const COMPACT_NEXT_WORK_LIMIT = 3;
 
 type CompactNextWorkEntry =
   | { entry_id: string; kind: "shell"; title: string; status: "future" }
-  | { entry_id: string; kind: "change"; change_id: string; status: "active" };
+  | {
+      entry_id: string;
+      kind: "change";
+      change_id: string;
+      status: "active";
+      member_status: ReturnType<typeof memberStatusForEntry>;
+    };
+
+function memberStatusForEntry(entry: Extract<EpicEntry, { kind: "change" }>) {
+  const checkedAt = new Date().toISOString();
+  const status = entry.membership_status;
+  if (status === "linked" || status === "terminal") {
+    return {
+      status: "ok" as const,
+      last_checked_at: checkedAt,
+      message: "Child projection is linked.",
+    };
+  }
+  if (status === "target_unreachable") {
+    return {
+      status: "target_unreachable" as const,
+      last_checked_at: checkedAt,
+      message:
+        "Target project is unreachable; run repair after target recovers.",
+    };
+  }
+  if (status === "projection_stale" || status === "unlinked") {
+    return {
+      status: "stale" as const,
+      last_checked_at: checkedAt,
+      message: "Child projection may be stale; run membership repair.",
+    };
+  }
+  return {
+    status: "projection_missing" as const,
+    last_checked_at: checkedAt,
+    message: "Child projection is pending or missing; run membership repair.",
+  };
+}
 
 function formatEpicCompact(epic: import("../types").Epic) {
   const terminalEntries = epic.entries.filter(
@@ -127,6 +166,7 @@ function formatEpicCompact(epic: import("../types").Epic) {
             kind: "change" as const,
             change_id: changeId,
             status: "active" as const,
+            member_status: memberStatusForEntry(entry),
           },
         ];
       });
@@ -274,6 +314,20 @@ function membershipFromChangeEntry(
     membership.repo_id = entry.change_ref.repo_id;
   }
   return membership;
+}
+
+const EpicRepairModeSchema = z.enum([
+  "sync_child_projection",
+  "clear_stale_projection",
+  "mark_target_unreachable",
+]);
+
+function repairModeStatus(
+  mode: z.infer<typeof EpicRepairModeSchema>,
+): EpicMembershipStatus {
+  if (mode === "mark_target_unreachable") return "target_unreachable";
+  if (mode === "clear_stale_projection") return "projection_stale";
+  return "linked";
 }
 
 export const epicTools = {
@@ -906,6 +960,212 @@ export const epicTools = {
           to_entry: mapEpicEntry(destEntry),
           epic_membership: membership,
           moved: true,
+        });
+        return maybeAppendTargetContext(output, childStore.context);
+      } catch (err) {
+        return epicError(err);
+      }
+    },
+  },
+
+  adv_epic_repair_membership: {
+    description:
+      "Repair stale Epic membership projection state. Supports dry-run preview, target-path routing, and bounded member-status output.",
+    args: {
+      epic_id: EPIC_ID_SCHEMA,
+      mode: EpicRepairModeSchema,
+      entry_id: z.string().min(1).optional(),
+      change_id: z.string().min(1).optional(),
+      evidence: z
+        .string()
+        .min(1)
+        .describe("Audit evidence explaining why repair is being applied."),
+      target_path: targetPathSchema.shape.target_path,
+      target_confirmed: targetPathSchema.shape.target_confirmed,
+      confirmationEvidence: targetPathSchema.shape.confirmationEvidence,
+      dryRun: z.boolean().optional(),
+    },
+    execute: async (
+      {
+        epic_id,
+        mode,
+        entry_id,
+        change_id,
+        evidence,
+        target_path,
+        target_confirmed,
+        confirmationEvidence,
+        dryRun,
+      }: {
+        epic_id: string;
+        mode: z.infer<typeof EpicRepairModeSchema>;
+        entry_id?: string;
+        change_id?: string;
+        evidence: string;
+        target_path?: string;
+        target_confirmed?: true;
+        confirmationEvidence?: string;
+        dryRun?: boolean;
+      },
+      store: Store,
+    ) => {
+      try {
+        const epic = await loadEpic(store, epic_id);
+        if (!epic) return epicNotFound(epic_id);
+        const entry = findChangeEntry(epic, {
+          entryId: entry_id,
+          changeId: change_id,
+        });
+        if (!entry) {
+          return formatToolOutput({
+            error: `Entry not found in Epic ${epic_id}`,
+            code: "ENTRY_NOT_FOUND",
+          });
+        }
+        const finalChangeId = getEpicEntryChangeId(entry);
+        if (!finalChangeId) {
+          return formatToolOutput({
+            error: `Entry has no change reference: ${entry.entry_id}`,
+            code: "PROJECTION_MISSING",
+          });
+        }
+
+        if (mode === "mark_target_unreachable") {
+          const membershipStatus = repairModeStatus(mode);
+          const previewEntry = {
+            ...entry,
+            membership_status: membershipStatus,
+          };
+          if (dryRun) {
+            return formatToolOutput({
+              success: true,
+              dryRun: true,
+              entry_id: entry.entry_id,
+              change_id: finalChangeId,
+              member_status: memberStatusForEntry(previewEntry),
+            });
+          }
+          const updatedEntry = requireChangeEntry(
+            await store.epics.setEntryMembershipStatus(epic_id, {
+              entryId: entry.entry_id,
+              membershipStatus,
+              evidence,
+            }),
+          );
+          return formatToolOutput({
+            success: true,
+            repaired: true,
+            entry: mapEpicEntry(updatedEntry),
+            member_status: memberStatusForEntry(updatedEntry),
+          });
+        }
+
+        const childStore = await resolveChildStore(store, {
+          target_path: target_path ?? entry.change_ref?.target_path,
+          target_confirmed,
+          confirmationEvidence,
+        });
+        const change = await loadChange(childStore.store, finalChangeId);
+        if (!change) {
+          return formatToolOutput({
+            error: `Change not found: ${finalChangeId}`,
+            code: "CHANGE_NOT_FOUND",
+          });
+        }
+
+        if (mode === "clear_stale_projection") {
+          if (!change.epic_membership) {
+            const output = formatToolOutput({
+              success: true,
+              repaired: false,
+              entry_id: entry.entry_id,
+              change_id: finalChangeId,
+              member_status: {
+                status: "projection_missing" as const,
+                last_checked_at: new Date().toISOString(),
+                message: "Child projection already absent.",
+              },
+            });
+            return maybeAppendTargetContext(output, childStore.context);
+          }
+          if (
+            change.epic_membership.epic_id !== epic_id ||
+            change.epic_membership.entry_id !== entry.entry_id
+          ) {
+            return formatToolOutput({
+              error: `Change projection does not match Epic ${epic_id}`,
+              code: "PROJECTION_MISMATCH",
+              current_membership: change.epic_membership,
+            });
+          }
+          if (dryRun) {
+            const output = formatToolOutput({
+              success: true,
+              dryRun: true,
+              entry_id: entry.entry_id,
+              change_id: finalChangeId,
+              action: "clear_child_projection",
+            });
+            return maybeAppendTargetContext(output, childStore.context);
+          }
+          await childStore.store.changes.clearEpicMembership(finalChangeId, {
+            expected: { epic_id, entry_id: entry.entry_id },
+          });
+          const output = formatToolOutput({
+            success: true,
+            repaired: true,
+            entry_id: entry.entry_id,
+            change_id: finalChangeId,
+            cleared: true,
+          });
+          return maybeAppendTargetContext(output, childStore.context);
+        }
+
+        if (
+          change.epic_membership &&
+          (change.epic_membership.epic_id !== epic_id ||
+            change.epic_membership.entry_id !== entry.entry_id)
+        ) {
+          return formatToolOutput({
+            error: `Change projection does not match Epic ${epic_id}`,
+            code: "PROJECTION_MISMATCH",
+            current_membership: change.epic_membership,
+          });
+        }
+
+        const membership = membershipFromChangeEntry(
+          epic_id,
+          entry,
+          entry.title ?? change.title,
+          "link_existing",
+        );
+        if (dryRun) {
+          const output = formatToolOutput({
+            success: true,
+            dryRun: true,
+            entry_id: entry.entry_id,
+            change_id: finalChangeId,
+            epic_membership: membership,
+          });
+          return maybeAppendTargetContext(output, childStore.context);
+        }
+        await childStore.store.changes.setEpicMembership(finalChangeId, {
+          membership,
+          setAt: membership.linked_at,
+        });
+        const updatedEntry = requireChangeEntry(
+          await store.epics.setEntryMembershipStatus(epic_id, {
+            entryId: entry.entry_id,
+            membershipStatus: repairModeStatus(mode),
+            evidence,
+          }),
+        );
+        const output = formatToolOutput({
+          success: true,
+          repaired: true,
+          entry: mapEpicEntry(updatedEntry),
+          epic_membership: membership,
+          member_status: memberStatusForEntry(updatedEntry),
         });
         return maybeAppendTargetContext(output, childStore.context);
       } catch (err) {

@@ -15,6 +15,7 @@ import type {
   EpicUpdatedSignalPayload,
   ShellAddedSignalPayload,
   ChangeLinkedSignalPayload,
+  ChangeProjectionStatusUpdatedSignalPayload,
   ChangeUnlinkedSignalPayload,
   EntriesReorderedSignalPayload,
   EntryTerminalSummarySignalPayload,
@@ -354,6 +355,47 @@ export function applyChangeLinkedToState(
   recomputeEpicProgress(state);
 
   return { ok: true, value: { entryId: entry.entry_id } };
+}
+
+export function applyChangeProjectionStatusUpdatedToState(
+  state: EpicWorkflowState,
+  payload: ChangeProjectionStatusUpdatedSignalPayload,
+): EpicMutationResult<{ entryId: string }> {
+  if (isArchived(state)) {
+    return { ok: false, code: "epic_archived", message: "Epic is archived" };
+  }
+
+  const idempotency = checkIdempotency(state, payload.idempotencyKey);
+  if (idempotency) return idempotency;
+
+  const index = findEntryIndex(state, payload.entryId);
+  if (index === -1) {
+    return {
+      ok: false,
+      code: "entry_not_found",
+      message: `Entry not found: ${payload.entryId}`,
+    };
+  }
+
+  const entry = state.epic.entries[index];
+  if (entry.kind !== "change") {
+    return {
+      ok: false,
+      code: "entry_not_found",
+      message: `Entry is not a change entry: ${payload.entryId}`,
+    };
+  }
+
+  state.epic.entries[index] = {
+    ...entry,
+    membership_status: payload.membershipStatus,
+  };
+  bumpVersion(state.epic);
+  recordIdempotency(state, payload.idempotencyKey, payload.updatedAt);
+  setLastSignalAt(state, payload.updatedAt);
+  recomputeEpicProgress(state);
+
+  return { ok: true, value: { entryId: payload.entryId } };
 }
 
 export function applyChangeUnlinkedToState(
