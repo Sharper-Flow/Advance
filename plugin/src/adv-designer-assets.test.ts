@@ -205,6 +205,15 @@ describe("adv-designer assets", () => {
     }
   });
 
+  test("DESIGNER_REPORT rules require notes for concern or n/a dimensions", () => {
+    const content = readFileSync(AGENT_PATH, "utf8");
+    const reportSection = content.split("## DESIGNER_REPORT Payload")[1] ?? "";
+
+    expect(reportSection).toMatch(/concern[\s\S]{0,160}notes/i);
+    expect(reportSection).toMatch(/n\/a[\s\S]{0,160}notes/i);
+    expect(reportSection).toMatch(/all-pass[\s\S]{0,160}notes/i);
+  });
+
   test("deploy script installs adv-designer.md globally", () => {
     const content = readFileSync(DEPLOY_SCRIPT_PATH, "utf8");
     expect(content).toContain('for src in "$REPO_AGENTS"/*.md; do');

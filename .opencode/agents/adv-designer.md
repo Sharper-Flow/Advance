@@ -328,6 +328,9 @@ Build the following JSON object as the `report` argument to `adv_subagent_report
 - `agent`: MUST be the literal string `"adv-designer"` — this matches the subagent filename in `.opencode/agents/adv-designer.md`.
 - `workdir_used`: MUST be the absolute path you used as your working directory. Use the sentinel `"<unspecified>"` when the Designer Apply Context Packet did not include a WORKING DIRECTORY line.
 - `design_dimensions`: Required. Use `"pass"` when the dimension was met, `"concern"` when partially met and reported, `"n/a"` when not applicable to this task.
+  - If any dimension is `"concern"`, `notes` is required and must explain the concern plus the evidence or orchestrator action needed.
+  - If any dimension is `"n/a"`, `notes` is required and must explain why the dimension does not apply to this task.
+  - For an all-pass report, `notes` may be omitted; include it when useful for design-fit context.
 - `neighboring_recommendations`: Empty array if no adjacent UI inconsistencies surfaced. Otherwise list `{ file?, line?, what, why }` entries for HITL surfacing.
 
 ### Submission Rules

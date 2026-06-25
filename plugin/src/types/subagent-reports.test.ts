@@ -390,6 +390,66 @@ describe("Subagent report schemas", () => {
     ).toThrow();
   });
 
+  it("requires designer dimension notes when any dimension is concern", () => {
+    expect(() =>
+      DesignerSubagentReportSchema.parse({
+        ...designerReport,
+        design_dimensions: {
+          ...designerReport.design_dimensions,
+          visual_polish: "concern",
+          notes: undefined,
+        },
+      }),
+    ).toThrow();
+
+    expect(() =>
+      DesignerSubagentReportSchema.parse({
+        ...designerReport,
+        design_dimensions: {
+          ...designerReport.design_dimensions,
+          visual_polish: "concern",
+          notes: "Spacing mismatch reported for orchestrator review.",
+        },
+      }),
+    ).not.toThrow();
+  });
+
+  it("requires designer dimension notes when any dimension is n/a", () => {
+    expect(() =>
+      DesignerSubagentReportSchema.parse({
+        ...designerReport,
+        design_dimensions: {
+          ...designerReport.design_dimensions,
+          responsive_behavior: "n/a",
+          notes: undefined,
+        },
+      }),
+    ).toThrow();
+
+    expect(() =>
+      DesignerSubagentReportSchema.parse({
+        ...designerReport,
+        design_dimensions: {
+          ...designerReport.design_dimensions,
+          responsive_behavior: "n/a",
+          notes: "Static icon-only change; no responsive layout behavior affected.",
+        },
+      }),
+    ).not.toThrow();
+  });
+
+  it("allows compact all-pass designer dimensions without notes", () => {
+    const { notes: _notes, ...allPassDimensions } =
+      designerReport.design_dimensions;
+
+    expect(() =>
+      DesignerSubagentReportSchema.parse({
+        ...designerReport,
+        design_dimensions: allPassDimensions,
+      }),
+    ).not.toThrow();
+  });
+
   it("keeps optimized handoff agent literals in the supported surface", () => {
     expect(SubagentAgentSchema.options).toEqual([
       "adv-engineer",

@@ -163,9 +163,31 @@ export const DesignerDesignDimensionsSchema = z
     visual_polish: DesignerDesignDimensionSchema,
     site_design_consistency: DesignerDesignDimensionSchema,
     finer_details: DesignerDesignDimensionSchema,
-    notes: z.string().min(1).optional(),
+    notes: z.string().trim().min(1).optional(),
   })
-  .strict();
+  .strict()
+  .superRefine((dimensions, ctx) => {
+    const verdicts = [
+      dimensions.component_correctness,
+      dimensions.semantic_html_a11y,
+      dimensions.responsive_behavior,
+      dimensions.visual_polish,
+      dimensions.site_design_consistency,
+      dimensions.finer_details,
+    ];
+    const needsNotes = verdicts.some((verdict) =>
+      ["concern", "n/a"].includes(verdict),
+    );
+
+    if (needsNotes && !dimensions.notes?.trim()) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["notes"],
+        message:
+          "design_dimensions.notes is required when any design dimension is concern or n/a",
+      });
+    }
+  });
 
 export const DesignerNeighboringRecommendationSchema = z
   .object({
