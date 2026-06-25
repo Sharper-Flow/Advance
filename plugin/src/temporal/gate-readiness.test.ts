@@ -8,6 +8,7 @@ import {
   stateBackedArtifactEvidence,
   stateBackedAcceptanceProof,
   checkOpsFollowupReleaseBlockers,
+  checkUnresolvedDesignConcerns,
   getOpenOpsFollowupObligations,
 } from "./gate-readiness";
 import type { ChangeWorkflowState } from "./contracts";
@@ -1113,5 +1114,173 @@ describe("gate readiness", () => {
         ),
       ).toBe(false);
     });
+  });
+});
+
+describe("checkUnresolvedDesignConcerns — rq-designQualityEvidence01 (structural blocker)", () => {
+  function designerReport(
+    overrides: {
+      attempt?: number;
+      taskId?: string;
+      dimensions?: Partial<
+        Record<
+          | "component_correctness"
+          | "semantic_html_a11y"
+          | "responsive_behavior"
+          | "visual_polish"
+          | "site_design_consistency"
+          | "finer_details",
+          "pass" | "concern" | "n/a"
+        >
+      >;
+      neighbors?: { what: string; why: string }[];
+      notes?: string;
+    } = {},
+  ) {
+    const taskId = overrides.taskId ?? "tk-design-1";
+    return {
+      schema_version: "1.0" as const,
+      change_id: "addDesignQualityGates",
+      task_id: taskId,
+      scope: { kind: "task" as const, task_id: taskId },
+      attempt: overrides.attempt ?? 1,
+      agent: "adv-designer" as const,
+      status: "complete" as const,
+      files_touched: ["src/components/Button.tsx"],
+      verification: [
+        { command: "pnpm test", exit_code: 0, summary: "pass" },
+      ],
+      decisions: [],
+      blockers: [],
+      scope_drift: null,
+      follow_ups: [],
+      required_main_agent_actions: [],
+      related_scan: "none",
+      workdir_used: "/tmp/worktree",
+      context_update_for_adv: {
+        what_ads_needs_to_know: "x",
+        suggested_next_action: "y",
+      },
+      design_dimensions: {
+        component_correctness: "pass" as const,
+        semantic_html_a11y: "pass" as const,
+        responsive_behavior: "pass" as const,
+        visual_polish: "pass" as const,
+        site_design_consistency: "pass" as const,
+        finer_details: "pass" as const,
+        ...overrides.dimensions,
+        ...(overrides.notes ? { notes: overrides.notes } : {}),
+      },
+      neighboring_recommendations: (overrides.neighbors ?? []).map((n) => ({
+        what: n.what,
+        why: n.why,
+      })),
+    };
+  }
+
+  it("blocks acceptance and release on an unresolved dimension concern", () => {
+    const state = makeState({
+      subagent_reports: [
+        designerReport({
+          dimensions: { site_design_consistency: "concern" },
+          notes: "Does not match the existing page family.",
+        }),
+      ],
+    });
+
+    for (const gate of ["acceptance", "release"] as const) {
+      const blockers = checkUnresolvedDesignConcerns(state, gate);
+      expect(blockers.some((b) => b.code === "DESIGN_CONCERN_UNRESOLVED")).toBe(
+        true,
+      );
+    }
+  });
+
+  it("does not block non-acceptance/release gates", () => {
+    const state = makeState({
+      subagent_reports: [
+        designerReport({
+          dimensions: { site_design_consistency: "concern" },
+          notes: "concern",
+        }),
+      ],
+    });
+    expect(checkUnresolvedDesignConcerns(state, "design")).toEqual([]);
+    expect(checkUnresolvedDesignConcerns(state, "execution")).toEqual([]);
+  });
+
+  it("clears the block when a typed disposition exists", () => {
+    const state = makeState({
+      subagent_reports: [
+        designerReport({
+          dimensions: { site_design_consistency: "concern" },
+          notes: "concern",
+        }),
+      ],
+      design_concern_dispositions: [
+        {
+          taskId: "tk-design-1",
+          concernKey: "dimension:site_design_consistency",
+          disposition: "rejected_with_evidence",
+          evidence: "Legacy page; fast-follow #123.",
+          dispositionedAt: "2026-06-25T15:00:00.000Z",
+        },
+      ],
+    });
+    expect(checkUnresolvedDesignConcerns(state, "acceptance")).toEqual([]);
+  });
+
+  it("clears the block when a later all-pass report supersedes the concern", () => {
+    const state = makeState({
+      subagent_reports: [
+        designerReport({
+          attempt: 1,
+          dimensions: { site_design_consistency: "concern" },
+          notes: "concern",
+        }),
+        designerReport({ attempt: 2 }),
+      ],
+    });
+    expect(checkUnresolvedDesignConcerns(state, "acceptance")).toEqual([]);
+  });
+
+  it("blocks on an undispositioned neighboring recommendation", () => {
+    const state = makeState({
+      subagent_reports: [
+        designerReport({
+          neighbors: [
+            { what: "IconButton lacks focus ring", why: "adjacent inconsistency" },
+          ],
+        }),
+      ],
+    });
+    const blockers = checkUnresolvedDesignConcerns(state, "acceptance");
+    expect(blockers.some((b) => b.code === "DESIGN_CONCERN_UNRESOLVED")).toBe(
+      true,
+    );
+  });
+
+  it("returns no blockers when there is no designer report", () => {
+    expect(checkUnresolvedDesignConcerns(makeState(), "acceptance")).toEqual([]);
+  });
+
+  it("is wired into evaluateGateReadiness for acceptance", () => {
+    const state = makeState({
+      gates: acceptanceReadyGates(),
+      contract: passingContract(),
+      documents: {
+        acceptance: "# Acceptance\n\nSubstantive acceptance proof content here.",
+      },
+      subagent_reports: [
+        designerReport({
+          dimensions: { visual_polish: "concern" },
+          notes: "Spacing off vs design system.",
+        }),
+      ],
+    });
+    const result = evaluateGateReadiness(state, "acceptance");
+    expect(
+      result.blockers.some((b) => b.code === "DESIGN_CONCERN_UNRESOLVED"),
+    ).toBe(true);
   });
 });
