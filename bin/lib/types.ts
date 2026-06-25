@@ -52,6 +52,10 @@ export interface ChangeSummary {
   firstIncompleteGate: string | null;
   gateProgressStr: string;
   parentChangeId?: string;
+  worktreeBranches?: string[];
+  worktreePaths?: string[];
+  ops_followup?: unknown;
+  ops_followup_links?: unknown[];
 }
 
 export interface LiveStatusPayload {
