@@ -3,8 +3,8 @@
   "name": "worktree-lifecycle",
   "title": "Worktree Lifecycle — Branch-Aware Registry, Setup Readiness, Git-First Reconciliation",
   "purpose": "Capability: Branch-aware worktree registry with strict setup readiness, git-first workspace reconciliation, resume/materialization tool, main-checkout safety guard, cleanup eligibility tracking, and bounded cleanup.",
-  "version": "1.4.0",
-  "updated_at": "2026-05-23T00:00:00.000Z",
+  "version": "1.5.0",
+  "updated_at": "2026-06-25T00:00:00.000Z",
   "requirements": [
     {
       "id": "rq-wl-branchRegistry01",
@@ -34,10 +34,24 @@
     {
       "id": "rq-worktreePoisonVisibility01",
       "title": "Cross-change worktree reads isolate poisoned workflow queries",
-      "body": "Cross-change worktree visibility MUST query each owning change workflow independently. A failed per-change getWorktreesQuery MUST NOT abort the whole listWorktreesAcrossChanges result. The result MUST include healthy records from other workflows plus structured warnings and poisonedWorkflows metadata when describe/error evidence identifies poisoned history. When the Temporal visibility source itself is unavailable, the result MUST be marked unavailable rather than throwing to the WIP aggregator.",
+      "body": "Cross-change worktree visibility MUST query each owning change workflow independently. Worktree branch-owner and active-worktree discovery queries MUST filter owners by AdvLifecycleState = \"open\" plus ExecutionStatus = \"Running\" and MUST NOT use AdvChangeStatus as open-owner authority. A failed per-change getWorktreesQuery MUST NOT abort the whole listWorktreesAcrossChanges result. The result MUST include healthy records from other workflows plus structured warnings and poisonedWorkflows metadata when describe/error evidence identifies poisoned history. When the Temporal visibility source itself is unavailable, the result MUST be marked unavailable rather than throwing to the WIP aggregator.",
       "priority": "must",
       "tags": ["worktree", "temporal", "poisoned-history", "visibility"],
       "scenarios": [
+        {
+          "id": "rq-worktreePoisonVisibility01.0",
+          "title": "Open worktree owners are selected by lifecycle state",
+          "given": [
+            "A branch is registered by an open change workflow",
+            "Another terminal workflow has stale AdvWorktreeBranches or AdvChangeStatus attributes"
+          ],
+          "when": "Branch-in-use or active-worktree discovery queries Temporal Visibility",
+          "then": [
+            "The query includes AdvLifecycleState = \"open\"",
+            "The query includes ExecutionStatus = \"Running\"",
+            "The query does not use AdvChangeStatus as open-owner authority"
+          ]
+        },
         {
           "id": "rq-worktreePoisonVisibility01.1",
           "title": "Per-change query failure returns partial results",

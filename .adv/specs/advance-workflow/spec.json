@@ -3,8 +3,8 @@
   "name": "advance-workflow",
   "title": "Advance Workflow",
   "purpose": "Capability: Workflow contract layer for ADV \u2014 gate model, autonomy boundaries, design validation, scope management, releases, approvals, handoff voice, review remediation, and touched-scope quality. Split from `advance` capability.",
-  "version": "1.21.0",
-  "updated_at": "2026-06-24T00:00:00.000Z",
+  "version": "1.22.0",
+  "updated_at": "2026-06-25T00:00:00.000Z",
   "requirements": [
     {
       "id": "rq-problemSpecLaw01",
@@ -2309,6 +2309,41 @@
           "when": "experimental.session.compacting runs",
           "then": [
             "output.context includes an ADV SPECS CONTEXT block listing the specs"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-changeLifecycleState01",
+      "title": "Change lifecycle state is separate from gates and compatibility status",
+      "body": "Change workflow state MUST persist lifecycleState as the canonical terminal/open lifecycle value: open, archived, or closed. Legacy compatibility status values such as draft, pending, and active MUST normalize to lifecycleState open on read/projection; archived and closed normalize to their matching lifecycle states. Change.status MUST NOT mirror the current gate and MUST NOT be the authority for open-change, claim, worktree-owner, or terminal filtering. Gate progress remains represented by the seven gate records and current-gate search attributes.",
+      "priority": "must",
+      "tags": ["workflow", "lifecycle", "visibility"],
+      "scenarios": [
+        {
+          "id": "rq-changeLifecycleState01.1",
+          "title": "Legacy open statuses normalize to open lifecycle",
+          "given": [
+            "A change workflow or local projection has legacy status draft, pending, or active"
+          ],
+          "when": "The change is read or projected into search attributes",
+          "then": [
+            "lifecycleState is open",
+            "The current gate remains represented by gates and AdvCurrentGate",
+            "Open-change authority does not depend on AdvChangeStatus"
+          ]
+        },
+        {
+          "id": "rq-changeLifecycleState01.2",
+          "title": "Terminal lifecycle excludes open reads",
+          "given": [
+            "A change workflow has lifecycleState archived or closed"
+          ],
+          "when": "Default open-change, claim, status, or worktree-owner reads run",
+          "then": [
+            "The change is excluded from open results",
+            "A stale AdvChangeStatus value cannot make the change appear open",
+            "ExecutionStatus = \"Running\" or an equivalent terminal guard protects Visibility reads from stale completed workflow attributes"
           ]
         }
       ]

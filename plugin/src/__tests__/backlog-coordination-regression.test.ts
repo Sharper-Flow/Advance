@@ -198,22 +198,22 @@ describe("RL-2: stale priorities surface via freshness metadata", () => {
 
 // =============================================================================
 // RL-3: Orphaned claims (agent crash leaves claim stuck)
-// Mechanism: Change workflow status IS the claim. Status transitions to
-// archived/closed (auto-release) make the claim invisible to peer
-// Visibility queries (filter is "AdvChangeStatus IN draft/pending/active").
+// Mechanism: Change workflow lifecycleState IS the claim. Lifecycle transitions
+// to archived/closed (auto-release) make the claim invisible to peer Visibility
+// queries (filter is AdvLifecycleState = open + running execution guard).
 // =============================================================================
 
-describe("RL-3: orphaned claims auto-released by status transition", () => {
-  test("Visibility query filter excludes archived/closed statuses", () => {
+describe("RL-3: orphaned claims auto-released by lifecycle transition", () => {
+  test("Visibility query filter selects open running lifecycle", () => {
     const query = buildClaimVisibilityQuery({
       projectId: "proj-test",
       issueNumber: 51,
     });
-    // Filter explicitly enumerates non-terminal statuses; archived/closed
-    // changes never match → claim is "released" by status transition.
-    expect(query).toContain(
-      'AdvChangeStatus IN ("draft", "pending", "active")',
-    );
+    // Filter selects canonical open lifecycle and excludes completed executions;
+    // archived/closed changes never match → claim is released by lifecycle transition.
+    expect(query).toContain('AdvLifecycleState = "open"');
+    expect(query).toContain('ExecutionStatus = "Running"');
+    expect(query).not.toContain("AdvChangeStatus");
     expect(query).not.toContain("archived");
     expect(query).not.toContain("closed");
   });

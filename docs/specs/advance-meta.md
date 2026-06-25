@@ -1,7 +1,7 @@
 # Advance Meta
 
-> **Version:** 1.17.0
-> **Updated:** 2026-06-24
+> **Version:** 1.18.0
+> **Updated:** 2026-06-25
 
 ## Purpose
 
@@ -20,95 +20,35 @@ Supported internal validation or parity flows must not leave synthetic draft cha
 **Synthetic validation families blocked on supported create path** (`rq-synthstate01.1`)
 
 **Given:**
-
 - A supported internal validation or parity flow attempts to create a synthetic draft change matching a reserved parity-validation family on live ADV state
 
 **When:** The create path executes
 
 **Then:**
-
 - The synthetic draft is not persisted to the live project state
 - The caller receives a clear error or bounded degraded outcome directing synthetic activity to isolated temp/test storage
 
 **Legitimate parity wording remains allowed** (`rq-synthstate01.2`)
 
 **Given:**
-
 - A normal user-driven change proposal uses benign wording that mentions parity but does not match a reserved synthetic family
 
 **When:** The change is created
 
 **Then:**
-
 - The draft change is persisted normally
 - The protection does not block or rename the legitimate draft
 
 **Draft and status surfaces stay clear after validation activity** (`rq-synthstate01.3`)
 
 **Given:**
-
 - Supported internal validation activity has run
 
 **When:** adv_change_list with status draft or adv_status is executed on the live project
 
 **Then:**
-
 - Stale synthetic parity-validation drafts are absent from live draft results
 - Real user-authored drafts remain visible
-
----
-
-### adv_status Summary Output Is Bounded Before Enrichment
-
-**ID:** `rq-advStatusBoundedSummary01` | **Priority:** **[MUST]**
-
-`adv_status view: "summary"` MUST keep both compute and output bounded for large WIP projects. The summary view MUST cap recent changes before any per-change enrichment, artifact reads, or recommendation generation that depends on the recent-change list. It MUST cap summary recommendations to a small fixed window and include omitted-count metadata or an omitted-count marker when truncation occurs. Detailed views (`changes`, `hygiene`, and `health`) remain explicit drilldowns for fuller diagnostics and MUST NOT be used as implicit default fanout.
-
-**Tags:** `adv_status`, `latency`, `summary`, `bounded-output`
-
-#### Scenarios
-
-**Summary caps recent changes before enrichment** (`rq-advStatusBoundedSummary01.1`)
-
-**Given:**
-
-- A project has more active or recent changes than the summary recent-change limit
-
-**When:** adv_status is called with view: "summary"
-
-**Then:**
-
-- The recent-change list is sliced to the fixed summary limit before per-change enrichment runs
-- Per-change enrichment, artifact reads, and recommendation generation are not run for omitted recent changes
-- The response reports how many recent changes were omitted
-
-**Summary caps recommendations with omitted marker** (`rq-advStatusBoundedSummary01.2`)
-
-**Given:**
-
-- Summary recommendation generation produces more entries than the summary recommendation limit
-
-**When:** adv_status builds the summary response
-
-**Then:**
-
-- Only the fixed recommendation window is returned
-- An omitted-count marker or metadata reports how many recommendations were omitted
-- The marker directs callers to explicit detailed views for full diagnostics
-
-**Detailed views remain explicit drilldowns** (`rq-advStatusBoundedSummary01.3`)
-
-**Given:**
-
-- A caller requests view: "changes", view: "hygiene", or view: "health"
-
-**When:** adv_status builds the selected detailed view
-
-**Then:**
-
-- The detailed view may expose fuller diagnostics required by that view
-- The detailed view is not invoked by default summary routing
-- Detailed output remains bounded or paginated when exposing large collections
 
 ---
 
@@ -123,71 +63,78 @@ adv_status must surface project.json diagnostics and include parsed feature flag
 **Invalid project config is surfaced** (`rq-advcfg01.1`)
 
 **Given:**
-
 - project.json is malformed or schema-invalid
 
 **When:** adv_status is executed
 
 **Then:**
-
 - Output includes a config error or warning recommendation
 - The command does not fail hard due to config parse issues
 
 **Feature flags are visible in status output** (`rq-advcfg01.2`)
 
 **Given:**
-
 - project.json parses successfully
 
 **When:** adv_status is executed
 
 **Then:**
-
 - Output includes feature_flags values
 - Defaults are applied when flags are omitted
-- worker_singleton_enforce defaults false when omitted; singleton enforcement is opt-in
+- worker_singleton_enforce defaults false when omitted
 - worktree_guard_enforce defaults true when omitted
 
 ---
 
-### Bounded Cached Health Probes
+### Live Status Slash Command Uses CLI Bridge
 
-**ID:** `rq-statusProbeCache01` | **Priority:** **[MUST]**
+**ID:** `rq-statusCliBridge01` | **Priority:** **[MUST]**
 
-ADV health and recovery diagnostics that probe Temporal, task queues, worker diagnostics, search-attribute health, or worktree census must use bounded cached probes. Cached probe responses must surface \_freshness metadata with cached_at, stale, and optional error. Stale probe data may inform recommendations but must not authorize safety-critical mutations such as worker-lock reclaim, restart success, override, unlock, or archive decisions.
+The default /adv-status slash command must remain a thin OpenCode shell-output bridge over `adv status --no-color`. The CLI status command is live Temporal-backed by default for active change rows: it must query live ADV state before rendering, must fail closed when live state is unavailable, and must not silently render stale disk projections as current active changes. The command file must not instruct the agent to call ADV MCP status/list/show/spec tools, synthesize cross-change health, read roadmap freshness, or add recommendations. Remediation for Temporal/server/worker failures belongs in CLI stdout/stderr or JSON output, not in the slash-command prompt.
 
-**Tags:** `diagnostics`, `temporal`, `cache`, `health`
+**Tags:** `status`, `command`, `cli`, `no-fanout`
 
 #### Scenarios
 
-**Status health probes are coalesced and freshened** (`rq-statusProbeCache01.1`)
+**Default slash command runs live CLI table** (`rq-statusCliBridge01.1`)
 
 **Given:**
+- A user invokes /adv-status
+- The installed `adv` CLI is available on PATH
 
-- Multiple adv_status view:health calls request Temporal health, queue serviceability, search-attribute health, or worktree census within the probe TTL
-
-**When:** The probes execute
+**When:** The OpenCode command template is processed
 
 **Then:**
+- The command template injects shell output from `adv status --no-color`
+- The default output is the live Temporal-backed CLI status table plus active/archived/closed counts
+- ANSI color/control output is disabled for stable command-template rendering
 
-- Concurrent same-key probes are coalesced
-- Repeated calls within TTL return cached values
-- The health response includes \_freshness metadata for each cached probe
-- Existing health fields remain present for legacy consumers
-
-**Stale probe data is diagnostic-only for recovery safety** (`rq-statusProbeCache01.2`)
+**Default slash command forbids agent fanout** (`rq-statusCliBridge01.2`)
 
 **Given:**
+- The /adv-status command file is inspected
 
-- A cached Temporal or worker-serviceability probe is stale because refresh aborted, timed out, or failed
-
-**When:** A diagnostic or recovery tool builds recommendations
+**When:** Its default body is evaluated for status work instructions
 
 **Then:**
+- It does not instruct the agent to call adv_status, adv_change_list, adv_change_show, adv_gate_status, or adv_spec
+- It does not instruct the agent to build cross-change health, roadmap freshness, per-spec listings, or synthesized recommendations
+- It tells the agent to return the command output verbatim without analysis
 
-- The stale value may be returned with \_freshness.stale=true and an error summary
-- The stale value must not be treated as proof of worker serviceability
-- The stale value must not authorize worker-lock reclaim, restart success, override, unlock, or archive decisions
+**Live CLI failure fails closed without stale active fallback** (`rq-statusCliBridge01.3`)
+
+**Given:**
+- The /adv-status command template runs `adv status --no-color`
+- Temporal connection, Visibility listing, or workflow query is unavailable or times out
+
+**When:** The default /adv-status path handles that result
+
+**Then:**
+- The CLI exits non-zero and surfaces remediation in stdout/stderr or JSON
+- Disk projections are not used as a substitute source for active rows
+- The failure is not silently rendered as a current status table
+- No fallback path instructs the agent to call ADV MCP status/list/show/spec tools
+- Detailed health diagnostics remain an explicit opt-in action
 
 ---
 
@@ -204,13 +151,11 @@ ADV health and recovery diagnostics that probe Temporal, task queues, worker dia
 **Deploy-local owns stable CLI payload and entrypoint** (`rq-advCliLocalInstall01.1`)
 
 **Given:**
-
 - A user runs `scripts/deploy-local.sh --fix` from a source checkout or release artifact
 
 **When:** The local CLI install is repaired
 
 **Then:**
-
 - The whole `bin/` tree is deployed to `$HOME/.local/share/Advance/bin`
 - `$HOME/.local/bin/adv` points at the stable deployed `bin/adv` entrypoint
 - The entrypoint does not point at a temporary release extraction directory
@@ -219,13 +164,11 @@ ADV health and recovery diagnostics that probe Temporal, task queues, worker dia
 **Check reports install drift and PATH shadowing** (`rq-advCliLocalInstall01.2`)
 
 **Given:**
-
 - The local `adv` target is missing, stale, points at the wrong target, or PATH resolves another `adv` first
 
 **When:** `scripts/deploy-local.sh --check` runs
 
 **Then:**
-
 - The check exits non-zero
 - The output identifies the exact missing, stale, wrong-target, or shadowed condition
 - PATH shadowing includes remediation for putting `$HOME/.local/bin/adv` first
@@ -233,13 +176,11 @@ ADV health and recovery diagnostics that probe Temporal, task queues, worker dia
 **Fix repairs only recognized ADV CLI artifacts** (`rq-advCliLocalInstall01.3`)
 
 **Given:**
-
 - `$HOME/.local/bin/adv` already exists
 
 **When:** `scripts/deploy-local.sh --fix` decides whether to replace it
 
 **Then:**
-
 - Recognized Advance CLI symlinks or regular files may be replaced
 - Unrelated file content is refused with manual remediation
 - No unrelated local executable is overwritten silently
@@ -247,13 +188,11 @@ ADV health and recovery diagnostics that probe Temporal, task queues, worker dia
 **Installed status JSON proves live source-current behavior** (`rq-advCliLocalInstall01.4`)
 
 **Given:**
-
 - The local CLI install has been repaired
 
 **When:** The installed `adv status --json` command is verified
 
 **Then:**
-
 - The JSON contains live-status metadata such as `source: "temporal"` on success or fail-closed live error metadata
 - The JSON does not use stale disk-only `schema_version: 1` as readiness proof
 - The installed CLI exposes no mutation subcommands
@@ -264,7 +203,7 @@ ADV health and recovery diagnostics that probe Temporal, task queues, worker dia
 
 **ID:** `rq-statusCliWorkerFree01` | **Priority:** **[MUST]**
 
-The `adv status` default table must build active-change rows from Temporal Visibility search attributes (`AdvChangeId`, `AdvChangeTitle`, `AdvChangeStatus`, `AdvCurrentGate`, `AdvLastSignalAt`, `AdvCreatedAt`) upserted by change workflows, not from a per-change `getState` workflow query. A workflow query requires a live worker polling the project task queue, so the query path fails for projects with no open session. Visibility search attributes are server-side data readable without a worker. The read must remain live-Temporal-backed and fail closed (no disk-projected active rows) when the Temporal connection or Visibility list fails. Gate progress is synthesized from `AdvCurrentGate` using the canonical gate order; terminal-complete changes are excluded from active rows.
+The `adv status` default table must build active-change rows from Temporal Visibility search attributes (`AdvChangeId`, `AdvChangeTitle`, `AdvChangeStatus`, `AdvLifecycleState`, `AdvCurrentGate`, `AdvLastSignalAt`, `AdvCreatedAt`) upserted by change workflows, not from a per-change `getState` workflow query. A workflow query requires a live worker polling the project task queue, so the query path fails for projects with no open session. Visibility search attributes are server-side data readable without a worker, so the CLI works for any project whose Temporal connection succeeds. The read must remain live-Temporal-backed and fail closed (no disk-projected active rows) when the Temporal connection or Visibility list fails. Lifecycle state, compatibility status/bucket, and current gate must remain distinguishable in JSON summaries. Gate progress is synthesized from `AdvCurrentGate` using the canonical gate order; terminal-complete or non-open lifecycle changes are excluded from active rows.
 
 **Tags:** `status`, `cli`, `visibility`, `worker-free`
 
@@ -273,32 +212,116 @@ The `adv status` default table must build active-change rows from Temporal Visib
 **Inactive project returns live rows from Visibility** (`rq-statusCliWorkerFree01.1`)
 
 **Given:**
-
 - A project has non-archived change workflows but no open ADV session (no worker polling its task queue)
 - Temporal Visibility is reachable
 
 **When:** `adv status --json` runs for that project
 
 **Then:**
-
 - The payload is `source: "temporal"`, `live: true`
-- Each non-terminal change yields one row built from its Visibility search attributes
+- Each running open-lifecycle change yields one row built from its Visibility search attributes
+- Each row exposes lifecycleState separately from status and firstIncompleteGate
 - `gateProgressStr` and `firstIncompleteGate` are synthesized from `AdvCurrentGate`
 - No per-change `getState` workflow query is issued for the default table
 
 **Temporal unavailable still fails closed** (`rq-statusCliWorkerFree01.2`)
 
 **Given:**
-
 - The Temporal connection or Visibility list fails or times out
 
 **When:** `adv status --json` handles that result
 
 **Then:**
-
 - The payload is `live: false` with an error and remediation
 - Zero active rows are returned
 - Disk projections are not used as a substitute source for active rows
+
+---
+
+### Roadmap Slash Command Uses CLI Bridge
+
+**ID:** `rq-roadmapCliBridge01` | **Priority:** **[MUST]**
+
+The default /adv-roadmap slash command must be a thin OpenCode shell-output bridge over `adv roadmap --no-color`. It must return the CLI roadmap table output without instructing the agent to call adv_roadmap, adv_backlog_state, adv_change_list, adv_change_show, adv_gate_status, adv_spec, synthesize recommendations, or read freshness metadata. Active-change annotation is explicitly out of CLI file mode and available only via explicit MCP backlog tooling; the CLI MUST NOT fabricate annotation from disk.
+
+**Tags:** `roadmap`, `command`, `cli`, `no-fanout`
+
+#### Scenarios
+
+**Default slash command runs CLI table** (`rq-roadmapCliBridge01.1`)
+
+**Given:**
+- A user invokes /adv-roadmap
+- The installed `adv` CLI is available on PATH
+
+**When:** The OpenCode command template is processed
+
+**Then:**
+- The command template injects shell output from `adv roadmap --no-color`
+- The default output is the CLI roadmap table
+- ANSI color/control output is disabled for stable command-template rendering
+
+**Default slash command forbids agent fanout** (`rq-roadmapCliBridge01.2`)
+
+**Given:**
+- The /adv-roadmap command file is inspected
+
+**When:** Its default body is evaluated for roadmap work instructions
+
+**Then:**
+- It does not instruct the agent to call adv_roadmap, adv_backlog_state, adv_change_list, adv_change_show, adv_gate_status, or adv_spec
+- It does not instruct the agent to build active-change cross-reference, synthesize recommendations, or read freshness metadata
+- It tells the agent to return the command output verbatim without analysis
+
+**CLI failure does not fallback to ADV tools** (`rq-roadmapCliBridge01.3`)
+
+**Given:**
+- The /adv-roadmap command template runs `adv roadmap --no-color`
+- The CLI is missing, exits non-zero, or writes an error
+
+**When:** The default /adv-roadmap path handles that result
+
+**Then:**
+- The shell command error or stderr is surfaced to the user
+- No fallback path instructs the agent to call ADV MCP roadmap/backlog/list/show/spec tools
+- Active-change annotation remains an explicit MCP opt-in action
+
+---
+
+### Bounded Cached Health Probes
+
+**ID:** `rq-statusProbeCache01` | **Priority:** **[MUST]**
+
+ADV health and recovery diagnostics that probe Temporal, task queues, worker diagnostics, search-attribute health, or worktree census must use bounded cached probes. Cached probe responses must surface _freshness metadata with cached_at, stale, and optional error. Stale probe data may inform recommendations but must not authorize safety-critical mutations such as worker-lock reclaim, restart success, override, unlock, or archive decisions.
+
+**Tags:** `diagnostics`, `temporal`, `cache`, `health`
+
+#### Scenarios
+
+**Status health probes are coalesced and freshened** (`rq-statusProbeCache01.1`)
+
+**Given:**
+- Multiple adv_status view:health calls request Temporal health, queue serviceability, search-attribute health, or worktree census within the probe TTL
+
+**When:** The probes execute
+
+**Then:**
+- Concurrent same-key probes are coalesced
+- Repeated calls within TTL return cached values
+- The health response includes _freshness metadata for each cached probe
+- Existing health fields remain present for legacy consumers
+
+**Stale probe data is diagnostic-only for recovery safety** (`rq-statusProbeCache01.2`)
+
+**Given:**
+- A cached Temporal or worker-serviceability probe is stale because refresh aborted, timed out, or failed
+
+**When:** A diagnostic or recovery tool builds recommendations
+
+**Then:**
+- The stale value may be returned with _freshness.stale=true and an error summary
+- The stale value must not be treated as proof of worker serviceability
+- The stale value must not authorize worker-lock reclaim, restart success, override, unlock, or archive decisions
 
 ---
 
@@ -315,14 +338,12 @@ ADV diagnostics must safely detect stale blank assistant messages and stale `run
 **Status reports stale OpenCode session debt read-only** (`rq-opencodeDebt01.1`)
 
 **Given:**
-
 - The OpenCode database contains assistant messages with finish null and zero parts older than the stale threshold
 - The database also contains tool parts with `state.status` of `running` or `pending` older than the stale threshold
 
 **When:** adv_status or an ADV doctor diagnostic is executed
 
 **Then:**
-
 - The diagnostic opens the OpenCode database read-only
 - The output reports the count and bounded samples of stale blank assistant messages and stale tool parts with session/tool/context details
 - A doctor recommendation is surfaced without modifying the database
@@ -330,14 +351,12 @@ ADV diagnostics must safely detect stale blank assistant messages and stale `run
 **Live in-flight rows are excluded from repairable debt** (`rq-opencodeDebt01.2`)
 
 **Given:**
-
 - The OpenCode database contains assistant messages with finish null and zero parts younger than the stale threshold
 - The database contains `running`/`pending` tool parts whose row or session activity is younger than the stale threshold
 
 **When:** OpenCode session-debt classification runs
 
 **Then:**
-
 - Younger blank assistant and tool-part rows are classified as live or in-flight
 - Older rows attached to sessions without orphan proof are classified as idle active-session debt
 - Only orphan-ghost blank assistants and stale orphan tool parts are counted as repairable debt
@@ -346,13 +365,11 @@ ADV diagnostics must safely detect stale blank assistant messages and stale `run
 **Repair requires dry-run and backup** (`rq-opencodeDebt01.3`)
 
 **Given:**
-
 - A repair utility is invoked against the OpenCode database
 
 **When:** Deletion or tool-part repair is requested
 
 **Then:**
-
 - The utility refuses deletion unless apply mode is explicit
 - The utility refuses mutation unless a backup destination is provided and populated before deletion or repair
 - Only assistant messages with finish null, zero parts, age at or above the stale threshold, and orphan-ghost liveness are deleted
@@ -362,13 +379,11 @@ ADV diagnostics must safely detect stale blank assistant messages and stale `run
 **Unavailable database degrades safely** (`rq-opencodeDebt01.4`)
 
 **Given:**
-
 - The OpenCode database is missing, inaccessible, or the SQLite runtime is unavailable
 
 **When:** The session-debt diagnostic runs
 
 **Then:**
-
 - The diagnostic returns an unavailable/degraded result
 - adv_status continues to complete
 - No destructive operation is attempted
@@ -386,25 +401,21 @@ Tasks may include optional metadata key/value pairs. adv_task_list must support 
 **Filter by metadata key** (`rq-advmeta01.1`)
 
 **Given:**
-
 - A change with tasks containing metadata keys
 
 **When:** adv_task_list is called with filter has_metadata_key:<key>
 
 **Then:**
-
 - Only tasks containing that metadata key are returned
 
 **Filter by metadata key/value** (`rq-advmeta01.2`)
 
 **Given:**
-
 - A change with tasks containing metadata key/value pairs
 
 **When:** adv_task_list is called with filter metadata:<key>=<value>
 
 **Then:**
-
 - Only tasks matching both key and value are returned
 
 ---
@@ -420,26 +431,22 @@ On SIGINT/SIGTERM, the plugin must run a bounded flush path before close, with i
 **Signal performs bounded flush** (`rq-advshut1.1`)
 
 **Given:**
-
 - The process receives SIGINT or SIGTERM
 
 **When:** Shutdown handling begins
 
 **Then:**
-
 - store.flush is attempted before store.close
 - A hard timeout bounds flush duration
 
 **Duplicate signals are idempotent** (`rq-advshut1.2`)
 
 **Given:**
-
 - A shutdown flush is already in progress
 
 **When:** A second SIGINT/SIGTERM is received
 
 **Then:**
-
 - No second flush path starts
 - Shutdown remains deterministic
 
@@ -458,13 +465,11 @@ ADV-managed guidance (orchestrator agent text, synced overlays, and accompanying
 **Unknown capability question triggers source-appropriate diligence** (`rq-dueDiligence01.1`)
 
 **Given:**
-
 - An unknown platform, architecture, or capability question is posed to an ADV-managed agent
 
 **When:** The agent prepares an answer, recommendation, or decision
 
 **Then:**
-
 - The agent gathers source-appropriate evidence before answering
 - Evidence may come from local code inspection, repo history or repo examples, GitHub examples, official docs, web research, or other relevant sources chosen to fit the question
 - No carve-out permits skipping diligence on the basis that the question is local, short, or familiar
@@ -472,27 +477,23 @@ ADV-managed guidance (orchestrator agent text, synced overlays, and accompanying
 **Quick-answer requests change brevity only** (`rq-dueDiligence01.2`)
 
 **Given:**
-
 - The user requests a "quick answer", asks "from your knowledge", or says "don't research"
 - The question still requires due diligence under rq-dueDiligence01.1
 
 **When:** The agent responds
 
 **Then:**
-
 - The response may be shortened or compressed
 - The evidence bar is not lowered; diligence is still performed before recommending or deciding
 
 **Blocked diligence stops and surfaces the blockage** (`rq-dueDiligence01.3`)
 
 **Given:**
-
 - Required diligence cannot be completed (for example: docs, research tools, or evidence sources are unavailable)
 
 **When:** The agent would otherwise present a directional answer or recommendation
 
 **Then:**
-
 - The agent stops instead of presenting an unverified direction as settled
 - The response surfaces the specific blockage or missing evidence
 - No carve-out permits proceeding with an unverified recommendation
@@ -500,13 +501,11 @@ ADV-managed guidance (orchestrator agent text, synced overlays, and accompanying
 **Guidance surfaces and drift tests encode the rule** (`rq-dueDiligence01.4`)
 
 **Given:**
-
 - The repo contains ADV orchestrator agent text, synced overlays, and routing asset tests
 
 **When:** Those surfaces are inspected
 
 **Then:**
-
 - The ADV agent and plan agent sources describe due-diligence-first routing for unknown capability questions
 - The synced overlays (adv.overlay.md, plan.overlay.md) carry the same rule
 - Regression tests fail if the legacy carve-out-first wording returns
@@ -517,7 +516,7 @@ ADV-managed guidance (orchestrator agent text, synced overlays, and accompanying
 
 **ID:** `rq-proseReduction01` | **Priority:** **[MUST]**
 
-ADV instruction surfaces (ADV_INSTRUCTIONS.md, docs/command-voice-standard.md, .opencode/agents/adv.md, .opencode/command/adv-\*.md) MUST classify each section by enforcement class (fully-enforced, partially-enforced, inherently-prose) and apply the matching compression template defined in docs/command-voice-standard.md § Prose-Load Reduction Rules. Sections whose behavior is fully or partially enforced by code MUST NOT contain paragraph explanations duplicating the enforced behavior; they MUST use a pointer line + constraint table format.
+ADV instruction surfaces (ADV_INSTRUCTIONS.md, docs/command-voice-standard.md, .opencode/agents/adv.md, .opencode/command/adv-*.md) MUST classify each section by enforcement class (fully-enforced, partially-enforced, inherently-prose) and apply the matching compression template defined in docs/command-voice-standard.md § Prose-Load Reduction Rules. Sections whose behavior is fully or partially enforced by code MUST NOT contain paragraph explanations duplicating the enforced behavior; they MUST use a pointer line + constraint table format.
 
 **Tags:** `prose-reduction`, `instruction-surfaces`, `compression`
 
@@ -526,13 +525,11 @@ ADV instruction surfaces (ADV_INSTRUCTIONS.md, docs/command-voice-standard.md, .
 **Fully-enforced section uses pointer + table** (`rq-proseReduction01.1`)
 
 **Given:**
-
 - A section in an ADV instruction surface describes behavior that is fully enforced by code (drift test, runtime guard, schema validation, tool formatter, or runtime tool requiring approval params)
 
 **When:** The section is inspected
 
 **Then:**
-
 - The section opens with a pointer line referencing the enforcing code path
 - The section contains a constraint table summarizing the rule
 - The section does NOT contain paragraph explanations duplicating the enforced behavior
@@ -540,38 +537,34 @@ ADV instruction surfaces (ADV_INSTRUCTIONS.md, docs/command-voice-standard.md, .
 **Partially-enforced section adds gap rationale** (`rq-proseReduction01.2`)
 
 **Given:**
-
 - A section describes behavior that is partially enforced by code (some aspects machine-checked, others rely on agent behavior)
 
 **When:** The section is inspected
 
 **Then:**
-
 - The section uses the fully-enforced template (pointer + constraint table)
 - The section additionally contains a single line marked 'Agent-side gap:' describing what the code does NOT enforce
 
 ---
 
-### ADV Runtime Agent (Provider Hints Extracted)
+### Single ADV Runtime Agent with Provider Hints
 
 **ID:** `rq-providerAdvSkinny01` | **Priority:** **[MUST]**
 
-ADV must expose one canonical lean ADV runtime prompt without provider-specific guidance. Provider hints are injected by the standalone `opencode-provider-hints` plugin via its own `experimental.chat.system.transform` hook, independently from ADV's system block. deploy-local.sh must not append the full ADV_INSTRUCTIONS.md protocol reference into global adv.md, require generated adv-{provider}.md runtime agents, or create concatenated provider prompt files. ADV's system block must not contain provider hint or provider switch sections.
+ADV must expose one canonical lean ADV runtime prompt while preserving provider-specific guidance through runtime system-block hint injection. deploy-local.sh must not append the full ADV_INSTRUCTIONS.md protocol reference into global adv.md, require generated adv-{provider}.md runtime agents, or create concatenated provider prompt files. Provider hints must be selected from structured provider/model context and emitted through the existing single-system-entry system block path.
 
 **Tags:** `provider-adv`, `prompt-parts`, `sync`
 
 #### Scenarios
 
-**Single ADV runtime agent is complete without provider hint code** (`rq-providerAdvSkinny01.1`)
+**Single ADV runtime agent is complete without generated provider variants** (`rq-providerAdvSkinny01.1`)
 
 **Given:**
-
-- scripts/deploy-local.sh --fix runs with canonical ADV assets present
+- scripts/deploy-local.sh --fix runs with canonical ADV and provider hint assets present
 
 **When:** ADV runtime assets are synced
 
 **Then:**
-
 - Global adv.md is the complete lean runtime ADV agent
 - Global adv.md is assembled from the canonical runtime agent source without wholesale ADV_INSTRUCTIONS.md append
 - Runtime-critical protocol removed or compressed from global adv.md is covered by a runtime protocol coverage inventory, retained runtime text, code/spec enforcement, or command-contract ownership
@@ -579,37 +572,31 @@ ADV must expose one canonical lean ADV runtime prompt without provider-specific 
 - Concatenated provider prompt files are not generated as required runtime artifacts at agent-parts/advance/adv-{provider}.md
 - agent.adv-{provider}.prompt refs are not written by deploy-local.sh
 - Generic adv visibility is not disabled because of retired provider variants
-- ADV's system-block.ts does not contain provider hint or provider switch sections
-- ADV's index.ts does not track currentProviderID or lastProviderID
 
 **Stale generated provider artifacts are removed or reported** (`rq-providerAdvSkinny01.1a`)
 
 **Given:**
-
 - A stale generated adv-{provider}.md file or concatenated provider prompt file exists from the retired provider-variant architecture
 
 **When:** scripts/deploy-local.sh --fix runs
 
 **Then:**
-
 - Stale generated provider agent files are removed from the global agents directory
 - Stale concatenated provider prompt files are removed or reported as retired artifacts with deterministic remediation
 - Running --fix is idempotent and does not recreate retired provider artifacts
 
-**Provider hints are injected by standalone plugin, not ADV** (`rq-providerAdvSkinny01.2`)
+**Runtime provider hints use structured context and one system entry** (`rq-providerAdvSkinny01.2`)
 
 **Given:**
+- The ADV plugin system prompt transform runs for a model with structured provider or model identity
 
-- The opencode-provider-hints plugin is registered before ADV in opencode.jsonc
-
-**When:** A chat system prompt transform runs for a model with structured provider identity
+**When:** The ADV system block is assembled
 
 **Then:**
-
-- The opencode-provider-hints plugin emits exactly one matching provider hint through output.system[0]
-- ADV's system block does not emit provider hints or provider switch markers
+- A known provider or model identity emits exactly one matching provider hint
+- An unknown or missing provider/model identity emits no provider hint
+- Provider hints are appended through output.system[0] and no additional system entry is pushed
 - No heuristic free-text provider guessing is required for correctness
-- Both plugins independently append to output.system[0] without cross-plugin dependencies
 
 ---
 
@@ -626,13 +613,11 @@ Provider ADV evaluation must report prompt-size planes for the single-agent arch
 **Provider eval reports single-agent prompt-size planes** (`rq-providerAdvMetrics01.1`)
 
 **Given:**
-
 - Provider ADV hint assets and the canonical ADV runtime prompt sources exist
 
 **When:** The provider evaluation harness reports prompt size metrics
 
 **Then:**
-
 - Metrics include lean_adv_runtime_prompt bytes and lines
 - Metrics include adv_reference_protocol bytes and lines
 - Metrics include provider hint bytes and lines
@@ -657,13 +642,11 @@ plugin/src/manifest-doc-drift.test.ts MUST contain structural assertions that ve
 **Drift test enforces line caps per class** (`rq-proseReduction02.1`)
 
 **Given:**
-
 - manifest-doc-drift.test.ts is inspected
 
 **When:** The structural-assertions block is read
 
 **Then:**
-
 - An assertion verifies fully-enforced sections do not exceed the documented line cap
 - An assertion verifies partially-enforced sections do not exceed the documented line cap
 - An assertion verifies inherently-prose template sections do not exceed the documented line cap
@@ -671,13 +654,11 @@ plugin/src/manifest-doc-drift.test.ts MUST contain structural assertions that ve
 **Drift test enforces code-path reference** (`rq-proseReduction02.2`)
 
 **Given:**
-
 - A section is classified fully-enforced or partially-enforced
 
 **When:** The drift test inspects the section
 
 **Then:**
-
 - The pointer line MUST contain a backtick-wrapped code-path reference matching `.+\.(ts|md|json)`
 - The assertion is structural; no specific wording is required
 
@@ -696,13 +677,11 @@ Prose-load reduction work MUST classify instruction sections by enforcement clas
 **Classification uses canonical framework** (`rq-proseReduction03.1`)
 
 **Given:**
-
 - A change executes prose-load reduction work
 
 **When:** The edited instruction surface is inspected
 
 **Then:**
-
 - Every edited section follows the full, partial, or inherent enforcement-class framework
 - Fully and partially enforced sections cite code/spec/test anchors when applicable
 - Partially enforced sections state the agent-side gap when prose remains necessary
@@ -710,13 +689,11 @@ Prose-load reduction work MUST classify instruction sections by enforcement clas
 **No standing audit inventory required** (`rq-proseReduction03.2`)
 
 **Given:**
-
 - A prose-reduction change has completed
 
 **When:** The repository documentation is inspected
 
 **Then:**
-
 - No repository doc is required solely to preserve the change's audit trail
 - Current behavior is recoverable from specs, tests, command contracts, and source comments
 
@@ -735,13 +712,11 @@ Sections classified inherently-prose (agent-side judgment, narration, or domain 
 **Inherently-prose section uses structured template** (`rq-proseReduction04.1`)
 
 **Given:**
-
 - A section is classified inherently-prose
 
 **When:** The section is inspected
 
 **Then:**
-
 - The section opens with a one-line purpose statement
 - The section content uses a table, checklist, or trigger/action grid
 - The section does NOT contain paragraph prose explaining the rule
@@ -749,13 +724,11 @@ Sections classified inherently-prose (agent-side judgment, narration, or domain 
 **Inherently-prose template excludes mandatory pointer** (`rq-proseReduction04.2`)
 
 **Given:**
-
 - A section is classified inherently-prose (no code mechanism to point to)
 
 **When:** The section is inspected
 
 **Then:**
-
 - The section MAY omit a code-path reference
 - The structural template is the only required form
 
@@ -765,7 +738,7 @@ Sections classified inherently-prose (agent-side judgment, narration, or domain 
 
 **ID:** `rq-skillProseCompression01` | **Priority:** **[MUST]**
 
-Skill files under skills/\*/SKILL.md MUST use the same enforcement-class compression framework as command files. New or modified skills must follow the full, partial, or inherent class rules in docs/command-voice-standard.md and keep durable invariants in specs, tests, or command contracts rather than standing audit inventories.
+Skill files under skills/*/SKILL.md MUST use the same enforcement-class compression framework as command files. New or modified skills must follow the full, partial, or inherent class rules in docs/command-voice-standard.md and keep durable invariants in specs, tests, or command contracts rather than standing audit inventories.
 
 **Tags:** `prose-reduction`, `skills`, `compression`
 
@@ -774,13 +747,11 @@ Skill files under skills/\*/SKILL.md MUST use the same enforcement-class compres
 **Modified skill follows enforcement-class compression** (`rq-skillProseCompression01.1`)
 
 **Given:**
-
-- A skill file in skills/\*/SKILL.md is created or modified
+- A skill file in skills/*/SKILL.md is created or modified
 
 **When:** The skill file is prepared for archive
 
 **Then:**
-
 - The skill is compressed per the same enforcement-class framework as command files
 - The applicable class is full, partial, or inherent per docs/command-voice-standard.md
 - Contract tokens, code blocks, tool names, enum values, and quoted errors remain intact
@@ -800,13 +771,11 @@ Commands backed by dedicated or shared skills MUST be listed in ADV_INSTRUCTIONS
 **Extracted command appears in skill classification table** (`rq-skillClassification01.1`)
 
 **Given:**
-
 - A command has a dedicated skill or shared skill after extraction
 
 **When:** Extraction is complete
 
 **Then:**
-
 - ADV_INSTRUCTIONS.md § Command vs Skill Boundaries lists the command under Dedicated skill or Shared skill
 - The row includes the skill identifier
 - The command is not listed as Command-only
@@ -817,7 +786,7 @@ Commands backed by dedicated or shared skills MUST be listed in ADV_INSTRUCTIONS
 
 **ID:** `rq-noSourceChecklistReads01` | **Priority:** **[MUST]**
 
-ADV runtime command guidance MUST NOT require agents to read Advance source or install-tree checklist files for reusable methodology. Runtime methodology must be available through embedded command guidance or loaded trusted skills, while docs/checklists/\* remains maintainer/reference documentation only.
+ADV runtime command guidance MUST NOT require agents to read Advance source or install-tree checklist files for reusable methodology. Runtime methodology must be available through embedded command guidance or loaded trusted skills, while docs/checklists/* remains maintainer/reference documentation only.
 
 **Tags:** `commands`, `skills`, `runtime-guidance`, `checklists`
 
@@ -826,27 +795,23 @@ ADV runtime command guidance MUST NOT require agents to read Advance source or i
 **Runtime command uses embedded guidance or skill** (`rq-noSourceChecklistReads01.1`)
 
 **Given:**
-
 - A synced ADV runtime command needs reusable methodology during execution
 
 **When:** The command is invoked from a repository that is not the Advance source checkout
 
 **Then:**
-
 - The command provides the methodology through embedded runtime guidance or a loaded trusted skill
-- The command does not instruct the agent to read docs/checklists/\* files
-- The command does not instruct the agent to search or read ~/.local/share/Advance/\*\* for methodology
+- The command does not instruct the agent to read docs/checklists/* files
+- The command does not instruct the agent to search or read ~/.local/share/Advance/** for methodology
 
 **Checklist docs remain maintainer references** (`rq-noSourceChecklistReads01.2`)
 
 **Given:**
-
-- Maintainer-facing docs/checklists/\* files exist in the Advance repository
+- Maintainer-facing docs/checklists/* files exist in the Advance repository
 
 **When:** Runtime command guidance is authored or synced
 
 **Then:**
-
 - The docs may remain available for maintainer reference
 - Runtime command prose does not present those docs as the execution-time source of methodology
 - Structural drift tests fail if runtime command files reintroduce source or install-tree checklist-read directives
@@ -866,14 +831,12 @@ Delegation routing tables in ADV_INSTRUCTIONS.md and adv-apply.md MUST include s
 **Step 4.5 inserted between step 4 and step 5 in both routing tables** (`rq-contextShed01.1`)
 
 **Given:**
-
 - ADV_INSTRUCTIONS.md contains the Delegation Routing table
 - adv-apply.md contains the Delegation Routing table
 
 **When:** The routing tables are inspected
 
 **Then:**
-
 - Both tables contain a step 4.5 row between step 4 (risk signals) and step 5 (default)
 - Step 4.5 result is delegate_allowed when all four questions pass AND floor is met
 - Step 4.5 result is inline_required when any question fails or floor is not met
@@ -882,41 +845,35 @@ Delegation routing tables in ADV_INSTRUCTIONS.md and adv-apply.md MUST include s
 **Floor prevents micro-task delegation** (`rq-contextShed01.2`)
 
 **Given:**
-
 - A task touches fewer than ~5 files AND fewer than ~50 lines
 - All four context-shed questions pass
 
 **When:** Step 4.5 evaluates the task
 
 **Then:**
-
 - The floor check fails
 - Result is inline_required regardless of question answers
 
 **AND-conjunction requires all four questions** (`rq-contextShed01.3`)
 
 **Given:**
-
 - A task passes 3 of 4 context-shed questions and meets the floor
 
 **When:** Step 4.5 evaluates the task
 
 **Then:**
-
 - Result is inline_required
 - Conservative bias preserves orchestrator context for borderline tasks
 
 **Step 4.5 does not override human hint or risk signals** (`rq-contextShed01.4`)
 
 **Given:**
-
 - A task has metadata.delegation_hint set to inline_required
 - The context-shed test passes for the task
 
 **When:** Delegation routing evaluates
 
 **Then:**
-
 - Step 1 returns inline_required
 - Step 4.5 is never reached
 
@@ -935,13 +892,11 @@ The adv.md orchestrator agent's Context-Optimal Execution section MUST include c
 **adv.md contains context-shed prose bullets not table** (`rq-contextShed02.1`)
 
 **Given:**
-
 - The adv.md Context-Optimal Execution section is inspected
 
 **When:** The delegation criteria are checked
 
 **Then:**
-
 - The section contains context-shed delegation criteria as prose bullets
 - The section does NOT contain a markdown routing table (no | pipe characters in table format)
 - The criteria reference the 4-question AND test and floor threshold
@@ -949,13 +904,11 @@ The adv.md orchestrator agent's Context-Optimal Execution section MUST include c
 **adv-apply.md contains post-delegation P23 diff-scan step** (`rq-contextShed02.2`)
 
 **Given:**
-
 - The adv-apply.md Task Flow is inspected
 
 **When:** Post-delegation steps are checked
 
 **Then:**
-
 - A step after delegation spawn and before task completion performs a P23 campsite-rule diff-scan
 - The step diffs the sub-agent's touched files against pre-delegation baseline
 - Small/safe/local same-pattern fixes are applied inline
@@ -964,13 +917,11 @@ The adv.md orchestrator agent's Context-Optimal Execution section MUST include c
 **Drift tests enforce prose-only on adv.md and table on other surfaces** (`rq-contextShed02.3`)
 
 **Given:**
-
 - The drift test suite runs
 
 **When:** Context-shed assertions are evaluated
 
 **Then:**
-
 - ADV_INSTRUCTIONS.md and adv-apply.md delegation tables contain step 4.5 with matching wording
 - adv.md Context-Optimal Execution section contains context-shed tokens without table pipe characters
 - adv-apply.md contains P23 diff-scan step tokens
@@ -990,13 +941,11 @@ The primary adv orchestrator SHOULD delegate broad operational work before repea
 **Primary orchestrator retains authority boundary** (`rq-orchestratorOpsDelegation01.1`)
 
 **Given:**
-
 - The primary adv delegates operational work to a worker
 
 **When:** The worker returns findings or verification output
 
 **Then:**
-
 - Primary adv retains gate completion authority
 - Primary adv retains task-graph mutation authority
 - Primary adv retains checkpoint, archive, sign-off, scope-drift, contract-compromise, safety, release, and user-facing synthesis authority
@@ -1005,13 +954,11 @@ The primary adv orchestrator SHOULD delegate broad operational work before repea
 **Operational triggers map to bounded workers** (`rq-orchestratorOpsDelegation01.2`)
 
 **Given:**
-
 - The primary adv expects broad operational work outside a task graph item
 
 **When:** The work matches a routing trigger in ADV_INSTRUCTIONS.md
 
 **Then:**
-
 - >5 file reads/searches routes to explore
 - Repo structure, dependency map, or same-pattern scan routes to explore or adv-tron
 - DB/log/status/usage audit routes to general
@@ -1022,7 +969,6 @@ The primary adv orchestrator SHOULD delegate broad operational work before repea
 **No second primary operational cycle before delegation** (`rq-orchestratorOpsDelegation01.3`)
 
 **Given:**
-
 - The primary adv has already run one recon, shell/test, status, or CI-check cycle for an operational question
 - More work of the same operational class is needed
 - The next step does not require ADV authority or user-facing synthesis
@@ -1030,7 +976,6 @@ The primary adv orchestrator SHOULD delegate broad operational work before repea
 **When:** The primary adv chooses whether to continue inline or delegate
 
 **Then:**
-
 - The primary adv delegates the next operational cycle to the mapped worker
 - The primary adv does not run a second primary recon/shell/test/CI-check cycle before delegating
 - The primary adv resumes inline for synthesis, decisions, and ADV state mutation after worker output
@@ -1038,13 +983,11 @@ The primary adv orchestrator SHOULD delegate broad operational work before repea
 **adv.md carries operational delegation prose only** (`rq-orchestratorOpsDelegation01.4`)
 
 **Given:**
-
 - The adv.md Context-Optimal Execution section is inspected
 
 **When:** Operational delegation guidance is checked
 
 **Then:**
-
 - The section includes operational delegation prose tokens including GitHub CI, check-run, reads/searches, second, and general
 - The section contains no markdown routing table
 - The section contains no pipe characters
@@ -1052,13 +995,11 @@ The primary adv orchestrator SHOULD delegate broad operational work before repea
 **ADV_INSTRUCTIONS.md owns the operational routing table** (`rq-orchestratorOpsDelegation01.5`)
 
 **Given:**
-
 - ADV_INSTRUCTIONS.md is inspected
 
 **When:** Operational delegation routing guidance is checked
 
 **Then:**
-
 - ADV_INSTRUCTIONS.md contains a clearly labeled Orchestrator-Session Operational Routing table
 - The table contains a GitHub CI / check-run / status investigation row mapped to general
 - The table routes code-edit rows to adv-engineer or adv-designer, not general
@@ -1067,13 +1008,11 @@ The primary adv orchestrator SHOULD delegate broad operational work before repea
 **Task-level Step 4.5 and adv-atc remain unchanged** (`rq-orchestratorOpsDelegation01.6`)
 
 **Given:**
-
 - The operational delegation change is implemented
 
 **When:** Scope boundaries are checked
 
 **Then:**
-
 - adv-apply.md retains the existing Step 4.5 Context-Shed Test semantics and priority order
 - adv-apply.md does not contain the Orchestrator-Session Operational Routing table
 - adv-atc.md is not modified by this change
@@ -1092,13 +1031,11 @@ ADV must provide an explicit user-side lever to terminate an archived change wor
 **Workflow-only purge by default preserves disk bundle** (`rq-archivePurge01.1`)
 
 **Given:**
-
 - An archived change with both an active change workflow and an existing archive/<id>/change.json bundle on disk
 
 **When:** adv_archive_purge changeId: <id> is invoked without includeDiskBundle
 
 **Then:**
-
 - The change workflow is terminated via Temporal client
 - The on-disk archive bundle is preserved
 - adv_change_show for the changeId returns content from the on-disk projection
@@ -1106,13 +1043,11 @@ ADV must provide an explicit user-side lever to terminate an archived change wor
 **Opt-in includeDiskBundle removes both workflow state and disk artifacts** (`rq-archivePurge01.2`)
 
 **Given:**
-
 - An archived change with both active workflow and disk bundle
 
 **When:** adv_archive_purge changeId: <id> includeDiskBundle: true is invoked
 
 **Then:**
-
 - The change workflow is terminated
 - The archive/<id>/ directory is recursively removed from disk
 - Subsequent adv_change_show returns the existing not-found error path
@@ -1120,13 +1055,11 @@ ADV must provide an explicit user-side lever to terminate an archived change wor
 **Refuses non-archived or unknown changes** (`rq-archivePurge01.3`)
 
 **Given:**
-
 - A change in active status, OR a changeId that does not exist in the archive
 
 **When:** adv_archive_purge is invoked
 
 **Then:**
-
 - The tool returns a structured error and makes no state mutations
 
 ---
@@ -1142,26 +1075,22 @@ The plugin's safety-net wrapper has a default 10s timeout (DEFAULT_TOOL_TIMEOUT_
 **Long-running tools declare an explicit override** (`rq-toolTimeoutOverride01.1`)
 
 **Given:**
-
 - A tool whose execute body wraps a subprocess or workflow operation that legitimately exceeds 10s
 
 **When:** The tool is registered in tool-registry.ts
 
 **Then:**
-
 - The registration uses safeExecute with an explicit { timeoutMs: N } where N is sufficient for the inner budget plus modest headroom
 - A code comment cites the inner-budget rationale and references this requirement
 
 **adv_temporal_worker_restart uses bounded verified recovery** (`rq-toolTimeoutOverride01.2`)
 
 **Given:**
-
 - A Temporal worker restart is requested for the current project
 
 **When:** adv_temporal_worker_restart is invoked
 
 **Then:**
-
 - The tool waits up to the configured verification budget (default 10s) for the expected project task queue to become serviceable
 - The tool returns success:true only when serviceability is proven by local worker readiness and/or fresh server-side poller evidence
 - The tool returns success:false with structured diagnostics when verification times out or evidence is unavailable or negative
@@ -1180,13 +1109,11 @@ After a successful adv_change_bulk_close, both workflow state and on-disk source
 **Successful bulk-close removes disk artifacts and reports per-id results** (`rq-bulkCloseDiskSweep01.1`)
 
 **Given:**
-
 - Multiple draft changes selected for closure with explicit user approval
 
 **When:** adv_change_bulk_close is invoked and the underlying closeBatch succeeds
 
 **Then:**
-
 - Each closed change's source directory is removed via sweepClosedChangesFromDisk
 - The response includes diskRemoved and diskFailed arrays per changeId
 - Idempotency guarantees of the helper apply (already-missing dirs are reported as removed)
@@ -1194,13 +1121,11 @@ After a successful adv_change_bulk_close, both workflow state and on-disk source
 **Partial workflow-close failure preserves source dirs** (`rq-bulkCloseDiskSweep01.2`)
 
 **Given:**
-
 - A bulk-close where the overall closeBatch reports success:false (one or more closures failed)
 
 **When:** The tool returns
 
 **Then:**
-
 - Source dirs for failed closures are NOT removed
 - Failed source dirs are reported separately and may be retried via subsequent bulk-close runs
 
@@ -1217,13 +1142,11 @@ During vitest runs (process.env.VITEST === 'true' or process.env.ADV_TEST_MODE =
 **Vitest run resolves to a synthetic ID with the SYNTHETIC_TEST_PROJECT_ID_PREFIX** (`rq-testFixtureProjectId01.1`)
 
 **Given:**
-
 - process.env.VITEST is 'true' and the directory is a real git repo
 
 **When:** getProjectId(directory) is called
 
 **Then:**
-
 - The returned ID is 40 hex chars
 - The ID starts with SYNTHETIC_TEST_PROJECT_ID_PREFIX (16 leading zeros)
 - Distinct directories produce distinct synthetic IDs (cross-project test isolation)
@@ -1231,26 +1154,22 @@ During vitest runs (process.env.VITEST === 'true' or process.env.ADV_TEST_MODE =
 **Vitest run on a non-git directory returns null** (`rq-testFixtureProjectId01.2`)
 
 **Given:**
-
 - process.env.VITEST is 'true' and the directory is not a git repo (e.g. a createTestProject fixture with a stub .git and no commits)
 
 **When:** getProjectId(directory) is called
 
 **Then:**
-
 - The function returns null
 - Callers fall back to legacy in-repo paths via their existing 'targetProjectId ? getExternalRoot(...) : undefined' patterns
 
 **Hard-fail guardrail asserts override is active during test runs** (`rq-testFixtureProjectId01.3`)
 
 **Given:**
-
 - The vitest test suite runs in the plugin checkout
 
 **When:** The project-id guardrail test executes
 
 **Then:**
-
 - process.env.VITEST is 'true'
 - getProjectId(process.cwd()) returns a synthetic ID, not the real root commit SHA
 - Resolving a real git SHA from this code path is a hard test failure
@@ -1259,9 +1178,7 @@ During vitest runs (process.env.VITEST === 'true' or process.env.ADV_TEST_MODE =
 
 ### Singleton Temporal worker per project across sessions
 
-**ID:** `rq-workerSingleton01` | **Priority:** **[SHOULD]**
-
-When `worker_singleton_enforce` is set to `true` in project configuration, singleton enforcement MUST apply as specified below. When omitted or `false`, each plugin instance MAY spawn its own worker.
+**ID:** `rq-workerSingleton01` | **Priority:** **[MUST]**
 
 When multiple plugin instances initialize against the same external state directory for the same project, at most ONE Temporal worker process MUST exist for that project_id at any given time. A file-lock sentinel at {external-state-dir}/{project-id}/worker.lock coordinates ownership. Subsequent instances participate as Temporal clients only. Heartbeat freshness is the primary liveness signal for v2 worker locks but proves only host liveness, not expected queue serviceability. Dead-PID reclaim remains automatic. For legacy v1 fallback locks, an alive PID protects singleton ownership during passive initialization and when the expected project queue is serviceable. A v1 alive-PID lock with no heartbeat and no serviceable queue is classified as suspect during recovery decisions and may only be reclaimed through an explicit user-approved recovery path. A v2 lock whose holder's local worker is not registered to the expected queue (or whose serviceability is otherwise negative) is also classified as suspect; live unserviceable v1/v2 reclaim requires explicit approval evidence unless dead-PID or stale-heartbeat rules prove the holder stale. When a lock holder's own local worker remains unserviceable past the configured grace window, the holder MUST stop renewing the heartbeat so the v2 lock can age out without manual deletion.
 
@@ -1270,13 +1187,11 @@ When multiple plugin instances initialize against the same external state direct
 **First plugin instance acquires lock and spawns worker** (`rq-workerSingleton01.1`)
 
 **Given:**
-
 - No worker.lock file exists in the project external state directory
 
 **When:** The plugin initializes
 
 **Then:**
-
 - A worker.lock file is created atomically (O_CREAT | O_EXCL) with the plugin process PID
 - An out-of-process Temporal worker is spawned via the existing out-of-process-worker.ts path
 - Cleanup hooks (process exit / SIGINT / SIGTERM) release the lock and terminate the worker
@@ -1284,14 +1199,12 @@ When multiple plugin instances initialize against the same external state direct
 **Subsequent plugin instance reads lock and skips worker spawn** (`rq-workerSingleton01.2`)
 
 **Given:**
-
 - A worker.lock file exists and the recorded PID is alive (process.kill(pid, 0) succeeds or throws EPERM)
 - Either the lock has no last_heartbeat field (v1 fallback) during passive initialization or with serviceable queue evidence, or the lock has a fresh v2 heartbeat
 
 **When:** A second plugin initializes against the same project
 
 **Then:**
-
 - The acquireWorkerLock helper reports owned:false with ownerPid
 - No additional worker process is spawned
 - The plugin still initializes the Temporal client and participates as a client only
@@ -1299,13 +1212,11 @@ When multiple plugin instances initialize against the same external state direct
 **Stale lock from dead PID is reclaimed** (`rq-workerSingleton01.3`)
 
 **Given:**
-
 - A worker.lock file exists but the recorded PID is no longer alive (process.kill(pid, 0) throws ESRCH)
 
 **When:** A plugin attempts to acquire the lock
 
 **Then:**
-
 - The stale lock file is removed
 - Acquisition is retried once
 - On success the new plugin owns the lock and spawns its own worker
@@ -1313,13 +1224,11 @@ When multiple plugin instances initialize against the same external state direct
 **ADV_FORCE_IN_PROCESS_WORKER bypasses singleton lock** (`rq-workerSingleton01.4`)
 
 **Given:**
-
 - process.env.ADV_FORCE_IN_PROCESS_WORKER === '1'
 
 **When:** The plugin initializes
 
 **Then:**
-
 - The lock-acquisition step is skipped
 - The legacy in-process worker path is used
 - This rollback path supports per-session debugging when needed
@@ -1327,14 +1236,12 @@ When multiple plugin instances initialize against the same external state direct
 **Stale v2 heartbeat is reclaimed even when PID remains alive** (`rq-workerSingleton01.5`)
 
 **Given:**
-
 - A worker.lock file exists with schema_version 2 and a recorded PID that is alive
 - The lock last_heartbeat is older than the configured stale-heartbeat grace
 
 **When:** A plugin attempts to acquire the lock
 
 **Then:**
-
 - The stale heartbeat lock file is removed
 - Acquisition is retried through the existing atomic O_EXCL path
 - A fresh worker may acquire the singleton lock without requiring external lock cleanup
@@ -1342,14 +1249,12 @@ When multiple plugin instances initialize against the same external state direct
 **Suspect legacy live lock requires approval to reclaim** (`rq-workerSingleton01.6`)
 
 **Given:**
-
 - A v1 worker.lock exists with an alive recorded PID
 - The expected project queue is not serviceable within the verification budget
 
 **When:** diagnose or restart recovery evaluates the worker state
 
 **Then:**
-
 - The state is classified as suspect_live_legacy_lock
 - No lock is reclaimed automatically
 - Recovery requires explicit user approval evidence or restarting the owning OpenCode session
@@ -1358,14 +1263,12 @@ When multiple plugin instances initialize against the same external state direct
 **Suspect fresh-v2 unserviceable lock requires approval to reclaim** (`rq-workerSingleton01.7`)
 
 **Given:**
-
 - A v2 worker.lock exists with an alive recorded PID and a fresh heartbeat
 - The expected project queue is not serviceable within the verification budget
 
 **When:** diagnose or restart recovery evaluates the worker state
 
 **Then:**
-
 - The state is classified as suspect_live_unserviceable_lock
 - No lock is reclaimed automatically by stale-PID or stale-heartbeat rules
 - Recovery requires explicit user approval evidence or restarting the owning OpenCode session
@@ -1374,14 +1277,12 @@ When multiple plugin instances initialize against the same external state direct
 **Lock owner self-expires heartbeat when local worker remains unserviceable** (`rq-workerSingleton01.8`)
 
 **Given:**
-
 - The current OpenCode session holds the project worker.lock with a v2 heartbeat
 - The local worker is registered as the owner but is not serving the expected queue past the configured serviceability grace window
 
 **When:** The heartbeat writer evaluates whether to renew the heartbeat
 
 **Then:**
-
 - The owner MUST stop renewing the heartbeat so the v2 lock can age out via the existing stale-heartbeat reclaim path
 - The owner records the self-expiry decision in last_worker_run_error for diagnostics
 - Peer sessions can reclaim through the normal stale-heartbeat path without manual lock deletion
@@ -1389,13 +1290,11 @@ When multiple plugin instances initialize against the same external state direct
 **Worker role is visible in health diagnostics** (`rq-workerSingleton01.9`)
 
 **Given:**
-
 - ADV status health diagnostics are requested while worker singleton enforcement is active
 
 **When:** adv_status view:health is executed
 
 **Then:**
-
 - The response includes worker_role with host, client, or degraded
 - The worker_role field is additive and does not remove legacy Temporal health fields
 - The feature_flags response shows worker_singleton_enforce and worktree_guard_enforce effective defaults
@@ -1413,26 +1312,22 @@ When a Temporal worker run loop rejects, exits unexpectedly, or exhausts restart
 **Worker run-loop failure appears in diagnostics** (`rq-workerHealth01.1`)
 
 **Given:**
-
 - A Temporal worker run loop rejects or an out-of-process worker reports a run-error
 
 **When:** adv_status or adv_temporal_diagnose inspects Temporal health
 
 **Then:**
-
 - The last worker run-loop error includes queue, message, and timestamp
 - The diagnostic remains additive and does not require describeTaskQueue during normal plugin initialization
 
 **Queue serviceability appears in diagnostics** (`rq-workerHealth01.2`)
 
 **Given:**
-
 - A project queue has no proven local worker readiness and no fresh server-side poller evidence
 
 **When:** adv_status view:health or adv_temporal_diagnose is executed
 
 **Then:**
-
 - Diagnostics include expected queue and local worker registration status
 - Diagnostics include worker process or IPC details when available
 - Diagnostics include server poller probe status and stale running workflow count or probe status
@@ -1441,14 +1336,12 @@ When a Temporal worker run loop rejects, exits unexpectedly, or exhausts restart
 **Fresh v2 heartbeat is liveness evidence only, not serviceability proof** (`rq-workerHealth01.3`)
 
 **Given:**
-
 - A worker.lock has schema_version 2 with a fresh last_heartbeat
 - The expected project queue is not serviceable through local registration or fresh server-side poller evidence
 
 **When:** adv_status view:health or adv_temporal_diagnose classifies recovery state
 
 **Then:**
-
 - The fresh heartbeat is treated as host or owner liveness evidence only
 - The diagnostic does not classify the queue as serviceable or as normal recovery pending peer worker spawn
 - The recommended next action surfaces approval-gated suspect_live_unserviceable_lock or owner-restart guidance
@@ -1456,13 +1349,11 @@ When a Temporal worker run loop rejects, exits unexpectedly, or exhausts restart
 **adv_temporal_reconnect is STSL-only and not worker-registration recovery** (`rq-workerHealth01.4`)
 
 **Given:**
-
 - Recovery diagnostics show worker_alive false or expected queue not serviceable
 
 **When:** adv_temporal_diagnose, adv_status, or workflow-access guidance proposes the next action
 
 **Then:**
-
 - adv_temporal_reconnect is reserved for STSL or client connection issues, not for worker-registration or queue-serviceability failures
 - The recommended next action for worker-registration failure routes through verified worker restart or owner-restart, not reconnect
 - Documentation surfaces (docs/temporal-recovery.md) reflect the same STSL-only boundary for adv_temporal_reconnect
@@ -1482,14 +1373,12 @@ Multi-session is the supported design center for ADV. State writes from concurre
 **Concurrent state writes from peer sessions are serialized via workflow signals** (`rq-multiSessionCoordination01.1`)
 
 **Given:**
-
 - Two or more OpenCode sessions sharing the same ADV project are active
 - Each session issues an ADV-mutating tool call (for example adv_change_update or adv_task_update) against the same change concurrently
 
 **When:** The plugin processes the concurrent updates
 
 **Then:**
-
 - All updates reach the change workflow as Temporal workflow signals
 - Signals are applied in delivery order chosen by Temporal, not by a client-side lock
 - No signal is silently dropped; each is applied to workflow state
@@ -1498,14 +1387,12 @@ Multi-session is the supported design center for ADV. State writes from concurre
 **Workflow replay reproduces multi-session state deterministically** (`rq-multiSessionCoordination01.2`)
 
 **Given:**
-
 - A change workflow has accumulated signals from multiple sessions
 - The workflow is replayed from event history
 
 **When:** Replay executes the recorded signal events
 
 **Then:**
-
 - The replayed final state is identical to the original final state
 - Signal handlers serialize via the workflow signal queue, ensuring deterministic order
 - No mutator depends on Date.now(), floating-point math, or process-local state
@@ -1513,13 +1400,11 @@ Multi-session is the supported design center for ADV. State writes from concurre
 **ADV-mutating tools must not use client-side soft locks for cross-session coordination** (`rq-multiSessionCoordination01.3`)
 
 **Given:**
-
 - The set of ADV tools whose execution mode is temporal-required is inspected
 
 **When:** Their implementation is reviewed
 
 **Then:**
-
 - No ADV-mutating tool uses a JSONL sidecar lock, in-process mutex, or other client-side soft lock for cross-session coordination
 - Per-process flocks are restricted to narrow git filesystem operations (for example git worktree add/remove)
 - All cross-session coordination flows through Temporal workflow signals on the change workflow
@@ -1539,13 +1424,11 @@ Worktree state for ADV-managed worktrees must live inside the change workflow st
 **Worktree create persists state into change workflow worktree state** (`rq-worktreeRegistry01.1`)
 
 **Given:**
-
 - A session invokes adv_worktree_create with a branch name
 
 **When:** The create flow completes successfully
 
 **Then:**
-
 - A worktree record is added to change-workflow worktree state via the worktreeCreatedSignal
 - The record contains branch, path, baseRef, headSha, and createdAt fields
 - No row is written to a sidecar SQLite database or JSONL file as the authoritative state
@@ -1553,14 +1436,12 @@ Worktree state for ADV-managed worktrees must live inside the change workflow st
 **Peer session sees the same worktree registry contents** (`rq-worktreeRegistry01.2`)
 
 **Given:**
-
 - Session A has created a worktree and the worktreeCreatedSignal has applied
 - Session B in the same project queries worktree state
 
 **When:** Session B reads worktree state via the change workflow (via AdvWorktreeBranches/AdvWorktreePaths search attributes for cross-change aggregation)
 
 **Then:**
-
 - Session B observes the worktree created by session A
 - The observed record fields match what session A wrote
 - No additional cross-process synchronization step is required
@@ -1568,14 +1449,12 @@ Worktree state for ADV-managed worktrees must live inside the change workflow st
 **No SQLite or sidecar JSONL is required to read worktree state** (`rq-worktreeRegistry01.3`)
 
 **Given:**
-
 - The set of code paths that read worktree state is inspected
 - The legacy worktree plugin SQLite at ~/.local/share/opencode/plugins/worktree/{pid}.sqlite has been migrated
 
 **When:** The reads execute against a project with no legacy SQLite present
 
 **Then:**
-
 - All reads succeed using only the per-change workflow state, Temporal visibility search attributes, and git census
 - No code path requires a sidecar SQLite or JSONL worktree-state file to function
 - Migrations from any legacy SQLite are idempotent and reversible
@@ -1595,14 +1474,12 @@ When adv_worktree_create is invoked for a branch that already has a registered g
 **Existing change worktree is reused without invoking recovery** (`rq-worktreeReuse01.1`)
 
 **Given:**
-
 - A git worktree already exists for the requested branch (for example refs/heads/change/<change-id>)
 - The on-disk worktree path is present
 
 **When:** adv_worktree_create is invoked for that branch
 
 **Then:**
-
 - The tool returns success with the existing path, branch, baseRef, and headSha
 - The output marks the result as reused so callers can distinguish reuse from fresh create
 - No per-change workflow recovery is required — change-workflow state survives directly via Temporal
@@ -1611,14 +1488,12 @@ When adv_worktree_create is invoked for a branch that already has a registered g
 **Stale git worktree metadata is pruned before fresh create** (`rq-worktreeReuse01.2`)
 
 **Given:**
-
 - A git worktree branch entry exists for the requested branch
 - The on-disk worktree path is missing
 
 **When:** adv_worktree_create is invoked for that branch
 
 **Then:**
-
 - The tool prunes the stale git worktree metadata (`git worktree prune` or equivalent)
 - The tool proceeds to bounded fresh-create instead of an in-place fallback
 - No in-place edit recommendation is surfaced to the caller
@@ -1638,13 +1513,11 @@ Production ADV code and ADV-managed instruction surfaces must frame multi-sessio
 **Plugin emits informational marker, not concurrent-session warning** (`rq-multiSessionFraming01.1`)
 
 **Given:**
-
 - Plugin init detects N peer sessions in the same project, where N is greater than zero
 
 **When:** The plugin emits the peer-sessions diagnostic
 
 **Then:**
-
 - The diagnostic uses the [ADV:PEER_SESSIONS] informational marker
 - The diagnostic does not use the [ADV:WARN] Concurrent OpenCode sessions detected wording
 - The wording does not describe multi-session as a hazard or race condition
@@ -1652,13 +1525,11 @@ Production ADV code and ADV-managed instruction surfaces must frame multi-sessio
 **ADV_INSTRUCTIONS contains Multi-Session Coordination, not Concurrent Session Hazard** (`rq-multiSessionFraming01.2`)
 
 **Given:**
-
 - ADV_INSTRUCTIONS.md is inspected
 
 **When:** The relevant section is read
 
 **Then:**
-
 - A section titled Multi-Session Coordination is present
 - No section titled Concurrent Session Hazard is present
 - The Multi-Session Coordination section describes Temporal-serialized state writes and per-worktree git isolation
@@ -1666,13 +1537,11 @@ Production ADV code and ADV-managed instruction surfaces must frame multi-sessio
 **Status-marker table lists [ADV:PEER_SESSIONS] as informational** (`rq-multiSessionFraming01.3`)
 
 **Given:**
-
 - The canonical status-marker table in ADV_INSTRUCTIONS.md is inspected
 
 **When:** The table rows are read
 
 **Then:**
-
 - A row for [ADV:PEER_SESSIONS] is present
 - The row classifies the marker as informational, not as an attention or blocked marker
 - Drift tests fail if the row is removed or reclassified
@@ -1683,7 +1552,7 @@ Production ADV code and ADV-managed instruction surfaces must frame multi-sessio
 
 **ID:** `rq-temporalConcurrentLoad01` | **Priority:** **[MUST]**
 
-Scenarios apply when `worker_singleton_enforce: true` is set in project configuration. The Temporal worker singleton must survive load from at least five concurrent ADV client sessions issuing state-write tool calls without lost updates, deadlocks, or replay-determinism violations. When the worker process is killed mid-load, surviving clients must respawn-elect a new worker via the singleton lock and resume normal operation.
+The Temporal worker singleton must survive load from at least five concurrent ADV client sessions issuing state-write tool calls without lost updates, deadlocks, or replay-determinism violations. When the worker process is killed mid-load, surviving clients must respawn-elect a new worker via the singleton lock and resume normal operation.
 
 **Tags:** `temporal`, `load-test`, `worker-singleton`, `concurrent-clients`
 
@@ -1692,13 +1561,11 @@ Scenarios apply when `worker_singleton_enforce: true` is set in project configur
 **Five or more concurrent clients complete state writes with no lost updates** (`rq-temporalConcurrentLoad01.1`)
 
 **Given:**
-
 - At least five concurrent ADV client sessions issue ADV-mutating tool calls (state writes, change updates, agenda adds, wisdom adds, worktree registers) against change workflows on the same project task queue
 
 **When:** The concurrent-clients benchmark mode runs for the configured duration
 
 **Then:**
-
 - No deadlocks occur
 - All issued writes are reflected in the final workflow state
 - Monotonic source_version is preserved across all writes (no lost updates)
@@ -1707,14 +1574,12 @@ Scenarios apply when `worker_singleton_enforce: true` is set in project configur
 **Worker-kill mid-load triggers successful respawn-elect** (`rq-temporalConcurrentLoad01.2`)
 
 **Given:**
-
 - Five or more concurrent clients are mid-load against change workflows on the same project task queue
 - The current worker-lock holder PID is killed via SIGKILL
 
 **When:** The benchmark continues after the kill
 
 **Then:**
-
 - Surviving clients reclaim the stale worker lock per rq-workerSingleton01.3
 - A new worker is spawned by one of the surviving clients
 - Pre-kill writes remain reflected in workflow state
@@ -1735,13 +1600,11 @@ ADV protocol must be scoped to the single ADV runtime agent without globally reg
 **Single ADV runtime prompt preserves ADV protocol coverage without wholesale reference append** (`rq-scopedAdvInstructions01.1`)
 
 **Given:**
-
 - scripts/deploy-local.sh --fix syncs the global ADV runtime agent
 
 **When:** The global adv.md runtime prompt content is inspected
 
 **Then:**
-
 - The content is the complete lean ADV runtime prompt
 - The content does not include a wholesale ADV_INSTRUCTIONS.md protocol-reference append
 - Removed or compressed runtime protocol is mapped in a runtime protocol coverage inventory to retained runtime text, code/spec enforcement, command contracts, or reference-only material
@@ -1752,13 +1615,11 @@ ADV protocol must be scoped to the single ADV runtime agent without globally reg
 **Global config excludes ADV_INSTRUCTIONS.md** (`rq-scopedAdvInstructions01.2`)
 
 **Given:**
-
 - scripts/deploy-local.sh --fix manages a global opencode.json config
 
 **When:** The config is created or repaired
 
 **Then:**
-
 - The plugin path remains registered in plugin[]
 - The repository ADV_INSTRUCTIONS.md path is absent from instructions[]
 - Any stale global-copy ADV_INSTRUCTIONS.md path is absent from instructions[]
@@ -1767,13 +1628,11 @@ ADV protocol must be scoped to the single ADV runtime agent without globally reg
 **Non-ADV prompt surfaces do not carry ADV protocol markers** (`rq-scopedAdvInstructions01.3`)
 
 **Given:**
-
 - Non-ADV agents or generic global instruction surfaces are inspected after sync
 
 **When:** Their prompt or instruction content is checked for ADV protocol-only markers
 
 **Then:**
-
 - Markers unique to ADV_INSTRUCTIONS.md such as ## TDD Protocol (RSTC) or ## Critical Protocols are absent
 - Non-ADV prompts remain self-contained for any rules they reference
 - No non-ADV agent depends on hidden ADV_INSTRUCTIONS.md sections for correctness
@@ -1781,13 +1640,11 @@ ADV protocol must be scoped to the single ADV runtime agent without globally reg
 **Unrelated global instructions are preserved during migration** (`rq-scopedAdvInstructions01.4`)
 
 **Given:**
-
 - opencode.json instructions[] contains unrelated user or organization instruction files alongside a legacy ADV_INSTRUCTIONS.md entry
 
 **When:** scripts/deploy-local.sh --fix runs
 
 **Then:**
-
 - Only ADV_INSTRUCTIONS.md entries managed by ADV are removed from instructions[]
 - Unrelated instruction entries remain in their existing order
 - The resulting config remains valid JSON and is accepted by check mode
@@ -1798,17 +1655,16 @@ ADV protocol must be scoped to the single ADV runtime agent without globally reg
 
 **ID:** `rq-twf01` | **Priority:** **[MUST]**
 
-When features.worktree_guard_enforce is true, the plugin MUST intercept direct file-write tool calls and known destructive bash write patterns via the tool.execute.before hook and block writes into the trunk checkout when HEAD is the default branch. When features.worktree_guard_enforce is omitted or false, the trunk write firewall MUST allow direct file-write tools and known destructive bash write patterns in the trunk checkout. In strict mode, the firewall MUST allow writes inside ADV worktrees, outside git checkouts, and during explicit git recovery states (merge, rebase, cherry-pick, revert). Git commands MUST NOT be classified or blocked by this firewall; P32 is enforced by where files are edited, not by restricting git operations. Shell indirection and script-internal writes are accepted residual risk documented in ADV instructions.
+When features.worktree_guard_enforce is true (default) or omitted, the plugin MUST intercept direct file-write tool calls and known destructive bash write patterns via the tool.execute.before hook and block writes into the trunk checkout when HEAD is the default branch. When features.worktree_guard_enforce is explicitly false, the trunk write firewall MUST allow direct file-write tools and known destructive bash write patterns in the trunk checkout (legacy escape hatch). In strict mode, the firewall MUST allow writes inside ADV worktrees, outside git checkouts, and during explicit git recovery states (merge, rebase, cherry-pick, revert). Git commands MUST NOT be classified or blocked by this firewall; P32 is enforced by where files are edited, not by restricting git operations. Shell indirection and script-internal writes are accepted residual risk documented in ADV instructions.
 
 **Tags:** `git`, `worktree`, `firewall`, `trunk`, `safety`
 
 #### Scenarios
 
-**Flag-off trunk file writes allowed on default branch** (`rq-twf01.1`)
+**Explicit-false trunk file writes allowed on default branch** (`rq-twf01.1`)
 
 **Given:**
-
-- features.worktree_guard_enforce is omitted or false
+- features.worktree_guard_enforce is explicitly false
 - A tool call targets a path inside the trunk checkout
 - HEAD is on the default branch
 - No git recovery state is active
@@ -1816,15 +1672,13 @@ When features.worktree_guard_enforce is true, the plugin MUST intercept direct f
 **When:** A write, edit, morph_edit, or known destructive bash write pattern is intercepted
 
 **Then:**
-
 - The tool execution is allowed by the trunk write firewall
 - No trunk write firewall blocking error is thrown
 
 **Strict trunk file write blocked on default branch** (`rq-twf01.1a`)
 
 **Given:**
-
-- features.worktree_guard_enforce is true
+- features.worktree_guard_enforce is true (default) or explicitly set true
 - A tool call targets a path inside the trunk checkout
 - HEAD is on the default branch
 - No git recovery state is active
@@ -1832,7 +1686,6 @@ When features.worktree_guard_enforce is true, the plugin MUST intercept direct f
 **When:** A write, edit, morph_edit, or known destructive bash write pattern is intercepted
 
 **Then:**
-
 - The tool execution is blocked with an actionable error message
 - The error message directs the agent to create or use an ADV worktree
 - No file write is performed
@@ -1840,21 +1693,18 @@ When features.worktree_guard_enforce is true, the plugin MUST intercept direct f
 **Strict worktree file write allowed** (`rq-twf01.2`)
 
 **Given:**
-
 - features.worktree_guard_enforce is true
 - A tool call targets a path inside an active ADV worktree
 
 **When:** A write, edit, morph_edit, or known destructive bash write pattern is intercepted
 
 **Then:**
-
 - The tool execution is allowed
 - No blocking error is thrown
 
 **Strict git recovery states allow trunk edits** (`rq-twf01.3`)
 
 **Given:**
-
 - features.worktree_guard_enforce is true
 - The trunk checkout is on the default branch
 - A merge, rebase, cherry-pick, or revert recovery state is active
@@ -1862,14 +1712,12 @@ When features.worktree_guard_enforce is true, the plugin MUST intercept direct f
 **When:** A file-write tool call targets a trunk-checkout path
 
 **Then:**
-
 - The tool execution is allowed
 - The recovery edit is not blocked by the trunk write firewall
 
 **Strict known destructive bash writes blocked on trunk** (`rq-twf01.4`)
 
 **Given:**
-
 - features.worktree_guard_enforce is true
 - A bash command writes to a trunk-checkout path on the default branch via redirect, tee, sed -i, cp, mv, or rm
 - No git recovery state is active
@@ -1877,20 +1725,17 @@ When features.worktree_guard_enforce is true, the plugin MUST intercept direct f
 **When:** The tool.execute.before hook analyzes the bash command string
 
 **Then:**
-
 - The tool execution is blocked with an actionable error message
 - The destructive write target is surfaced in the reason
 
 **Git commands unrestricted by write firewall** (`rq-twf01.5`)
 
 **Given:**
-
 - A bash command contains any git subcommand, including commit, merge, pull, push, reset, read-tree, update-ref, or other plumbing
 
 **When:** The tool.execute.before hook analyzes the bash command string
 
 **Then:**
-
 - The command is not classified as a git mutation by ADV
 - The trunk write firewall does not block the command merely because it invokes git
 - Any safety enforcement for remote publication remains outside this firewall
@@ -1898,26 +1743,22 @@ When features.worktree_guard_enforce is true, the plugin MUST intercept direct f
 **Outside-repo paths allowed** (`rq-twf01.6`)
 
 **Given:**
-
 - A tool call targets a path outside any git checkout
 
 **When:** The trunk write firewall cannot resolve a git root for the target path
 
 **Then:**
-
 - The tool execution is allowed
 - The firewall does not apply trunk-checkout rules to non-repo paths
 
 **Residual risk documented for shell indirection** (`rq-twf01.7`)
 
 **Given:**
-
 - A bash command writes via shell-variable indirection, shell aliases, functions, or external scripts
 
 **When:** The trunk write firewall analyzes the command string
 
 **Then:**
-
 - The firewall may not detect the indirect write target
 - This limitation is documented in ADV_INSTRUCTIONS.md as accepted residual risk
 - ADV instruction surfaces still prohibit intentional trunk-checkout file writes outside worktrees
@@ -1937,13 +1778,11 @@ The clarify_enforcement configuration flag (off | advisory | strict) MUST extend
 **off mode skips ambiguity detection in audit** (`rq-clarifyEnforcementAudit01.1`)
 
 **Given:**
-
 - clarify_enforcement is set to 'off' in project configuration
 
 **When:** /adv-audit executes Phase 3 Synthesis
 
 **Then:**
-
 - runSpecAmbiguityChecks is NOT invoked
 - No ambiguity findings appear in the audit report
 - Quality gate evaluation ignores ambiguity thresholds
@@ -1951,13 +1790,11 @@ The clarify_enforcement configuration flag (off | advisory | strict) MUST extend
 **advisory mode includes findings without gate enforcement** (`rq-clarifyEnforcementAudit01.2`)
 
 **Given:**
-
 - clarify_enforcement is set to 'advisory'
 
 **When:** /adv-audit completes and applies quality gates
 
 **Then:**
-
 - Ambiguity findings appear in the report's ambiguity section
 - Ambiguity findings do NOT promote health status
 - Quality gate table shows ambiguity metrics as informational (not pass/fail)
@@ -1965,16 +1802,235 @@ The clarify_enforcement configuration flag (off | advisory | strict) MUST extend
 **strict mode enforces ambiguity gates** (`rq-clarifyEnforcementAudit01.3`)
 
 **Given:**
-
 - clarify_enforcement is set to 'strict'
 
 **When:** /adv-audit applies quality gates
 
 **Then:**
-
 - CRITICAL ambiguity ≥ 1 promotes health to MAJOR_DRIFT
 - HIGH ambiguity > 3 (standard) or any HIGH (strict) promotes to DRIFT_DETECTED
 - Ambiguity thresholds appear in the quality gate table with pass/fail status
+
+---
+
+### adv_status lazy view planning
+
+**ID:** `rq-advStatusLazyView01` | **Priority:** **[MUST]**
+
+`adv_status` MUST execute only the provider groups required by the selected `view`. `view: "summary"` MUST NOT invoke detailed-only providers (queue serviceability, search-attribute probe, worktree cleanup, worktree census, OpenCode session-debt scan, snapshot-health scan, plugin-runtime provenance, project-metadata read, external-state hygiene), and the formatted output for `view: "summary"` MUST NOT carry health/worktree/session-debt/peer detail sections. Detailed views remain free to invoke their providers. Required `_contextSnapshot` emission (chat-output-display `rq-ctxsnap2`, `rq-ctxticker2.5`) MUST be preserved across all views.
+
+**Tags:** `adv_status`, `latency`
+
+#### Scenarios
+
+**Summary skips detailed providers** (`rq-advStatusLazyView01.1`)
+
+**Given:**
+- adv_status is called with view: "summary"
+
+**When:** The tool builds output
+
+**Then:**
+- Detailed-only providers are not invoked
+- Formatted summary omits health/worktree/session-debt/peer detail sections
+- Required `_contextSnapshot` is still emitted per chat-output-display
+
+**Detailed views retain their providers** (`rq-advStatusLazyView01.2`)
+
+**Given:**
+- adv_status is called with view: "health" or view: "hygiene"
+
+**When:** The tool builds output
+
+**Then:**
+- The corresponding detailed providers run
+- The detailed payload exposes the required diagnostic fields
+
+---
+
+### adv_status Summary Output Is Bounded Before Enrichment
+
+**ID:** `rq-advStatusBoundedSummary01` | **Priority:** **[MUST]**
+
+`adv_status view: "summary"` MUST keep both compute and output bounded for large WIP projects. The summary view MUST cap recent changes before any per-change enrichment, artifact reads, or recommendation generation that depends on the recent-change list. It MUST cap summary recommendations to a small fixed window and include omitted-count metadata or an omitted-count marker when truncation occurs. Detailed views (`changes`, `hygiene`, and `health`) remain explicit drilldowns for fuller diagnostics and MUST NOT be used as implicit default fanout.
+
+**Tags:** `adv_status`, `latency`, `summary`, `bounded-output`
+
+#### Scenarios
+
+**Summary caps recent changes before enrichment** (`rq-advStatusBoundedSummary01.1`)
+
+**Given:**
+- A project has more active or recent changes than the summary recent-change limit
+
+**When:** adv_status is called with view: "summary"
+
+**Then:**
+- The recent-change list is sliced to the fixed summary limit before per-change enrichment runs
+- Per-change enrichment, artifact reads, and recommendation generation are not run for omitted recent changes
+- The response reports how many recent changes were omitted
+
+**Summary caps recommendations with omitted marker** (`rq-advStatusBoundedSummary01.2`)
+
+**Given:**
+- Summary recommendation generation produces more entries than the summary recommendation limit
+
+**When:** adv_status builds the summary response
+
+**Then:**
+- Only the fixed recommendation window is returned
+- An omitted-count marker or metadata reports how many recommendations were omitted
+- The marker directs callers to explicit detailed views for full diagnostics
+
+**Detailed views remain explicit drilldowns** (`rq-advStatusBoundedSummary01.3`)
+
+**Given:**
+- A caller requests view: "changes", view: "hygiene", or view: "health"
+
+**When:** adv_status builds the selected detailed view
+
+**Then:**
+- The detailed view may expose fuller diagnostics required by that view
+- The detailed view is not invoked by default summary routing
+- Detailed output remains bounded or paginated when exposing large collections
+
+---
+
+### Correctness-safe summary read model for default list/status
+
+**ID:** `rq-changeSummaryReadModel01` | **Priority:** **[MUST]**
+
+Default `adv_change_list` and warm `adv_status` read paths MUST avoid per-change full hydration when summary data already satisfies the response contract. The Temporal store MUST expose a summary listing surface (`Store.changes.listSummary`) that serves rows from `ChangeSummaryMemo` or `changeCache` when available, hydrates only IDs missing summary proof, and falls back to the authoritative `listResolvedChanges`/`changes.get` path for archived/closed callers, content filters, and any path whose correctness requires full state. Summary/cache data MUST NOT authorize gates, archive, worker-lock recovery, claims, task completion, or contract evidence.
+
+**Tags:** `adv_change_list`, `adv_status`, `latency`, `cache`
+
+#### Scenarios
+
+**Memo-served warm list skips per-change hydration** (`rq-changeSummaryReadModel01.1`)
+
+**Given:**
+- ChangeSummaryMemo holds complete summaries for the requested IDs
+
+**When:** Default adv_change_list is served via listSummary
+
+**Then:**
+- Per-change full hydration is not invoked for memo-served IDs
+- Response shape matches the legacy list projection
+- Hydration statistics report fromMemo > 0 and fromHydration === 0 for the warm-only case
+
+**Authoritative fallback for terminal or filtered callers** (`rq-changeSummaryReadModel01.2`)
+
+**Given:**
+- Caller requests archived/closed inclusion, prefix/title/created filters, or any path requiring full state
+
+**When:** listSummary executes
+
+**Then:**
+- The authoritative listResolvedChanges path runs
+- Terminal status records are reconciled via disk/archive instead of memo
+- Summary/cache data does not authorize gate completion, archive, claim, recovery, or task completion
+
+---
+
+### Always-on ADV latency telemetry
+
+**ID:** `rq-advLatencyTelemetry01` | **Priority:** **[MUST]**
+
+ADV tool execution MUST record duration telemetry to an in-memory rollup surfaced via `adv_status view: "health"`. Per-tool aggregates MUST include count, total_ms, last_ms, max_ms, and error_count. Named phase/substep durations (e.g. `adv_status` providers, `adv_run_test` substeps) MUST be retained in a bounded recent-phase ring so operators can diagnose substep overhead without enabling `ADV_PROFILE` file logging. Error paths MUST preserve their error class and still record duration.
+
+**Tags:** `telemetry`, `metrics`, `latency`
+
+#### Scenarios
+
+**Per-tool duration rollup is always recorded** (`rq-advLatencyTelemetry01.1`)
+
+**Given:**
+- safeExecute wraps an adv_* tool invocation
+
+**When:** The tool succeeds or fails
+
+**Then:**
+- adv_tool_durations records count, total_ms, last_ms, max_ms for the tool name
+- Error outcomes additionally increment error_count without losing duration
+- wall_time_ms accumulates the measured duration
+
+**Named phase/substep ring surfaces in health view** (`rq-advLatencyTelemetry01.2`)
+
+**Given:**
+- adv_status and adv_run_test invoke withRecordedPhase for their named phases
+
+**When:** adv_status view: "health" is read
+
+**Then:**
+- metrics.recent_phase_durations exposes the named samples bounded by RECENT_PHASE_BUFFER_LIMIT
+- Each sample carries tool, phase, duration_ms, outcome, and ISO timestamp
+
+---
+
+### Documented latency benchmark harness
+
+**ID:** `rq-advLatencyBench01` | **Priority:** **[MUST]**
+
+`plugin/scripts/bench-adv-latency.ts` MUST initialize under the Temporal-only store contract. Default mode (`--mode disk`) MUST use a documented isolated substitute backed by `createDiskStore` so the harness runs without a live Temporal worker; samples MUST include `adv_status view: "summary"`, `adv_status view: "health"`, `adv_change_list`, `adv_change_show`, a disk-store task list fallback, and `adv_run_test` echo/no-op. `--mode temporal` MUST refuse to fabricate a TemporalClientBundle so manual operators cannot silently confuse substitute and authoritative numbers. The bench MUST document command, fixture shape, and output location.
+
+**Tags:** `benchmark`, `latency`
+
+#### Scenarios
+
+**Default disk substitute initializes and reports** (`rq-advLatencyBench01.1`)
+
+**Given:**
+- No Temporal worker is running
+
+**When:** Operator runs the bench in default mode against an existing change
+
+**Then:**
+- The harness initializes via createDiskStore
+- Markdown report includes metadata (mode, substitute, change id, iterations) and per-operation stats
+- Sample operations include both summary and health adv_status views
+
+**Temporal mode refuses to silently substitute** (`rq-advLatencyBench01.2`)
+
+**Given:**
+- Operator passes --mode temporal without providing a TemporalClientBundle
+
+**When:** The bench attempts to build the store
+
+**Then:**
+- The script exits non-zero with an explicit refusal message
+
+---
+
+### Visibility project-scope query convergence
+
+**ID:** `rq-visibilityProjectScope01` | **Priority:** **[MUST]**
+
+Project-scope Visibility queries used by ADV listing paths MUST filter on a registered search attribute. `list-change-workflows.buildVisibilityQuery` and the backlog claim queries (`visibility-claim-queries`) MUST scope by the registered `AdvAffectedProjects` KeywordList so list/claim reads share one Visibility contract. Legacy unregistered attributes (e.g. `AdvProjectId`) MUST NOT drive Visibility filters unless explicitly registered and documented.
+
+**Tags:** `temporal`, `visibility`, `search-attributes`
+
+#### Scenarios
+
+**Change list query uses registered AdvAffectedProjects** (`rq-visibilityProjectScope01.1`)
+
+**Given:**
+- buildVisibilityQuery is invoked with a project id
+
+**When:** The query string is constructed
+
+**Then:**
+- The query filters on `AdvAffectedProjects = "<projectId>"`
+- The legacy unregistered `AdvProjectId` filter is not emitted
+
+**Backlog claim queries share the registered attribute** (`rq-visibilityProjectScope01.2`)
+
+**Given:**
+- visibility-claim-queries builds a claim-collision or bulk query
+
+**When:** The query string is constructed
+
+**Then:**
+- The query also filters on `AdvAffectedProjects` for the same project id
 
 ---
 
@@ -1991,13 +2047,11 @@ The clarify_enforcement configuration flag (off | advisory | strict) MUST extend
 **Substep telemetry surfaces without altering contract** (`rq-advRunTestLatency01.1`)
 
 **Given:**
-
 - adv_run_test is invoked with a valid task and shell command
 
 **When:** The tool completes successfully or with non-zero exit
 
 **Then:**
-
 - Recent phase samples include taskLookup, commandExecution, and outputShaping for tool adv_run_test
 - commandExecution outcome reflects the exit code (success on 0, error on non-zero)
 - Task validation, timeout, max-buffer, and output shaping classifications are unchanged
@@ -2005,28 +2059,179 @@ The clarify_enforcement configuration flag (off | advisory | strict) MUST extend
 **Per-call fresh execution** (`rq-advRunTestLatency01.2`)
 
 **Given:**
-
 - adv_run_test is invoked twice with the same task and command
 
 **When:** Both invocations complete
 
 **Then:**
-
 - Each invocation runs the supplied command in a fresh subprocess
 - Task lookup runs on every call and is not served from a cache that bypasses validation
 
 **Typed result contract remains backward compatible** (`rq-advRunTestLatency01.3`)
 
 **Given:**
-
 - adv_run_test completes with pass, failure, timeout, or output-limit classification
 
 **When:** The tool response is returned
 
 **Then:**
-
 - Typed fields include `passed`, `classification`, `durationMs`, `outputBytesSeen`, `outputBytesRetained`, `outputTruncated`, and `executionMode`
 - The compact evidence block uses schema_version `adv_run_test.v1`
 - The legacy fields remain available: `success`, `exitCode`, `output`, `command`, `timedOut`, `maxBufferExceeded`, and `timeoutMs` when applicable
+
+---
+
+### Contextually-Validated Audit Fields Must Use blank: omit in Preflight
+
+**ID:** `rq-toolPlaceholderPolicy01.6` | **Priority:** **[MUST]**
+
+Optional audit and recovery fields that are only required in specific contextual paths (recovery mode, cross-project mutation, or specific gate types) must use blank: 'omit' in the FIELD_POLICIES preflight table. The handler layer validates these fields contextually — preflight rejection of blank values creates a deadlock for strict-mode API providers (e.g., OpenAI Responses API with strict:true) that auto-fill every optional field with empty strings. Fields in this class include: confirmationEvidence (required only when target_path is present for cross-project mutations), recoveryEvidence/recoveryReason/priorApprovalEvidence (required only when recoveryMode is poisoned_history), and completedBy on adv_gate_complete (handler defaults to 'agent'). Always-required semantic fields (approvalEvidence, reason, command, content, title, branch) retain blank: 'reject'.
+
+**Tags:** `preflight`, `strict-mode`, `tool-args`, `placeholder-normalization`
+
+#### Scenarios
+
+**Strict-mode provider can complete non-recovery gate without deadlock** (`rq-toolPlaceholderPolicy01.6.1`)
+
+**Given:**
+- A strict-mode API provider sends adv_gate_complete with all optional fields filled with blank strings
+- The gate is a non-recovery gate (not acceptance or release recovery)
+
+**When:** The preflight layer processes the tool arguments
+
+**Then:**
+- Blank recoveryEvidence, recoveryReason, priorApprovalEvidence, completedBy, and confirmationEvidence are normalized to omitted
+- The call is not rejected at the preflight layer
+- The handler processes the gate completion normally with default values
+
+**Recovery path still validates audit fields** (`rq-toolPlaceholderPolicy01.6.2`)
+
+**Given:**
+- adv_gate_complete is called with recoveryMode or a poisoned workflow is detected
+- Blank recovery fields were normalized to omitted by preflight
+
+**When:** The handler executes the recovery path
+
+**Then:**
+- The handler rejects the call because required recovery fields are missing
+- The error message identifies the specific missing fields
+- No silent data loss or unverified recovery occurs
+
+**Contextually-validated fields across all tools use omit policy** (`rq-toolPlaceholderPolicy01.6.3`)
+
+**Given:**
+- The FIELD_POLICIES table in tool-arg-preflight.ts
+
+**When:** Entries for confirmationEvidence, recoveryEvidence, recoveryReason, priorApprovalEvidence, and completedBy on adv_gate_complete are inspected
+
+**Then:**
+- All such entries use blank: 'omit'
+- The handler layer for each tool still validates these fields when contextually required
+- Always-required fields (approvalEvidence, reason, command, content) retain blank: 'reject'
+
+---
+
+### Session Active-Change Pointer Hygiene
+
+**ID:** `rq-activeChangePointer01` | **Priority:** **[MUST]**
+
+The session active-change pointer (state.activeChange.id in plugin/src/index.ts and its mirror StatusState.activeChangeId in plugin/src/events/status.ts) must not leak phantom references — pointers to changeIds whose Temporal workflow is unreachable AND whose on-disk change.json is absent. Three structural defenses required: (1) a recovery MCP tool (adv_change_forget) to clear phantom pointers, (2) automatic pointer-clear on terminal transitions (close/archive success), (3) a reachability gate in handleToolExecuteBefore that refuses to re-point on non-existent changeIds. All state.activeChange.id mutations MUST live in plugin/src/index.ts hooks (closure scope); tools MUST NOT mutate the pointer directly.
+
+**Tags:** `pointer`, `session`, `phantom`, `recovery`, `lifecycle`, `handleToolExecuteBefore`
+
+#### Scenarios
+
+**adv_change_forget clears matching active pointer** (`rq-activeChangePointer01.1`)
+
+**Given:**
+- A session with state.activeChange.id set to changeId X
+- An audit log channel (debugLog) is available
+
+**When:** adv_change_forget changeId:X is called and the recordForgetChange hook processes a success output
+
+**Then:**
+- state.activeChange.id is set to null
+- setActiveChange(null) is called to clear the status mirror
+- An audit entry is written with {ts, changeId, prevPointer, action: 'forget', trigger: 'user'}
+- Re-calling adv_change_forget changeId:X is idempotent (no-op when pointer already null)
+
+**adv_change_forget refuses on mismatched changeId with hint** (`rq-activeChangePointer01.2`)
+
+**Given:**
+- A session with state.activeChange.id set to changeId Y (non-null)
+- adv_change_forget is called with changeId X where X != Y
+
+**When:** The recordForgetChange hook processes the forget output
+
+**Then:**
+- state.activeChange.id remains Y (NOT cleared)
+- A debug log is emitted: 'forget called for X but pointer is Y; no clear'
+- The tool output is amended with a hint naming the actual pointer
+- The hint includes the exact command to retry: adv_change_forget changeId:Y
+
+**Terminal transitions clear matching active pointer on success** (`rq-activeChangePointer01.3`)
+
+**Given:**
+- A session with state.activeChange.id set to changeId X
+
+**When:** adv_change_close or adv_change_archive succeeds for changeId X (success: true in tool output)
+
+**Then:**
+- state.activeChange.id is set to null
+- setActiveChange(null) is called
+- An audit entry is written with action 'terminal-close' or 'terminal-archive'
+- The clear fires only AFTER removeChangeDir succeeds (success-only path)
+
+**Terminal transitions do NOT clear on partial failure or different changeId** (`rq-activeChangePointer01.4`)
+
+**Given:**
+- A session with state.activeChange.id set to changeId X
+
+**When:** adv_change_close or adv_change_archive is called for changeId X but fails (success: false) OR succeeds for a different changeId Y where Y != X
+
+**Then:**
+- state.activeChange.id remains X (NOT cleared)
+- No audit entry is written
+- No setActiveChange call is made
+
+**handleToolExecuteBefore does not re-point on non-existent changeId** (`rq-activeChangePointer01.5`)
+
+**Given:**
+- A session with state.activeChange.id set to changeId X
+- An ADV tool is called with args.changeId referencing changeId Y
+- changeId Y does not exist: no Visibility search attribute, no disk change.json, no reachable workflow state
+
+**When:** handleToolExecuteBefore processes the tool call and runs the isChangeReachable check
+
+**Then:**
+- state.activeChange.id remains X (NOT re-pointed to Y)
+- A debug log is emitted noting Y is unreachable
+- The tool execution itself proceeds and returns its normal 'Change not found' result
+- The reachability check uses Visibility fast-path first, then disk change.json fallback, then workflow state fallback
+
+**handleToolExecuteBefore exempts adv_change_forget from reachability gate** (`rq-activeChangePointer01.6`)
+
+**Given:**
+- The adv_change_forget tool is being executed
+
+**When:** handleToolExecuteBefore processes the adv_change_forget tool call
+
+**Then:**
+- The reachability gate is skipped entirely (early-return at the top of the hook body)
+- No isChangeReachable check is performed
+- The forget tool's intentional clear is not defeated by the gate
+
+**Cross-project tool calls do not touch caller's pointer** (`rq-activeChangePointer01.7`)
+
+**Given:**
+- A session in project A with state.activeChange.id set to changeId X (project A scope)
+- An ADV tool is called with target_path pointing to project B and args.changeId referencing a changeId in project B
+
+**When:** handleToolExecuteBefore processes the cross-project tool call
+
+**Then:**
+- The caller's state.activeChange.id remains X (NOT mutated)
+- No reachability check is performed against the caller's project for the target-project changeId
+- The terminal-clear hooks likewise do not clear the caller's pointer for target-project close/archive operations
 
 ---
