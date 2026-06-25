@@ -728,6 +728,53 @@ export function createToolMap(
 }
 
 /**
+ * Live tool-surface lookup (addAcWarrantGuard): tool name → set of declared
+ * argument keys, read directly from each `*Tools` definition's `args` record
+ * (data only — no `execute` invocation). This is the source of truth used to
+ * verify capability warrants at contract mint. It is intentionally read from
+ * the already-imported tool groups so the surface is always live (DDC3) with
+ * zero generated-artifact drift.
+ *
+ * Consumed by `adv_contract_mint` via a runtime dynamic import so the pure
+ * `validator/contract-mint.ts` / `validator/warrant.ts` never statically import
+ * the registry (DDC2, no cycle).
+ */
+export function getToolSurface(): Map<string, Set<string>> {
+  const groups: Array<Record<string, { args?: Record<string, unknown> }>> = [
+    specTools,
+    roadmapTools,
+    backlogTools,
+    changeTools,
+    followupTools,
+    opsEvidenceTools,
+    contractTools,
+    taskTools,
+    subagentReportTools,
+    wisdomTools,
+    statusTools,
+    agendaTools,
+    projectTools,
+    gateTools,
+    testTools,
+    temporalOpsTools,
+    checkpointTools,
+    reflectionTools,
+    snapshotHealthTools,
+    projectMetadataTools,
+    conformanceTools,
+    advWorktreeTools,
+    advSessionTools,
+  ];
+  const surface = new Map<string, Set<string>>();
+  for (const group of groups) {
+    for (const [name, def] of Object.entries(group)) {
+      surface.set(name, new Set(Object.keys(def.args ?? {})));
+    }
+  }
+  return surface;
+}
+
+/**
  * Canonical list of all ADV tool names. Kept in sync with createToolMap so
  * that createDegradedToolMap can register a stub for every tool when plugin
  * init fails.

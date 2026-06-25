@@ -20,6 +20,7 @@ import { getService } from "../temporal/service";
 import { getProjectId } from "../utils/project-id";
 import { formatToolOutput } from "../utils/tool-output";
 import { buildContractFromAgreement } from "../validator/contract-mint";
+import type { WarrantLookup } from "../validator/warrant";
 import {
   RECOVERY_RECONCILIATION_WARNING,
   isFailingContractReviewStatus,
@@ -79,6 +80,34 @@ async function loadChange(store: Store, changeId: string): Promise<Change> {
   if (!result.success) throw new Error(result.error);
   if (!result.data) throw new Error(`Change not found: ${changeId}`);
   return result.data;
+}
+
+/**
+ * Build the live capability-warrant lookup (addAcWarrantGuard).
+ *
+ * Tool surface is read from the assembled tool registry via a RUNTIME dynamic
+ * import so the pure validator stays cycle-free (DDC2). Spec ids are collected
+ * best-effort from the active store; if specs are unreadable, spec:* warrants
+ * simply do not resolve (fail-closed) rather than throwing here.
+ */
+async function buildWarrantLookup(store: Store): Promise<WarrantLookup> {
+  const { getToolSurface } = await import("../tool-registry");
+  const toolSurface = getToolSurface();
+  const specIds = new Set<string>();
+  try {
+    const specList = await store.specs.list();
+    for (const info of specList.specs) {
+      const res = await store.specs.get(info.name);
+      if (res.success && res.data) {
+        for (const req of res.data.requirements ?? []) {
+          if (req.id) specIds.add(req.id);
+        }
+      }
+    }
+  } catch {
+    // best-effort: spec-ref warrants fail-closed if specs cannot be read.
+  }
+  return { toolSurface, specIds };
 }
 
 function assertSafeChangeId(changeId: string): void {
@@ -311,6 +340,7 @@ export const contractTools = {
             });
           }
           const agreement = await readAgreement(activeStore, change);
+          const warrantLookup = await buildWarrantLookup(activeStore);
           const contract = buildContractFromAgreement({
             agreement,
             approvedAt: contractApprovedAt({
@@ -318,6 +348,7 @@ export const contractTools = {
               approvedAt: args.approvedAt,
             }),
             rigor: args.rigor,
+            warrantLookup,
           });
           if (args.dryRun) {
             return formatToolOutput({
