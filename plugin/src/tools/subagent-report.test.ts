@@ -21,6 +21,7 @@ const mocks = vi.hoisted(() => {
     title,
     status: "pending",
   }));
+  const loadAgenda = vi.fn(async () => ({ meta: null, items: [] }));
   const withTargetPathStore = vi.fn(async (_input, fn) =>
     fn({
       context: {
@@ -39,6 +40,7 @@ const mocks = vi.hoisted(() => {
     fireSignalAndRefresh,
     workflowHandle,
     addAgendaItem,
+    loadAgenda,
     withTargetPathStore,
   };
 });
@@ -60,6 +62,7 @@ vi.mock("../utils/project-id", () => ({
 vi.mock("../storage/agenda", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../storage/agenda")>()),
   addAgendaItem: mocks.addAgendaItem,
+  loadAgenda: mocks.loadAgenda,
 }));
 
 vi.mock("./target-project", async (importOriginal) => ({
@@ -72,6 +75,141 @@ import { subagentReportTools } from "./subagent-report";
 function parse(output: string): Record<string, any> {
   return JSON.parse(output) as Record<string, any>;
 }
+
+describe("consumeDesignerDesignConcerns — rq-designQualityEvidence01 (advisory promotion)", () => {
+  beforeEach(() => {
+    mocks.fireSignalAndRefresh.mockClear();
+    mocks.addAgendaItem.mockClear();
+    mocks.loadAgenda.mockClear();
+    mocks.loadAgenda.mockResolvedValue({ meta: null, items: [] });
+  });
+
+  test("promotes a design_dimensions concern to a required-obligation agenda item", async () => {
+    const store = storeFor(change());
+    const report = designerReport({
+      dimensions: { site_design_consistency: "concern" },
+      notes: "Does not match the page family.",
+    });
+
+    const output = parse(
+      await subagentReportTools.adv_subagent_report_submit.execute(
+        { report },
+        store,
+      ),
+    );
+
+    expect(output.success).toBe(true);
+    expect(mocks.addAgendaItem).toHaveBeenCalledWith(
+      "/repo",
+      expect.stringContaining("site_design_consistency"),
+      expect.objectContaining({
+        category: "required-obligation",
+        agendaPath: "/state/agenda.jsonl",
+        description: expect.stringContaining(
+          "design-concern:change-1:tk-1:dimension:site_design_consistency",
+        ),
+      }),
+    );
+    expect(output.consumerResults.designConcerns.previewCount).toBe(1);
+    expect(output.consumerResults.verification.warnings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ kind: "design_concern_promoted" }),
+      ]),
+    );
+  });
+
+  test("promotes each neighboring_recommendation", async () => {
+    const store = storeFor(change());
+    const report = designerReport({
+      neighbors: [
+        { what: "IconButton lacks focus ring", why: "adjacent inconsistency" },
+      ],
+    });
+
+    const output = parse(
+      await subagentReportTools.adv_subagent_report_submit.execute(
+        { report },
+        store,
+      ),
+    );
+
+    expect(output.success).toBe(true);
+    expect(mocks.addAgendaItem).toHaveBeenCalledWith(
+      "/repo",
+      expect.stringContaining("IconButton lacks focus ring"),
+      expect.objectContaining({
+        category: "required-obligation",
+        description: expect.stringContaining(
+          "design-concern:change-1:tk-1:neighbor:0",
+        ),
+      }),
+    );
+  });
+
+  test("all-pass designer report with no neighbors promotes nothing", async () => {
+    const store = storeFor(change());
+    const output = parse(
+      await subagentReportTools.adv_subagent_report_submit.execute(
+        { report: designerReport() },
+        store,
+      ),
+    );
+
+    expect(output.success).toBe(true);
+    expect(mocks.addAgendaItem).not.toHaveBeenCalled();
+    expect(output.consumerResults.designConcerns.previewCount).toBe(0);
+  });
+
+  test("dedupes against an existing agenda item with the same dedupe-key", async () => {
+    mocks.loadAgenda.mockResolvedValue({
+      meta: null,
+      items: [
+        {
+          id: "ag-existing",
+          title: "Resolve design concern",
+          status: "pending",
+          created_at: "2026-06-25T00:00:00.000Z",
+          description:
+            "design-concern:change-1:tk-1:dimension:site_design_consistency",
+        },
+      ],
+    });
+    const store = storeFor(change());
+    const report = designerReport({
+      dimensions: { site_design_consistency: "concern" },
+      notes: "concern",
+    });
+
+    const output = parse(
+      await subagentReportTools.adv_subagent_report_submit.execute(
+        { report },
+        store,
+      ),
+    );
+
+    expect(output.success).toBe(true);
+    expect(mocks.addAgendaItem).not.toHaveBeenCalled();
+  });
+
+  test("dryRun previews concerns without writing agenda items", async () => {
+    const store = storeFor(change());
+    const report = designerReport({
+      dimensions: { visual_polish: "concern" },
+      notes: "spacing",
+    });
+
+    const output = parse(
+      await subagentReportTools.adv_subagent_report_submit.execute(
+        { report, dryRun: true },
+        store,
+      ),
+    );
+
+    expect(output.success).toBe(true);
+    expect(mocks.addAgendaItem).not.toHaveBeenCalled();
+    expect(output.consumerResults.designConcerns.previewCount).toBe(1);
+  });
+});
 
 function engineerReport(
   overrides: Partial<EngineerSubagentReport> = {},
@@ -176,6 +314,62 @@ function scannerBundleReport(
   };
 }
 
+function designerReport(overrides: {
+  attempt?: number;
+  taskId?: string;
+  dimensions?: Partial<
+    Record<
+      | "component_correctness"
+      | "semantic_html_a11y"
+      | "responsive_behavior"
+      | "visual_polish"
+      | "site_design_consistency"
+      | "finer_details",
+      "pass" | "concern" | "n/a"
+    >
+  >;
+  neighbors?: { what: string; why: string }[];
+  notes?: string;
+} = {}) {
+  const taskId = overrides.taskId ?? "tk-1";
+  return {
+    schema_version: "1.0" as const,
+    change_id: "change-1",
+    task_id: taskId,
+    scope: { kind: "task" as const, task_id: taskId },
+    attempt: overrides.attempt ?? 1,
+    agent: "adv-designer" as const,
+    status: "complete" as const,
+    workdir_used: "/repo",
+    files_touched: ["src/components/Button.tsx"],
+    verification: [{ command: "pnpm test", exit_code: 0, summary: "passed" }],
+    decisions: [],
+    blockers: [],
+    scope_drift: null,
+    follow_ups: [],
+    required_main_agent_actions: [],
+    related_scan: "none",
+    context_update_for_adv: {
+      what_ads_needs_to_know: "x",
+      suggested_next_action: "y",
+    },
+    design_dimensions: {
+      component_correctness: "pass" as const,
+      semantic_html_a11y: "pass" as const,
+      responsive_behavior: "pass" as const,
+      visual_polish: "pass" as const,
+      site_design_consistency: "pass" as const,
+      finer_details: "pass" as const,
+      ...overrides.dimensions,
+      ...(overrides.notes ? { notes: overrides.notes } : {}),
+    },
+    neighboring_recommendations: (overrides.neighbors ?? []).map((n) => ({
+      what: n.what,
+      why: n.why,
+    })),
+  };
+}
+
 function change(overrides: Partial<Change> = {}): Change {
   return {
     id: "change-1",
@@ -221,6 +415,8 @@ describe("subagentReportTools", () => {
   beforeEach(() => {
     mocks.fireSignalAndRefresh.mockClear();
     mocks.addAgendaItem.mockClear();
+    mocks.loadAgenda.mockClear();
+    mocks.loadAgenda.mockResolvedValue({ meta: null, items: [] });
     mocks.withTargetPathStore.mockClear();
   });
 
