@@ -13,6 +13,7 @@ import {
   getChangeHandle,
   startChangeWorkflow,
   isChangeReachable,
+  waitForGateCompletion,
   type ReachabilityDeps,
 } from "./_adapters";
 
@@ -582,5 +583,50 @@ describe("isChangeReachable", () => {
     await expect(
       isChangeReachable("proj-123", "chg-456", deps, changesDir),
     ).resolves.toBe(false);
+  });
+});
+
+describe("waitForGateCompletion (STRUCT-003 shared poll helper)", () => {
+  test("polls until a terminal gate status (done) and returns it", async () => {
+    const handle = createMockHandle();
+    handle.query
+      .mockResolvedValueOnce({ status: "pending" })
+      .mockResolvedValueOnce({ status: "done" });
+
+    const result = await waitForGateCompletion(
+      handle as never,
+      "release",
+      { delayMs: 0 },
+    );
+
+    expect(result).toEqual({ status: "done" });
+    expect(handle.query).toHaveBeenCalledTimes(2);
+  });
+
+  test("treats 'stuck' as terminal and stops immediately", async () => {
+    const handle = createMockHandle();
+    handle.query.mockResolvedValueOnce({ status: "stuck" });
+
+    const result = await waitForGateCompletion(
+      handle as never,
+      "release",
+      { delayMs: 0 },
+    );
+
+    expect(result).toEqual({ status: "stuck" });
+    expect(handle.query).toHaveBeenCalledTimes(1);
+  });
+
+  test("returns the last status when the attempt budget is exhausted", async () => {
+    const handle = createMockHandle();
+    handle.query.mockResolvedValue({ status: "pending" });
+
+    const result = await waitForGateCompletion(handle as never, "release", {
+      attempts: 3,
+      delayMs: 0,
+    });
+
+    expect(result).toEqual({ status: "pending" });
+    expect(handle.query).toHaveBeenCalledTimes(3);
   });
 });

@@ -102,6 +102,21 @@ vi.mock("./_adapters", () => ({
   fireSignalAndRefresh: mocks.fireSignalAndRefresh,
   querySignal: mocks.querySignal,
   getChangeHandle: mocks.getChangeHandle,
+  // Faithful poll loop over the mocked querySignal so gate-completion tests
+  // exercise the same query sequence the real shared helper would (STRUCT-003).
+  waitForGateCompletion: async (
+    handle: unknown,
+    gateId: unknown,
+  ): Promise<unknown> => {
+    let latest: { status?: string } | undefined;
+    for (let i = 0; i < 60; i++) {
+      latest = await mocks.querySignal(handle, undefined, gateId);
+      if (latest?.status === "done" || latest?.status === "stuck") {
+        return latest;
+      }
+    }
+    return latest;
+  },
 }));
 
 function createMockStore(

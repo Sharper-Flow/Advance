@@ -357,6 +357,7 @@ import {
   fireSignalAndRefresh,
   getChangeHandle,
   querySignal,
+  waitForGateCompletion,
 } from "./_adapters";
 import {
   changeCancelledSignal,
@@ -1226,34 +1227,10 @@ function getArchiveGatePreflightError(
 }
 
 // rq-releaseFinalization01: release gate confirmation must be durable.
-// Temporal signal processing + projection can take several seconds under load.
-// 60 attempts × 500ms = 30s total gives adequate headroom for CI and local dev.
-const ARCHIVE_RELEASE_GATE_POLL_ATTEMPTS = 60;
-const ARCHIVE_RELEASE_GATE_POLL_DELAY_MS = 500;
-
-const archiveDelay = (ms: number): Promise<void> =>
-  new Promise((resolve) => setTimeout(resolve, ms));
-
 async function waitForArchiveReleaseGateCompletion(
   handle: ReturnType<typeof getChangeHandle>,
 ): Promise<GateCompletion | undefined> {
-  let latest: GateCompletion | undefined;
-  for (
-    let attempt = 0;
-    attempt < ARCHIVE_RELEASE_GATE_POLL_ATTEMPTS;
-    attempt++
-  ) {
-    latest = await querySignal<GateCompletion>(
-      handle,
-      getGateStatusQuery,
-      "release",
-    );
-    if (latest?.status === "done" || latest?.status === "stuck") {
-      return latest;
-    }
-    await archiveDelay(ARCHIVE_RELEASE_GATE_POLL_DELAY_MS);
-  }
-  return latest;
+  return waitForGateCompletion(handle, "release");
 }
 
 function buildReleaseCompletionEvidence(
