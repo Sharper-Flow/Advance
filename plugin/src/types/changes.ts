@@ -536,6 +536,14 @@ export const ContractItemSchema = z.object({
   status: ContractItemStatusSchema.default("draft"),
   notRequiredReason: z.string().optional(),
   requiredCritical: z.boolean().optional(),
+  /**
+   * Declared capability warrants (addAcWarrantGuard). Present only on
+   * capability-presuming criteria that carried a `[warrant: ...]` tag in the
+   * agreement. Each ref (`tool:<name>`, `tool:<name>#<arg>`, `spec:<rq-id>`) is
+   * verified against the live tool surface / spec ids at mint time; an
+   * unresolved warrant fails the mint with CONTRACT_UNRESOLVED_WARRANT.
+   */
+  warrants: z.array(z.string()).optional(),
 });
 export type ContractItem = z.infer<typeof ContractItemSchema>;
 

@@ -6,11 +6,27 @@ import {
   type ContractItemKind,
   type ContractRigor,
 } from "../types";
+// Pure warrant module — keeps contract-mint cycle-free (DDC2): no tool-registry
+// or tools/* import. The live { toolSurface, specIds } lookup is INJECTED by
+// the tool layer (adv_contract_mint) via runtime dynamic import.
+import {
+  parseWarrantTag,
+  resolveWarrants,
+  type WarrantLookup,
+} from "./warrant";
 
 interface BuildContractFromAgreementInput {
   agreement: string;
   approvedAt: string;
   rigor?: ContractRigor;
+  /**
+   * Live capability-warrant lookup. When provided, every declared warrant ref
+   * is verified and an unresolved ref fails the mint with
+   * CONTRACT_UNRESOLVED_WARRANT. When omitted (pure unit tests not exercising
+   * warrants), declared refs are still parsed/recorded but not verified — the
+   * single production mint path (adv_contract_mint) always injects this.
+   */
+  warrantLookup?: WarrantLookup;
 }
 
 interface SectionContractMapping {
@@ -167,6 +183,13 @@ export function buildContractFromAgreement(
       : undefined;
     const mapping = labelMapping ?? currentMapping;
     if (!mapping) continue;
+
+    // addAcWarrantGuard: extract + strip any [warrant: ...] tag so the
+    // persisted text is clean and declared refs can be verified.
+    const { text: warrantStrippedText, refs: warrantRefs } = parseWarrantTag(
+      parsed.text,
+    );
+    parsed.text = warrantStrippedText;
     const id =
       labelMapping && parsed.label
         ? parsed.label
@@ -185,6 +208,15 @@ export function buildContractFromAgreement(
       }
     }
 
+    if (warrantRefs.length > 0 && input.warrantLookup) {
+      const resolution = resolveWarrants(warrantRefs, input.warrantLookup);
+      if (!resolution.ok) {
+        throw new Error(
+          `CONTRACT_UNRESOLVED_WARRANT: item ${id} declares warrant(s) that do not resolve against the live tool surface / specs: ${resolution.unresolved.join(", ")}`,
+        );
+      }
+    }
+
     items.push({
       id,
       kind: mapping.kind,
@@ -197,6 +229,7 @@ export function buildContractFromAgreement(
       ...(mapping.verificationRequired
         ? {}
         : { notRequiredReason: "Out-of-scope contract item" }),
+      ...(warrantRefs.length > 0 ? { warrants: warrantRefs } : {}),
     });
   }
 
