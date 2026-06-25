@@ -89,6 +89,8 @@ export const CHANGE_WORKFLOW_SIGNAL_NAMES = {
   opsFollowupSeeded: "adv.change.opsFollowupSeeded",
   opsFollowupLinkAdded: "adv.change.opsFollowupLinkAdded",
   opsEvidenceAppended: "adv.change.opsEvidenceAppended",
+  epicMembershipSet: "adv.change.epicMembershipSet",
+  epicMembershipCleared: "adv.change.epicMembershipCleared",
   updateArtifactMetadata: "adv.change.updateArtifactMetadata",
   archiveChange: "adv.change.archiveChange",
   closeChange: "adv.change.closeChange",

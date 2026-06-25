@@ -3,6 +3,8 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 import {
+  applyEpicMembershipClearedToState,
+  applyEpicMembershipSetToState,
   applySubagentReportSubmittedToState,
   applyContractAmendedToState,
   applyGateReenteredToState,
@@ -427,6 +429,132 @@ describe("change-state pure mutation helpers", () => {
     } as unknown as Change);
 
     expect(seed.epic_membership).toBeUndefined();
+  });
+
+  it("sets Epic membership projection on a child change", () => {
+    const state = createChangeWorkflowState({
+      changeId: "epic-child",
+      title: "Epic child",
+      createdAt: "2026-06-25T00:00:00.000Z",
+    });
+
+    applyEpicMembershipSetToState(state, {
+      membership: {
+        epic_id: "productAuthEpic",
+        entry_id: "en-001",
+        order: 2,
+        title: "Add OAuth",
+        linked_at: "2026-06-25T00:01:00.000Z",
+        epic_project_id: "project-web",
+        repo_id: "pokeedge-web",
+        source: "link_existing",
+      },
+      setAt: "2026-06-25T00:01:00.000Z",
+    });
+
+    expect(state.epic_membership).toEqual({
+      epic_id: "productAuthEpic",
+      entry_id: "en-001",
+      order: 2,
+      title: "Add OAuth",
+      linked_at: "2026-06-25T00:01:00.000Z",
+      epic_project_id: "project-web",
+      repo_id: "pokeedge-web",
+      source: "link_existing",
+    });
+    expect(state.lastSignalAt).toBe("2026-06-25T00:01:00.000Z");
+  });
+
+  it("rejects setting a different Epic membership without move evidence", () => {
+    const state = createChangeWorkflowState({
+      changeId: "epic-child",
+      title: "Epic child",
+      createdAt: "2026-06-25T00:00:00.000Z",
+    });
+    state.epic_membership = {
+      epic_id: "firstEpic",
+      entry_id: "en-first",
+      order: 0,
+      title: "First",
+      linked_at: "2026-06-25T00:01:00.000Z",
+    };
+
+    expect(() =>
+      applyEpicMembershipSetToState(state, {
+        membership: {
+          epic_id: "secondEpic",
+          entry_id: "en-second",
+          order: 1,
+          title: "Second",
+          linked_at: "2026-06-25T00:02:00.000Z",
+          source: "link_existing",
+        },
+        setAt: "2026-06-25T00:02:00.000Z",
+      }),
+    ).toThrow(/already belongs to Epic/);
+    expect(state.epic_membership.epic_id).toBe("firstEpic");
+  });
+
+  it("allows moving Epic membership when expected source matches", () => {
+    const state = createChangeWorkflowState({
+      changeId: "epic-child",
+      title: "Epic child",
+      createdAt: "2026-06-25T00:00:00.000Z",
+    });
+    state.epic_membership = {
+      epic_id: "firstEpic",
+      entry_id: "en-first",
+      order: 0,
+      title: "First",
+      linked_at: "2026-06-25T00:01:00.000Z",
+    };
+
+    applyEpicMembershipSetToState(state, {
+      expectedCurrent: { epic_id: "firstEpic", entry_id: "en-first" },
+      membership: {
+        epic_id: "secondEpic",
+        entry_id: "en-second",
+        order: 1,
+        title: "Second",
+        linked_at: "2026-06-25T00:02:00.000Z",
+        source: "move",
+      },
+      setAt: "2026-06-25T00:02:00.000Z",
+    });
+
+    expect(state.epic_membership.epic_id).toBe("secondEpic");
+    expect(state.epic_membership.source).toBe("move");
+  });
+
+  it("clears Epic membership only when expected identity matches", () => {
+    const state = createChangeWorkflowState({
+      changeId: "epic-child",
+      title: "Epic child",
+      createdAt: "2026-06-25T00:00:00.000Z",
+    });
+    state.epic_membership = {
+      epic_id: "productAuthEpic",
+      entry_id: "en-001",
+      order: 2,
+      title: "Add OAuth",
+      linked_at: "2026-06-25T00:01:00.000Z",
+    };
+
+    expect(() =>
+      applyEpicMembershipClearedToState(state, {
+        expected: { epic_id: "wrongEpic", entry_id: "en-001" },
+        clearedAt: "2026-06-25T00:02:00.000Z",
+      }),
+    ).toThrow(/does not match/);
+    expect(state.epic_membership?.epic_id).toBe("productAuthEpic");
+
+    applyEpicMembershipClearedToState(state, {
+      expected: { epic_id: "productAuthEpic", entry_id: "en-001" },
+      clearedAt: "2026-06-25T00:03:00.000Z",
+    });
+
+    expect(state.epic_membership).toBeUndefined();
+    expect(state.lastSignalAt).toBe("2026-06-25T00:03:00.000Z");
   });
 
   it("records task lifecycle mutations without task-run ledger state", () => {

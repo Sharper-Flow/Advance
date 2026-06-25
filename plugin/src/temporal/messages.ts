@@ -34,6 +34,8 @@ import type {
   DesignUpdatedSignalPayload,
   EntriesReorderedSignalPayload,
   EntryTerminalSummarySignalPayload,
+  EpicMembershipClearedSignalPayload,
+  EpicMembershipSetSignalPayload,
   EpicArchivedSignalPayload,
   EpicCreatedSignalPayload,
   EpicUpdatedSignalPayload,
@@ -262,6 +264,12 @@ export const opsFollowupLinkAddedSignal = wf.defineSignal<
 export const opsEvidenceAppendedSignal = wf.defineSignal<
   [OpsEvidenceAppendedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.opsEvidenceAppended);
+export const epicMembershipSetSignal = wf.defineSignal<
+  [EpicMembershipSetSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.epicMembershipSet);
+export const epicMembershipClearedSignal = wf.defineSignal<
+  [EpicMembershipClearedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.epicMembershipCleared);
 export const updateArtifactMetadataSignal = wf.defineSignal<
   [
     {

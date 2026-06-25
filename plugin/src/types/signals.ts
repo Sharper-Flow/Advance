@@ -6,7 +6,7 @@
  */
 
 import { z } from "zod";
-import { EpicSchema } from "./epics";
+import { EpicMembershipSchema, EpicSchema } from "./epics";
 import { ConformanceVerdictSchema } from "./conformance";
 import {
   GateArtifactEvidenceSchema,
@@ -519,6 +519,34 @@ export const ChangeLinkedSignalPayloadSchema = z.object({
 });
 export type ChangeLinkedSignalPayload = z.infer<
   typeof ChangeLinkedSignalPayloadSchema
+>;
+
+const EpicMembershipIdentitySchema = z.object({
+  epic_id: z.string().min(1),
+  entry_id: z.string().min(1),
+});
+
+/**
+ * Set/refresh a child change's compact Epic membership projection.
+ */
+export const EpicMembershipSetSignalPayloadSchema = z.object({
+  membership: EpicMembershipSchema,
+  expectedCurrent: EpicMembershipIdentitySchema.optional(),
+  setAt: IsoTimestampSchema,
+});
+export type EpicMembershipSetSignalPayload = z.infer<
+  typeof EpicMembershipSetSignalPayloadSchema
+>;
+
+/**
+ * Clear a child change's Epic membership projection when identity matches.
+ */
+export const EpicMembershipClearedSignalPayloadSchema = z.object({
+  expected: EpicMembershipIdentitySchema,
+  clearedAt: IsoTimestampSchema,
+});
+export type EpicMembershipClearedSignalPayload = z.infer<
+  typeof EpicMembershipClearedSignalPayloadSchema
 >;
 
 /**

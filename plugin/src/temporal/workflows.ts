@@ -41,6 +41,8 @@ import {
   applyCrossProjectCoordinationUpdatedToState,
   applyAcceptanceUpdatedToState,
   applyDesignUpdatedToState,
+  applyEpicMembershipClearedToState,
+  applyEpicMembershipSetToState,
   applyExecutiveSummaryUpdatedToState,
   applyGateAwaitingApprovalToState,
   applyGateCompletedToState,
@@ -373,6 +375,12 @@ const opsFollowupLinkAddedSignal = wf.defineSignal<
 const opsEvidenceAppendedSignal = wf.defineSignal<
   [import("../types").OpsEvidenceAppendedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.opsEvidenceAppended);
+const epicMembershipSetSignal = wf.defineSignal<
+  [import("../types").EpicMembershipSetSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.epicMembershipSet);
+const epicMembershipClearedSignal = wf.defineSignal<
+  [import("../types").EpicMembershipClearedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.epicMembershipCleared);
 const updateArtifactMetadataSignal = wf.defineSignal<
   [
     {
@@ -1485,6 +1493,18 @@ export async function changeWorkflow(
     opsEvidenceAppendedSignal,
     signalMutation("opsEvidenceAppended", (payload) =>
       applyOpsEvidenceAppendedToState(state, payload),
+    ),
+  );
+  wf.setHandler(
+    epicMembershipSetSignal,
+    signalMutation("epicMembershipSet", (payload) =>
+      applyEpicMembershipSetToState(state, payload),
+    ),
+  );
+  wf.setHandler(
+    epicMembershipClearedSignal,
+    signalMutation("epicMembershipCleared", (payload) =>
+      applyEpicMembershipClearedToState(state, payload),
     ),
   );
   wf.setHandler(
