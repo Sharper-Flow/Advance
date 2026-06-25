@@ -45,14 +45,28 @@ function mapEpicEntry(entry: EpicEntry) {
         }
       : {
           change_id: entry.change_id,
+          change_ref: entry.change_ref,
+          title: entry.title,
+          membership_status: entry.membership_status,
+          linked_at: entry.linked_at,
+          linked_by: entry.linked_by,
+          link_evidence: entry.link_evidence,
           promotion: entry.promotion,
           terminal_summary: entry.terminal_summary,
         }),
   };
 }
 
+function getEpicEntryChangeId(entry: Extract<EpicEntry, { kind: "change" }>) {
+  return entry.change_id ?? entry.change_ref?.change_id;
+}
+
 const COMPACT_HISTORY_LIMIT = 5;
 const COMPACT_NEXT_WORK_LIMIT = 3;
+
+type CompactNextWorkEntry =
+  | { entry_id: string; kind: "shell"; title: string; status: "future" }
+  | { entry_id: string; kind: "change"; change_id: string; status: "active" };
 
 function formatEpicCompact(epic: import("../types").Epic) {
   const terminalEntries = epic.entries.filter(
@@ -70,15 +84,12 @@ function formatEpicCompact(epic: import("../types").Epic) {
     .map((entry) => ({
       entry_id: entry.entry_id,
       kind: entry.kind,
-      change_id: entry.change_id,
+      change_id: getEpicEntryChangeId(entry),
       status: entry.terminal_summary.status,
       completed_at: entry.terminal_summary.completed_at,
     }));
 
-  let next_work: Array<
-    | { entry_id: string; kind: "shell"; title: string; status: "future" }
-    | { entry_id: string; kind: "change"; change_id: string; status: "active" }
-  > = [];
+  let next_work: CompactNextWorkEntry[] = [];
   if (epic.progress.next_entry_id) {
     const startIndex = epic.entries.findIndex(
       (entry) => entry.entry_id === epic.progress.next_entry_id,
@@ -92,21 +103,23 @@ function formatEpicCompact(epic: import("../types").Epic) {
           (entry.kind === "change" && entry.terminal_summary == null),
       )
       .slice(0, COMPACT_NEXT_WORK_LIMIT)
-      .map((entry) => {
+      .flatMap<CompactNextWorkEntry>((entry) => {
         if (entry.kind === "shell") {
-          return {
+          return [{
             entry_id: entry.entry_id,
             kind: "shell" as const,
             title: entry.title,
             status: "future" as const,
-          };
+          }];
         }
-        return {
+        const changeId = getEpicEntryChangeId(entry);
+        if (!changeId) return [];
+        return [{
           entry_id: entry.entry_id,
           kind: "change" as const,
-          change_id: entry.change_id,
+          change_id: changeId,
           status: "active" as const,
-        };
+        }];
       });
   }
 

@@ -2,14 +2,14 @@
   "$schema": "https://raw.githubusercontent.com/Sharper-Flow/Advance/trunk/plugin/schemas/spec.schema.json",
   "name": "advance-epics",
   "title": "Advance Epics",
-  "purpose": "Capability: Epic entity and workflow contracts for ADV initiative planning. Epics are durable containers that group related ADV changes and lightweight shell entries, replacing project-level ROADMAP.md as the primary ADV planning surface for initiative-level work while keeping Epic membership optional and order advisory.",
-  "version": "1.0.0",
-  "updated_at": "2026-06-24T00:00:00.000Z",
+  "purpose": "Capability: Epic entity and workflow contracts for ADV initiative planning. Epics are durable containers that group related ADV changes and lightweight shell entries, replacing project-level ROADMAP.md as the primary ADV planning surface for initiative-level work while keeping Epic membership optional, order advisory, retrofit-capable, and product-scope aware.",
+  "version": "1.1.0",
+  "updated_at": "2026-06-25T00:00:00.000Z",
   "requirements": [
     {
       "id": "rq-epicEntity01",
       "title": "Epic Record Is a Typed, Structural Initiative Container",
-      "body": "An Epic MUST be represented by a typed record containing a stable ID, title, narrative context, ordered roadmap entries, a compact status/progress summary, and creation/update timestamps. Correctness-critical Epic state MUST be structural and typed, not prose-only roadmap text. The Epic record MUST NOT depend on project-level ROADMAP.md for its existence or validation.",
+      "body": "An Epic MUST be represented by a typed record containing a stable ID, title, narrative context, ordered roadmap entries, a compact status/progress summary, creation/update timestamps, and optional repo/product scope metadata. Correctness-critical Epic state MUST be structural and typed, not prose-only roadmap text. The Epic record MUST NOT depend on project-level ROADMAP.md for its existence or validation.",
       "priority": "must",
       "tags": ["epics", "schema", "data-model"],
       "scenarios": [
@@ -35,7 +35,7 @@
     {
       "id": "rq-epicEntries01",
       "title": "Epic Roadmap Supports Linked Changes and Shell Entries",
-      "body": "An Epic's ordered entries MUST support exactly two kinds: `change` entries that reference one ADV change ID, and `shell` entries that represent future work. Every shell entry MUST have a title and a rough success/AC hint. Shell entries MUST NOT be required to complete full ADV proposal/discovery before they can exist or be promoted. A change entry MAY carry promotion provenance when it originated from a shell.",
+      "body": "An Epic's ordered entries MUST support exactly two kinds: `change` entries that reference one ADV change and `shell` entries that represent future work. Change entries MUST remain backward-compatible with legacy same-project `change_id` rows and MUST support a project-aware `change_ref` carrying change ID, project ID, optional repo ID, and optional target path. Every shell entry MUST have a title and a rough success/AC hint. Shell entries MUST NOT be required to complete full ADV proposal/discovery before they can exist or be promoted. A change entry MAY carry promotion provenance when it originated from a shell.",
       "priority": "must",
       "tags": ["epics", "entries", "shell", "change"],
       "scenarios": [
@@ -55,8 +55,19 @@
           "given": ["An Epic entry with kind 'change' is provided"],
           "when": "The entry is validated",
           "then": [
-            "Validation succeeds when change_id is present",
-            "Validation fails when change_id is missing"
+            "Validation succeeds when legacy change_id is present",
+            "Validation succeeds when change_ref includes change_id and project_id",
+            "Validation fails when neither change_id nor change_ref is present"
+          ]
+        },
+        {
+          "id": "rq-epicEntries01.3",
+          "title": "Project-aware change entry carries audit fields",
+          "given": ["An Epic change entry uses change_ref"],
+          "when": "The entry is validated",
+          "then": [
+            "Validation requires title, membership_status, linked_at, linked_by, and link_evidence",
+            "Validation preserves repo/project identity"
           ]
         }
       ]
@@ -135,7 +146,7 @@
     {
       "id": "rq-epicChangeContext01",
       "title": "Change Surfaces Show Compact Epic Membership Context",
-      "body": "When a change belongs to an Epic, change show/status/resume surfaces MUST surface compact Epic membership context including Epic ID, entry ID, order, and title. The context MUST be additive and MUST NOT replace or obscure the change's own gates, tasks, or artifacts. Changes without Epic membership MUST render identically to the pre-Epic flow.",
+      "body": "When a change belongs to an Epic, change show/status/resume surfaces MUST surface compact Epic membership context including Epic ID, entry ID, order, title, linked timestamp, owner Epic project ID when known, repo ID when known, and projection source when known. The context MUST be additive and MUST NOT replace or obscure the change's own gates, tasks, or artifacts. Changes without Epic membership MUST render identically to the pre-Epic flow.",
       "priority": "must",
       "tags": ["epics", "change", "context", "membership"],
       "scenarios": [
@@ -145,7 +156,7 @@
           "given": ["A change has an epic_membership projection"],
           "when": "The change is shown or resumed",
           "then": [
-            "Epic ID, entry ID, order, and title are surfaced",
+            "Epic ID, entry ID, order, title, and extended project/repo metadata are surfaced when present",
             "The change's own status and tasks remain primary"
           ]
         },
@@ -207,7 +218,7 @@
     {
       "id": "rq-epicOnePerChange01",
       "title": "One Epic Per Change in V1",
-      "body": "In v1, each ADV change MAY belong to zero or one Epic. The change schema MUST represent epic_membership as a single optional object, not an array. Cross-repo Epic membership is out of scope for v1 unless a later design explicitly proves it necessary and safe.",
+      "body": "In v1, each ADV change MAY belong to zero or one Epic. The change schema MUST represent epic_membership as a single optional object, not an array. Product/multi-project Epics MUST still preserve this one-Epic-per-change invariant by storing one compact membership projection on each linked child change.",
       "priority": "must",
       "tags": ["epics", "membership", "v1", "scope"],
       "scenarios": [
@@ -217,6 +228,33 @@
           "given": ["A change record has one epic_membership object"],
           "when": "The change is parsed",
           "then": ["Validation succeeds", "epic_id is accessible"]
+        }
+      ]
+    },
+    {
+      "id": "rq-epicProductScope01",
+      "title": "Product Epics Carry Repo and Project Scope Metadata",
+      "body": "An Epic MAY be scoped to a single repo or to a product spanning multiple repositories/projects. Product Epic scope metadata MUST include the owner ADV project ID and a typed repo list containing repo ID, repo project ID, role, required flag, and optional path. Product Epics MUST NOT require duplicate repo-local Epics for one initiative.",
+      "priority": "must",
+      "tags": ["epics", "product", "scope", "cross-project"],
+      "scenarios": [
+        {
+          "id": "rq-epicProductScope01.1",
+          "title": "Product scope spans multiple repos",
+          "given": ["An Epic scope includes two configured repositories"],
+          "when": "The Epic is validated",
+          "then": [
+            "Validation succeeds",
+            "Owner project ID and each repo_project_id are preserved",
+            "No duplicate repo-local Epic is required"
+          ]
+        },
+        {
+          "id": "rq-epicProductScope01.2",
+          "title": "Scope repo requires project identity",
+          "given": ["An Epic scope repo is missing repo_project_id"],
+          "when": "The scope is validated",
+          "then": ["Validation fails with a clear schema error"]
         }
       ]
     },

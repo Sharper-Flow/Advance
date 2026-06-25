@@ -1,11 +1,11 @@
 # Advance Epics
 
-> **Version:** 1.0.0
-> **Updated:** 2026-06-24
+> **Version:** 1.1.0
+> **Updated:** 2026-06-25
 
 ## Purpose
 
-Capability: Epic entity and workflow contracts for ADV initiative planning. Epics are durable containers that group related ADV changes and lightweight shell entries, replacing project-level ROADMAP.md as the primary ADV planning surface for initiative-level work while keeping Epic membership optional and order advisory.
+Capability: Epic entity and workflow contracts for ADV initiative planning. Epics are durable containers that group related ADV changes and lightweight shell entries, replacing project-level ROADMAP.md as the primary ADV planning surface for initiative-level work while keeping Epic membership optional, order advisory, retrofit-capable, and product-scope aware.
 
 ## Requirements
 
@@ -13,7 +13,7 @@ Capability: Epic entity and workflow contracts for ADV initiative planning. Epic
 
 **ID:** `rq-epicEntity01` | **Priority:** **[MUST]**
 
-An Epic MUST be represented by a typed record containing a stable ID, title, narrative context, ordered roadmap entries, a compact status/progress summary, and creation/update timestamps. Correctness-critical Epic state MUST be structural and typed, not prose-only roadmap text. The Epic record MUST NOT depend on project-level ROADMAP.md for its existence or validation.
+An Epic MUST be represented by a typed record containing a stable ID, title, narrative context, ordered roadmap entries, a compact status/progress summary, creation/update timestamps, and optional repo/product scope metadata. Correctness-critical Epic state MUST be structural and typed, not prose-only roadmap text. The Epic record MUST NOT depend on project-level ROADMAP.md for its existence or validation.
 
 **Tags:** `epics`, `schema`, `data-model`
 
@@ -46,7 +46,7 @@ An Epic MUST be represented by a typed record containing a stable ID, title, nar
 
 **ID:** `rq-epicEntries01` | **Priority:** **[MUST]**
 
-An Epic's ordered entries MUST support exactly two kinds: `change` entries that reference one ADV change ID, and `shell` entries that represent future work. Every shell entry MUST have a title and a rough success/AC hint. Shell entries MUST NOT be required to complete full ADV proposal/discovery before they can exist or be promoted. A change entry MAY carry promotion provenance when it originated from a shell.
+An Epic's ordered entries MUST support exactly two kinds: `change` entries that reference one ADV change and `shell` entries that represent future work. Change entries MUST remain backward-compatible with legacy same-project `change_id` rows and MUST support a project-aware `change_ref` carrying change ID, project ID, optional repo ID, and optional target path. Every shell entry MUST have a title and a rough success/AC hint. Shell entries MUST NOT be required to complete full ADV proposal/discovery before they can exist or be promoted. A change entry MAY carry promotion provenance when it originated from a shell.
 
 **Tags:** `epics`, `entries`, `shell`, `change`
 
@@ -71,8 +71,20 @@ An Epic's ordered entries MUST support exactly two kinds: `change` entries that 
 **When:** The entry is validated
 
 **Then:**
-- Validation succeeds when change_id is present
-- Validation fails when change_id is missing
+- Validation succeeds when legacy change_id is present
+- Validation succeeds when change_ref includes change_id and project_id
+- Validation fails when neither change_id nor change_ref is present
+
+**Project-aware change entry carries audit fields** (`rq-epicEntries01.3`)
+
+**Given:**
+- An Epic change entry uses change_ref
+
+**When:** The entry is validated
+
+**Then:**
+- Validation requires title, membership_status, linked_at, linked_by, and link_evidence
+- Validation preserves repo/project identity
 
 ---
 
@@ -164,7 +176,7 @@ The default Epic view MUST show next active and future work prominently and MUST
 
 **ID:** `rq-epicChangeContext01` | **Priority:** **[MUST]**
 
-When a change belongs to an Epic, change show/status/resume surfaces MUST surface compact Epic membership context including Epic ID, entry ID, order, and title. The context MUST be additive and MUST NOT replace or obscure the change's own gates, tasks, or artifacts. Changes without Epic membership MUST render identically to the pre-Epic flow.
+When a change belongs to an Epic, change show/status/resume surfaces MUST surface compact Epic membership context including Epic ID, entry ID, order, title, linked timestamp, owner Epic project ID when known, repo ID when known, and projection source when known. The context MUST be additive and MUST NOT replace or obscure the change's own gates, tasks, or artifacts. Changes without Epic membership MUST render identically to the pre-Epic flow.
 
 **Tags:** `epics`, `change`, `context`, `membership`
 
@@ -178,7 +190,7 @@ When a change belongs to an Epic, change show/status/resume surfaces MUST surfac
 **When:** The change is shown or resumed
 
 **Then:**
-- Epic ID, entry ID, order, and title are surfaced
+- Epic ID, entry ID, order, title, and extended project/repo metadata are surfaced when present
 - The change's own status and tasks remain primary
 
 **Non-Epic changes remain unchanged** (`rq-epicChangeContext01.2`)
@@ -255,7 +267,7 @@ Epic membership MUST be optional for all ADV changes. Existing non-Epic changes,
 
 **ID:** `rq-epicOnePerChange01` | **Priority:** **[MUST]**
 
-In v1, each ADV change MAY belong to zero or one Epic. The change schema MUST represent epic_membership as a single optional object, not an array. Cross-repo Epic membership is out of scope for v1 unless a later design explicitly proves it necessary and safe.
+In v1, each ADV change MAY belong to zero or one Epic. The change schema MUST represent epic_membership as a single optional object, not an array. Product/multi-project Epics MUST still preserve this one-Epic-per-change invariant by storing one compact membership projection on each linked child change.
 
 **Tags:** `epics`, `membership`, `v1`, `scope`
 
@@ -325,6 +337,40 @@ Operations referencing a missing Epic, a stale child change link, a duplicate pr
 
 **Then:**
 - A typed conflict or stale-state response is returned
+
+---
+
+### Product Epics Carry Repo and Project Scope Metadata
+
+**ID:** `rq-epicProductScope01` | **Priority:** **[MUST]**
+
+An Epic MAY be scoped to a single repo or to a product spanning multiple repositories/projects. Product Epic scope metadata MUST include the owner ADV project ID and a typed repo list containing repo ID, repo project ID, role, required flag, and optional path. Product Epics MUST NOT require duplicate repo-local Epics for one initiative.
+
+**Tags:** `epics`, `product`, `scope`, `cross-project`
+
+#### Scenarios
+
+**Product scope spans multiple repos** (`rq-epicProductScope01.1`)
+
+**Given:**
+- An Epic scope includes two configured repositories
+
+**When:** The Epic is validated
+
+**Then:**
+- Validation succeeds
+- Owner project ID and each repo_project_id are preserved
+- No duplicate repo-local Epic is required
+
+**Scope repo requires project identity** (`rq-epicProductScope01.2`)
+
+**Given:**
+- An Epic scope repo is missing repo_project_id
+
+**When:** The scope is validated
+
+**Then:**
+- Validation fails with a clear schema error
 
 ---
 

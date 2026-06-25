@@ -710,6 +710,9 @@
         "epic_id": {
           "type": "string"
         },
+        "epic_project_id": {
+          "type": "string"
+        },
         "linked_at": {
           "type": "string"
         },
@@ -717,6 +720,18 @@
           "maximum": 9007199254740991,
           "minimum": 0,
           "type": "integer"
+        },
+        "repo_id": {
+          "type": "string"
+        },
+        "source": {
+          "enum": [
+            "create",
+            "promote_shell",
+            "link_existing",
+            "move"
+          ],
+          "type": "string"
         },
         "title": {
           "type": "string"

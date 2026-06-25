@@ -8,10 +8,13 @@
 import { describe, expect, test } from "vitest";
 import {
   ChangeSchema,
+  EpicChangeRefSchema,
   EpicEntrySchema,
   EpicEntryKindSchema,
   EpicMembershipSchema,
+  EpicMembershipStatusSchema,
   EpicProgressSummarySchema,
+  EpicScopeSchema,
   EpicSchema,
   EpicStatusSchema,
   ShellPromotionProvenanceSchema,
@@ -69,6 +72,71 @@ describe("Epic schema foundation", () => {
   });
 
   describe("EpicEntrySchema", () => {
+    test("parses legacy change_id entry for backward compatibility", () => {
+      const entry = {
+        kind: "change",
+        entry_id: "en-legacy001",
+        order: 0,
+        change_id: "addOAuthChange",
+      };
+      expect(EpicEntrySchema.parse(entry)).toEqual(entry);
+    });
+
+    test("parses product change_ref entry with repo/project identity and audit", () => {
+      const entry = {
+        kind: "change",
+        entry_id: "en-product001",
+        order: 0,
+        change_ref: {
+          change_id: "addOAuthChange",
+          project_id: "project-auth",
+          repo_id: "pokeedge-web",
+          target_path: "/workspace/pokeedge-web",
+        },
+        title: "Add OAuth",
+        membership_status: "linked",
+        linked_at: "2026-06-24T00:00:00.000Z",
+        linked_by: "agent",
+        link_evidence: "User requested existing change link.",
+      };
+
+      expect(EpicEntrySchema.parse(entry)).toEqual(entry);
+    });
+
+    test("rejects change_ref entry without project identity", () => {
+      expect(() =>
+        EpicEntrySchema.parse({
+          kind: "change",
+          entry_id: "en-product001",
+          order: 0,
+          change_ref: {
+            change_id: "addOAuthChange",
+          },
+          title: "Add OAuth",
+          membership_status: "linked",
+          linked_at: "2026-06-24T00:00:00.000Z",
+          linked_by: "agent",
+          link_evidence: "User requested existing change link.",
+        }),
+      ).toThrow();
+    });
+
+    test("rejects modern change_ref entry without link audit fields", () => {
+      expect(() =>
+        EpicEntrySchema.parse({
+          kind: "change",
+          entry_id: "en-product001",
+          order: 0,
+          change_ref: {
+            change_id: "addOAuthChange",
+            project_id: "project-auth",
+          },
+          title: "Add OAuth",
+          membership_status: "linked",
+        }),
+      ).toThrow();
+    });
+
     test("parses change entry with promotion provenance", () => {
       const entry = {
         kind: "change",
@@ -125,6 +193,95 @@ describe("Epic schema foundation", () => {
           kind: "task",
           entry_id: "en-abc123",
           order: 0,
+        }),
+      ).toThrow();
+    });
+  });
+
+  describe("EpicChangeRefSchema", () => {
+    test("requires change and project identity", () => {
+      const ref = {
+        change_id: "addOAuthChange",
+        project_id: "project-auth",
+        repo_id: "pokeedge-web",
+      };
+
+      expect(EpicChangeRefSchema.parse(ref)).toEqual(ref);
+      expect(() => EpicChangeRefSchema.parse({ change_id: "addOAuthChange" })).toThrow();
+    });
+  });
+
+  describe("EpicMembershipStatusSchema", () => {
+    test("accepts projection lifecycle states", () => {
+      for (const status of [
+        "linked",
+        "projection_pending",
+        "projection_stale",
+        "target_unreachable",
+        "unlinked",
+        "terminal",
+      ]) {
+        expect(EpicMembershipStatusSchema.parse(status)).toBe(status);
+      }
+    });
+  });
+
+  describe("EpicScopeSchema", () => {
+    test("parses repo scope metadata", () => {
+      const scope = {
+        kind: "repo",
+        owner_project_id: "project-auth",
+        owner_repo_id: "pokeedge-web",
+        repos: [
+          {
+            repo_id: "pokeedge-web",
+            repo_project_id: "project-auth",
+            path: "/workspace/pokeedge-web",
+            role: "primary",
+            required: true,
+          },
+        ],
+      };
+
+      expect(EpicScopeSchema.parse(scope)).toEqual(scope);
+    });
+
+    test("parses product scope spanning multiple repos", () => {
+      const scope = {
+        kind: "product",
+        owner_project_id: "project-web",
+        owner_repo_id: "pokeedge-web",
+        repos: [
+          {
+            repo_id: "pokeedge-web",
+            repo_project_id: "project-web",
+            role: "primary",
+            required: true,
+          },
+          {
+            repo_id: "pokeedge-api",
+            repo_project_id: "project-api",
+            role: "secondary",
+            required: true,
+          },
+        ],
+      };
+
+      expect(EpicScopeSchema.parse(scope)).toEqual(scope);
+    });
+
+    test("rejects scope repo without repo_project_id", () => {
+      expect(() =>
+        EpicScopeSchema.parse({
+          kind: "product",
+          owner_project_id: "project-web",
+          repos: [
+            {
+              repo_id: "pokeedge-web",
+              role: "primary",
+              required: true,
+            },
+          ],
         }),
       ).toThrow();
     });
@@ -202,6 +359,47 @@ describe("Epic schema foundation", () => {
         updated_at: "2026-06-24T00:00:00.000Z",
         version: 1,
       };
+      expect(EpicSchema.parse(epic)).toEqual(epic);
+    });
+
+    test("parses Epic with product scope metadata", () => {
+      const epic = {
+        id: "productAuthEpic",
+        title: "Product auth Epic",
+        narrative: "Coordinate auth work across web and API.",
+        epic_scope: {
+          kind: "product",
+          owner_project_id: "project-web",
+          owner_repo_id: "pokeedge-web",
+          repos: [
+            {
+              repo_id: "pokeedge-web",
+              repo_project_id: "project-web",
+              role: "primary",
+              required: true,
+            },
+            {
+              repo_id: "pokeedge-api",
+              repo_project_id: "project-api",
+              role: "secondary",
+              required: true,
+            },
+          ],
+        },
+        entries: [],
+        progress: {
+          status: "active",
+          total_entries: 0,
+          completed_entries: 0,
+          active_entries: 0,
+          next_entry_id: null,
+          updated_at: "2026-06-24T00:00:00.000Z",
+        },
+        created_at: "2026-06-24T00:00:00.000Z",
+        updated_at: "2026-06-24T00:00:00.000Z",
+        version: 1,
+      };
+
       expect(EpicSchema.parse(epic)).toEqual(epic);
     });
 
@@ -301,6 +499,9 @@ describe("Epic schema foundation", () => {
           order: 0,
           title: "Add OAuth",
           linked_at: "2026-06-24T00:00:00.000Z",
+          epic_project_id: "project-auth",
+          repo_id: "pokeedge-web",
+          source: "link_existing",
         },
       };
       const parsed = ChangeSchema.parse(change);
@@ -343,6 +544,8 @@ describe("Epic schema foundation", () => {
           order: 0,
           title: "Add OAuth",
           linked_at: "2026-06-24T00:00:00.000Z",
+          epic_project_id: "project-auth",
+          source: "link_existing",
         },
       };
       const parsed = ChangeSchema.parse(change);

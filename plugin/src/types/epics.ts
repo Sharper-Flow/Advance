@@ -12,6 +12,7 @@
  *   rq-epicChangeContext01 — Change epic_membership projection.
  *   rq-epicOptionalMembership01 — Epic membership is optional.
  *   rq-epicOnePerChange01 — One Epic per change in v1.
+ *   rq-epicProductScope01 — Epics can carry repo/product scope metadata.
  */
 
 import { z } from "zod";
@@ -31,6 +32,48 @@ export type EpicStatus = z.infer<typeof EpicStatusSchema>;
 // rq-epicEntries01: entries are either linked changes or lightweight shells.
 export const EpicEntryKindSchema = z.enum(["change", "shell"]);
 export type EpicEntryKind = z.infer<typeof EpicEntryKindSchema>;
+
+// =============================================================================
+// Epic Scope / Product Identity
+// =============================================================================
+
+/**
+ * Repo identity included in an Epic scope.
+ *
+ * rq-epicProductScope01 — product Epics can span multiple configured repos.
+ */
+export const EpicScopeRepoSchema = z.object({
+  /** Product config repo ID. */
+  repo_id: z.string(),
+  /** ADV project ID for this repo. */
+  repo_project_id: z.string(),
+  /** Optional target path for reachable local/cross-project mutation. */
+  path: z.string().optional(),
+  /** Role in product Epic ownership/coordination. */
+  role: z.enum(["primary", "secondary"]),
+  /** Whether this repo is required for the Epic outcome. */
+  required: z.boolean(),
+});
+
+export type EpicScopeRepo = z.infer<typeof EpicScopeRepoSchema>;
+
+/**
+ * Epic scope metadata. Optional on legacy Epics but validated when present.
+ *
+ * rq-epicProductScope01 — one owner Epic can contain entries from multiple repos.
+ */
+export const EpicScopeSchema = z.object({
+  /** Repo-local Epic or product/multi-project Epic. */
+  kind: z.enum(["repo", "product"]),
+  /** ADV project ID that owns the Epic workflow. */
+  owner_project_id: z.string(),
+  /** Product config repo ID of the owner repo when known. */
+  owner_repo_id: z.string().optional(),
+  /** Repos covered by this Epic. */
+  repos: z.array(EpicScopeRepoSchema),
+});
+
+export type EpicScope = z.infer<typeof EpicScopeSchema>;
 
 // =============================================================================
 // Shell Promotion Provenance
@@ -91,29 +134,108 @@ export const EpicProgressSummarySchema = z.object({
 export type EpicProgressSummary = z.infer<typeof EpicProgressSummarySchema>;
 
 // =============================================================================
+// Epic Change Entry Reference
+// =============================================================================
+
+/**
+ * Project-aware child change reference for repo/product Epic membership.
+ *
+ * rq-epicEntries01 — change entries reference one ADV change.
+ * rq-epicProductScope01 — product Epic entries carry project/repo identity.
+ */
+export const EpicChangeRefSchema = z.object({
+  /** ADV change ID. */
+  change_id: z.string(),
+  /** ADV project ID where the child change lives. */
+  project_id: z.string(),
+  /** Product config repo ID when known. */
+  repo_id: z.string().optional(),
+  /** Optional target path for cross-project mutation/enrichment. */
+  target_path: z.string().optional(),
+});
+
+export type EpicChangeRef = z.infer<typeof EpicChangeRefSchema>;
+
+/**
+ * Projection lifecycle status for child membership sync.
+ *
+ * rq-epicErrors01 — partial/unreachable link states are typed and recoverable.
+ */
+export const EpicMembershipStatusSchema = z.enum([
+  "linked",
+  "projection_pending",
+  "projection_stale",
+  "target_unreachable",
+  "unlinked",
+  "terminal",
+]);
+
+export type EpicMembershipStatus = z.infer<typeof EpicMembershipStatusSchema>;
+
+// =============================================================================
 // Epic Entry
 // =============================================================================
 
 // rq-epicEntries01 — change entries reference one ADV change.
 // rq-epicOrderAdvisory01 — order field carries advisory sequencing only.
-const EpicChangeEntrySchema = z.object({
-  kind: z.literal("change"),
-  /** Stable entry ID within this Epic. */
-  entry_id: z.string(),
-  /** Advisory display order within the Epic roadmap. */
-  order: z.number().int().min(0),
-  /** Linked ADV change ID. */
-  change_id: z.string(),
-  /** Promotion provenance when this entry was converted from a shell. */
-  promotion: ShellPromotionProvenanceSchema.optional(),
-  /** Compact terminal summary for archived/closed children. */
-  terminal_summary: z
-    .object({
-      status: z.enum(["archived", "closed"]),
-      completed_at: z.string(),
-    })
-    .optional(),
-});
+const EpicChangeEntrySchema = z
+  .object({
+    kind: z.literal("change"),
+    /** Stable entry ID within this Epic. */
+    entry_id: z.string(),
+    /** Advisory display order within the Epic roadmap. */
+    order: z.number().int().min(0),
+    /** Legacy same-project ADV change ID. */
+    change_id: z.string().optional(),
+    /** Project-aware ADV change reference for retrofit/product membership. */
+    change_ref: EpicChangeRefSchema.optional(),
+    /** Display title for the linked child entry. */
+    title: z.string().optional(),
+    /** Child projection/link lifecycle status. */
+    membership_status: EpicMembershipStatusSchema.optional(),
+    /** ISO8601 timestamp when this change was linked to the Epic. */
+    linked_at: z.string().optional(),
+    /** Identity that linked this change to the Epic. */
+    linked_by: z.string().optional(),
+    /** Evidence/audit text for retrofit/move membership. */
+    link_evidence: z.string().optional(),
+    /** Promotion provenance when this entry was converted from a shell. */
+    promotion: ShellPromotionProvenanceSchema.optional(),
+    /** Compact terminal summary for archived/closed children. */
+    terminal_summary: z
+      .object({
+        status: z.enum(["archived", "closed"]),
+        completed_at: z.string(),
+      })
+      .optional(),
+  })
+  .superRefine((entry, ctx) => {
+    if (!entry.change_id && !entry.change_ref) {
+      ctx.addIssue({
+        code: "custom",
+        message: "change entries require either change_id or change_ref",
+        path: ["change_id"],
+      });
+    }
+
+    if (entry.change_ref) {
+      for (const key of [
+        "title",
+        "membership_status",
+        "linked_at",
+        "linked_by",
+        "link_evidence",
+      ] as const) {
+        if (!entry[key]) {
+          ctx.addIssue({
+            code: "custom",
+            message: `change_ref entries require ${key}`,
+            path: [key],
+          });
+        }
+      }
+    }
+  });
 
 // rq-epicEntries01 — shell entries carry title + success hint.
 const EpicShellEntrySchema = z.object({
@@ -152,6 +274,8 @@ export const EpicSchema = z
     title: z.string(),
     /** Narrative context describing the initiative goal. */
     narrative: z.string(),
+    /** Repo/product scope metadata. Optional for legacy Epics. */
+    epic_scope: EpicScopeSchema.optional(),
     /** Ordered roadmap entries (changes and shells). */
     entries: z.array(EpicEntrySchema),
     /** Compact status/progress summary. */
@@ -191,6 +315,14 @@ export const EpicMembershipSchema = z.object({
   title: z.string(),
   /** ISO8601 timestamp when this change was linked to the Epic. */
   linked_at: z.string(),
+  /** ADV project ID that owns the Epic workflow. */
+  epic_project_id: z.string().optional(),
+  /** Product config repo ID for the child change when known. */
+  repo_id: z.string().optional(),
+  /** Operation that created the current membership projection. */
+  source: z
+    .enum(["create", "promote_shell", "link_existing", "move"])
+    .optional(),
 });
 
 export type EpicMembership = z.infer<typeof EpicMembershipSchema>;
