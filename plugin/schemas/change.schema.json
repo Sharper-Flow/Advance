@@ -683,6 +683,47 @@
       },
       "type": "object"
     },
+    "design_concern_dispositions": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "concernKey": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "disposition": {
+            "enum": [
+              "fixed",
+              "rejected_with_evidence",
+              "split",
+              "fast_follow"
+            ],
+            "type": "string"
+          },
+          "dispositionedAt": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "evidence": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "taskId": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "taskId",
+          "concernKey",
+          "disposition",
+          "evidence",
+          "dispositionedAt"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    },
     "documents": {
       "additionalProperties": false,
       "properties": {
