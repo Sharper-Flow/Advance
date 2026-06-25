@@ -146,6 +146,35 @@ This is why Advance is more than durable functions, more than a memory layer, mo
 
 Advance keeps the core workflow in this repository and exposes runtime-safe seams for developers who want to build their own operators, dashboards, or editor integrations:
 
+### Local dashboard
+
+`bin/adv dashboard` runs a local read-only web dashboard for explicitly configured projects. It binds to `127.0.0.1` by default and exposes only `GET /` plus `GET /api/state`.
+
+Example config (`schema_version: 1`):
+
+```json
+{
+  "schema_version": 1,
+  "refresh_seconds": 45,
+  "projects": [
+    {
+      "id": "advance",
+      "label": "Advance",
+      "path": "/home/jon/dev/advance",
+      "github": { "owner": "Sharper-Flow", "repo": "Advance" }
+    }
+  ]
+}
+```
+
+Run:
+
+```bash
+bin/adv dashboard --config ./dashboard.json --port 8765
+```
+
+V1 is observation-only: no rerun, approval, merge, deployment, cancellation, archive, or other mutation controls. Source failures are shown per project/source as degraded instead of blanking the whole page. Non-loopback hosts require explicit `--allow-network-host`.
+
 - `scripts/maintenance/inspect.mjs --project-root <path>` emits `schema_version: 1`, archived change summaries, release-gate eligibility, and a verification summary so external tools can inspect release readiness without mutating ADV state.
 - `adv_change_update_issues` accepts full GitHub issue URLs only (`https://github.com/<owner>/<repo>/issues/<number>`). Shorthand refs are rejected before persistence so invalid state cannot be saved.
 - `adv_status view=health` includes `plugin_runtime`, reporting the loaded module path, process start time, build marker path/data when present, worker script path, and the caveat that host-loaded tool code requires restarting OpenCode after rebuild.
