@@ -551,6 +551,12 @@ export function createTemporalStoreBackend(
   const getTemporalChange = async (
     changeId: string,
   ): Promise<ReturnType<Store["changes"]["get"]>> => {
+    const terminalDiskProjection = await loadDiskTerminalProjection(changeId);
+    if (terminalDiskProjection) {
+      indexTasksFromChange(terminalDiskProjection);
+      return { success: true, data: terminalDiskProjection };
+    }
+
     const cached = changeCache.get(changeId);
     if (cached) {
       if (cached.status !== "archived" && cached.status !== "closed") {
@@ -620,6 +626,21 @@ export function createTemporalStoreBackend(
       }
       throw error;
     }
+  };
+
+  const loadDiskTerminalProjection = async (
+    changeId: string,
+  ): Promise<Change | null> => {
+    try {
+      const result = await legacy.changes.get(changeId);
+      if (result.success && result.data && result.data.status === "closed") {
+        return result.data;
+      }
+    } catch {
+      // Disk projection is only a terminal-state dominance check. Missing or
+      // unreadable disk state falls through to Temporal/missing-workflow logic.
+    }
+    return null;
   };
 
   /**

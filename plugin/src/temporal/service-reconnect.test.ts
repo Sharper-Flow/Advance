@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => {
   const ADV_SA_FULL_PRESENT = {
     AdvChangeId: { indexedValueType: 2 },
     AdvChangeStatus: { indexedValueType: 2 },
+    AdvLifecycleState: { indexedValueType: 2 },
     AdvChangeTitle: { indexedValueType: 2 },
     AdvAffectedProjects: { indexedValueType: 7 },
     AdvCurrentGate: { indexedValueType: 2 },
