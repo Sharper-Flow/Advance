@@ -122,7 +122,6 @@ export function buildVisibilityQuery(
   return parts.join(" AND ");
 }
 
-
 /**
  * Return the change IDs for all change-workflows belonging to a project,
  * via Temporal Visibility API pagination.

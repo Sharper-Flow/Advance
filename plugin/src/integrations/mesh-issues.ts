@@ -214,7 +214,12 @@ export async function listMeshIssues(
     return { issues, exitCode: 0, stderr: result.stderr };
   } catch {
     // gh exited 0 but stdout was not valid JSON — flag the parse failure (QUAL-005).
-    return { issues: [], exitCode: 0, stderr: result.stderr, parseFailed: true };
+    return {
+      issues: [],
+      exitCode: 0,
+      stderr: result.stderr,
+      parseFailed: true,
+    };
   }
 }
 

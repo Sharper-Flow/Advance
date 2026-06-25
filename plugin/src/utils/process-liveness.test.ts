@@ -5,7 +5,9 @@
 import { describe, expect, it } from "vitest";
 import { isProcessAlive } from "./process-liveness";
 
-function killThrowing(code: string): (pid: number, signal: number | string) => void {
+function killThrowing(
+  code: string,
+): (pid: number, signal: number | string) => void {
   return () => {
     const err = new Error(code) as NodeJS.ErrnoException;
     err.code = code;

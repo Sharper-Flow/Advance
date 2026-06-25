@@ -218,16 +218,16 @@ describe("reclaimStaleLease", () => {
       staleHeartbeatMs: 600_000, // heartbeat is fresh; reclaim depends solely on PID liveness
     });
 
-    const killSpy = vi
-      .spyOn(process, "kill")
-      .mockImplementation(((pid: number) => {
-        if (pid === existingPid) {
-          const err = new Error("EPERM") as NodeJS.ErrnoException;
-          err.code = "EPERM";
-          throw err;
-        }
-        return true;
-      }) as typeof process.kill);
+    const killSpy = vi.spyOn(process, "kill").mockImplementation(((
+      pid: number,
+    ) => {
+      if (pid === existingPid) {
+        const err = new Error("EPERM") as NodeJS.ErrnoException;
+        err.code = "EPERM";
+        throw err;
+      }
+      return true;
+    }) as typeof process.kill);
 
     try {
       const result = reclaimStaleLease({

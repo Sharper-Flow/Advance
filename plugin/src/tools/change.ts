@@ -1498,9 +1498,8 @@ async function recoverReleaseGateIfWorkflowCompleted(
   error: unknown,
   ctx: { store: Store; change: Change; evidence: string },
 ): Promise<Extract<ArchiveReleaseGateResult, { ok: true }>> {
-  const { isWorkflowCompletedError } = await import(
-    "../temporal/recovery-classification"
-  );
+  const { isWorkflowCompletedError } =
+    await import("../temporal/recovery-classification");
   if (isWorkflowCompletedError(error)) {
     return recoverReleaseGateViaDiskProjection({
       store: ctx.store,

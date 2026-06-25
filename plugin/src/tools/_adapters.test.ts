@@ -593,11 +593,9 @@ describe("waitForGateCompletion (STRUCT-003 shared poll helper)", () => {
       .mockResolvedValueOnce({ status: "pending" })
       .mockResolvedValueOnce({ status: "done" });
 
-    const result = await waitForGateCompletion(
-      handle as never,
-      "release",
-      { delayMs: 0 },
-    );
+    const result = await waitForGateCompletion(handle as never, "release", {
+      delayMs: 0,
+    });
 
     expect(result).toEqual({ status: "done" });
     expect(handle.query).toHaveBeenCalledTimes(2);
@@ -607,11 +605,9 @@ describe("waitForGateCompletion (STRUCT-003 shared poll helper)", () => {
     const handle = createMockHandle();
     handle.query.mockResolvedValueOnce({ status: "stuck" });
 
-    const result = await waitForGateCompletion(
-      handle as never,
-      "release",
-      { delayMs: 0 },
-    );
+    const result = await waitForGateCompletion(handle as never, "release", {
+      delayMs: 0,
+    });
 
     expect(result).toEqual({ status: "stuck" });
     expect(handle.query).toHaveBeenCalledTimes(1);
