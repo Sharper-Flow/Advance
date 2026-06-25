@@ -329,7 +329,12 @@ export interface Store {
 
   // Epics
   epics: {
-    create: (epicId: string, title: string, narrative: string) => Promise<Epic>;
+    create: (
+      epicId: string,
+      title: string,
+      narrative: string,
+      options?: { epicScope?: Epic["epic_scope"] },
+    ) => Promise<Epic>;
     get: (epicId: string) => Promise<LoadResult<Epic | null>>;
     list: () => Promise<Epic[]>;
     update: (
@@ -360,6 +365,9 @@ export interface Store {
         order?: number;
         linkedBy?: string;
         linkEvidence?: string;
+        changeProjectId?: string;
+        repoId?: string;
+        targetPath?: string;
       },
     ) => Promise<EpicEntry>;
     unlinkChange: (epicId: string, entryId: string) => Promise<void>;

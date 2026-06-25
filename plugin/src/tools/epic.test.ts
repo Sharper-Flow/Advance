@@ -1,8 +1,20 @@
 import { describe, expect, test, vi } from "vitest";
+vi.mock("./target-project", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("./target-project")>();
+  return {
+    ...actual,
+    withTargetPathStore: vi.fn(),
+    appendTargetProjectContextOutput: vi.fn((output: string) => output),
+  };
+});
+
 import { epicTools } from "./epic";
+import { withTargetPathStore } from "./target-project";
 import { parseToolOutput } from "../__tests__/setup";
 import type { Store } from "../storage/store-types";
 import type { Change, Epic, EpicEntry } from "../types";
+
+const mockedWithTargetPathStore = vi.mocked(withTargetPathStore);
 
 function makeEpic(overrides?: Partial<Epic>): Epic {
   const now = new Date().toISOString();
@@ -40,6 +52,7 @@ function makeStore(epicOverrides?: Partial<Epic>): Store {
     updated_at: "2026-06-25T00:00:00.000Z",
   } as Change;
   return {
+    paths: { root: "/workspace/owner" },
     epics: {
       create: vi.fn(async () => epic),
       get: vi.fn(async () => ({ success: true, data: epic })),
@@ -122,6 +135,52 @@ describe("adv_epic_create", () => {
       "Add Auth Epic",
       "Auth.",
     );
+  });
+
+  test("creates a product-scoped Epic with multiple repo identities", async () => {
+    const productScope = {
+      kind: "product" as const,
+      owner_project_id: "project-web",
+      owner_repo_id: "pokeedge-web",
+      repos: [
+        {
+          repo_id: "pokeedge-web",
+          repo_project_id: "project-web",
+          role: "primary" as const,
+          required: true,
+        },
+        {
+          repo_id: "pokeedge-api",
+          repo_project_id: "project-api",
+          role: "secondary" as const,
+          required: true,
+        },
+      ],
+    };
+    const store = makeStore({ epic_scope: productScope });
+
+    const output = await epicTools.adv_epic_create.execute(
+      {
+        epic_id: "productAuthEpic",
+        title: "Product Auth Epic",
+        narrative: "Auth across web and API.",
+        scope_kind: "product",
+        owner_project_id: "project-web",
+        owner_repo_id: "pokeedge-web",
+        scope_repos: productScope.repos,
+      },
+      store,
+    );
+
+    const parsed = parseToolOutput(output);
+    expect(parsed.success).toBe(true);
+    expect(store.epics.create).toHaveBeenCalledWith(
+      "productAuthEpic",
+      "Product Auth Epic",
+      "Auth across web and API.",
+      { epicScope: productScope },
+    );
+    expect(parsed.epic.epic_scope).toEqual(productScope);
   });
 });
 
@@ -388,6 +447,84 @@ describe("adv_epic_promote_shell", () => {
 });
 
 describe("adv_epic_link_change", () => {
+  test("routes child projection through target_path while Epic remains owner-local", async () => {
+    const ownerStore = makeStore();
+    const targetStore = makeStore();
+    mockedWithTargetPathStore.mockImplementationOnce(async (_input, fn) =>
+      fn({
+        context: {
+          root: "/workspace/pokeedge-api",
+          projectId: "project-api",
+          externalRoot: "/xdg/project-api",
+          trusted: true,
+          trustSource: "related_repos",
+          stateMode: "temporal",
+        },
+        store: targetStore,
+      }),
+    );
+    ownerStore.epics.linkChange = vi.fn(async () =>
+      makeChangeEntry({
+        entry_id: "api-entry",
+        order: 1,
+        change_ref: {
+          change_id: "change-2",
+          project_id: "project-api",
+          repo_id: "pokeedge-api",
+          target_path: "/workspace/pokeedge-api",
+        },
+        title: "Linked Change",
+        linked_at: "2026-06-25T00:00:00.000Z",
+        membership_status: "projection_pending",
+      }),
+    );
+
+    const output = await epicTools.adv_epic_link_change.execute(
+      {
+        epic_id: "addAuthEpic",
+        change_id: "change-2",
+        repo_id: "pokeedge-api",
+        link_evidence: "User grouped API work.",
+        target_path: "/workspace/pokeedge-api",
+        target_confirmed: true,
+        confirmationEvidence: "target approved",
+      },
+      ownerStore,
+    );
+
+    const parsed = parseToolOutput(output);
+    expect(parsed.success).toBe(true);
+    expect(mockedWithTargetPathStore).toHaveBeenCalledWith(
+      expect.objectContaining({
+        currentProjectPath: ownerStore.paths.root,
+        target_path: "/workspace/pokeedge-api",
+        stateRequirement: "temporal-required",
+        target_confirmed: true,
+        confirmationEvidence: "target approved",
+      }),
+      expect.any(Function),
+    );
+    expect(ownerStore.epics.linkChange).toHaveBeenCalledWith(
+      "addAuthEpic",
+      expect.objectContaining({
+        changeProjectId: "project-api",
+        repoId: "pokeedge-api",
+        targetPath: "/workspace/pokeedge-api",
+      }),
+    );
+    expect(targetStore.changes.setEpicMembership).toHaveBeenCalledWith(
+      "change-2",
+      expect.objectContaining({
+        membership: expect.objectContaining({
+          epic_id: "addAuthEpic",
+          entry_id: "api-entry",
+          epic_project_id: "project-api",
+          repo_id: "pokeedge-api",
+        }),
+      }),
+    );
+  });
+
   test("links existing same-project change and sets child epic_membership", async () => {
     const linkedEntry = makeChangeEntry({
       entry_id: "entry-2",

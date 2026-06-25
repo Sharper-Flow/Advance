@@ -179,7 +179,7 @@ export function createEpicOps(deps: StoreDeps): Store["epics"] {
   }
 
   return {
-    create: async (epicId, title, narrative) => {
+    create: async (epicId, title, narrative, options) => {
       const handle = await ensureEpicHandle(epicId);
 
       const now = new Date().toISOString();
@@ -187,6 +187,7 @@ export function createEpicOps(deps: StoreDeps): Store["epics"] {
         id: epicId,
         title,
         narrative,
+        ...(options?.epicScope ? { epic_scope: options.epicScope } : {}),
         entries: [],
         progress: {
           status: "active",
@@ -323,7 +324,17 @@ export function createEpicOps(deps: StoreDeps): Store["epics"] {
 
     linkChange: async (
       epicId,
-      { entryId, changeId, title, order, linkedBy, linkEvidence },
+      {
+        entryId,
+        changeId,
+        title,
+        order,
+        linkedBy,
+        linkEvidence,
+        changeProjectId,
+        repoId,
+        targetPath,
+      },
     ) => {
       await assertEpicExists(epicId);
       const handle = getEpicHandle(epicId);
@@ -336,7 +347,9 @@ export function createEpicOps(deps: StoreDeps): Store["epics"] {
         changeId,
         changeRef: {
           change_id: changeId,
-          project_id: input.projectId,
+          project_id: changeProjectId ?? input.projectId,
+          ...(repoId ? { repo_id: repoId } : {}),
+          ...(targetPath ? { target_path: targetPath } : {}),
         },
         title,
         order,

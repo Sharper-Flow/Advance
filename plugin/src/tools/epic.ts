@@ -11,6 +11,11 @@ import { z } from "zod";
 import type { Store } from "../storage/store-types";
 import type { EpicEntry } from "../types";
 import { formatToolOutput, paginate } from "../utils/tool-output";
+import {
+  appendTargetProjectContextOutput,
+  targetPathSchema,
+  withTargetPathStore,
+} from "./target-project";
 
 const EPIC_ID_SCHEMA = z
   .string()
@@ -131,6 +136,7 @@ function formatEpicCompact(epic: import("../types").Epic) {
     id: epic.id,
     title: epic.title,
     narrative: epic.narrative,
+    epic_scope: epic.epic_scope,
     version: epic.version,
     status: epic.progress.status,
     progress: {
@@ -152,6 +158,7 @@ function formatEpic(epic: import("../types").Epic) {
     id: epic.id,
     title: epic.title,
     narrative: epic.narrative,
+    epic_scope: epic.epic_scope,
     version: epic.version,
     status: epic.progress.status,
     progress: {
@@ -176,6 +183,37 @@ async function loadChange(store: Store, changeId: string) {
   const result = await store.changes.get(changeId);
   if (!result.success || !result.data) return null;
   return result.data;
+}
+
+async function resolveChildStore(
+  store: Store,
+  args: {
+    target_path?: string;
+    target_confirmed?: true;
+    confirmationEvidence?: string;
+  },
+) {
+  if (!args.target_path) return { context: null, store };
+  return withTargetPathStore(
+    {
+      currentProjectPath: store.paths.root,
+      target_path: args.target_path,
+      stateRequirement: "temporal-required",
+      target_confirmed: args.target_confirmed,
+      confirmationEvidence: args.confirmationEvidence,
+    },
+    async ({ context, store: targetStore }) => ({
+      context,
+      store: targetStore,
+    }),
+  );
+}
+
+function maybeAppendTargetContext(
+  output: string,
+  context: Awaited<ReturnType<typeof resolveChildStore>>["context"],
+) {
+  return context ? appendTargetProjectContextOutput(output, context) : output;
 }
 
 function changeAlreadyInEpic(change: import("../types").Change) {
@@ -249,17 +287,62 @@ export const epicTools = {
         .string()
         .min(1)
         .describe("Narrative context describing the initiative goal."),
+      scope_kind: z.enum(["repo", "product"]).optional(),
+      owner_project_id: z.string().min(1).optional(),
+      owner_repo_id: z.string().min(1).optional(),
+      scope_repos: z
+        .array(
+          z.object({
+            repo_id: z.string().min(1),
+            repo_project_id: z.string().min(1),
+            path: z.string().optional(),
+            role: z.enum(["primary", "secondary"]),
+            required: z.boolean(),
+          }),
+        )
+        .optional(),
     },
     execute: async (
       {
         epic_id,
         title,
         narrative,
-      }: { epic_id: string; title: string; narrative: string },
+        scope_kind,
+        owner_project_id,
+        owner_repo_id,
+        scope_repos,
+      }: {
+        epic_id: string;
+        title: string;
+        narrative: string;
+        scope_kind?: "repo" | "product";
+        owner_project_id?: string;
+        owner_repo_id?: string;
+        scope_repos?: NonNullable<
+          import("../types").Epic["epic_scope"]
+        >["repos"];
+      },
       store: Store,
     ) => {
       try {
-        const epic = await store.epics.create(epic_id, title, narrative);
+        const epicScope = scope_kind
+          ? {
+              kind: scope_kind,
+              owner_project_id:
+                owner_project_id ?? store.productContext?.repoProjectId ?? "",
+              ...(owner_repo_id ? { owner_repo_id } : {}),
+              repos: scope_repos ?? [],
+            }
+          : undefined;
+        if (epicScope && !epicScope.owner_project_id) {
+          return formatToolOutput({
+            error: "owner_project_id is required when scope_kind is provided.",
+            code: "TARGET_CONFIRMATION_REQUIRED",
+          });
+        }
+        const epic = epicScope
+          ? await store.epics.create(epic_id, title, narrative, { epicScope })
+          : await store.epics.create(epic_id, title, narrative);
         return formatToolOutput({ success: true, epic: formatEpic(epic) });
       } catch (err) {
         return epicError(err);
@@ -531,6 +614,7 @@ export const epicTools = {
         .describe("Display title for the entry. Defaults to the change title."),
       entry_id: z.string().min(1).optional(),
       order: z.number().int().min(0).optional(),
+      repo_id: z.string().min(1).optional(),
       linked_by: z.string().min(1).optional(),
       link_evidence: z
         .string()
@@ -538,6 +622,9 @@ export const epicTools = {
         .describe(
           "Audit evidence for linking this existing change into the Epic.",
         ),
+      target_path: targetPathSchema.shape.target_path,
+      target_confirmed: targetPathSchema.shape.target_confirmed,
+      confirmationEvidence: targetPathSchema.shape.confirmationEvidence,
     },
     execute: async (
       {
@@ -546,21 +633,34 @@ export const epicTools = {
         title,
         entry_id,
         order,
+        repo_id,
         linked_by,
         link_evidence,
+        target_path,
+        target_confirmed,
+        confirmationEvidence,
       }: {
         epic_id: string;
         change_id: string;
         title?: string;
         entry_id?: string;
         order?: number;
+        repo_id?: string;
         linked_by?: string;
         link_evidence: string;
+        target_path?: string;
+        target_confirmed?: true;
+        confirmationEvidence?: string;
       },
       store: Store,
     ) => {
       try {
-        const change = await loadChange(store, change_id);
+        const childStore = await resolveChildStore(store, {
+          target_path,
+          target_confirmed,
+          confirmationEvidence,
+        });
+        const change = await loadChange(childStore.store, change_id);
         if (!change) {
           return formatToolOutput({
             error: `Change not found: ${change_id}`,
@@ -577,6 +677,9 @@ export const epicTools = {
             order,
             linkedBy: linked_by ?? "agent",
             linkEvidence: link_evidence,
+            changeProjectId: childStore.context?.projectId,
+            repoId: repo_id,
+            targetPath: childStore.context?.root,
           }),
         );
         const membership = membershipFromChangeEntry(
@@ -585,15 +688,16 @@ export const epicTools = {
           title ?? change.title,
           "link_existing",
         );
-        await store.changes.setEpicMembership(change_id, {
+        await childStore.store.changes.setEpicMembership(change_id, {
           membership,
           setAt: membership.linked_at,
         });
-        return formatToolOutput({
+        const output = formatToolOutput({
           success: true,
           entry: mapEpicEntry(entry),
           epic_membership: membership,
         });
+        return maybeAppendTargetContext(output, childStore.context);
       } catch (err) {
         return epicError(err);
       }
@@ -615,17 +719,26 @@ export const epicTools = {
         .string()
         .min(1)
         .describe("Audit evidence for unlinking this change from the Epic."),
+      target_path: targetPathSchema.shape.target_path,
+      target_confirmed: targetPathSchema.shape.target_confirmed,
+      confirmationEvidence: targetPathSchema.shape.confirmationEvidence,
     },
     execute: async (
       {
         epic_id,
         entry_id,
         change_id,
+        target_path,
+        target_confirmed,
+        confirmationEvidence,
       }: {
         epic_id: string;
         entry_id?: string;
         change_id?: string;
         unlink_evidence: string;
+        target_path?: string;
+        target_confirmed?: true;
+        confirmationEvidence?: string;
       },
       store: Store,
     ) => {
@@ -649,16 +762,22 @@ export const epicTools = {
             code: "PROJECTION_MISSING",
           });
         }
-        await store.changes.clearEpicMembership(finalChangeId, {
+        const childStore = await resolveChildStore(store, {
+          target_path,
+          target_confirmed,
+          confirmationEvidence,
+        });
+        await childStore.store.changes.clearEpicMembership(finalChangeId, {
           expected: { epic_id, entry_id: entry.entry_id },
         });
         await store.epics.unlinkChange(epic_id, entry.entry_id);
-        return formatToolOutput({
+        const output = formatToolOutput({
           success: true,
           entry_id: entry.entry_id,
           change_id: finalChangeId,
           unlinked: true,
         });
+        return maybeAppendTargetContext(output, childStore.context);
       } catch (err) {
         return epicError(err);
       }
@@ -675,11 +794,15 @@ export const epicTools = {
       from_entry_id: z.string().min(1).optional(),
       to_entry_id: z.string().min(1).optional(),
       order: z.number().int().min(0).optional(),
+      repo_id: z.string().min(1).optional(),
       moved_by: z.string().min(1).optional(),
       move_evidence: z
         .string()
         .min(1)
         .describe("Audit evidence for moving the change between Epics."),
+      target_path: targetPathSchema.shape.target_path,
+      target_confirmed: targetPathSchema.shape.target_confirmed,
+      confirmationEvidence: targetPathSchema.shape.confirmationEvidence,
     },
     execute: async (
       {
@@ -689,8 +812,12 @@ export const epicTools = {
         from_entry_id,
         to_entry_id,
         order,
+        repo_id,
         moved_by,
         move_evidence,
+        target_path,
+        target_confirmed,
+        confirmationEvidence,
       }: {
         from_epic_id: string;
         to_epic_id: string;
@@ -698,8 +825,12 @@ export const epicTools = {
         from_entry_id?: string;
         to_entry_id?: string;
         order?: number;
+        repo_id?: string;
         moved_by?: string;
         move_evidence: string;
+        target_path?: string;
+        target_confirmed?: true;
+        confirmationEvidence?: string;
       },
       store: Store,
     ) => {
@@ -718,7 +849,12 @@ export const epicTools = {
             code: "ENTRY_NOT_FOUND",
           });
         }
-        const change = await loadChange(store, change_id);
+        const childStore = await resolveChildStore(store, {
+          target_path,
+          target_confirmed,
+          confirmationEvidence,
+        });
+        const change = await loadChange(childStore.store, change_id);
         if (!change) {
           return formatToolOutput({
             error: `Change not found: ${change_id}`,
@@ -744,6 +880,9 @@ export const epicTools = {
             order,
             linkedBy: moved_by ?? "agent",
             linkEvidence: move_evidence,
+            changeProjectId: childStore.context?.projectId,
+            repoId: repo_id,
+            targetPath: childStore.context?.root,
           }),
         );
         const membership = membershipFromChangeEntry(
@@ -752,7 +891,7 @@ export const epicTools = {
           change.title,
           "move",
         );
-        await store.changes.setEpicMembership(change_id, {
+        await childStore.store.changes.setEpicMembership(change_id, {
           expectedCurrent: {
             epic_id: from_epic_id,
             entry_id: sourceEntry.entry_id,
@@ -761,13 +900,14 @@ export const epicTools = {
           setAt: membership.linked_at,
         });
         await store.epics.unlinkChange(from_epic_id, sourceEntry.entry_id);
-        return formatToolOutput({
+        const output = formatToolOutput({
           success: true,
           from_entry_id: sourceEntry.entry_id,
           to_entry: mapEpicEntry(destEntry),
           epic_membership: membership,
           moved: true,
         });
+        return maybeAppendTargetContext(output, childStore.context);
       } catch (err) {
         return epicError(err);
       }
