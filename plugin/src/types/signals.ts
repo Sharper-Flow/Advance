@@ -6,6 +6,7 @@
  */
 
 import { z } from "zod";
+import { EpicSchema } from "./epics";
 import { ConformanceVerdictSchema } from "./conformance";
 import {
   GateArtifactEvidenceSchema,
@@ -441,4 +442,132 @@ export const ChangeCancelledSignalPayloadSchema = z.object({
 });
 export type ChangeCancelledSignalPayload = z.infer<
   typeof ChangeCancelledSignalPayloadSchema
+>;
+
+// =============================================================================
+// Epic Workflow Signal Payloads
+// =============================================================================
+
+/**
+ * Create or replace the Epic record. Used at workflow creation and when a
+ * full Epic snapshot is reapplied (e.g., migration). Additive: extra fields
+ * on the Epic record are preserved via EpicSchema.passthrough.
+ */
+export const EpicCreatedSignalPayloadSchema = EpicSchema;
+export type EpicCreatedSignalPayload = z.infer<
+  typeof EpicCreatedSignalPayloadSchema
+>;
+
+/**
+ * Update Epic title/narrative with optimistic-concurrency version check.
+ * expectedVersion must match state.epic.version; otherwise a typed conflict
+ * is recorded and the update is rejected.
+ */
+export const EpicUpdatedSignalPayloadSchema = z.object({
+  title: z.string().optional(),
+  narrative: z.string().optional(),
+  expectedVersion: z.number().int().min(0),
+  idempotencyKey: z.string().min(1),
+  updatedAt: IsoTimestampSchema,
+});
+export type EpicUpdatedSignalPayload = z.infer<
+  typeof EpicUpdatedSignalPayloadSchema
+>;
+
+/**
+ * Add a shell entry to the Epic roadmap. order is advisory; the workflow
+ * assigns the next available order when omitted.
+ */
+export const ShellAddedSignalPayloadSchema = z.object({
+  entryId: z.string().min(1),
+  title: z.string().min(1),
+  successHint: z.string().min(1),
+  order: z.number().int().min(0).optional(),
+  idempotencyKey: z.string().min(1),
+  addedAt: IsoTimestampSchema,
+});
+export type ShellAddedSignalPayload = z.infer<
+  typeof ShellAddedSignalPayloadSchema
+>;
+
+/**
+ * Promote a shell entry to a linked ADV change. Idempotent by
+ * idempotencyKey and shell entry ID: retries return the already-linked
+ * change without creating duplicate rows.
+ */
+export const ShellPromotedSignalPayloadSchema = z.object({
+  entryId: z.string().min(1),
+  changeId: z.string().min(1),
+  promotedBy: z.string().min(1),
+  promotedAt: IsoTimestampSchema,
+  idempotencyKey: z.string().min(1),
+});
+export type ShellPromotedSignalPayload = z.infer<
+  typeof ShellPromotedSignalPayloadSchema
+>;
+
+/**
+ * Link an existing ADV change as a new Epic entry.
+ */
+export const ChangeLinkedSignalPayloadSchema = z.object({
+  entryId: z.string().min(1),
+  changeId: z.string().min(1),
+  title: z.string().min(1),
+  order: z.number().int().min(0).optional(),
+  idempotencyKey: z.string().min(1),
+  linkedAt: IsoTimestampSchema,
+});
+export type ChangeLinkedSignalPayload = z.infer<
+  typeof ChangeLinkedSignalPayloadSchema
+>;
+
+/**
+ * Unlink a change entry from the Epic. The entry is removed; this is not
+ * idempotent beyond missing-entry tolerance.
+ */
+export const ChangeUnlinkedSignalPayloadSchema = z.object({
+  entryId: z.string().min(1),
+  idempotencyKey: z.string().min(1),
+  unlinkedAt: IsoTimestampSchema,
+});
+export type ChangeUnlinkedSignalPayload = z.infer<
+  typeof ChangeUnlinkedSignalPayloadSchema
+>;
+
+/**
+ * Reorder Epic entries. expectedVersion enables CAS conflict detection;
+ * idempotencyKey survives continue-as-new.
+ */
+export const EntriesReorderedSignalPayloadSchema = z.object({
+  entryIds: z.array(z.string().min(1)).min(1),
+  expectedVersion: z.number().int().min(0),
+  idempotencyKey: z.string().min(1),
+  reorderedAt: IsoTimestampSchema,
+});
+export type EntriesReorderedSignalPayload = z.infer<
+  typeof EntriesReorderedSignalPayloadSchema
+>;
+
+/**
+ * Compact terminal summary update for a child change entry.
+ */
+export const EntryTerminalSummarySignalPayloadSchema = z.object({
+  entryId: z.string().min(1),
+  status: z.enum(["archived", "closed"]),
+  completedAt: IsoTimestampSchema,
+  idempotencyKey: z.string().min(1),
+});
+export type EntryTerminalSummarySignalPayload = z.infer<
+  typeof EntryTerminalSummarySignalPayloadSchema
+>;
+
+/**
+ * Archive the Epic. Terminal signal that sets status to "archived".
+ */
+export const EpicArchivedSignalPayloadSchema = z.object({
+  archivedAt: IsoTimestampSchema,
+  archivedBy: z.string().min(1),
+});
+export type EpicArchivedSignalPayload = z.infer<
+  typeof EpicArchivedSignalPayloadSchema
 >;

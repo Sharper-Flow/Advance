@@ -1,0 +1,445 @@
+import { describe, expect, it } from "vitest";
+
+import type { EpicWorkflowState } from "./contracts";
+import {
+  applyChangeLinkedToState,
+  applyChangeUnlinkedToState,
+  applyEntriesReorderedToState,
+  applyEntryTerminalSummaryToState,
+  applyEpicArchivedToState,
+  applyEpicCreatedToState,
+  applyEpicUpdatedToState,
+  applyShellAddedToState,
+  applyShellPromotedToState,
+  buildEpicSeedState,
+  createEpicWorkflowState,
+} from "./epic-state";
+
+function makeInput(): {
+  projectId: string;
+  epicId: string;
+  title: string;
+  narrative: string;
+  initializedAt: string;
+} {
+  return {
+    projectId: "epic-test-project",
+    epicId: "addAuthEpic",
+    title: "Add Auth",
+    narrative: "Add authentication to the service.",
+    initializedAt: "2026-06-24T00:00:00.000Z",
+  };
+}
+
+function makeState(
+  seed?: Partial<EpicWorkflowState["epic"]>,
+): EpicWorkflowState {
+  const state = createEpicWorkflowState(makeInput());
+  if (seed) {
+    state.epic = { ...state.epic, ...seed };
+  }
+  return state;
+}
+
+describe("epic-state", () => {
+  describe("createEpicWorkflowState", () => {
+    it("creates an active Epic with zero entries and version 0", () => {
+      const state = createEpicWorkflowState(makeInput());
+      expect(state.status).toBe("active");
+      expect(state.epic.id).toBe("addAuthEpic");
+      expect(state.epic.entries).toEqual([]);
+      expect(state.epic.version).toBe(0);
+      expect(state.idempotencyLedger).toEqual({});
+    });
+  });
+
+  describe("applyEpicCreatedToState", () => {
+    it("replaces the Epic record entirely", () => {
+      const state = makeState();
+      const payload = {
+        ...state.epic,
+        title: "Updated title",
+        narrative: "Updated narrative",
+        entries: [
+          {
+            kind: "shell" as const,
+            entry_id: "shell-1",
+            order: 0,
+            title: "Shell One",
+            success_hint: "hint",
+          },
+        ],
+      };
+      applyEpicCreatedToState(state, payload);
+      expect(state.epic.title).toBe("Updated title");
+      expect(state.epic.entries).toHaveLength(1);
+    });
+  });
+
+  describe("applyShellAddedToState", () => {
+    it("adds a shell entry and assigns the next order", () => {
+      const state = makeState();
+      const result = applyShellAddedToState(state, {
+        entryId: "shell-1",
+        title: "Shell One",
+        successHint: "Do the thing",
+        idempotencyKey: "add-shell-1",
+        addedAt: "2026-06-24T00:01:00.000Z",
+      });
+      expect(result.ok).toBe(true);
+      expect(state.epic.entries).toHaveLength(1);
+      expect(state.epic.entries[0]).toMatchObject({
+        kind: "shell",
+        entry_id: "shell-1",
+        order: 0,
+      });
+      expect(state.epic.version).toBe(1);
+      expect(state.idempotencyLedger["add-shell-1"]).toBeDefined();
+    });
+
+    it("returns idempotent success on duplicate idempotency key", () => {
+      const state = makeState();
+      applyShellAddedToState(state, {
+        entryId: "shell-1",
+        title: "Shell One",
+        successHint: "Do the thing",
+        idempotencyKey: "add-shell-1",
+        addedAt: "2026-06-24T00:01:00.000Z",
+      });
+      const result = applyShellAddedToState(state, {
+        entryId: "shell-2",
+        title: "Shell Two",
+        successHint: "Do another thing",
+        idempotencyKey: "add-shell-1",
+        addedAt: "2026-06-24T00:02:00.000Z",
+      });
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.code).toBe("duplicate_idempotency_key");
+      expect(state.epic.entries).toHaveLength(1);
+    });
+
+    it("rejects adding an entry with a duplicate entry ID", () => {
+      const state = makeState();
+      applyShellAddedToState(state, {
+        entryId: "shell-1",
+        title: "Shell One",
+        successHint: "Do the thing",
+        idempotencyKey: "add-shell-1",
+        addedAt: "2026-06-24T00:01:00.000Z",
+      });
+      const result = applyShellAddedToState(state, {
+        entryId: "shell-1",
+        title: "Shell One Again",
+        successHint: "Do the thing",
+        idempotencyKey: "add-shell-1-again",
+        addedAt: "2026-06-24T00:02:00.000Z",
+      });
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.code).toBe("entry_already_exists");
+    });
+  });
+
+  describe("applyShellPromotedToState", () => {
+    it("replaces a shell row with a linked change row carrying provenance", () => {
+      const state = makeState();
+      applyShellAddedToState(state, {
+        entryId: "shell-1",
+        title: "Shell One",
+        successHint: "Do the thing",
+        idempotencyKey: "add-shell-1",
+        addedAt: "2026-06-24T00:01:00.000Z",
+      });
+      const result = applyShellPromotedToState(state, {
+        entryId: "shell-1",
+        changeId: "change-1",
+        promotedBy: "agent",
+        promotedAt: "2026-06-24T00:02:00.000Z",
+        idempotencyKey: "promote-shell-1",
+      });
+      expect(result.ok).toBe(true);
+      expect(state.epic.entries).toHaveLength(1);
+      const entry = state.epic.entries[0];
+      expect(entry.kind).toBe("change");
+      if (entry.kind !== "change") throw new Error("Expected change entry");
+      expect(entry.change_id).toBe("change-1");
+      expect(entry.promotion).toMatchObject({
+        shell_entry_id: "shell-1",
+        shell_title: "Shell One",
+        shell_success_hint: "Do the thing",
+        promoted_by: "agent",
+        change_id: "change-1",
+      });
+      expect(state.epic.version).toBe(2);
+    });
+
+    it("is idempotent by idempotency key", () => {
+      const state = makeState();
+      applyShellAddedToState(state, {
+        entryId: "shell-1",
+        title: "Shell One",
+        successHint: "Do the thing",
+        idempotencyKey: "add-shell-1",
+        addedAt: "2026-06-24T00:01:00.000Z",
+      });
+      applyShellPromotedToState(state, {
+        entryId: "shell-1",
+        changeId: "change-1",
+        promotedBy: "agent",
+        promotedAt: "2026-06-24T00:02:00.000Z",
+        idempotencyKey: "promote-shell-1",
+      });
+      const result = applyShellPromotedToState(state, {
+        entryId: "shell-1",
+        changeId: "change-1",
+        promotedBy: "agent",
+        promotedAt: "2026-06-24T00:03:00.000Z",
+        idempotencyKey: "promote-shell-1",
+      });
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.code).toBe("duplicate_idempotency_key");
+      expect(state.epic.entries).toHaveLength(1);
+    });
+
+    it("returns the existing change when retrying promotion after the shell is gone", () => {
+      const state = makeState();
+      applyShellAddedToState(state, {
+        entryId: "shell-1",
+        title: "Shell One",
+        successHint: "Do the thing",
+        idempotencyKey: "add-shell-1",
+        addedAt: "2026-06-24T00:01:00.000Z",
+      });
+      applyShellPromotedToState(state, {
+        entryId: "shell-1",
+        changeId: "change-1",
+        promotedBy: "agent",
+        promotedAt: "2026-06-24T00:02:00.000Z",
+        idempotencyKey: "promote-shell-1",
+      });
+      // New key, but shell is already promoted to the same change.
+      const result = applyShellPromotedToState(state, {
+        entryId: "shell-1",
+        changeId: "change-1",
+        promotedBy: "agent",
+        promotedAt: "2026-06-24T00:03:00.000Z",
+        idempotencyKey: "promote-shell-1-retry",
+      });
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.entryId).toBe("shell-1");
+        expect(result.value.changeId).toBe("change-1");
+      }
+      expect(state.epic.entries).toHaveLength(1);
+    });
+  });
+
+  describe("applyEntriesReorderedToState", () => {
+    it("reorders entries with CAS version check", () => {
+      const state = makeState();
+      applyShellAddedToState(state, {
+        entryId: "a",
+        title: "A",
+        successHint: "a",
+        idempotencyKey: "add-a",
+        addedAt: "2026-06-24T00:01:00.000Z",
+      });
+      applyShellAddedToState(state, {
+        entryId: "b",
+        title: "B",
+        successHint: "b",
+        idempotencyKey: "add-b",
+        addedAt: "2026-06-24T00:02:00.000Z",
+      });
+      const versionBefore = state.epic.version;
+      const result = applyEntriesReorderedToState(state, {
+        entryIds: ["b", "a"],
+        expectedVersion: versionBefore,
+        idempotencyKey: "reorder-1",
+        reorderedAt: "2026-06-24T00:03:00.000Z",
+      });
+      expect(result.ok).toBe(true);
+      expect(state.epic.entries.map((e) => e.entry_id)).toEqual(["b", "a"]);
+      expect(state.epic.entries[0].order).toBe(0);
+      expect(state.epic.entries[1].order).toBe(1);
+    });
+
+    it("rejects reorder with stale expected version", () => {
+      const state = makeState();
+      applyShellAddedToState(state, {
+        entryId: "a",
+        title: "A",
+        successHint: "a",
+        idempotencyKey: "add-a",
+        addedAt: "2026-06-24T00:01:00.000Z",
+      });
+      const result = applyEntriesReorderedToState(state, {
+        entryIds: ["a"],
+        expectedVersion: 0,
+        idempotencyKey: "reorder-1",
+        reorderedAt: "2026-06-24T00:03:00.000Z",
+      });
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.code).toBe("stale_version");
+    });
+
+    it("is idempotent by idempotency key", () => {
+      const state = makeState();
+      applyShellAddedToState(state, {
+        entryId: "a",
+        title: "A",
+        successHint: "a",
+        idempotencyKey: "add-a",
+        addedAt: "2026-06-24T00:01:00.000Z",
+      });
+      applyShellAddedToState(state, {
+        entryId: "b",
+        title: "B",
+        successHint: "b",
+        idempotencyKey: "add-b",
+        addedAt: "2026-06-24T00:02:00.000Z",
+      });
+      const versionBefore = state.epic.version;
+      applyEntriesReorderedToState(state, {
+        entryIds: ["b", "a"],
+        expectedVersion: versionBefore,
+        idempotencyKey: "reorder-1",
+        reorderedAt: "2026-06-24T00:03:00.000Z",
+      });
+      const result = applyEntriesReorderedToState(state, {
+        entryIds: ["a", "b"],
+        expectedVersion: state.epic.version,
+        idempotencyKey: "reorder-1",
+        reorderedAt: "2026-06-24T00:04:00.000Z",
+      });
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.code).toBe("duplicate_idempotency_key");
+      expect(state.epic.entries.map((e) => e.entry_id)).toEqual(["b", "a"]);
+    });
+  });
+
+  describe("applyEpicUpdatedToState", () => {
+    it("updates title/narrative with CAS version check", () => {
+      const state = makeState();
+      const result = applyEpicUpdatedToState(state, {
+        title: "New Title",
+        expectedVersion: 0,
+        idempotencyKey: "update-1",
+        updatedAt: "2026-06-24T00:01:00.000Z",
+      });
+      expect(result.ok).toBe(true);
+      expect(state.epic.title).toBe("New Title");
+      expect(state.epic.version).toBe(1);
+    });
+
+    it("rejects stale version", () => {
+      const state = makeState();
+      const result = applyEpicUpdatedToState(state, {
+        title: "New Title",
+        expectedVersion: 5,
+        idempotencyKey: "update-1",
+        updatedAt: "2026-06-24T00:01:00.000Z",
+      });
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.code).toBe("stale_version");
+    });
+  });
+
+  describe("applyChangeLinkedToState", () => {
+    it("links an existing change as a new entry", () => {
+      const state = makeState();
+      const result = applyChangeLinkedToState(state, {
+        entryId: "entry-1",
+        changeId: "change-1",
+        title: "Linked Change",
+        idempotencyKey: "link-1",
+        linkedAt: "2026-06-24T00:01:00.000Z",
+      });
+      expect(result.ok).toBe(true);
+      expect(state.epic.entries[0].kind).toBe("change");
+    });
+  });
+
+  describe("applyChangeUnlinkedToState", () => {
+    it("removes a linked change entry", () => {
+      const state = makeState();
+      applyChangeLinkedToState(state, {
+        entryId: "entry-1",
+        changeId: "change-1",
+        title: "Linked Change",
+        idempotencyKey: "link-1",
+        linkedAt: "2026-06-24T00:01:00.000Z",
+      });
+      const result = applyChangeUnlinkedToState(state, {
+        entryId: "entry-1",
+        idempotencyKey: "unlink-1",
+        unlinkedAt: "2026-06-24T00:02:00.000Z",
+      });
+      expect(result.ok).toBe(true);
+      expect(state.epic.entries).toHaveLength(0);
+    });
+  });
+
+  describe("applyEntryTerminalSummaryToState", () => {
+    it("records terminal summary on a change entry", () => {
+      const state = makeState();
+      applyChangeLinkedToState(state, {
+        entryId: "entry-1",
+        changeId: "change-1",
+        title: "Linked Change",
+        idempotencyKey: "link-1",
+        linkedAt: "2026-06-24T00:01:00.000Z",
+      });
+      const result = applyEntryTerminalSummaryToState(state, {
+        entryId: "entry-1",
+        status: "archived",
+        completedAt: "2026-06-24T00:02:00.000Z",
+        idempotencyKey: "terminal-1",
+      });
+      expect(result.ok).toBe(true);
+      const entry = state.epic.entries[0];
+      expect(entry.kind).toBe("change");
+      if (entry.kind !== "change") throw new Error("Expected change entry");
+      expect(entry.terminal_summary).toEqual({
+        status: "archived",
+        completed_at: "2026-06-24T00:02:00.000Z",
+      });
+    });
+  });
+
+  describe("applyEpicArchivedToState", () => {
+    it("sets status and progress to archived", () => {
+      const state = makeState();
+      applyEpicArchivedToState(state, {
+        archivedAt: "2026-06-24T00:01:00.000Z",
+        archivedBy: "agent",
+      });
+      expect(state.status).toBe("archived");
+      expect(state.epic.progress.status).toBe("archived");
+    });
+  });
+
+  describe("buildEpicSeedState", () => {
+    it("preserves epic, ledger, status, and lastSignalAt for continue-as-new", () => {
+      const state = makeState();
+      applyShellAddedToState(state, {
+        entryId: "shell-1",
+        title: "Shell One",
+        successHint: "Do the thing",
+        idempotencyKey: "add-shell-1",
+        addedAt: "2026-06-24T00:01:00.000Z",
+      });
+      applyShellPromotedToState(state, {
+        entryId: "shell-1",
+        changeId: "change-1",
+        promotedBy: "agent",
+        promotedAt: "2026-06-24T00:02:00.000Z",
+        idempotencyKey: "promote-shell-1",
+      });
+      const seed = buildEpicSeedState(state);
+      expect(seed.epic).toEqual(state.epic);
+      expect(seed.idempotencyLedger).toEqual(state.idempotencyLedger);
+      expect(seed.status).toBe("active");
+      expect(seed.lastSignalAt).toBe(state.lastSignalAt);
+    });
+  });
+});

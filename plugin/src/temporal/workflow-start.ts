@@ -1,10 +1,14 @@
 import type { Change } from "../types";
-import { buildChangeWorkflowId, buildProjectTaskQueue } from "./client";
-import type { ChangeWorkflowInput } from "./contracts";
+import {
+  buildChangeWorkflowId,
+  buildEpicWorkflowId,
+  buildProjectTaskQueue,
+} from "./client";
+import type { ChangeWorkflowInput, EpicWorkflowInput } from "./contracts";
 import { changeSeedStateFromChange } from "./change-state";
 import { buildTemporalSearchAttributes } from "./observability";
 import { readDiskArtifactsForHydration } from "../storage/store-temporal/hydrate-documents";
-import { changeWorkflow } from "./workflows";
+import { changeWorkflow, epicWorkflow } from "./workflows";
 
 export interface WorkflowHandleLike {
   query: (definition: unknown, ...args: unknown[]) => Promise<unknown>;
@@ -116,4 +120,30 @@ export async function reImportChangeState(
     archiveProjects: input.archiveProjects,
     seedState: changeSeedStateFromChange(input.change),
   });
+}
+
+export async function ensureEpicWorkflowStarted(
+  client: { workflow: WorkflowClientLike },
+  input: EpicWorkflowInput,
+): Promise<WorkflowHandleLike> {
+  const workflowId = buildEpicWorkflowId(input.projectId, input.epicId);
+  const taskQueue = buildProjectTaskQueue(input.projectId);
+
+  try {
+    const startOpts: {
+      workflowId: string;
+      taskQueue: string;
+      args: [unknown];
+    } = {
+      workflowId,
+      taskQueue,
+      args: [input],
+    };
+    return await client.workflow.start(epicWorkflow, startOpts);
+  } catch (error) {
+    if (isAlreadyStartedError(error)) {
+      return client.workflow.getHandle(workflowId);
+    }
+    throw error;
+  }
 }

@@ -135,4 +135,22 @@ describe("workflow bundle transitive boundary", () => {
 
     expect(nodeImports).toEqual([]);
   });
+
+  it("exports epicWorkflow from the workflow bundle root", () => {
+    const source = readFileSync(workflowRoot, "utf8");
+    expect(source).toMatch(/export\s+async\s+function\s+epicWorkflow\b/);
+  });
+
+  it("does not transitively reach forbidden layers from epicWorkflow", () => {
+    const parents = reachableFrom(workflowRoot);
+    const forbidden = [...parents.keys()].filter((filePath) =>
+      /^storage\/|^tools\/|^tool-registry\.ts$|^plugin-init\.ts$/.test(
+        rel(filePath),
+      ),
+    );
+
+    expect(
+      forbidden.map((filePath) => pathFromRoot(parents, filePath)),
+    ).toEqual([]);
+  });
 });

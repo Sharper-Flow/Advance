@@ -8,6 +8,7 @@ import type {
   ScopedSubagentReport,
   FastFollowOf,
   Gates,
+  Epic,
 } from "../types";
 import type { SignalPayloadDigest } from "./digest";
 
@@ -16,6 +17,7 @@ export const DEFAULT_TEMPORAL_ADDRESS = "127.0.0.1:7233";
 export const DEFAULT_TEMPORAL_NAMESPACE = "default";
 
 export const CHANGE_WORKFLOW_NAME = "changeWorkflow";
+export const EPIC_WORKFLOW_NAME = "epicWorkflow";
 
 export const ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES = {
   projectId: "AdvProjectId",
@@ -90,6 +92,23 @@ export const CHANGE_WORKFLOW_SIGNAL_NAMES = {
   updateArtifactMetadata: "adv.change.updateArtifactMetadata",
   archiveChange: "adv.change.archiveChange",
   closeChange: "adv.change.closeChange",
+} as const;
+
+export const EPIC_WORKFLOW_QUERY_NAMES = {
+  getState: "adv.epic.getState",
+  getEpic: "adv.epic.getEpic",
+} as const;
+
+export const EPIC_WORKFLOW_SIGNAL_NAMES = {
+  epicCreated: "adv.epic.epicCreated",
+  epicUpdated: "adv.epic.epicUpdated",
+  shellAdded: "adv.epic.shellAdded",
+  shellPromoted: "adv.epic.shellPromoted",
+  changeLinked: "adv.epic.changeLinked",
+  changeUnlinked: "adv.epic.changeUnlinked",
+  entriesReordered: "adv.epic.entriesReordered",
+  entryTerminalSummary: "adv.epic.entryTerminalSummary",
+  epicArchived: "adv.epic.epicArchived",
 } as const;
 
 export function subagentReportKey(input: {
@@ -237,6 +256,55 @@ export interface ChangeWorkflowInput {
 }
 
 export type ChangeWorkflowBootstrapState = ChangeWorkflowInput;
+
+export interface EpicWorkflowInput {
+  projectId: string;
+  epicId: string;
+  title: string;
+  narrative: string;
+  initializedAt: string;
+  /**
+   * When false, workflow handlers skip wf.upsertSearchAttributes() calls.
+   * Defaults to true (or undefined, treated as true) for backward compatibility.
+   */
+  searchAttributesEnabled?: boolean;
+  /**
+   * Seed state for continue-as-new rotation. Only the fields listed below
+   * are preserved across rotations; everything else is rebuilt from the Epic
+   * record and input.
+   */
+  seedState?: Partial<
+    Pick<
+      EpicWorkflowState,
+      "epic" | "status" | "idempotencyLedger" | "lastSignalAt" | "rejections"
+    >
+  >;
+}
+
+export interface EpicSignalRejection {
+  signalName: string;
+  errorMessage: string;
+  payloadDigest: SignalPayloadDigest;
+  rejectedAt: string;
+}
+
+export interface EpicWorkflowState extends EpicWorkflowInput {
+  id: string;
+  /** Epic lifecycle status tracked by the workflow. */
+  status: "active" | "archived";
+  /** Authoritative Epic record. */
+  epic: Epic;
+  /**
+   * Idempotency keys that have already been processed. Keys survive
+   * continue-as-new via seedState so duplicate promotion/reorder signals
+   * across rotations remain no-ops.
+   */
+  idempotencyLedger: Record<string, { processedAt: string; outcome: string }>;
+  /** ISO 8601 timestamp of the last successfully processed signal. */
+  lastSignalAt?: string;
+  /** Bounded diagnostics for signal-handler rejections. */
+  rejections?: EpicSignalRejection[];
+}
 
 export interface CrossProjectCoordinationUpdatedSignalPayload {
   cross_project_links?: Change["cross_project_links"];
