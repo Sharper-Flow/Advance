@@ -313,14 +313,71 @@ describe("active-change pointer hooks (T4/T5/T7)", () => {
   });
 
   describe("T7 — reachability gate in handleToolExecuteBefore", () => {
-    it("re-points to a reachable changeId", async () => {
+    it("does not re-point for read-only adv_change_show with reachable changeId", async () => {
       mockStore = makeFakeStore({
         changesDir: join(tempDir, ".adv/changes"),
         reachable: new Set(["realChange"]),
       });
       await createPlugin();
       await hooks["tool.execute.before"]!(
+        { tool: "adv_change_show" } as any,
+        { args: { changeId: "realChange" } } as any,
+      );
+      expect(getStatus().activeChangeId).toBeNull();
+    });
+
+    it("preserves existing pointer for read-only adv_gate_status", async () => {
+      mockStore = makeFakeStore({
+        changesDir: join(tempDir, ".adv/changes"),
+        reachable: new Set(["activeA", "otherB"]),
+      });
+      await createPlugin();
+      await hooks["tool.execute.after"]!(
+        { tool: "adv_change_create" } as any,
+        {
+          args: { summary: "test" },
+          output: JSON.stringify({ changeId: "activeA" }),
+        } as any,
+      );
+      expect(getStatus().activeChangeId).toBe("activeA");
+
+      await hooks["tool.execute.before"]!(
+        { tool: "adv_gate_status" } as any,
+        { args: { changeId: "otherB" } } as any,
+      );
+      expect(getStatus().activeChangeId).toBe("activeA");
+    });
+
+    it("preserves existing pointer for read-only adv_task_list", async () => {
+      mockStore = makeFakeStore({
+        changesDir: join(tempDir, ".adv/changes"),
+        reachable: new Set(["activeA", "otherB"]),
+      });
+      await createPlugin();
+      await hooks["tool.execute.after"]!(
+        { tool: "adv_change_create" } as any,
+        {
+          args: { summary: "test" },
+          output: JSON.stringify({ changeId: "activeA" }),
+        } as any,
+      );
+      expect(getStatus().activeChangeId).toBe("activeA");
+
+      await hooks["tool.execute.before"]!(
         { tool: "adv_task_list" } as any,
+        { args: { changeId: "otherB" } } as any,
+      );
+      expect(getStatus().activeChangeId).toBe("activeA");
+    });
+
+    it("re-points to a reachable changeId for an allowed active-work mutator", async () => {
+      mockStore = makeFakeStore({
+        changesDir: join(tempDir, ".adv/changes"),
+        reachable: new Set(["realChange"]),
+      });
+      await createPlugin();
+      await hooks["tool.execute.before"]!(
+        { tool: "adv_task_update" } as any,
         { args: { changeId: "realChange" } } as any,
       );
       expect(getStatus().activeChangeId).toBe("realChange");
@@ -333,13 +390,13 @@ describe("active-change pointer hooks (T4/T5/T7)", () => {
       });
       await createPlugin();
       await hooks["tool.execute.before"]!(
-        { tool: "adv_task_list" } as any,
+        { tool: "adv_task_update" } as any,
         { args: { changeId: "existingChange" } } as any,
       );
       expect(getStatus().activeChangeId).toBe("existingChange");
 
       await hooks["tool.execute.before"]!(
-        { tool: "adv_task_list" } as any,
+        { tool: "adv_task_update" } as any,
         { args: { changeId: "typoChange" } } as any,
       );
       expect(getStatus().activeChangeId).toBe("existingChange");
@@ -356,7 +413,7 @@ describe("active-change pointer hooks (T4/T5/T7)", () => {
       mockStore = makeFakeStore({ changesDir });
       await createPlugin();
       await hooks["tool.execute.before"]!(
-        { tool: "adv_task_list" } as any,
+        { tool: "adv_task_update" } as any,
         { args: { changeId: diskOnlyId } } as any,
       );
       expect(getStatus().activeChangeId).toBe(diskOnlyId);
@@ -369,7 +426,7 @@ describe("active-change pointer hooks (T4/T5/T7)", () => {
       });
       await createPlugin();
       await hooks["tool.execute.before"]!(
-        { tool: "adv_task_list" } as any,
+        { tool: "adv_task_update" } as any,
         {
           args: {
             changeId: "otherProjectChange",
