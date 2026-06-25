@@ -4,9 +4,11 @@
  *
  * Pattern: queries Temporal Visibility on the per-change `AdvBacklogIssueNumber`
  * search attribute (added in task A1) plus `AdvAffectedProjects` for project
- * scope and `AdvChangeStatus` for non-terminal filter. The change workflow
- * itself IS the durable claim record — its non-terminal status proves the
- * claim is held; archive/close releases the claim automatically.
+ * scope and `AdvLifecycleState = "open"` + running execution filtering. The
+ * change workflow itself IS the durable claim record — its open lifecycle state
+ * proves the claim is held; archive/close releases the claim automatically.
+ * `AdvChangeStatus` is compatibility/read-model metadata and is not claim
+ * authority.
  *
  * Project-scope attribute: uses `AdvAffectedProjects` (the registered
  * KeywordList in `ADV_SEARCH_ATTRIBUTES`).
