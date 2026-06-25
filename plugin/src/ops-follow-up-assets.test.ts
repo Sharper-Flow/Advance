@@ -93,7 +93,7 @@ describe("ops-follow-up traceability spec law", () => {
 describe("ops-follow-up spec versions bumped", () => {
   test("advance-workflow version is at least 1.19.0", () => {
     const spec = loadSpec("advance-workflow");
-    expect(spec.version).toBe("1.21.0");
+    expect(spec.version).toBe("1.22.0");
   });
 
   test("subagent-reports version is at least 1.3.0", () => {
@@ -103,6 +103,6 @@ describe("ops-follow-up spec versions bumped", () => {
 
   test("backlog-coordination version is at least 1.3.0", () => {
     const spec = loadSpec("backlog-coordination");
-    expect(spec.version).toBe("1.3.0");
+    expect(spec.version).toBe("1.4.0");
   });
 });

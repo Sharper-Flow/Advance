@@ -10,6 +10,7 @@ import {
 const SIGNAL_SEARCH_ATTRIBUTE_NAMES = [
   "AdvChangeId",
   "AdvChangeStatus",
+  "AdvLifecycleState",
   "AdvChangeTitle",
   "AdvAffectedProjects",
   "AdvCurrentGate",
@@ -28,6 +29,7 @@ const SIGNAL_SEARCH_ATTRIBUTE_NAMES = [
 const SIGNAL_REQUIRED_SEARCH_ATTRIBUTES = [
   { name: "AdvChangeId", type: "Keyword", typeCode: 2 },
   { name: "AdvChangeStatus", type: "Keyword", typeCode: 2 },
+  { name: "AdvLifecycleState", type: "Keyword", typeCode: 2 },
   { name: "AdvChangeTitle", type: "Keyword", typeCode: 2 },
   { name: "AdvAffectedProjects", type: "KeywordList", typeCode: 7 },
   { name: "AdvCurrentGate", type: "Keyword", typeCode: 2 },
@@ -154,6 +156,7 @@ describe("temporal observability helpers", () => {
       "AdvCurrentGate",
     ]);
     expect(result.missing.map((attr) => attr.name)).toEqual([
+      "AdvLifecycleState",
       "AdvChangeTitle",
       "AdvAffectedProjects",
       "AdvCurrentBucket",
@@ -231,6 +234,7 @@ describe("temporal observability helpers", () => {
     expect(addSearchAttributes).toHaveBeenCalledWith({
       namespace: "default",
       searchAttributes: {
+        AdvLifecycleState: 2,
         AdvChangeTitle: 2,
         AdvAffectedProjects: 7,
         AdvCurrentBucket: 2,
@@ -247,6 +251,7 @@ describe("temporal observability helpers", () => {
       method: "operatorService.addSearchAttributes",
       verificationStatus: "verified",
       created: [
+        { name: "AdvLifecycleState", type: "Keyword", typeCode: 2 },
         { name: "AdvChangeTitle", type: "Keyword", typeCode: 2 },
         { name: "AdvAffectedProjects", type: "KeywordList", typeCode: 7 },
         { name: "AdvCurrentBucket", type: "Keyword", typeCode: 2 },

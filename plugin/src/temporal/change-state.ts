@@ -79,6 +79,8 @@ export interface StateMutationContext {
 export function normalizeChangeLifecycleState(
   status: ChangeStatus | ChangeLifecycleState | undefined,
 ): ChangeLifecycleState {
+  // rq-changeLifecycleState01 — lifecycle is a structural state dimension
+  // separate from gates and legacy compatibility status values.
   if (status === "archived" || status === "closed") return status;
   return "open";
 }

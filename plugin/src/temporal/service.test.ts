@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => {
   const ADV_SA_FULL_PRESENT = {
     AdvChangeId: { indexedValueType: 2 },
     AdvChangeStatus: { indexedValueType: 2 },
+    AdvLifecycleState: { indexedValueType: 2 },
     AdvChangeTitle: { indexedValueType: 2 },
     AdvAffectedProjects: { indexedValueType: 7 },
     AdvCurrentGate: { indexedValueType: 2 },
@@ -16,6 +17,7 @@ const mocks = vi.hoisted(() => {
     AdvWorktreeBranches: { indexedValueType: 7 },
     AdvWorktreePaths: { indexedValueType: 7 },
     AdvBacklogIssueNumber: { indexedValueType: 2 },
+    AdvEpicId: { indexedValueType: 2 },
   };
   const connectionClose = vi.fn().mockResolvedValue(undefined);
   const addSearchAttributes = vi.fn().mockResolvedValue({});
@@ -114,6 +116,7 @@ describe("STSL (Shared Temporal Service Layer)", () => {
       searchAttributes: {
         AdvChangeId: 2,
         AdvChangeStatus: 2,
+        AdvLifecycleState: 2,
         AdvChangeTitle: 2,
         AdvAffectedProjects: 7,
         AdvCurrentGate: 2,
@@ -123,6 +126,7 @@ describe("STSL (Shared Temporal Service Layer)", () => {
         AdvWorktreeBranches: 7,
         AdvWorktreePaths: 7,
         AdvBacklogIssueNumber: 2,
+        AdvEpicId: 2,
       },
     });
   });
