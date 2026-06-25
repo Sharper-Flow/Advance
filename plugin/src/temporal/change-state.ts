@@ -79,6 +79,8 @@ export interface StateMutationContext {
 export function normalizeChangeLifecycleState(
   status: ChangeStatus | ChangeLifecycleState | undefined,
 ): ChangeLifecycleState {
+  // rq-changeLifecycleState01: lifecycle state is the durable open/terminal
+  // claim, separate from compatibility `status` values such as draft/active.
   if (status === "archived" || status === "closed") return status;
   return "open";
 }

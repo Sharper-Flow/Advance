@@ -3481,22 +3481,13 @@ export const changeTools = {
           signalError: error,
         });
         if (recovery.recovered) {
-          let cleanupWarning: string | undefined;
-          if (store.paths?.changes) {
-            try {
-              await removeChangeDir(store.paths.changes, changeId);
-            } catch (err) {
-              cleanupWarning = `Source cleanup warning: failed to remove changes/${changeId}: ${err instanceof Error ? err.message : String(err)}`;
-            }
-          }
           return formatToolOutput({
             success: true,
             _recoveryMutation: true,
+            diskProjectionRetained: true,
             changeId,
             reason,
-            message: cleanupWarning
-              ? `Closed change ${changeId} as ${reason} via completed-workflow recovery. ${cleanupWarning}`
-              : `Closed change ${changeId} as ${reason} via completed-workflow recovery.`,
+            message: `Closed change ${changeId} as ${reason} via completed-workflow recovery. Retained closed disk projection for stale-visibility reconciliation.`,
           });
         }
         const contextMismatch = extractContextMismatch(error);
@@ -3704,7 +3695,7 @@ export const changeTools = {
         let diskRemoved: string[] = [];
         let diskFailed: Array<{ id: string; error: string }> = [];
         const successfulIds = results
-          .filter((r) => r.success)
+          .filter((r) => r.success && !r.recovered)
           .map((r) => r.changeId);
         if (successfulIds.length > 0 && store.paths?.changes) {
           const sweep = await sweepClosedChangesFromDisk(
