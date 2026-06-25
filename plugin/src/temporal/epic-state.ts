@@ -232,7 +232,10 @@ export function applyShellPromotedToState(
     const existingEntry = state.epic.entries[index];
     if (existingEntry.kind === "change") {
       // Idempotent retry: shell was already promoted in-place to this change.
-      if (existingEntry.change_id === payload.changeId) {
+      if (
+        (existingEntry.change_id ?? existingEntry.change_ref?.change_id) ===
+        payload.changeId
+      ) {
         recordIdempotency(
           state,
           payload.idempotencyKey,
@@ -288,7 +291,7 @@ export function applyShellPromotedToState(
     (entry) =>
       entry.kind === "change" &&
       entry.promotion?.shell_entry_id === payload.entryId &&
-      entry.change_id === payload.changeId,
+      (entry.change_id ?? entry.change_ref?.change_id) === payload.changeId,
   );
   if (existing) {
     recordIdempotency(
@@ -335,7 +338,13 @@ export function applyChangeLinkedToState(
     kind: "change",
     entry_id: payload.entryId,
     order,
-    change_id: payload.changeId,
+    ...(payload.changeRef ? { change_ref: payload.changeRef } : {}),
+    ...(!payload.changeRef ? { change_id: payload.changeId } : {}),
+    title: payload.title,
+    membership_status: payload.membershipStatus ?? "projection_pending",
+    linked_at: payload.linkedAt,
+    linked_by: payload.linkedBy ?? "agent",
+    ...(payload.linkEvidence ? { link_evidence: payload.linkEvidence } : {}),
   };
   state.epic.entries.push(entry);
 

@@ -191,6 +191,21 @@ export interface Store {
      * blocked archive even though the workflow gate was already done.
      */
     refresh: (changeId: string) => Promise<void>;
+    setEpicMembership: (
+      changeId: string,
+      input: {
+        membership: NonNullable<Change["epic_membership"]>;
+        expectedCurrent?: { epic_id: string; entry_id: string };
+        setAt?: string;
+      },
+    ) => Promise<Change | null>;
+    clearEpicMembership: (
+      changeId: string,
+      input: {
+        expected: { epic_id: string; entry_id: string };
+        clearedAt?: string;
+      },
+    ) => Promise<Change | null>;
     /**
      * rq-changeSummaryReadModel01 (advance-meta v1.12): lightweight summary
      * listing surface for default read paths (`adv_change_list`,
@@ -343,6 +358,8 @@ export interface Store {
         changeId: string;
         title: string;
         order?: number;
+        linkedBy?: string;
+        linkEvidence?: string;
       },
     ) => Promise<EpicEntry>;
     unlinkChange: (epicId: string, entryId: string) => Promise<void>;

@@ -44,7 +44,7 @@ export interface EpicMutationError {
 }
 
 function idempotencyKey(prefix: string, ...parts: string[]): string {
-  return [prefix, ...parts, new Date().toISOString()].join("|");
+  return [prefix, ...parts].join("|");
 }
 
 function extractMutationRejection(
@@ -321,7 +321,10 @@ export function createEpicOps(deps: StoreDeps): Store["epics"] {
       return { entryId, changeId };
     },
 
-    linkChange: async (epicId, { entryId, changeId, title, order }) => {
+    linkChange: async (
+      epicId,
+      { entryId, changeId, title, order, linkedBy, linkEvidence },
+    ) => {
       await assertEpicExists(epicId);
       const handle = getEpicHandle(epicId);
 
@@ -331,8 +334,15 @@ export function createEpicOps(deps: StoreDeps): Store["epics"] {
       const payload = {
         entryId: finalEntryId,
         changeId,
+        changeRef: {
+          change_id: changeId,
+          project_id: input.projectId,
+        },
         title,
         order,
+        membershipStatus: "projection_pending" as const,
+        linkedBy: linkedBy ?? "agent",
+        ...(linkEvidence ? { linkEvidence } : {}),
         idempotencyKey: idempotencyKey(
           "link-change",
           epicId,

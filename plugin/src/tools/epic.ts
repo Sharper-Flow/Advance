@@ -105,21 +105,25 @@ function formatEpicCompact(epic: import("../types").Epic) {
       .slice(0, COMPACT_NEXT_WORK_LIMIT)
       .flatMap<CompactNextWorkEntry>((entry) => {
         if (entry.kind === "shell") {
-          return [{
-            entry_id: entry.entry_id,
-            kind: "shell" as const,
-            title: entry.title,
-            status: "future" as const,
-          }];
+          return [
+            {
+              entry_id: entry.entry_id,
+              kind: "shell" as const,
+              title: entry.title,
+              status: "future" as const,
+            },
+          ];
         }
         const changeId = getEpicEntryChangeId(entry);
         if (!changeId) return [];
-        return [{
-          entry_id: entry.entry_id,
-          kind: "change" as const,
-          change_id: changeId,
-          status: "active" as const,
-        }];
+        return [
+          {
+            entry_id: entry.entry_id,
+            kind: "change" as const,
+            change_id: changeId,
+            status: "active" as const,
+          },
+        ];
       });
   }
 
@@ -166,6 +170,72 @@ async function loadEpic(store: Store, epicId: string) {
   const result = await store.epics.get(epicId);
   if (!result.success || !result.data) return null;
   return result.data;
+}
+
+async function loadChange(store: Store, changeId: string) {
+  const result = await store.changes.get(changeId);
+  if (!result.success || !result.data) return null;
+  return result.data;
+}
+
+function changeAlreadyInEpic(change: import("../types").Change) {
+  return formatToolOutput({
+    error: `Change already belongs to Epic ${change.epic_membership?.epic_id}`,
+    code: "CHANGE_ALREADY_IN_EPIC",
+    current_membership: change.epic_membership,
+  });
+}
+
+function findChangeEntry(
+  epic: import("../types").Epic,
+  input: { entryId?: string; changeId?: string },
+) {
+  return epic.entries.find((entry) => {
+    if (entry.kind !== "change") return false;
+    if (input.entryId && entry.entry_id === input.entryId) return true;
+    if (input.changeId && getEpicEntryChangeId(entry) === input.changeId) {
+      return true;
+    }
+    return false;
+  }) as Extract<EpicEntry, { kind: "change" }> | undefined;
+}
+
+function requireChangeEntry(
+  entry: EpicEntry,
+): Extract<EpicEntry, { kind: "change" }> {
+  if (entry.kind !== "change") {
+    throw Object.assign(
+      new Error(`Expected change entry, received ${entry.kind}`),
+      {
+        code: "ENTRY_NOT_FOUND",
+      },
+    );
+  }
+  return entry;
+}
+
+function membershipFromChangeEntry(
+  epicId: string,
+  entry: Extract<EpicEntry, { kind: "change" }>,
+  fallbackTitle: string,
+  source: NonNullable<import("../types").Change["epic_membership"]>["source"],
+) {
+  const membership: NonNullable<import("../types").Change["epic_membership"]> =
+    {
+      epic_id: epicId,
+      entry_id: entry.entry_id,
+      order: entry.order,
+      title: entry.title ?? fallbackTitle,
+      linked_at: entry.linked_at ?? new Date().toISOString(),
+      source,
+    };
+  if (entry.change_ref?.project_id) {
+    membership.epic_project_id = entry.change_ref.project_id;
+  }
+  if (entry.change_ref?.repo_id) {
+    membership.repo_id = entry.change_ref.repo_id;
+  }
+  return membership;
 }
 
 export const epicTools = {
@@ -449,13 +519,25 @@ export const epicTools = {
   },
 
   adv_epic_link_change: {
-    description: "Link an existing ADV change as a new Epic entry.",
+    description:
+      "Link an existing same-project ADV change as a new Epic entry and project compact epic_membership onto the child change.",
     args: {
       epic_id: EPIC_ID_SCHEMA,
       change_id: z.string().min(1).describe("Existing ADV change ID to link."),
-      title: z.string().min(1).describe("Display title for the entry."),
+      title: z
+        .string()
+        .min(1)
+        .optional()
+        .describe("Display title for the entry. Defaults to the change title."),
       entry_id: z.string().min(1).optional(),
       order: z.number().int().min(0).optional(),
+      linked_by: z.string().min(1).optional(),
+      link_evidence: z
+        .string()
+        .min(1)
+        .describe(
+          "Audit evidence for linking this existing change into the Epic.",
+        ),
     },
     execute: async (
       {
@@ -464,25 +546,53 @@ export const epicTools = {
         title,
         entry_id,
         order,
+        linked_by,
+        link_evidence,
       }: {
         epic_id: string;
         change_id: string;
-        title: string;
+        title?: string;
         entry_id?: string;
         order?: number;
+        linked_by?: string;
+        link_evidence: string;
       },
       store: Store,
     ) => {
       try {
-        const entry = await store.epics.linkChange(epic_id, {
-          entryId: entry_id,
-          changeId: change_id,
-          title,
-          order,
+        const change = await loadChange(store, change_id);
+        if (!change) {
+          return formatToolOutput({
+            error: `Change not found: ${change_id}`,
+            code: "CHANGE_NOT_FOUND",
+          });
+        }
+        if (change.epic_membership) return changeAlreadyInEpic(change);
+
+        const entry = requireChangeEntry(
+          await store.epics.linkChange(epic_id, {
+            entryId: entry_id,
+            changeId: change_id,
+            title: title ?? change.title,
+            order,
+            linkedBy: linked_by ?? "agent",
+            linkEvidence: link_evidence,
+          }),
+        );
+        const membership = membershipFromChangeEntry(
+          epic_id,
+          entry,
+          title ?? change.title,
+          "link_existing",
+        );
+        await store.changes.setEpicMembership(change_id, {
+          membership,
+          setAt: membership.linked_at,
         });
         return formatToolOutput({
           success: true,
           entry: mapEpicEntry(entry),
+          epic_membership: membership,
         });
       } catch (err) {
         return epicError(err);
@@ -491,21 +601,172 @@ export const epicTools = {
   },
 
   adv_epic_unlink_change: {
-    description: "Unlink a change entry from an Epic. The entry is removed.",
+    description:
+      "Unlink a same-project change entry from an Epic after clearing the child epic_membership projection.",
     args: {
       epic_id: EPIC_ID_SCHEMA,
-      entry_id: z.string().min(1).describe("Entry ID to unlink."),
+      entry_id: z.string().min(1).optional().describe("Entry ID to unlink."),
+      change_id: z
+        .string()
+        .min(1)
+        .optional()
+        .describe("Change ID to unlink when entry_id is omitted."),
+      unlink_evidence: z
+        .string()
+        .min(1)
+        .describe("Audit evidence for unlinking this change from the Epic."),
     },
     execute: async (
-      { epic_id, entry_id }: { epic_id: string; entry_id: string },
+      {
+        epic_id,
+        entry_id,
+        change_id,
+      }: {
+        epic_id: string;
+        entry_id?: string;
+        change_id?: string;
+        unlink_evidence: string;
+      },
       store: Store,
     ) => {
       try {
-        await store.epics.unlinkChange(epic_id, entry_id);
+        const epic = await loadEpic(store, epic_id);
+        if (!epic) return epicNotFound(epic_id);
+        const entry = findChangeEntry(epic, {
+          entryId: entry_id,
+          changeId: change_id,
+        });
+        if (!entry) {
+          return formatToolOutput({
+            error: `Entry not found in Epic ${epic_id}`,
+            code: "ENTRY_NOT_FOUND",
+          });
+        }
+        const finalChangeId = getEpicEntryChangeId(entry);
+        if (!finalChangeId) {
+          return formatToolOutput({
+            error: `Entry has no change reference: ${entry.entry_id}`,
+            code: "PROJECTION_MISSING",
+          });
+        }
+        await store.changes.clearEpicMembership(finalChangeId, {
+          expected: { epic_id, entry_id: entry.entry_id },
+        });
+        await store.epics.unlinkChange(epic_id, entry.entry_id);
         return formatToolOutput({
           success: true,
-          entry_id,
+          entry_id: entry.entry_id,
+          change_id: finalChangeId,
           unlinked: true,
+        });
+      } catch (err) {
+        return epicError(err);
+      }
+    },
+  },
+
+  adv_epic_move_change: {
+    description:
+      "Move a same-project change from one Epic to another, updating child epic_membership in between.",
+    args: {
+      from_epic_id: EPIC_ID_SCHEMA,
+      to_epic_id: EPIC_ID_SCHEMA,
+      change_id: z.string().min(1),
+      from_entry_id: z.string().min(1).optional(),
+      to_entry_id: z.string().min(1).optional(),
+      order: z.number().int().min(0).optional(),
+      moved_by: z.string().min(1).optional(),
+      move_evidence: z
+        .string()
+        .min(1)
+        .describe("Audit evidence for moving the change between Epics."),
+    },
+    execute: async (
+      {
+        from_epic_id,
+        to_epic_id,
+        change_id,
+        from_entry_id,
+        to_entry_id,
+        order,
+        moved_by,
+        move_evidence,
+      }: {
+        from_epic_id: string;
+        to_epic_id: string;
+        change_id: string;
+        from_entry_id?: string;
+        to_entry_id?: string;
+        order?: number;
+        moved_by?: string;
+        move_evidence: string;
+      },
+      store: Store,
+    ) => {
+      try {
+        const fromEpic = await loadEpic(store, from_epic_id);
+        if (!fromEpic) return epicNotFound(from_epic_id);
+        const toEpic = await loadEpic(store, to_epic_id);
+        if (!toEpic) return epicNotFound(to_epic_id);
+        const sourceEntry = findChangeEntry(fromEpic, {
+          entryId: from_entry_id,
+          changeId: change_id,
+        });
+        if (!sourceEntry) {
+          return formatToolOutput({
+            error: `Source entry not found in Epic ${from_epic_id}`,
+            code: "ENTRY_NOT_FOUND",
+          });
+        }
+        const change = await loadChange(store, change_id);
+        if (!change) {
+          return formatToolOutput({
+            error: `Change not found: ${change_id}`,
+            code: "CHANGE_NOT_FOUND",
+          });
+        }
+        if (
+          !change.epic_membership ||
+          change.epic_membership.epic_id !== from_epic_id ||
+          change.epic_membership.entry_id !== sourceEntry.entry_id
+        ) {
+          return formatToolOutput({
+            error: `Change projection does not match source Epic ${from_epic_id}`,
+            code: "PROJECTION_MISMATCH",
+            current_membership: change.epic_membership,
+          });
+        }
+        const destEntry = requireChangeEntry(
+          await store.epics.linkChange(to_epic_id, {
+            entryId: to_entry_id,
+            changeId: change_id,
+            title: change.title,
+            order,
+            linkedBy: moved_by ?? "agent",
+            linkEvidence: move_evidence,
+          }),
+        );
+        const membership = membershipFromChangeEntry(
+          to_epic_id,
+          destEntry,
+          change.title,
+          "move",
+        );
+        await store.changes.setEpicMembership(change_id, {
+          expectedCurrent: {
+            epic_id: from_epic_id,
+            entry_id: sourceEntry.entry_id,
+          },
+          membership,
+          setAt: membership.linked_at,
+        });
+        await store.epics.unlinkChange(from_epic_id, sourceEntry.entry_id);
+        return formatToolOutput({
+          success: true,
+          from_entry_id: sourceEntry.entry_id,
+          to_entry: mapEpicEntry(destEntry),
+          epic_membership: membership,
+          moved: true,
         });
       } catch (err) {
         return epicError(err);

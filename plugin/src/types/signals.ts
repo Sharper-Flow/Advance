@@ -6,7 +6,12 @@
  */
 
 import { z } from "zod";
-import { EpicMembershipSchema, EpicSchema } from "./epics";
+import {
+  EpicChangeRefSchema,
+  EpicMembershipSchema,
+  EpicMembershipStatusSchema,
+  EpicSchema,
+} from "./epics";
 import { ConformanceVerdictSchema } from "./conformance";
 import {
   GateArtifactEvidenceSchema,
@@ -512,8 +517,12 @@ export type ShellPromotedSignalPayload = z.infer<
 export const ChangeLinkedSignalPayloadSchema = z.object({
   entryId: z.string().min(1),
   changeId: z.string().min(1),
+  changeRef: EpicChangeRefSchema.optional(),
   title: z.string().min(1),
   order: z.number().int().min(0).optional(),
+  membershipStatus: EpicMembershipStatusSchema.optional(),
+  linkedBy: z.string().min(1).optional(),
+  linkEvidence: z.string().min(1).optional(),
   idempotencyKey: z.string().min(1),
   linkedAt: IsoTimestampSchema,
 });

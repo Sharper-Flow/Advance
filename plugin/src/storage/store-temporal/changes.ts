@@ -13,6 +13,8 @@ import {
   archiveChangeSignal,
   closeChangeSignal,
   designUpdatedSignal,
+  epicMembershipClearedSignal,
+  epicMembershipSetSignal,
   executiveSummaryUpdatedSignal,
   problemStatementUpdatedSignal,
   proposalUpdatedSignal,
@@ -33,11 +35,30 @@ import { createLogger } from "../../utils/debug-log";
 import { isWorkflowCompletedError } from "../../temporal/recovery-classification";
 import { listChangeWorkflowIds } from "../../temporal/list-change-workflows";
 import type { ChangeSummary } from "../store-temporal-memo";
+import type {
+  ChangeWorkflowState,
+  SignalRejection,
+} from "../../temporal/contracts";
 
 const logger = createLogger("store-temporal-changes");
 
 function computeContentHash(content: string): string {
   return createHash("sha256").update(content).digest("hex");
+}
+
+function latestSignalRejection(
+  state: ChangeWorkflowState,
+  signalName: string,
+  since: string,
+): SignalRejection | undefined {
+  const rejections = state.signal_rejections ?? [];
+  for (let i = rejections.length - 1; i >= 0; i--) {
+    const rejection = rejections[i];
+    if (rejection.signalName === signalName && rejection.rejectedAt >= since) {
+      return rejection;
+    }
+  }
+  return undefined;
 }
 
 /**
@@ -435,6 +456,63 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
       // signal has already succeeded by the time we get here.
       invalidateChange(changeId);
       await dualWriteAfterMutation(changeId);
+    },
+    setEpicMembership: async (
+      changeId,
+      { membership, expectedCurrent, setAt },
+    ) => {
+      const recordedAt = setAt ?? new Date().toISOString();
+      invalidateChange(changeId);
+      await runTemporal(async () =>
+        (await getGuardedChangeHandle(input, changeId)).signal(
+          epicMembershipSetSignal,
+          {
+            membership,
+            ...(expectedCurrent ? { expectedCurrent } : {}),
+            setAt: recordedAt,
+          },
+        ),
+      );
+      const state = (await runTemporal(async () =>
+        (await getGuardedChangeHandle(input, changeId)).query(changeStateQuery),
+      )) as ChangeWorkflowState;
+      const rejection = latestSignalRejection(
+        state,
+        "epicMembershipSet",
+        recordedAt,
+      );
+      if (rejection) throw new Error(rejection.errorMessage);
+      indexTasksFromState(state);
+      updateOverlay(changeId, { epic_membership: state.epic_membership });
+      const change = setCachedChange(state);
+      emitChangeSummarySignal(changeId, state);
+      await dualWriteAfterMutation(changeId);
+      return change;
+    },
+    clearEpicMembership: async (changeId, { expected, clearedAt }) => {
+      const recordedAt = clearedAt ?? new Date().toISOString();
+      invalidateChange(changeId);
+      await runTemporal(async () =>
+        (await getGuardedChangeHandle(input, changeId)).signal(
+          epicMembershipClearedSignal,
+          { expected, clearedAt: recordedAt },
+        ),
+      );
+      const state = (await runTemporal(async () =>
+        (await getGuardedChangeHandle(input, changeId)).query(changeStateQuery),
+      )) as ChangeWorkflowState;
+      const rejection = latestSignalRejection(
+        state,
+        "epicMembershipCleared",
+        recordedAt,
+      );
+      if (rejection) throw new Error(rejection.errorMessage);
+      indexTasksFromState(state);
+      updateOverlay(changeId, { epic_membership: state.epic_membership });
+      const change = setCachedChange(state);
+      emitChangeSummarySignal(changeId, state);
+      await dualWriteAfterMutation(changeId);
+      return change;
     },
     close: async (changeId: string, closure: ChangeClosure) => {
       // Layer C1 (rq-archiveRetirement01-followon for closed class):

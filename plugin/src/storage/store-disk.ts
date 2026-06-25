@@ -529,6 +529,30 @@ export async function createDiskStore(
       refresh: async (_changeId: string): Promise<void> => {
         // intentional no-op
       },
+      setEpicMembership: async (changeId, { membership }) => {
+        const result = await loadChange(paths.changes, changeId);
+        if (!result.success || !result.data) return null;
+        result.data.epic_membership = membership;
+        await saveChange(paths.changes, result.data);
+        return result.data;
+      },
+      clearEpicMembership: async (changeId, { expected }) => {
+        const result = await loadChange(paths.changes, changeId);
+        if (!result.success || !result.data) return null;
+        const current = result.data.epic_membership;
+        if (
+          !current ||
+          current.epic_id !== expected.epic_id ||
+          current.entry_id !== expected.entry_id
+        ) {
+          throw new Error(
+            `Cannot clear Epic membership: current projection does not match expected Epic ${expected.epic_id} entry ${expected.entry_id}`,
+          );
+        }
+        delete result.data.epic_membership;
+        await saveChange(paths.changes, result.data);
+        return result.data;
+      },
     },
 
     // -------------------------------------------------------------------

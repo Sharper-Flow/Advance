@@ -207,7 +207,9 @@ describe("Epic schema foundation", () => {
       };
 
       expect(EpicChangeRefSchema.parse(ref)).toEqual(ref);
-      expect(() => EpicChangeRefSchema.parse({ change_id: "addOAuthChange" })).toThrow();
+      expect(() =>
+        EpicChangeRefSchema.parse({ change_id: "addOAuthChange" }),
+      ).toThrow();
     });
   });
 
