@@ -4216,11 +4216,15 @@ export const changeTools = {
               currentChange.status = "archived";
               await store.changes.save(currentChange);
 
-              // Cleanup
+              // Cleanup. Failures here are non-fatal (the change is already
+              // durably archived) but MUST be observable so leaked dirs,
+              // worktrees, and branches do not accumulate silently (QUAL-004).
               try {
                 await removeChangeDir(store.paths.changes, currentChange.id);
-              } catch {
-                // warning-only
+              } catch (err) {
+                logger.warn(
+                  `archive cleanup: failed to remove change dir for ${currentChange.id}: ${err instanceof Error ? err.message : String(err)}`,
+                );
               }
 
               try {
@@ -4231,8 +4235,10 @@ export const changeTools = {
                   store,
                   forceAttempts: false,
                 });
-              } catch {
-                // warning-only
+              } catch (err) {
+                logger.warn(
+                  `archive cleanup: worktree cleanup failed for ${currentChange.id}: ${err instanceof Error ? err.message : String(err)}`,
+                );
               }
 
               if (
@@ -4246,8 +4252,10 @@ export const changeTools = {
                     currentFinalization.mainCheckout,
                     currentChange.id,
                   );
-                } catch {
-                  // warning-only
+                } catch (err) {
+                  logger.warn(
+                    `archive cleanup: failed to delete change branch for ${currentChange.id}: ${err instanceof Error ? err.message : String(err)}`,
+                  );
                 }
               }
 
