@@ -38,6 +38,7 @@ import {
   isLegacyOpenStatusSet,
   openLifecycleVisibilityClauses,
 } from "./lifecycle-visibility";
+import { CHANGE_WORKFLOW_PREFIX } from "./contracts";
 
 /**
  * Statuses included by default — `draft`, `pending`, `active`. Excludes
@@ -121,7 +122,6 @@ export function buildVisibilityQuery(
   return parts.join(" AND ");
 }
 
-const CHANGE_WORKFLOW_PREFIX = "adv/change/";
 
 /**
  * Return the change IDs for all change-workflows belonging to a project,

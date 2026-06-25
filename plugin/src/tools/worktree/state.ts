@@ -30,6 +30,10 @@ import type {
   MaterializedWorktreeRecord,
   ChangeWorkflowState,
 } from "../../temporal/contracts";
+import {
+  CHANGE_BRANCH_PREFIX,
+  CHANGE_WORKFLOW_PREFIX,
+} from "../../temporal/contracts";
 import type { OpencodeClient } from "../../utils/opencode-types";
 import { appendDebugLog } from "../../utils/debug-log";
 import { getProjectId as getProjectIdRaw } from "../../utils/project-id";
@@ -216,8 +220,6 @@ function _recordToPending(r: PendingWorktreeDelete): PendingDelete {
   };
 }
 
-const CHANGE_BRANCH_PREFIX = "change/";
-const CHANGE_WORKFLOW_PREFIX = "adv/change/";
 const PENDING_DELETES_FILE = "worktree-pending-deletes.json";
 const MAX_WORKTREE_ERROR_EVIDENCE_CHARS = 500;
 

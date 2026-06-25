@@ -21,8 +21,7 @@ import {
   escapeVisibilityValue,
   openLifecycleVisibilityClauses,
 } from "./lifecycle-visibility";
-
-const CHANGE_WORKFLOW_PREFIX = "adv/change/";
+import { CHANGE_WORKFLOW_PREFIX } from "./contracts";
 
 /**
  * Maximum issue numbers per Visibility call. Temporal Visibility queries

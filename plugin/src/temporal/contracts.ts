@@ -15,6 +15,16 @@ export const ADVANCE_TEMPORAL_TASK_QUEUE_PREFIX = "advance";
 export const DEFAULT_TEMPORAL_ADDRESS = "127.0.0.1:7233";
 export const DEFAULT_TEMPORAL_NAMESPACE = "default";
 
+/**
+ * Single source of truth for the change branch and change-workflow-id prefixes
+ * (STRUCT-004). Previously these literals were redefined independently across
+ * worktree/state.ts, visibility-claim-queries.ts, and list-change-workflows.ts.
+ * `CHANGE_BRANCH_PREFIX` names the git branch (`change/<id>`);
+ * `CHANGE_WORKFLOW_PREFIX` names the Temporal workflow id (`adv/change/<projectId>/<id>`).
+ */
+export const CHANGE_BRANCH_PREFIX = "change/";
+export const CHANGE_WORKFLOW_PREFIX = "adv/change/";
+
 export const CHANGE_WORKFLOW_NAME = "changeWorkflow";
 
 export const ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES = {

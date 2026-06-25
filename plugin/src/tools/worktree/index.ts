@@ -21,6 +21,7 @@
 // drop these adapters as flows are migrated to the Temporal-backed
 // state module directly.
 import type { WorktreeStateAccess as Database } from "./state";
+import { CHANGE_BRANCH_PREFIX } from "../../temporal/contracts";
 import {
   access,
   copyFile,
@@ -1241,7 +1242,9 @@ function branchFromResumeTarget(
   if (branch) return branch;
   const changeId = target.changeId?.trim();
   if (!changeId) return null;
-  return changeId.startsWith("change/") ? changeId : `change/${changeId}`;
+  return changeId.startsWith(CHANGE_BRANCH_PREFIX)
+    ? changeId
+    : `${CHANGE_BRANCH_PREFIX}${changeId}`;
 }
 
 export async function advWorktreeResume(
@@ -1495,7 +1498,7 @@ async function getPrMergedBranchIntegration(
   branch: string,
   deps: AdvWorktreeDeleteDeps,
 ): Promise<PrMergedBranchIntegrationResult> {
-  if (!branch.startsWith("change/")) {
+  if (!branch.startsWith(CHANGE_BRANCH_PREFIX)) {
     return {
       ok: false,
       reason: "branch_not_change_branch",

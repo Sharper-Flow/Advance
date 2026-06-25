@@ -1,6 +1,7 @@
 import { Client, Connection } from "@temporalio/client";
 import {
   ADVANCE_TEMPORAL_TASK_QUEUE_PREFIX,
+  CHANGE_WORKFLOW_PREFIX,
   DEFAULT_TEMPORAL_ADDRESS,
   DEFAULT_TEMPORAL_NAMESPACE,
 } from "./contracts";
@@ -58,7 +59,7 @@ export function buildChangeWorkflowId(
   projectId: string,
   changeId: string,
 ): string {
-  return `adv/change/${projectId}/${changeId}`;
+  return `${CHANGE_WORKFLOW_PREFIX}${projectId}/${changeId}`;
 }
 
 export interface TemporalClientBundle {
