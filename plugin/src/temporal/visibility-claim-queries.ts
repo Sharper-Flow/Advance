@@ -15,21 +15,10 @@
  * and claim paths share one Visibility search-attribute contract.
  */
 
-import type { ChangeStatus } from "../types";
-
-/**
- * Statuses considered "claim held" — non-terminal change states. Mirrors
- * `list-change-workflows.ts:DEFAULT_STATUSES` for consistency.
- */
-const CLAIM_HELD_STATUSES: readonly ChangeStatus[] = [
-  "draft",
-  "pending",
-  "active",
-];
-
-const CLAIM_HELD_STATUSES_LITERAL = CLAIM_HELD_STATUSES.map(
-  (s) => `"${s}"`,
-).join(", ");
+import {
+  escapeVisibilityValue,
+  openLifecycleVisibilityClauses,
+} from "./lifecycle-visibility";
 
 const CHANGE_WORKFLOW_PREFIX = "adv/change/";
 
@@ -40,10 +29,6 @@ const CHANGE_WORKFLOW_PREFIX = "adv/change/";
  * round-trips. Larger inputs are batched.
  */
 const BULK_QUERY_CHUNK_SIZE = 100;
-
-function escapeQueryValue(value: string): string {
-  return value.replace(/"/g, '\\"');
-}
 
 export interface SingleClaimQueryOptions {
   projectId: string;
@@ -82,11 +67,11 @@ export interface VisibilityListClient {
 export function buildClaimVisibilityQuery(
   options: SingleClaimQueryOptions,
 ): string {
-  const safeProjectId = escapeQueryValue(options.projectId);
+  const safeProjectId = escapeVisibilityValue(options.projectId);
   return [
     `AdvAffectedProjects = "${safeProjectId}"`,
     `AdvBacklogIssueNumber = "${options.issueNumber}"`,
-    `AdvChangeStatus IN (${CLAIM_HELD_STATUSES_LITERAL})`,
+    ...openLifecycleVisibilityClauses(),
   ].join(" AND ");
 }
 
@@ -101,12 +86,12 @@ export function buildActiveClaimsVisibilityQuery(
   options: BulkClaimQueryOptions,
 ): string | null {
   if (options.issueNumbers.length === 0) return null;
-  const safeProjectId = escapeQueryValue(options.projectId);
+  const safeProjectId = escapeVisibilityValue(options.projectId);
   const issueLiterals = options.issueNumbers.map((n) => `"${n}"`).join(", ");
   return [
     `AdvAffectedProjects = "${safeProjectId}"`,
     `AdvBacklogIssueNumber IN (${issueLiterals})`,
-    `AdvChangeStatus IN (${CLAIM_HELD_STATUSES_LITERAL})`,
+    ...openLifecycleVisibilityClauses(),
   ].join(" AND ");
 }
 

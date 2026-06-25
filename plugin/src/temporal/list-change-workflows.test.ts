@@ -58,11 +58,9 @@ describe("buildVisibilityQuery", () => {
     });
     expect(q).toContain('AdvAffectedProjects = "abc123"');
     expect(q).not.toContain("AdvProjectId");
-    expect(q).toContain("AdvChangeStatus IN");
+    expect(q).toContain('AdvLifecycleState = "open"');
     expect(q).toContain('ExecutionStatus = "Running"');
-    expect(q).toContain('"draft"');
-    expect(q).toContain('"pending"');
-    expect(q).toContain('"active"');
+    expect(q).not.toContain("AdvChangeStatus");
     expect(q).not.toContain('"archived"');
     expect(q).not.toContain('"closed"');
   });
@@ -82,7 +80,7 @@ describe("buildVisibilityQuery", () => {
       projectId: "abc",
       statuses: ["active"],
     });
-    expect(q).toContain('AdvChangeStatus IN ("active")');
+    expect(q).toContain('AdvLifecycleState = "open"');
     expect(q).toContain('ExecutionStatus = "Running"');
   });
 
@@ -153,7 +151,7 @@ describe("listChangeWorkflowIds", () => {
       statuses: ["active"],
     });
     expect(fakeClient.lastQuery).toContain('AdvAffectedProjects = "proj1"');
-    expect(fakeClient.lastQuery).toContain('AdvChangeStatus IN ("active")');
+    expect(fakeClient.lastQuery).toContain('AdvLifecycleState = "open"');
     expect(fakeClient.lastQuery).toContain('ExecutionStatus = "Running"');
   });
 

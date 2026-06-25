@@ -32,6 +32,11 @@
  */
 
 import type { ChangeStatus } from "../types";
+import {
+  escapeVisibilityValue,
+  isLegacyOpenStatusSet,
+  openLifecycleVisibilityClauses,
+} from "./lifecycle-visibility";
 
 /**
  * Statuses included by default — `draft`, `pending`, `active`. Excludes
@@ -44,8 +49,6 @@ const DEFAULT_STATUSES: readonly ChangeStatus[] = [
   "pending",
   "active",
 ];
-
-const RUNNING_EXECUTION_STATUSES = new Set<ChangeStatus>(DEFAULT_STATUSES);
 
 export interface ListChangeWorkflowIdsOptions {
   projectId: string;
@@ -93,7 +96,7 @@ export function buildVisibilityQuery(
   // the list, so a single registered attribute serves both single-project
   // and multi-project change workflows. This converges list-change-workflows
   // with visibility-claim-queries on the same registered attribute.
-  const safeProjectId = projectId.replace(/"/g, '\\"');
+  const safeProjectId = escapeVisibilityValue(projectId);
   parts.push(`AdvAffectedProjects = "${safeProjectId}"`);
 
   // statuses=null is the explicit "all statuses" mode; statuses=undefined
@@ -106,14 +109,11 @@ export function buildVisibilityQuery(
         : DEFAULT_STATUSES;
 
   if (effectiveStatuses) {
-    const list = effectiveStatuses.map((s) => `"${s}"`).join(", ");
-    parts.push(`AdvChangeStatus IN (${list})`);
-    if (
-      effectiveStatuses.every((status) =>
-        RUNNING_EXECUTION_STATUSES.has(status),
-      )
-    ) {
-      parts.push(`ExecutionStatus = "Running"`);
+    if (isLegacyOpenStatusSet(effectiveStatuses)) {
+      parts.push(...openLifecycleVisibilityClauses());
+    } else {
+      const list = effectiveStatuses.map((s) => `"${s}"`).join(", ");
+      parts.push(`AdvChangeStatus IN (${list})`);
     }
   }
 
