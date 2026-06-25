@@ -1,0 +1,282 @@
+{
+  "$schema": "https://raw.githubusercontent.com/Sharper-Flow/Advance/trunk/plugin/schemas/spec.schema.json",
+  "name": "advance-epics",
+  "title": "Advance Epics",
+  "purpose": "Capability: Epic entity and workflow contracts for ADV initiative planning. Epics are durable containers that group related ADV changes and lightweight shell entries, replacing project-level ROADMAP.md as the primary ADV planning surface for initiative-level work while keeping Epic membership optional and order advisory.",
+  "version": "1.0.0",
+  "updated_at": "2026-06-24T00:00:00.000Z",
+  "requirements": [
+    {
+      "id": "rq-epicEntity01",
+      "title": "Epic Record Is a Typed, Structural Initiative Container",
+      "body": "An Epic MUST be represented by a typed record containing a stable ID, title, narrative context, ordered roadmap entries, a compact status/progress summary, and creation/update timestamps. Correctness-critical Epic state MUST be structural and typed, not prose-only roadmap text. The Epic record MUST NOT depend on project-level ROADMAP.md for its existence or validation.",
+      "priority": "must",
+      "tags": ["epics", "schema", "data-model"],
+      "scenarios": [
+        {
+          "id": "rq-epicEntity01.1",
+          "title": "Valid Epic record parses successfully",
+          "given": ["A caller provides an Epic record with all required typed fields"],
+          "when": "The record is validated against the Epic schema",
+          "then": [
+            "Validation succeeds",
+            "Title, narrative, entries, progress summary, and timestamps are preserved"
+          ]
+        },
+        {
+          "id": "rq-epicEntity01.2",
+          "title": "Epic record rejects missing title",
+          "given": ["An Epic record is missing the title field"],
+          "when": "The record is validated against the Epic schema",
+          "then": ["Validation fails with a clear error"]
+        }
+      ]
+    },
+    {
+      "id": "rq-epicEntries01",
+      "title": "Epic Roadmap Supports Linked Changes and Shell Entries",
+      "body": "An Epic's ordered entries MUST support exactly two kinds: `change` entries that reference one ADV change ID, and `shell` entries that represent future work. Every shell entry MUST have a title and a rough success/AC hint. Shell entries MUST NOT be required to complete full ADV proposal/discovery before they can exist or be promoted. A change entry MAY carry promotion provenance when it originated from a shell.",
+      "priority": "must",
+      "tags": ["epics", "entries", "shell", "change"],
+      "scenarios": [
+        {
+          "id": "rq-epicEntries01.1",
+          "title": "Shell entry requires title and success hint",
+          "given": ["An Epic entry with kind 'shell' is provided"],
+          "when": "The entry is validated",
+          "then": [
+            "Validation succeeds when title and success_hint are present",
+            "Validation fails when either field is missing"
+          ]
+        },
+        {
+          "id": "rq-epicEntries01.2",
+          "title": "Change entry requires change ID",
+          "given": ["An Epic entry with kind 'change' is provided"],
+          "when": "The entry is validated",
+          "then": [
+            "Validation succeeds when change_id is present",
+            "Validation fails when change_id is missing"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-epicPromotion01",
+      "title": "Shell Promotion Replaces the Shell Row with Exactly One Linked Change",
+      "body": "Promoting a shell entry MUST create or link exactly one ADV change, then replace the shell row in the Epic with a `change` row. The new change row MUST carry promotion provenance that preserves the original shell title and success hint. Promotion MUST be idempotent: retrying promotion of the same shell MUST return the already-linked change without creating duplicate rows.",
+      "priority": "must",
+      "tags": ["epics", "promotion", "shell", "idempotency"],
+      "scenarios": [
+        {
+          "id": "rq-epicPromotion01.1",
+          "title": "Promotion replaces shell with linked change row",
+          "given": ["An Epic contains a shell entry"],
+          "when": "The shell is promoted",
+          "then": [
+            "The shell row is removed from the Epic entries",
+            "Exactly one 'change' row appears in its place",
+            "The change row carries the shell's title and success hint as promotion provenance"
+          ]
+        },
+        {
+          "id": "rq-epicPromotion01.2",
+          "title": "Duplicate promotion returns existing change",
+          "given": ["A shell has already been promoted to a linked change"],
+          "when": "Promotion is retried for the same shell entry ID",
+          "then": [
+            "No new change is created",
+            "No additional Epic row is added",
+            "The existing linked change ID is returned"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-epicOrderAdvisory01",
+      "title": "Epic Order Is Advisory and Must Not Hard-Block Later Entries",
+      "body": "Epic entry order MUST affect display and next-work recommendations only. Starting or resuming a later Epic entry MAY warn about earlier incomplete entries, but MUST NOT block gates, tasks, or promotion solely because of order. The advisory-order contract MUST be preserved in v1.",
+      "priority": "must",
+      "tags": ["epics", "order", "advisory", "blocking"],
+      "scenarios": [
+        {
+          "id": "rq-epicOrderAdvisory01.1",
+          "title": "Later entry can be started while earlier entry is incomplete",
+          "given": ["An Epic has two entries where the first is incomplete"],
+          "when": "An agent starts work on the second entry",
+          "then": [
+            "The start or resume succeeds",
+            "A warning about earlier incomplete work MAY be surfaced",
+            "No hard gate or task blockage is introduced solely due to order"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-epicCompactHistory01",
+      "title": "Default Epic View Surfaces Compact Terminal History",
+      "body": "The default Epic view MUST show next active and future work prominently and MUST include compact rows for archived or closed child changes. Full historical detail MUST remain available through an explicit view or context fetch, not inflate the default hot-path response.",
+      "priority": "should",
+      "tags": ["epics", "history", "ui", "bounding"],
+      "scenarios": [
+        {
+          "id": "rq-epicCompactHistory01.1",
+          "title": "Default view distinguishes active and terminal entries",
+          "given": ["An Epic has active, future, archived, and closed entries"],
+          "when": "The default Epic view is rendered",
+          "then": [
+            "Active and future entries are clearly visible",
+            "Archived/closed entries are shown as compact history",
+            "Response size and detail remain bounded"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-epicChangeContext01",
+      "title": "Change Surfaces Show Compact Epic Membership Context",
+      "body": "When a change belongs to an Epic, change show/status/resume surfaces MUST surface compact Epic membership context including Epic ID, entry ID, order, and title. The context MUST be additive and MUST NOT replace or obscure the change's own gates, tasks, or artifacts. Changes without Epic membership MUST render identically to the pre-Epic flow.",
+      "priority": "must",
+      "tags": ["epics", "change", "context", "membership"],
+      "scenarios": [
+        {
+          "id": "rq-epicChangeContext01.1",
+          "title": "Epic child change shows compact context",
+          "given": ["A change has an epic_membership projection"],
+          "when": "The change is shown or resumed",
+          "then": [
+            "Epic ID, entry ID, order, and title are surfaced",
+            "The change's own status and tasks remain primary"
+          ]
+        },
+        {
+          "id": "rq-epicChangeContext01.2",
+          "title": "Non-Epic changes remain unchanged",
+          "given": ["A change has no epic_membership"],
+          "when": "The change is shown or resumed",
+          "then": ["No Epic context is rendered", "Existing fields and behavior are unchanged"]
+        }
+      ]
+    },
+    {
+      "id": "rq-epicNextWork01",
+      "title": "ADV Next-Work Selection Can Operate from Epics",
+      "body": "ADV next-work selection and planning surfaces MUST be able to use Epics as a source of recommended next work without requiring a project-level ROADMAP.md. The recommendation MUST respect Epic order as advisory and MUST surface warnings rather than block when earlier entries are incomplete.",
+      "priority": "should",
+      "tags": ["epics", "next-work", "roadmap"],
+      "scenarios": [
+        {
+          "id": "rq-epicNextWork01.1",
+          "title": "Next work can be chosen from an Epic",
+          "given": ["An Epic has active and future entries"],
+          "when": "ADV next-work selection queries available work",
+          "then": [
+            "Epic entries are considered as candidates",
+            "A recommended next entry is surfaced without requiring ROADMAP.md"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-epicOptionalMembership01",
+      "title": "Epic Membership Remains Optional and Non-Epic Changes Stay Valid",
+      "body": "Epic membership MUST be optional for all ADV changes. Existing non-Epic changes, changes created outside Epics, and changes whose Epic is later archived MUST remain valid and continue through the normal gate/task flow. The change schema MUST treat epic_membership as an optional additive projection.",
+      "priority": "must",
+      "tags": ["epics", "membership", "optional", "compatibility"],
+      "scenarios": [
+        {
+          "id": "rq-epicOptionalMembership01.1",
+          "title": "Legacy change without Epic membership parses cleanly",
+          "given": ["A change record created before Epics exists"],
+          "when": "The change is parsed by the current schema",
+          "then": [
+            "Validation succeeds",
+            "epic_membership is undefined",
+            "All existing fields are preserved"
+          ]
+        },
+        {
+          "id": "rq-epicOptionalMembership01.2",
+          "title": "Malformed epic_membership is rejected",
+          "given": ["A change record contains an epic_membership object missing required fields"],
+          "when": "The change is parsed",
+          "then": ["Validation fails with a clear schema error"]
+        }
+      ]
+    },
+    {
+      "id": "rq-epicOnePerChange01",
+      "title": "One Epic Per Change in V1",
+      "body": "In v1, each ADV change MAY belong to zero or one Epic. The change schema MUST represent epic_membership as a single optional object, not an array. Cross-repo Epic membership is out of scope for v1 unless a later design explicitly proves it necessary and safe.",
+      "priority": "must",
+      "tags": ["epics", "membership", "v1", "scope"],
+      "scenarios": [
+        {
+          "id": "rq-epicOnePerChange01.1",
+          "title": "Single Epic membership is valid",
+          "given": ["A change record has one epic_membership object"],
+          "when": "The change is parsed",
+          "then": ["Validation succeeds", "epic_id is accessible"]
+        }
+      ]
+    },
+    {
+      "id": "rq-epicNoJiraClone01",
+      "title": "V1 Does Not Clone Project-Management Workflows",
+      "body": "Advance Epics v1 MUST NOT add Jira-like assignments, estimates, boards, sprints, ownership workflows, or clone GitHub Projects. Epic ordering, next-work recommendation, and compact context are the only planning primitives added in v1.",
+      "priority": "must",
+      "tags": ["epics", "v1", "avoidance", "scope"],
+      "scenarios": [
+        {
+          "id": "rq-epicNoJiraClone01.1",
+          "title": "Epic schema rejects project-management fields",
+          "given": ["A caller attempts to add assignee, estimate, sprint, or board fields to an Epic record"],
+          "when": "The record is validated",
+          "then": ["Those fields are not recognized as required Epic structure"]
+        }
+      ]
+    },
+    {
+      "id": "rq-epicErrors01",
+      "title": "Missing Epic and Stale Links Produce Deterministic Errors or Recoverable Warnings",
+      "body": "Operations referencing a missing Epic, a stale child change link, a duplicate promotion, or a concurrent reorder/promotion MUST produce deterministic errors or recoverable warnings. Failure modes MUST be typed so callers can distinguish not-found, conflict, and stale-state conditions and retry or reconcile safely.",
+      "priority": "should",
+      "tags": ["epics", "errors", "recovery", "concurrency"],
+      "scenarios": [
+        {
+          "id": "rq-epicErrors01.1",
+          "title": "Missing Epic returns not-found error",
+          "given": ["A caller requests an Epic that does not exist"],
+          "when": "The lookup is performed",
+          "then": ["A typed not-found error is returned"]
+        },
+        {
+          "id": "rq-epicErrors01.2",
+          "title": "Concurrent edit yields stale-version warning or conflict",
+          "given": ["Two callers mutate the same Epic concurrently"],
+          "when": "The second mutation is applied against a stale version",
+          "then": ["A typed conflict or stale-state response is returned"]
+        }
+      ]
+    },
+    {
+      "id": "rq-epicTemporalConstraints01",
+      "title": "Epic Visibility Index Respects Temporal Search-Attribute Constraints",
+      "body": "The child-change Visibility index for Epic lookup MUST use a single-value `Keyword` search attribute, following the pattern of `AdvBacklogIssueNumber`, and MUST NOT exceed the existing custom `KeywordList` cap. Epic ID on child changes MUST be derived from the `epic_membership` projection.",
+      "priority": "must",
+      "tags": ["epics", "temporal", "visibility", "constraints"],
+      "scenarios": [
+        {
+          "id": "rq-epicTemporalConstraints01.1",
+          "title": "Epic ID is indexed as single Keyword",
+          "given": ["A child change has epic_membership.epic_id"],
+          "when": "Search attributes are built",
+          "then": [
+            "AdvEpicId is set as a single-value Keyword",
+            "No KeywordList attribute is used for Epic membership"
+          ]
+        }
+      ]
+    }
+  ]
+}

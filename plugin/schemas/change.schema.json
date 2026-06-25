@@ -701,6 +701,36 @@
       },
       "type": "object"
     },
+    "epic_membership": {
+      "additionalProperties": false,
+      "properties": {
+        "entry_id": {
+          "type": "string"
+        },
+        "epic_id": {
+          "type": "string"
+        },
+        "linked_at": {
+          "type": "string"
+        },
+        "order": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "title": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "epic_id",
+        "entry_id",
+        "order",
+        "title",
+        "linked_at"
+      ],
+      "type": "object"
+    },
     "external_dependencies": {
       "items": {
         "additionalProperties": false,
