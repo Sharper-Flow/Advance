@@ -471,6 +471,7 @@ describe("epic-state", () => {
       });
       const result = applyChangeUnlinkedToState(state, {
         entryId: "entry-1",
+        unlinkEvidence: "User approved unlink.",
         idempotencyKey: "unlink-1",
         unlinkedAt: "2026-06-24T00:02:00.000Z",
       });
@@ -574,6 +575,7 @@ describe("epic-state", () => {
       });
       const result = applyChangeUnlinkedToState(state, {
         entryId: "entry-1",
+        unlinkEvidence: "User approved unlink.",
         idempotencyKey: "unlink-1",
         unlinkedAt: "2026-06-24T00:02:00.000Z",
       });
@@ -585,6 +587,7 @@ describe("epic-state", () => {
       const state = makeState();
       const result = applyChangeUnlinkedToState(state, {
         entryId: "entry-1",
+        unlinkEvidence: "User approved unlink.",
         idempotencyKey: "unlink-1",
         unlinkedAt: "2026-06-24T00:02:00.000Z",
       });
@@ -610,6 +613,28 @@ describe("epic-state", () => {
         idempotencyKey: "link-2",
         linkedAt: "2026-06-24T00:02:00.000Z",
       });
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.code).toBe("entry_already_exists");
+      expect(state.epic.entries).toHaveLength(1);
+    });
+
+    it("rejects duplicate change IDs under different entry IDs", () => {
+      const state = makeState();
+      applyChangeLinkedToState(state, {
+        entryId: "entry-1",
+        changeId: "change-1",
+        title: "Linked Change",
+        idempotencyKey: "link-1",
+        linkedAt: "2026-06-24T00:01:00.000Z",
+      });
+      const result = applyChangeLinkedToState(state, {
+        entryId: "entry-2",
+        changeId: "change-1",
+        title: "Duplicate Linked Change",
+        idempotencyKey: "link-2",
+        linkedAt: "2026-06-24T00:02:00.000Z",
+      });
+
       expect(result.ok).toBe(false);
       if (!result.ok) expect(result.code).toBe("entry_already_exists");
       expect(state.epic.entries).toHaveLength(1);

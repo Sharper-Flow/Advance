@@ -578,6 +578,7 @@ export type EpicMembershipClearedSignalPayload = z.infer<
  */
 export const ChangeUnlinkedSignalPayloadSchema = z.object({
   entryId: z.string().min(1),
+  unlinkEvidence: z.string().min(1),
   idempotencyKey: z.string().min(1),
   unlinkedAt: IsoTimestampSchema,
 });

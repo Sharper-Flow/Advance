@@ -120,7 +120,32 @@ describe("createEpicOps", () => {
     expect(call?.[1]).toMatchObject({
       title: "Updated",
       expectedVersion: 1,
+      idempotencyKey: "epic-update|addAuthEpic|1",
     });
+  });
+
+  test("update ignores stale rejection records from earlier attempts", async () => {
+    const { deps, queryMock } = setup();
+    const oldRejectionAt = "2026-01-01T00:00:00.000Z";
+    const epic = makeEpic({ version: 2 });
+    queryMock.mockResolvedValue({
+      ...makeState(epic),
+      rejections: [
+        {
+          signalName: "epicUpdated",
+          errorMessage: "Expected Epic version 1, found 2",
+          rejectedAt: oldRejectionAt,
+        },
+      ],
+    });
+
+    const ops = createEpicOps(deps);
+    await expect(
+      ops.update("addAuthEpic", {
+        title: "Updated after stale rejection",
+        expectedVersion: 2,
+      }),
+    ).resolves.toMatchObject({ id: "addAuthEpic" });
   });
 
   test("update throws typed stale_version when workflow records rejection", async () => {
@@ -132,7 +157,7 @@ describe("createEpicOps", () => {
         {
           signalName: "epicUpdated",
           errorMessage: "Expected Epic version 1, found 2",
-          rejectedAt: new Date().toISOString(),
+          rejectedAt: "2999-01-01T00:00:00.000Z",
         },
       ],
     });
@@ -225,10 +250,13 @@ describe("createEpicOps", () => {
   test("unlinkChange fires changeUnlinked signal", async () => {
     const { deps, signalMock } = setup();
     const ops = createEpicOps(deps);
-    await ops.unlinkChange("addAuthEpic", "entry-1");
+    await ops.unlinkChange("addAuthEpic", "entry-1", "User approved unlink.");
     expect(signalMock).toHaveBeenCalledWith(
       changeUnlinkedSignal,
-      expect.objectContaining({ entryId: "entry-1" }),
+      expect.objectContaining({
+        entryId: "entry-1",
+        unlinkEvidence: "User approved unlink.",
+      }),
     );
   });
 
@@ -241,7 +269,11 @@ describe("createEpicOps", () => {
     await ops.reorder("addAuthEpic", ["entry-1"], 2);
     expect(signalMock).toHaveBeenCalledWith(
       entriesReorderedSignal,
-      expect.objectContaining({ entryIds: ["entry-1"], expectedVersion: 2 }),
+      expect.objectContaining({
+        entryIds: ["entry-1"],
+        expectedVersion: 2,
+        idempotencyKey: "reorder|addAuthEpic|2|entry-1",
+      }),
     );
   });
 
@@ -314,7 +346,7 @@ describe("createEpicOps", () => {
       const { deps } = setupMissing();
       const ops = createEpicOps(deps);
       await expect(
-        ops.unlinkChange("missingEpic", "entry-1"),
+        ops.unlinkChange("missingEpic", "entry-1", "User approved unlink."),
       ).rejects.toMatchObject({ code: "epic_not_found" });
     });
 

@@ -723,6 +723,31 @@ export const epicTools = {
         }
         if (change.epic_membership) return changeAlreadyInEpic(change);
 
+        const currentEpic = await loadEpic(store, epic_id);
+        if (!currentEpic) return epicNotFound(epic_id);
+        const existingEntry = findChangeEntry(currentEpic, {
+          changeId: change_id,
+        });
+        if (existingEntry) {
+          const membership = membershipFromChangeEntry(
+            epic_id,
+            existingEntry,
+            title ?? change.title,
+            "link_existing",
+          );
+          await childStore.store.changes.setEpicMembership(change_id, {
+            membership,
+            setAt: membership.linked_at,
+          });
+          const output = formatToolOutput({
+            success: true,
+            idempotent: true,
+            entry: mapEpicEntry(existingEntry),
+            epic_membership: membership,
+          });
+          return maybeAppendTargetContext(output, childStore.context);
+        }
+
         const entry = requireChangeEntry(
           await store.epics.linkChange(epic_id, {
             entryId: entry_id,
@@ -782,6 +807,7 @@ export const epicTools = {
         epic_id,
         entry_id,
         change_id,
+        unlink_evidence,
         target_path,
         target_confirmed,
         confirmationEvidence,
@@ -824,7 +850,11 @@ export const epicTools = {
         await childStore.store.changes.clearEpicMembership(finalChangeId, {
           expected: { epic_id, entry_id: entry.entry_id },
         });
-        await store.epics.unlinkChange(epic_id, entry.entry_id);
+        await store.epics.unlinkChange(
+          epic_id,
+          entry.entry_id,
+          unlink_evidence,
+        );
         const output = formatToolOutput({
           success: true,
           entry_id: entry.entry_id,
@@ -953,7 +983,11 @@ export const epicTools = {
           membership,
           setAt: membership.linked_at,
         });
-        await store.epics.unlinkChange(from_epic_id, sourceEntry.entry_id);
+        await store.epics.unlinkChange(
+          from_epic_id,
+          sourceEntry.entry_id,
+          move_evidence,
+        );
         const output = formatToolOutput({
           success: true,
           from_entry_id: sourceEntry.entry_id,

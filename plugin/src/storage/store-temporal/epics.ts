@@ -87,13 +87,14 @@ async function tryQueryEpicState(
 function lastRejectionFor(
   state: import("../../temporal/contracts").EpicWorkflowState,
   signalName: string,
+  since: string,
 ):
   | { signalName: string; errorMessage: string; rejectedAt: string }
   | undefined {
   const rejections = state.rejections ?? [];
   for (let i = rejections.length - 1; i >= 0; i--) {
     const r = rejections[i];
-    if (r.signalName === signalName) return r;
+    if (r.signalName === signalName && r.rejectedAt >= since) return r;
   }
   return undefined;
 }
@@ -116,12 +117,13 @@ function codeFromRejectionMessage(message: string): EpicMutationError["code"] {
 async function fireEpicSignal(
   handle: EpicHandleLike,
   signalName: string,
+  rejectionSince: string,
   signal: unknown,
   ...args: unknown[]
 ): Promise<void> {
   await runTemporal(() => handle.signal(signal, ...args));
   const state = await queryEpicState(handle);
-  const rejection = lastRejectionFor(state, signalName);
+  const rejection = lastRejectionFor(state, signalName, rejectionSince);
   if (rejection) {
     const error: EpicMutationError = {
       code: codeFromRejectionMessage(rejection.errorMessage),
@@ -203,7 +205,7 @@ export function createEpicOps(deps: StoreDeps): Store["epics"] {
         version: 0,
       };
 
-      await fireEpicSignal(handle, "epicCreated", epicCreatedSignal, epic);
+      await fireEpicSignal(handle, "epicCreated", now, epicCreatedSignal, epic);
 
       return epic;
     },
@@ -257,11 +259,21 @@ export function createEpicOps(deps: StoreDeps): Store["epics"] {
         ...(title !== undefined ? { title } : {}),
         ...(narrative !== undefined ? { narrative } : {}),
         expectedVersion,
-        idempotencyKey: idempotencyKey("epic-update", epicId),
+        idempotencyKey: idempotencyKey(
+          "epic-update",
+          epicId,
+          String(expectedVersion),
+        ),
         updatedAt: new Date().toISOString(),
       };
 
-      await fireEpicSignal(handle, "epicUpdated", epicUpdatedSignal, payload);
+      await fireEpicSignal(
+        handle,
+        "epicUpdated",
+        payload.updatedAt,
+        epicUpdatedSignal,
+        payload,
+      );
 
       const updated = await queryEpic(epicId);
       if (!updated) {
@@ -286,7 +298,13 @@ export function createEpicOps(deps: StoreDeps): Store["epics"] {
         addedAt: new Date().toISOString(),
       };
 
-      await fireEpicSignal(handle, "shellAdded", shellAddedSignal, payload);
+      await fireEpicSignal(
+        handle,
+        "shellAdded",
+        payload.addedAt,
+        shellAddedSignal,
+        payload,
+      );
 
       const epic = await queryEpic(epicId);
       const entry = epic?.entries.find((e) => e.entry_id === finalEntryId);
@@ -316,6 +334,7 @@ export function createEpicOps(deps: StoreDeps): Store["epics"] {
       await fireEpicSignal(
         handle,
         "shellPromoted",
+        payload.promotedAt,
         shellPromotedSignal,
         payload,
       );
@@ -366,7 +385,13 @@ export function createEpicOps(deps: StoreDeps): Store["epics"] {
         linkedAt: new Date().toISOString(),
       };
 
-      await fireEpicSignal(handle, "changeLinked", changeLinkedSignal, payload);
+      await fireEpicSignal(
+        handle,
+        "changeLinked",
+        payload.linkedAt,
+        changeLinkedSignal,
+        payload,
+      );
 
       const epic = await queryEpic(epicId);
       const entry = epic?.entries.find((e) => e.entry_id === finalEntryId);
@@ -376,12 +401,13 @@ export function createEpicOps(deps: StoreDeps): Store["epics"] {
       return entry;
     },
 
-    unlinkChange: async (epicId, entryId) => {
+    unlinkChange: async (epicId, entryId, unlinkEvidence) => {
       await assertEpicExists(epicId);
       const handle = getEpicHandle(epicId);
 
       const payload = {
         entryId,
+        unlinkEvidence,
         idempotencyKey: idempotencyKey("unlink-change", epicId, entryId),
         unlinkedAt: new Date().toISOString(),
       };
@@ -389,6 +415,7 @@ export function createEpicOps(deps: StoreDeps): Store["epics"] {
       await fireEpicSignal(
         handle,
         "changeUnlinked",
+        payload.unlinkedAt,
         changeUnlinkedSignal,
         payload,
       );
@@ -417,6 +444,7 @@ export function createEpicOps(deps: StoreDeps): Store["epics"] {
       await fireEpicSignal(
         handle,
         "changeProjectionStatusUpdated",
+        updatedAt,
         changeProjectionStatusUpdatedSignal,
         payload,
       );
@@ -438,13 +466,19 @@ export function createEpicOps(deps: StoreDeps): Store["epics"] {
       const payload = {
         entryIds,
         expectedVersion,
-        idempotencyKey: idempotencyKey("reorder", epicId),
+        idempotencyKey: idempotencyKey(
+          "reorder",
+          epicId,
+          String(expectedVersion),
+          entryIds.join(","),
+        ),
         reorderedAt: new Date().toISOString(),
       };
 
       await fireEpicSignal(
         handle,
         "entriesReordered",
+        payload.reorderedAt,
         entriesReorderedSignal,
         payload,
       );

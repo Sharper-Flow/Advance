@@ -112,6 +112,12 @@ function findEntryIndex(state: EpicWorkflowState, entryId: string): number {
   return state.epic.entries.findIndex((entry) => entry.entry_id === entryId);
 }
 
+function entryChangeId(entry: EpicEntry): string | undefined {
+  return entry.kind === "change"
+    ? (entry.change_id ?? entry.change_ref?.change_id)
+    : undefined;
+}
+
 export function createEpicWorkflowState(
   input: EpicWorkflowInput,
 ): EpicWorkflowState {
@@ -331,6 +337,17 @@ export function applyChangeLinkedToState(
       ok: false,
       code: "entry_already_exists",
       message: `Entry already exists: ${payload.entryId}`,
+    };
+  }
+
+  const duplicateChange = state.epic.entries.find(
+    (entry) => entryChangeId(entry) === payload.changeId,
+  );
+  if (duplicateChange) {
+    return {
+      ok: false,
+      code: "entry_already_exists",
+      message: `Change already linked to Epic: ${payload.changeId}`,
     };
   }
 

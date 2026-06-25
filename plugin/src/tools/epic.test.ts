@@ -639,6 +639,43 @@ describe("adv_epic_link_change", () => {
     );
   });
 
+  test("repairs child projection idempotently when Epic entry already exists", async () => {
+    const store = makeStore({
+      entries: [
+        makeChangeEntry({
+          entry_id: "entry-2",
+          change_id: "change-2",
+          title: "Linked Change",
+          linked_at: "2026-06-25T00:00:00.000Z",
+          membership_status: "projection_pending",
+        }),
+      ],
+    });
+
+    const output = await epicTools.adv_epic_link_change.execute(
+      {
+        epic_id: "addAuthEpic",
+        change_id: "change-2",
+        link_evidence: "Retry after projection failure.",
+      },
+      store,
+    );
+
+    const parsed = parseToolOutput(output);
+    expect(parsed.success).toBe(true);
+    expect(parsed.idempotent).toBe(true);
+    expect(store.epics.linkChange).not.toHaveBeenCalled();
+    expect(store.changes.setEpicMembership).toHaveBeenCalledWith(
+      "change-2",
+      expect.objectContaining({
+        membership: expect.objectContaining({
+          epic_id: "addAuthEpic",
+          entry_id: "entry-2",
+        }),
+      }),
+    );
+  });
+
   test("rejects duplicate membership before linking", async () => {
     const store = makeStore();
     store.changes.get = vi.fn(async () => ({
@@ -702,6 +739,7 @@ describe("adv_epic_unlink_change", () => {
     expect(store.epics.unlinkChange).toHaveBeenCalledWith(
       "addAuthEpic",
       "entry-2",
+      "No longer part of initiative.",
     );
   });
 });
@@ -784,6 +822,7 @@ describe("adv_epic_move_change", () => {
     expect(store.epics.unlinkChange).toHaveBeenCalledWith(
       "fromEpic",
       "from-entry",
+      "Move into better initiative.",
     );
   });
 });

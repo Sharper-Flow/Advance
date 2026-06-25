@@ -370,7 +370,11 @@ export interface Store {
         targetPath?: string;
       },
     ) => Promise<EpicEntry>;
-    unlinkChange: (epicId: string, entryId: string) => Promise<void>;
+    unlinkChange: (
+      epicId: string,
+      entryId: string,
+      unlinkEvidence: string,
+    ) => Promise<void>;
     setEntryMembershipStatus: (
       epicId: string,
       input: {
