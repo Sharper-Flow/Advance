@@ -38,21 +38,25 @@ export function renderDashboardHtml(): string {
     const app = document.getElementById('app');
     const freshness = document.getElementById('freshness');
     const laneNames = ['attention', 'running', 'linked', 'unlinked'];
+    let lastSuccessfulRefreshAt = '';
 
     function text(value) { return value == null ? '' : String(value); }
     function itemHtml(item) {
       const evidence = item.evidence ? '<div><strong>Evidence</strong>: <code>' + escapeHtml(item.evidence) + '</code></div>' : '';
       const reason = item.reason ? '<div><strong>Unlinked</strong>: ' + escapeHtml(item.reason) + '</div>' : '';
-      const states = item.source_states ? '<div><strong>Source states</strong>: github_deployment=<code>' + escapeHtml(item.source_states.github_deployment) + '</code> adv_ops=<code>' + escapeHtml(item.source_states.adv_ops) + '</code></div>' : '';
-      return '<article class="item"><div><strong>' + escapeHtml(item.kind) + '</strong> ' + escapeHtml(item.changeId || '') + '</div>' + evidence + reason + states + '</article>';
+      const status = item.status ? '<div><strong>Status</strong>: <code>' + escapeHtml(item.status) + '</code></div>' : '';
+      const states = item.source_states ? '<div><strong>Source states</strong>: ' + Object.entries(item.source_states).map(([key, value]) => escapeHtml(key) + '=<code>' + escapeHtml(value) + '</code>').join(' ') + '</div>' : '';
+      return '<article class="item"><div><strong>' + escapeHtml(item.kind) + '</strong> ' + escapeHtml(item.changeId || '') + '</div>' + evidence + reason + status + states + '</article>';
     }
     function degradedHtml(source) {
-      return '<article class="item degraded"><strong>Degraded</strong>: ' + escapeHtml(source.source || '') + ' <code>' + escapeHtml(source.code || '') + '</code><div>' + escapeHtml(source.message || '') + '</div></article>';
+      const lastSuccess = source.last_success_at ? '<div>Last successful refresh: ' + escapeHtml(source.last_success_at) + '</div>' : '';
+      return '<article class="item degraded"><strong>Degraded</strong>: ' + escapeHtml(source.source || '') + ' <code>' + escapeHtml(source.code || '') + '</code><div>' + escapeHtml(source.message || '') + '</div>' + lastSuccess + '</article>';
     }
     function renderLane(name, items) {
       return '<section class="lane" data-lane="' + name + '"><h3>' + name + '</h3>' + (items.length ? items.map((item) => item.kind === 'degraded_source' ? degradedHtml(item) : itemHtml(item)).join('') : document.getElementById('empty-template').innerHTML) + '</section>';
     }
     function render(state) {
+      lastSuccessfulRefreshAt = text(state.generated_at) || lastSuccessfulRefreshAt;
       freshness.textContent = 'Updated ' + text(state.generated_at) + ' · refresh_seconds=' + text(state.refresh_seconds);
       app.innerHTML = (state.projects || []).map((project) => {
         const degraded = (project.degradedSources || []).map(degradedHtml).join('');
@@ -70,7 +74,7 @@ export function renderDashboardHtml(): string {
         render(state);
         setTimeout(refresh, Math.max(30, Math.min(60, Number(state.refresh_seconds) || 45)) * 1000);
       } catch (error) {
-        freshness.textContent = 'Degraded: ' + text(error && error.message ? error.message : error);
+        freshness.textContent = 'Degraded: ' + text(error && error.message ? error.message : error) + ' · last successful refresh: ' + (lastSuccessfulRefreshAt || 'none');
         setTimeout(refresh, 45000);
       }
     }

@@ -162,6 +162,12 @@ Example config (`schema_version: 1`):
       "label": "Advance",
       "path": "/home/jon/dev/advance",
       "github": { "owner": "Sharper-Flow", "repo": "Advance" }
+    },
+    {
+      "id": "toolbox",
+      "label": "Toolbox",
+      "path": "/home/jon/dev/toolbox",
+      "github": { "owner": "Sharper-Flow", "repo": "toolbox" }
     }
   ]
 }
