@@ -7,6 +7,8 @@ describe("dashboard UI", () => {
     const html = renderDashboardHtml();
 
     expect(html).toContain("ADV Local Dashboard");
+    expect(html).toContain("project-stats");
+    expect(html).toContain("lane-head");
     expect(html).toContain('data-lane="attention"');
     expect(html).toContain('data-lane="running"');
     expect(html).toContain('data-lane="linked"');
@@ -26,8 +28,10 @@ describe("dashboard UI", () => {
     expect(html).toContain(
       "if (item.kind === 'adv_change') return advChangeHtml(item)",
     );
-    expect(html).toContain("status <code>");
-    expect(html).toContain("gate <code>");
+    expect(html).toContain("Next gate");
+    expect(html).toContain("gate-badge");
+    expect(html).toContain("gateClass(gate)");
+    expect(html).not.toContain("status <code>' + escapeHtml(item.status");
     expect(html).not.toContain(
       "(project.degradedSources || []).map(degradedHtml)",
     );
