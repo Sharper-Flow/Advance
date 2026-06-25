@@ -276,6 +276,23 @@ function resolveCommandPath(pathValue: string, workdir: string): string {
   return normalizeTargetPath(unquote(pathValue), workdir);
 }
 
+/**
+ * Extract the file targets of known destructive bash commands so the trunk
+ * write firewall can block writes into a trunk checkout on the default branch.
+ *
+ * Detection is intentionally bounded to *direct* destructive invocations whose
+ * command name is the first token of a segment: `rm`, `cp`, `mv`, `sed -i`,
+ * `tee`, and redirect operators (`>`/`>>`). It does NOT attempt to resolve
+ * shell indirection — `find … -exec`, `xargs`, `eval`, `bash -c`, interpreter
+ * `-c`, command substitution, or script-internal writes. That gap is a
+ * deliberate, documented accepted residual risk, not a defect: the firewall's
+ * threat model is accidental footguns (P32), not adversarial evasion. See the
+ * `advance-meta` spec (`rq-twf01.7`) and `ADV_INSTRUCTIONS.md` ("Residual
+ * risk: shell-variable indirection, shell aliases/functions, and
+ * script-internal writes may evade string parsing"). Do not re-flag the
+ * uncovered indirection forms as a security bug without first revising that
+ * spec decision.
+ */
 export function classifyDestructiveBash(
   command: string,
   workdir = process.cwd(),
