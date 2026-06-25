@@ -390,7 +390,7 @@ Before applying ANY fix, evaluate: **"If I apply this fix, will any agreement ac
 - **NO** → auto-remediate (proceed with fix)
 - **YES** → **STOP** — present the finding and proposed fix to user via `question` tool:
   - **Approve fix and update scope** — user agrees the scope should expand
-  - **Skip fix, document as accepted debt** — finding is valid but out of scope
+  - **Reject with evidence / split** — finding is valid but outside current scope; use `rejected_with_evidence` for in-scope rejected findings or split/fast-follow for out-of-scope work
   - **Cancel review** — user wants to reconsider
 
 This is the single declarative drift detection rule. It applies to every finding, every fix, every auto-remediation action.
@@ -471,6 +471,21 @@ For each non-code task, create or verify `contract.reviewMatrix` rows using the 
 - `not_applicable` — requires `contract_refs.not_applicable_reason`.
 
 Each applicable `AC*`/`SC*` row must have `pass` or `fail` status (or `not_applicable` with rationale). Failing, `unknown`, or missing evidence blocks acceptance.
+
+#### Designer Concern Enforcement (structural)
+
+<!-- rq-designQualityEvidence01 -->
+
+Design-quality enforcement is STRUCTURAL, not reviewer-prose. The gate-readiness evaluator (`checkUnresolvedDesignConcerns`) reads persisted `adv-designer` reports from change state and emits a `DESIGN_CONCERN_UNRESOLVED` blocker that blocks the acceptance and release gates while the latest designer report for any task has an undispositioned `design_dimensions` concern or `neighboring_recommendation`. You cannot complete acceptance while that blocker is present — this is enforced by code, not by remembering to look.
+
+To clear a blocked concern, do exactly one of:
+
+- Fix it and have `adv-designer` submit an updated (higher-attempt) all-pass report for the task.
+- Record a typed disposition via `adv_design_concern_disposition` (`changeId`, `taskId`, `concernKey`, `disposition` ∈ `fixed | rejected_with_evidence | split | fast_follow`, non-blank `evidence`). There is no debt-acceptance disposition.
+
+Advisory only: on report submit, each concern and `neighboring_recommendation` is auto-promoted to a `required-obligation` agenda item (deduped) so it is never silently lost — but the agenda item is routing, not the gate authority.
+
+When synthesizing acceptance proof, additionally map relevant `DESIGNER_REPORT.design_dimensions` / `required_main_agent_actions` into `contract.reviewMatrix` rows using `design_proof`, `rubric_review`, `review`, `static_check`, or `test` evidence policies. Browser/design proof for runnable visual surfaces must include viewport context; a missing runnable surface requires explicit fallback rationale. Review/harden ownership remains with `adv-reviewer`; `adv-designer` remains apply-phase only.
 
 The acceptance summary must include a contract proof line: required rows passed/respected, failed/violated/unknown counts, and remaining caveats.
 

@@ -45,6 +45,7 @@ import {
   applyGateStuckToState,
   applyOpsEvidenceAppendedToState,
   applyOpsFollowupLinkAddedToState,
+  applyDesignConcernDispositionedToState,
   applyOpsFollowupSeededToState,
   applyProblemStatementUpdatedToState,
   applyProposalUpdatedToState,
@@ -292,6 +293,9 @@ const taskBlockedSignal = wf.defineSignal<
 const taskCancelledSignal = wf.defineSignal<
   [import("../types").TaskCancelledSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.taskCancelled);
+const designConcernDispositionedSignal = wf.defineSignal<
+  [import("../types").DesignConcernDispositionedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.designConcernDispositioned);
 const gateInProgressSignal = wf.defineSignal<
   [import("../types").GateInProgressSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.gateInProgress);
@@ -543,6 +547,11 @@ export async function changeWorkflow(
     }
     if (input.seedState.scope_worktrees) {
       state.scope_worktrees = { ...input.seedState.scope_worktrees };
+    }
+    if (input.seedState.design_concern_dispositions) {
+      state.design_concern_dispositions = [
+        ...input.seedState.design_concern_dispositions,
+      ];
     }
     if (input.seedState.signal_rejections) {
       state.signal_rejections = [...input.seedState.signal_rejections];
@@ -1209,6 +1218,12 @@ export async function changeWorkflow(
     ),
   );
   wf.setHandler(
+    designConcernDispositionedSignal,
+    signalMutation("designConcernDispositioned", (payload) =>
+      applyDesignConcernDispositionedToState(state, payload),
+    ),
+  );
+  wf.setHandler(
     gateInProgressSignal,
     signalMutation("gateInProgress", (payload) =>
       applyGateInProgressToState(state, payload),
@@ -1563,6 +1578,7 @@ export async function changeWorkflow(
       target_worktree_path: state.target_worktree_path,
       scope_worktrees: state.scope_worktrees,
       seenReportIds: state.seenReportIds,
+      design_concern_dispositions: state.design_concern_dispositions,
       signal_rejections: state.signal_rejections,
       signal_rejections_total: state.signal_rejections_total,
       ops_followup: state.ops_followup,

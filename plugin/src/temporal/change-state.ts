@@ -12,6 +12,7 @@ import type {
   ContractAmendedSignalPayload,
   ContractReviewMatrixSetSignalPayload,
   ContractSetSignalPayload,
+  DesignConcernDispositionedSignalPayload,
   ConformanceLockedSignalPayload,
   ConformanceOverriddenSignalPayload,
   ConformanceVerdictSignalPayload,
@@ -76,6 +77,8 @@ export interface StateMutationContext {
   uuid: () => string;
 }
 
+// rq-changeLifecycleState01: change lifecycle state (open/archived/closed) is
+// tracked separately from gate progress and compatibility status.
 export function normalizeChangeLifecycleState(
   status: ChangeStatus | ChangeLifecycleState | undefined,
 ): ChangeLifecycleState {
@@ -161,6 +164,7 @@ export function changeSeedStateFromChange(
     target_worktree_path: safeChange.target_worktree_path,
     scope_worktrees: safeChange.scope_worktrees,
     seenReportIds: safeChange.seenReportIds,
+    design_concern_dispositions: safeChange.design_concern_dispositions,
     signal_rejections: safeChange.signal_rejections,
     signal_rejections_total: safeChange.signal_rejections_total,
     ops_followup: safeChange.ops_followup,
@@ -1014,6 +1018,30 @@ export function applyWisdomAddedToState(
 ): ChangeWorkflowState {
   state.wisdom.push(payload.entry);
   setLastSignalAt(state, payload.addedAt);
+  return state;
+}
+
+// rq-designQualityEvidence01: typed disposition of a single design-quality
+// concern. Latest disposition wins for a given (taskId, concernKey) so the
+// gate-readiness evaluator reads a single current verdict per concern.
+export function applyDesignConcernDispositionedToState(
+  state: ChangeWorkflowState,
+  payload: DesignConcernDispositionedSignalPayload,
+): ChangeWorkflowState {
+  const existing = state.design_concern_dispositions ?? [];
+  const next = existing.filter(
+    (d) =>
+      !(d.taskId === payload.taskId && d.concernKey === payload.concernKey),
+  );
+  next.push({
+    taskId: payload.taskId,
+    concernKey: payload.concernKey,
+    disposition: payload.disposition,
+    evidence: payload.evidence,
+    dispositionedAt: payload.dispositionedAt,
+  });
+  state.design_concern_dispositions = next;
+  setLastSignalAt(state, payload.dispositionedAt);
   return state;
 }
 

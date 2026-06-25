@@ -3,8 +3,8 @@
   "name": "subagent-reports",
   "title": "Sub-Agent Reports",
   "purpose": "Typed, durable ADV sub-agent report ingestion and readback. Replaces ADV worker final-message fenced JSON with Zod-validated tool-call submission, sidecar report persistence, deterministic scope-aware dedupe, and machine-readable downstream consumers.",
-  "version": "1.4.0",
-  "updated_at": "2026-06-22T00:00:00.000Z",
+  "version": "1.5.0",
+  "updated_at": "2026-06-25T00:00:00.000Z",
   "conformance_required": false,
   "requirements": [
     {
@@ -626,6 +626,36 @@
             "The row evidence cites the artifact, source audit, rubric review, or stakeholder acceptance proof",
             "Missing, failing, or unknown proof remains blocking"
           ]
+        }
+      ]
+    },
+    {
+      "id": "rq-subagentReports18",
+      "title": "Designer Design-Dimension Rationale",
+      "body": "DESIGNER_REPORT.design_dimensions MUST remain a strict six-dimension typed object using pass, concern, or n/a for component_correctness, semantic_html_a11y, responsive_behavior, visual_polish, site_design_consistency, and finer_details. When any dimension is concern or n/a, the report MUST include non-empty notes that explain the non-pass or non-applicable dimension. All-pass reports MAY omit notes for backward-compatible compactness. This rationale requirement MUST be enforced by schema validation before report persistence.",
+      "priority": "must",
+      "tags": ["subagents", "adv-designer", "reports", "design-quality", "zod"],
+      "scenarios": [
+        {
+          "id": "rq-subagentReports18.1",
+          "title": "Concern without notes is rejected",
+          "given": ["An adv-designer report has design_dimensions.visual_polish set to concern", "The design_dimensions object omits notes or provides blank notes"],
+          "when": "adv_subagent_report_submit validates the report",
+          "then": ["The report is rejected as INVALID_REPORT", "No workflow signal is fired", "No sidecar report is persisted"]
+        },
+        {
+          "id": "rq-subagentReports18.2",
+          "title": "N/A without notes is rejected",
+          "given": ["An adv-designer report has design_dimensions.responsive_behavior set to n/a", "The design_dimensions object omits notes or provides blank notes"],
+          "when": "adv_subagent_report_submit validates the report",
+          "then": ["The report is rejected as INVALID_REPORT", "The diagnostic identifies the missing design-dimension rationale"]
+        },
+        {
+          "id": "rq-subagentReports18.3",
+          "title": "All-pass report remains compact",
+          "given": ["An adv-designer report marks all six design dimensions pass"],
+          "when": "adv_subagent_report_submit validates the report",
+          "then": ["The report is accepted even when notes is omitted", "Existing all-pass report compatibility is preserved"]
         }
       ]
     }

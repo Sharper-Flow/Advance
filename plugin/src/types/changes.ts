@@ -13,7 +13,10 @@
 import { z } from "zod";
 import { ContractEvidencePolicySchema } from "./evidence-policy";
 import { TaskSchema } from "./tasks";
-import { ScopedSubagentReportSchema } from "./subagent-reports";
+import {
+  DesignConcernDispositionSchema,
+  ScopedSubagentReportSchema,
+} from "./subagent-reports";
 import { DeltaSchema } from "./specs";
 import { WisdomEntrySchema } from "./wisdom";
 import { GatesSchema, GateIdSchema } from "./gates";
@@ -821,6 +824,15 @@ export const ChangeSchema = z
      * (referenced by subagent-reports spec).
      */
     seenReportIds: z.array(z.string()).optional(),
+
+    /**
+     * Typed dispositions for adv-designer design concerns. Persisted on the
+     * change projection so workflow re-seed / continue-as-new preserve the
+     * structural acceptance/release gate clearing state.
+     */
+    design_concern_dispositions: z
+      .array(DesignConcernDispositionSchema)
+      .optional(),
 
     /**
      * Persisted signal-rejection audit projection (e.g. T8 size-guard

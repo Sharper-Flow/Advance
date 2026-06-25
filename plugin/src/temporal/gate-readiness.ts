@@ -1,6 +1,8 @@
 import {
   GATE_ORDER,
   GateArtifactEvidenceSchema,
+  type DesignConcernDisposition,
+  type DesignerSubagentReport,
   type GateArtifactEvidence,
   type GateArtifactKind,
   type GateId,
@@ -519,6 +521,100 @@ export function checkRequiredObligationRouting(
     });
 }
 
+// rq-designQualityEvidence01: Structural design-quality blocker.
+//
+// Reads persisted adv-designer reports from change state (sandbox-safe — no
+// agenda/storage access) and blocks acceptance/release while the LATEST designer
+// report per task carries an undispositioned `concern` dimension or neighboring
+// recommendation. A concern clears when (a) a later all-pass report supersedes
+// it, or (b) a typed disposition exists for its (taskId, concernKey). There is
+// no accepted_debt path — undispositioned concerns block.
+const DESIGN_DIMENSION_KEYS = [
+  "component_correctness",
+  "semantic_html_a11y",
+  "responsive_behavior",
+  "visual_polish",
+  "site_design_consistency",
+  "finer_details",
+] as const;
+
+function designerReportTaskId(
+  report: DesignerSubagentReport,
+): string | undefined {
+  if (typeof report.scope === "object" && report.scope.kind === "task") {
+    return report.scope.task_id;
+  }
+  return report.task_id;
+}
+
+function latestDesignerReportsByTask(
+  state: ChangeWorkflowState,
+): Map<string, DesignerSubagentReport> {
+  const latest = new Map<string, DesignerSubagentReport>();
+  for (const report of state.subagent_reports ?? []) {
+    if (report.agent !== "adv-designer") continue;
+    const designer = report as DesignerSubagentReport;
+    const taskId = designerReportTaskId(designer);
+    if (!taskId) continue;
+    const existing = latest.get(taskId);
+    if (!existing || designer.attempt > existing.attempt) {
+      latest.set(taskId, designer);
+    }
+  }
+  return latest;
+}
+
+export function checkUnresolvedDesignConcerns(
+  state: ChangeWorkflowState,
+  gateId: GateId,
+): GateReadinessBlocker[] {
+  if (gateId !== "acceptance" && gateId !== "release") return [];
+
+  const latestByTask = latestDesignerReportsByTask(state);
+  if (latestByTask.size === 0) return [];
+
+  const dispositions: DesignConcernDisposition[] =
+    state.design_concern_dispositions ?? [];
+  const isDispositioned = (taskId: string, concernKey: string): boolean =>
+    dispositions.some(
+      (d) => d.taskId === taskId && d.concernKey === concernKey,
+    );
+
+  const blockers: GateReadinessBlocker[] = [];
+  for (const [taskId, report] of latestByTask) {
+    for (const dim of DESIGN_DIMENSION_KEYS) {
+      if (report.design_dimensions[dim] !== "concern") continue;
+      const concernKey = `dimension:${dim}`;
+      if (isDispositioned(taskId, concernKey)) continue;
+      blockers.push(
+        makeBlocker({
+          code: "DESIGN_CONCERN_UNRESOLVED",
+          gateId,
+          message: `Unresolved design concern (${dim}) on task ${taskId} from adv-designer report.`,
+          remediation:
+            "Fix the concern and submit an updated adv-designer report, or record a typed disposition via adv_design_concern_disposition (fixed | rejected_with_evidence | split | fast_follow).",
+        }),
+      );
+    }
+
+    report.neighboring_recommendations.forEach((rec, index) => {
+      const concernKey = `neighbor:${index}`;
+      if (isDispositioned(taskId, concernKey)) return;
+      blockers.push(
+        makeBlocker({
+          code: "DESIGN_CONCERN_UNRESOLVED",
+          gateId,
+          message: `Unresolved neighboring UI recommendation on task ${taskId}: ${rec.what}`,
+          remediation:
+            "Include the fix now, or record a typed disposition via adv_design_concern_disposition (rejected_with_evidence | split | fast_follow).",
+        }),
+      );
+    });
+  }
+
+  return blockers;
+}
+
 function isOpsFollowupComplete(link: OpsFollowupLink): boolean {
   return COMPLETE_OPS_STATUSES.includes(link.status);
 }
@@ -670,12 +766,14 @@ export function evaluateGateReadiness(
     } else {
       blockers.push(...acceptanceContractBlockers(state, gateId));
     }
+    blockers.push(...checkUnresolvedDesignConcerns(state, gateId));
   }
 
   if (gateId === "release") {
     blockers.push(...checkRequiredObligationReleaseBlockers(state, gateId));
     blockers.push(...checkRequiredObligationRouting(state, gateId));
     blockers.push(...checkOpsFollowupReleaseBlockers(state, gateId));
+    blockers.push(...checkUnresolvedDesignConcerns(state, gateId));
   }
 
   const warnings = artifactCascadeWarnings(state, gateId);

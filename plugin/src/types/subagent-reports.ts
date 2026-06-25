@@ -126,10 +126,44 @@ export const SubagentConsumerWarningSchema = z
       "verification_mismatch",
       "verification_missing",
       "consumer_failure",
+      // Advisory marker emitted when the design-concern promotion consumer
+      // routes a designer design_dimensions concern / neighboring recommendation
+      // into a durable required-obligation agenda item. Surfacing only — the
+      // structural acceptance/release block is owned by the gate-readiness
+      // evaluator, not this warning.
+      "design_concern_promoted",
     ]),
     message: z.string().min(1),
   })
   .strict();
+
+/**
+ * Typed disposition of a single design-quality concern (a design_dimensions
+ * `concern` verdict or a neighboring recommendation) raised by an adv-designer
+ * report. Recorded via designConcernDispositionedSignal and read by the
+ * gate-readiness evaluator to clear an otherwise-blocking concern.
+ *
+ * There is intentionally no `accepted_debt` verb — unresolved debt is never a
+ * terminal state. Concerns are either fixed, rejected with evidence, or routed
+ * out via split / fast-follow.
+ */
+export const DesignConcernDispositionSchema = z
+  .object({
+    taskId: z.string().trim().min(1),
+    concernKey: z.string().trim().min(1),
+    disposition: z.enum([
+      "fixed",
+      "rejected_with_evidence",
+      "split",
+      "fast_follow",
+    ]),
+    evidence: z.string().trim().min(1),
+    dispositionedAt: z.string().trim().min(1),
+  })
+  .strict();
+export type DesignConcernDisposition = z.infer<
+  typeof DesignConcernDispositionSchema
+>;
 
 export const EngineerSubagentReportSchema =
   TaskScopedBaseSubagentReportSchema.extend({
@@ -163,9 +197,31 @@ export const DesignerDesignDimensionsSchema = z
     visual_polish: DesignerDesignDimensionSchema,
     site_design_consistency: DesignerDesignDimensionSchema,
     finer_details: DesignerDesignDimensionSchema,
-    notes: z.string().min(1).optional(),
+    notes: z.string().trim().min(1).optional(),
   })
-  .strict();
+  .strict()
+  .superRefine((dimensions, ctx) => {
+    const verdicts = [
+      dimensions.component_correctness,
+      dimensions.semantic_html_a11y,
+      dimensions.responsive_behavior,
+      dimensions.visual_polish,
+      dimensions.site_design_consistency,
+      dimensions.finer_details,
+    ];
+    const needsNotes = verdicts.some((verdict) =>
+      ["concern", "n/a"].includes(verdict),
+    );
+
+    if (needsNotes && !dimensions.notes?.trim()) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["notes"],
+        message:
+          "design_dimensions.notes is required when any design dimension is concern or n/a",
+      });
+    }
+  });
 
 export const DesignerNeighboringRecommendationSchema = z
   .object({
@@ -198,6 +254,7 @@ export const DesignerSubagentReportSchema =
     neighboring_recommendations: z.array(
       DesignerNeighboringRecommendationSchema,
     ),
+    required_follow_ups: z.array(RequiredFollowUpSchema).optional(),
     consumer_warnings: z.array(SubagentConsumerWarningSchema).optional(),
   }).strict();
 

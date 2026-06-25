@@ -1314,6 +1314,7 @@ describe("changeWorkflow signal handlers", () => {
       "worktree_auto_managed: state.worktree_auto_managed",
       "target_worktree_path: state.target_worktree_path",
       "scope_worktrees: state.scope_worktrees",
+      "design_concern_dispositions: state.design_concern_dispositions",
     ]) {
       expect(source).toContain(assignment);
     }

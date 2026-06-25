@@ -44,6 +44,11 @@ const PrepReadinessCodes = {
   // Non-code deliverable evidence policy (rq-PR008nonCodeEvidence)
   NON_CODE_EVIDENCE_POLICY_MISSING: "NON_CODE_EVIDENCE_POLICY_MISSING", // must (error)
 
+  // Frontend applicability metadata (rq-PR009frontendApplicability)
+  FRONTEND_APPLICABILITY_MISSING: "FRONTEND_APPLICABILITY_MISSING", // must (error)
+  FRONTEND_RATIONALE_MISSING: "FRONTEND_RATIONALE_MISSING", // must (error)
+  FRONTEND_APPLICABILITY_HINT: "FRONTEND_APPLICABILITY_HINT", // warning
+
   // Cross-repo routing
   CROSS_REPO_MISSING_METADATA: "CROSS_REPO_MISSING_METADATA", // must (error)
   CROSS_REPO_HINT_UNROUTED: "CROSS_REPO_HINT_UNROUTED", // warning
@@ -347,6 +352,93 @@ export function checkCrossRepoRouting(change: Change): ValidationIssue[] {
 }
 
 // =============================================================================
+// Check: Frontend Applicability Metadata (rq-PR009frontendApplicability)
+// =============================================================================
+
+const FRONTEND_HINT_PATTERN =
+  /\b(frontend|ui|component|view|page|tsx|jsx|css|html|layout|responsive|accessibility|a11y|visual|button|form|dashboard)\b/i;
+
+function isStructuredFrontendScope(metadata: Record<string, string> = {}) {
+  return (
+    metadata.frontend_required === "true" ||
+    metadata.frontend_scope === "true" ||
+    metadata.visual_surface === "true"
+  );
+}
+
+// rq-PR009frontendApplicability: Frontend Applicability Metadata Readiness
+/**
+ * Validate frontend applicability through structured task metadata.
+ *
+ * Hard failures require a structural source (`frontend_required`,
+ * `frontend_scope`, or `visual_surface`). Filename/title heuristics only emit
+ * advisory hints and never own gate-blocking correctness.
+ */
+export function checkFrontendApplicability(change: Change): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+
+  for (const task of change.tasks ?? []) {
+    if (task.status === "cancelled") continue;
+
+    const metadata = task.metadata ?? {};
+    const frontendValue = metadata.frontend;
+    const hasStructuredScope = isStructuredFrontendScope(metadata);
+
+    if (hasStructuredScope) {
+      if (frontendValue !== "true" && frontendValue !== "false") {
+        issues.push({
+          code: PrepReadinessCodes.FRONTEND_APPLICABILITY_MISSING,
+          severity: "error",
+          message: `Task "${task.id}" is in structured frontend/design scope but is missing metadata.frontend ("true" or "false")`,
+          path: `tasks.${task.id}.metadata.frontend`,
+          details: {
+            taskId: task.id,
+            remediation:
+              "Set metadata.frontend='true' for frontend/UI implementation work, or metadata.frontend='false' with metadata.frontend_rationale for non-frontend work.",
+          },
+        });
+      } else if (
+        frontendValue === "false" &&
+        !metadata.frontend_rationale?.trim()
+      ) {
+        issues.push({
+          code: PrepReadinessCodes.FRONTEND_RATIONALE_MISSING,
+          severity: "error",
+          message: `Task "${task.id}" records metadata.frontend="false" in structured frontend/design scope but lacks metadata.frontend_rationale`,
+          path: `tasks.${task.id}.metadata.frontend_rationale`,
+          details: {
+            taskId: task.id,
+            remediation:
+              "Add a bounded metadata.frontend_rationale explaining why the task is not frontend/UI implementation scope.",
+          },
+        });
+      }
+      continue;
+    }
+
+    const heuristicSurface = `${task.title} ${task.section ?? ""}`;
+    if (
+      frontendValue === undefined &&
+      FRONTEND_HINT_PATTERN.test(heuristicSurface)
+    ) {
+      issues.push({
+        code: PrepReadinessCodes.FRONTEND_APPLICABILITY_HINT,
+        severity: "warning",
+        message: `Task "${task.id}" appears frontend/UI-related by heuristic but has no structured frontend applicability metadata`,
+        path: `tasks.${task.id}.metadata.frontend`,
+        details: {
+          taskId: task.id,
+          remediation:
+            "If this task owns frontend/UI work, set metadata.frontend='true'. If not, add structured scope metadata before treating this as blocking.",
+        },
+      });
+    }
+  }
+
+  return issues;
+}
+
+// =============================================================================
 // Check: TDD Intent Assignment (rq-PR006tdi)
 // =============================================================================
 
@@ -613,6 +705,7 @@ export function runPrepReadinessChecks(
     ...checkScenarioAdequacy(change),
     ...checkTaskGraphIntegrity(change),
     ...checkCrossRepoRouting(change),
+    ...checkFrontendApplicability(change),
     ...checkCriticalOpsCoverage(change),
     ...checkNonCodeEvidencePolicy(change),
     ...checkTaskOrderingProvisional(change),
@@ -636,6 +729,7 @@ export function runPrepReadinessChecks(
       "checkScenarioAdequacy",
       "checkTaskGraphIntegrity",
       "checkCrossRepoRouting",
+      "checkFrontendApplicability",
       "checkCriticalOpsCoverage",
       "checkNonCodeEvidencePolicy",
       "checkTaskOrderingProvisional",

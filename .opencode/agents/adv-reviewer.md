@@ -151,6 +151,15 @@ When review or harden scope includes frontend/design behavior and browser-driven
 
 Before the first browser action, confirm the spawned session exposes `playwright_*` tools. If Playwright MCP or the `playwright-mcp` skill is unavailable, continue with deterministic review/harden checks and record the limitation in `REVIEWER_REPORT.verification.evidence` and `REVIEWER_REPORT.risks`.
 
+## Designer Report Evidence
+
+Design-quality enforcement is STRUCTURAL. The gate-readiness evaluator (`checkUnresolvedDesignConcerns`) blocks acceptance/release with a `DESIGN_CONCERN_UNRESOLVED` blocker while a task's latest `adv-designer` report has an undispositioned `design_dimensions` concern or `neighboring_recommendation`. Your review prose does not gate the change — the evaluator does. Your job is to drive each concern to a resolution the evaluator will accept:
+
+- Fixed: an updated higher-attempt all-pass `adv-designer` report supersedes the concern.
+- Typed disposition: recorded via `adv_design_concern_disposition` (`fixed | rejected_with_evidence | split | fast_follow`, non-blank evidence). There is no debt-acceptance disposition.
+- Preserve each unresolved `required_main_agent_actions` item in `REVIEWER_REPORT.required_main_agent_actions` until resolved.
+- When feeding contract review-matrix synthesis, use `design_proof` / `rubric_review` evidence vocabulary; require viewport context for runnable visual surfaces and explicit fallback rationale otherwise.
+
 ## Prune-First Heuristic
 
 Default instinct is SUBTRACTION. Before adding anything, ask:
@@ -185,7 +194,7 @@ Per `docs/scope-discovery-protocol.md`, only orchestrator issues Tier A inline a
 - "Present scope-drift findings to user via Tier A inline approval per `docs/scope-discovery-protocol.md`."
 - "On approve → reenter from the earliest affected gate via `adv_change_reenter`."
 - "On split → create fast-follow change via `adv_change_create parent_change_id: <current>`."
-- "On reject → discard this finding; document as accepted-debt."
+- "On reject → discard this finding only with `rejected_with_evidence`, or split/fast-follow valid out-of-scope work."
 
 Single declarative drift rule. Applies to every finding, fix, auto-remediation.
 

@@ -397,3 +397,109 @@ describe("checkNonCodeEvidencePolicy — rq-PR008nonCodeEvidence", () => {
     expect(result.passed).toBe(true);
   });
 });
+
+// =============================================================================
+// Frontend Applicability Metadata Readiness (rq-PR009frontendApplicability)
+// =============================================================================
+
+function buildFrontendTask(opts: {
+  id?: string;
+  title?: string;
+  metadata?: Record<string, string>;
+  status?: string;
+}): any {
+  return {
+    id: opts.id ?? "tk-frontend",
+    title: opts.title ?? "Implement Button component",
+    type: "code",
+    status: opts.status ?? "pending",
+    deps: [],
+    metadata: {
+      tdd_intent: "inline",
+      ...(opts.metadata ?? {}),
+    },
+  };
+}
+
+describe("checkFrontendApplicability — rq-PR009frontendApplicability", () => {
+  test("structured frontend task without metadata.frontend blocks prep", () => {
+    const result = runPrepReadinessChecks(
+      buildNonCodeChange([
+        buildFrontendTask({ metadata: { frontend_required: "true" } }),
+      ]),
+      "strict",
+    );
+
+    expect(
+      result.mustFailures.some(
+        (i) => i.code === "FRONTEND_APPLICABILITY_MISSING",
+      ),
+    ).toBe(true);
+    expect(result.passed).toBe(false);
+  });
+
+  test("metadata.frontend true satisfies structured frontend applicability", () => {
+    const result = runPrepReadinessChecks(
+      buildNonCodeChange([
+        buildFrontendTask({
+          metadata: { frontend_required: "true", frontend: "true" },
+        }),
+      ]),
+      "strict",
+    );
+
+    expect(
+      result.mustFailures.some((i) => i.code.startsWith("FRONTEND_")),
+    ).toBe(false);
+  });
+
+  test("metadata.frontend false in structured design scope requires rationale", () => {
+    const result = runPrepReadinessChecks(
+      buildNonCodeChange([
+        buildFrontendTask({
+          title: "Update review packet contract",
+          metadata: { frontend_scope: "true", frontend: "false" },
+        }),
+      ]),
+      "strict",
+    );
+
+    expect(
+      result.mustFailures.some((i) => i.code === "FRONTEND_RATIONALE_MISSING"),
+    ).toBe(true);
+  });
+
+  test("metadata.frontend false with rationale passes structured design scope", () => {
+    const result = runPrepReadinessChecks(
+      buildNonCodeChange([
+        buildFrontendTask({
+          title: "Update review packet contract",
+          metadata: {
+            frontend_scope: "true",
+            frontend: "false",
+            frontend_rationale: "Review workflow only; no UI files owned.",
+          },
+        }),
+      ]),
+      "strict",
+    );
+
+    expect(
+      result.mustFailures.some((i) => i.code.startsWith("FRONTEND_")),
+    ).toBe(false);
+  });
+
+  test("heuristic frontend-looking task emits warning only", () => {
+    const result = runPrepReadinessChecks(
+      buildNonCodeChange([buildFrontendTask({ title: "Update Button.tsx" })]),
+      "strict",
+    );
+
+    expect(
+      result.warnings.some((i) => i.code === "FRONTEND_APPLICABILITY_HINT"),
+    ).toBe(true);
+    expect(
+      result.mustFailures.some((i) => i.code === "FRONTEND_APPLICABILITY_HINT"),
+    ).toBe(false);
+  });
+});

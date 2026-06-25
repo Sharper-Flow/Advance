@@ -56,6 +56,75 @@ Capability: Workflow contract layer for ADV — gate model, autonomy boundaries,
 
 ---
 
+### Structural Design-Quality Enforcement at Acceptance and Release
+
+**ID:** `rq-designQualityEvidence01` | **Priority:** **[MUST]**
+
+Design-quality concerns raised by adv-designer reports MUST be enforced structurally, not by reviewer prose. A sandbox-safe gate-readiness evaluator MUST read persisted adv-designer reports from change state and block the acceptance and release gates while the latest designer report for any task carries an undispositioned design_dimensions concern or neighboring_recommendation. A concern clears only when (a) a later all-pass designer report supersedes it, or (b) a typed disposition (fixed, rejected_with_evidence, split, or fast_follow) is recorded via the designConcernDispositioned signal path (adv_design_concern_disposition). On report submission, each concern and neighboring recommendation MUST also be promoted to a durable required-obligation agenda item with an attempt-stable dedupe key; this agenda promotion is ADVISORY routing only and MUST NOT be the gate authority. No accepted_debt terminal state exists anywhere in specs, contract, commands, or agents. Review and harden ownership remains with adv-reviewer, and adv-designer remains apply-phase only.
+
+**Tags:** `workflow`, `review`, `acceptance`, `release`, `frontend`, `design-proof`, `adv-designer`, `structural`
+
+#### Scenarios
+
+**Unresolved designer concern structurally blocks acceptance and release** (`rq-designQualityEvidence01.1`)
+
+**Given:**
+
+- A task's latest adv-designer report contains a design_dimensions concern
+- No typed disposition exists for that concern
+
+**When:** Gate readiness is evaluated for acceptance or release
+
+**Then:**
+
+- The gate-readiness evaluator emits a DESIGN_CONCERN_UNRESOLVED blocker
+- The gate is blocked by code, not by reviewer judgment
+- The evaluator reads only change state (sandbox-safe; no agenda or storage access)
+
+**Concerns and neighboring recommendations are advisably promoted, never silently dropped** (`rq-designQualityEvidence01.2`)
+
+**Given:**
+
+- An adv-designer report includes a design_dimensions concern or a neighboring_recommendation
+
+**When:** The report is submitted
+
+**Then:**
+
+- Each concern/recommendation is promoted to a required-obligation agenda item with an attempt-stable dedupe key
+- Re-submission at a higher attempt does not duplicate the agenda item
+- The agenda promotion is advisory and is not the gate authority
+
+**Typed disposition clears the block; no accepted_debt state** (`rq-designQualityEvidence01.3`)
+
+**Given:**
+
+- An unresolved design concern blocks acceptance
+
+**When:** A disposition is recorded via adv_design_concern_disposition (fixed, rejected_with_evidence, split, or fast_follow), or a later all-pass designer report supersedes the concern
+
+**Then:**
+
+- The DESIGN_CONCERN_UNRESOLVED blocker is cleared
+- No accepted_debt terminal state is used
+- The disposition carries non-blank typed evidence
+
+**Runnable visual surface evidence is bounded** (`rq-designQualityEvidence01.4`)
+
+**Given:**
+
+- A frontend change has a runnable visual surface or preview
+
+**When:** /adv-review evaluates design-quality proof
+
+**Then:**
+
+- Browser/design evidence includes viewport context
+- A missing runnable surface records an explicit fallback rationale
+- Advance does not add Storybook as a plugin dependency to satisfy proof
+
+---
+
 ### Fast-Track Tasks Preserve Spec-Law Intent and Crash-Safe Tracking
 
 **ID:** `rq-taskSpecLaw01` | **Priority:** **[MUST]**
