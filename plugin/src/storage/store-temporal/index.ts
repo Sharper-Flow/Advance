@@ -83,6 +83,7 @@ export function createTemporalStoreBackend(
       id: state.changeId,
       title: state.title,
       status: state.status,
+      lifecycleState: state.lifecycleState,
       gateProgress: {
         proposal: asGateStatus(state.gates?.proposal?.status),
         discovery: asGateStatus(state.gates?.discovery?.status),

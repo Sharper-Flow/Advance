@@ -68,6 +68,7 @@ export function mapTemporalChangeStateToChange(
     id: safeState.changeId,
     title: safeState.title,
     status: safeState.status,
+    lifecycleState: safeState.lifecycleState,
     created_at: safeState.createdAt,
     tasks: safeState.tasks,
     subagent_reports: safeState.subagent_reports,

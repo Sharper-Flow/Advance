@@ -16,6 +16,7 @@ function makeState(): ChangeWorkflowState {
     changeId: "chg1",
     title: "Exact title",
     status: "active",
+    lifecycleState: "open",
     initializedAt: "2026-05-05T00:00:00.000Z",
     createdAt: "2026-05-05T00:00:00.000Z",
     tasks: [],
@@ -50,6 +51,7 @@ describe("ADV search attributes", () => {
     expect(ADV_SEARCH_ATTRIBUTES).toEqual({
       AdvChangeId: "Keyword",
       AdvChangeStatus: "Keyword",
+      AdvLifecycleState: "Keyword",
       AdvChangeTitle: "Keyword",
       AdvAffectedProjects: "KeywordList",
       AdvCurrentGate: "Keyword",
@@ -67,6 +69,7 @@ describe("ADV search attributes", () => {
     expect(requiredAdvSearchAttributes()).toEqual([
       { name: "AdvChangeId", type: "Keyword", typeCode: 2 },
       { name: "AdvChangeStatus", type: "Keyword", typeCode: 2 },
+      { name: "AdvLifecycleState", type: "Keyword", typeCode: 2 },
       { name: "AdvChangeTitle", type: "Keyword", typeCode: 2 },
       { name: "AdvAffectedProjects", type: "KeywordList", typeCode: 7 },
       { name: "AdvCurrentGate", type: "Keyword", typeCode: 2 },
@@ -87,6 +90,7 @@ describe("ADV search attributes", () => {
     expect(attrs).toMatchObject({
       AdvChangeId: ["chg1"],
       AdvChangeStatus: ["active"],
+      AdvLifecycleState: ["open"],
       AdvChangeTitle: ["Exact title"],
       AdvAffectedProjects: ["proj1", "proj2"],
       AdvCurrentGate: ["proposal"],
@@ -119,6 +123,7 @@ describe("ADV search attributes", () => {
     expect(result.ok).toBe(true);
     expect(result.created.map((attr) => attr.name)).toEqual([
       "AdvChangeStatus",
+      "AdvLifecycleState",
       "AdvChangeTitle",
       "AdvAffectedProjects",
       "AdvCurrentGate",
@@ -133,6 +138,7 @@ describe("ADV search attributes", () => {
       namespace: "default",
       searchAttributes: {
         AdvChangeStatus: 2,
+        AdvLifecycleState: 2,
         AdvChangeTitle: 2,
         AdvAffectedProjects: 7,
         AdvCurrentGate: 2,

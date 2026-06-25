@@ -15,7 +15,7 @@
  *   - bulkSet(): batch hydration (e.g. startup recovery)
  */
 
-import type { ChangeStatus, FastFollowOf } from "../types";
+import type { ChangeLifecycleState, ChangeStatus, FastFollowOf } from "../types";
 import type { OpsFollowupLink, OpsFollowupProfile } from "../types/changes";
 
 export type GateStatusValue = "pending" | "done" | "skipped" | "legacy";
@@ -47,6 +47,7 @@ export interface ChangeSummary {
   id: string;
   title: string;
   status: ChangeStatus;
+  lifecycleState?: ChangeLifecycleState;
   gateProgress: GateProgress;
   taskCounts: {
     total: number;
