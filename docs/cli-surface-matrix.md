@@ -109,6 +109,15 @@
 | `adv_agenda_complete` | `no-cli-dangerous` | Agenda mutation |
 | `adv_agenda_cancel` | `no-cli-dangerous` | Agenda mutation |
 | `adv_agenda_prioritize` | `no-cli-dangerous` | Agenda mutation |
+| `adv_epic_create` | `no-cli-dangerous` | Epic mutation |
+| `adv_epic_show` | `keep-mcp-only` | Agent-workflow read |
+| `adv_epic_list` | `keep-mcp-only` | Agent-workflow read |
+| `adv_epic_update` | `no-cli-dangerous` | Epic mutation |
+| `adv_epic_add_shell` | `no-cli-dangerous` | Epic mutation |
+| `adv_epic_promote_shell` | `no-cli-dangerous` | Epic mutation |
+| `adv_epic_link_change` | `no-cli-dangerous` | Epic mutation |
+| `adv_epic_unlink_change` | `no-cli-dangerous` | Epic mutation |
+| `adv_epic_reorder` | `no-cli-dangerous` | Epic mutation |
 
 ## Deferred
 

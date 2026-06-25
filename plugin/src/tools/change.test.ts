@@ -199,6 +199,17 @@ function createMockStore(
       reopenFrom: vi.fn(),
     },
     status: vi.fn(),
+    epics: {
+      create: vi.fn(),
+      get: vi.fn(async () => ({ success: true, data: null })),
+      list: vi.fn(async () => []),
+      update: vi.fn(),
+      addShell: vi.fn(),
+      promoteShell: vi.fn(),
+      linkChange: vi.fn(),
+      unlinkChange: vi.fn(),
+      reorder: vi.fn(),
+    },
   } as unknown as Store;
 }
 
@@ -1312,6 +1323,49 @@ describe("change tools — signal-driven lifecycle", () => {
           origin: expect.anything(),
         }),
       );
+    });
+    test("seeds epic_membership into create initialMetadata", async () => {
+      const store = createMockStore({ id: "epicMember" });
+      vi.mocked(store.changes.create).mockResolvedValueOnce({
+        changeId: "epicMember",
+        path: "/tmp/test/.adv/changes/epicMember/proposal.md",
+      });
+      const claimChecker = vi.fn().mockResolvedValue([]);
+
+      const result = await changeTools.adv_change_create.execute(
+        {
+          summary: "Epic member change",
+          epic_id: "addAuthEpic",
+          entry_id: "entry-1",
+          epic_order: 2,
+          epic_title: "Epic Entry One",
+        },
+        store,
+        undefined,
+        { claimChecker, claimRaceCheckMs: 0 },
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.epic_membership).toEqual({
+        epic_id: "addAuthEpic",
+        entry_id: "entry-1",
+        order: 2,
+        title: "Epic Entry One",
+        linked_at: expect.any(String),
+      });
+      expect(store.changes.create).toHaveBeenCalledWith("Epic member change", {
+        capability: undefined,
+        artifacts: {},
+        initialMetadata: {
+          epic_membership: {
+            epic_id: "addAuthEpic",
+            entry_id: "entry-1",
+            order: 2,
+            title: "Epic Entry One",
+            linked_at: expect.any(String),
+          },
+        },
+      });
     });
   });
 

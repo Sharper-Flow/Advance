@@ -92,6 +92,19 @@ const TITLE_BUILDERS: Record<string, TitleBuilder> = {
     write(`Re-enter change${suffix(args, "changeId")}`),
   adv_change_forget: (args) =>
     operator(`Forget change pointer${suffix(args, "changeId")}`),
+  adv_epic_create: (args) => write(`Create Epic${suffix(args, "epic_id")}`),
+  adv_epic_show: (args) => read(`Show Epic${suffix(args, "epic_id")}`),
+  adv_epic_list: () => read("List Epics"),
+  adv_epic_update: (args) => write(`Update Epic${suffix(args, "epic_id")}`),
+  adv_epic_add_shell: (args) =>
+    write(`Add Epic shell${suffix(args, "epic_id")}`),
+  adv_epic_promote_shell: (args) =>
+    write(`Promote Epic shell${suffix(args, "epic_id")}`),
+  adv_epic_link_change: (args) =>
+    write(`Link Epic change${suffix(args, "epic_id")}`),
+  adv_epic_unlink_change: (args) =>
+    write(`Unlink Epic change${suffix(args, "epic_id")}`),
+  adv_epic_reorder: (args) => write(`Reorder Epic${suffix(args, "epic_id")}`),
   adv_followup_promote: (args) =>
     write(`Promote follow-up${suffix(args, "source_change_id")}`),
   adv_ops_evidence_add: (args) =>

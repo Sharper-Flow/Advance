@@ -128,6 +128,7 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
       const capability = options?.capability;
       const artifacts = options?.artifacts ?? {};
       const initialMetadata = options?.initialMetadata;
+      const epicMembership = initialMetadata?.epic_membership;
 
       // Layer 1 size validation (KD-8 layer 1). Fails fast before any
       // disk write or signal fires. Layer 2 (signal-handler state-mutation
@@ -199,6 +200,7 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
             // first read sees it; lazy migration (A4) covers legacy changes
             // that pre-date this field.
             worktree_auto_managed: true,
+            ...(epicMembership ? { epic_membership: epicMembership } : {}),
           },
         });
       } catch (err) {

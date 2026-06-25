@@ -906,6 +906,40 @@ export async function createDiskStore(
     },
 
     // -------------------------------------------------------------------
+    // Epics — disk-only backend does not persist Epic state. Temporal store
+    // overrides this with workflow-backed Epic operations.
+    // -------------------------------------------------------------------
+    epics: {
+      create: async () => {
+        throw new Error("Epics require the Temporal store backend.");
+      },
+      get: async () =>
+        ({
+          success: true,
+          data: null,
+        }) as LoadResult<null>,
+      list: async () => [],
+      update: async () => {
+        throw new Error("Epics require the Temporal store backend.");
+      },
+      addShell: async () => {
+        throw new Error("Epics require the Temporal store backend.");
+      },
+      promoteShell: async () => {
+        throw new Error("Epics require the Temporal store backend.");
+      },
+      linkChange: async () => {
+        throw new Error("Epics require the Temporal store backend.");
+      },
+      unlinkChange: async () => {
+        throw new Error("Epics require the Temporal store backend.");
+      },
+      reorder: async () => {
+        throw new Error("Epics require the Temporal store backend.");
+      },
+    },
+
+    // -------------------------------------------------------------------
     // Status — Temporal store overrides this entirely (buildTemporalStatus).
     // The disk-only fallback returns minimal shape for tests/cross-repo.
     // -------------------------------------------------------------------

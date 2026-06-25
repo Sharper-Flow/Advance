@@ -34,6 +34,7 @@ import { createChangeOps } from "./changes";
 import { createTaskOps } from "./tasks";
 import { createGateOps } from "./gates";
 import { createWisdomOps } from "./wisdom";
+import { createEpicOps } from "./epics";
 
 const logger = createLogger("store-temporal");
 
@@ -1020,6 +1021,7 @@ export function createTemporalStoreBackend(
     gates: createGateOps(deps),
     wisdom: createWisdomOps(deps),
     status: async () => buildTemporalStatus(),
+    epics: createEpicOps(deps),
   };
 
   return store;

@@ -2723,6 +2723,27 @@ export const changeTools = {
         .describe(
           "Product-linked repo scope for this change. Repo IDs must exist in the product config. Defaults to the current repo when product linking is enabled.",
         ),
+      epic_id: z
+        .string()
+        .min(1)
+        .optional()
+        .describe("Parent Epic ID for create-time Epic membership seeding."),
+      entry_id: z
+        .string()
+        .min(1)
+        .optional()
+        .describe("Epic entry ID for create-time Epic membership seeding."),
+      epic_order: z
+        .number()
+        .int()
+        .min(0)
+        .optional()
+        .describe("Advisory order within the Epic roadmap."),
+      epic_title: z
+        .string()
+        .min(1)
+        .optional()
+        .describe("Display title for the Epic entry."),
       origin_kind: ChangeOriginKindSchema.optional().describe(
         "Origin provenance kind. " +
           "'roadmap' = promoted from a GitHub Project / ROADMAP.md item (origin_issue_number required). " +
@@ -2764,6 +2785,10 @@ export const changeTools = {
         confirmationEvidence,
         parent_change_id,
         scope_repos,
+        epic_id,
+        entry_id,
+        epic_order,
+        epic_title,
         origin_kind,
         origin_issue_number,
         origin_source_artifact,
@@ -2782,6 +2807,10 @@ export const changeTools = {
         confirmationEvidence?: string;
         parent_change_id?: string;
         scope_repos?: ChangeRepoScope[];
+        epic_id?: string;
+        entry_id?: string;
+        epic_order?: number;
+        epic_title?: string;
         origin_kind?: ChangeOrigin["kind"];
         origin_issue_number?: number;
         origin_source_artifact?: string;
@@ -2918,6 +2947,15 @@ export const changeTools = {
       if (fastFollowOf) initialMetadata.fast_follow_of = fastFollowOf;
       if (scopeResolution.scope)
         initialMetadata.scope_repos = scopeResolution.scope;
+      if (epic_id) {
+        initialMetadata.epic_membership = {
+          epic_id,
+          entry_id: entry_id ?? "",
+          order: epic_order ?? 0,
+          title: epic_title ?? summary,
+          linked_at: new Date().toISOString(),
+        };
+      }
       const createOptions =
         Object.keys(initialMetadata).length > 0
           ? { initialMetadata }
@@ -2953,6 +2991,10 @@ export const changeTools = {
 
       if (origin) {
         output.origin = origin;
+      }
+
+      if (initialMetadata.epic_membership) {
+        output.epic_membership = initialMetadata.epic_membership;
       }
 
       if (scopeResolution.scope) {

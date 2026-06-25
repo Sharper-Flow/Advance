@@ -26,6 +26,8 @@ import type {
   Gates,
   GateId,
   BulkCloseResult,
+  Epic,
+  EpicEntry,
 } from "../types";
 import type { ProjectPaths, LoadResult } from "./json";
 import type { ProductContext } from "./product-context";
@@ -42,6 +44,7 @@ export interface ChangeCreateInitialMetadata {
   fast_follow_of?: Change["fast_follow_of"];
   cross_project_origin?: Change["cross_project_origin"];
   scope_repos?: Change["scope_repos"];
+  epic_membership?: Change["epic_membership"];
 }
 
 export interface ChangeCreateOptions {
@@ -308,6 +311,47 @@ export interface Store {
 
   // Status
   status: () => Promise<ProjectStatus>;
+
+  // Epics
+  epics: {
+    create: (epicId: string, title: string, narrative: string) => Promise<Epic>;
+    get: (epicId: string) => Promise<LoadResult<Epic | null>>;
+    list: () => Promise<Epic[]>;
+    update: (
+      epicId: string,
+      input: { title?: string; narrative?: string; expectedVersion: number },
+    ) => Promise<Epic>;
+    addShell: (
+      epicId: string,
+      input: {
+        entryId?: string;
+        title: string;
+        successHint: string;
+        order?: number;
+      },
+    ) => Promise<EpicEntry>;
+    promoteShell: (
+      epicId: string,
+      entryId: string,
+      changeId: string,
+      promotedBy: string,
+    ) => Promise<{ entryId: string; changeId: string }>;
+    linkChange: (
+      epicId: string,
+      input: {
+        entryId?: string;
+        changeId: string;
+        title: string;
+        order?: number;
+      },
+    ) => Promise<EpicEntry>;
+    unlinkChange: (epicId: string, entryId: string) => Promise<void>;
+    reorder: (
+      epicId: string,
+      entryIds: string[],
+      expectedVersion: number,
+    ) => Promise<Epic>;
+  };
 }
 
 export interface SearchResult {
