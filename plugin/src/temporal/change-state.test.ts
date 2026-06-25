@@ -13,6 +13,7 @@ import {
   changeSeedStateFromChange,
   completeGateInChangeState,
   createChangeWorkflowState,
+  normalizeChangeLifecycleState,
   updateArtifactMetadataInChangeState,
 } from "./change-state";
 import type { Change, ChangeOrigin } from "../types";
@@ -73,6 +74,60 @@ function makeResearcherReport(changeId: string) {
 }
 
 describe("change-state pure mutation helpers", () => {
+  it("normalizes legacy open statuses to open lifecycle state", () => {
+    expect(normalizeChangeLifecycleState("draft")).toBe("open");
+    expect(normalizeChangeLifecycleState("pending")).toBe("open");
+    expect(normalizeChangeLifecycleState("active")).toBe("open");
+  });
+
+  it("preserves terminal statuses as lifecycle state", () => {
+    expect(normalizeChangeLifecycleState("archived")).toBe("archived");
+    expect(normalizeChangeLifecycleState("closed")).toBe("closed");
+  });
+
+  it("initializes new change workflow state with open lifecycle state", () => {
+    const state = createChangeWorkflowState({
+      changeId: "lifecycle-init-test",
+      title: "Lifecycle init test",
+      createdAt: "2026-06-25T00:00:00.000Z",
+    });
+
+    expect(state.status).toBe("draft");
+    expect(state.lifecycleState).toBe("open");
+  });
+
+  it("seeds lifecycle state from legacy status when missing", () => {
+    const change = {
+      id: "legacy-active-change",
+      title: "Legacy active change",
+      status: "active",
+      created_at: "2026-06-25T00:00:00.000Z",
+      tasks: [],
+      deltas: {},
+    } satisfies Change;
+
+    const seed = changeSeedStateFromChange(change);
+
+    expect(seed.status).toBe("active");
+    expect(seed.lifecycleState).toBe("open");
+  });
+
+  it("preserves explicit lifecycle state during seed", () => {
+    const change = {
+      id: "archived-lifecycle-change",
+      title: "Archived lifecycle change",
+      status: "archived",
+      lifecycleState: "archived",
+      created_at: "2026-06-25T00:00:00.000Z",
+      tasks: [],
+      deltas: {},
+    } satisfies Change;
+
+    const seed = changeSeedStateFromChange(change);
+
+    expect(seed.lifecycleState).toBe("archived");
+  });
+
   it("keeps workflow and I/O imports out of the mutation module", () => {
     const source = readFileSync(sourcePath, "utf8");
 

@@ -70,6 +70,7 @@ import {
   getTaskFromChangeState,
   getReadyTasksFromChangeState,
   listTasksFromChangeState,
+  normalizeChangeLifecycleState,
   updateArtifactMetadataInChangeState,
 } from "./change-state";
 
@@ -470,6 +471,8 @@ export async function changeWorkflow(
   state.archiveProjects = input.archiveProjects;
   if (input.seedState) {
     if (input.seedState.status) state.status = input.seedState.status;
+    state.lifecycleState =
+      input.seedState.lifecycleState ?? normalizeChangeLifecycleState(state.status);
     if (input.seedState.tasks) state.tasks = input.seedState.tasks;
     if (input.seedState.subagent_reports) {
       state.subagent_reports = input.seedState.subagent_reports;
@@ -1525,6 +1528,7 @@ export async function changeWorkflow(
     archiveProjects: input.archiveProjects,
     seedState: {
       status: state.status,
+      lifecycleState: state.lifecycleState,
       tasks: state.tasks,
       subagent_reports: state.subagent_reports,
       deltas: state.deltas,

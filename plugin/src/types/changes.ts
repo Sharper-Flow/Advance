@@ -66,6 +66,14 @@ export const ChangeStatusSchema = z.enum([
 
 export type ChangeStatus = z.infer<typeof ChangeStatusSchema>;
 
+export const ChangeLifecycleStateSchema = z.enum([
+  "open",
+  "archived",
+  "closed",
+]);
+
+export type ChangeLifecycleState = z.infer<typeof ChangeLifecycleStateSchema>;
+
 /**
  * Filter-only status value for adv_change_list.
  * "in-flight" is a union filter (draft + pending + active), not a stored status.
@@ -669,6 +677,7 @@ export const ChangeSchema = z
     id: z.string(), // camelCase title
     title: z.string(),
     status: ChangeStatusSchema,
+    lifecycleState: ChangeLifecycleStateSchema.optional(),
     created_at: z.string(), // ISO8601
     created_by: z.string().optional(),
     // Optional with safe defaults so legacy / hand-authored change.json
