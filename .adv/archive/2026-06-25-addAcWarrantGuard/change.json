@@ -1,0 +1,824 @@
+{
+  "id": "addAcWarrantGuard",
+  "title": "Add AC warrant guard",
+  "status": "archived",
+  "created_at": "2026-06-25T14:09:33.756Z",
+  "tasks": [
+    {
+      "id": "tk-08ed7b8aee47",
+      "title": "Warrant parse + pure resolver (KD1/KD3)",
+      "type": "code",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-06-25T14:21:32.345Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "SC1",
+          "SC3"
+        ],
+        "respects": [
+          "C2",
+          "C3",
+          "C5",
+          "DONT4"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-25T14:23:20.506Z",
+      "verification": "warrant.test.ts (10) + contract-mint.test.ts (11) green = 21/21. Added pure warrant.ts (parse/strip/resolve), warrants field on ContractItemSchema, injected-lookup verification in contract-mint with CONTRACT_UNRESOLVED_WARRANT fail-fast.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/types/changes.ts",
+        "plugin/src/validator/contract-mint.test.ts",
+        "plugin/src/validator/contract-mint.ts",
+        "plugin/src/validator/warrant.test.ts",
+        "plugin/src/validator/warrant.ts"
+      ],
+      "touched_files": [
+        "plugin/src/types/changes.ts",
+        "plugin/src/validator/contract-mint.test.ts",
+        "plugin/src/validator/contract-mint.ts",
+        "plugin/src/validator/warrant.test.ts",
+        "plugin/src/validator/warrant.ts"
+      ],
+      "checkpointSha": "3b29374f8c0ac24b64076a0f04763a2cfdeff228",
+      "completedAt": "2026-06-25T14:28:35.687Z",
+      "completed_at": "2026-06-25T14:28:35.687Z"
+    },
+    {
+      "id": "tk-f8130f25fee5",
+      "title": "Live tool-surface wiring + no-cycle guard (KD2)",
+      "type": "code",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-06-25T14:21:45.238Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-08ed7b8aee47"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "SC1"
+        ],
+        "respects": [
+          "C2"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-25T14:28:59.989Z",
+      "verification": "getToolSurface() added to tool-registry; adv_contract_mint wires live lookup via runtime dynamic import + best-effort specIds. Boundary test (2) proves no static cycle import in warrant.ts/contract-mint.ts; live-surface integration (4) proves AC1 (adv_change_archive#target_path → CONTRACT_UNRESOLVED_WARRANT) and AC2 (adv_change_status_repair#target_path resolves). 6/6 green.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tool-registry.surface.test.ts",
+        "plugin/src/tool-registry.ts",
+        "plugin/src/tools/contract.ts",
+        "plugin/src/validator/warrant-boundary.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tool-registry.surface.test.ts",
+        "plugin/src/tool-registry.ts",
+        "plugin/src/tools/contract.ts",
+        "plugin/src/validator/warrant-boundary.test.ts"
+      ],
+      "checkpointSha": "c1dcf661bcea07b621f98afc131272c361c479b3",
+      "completedAt": "2026-06-25T14:31:21.801Z",
+      "completed_at": "2026-06-25T14:31:21.801Z"
+    },
+    {
+      "id": "tk-ab385375bda3",
+      "title": "Discovery classification + spec law + asset tests (KD4)",
+      "type": "code",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-06-25T14:21:55.664Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC4",
+          "AC5",
+          "SC2"
+        ],
+        "respects": [
+          "DONT1",
+          "DONT2",
+          "DONT3"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-25T14:31:27.109Z",
+      "verification": "ac-warrant-guard-assets.test.ts 6/6 green (AC4 command-contract + AC5 spec-law). Added rq-acWarrant01 to advance-workflow spec.json (+ docs mirror), reproduction-finding classification section + capability-warrant declaration step to adv-discover.md. rq-acWarrant01 cited in plugin/src + .opencode (satisfies spec-citation invariant).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".adv/specs/advance-workflow/spec.json",
+        ".opencode/command/adv-discover.md",
+        "docs/specs/advance-workflow.md",
+        "plugin/src/ac-warrant-guard-assets.test.ts"
+      ],
+      "touched_files": [
+        ".adv/specs/advance-workflow/spec.json",
+        ".opencode/command/adv-discover.md",
+        "docs/specs/advance-workflow.md",
+        "plugin/src/ac-warrant-guard-assets.test.ts"
+      ],
+      "checkpointSha": "1a72a5e43310040355bd4131570a8be50f6d3c53",
+      "completedAt": "2026-06-25T14:36:05.456Z",
+      "completed_at": "2026-06-25T14:36:05.456Z"
+    },
+    {
+      "id": "tk-8ec73d25e071",
+      "title": "Backfill fixStaleCloseVisibility AC6 (KD5)",
+      "type": "docs",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-06-25T14:22:06.445Z",
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC6"
+        ],
+        "not_applicable_reason": "ADV artifact correction (agreement text + contract re-mint), not code; verified by contract readback."
+      },
+      "evidence_policy": "artifact_reference",
+      "assignedTo": "agent",
+      "started_at": "2026-06-25T14:36:11.649Z",
+      "verification": "fixStaleCloseVisibility agreement AC6 + Objective 4 corrected (status-repair cross-project routing only; adv_change_archive no target_path by design, phase9 git finalization repo-local). Contract re-minted (force:true, 20 items); adv_change_show contract.items AC6 readback confirms corrected text + addAcWarrantGuard backfill note. No code in this task (worktree clean for it).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "1a72a5e43310040355bd4131570a8be50f6d3c53",
+      "completedAt": "2026-06-25T14:37:53.668Z",
+      "completed_at": "2026-06-25T14:37:53.668Z"
+    },
+    {
+      "id": "tk-5bf126b4f829",
+      "title": "Wisdom capture + ADR draft + full gate verification (AC7)",
+      "type": "verification",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-06-25T14:22:17.022Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-08ed7b8aee47"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-f8130f25fee5"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-ab385375bda3"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-8ec73d25e071"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "verifies": [
+          "AC7"
+        ],
+        "respects": [
+          "C1"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-25T14:38:17.354Z",
+      "verification": "AC7 green. Wisdom ws-UpN0GJ added + promoted (pw-69fpHOkt). pnpm run check PASS (schemas:check, typecheck, test-isolation, lockfile, lint, format:check). Affected suites green: warrant(10)+contract-mint(15)+warrant-boundary(2)+tool-registry.surface(4)+ac-warrant-guard-assets(6)+spec-citation-invariant(2)+contract type/tool tests + discover-asset suites (132). Regenerated public schemas (warrants field). Campsite fixes for two pre-existing trunk failures: cited rq-changeLifecycleState01 in search-attributes.ts; bumped advance-workflow spec 1.22.0→1.23.0 (my added rq) + aligned stale test pin (was 1.21.0) + docs mirror.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".adv/specs/advance-workflow/spec.json",
+        "docs/specs/advance-workflow.md",
+        "plugin/schemas/change.schema.json",
+        "plugin/src/adv-skill-backed-commands-assets.test.ts",
+        "plugin/src/temporal/search-attributes.ts",
+        "plugin/src/validator/contract-mint.test.ts"
+      ],
+      "touched_files": [
+        ".adv/specs/advance-workflow/spec.json",
+        "docs/specs/advance-workflow.md",
+        "plugin/schemas/change.schema.json",
+        "plugin/src/adv-skill-backed-commands-assets.test.ts",
+        "plugin/src/temporal/search-attributes.ts",
+        "plugin/src/validator/contract-mint.test.ts"
+      ],
+      "checkpointSha": "e80bad00daff4ab2721c0111cd43d503b5221168",
+      "completedAt": "2026-06-25T14:43:38.718Z",
+      "completed_at": "2026-06-25T14:43:38.718Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "addAcWarrantGuard",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation: AC warrant guard (two-layer declared-warrant mint check)",
+      "sources": [
+        {
+          "label": "change.test.ts (archive surface)",
+          "locator": "plugin/src/tools/change.test.ts:2558",
+          "summary": "Confirms adv_change_archive 'does not accept target_path'; parsed.target_path undefined. Validates KD5 defect premise: fixStaleCloseVisibility AC6 archive-routing assertion was unwarranted."
+        },
+        {
+          "label": "contract.ts import of contract-mint",
+          "locator": "plugin/src/tools/contract.ts:22",
+          "summary": "contractTools imports buildContractFromAgreement from validator/contract-mint."
+        },
+        {
+          "label": "tool-registry imports contractTools",
+          "locator": "plugin/src/tool-registry.ts:36",
+          "summary": "Registry imports contractTools. With contract.ts->contract-mint, a contract-mint->tool-registry import would form a cycle. KD2 cycle premise verified."
+        },
+        {
+          "label": "contract-mint.ts (pure builder)",
+          "locator": "plugin/src/validator/contract-mint.ts:141",
+          "summary": "buildContractFromAgreement is a pure section/label parser. KD3 injected resolveWarrant seam fits naturally; the tool wrapper (impure) could inject live toolSurface."
+        },
+        {
+          "label": "generate-json-schemas.ts (schemas:check pattern)",
+          "locator": "plugin/scripts/generate-json-schemas.ts:20-50",
+          "summary": "Build-then-diff --check gate KD2 mirrors. Sound precedent for tool-surface:check."
+        },
+        {
+          "label": "ADV_TOOL_NAMES canonical list + parity drift guard",
+          "locator": "plugin/src/tool-registry.ts:731 ; plugin/src/tool-registry.test.ts:66",
+          "summary": "Existing hand-maintained canonical tool-name surface with drift-guard test enforcing parity to createToolMap. Lighter alternative source-of-truth than a new generated manifest."
+        },
+        {
+          "label": "adv-discover.md (discovery owns criteria + mint timing)",
+          "locator": ".opencode/command/adv-discover.md:10,439,531-579,625-633",
+          "summary": "Discovery owns firming behavioral AC/SC; contract mint runs Phase 4.6 post criteria approval. KD4 classification + warrant declaration composes additively."
+        },
+        {
+          "label": "advance-workflow spec (gate model + discovery ownership)",
+          "locator": "adv_spec advance-workflow v1.22.0 (71 requirements; rq-gatemodel01, rq-scopeReentry01)",
+          "summary": "Confirms gate sequencing and discovery-owned criteria. New rq-* would be additive independent IDs; no collision/conflict. C5 aligns with P33 structural-before-heuristic."
+        }
+      ],
+      "architecture_assessment": "Two-layer guard (structural mint check for DECLARED warrants + discovery process layer for UNDECLARED capability-presuming ACs) is correct and the honest boundary is sound. Defect premise verified against source: adv_change_archive has no target_path, so the originating AC6 assertion was genuinely unwarranted (KD5 backfill correctly scopes to status-repair routing). KD2 import-cycle premise is real (contract.ts->contract-mint; tool-registry->contractTools), and a generated no-runtime-import manifest is a valid break. However it is the heaviest of three cycle-free options: (a) extend existing parity-guarded ADV_TOOL_NAMES to carry arg-key sets; (b) inject live toolSurface from the impure tool wrapper (which already imports the registry) into the existing KD3 resolveWarrant seam, removing the generated artifact and new check entirely. Spec-law composition is clean: discovery owns AC firming, mint already runs post-approval, new rq-* are additive, and C5 aligns with P33.",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "VALIDATED on gap-closure (dim 1) and spec-law (dim 3). CAUTION concentrated on KD2 mechanism choice: the generated tool-surface manifest + new tool-surface:check is heavier than needed. Evaluate injecting live toolSurface arg-keys from the tool layer (tools/contract.ts already imports the registry) into the pure buildContractFromAgreement via the existing KD3 resolveWarrant seam before committing to a generated artifact. If a static artifact is preferred for determinism, model the gate exactly on schemas:check and prefer extending ADV_TOOL_NAMES over a new generated file. Manifest staleness risk: warrants verify against the artifact, so the drift check must be wired into pnpm run check or false pass/fail can occur on arg renames."
+      },
+      "recommendation": "Proceed; no blocker. Record the KD2 source-of-truth decision explicitly. Preferred order: (1) inject live toolSurface from the impure adv_contract_mint wrapper into pure buildContractFromAgreement via the existing resolveWarrant seam (no new build artifact, no new check); (2) if a static artifact is required, extend the existing parity-guarded ADV_TOOL_NAMES structure and model the gate on schemas:check wired into pnpm run check. Keep KD1/KD3/KD4/KD5 as designed.",
+      "follow_ups": [
+        "Decide and document KD2 source-of-truth: injected live toolSurface (lighter) vs generated manifest vs ADV_TOOL_NAMES extension.",
+        "If generated manifest chosen, wire tool-surface:check into pnpm run check and add a parity/drift test mirroring tool-registry.test.ts:66 to prevent stale-surface false verdicts."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addAcWarrantGuard",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addAcWarrantGuard",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [
+        {
+          "type": "convention",
+          "content": "Capability-presuming acceptance criteria can be structurally checked without heuristic prose inference by requiring explicit `[warrant: ...]` tags during discovery, then verifying declared refs against live tool/spec surfaces at contract mint."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "git diff --stat trunk...HEAD && git diff --name-only trunk...HEAD",
+          "pnpm exec vitest run src/validator/warrant.test.ts src/validator/contract-mint.test.ts src/validator/warrant-boundary.test.ts src/tool-registry.surface.test.ts src/ac-warrant-guard-assets.test.ts",
+          "pnpm run check",
+          "pnpm exec vitest run src/adv-skill-backed-commands-assets.test.ts",
+          "git status --short && git diff --check trunk...HEAD"
+        ],
+        "results": "pass",
+        "evidence": "Path preflight passed for all key files/tests. Diff limited to warrant validator/mint/tool surface/docs/spec/schema/tests plus adjacent version/comment assets. Source review verified: contract mint injects live warrant lookup in adv_contract_mint (plugin/src/tools/contract.ts:342-352); unresolved declared warrants fail with CONTRACT_UNRESOLVED_WARRANT before persistence (plugin/src/validator/contract-mint.ts:211-218); resolved warrants are recorded/stripped (contract-mint.ts:220-233); behavioral no-tag criteria stay unchanged by tests. Live surface comes from assembled tool definitions via getToolSurface (plugin/src/tool-registry.ts:742-774), with dynamic import in contract tool (contract.ts:93-95), and no static validator->tool import per warrant-boundary test. adv-discover requires reproduction classification and blocks unwarranted/unverified must-work seeding (adv-discover.md:224-239, 561-566). rq-acWarrant01 exists in spec/docs with mint/classification scenarios (docs/specs/advance-workflow.md:1081-1137). fixStaleCloseVisibility agreement AC6 is corrected: status-repair target_path only; adv_change_archive target_path explicitly out by design. Targeted warrant suite: 5 files, 33 tests passed. adv-skill-backed assets: 54 tests passed, warning-only token budget messages. pnpm run check passed: schemas:check, typecheck, test-isolation, lockfile policy, lint, format:check. git diff --check clean; git status clean."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Live deployed ADV plugin behavior still needs normal build/deploy/restart before end-to-end tool invocation, per repository source-vs-dist runtime gotcha; source tests and static review passed."
+      ],
+      "required_main_agent_actions": [],
+      "required_follow_ups": [],
+      "consumer_warnings": []
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-UpN0GJ",
+      "type": "gotcha",
+      "content": "A failed reproduction attempt is NOT a requirement. In discovery, classify every reproduction-sourced finding as broken_capability | unwarranted_operation | unverified before it can seed an acceptance criterion; unwarranted_operation/unverified findings must never seed a \"must-work\" criterion. Never harden a hedged/unverified observation into a firm AC. Capability-presuming criteria (those asserting a tool/arg/spec surface exists or must work) must declare a `[warrant: tool:<name>#<arg> | spec:<rq-id>]` tag, verified structurally against the live tool surface at contract mint (CONTRACT_UNRESOLVED_WARRANT fail-fast). Behavioral criteria need no warrant (proportionality). Real defect that motivated this: fixStaleCloseVisibility AC6 asserted adv_change_archive target_path routing — archive has no target_path and shouldn't (phase9 git finalization is repo-local). Caught only by the late design validator; the guard moves the catch to discovery + mint. Source-of-truth for \"does this surface exist\": tool-registry getToolSurface() injected via runtime dynamic import to keep the pure validator cycle-free.",
+      "source_task": "tk-ab385375bda3",
+      "recorded_at": "2026-06-25T14:38:23.615Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-06-25T14:11:32.028Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved proposal framing inline (\"approve\"). Working direction: structural warrant enforcement at both discovery AC checkpoint (declare) and contract-mint (verify against tool registry).",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "6a9627993f16a3282e268ba2bb4d7bbf0b65b3bf61f36b78cc453bf9cdb8808b",
+        "non_whitespace_chars": 4623,
+        "checked_at": "2026-06-25T14:09:33.813Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-06-25T14:15:18.224Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery: mapped contract-mint.ts (mint point), clarify-readiness.ts (validator framework), tool-registry (surface source of truth), adv-discover.md AC checkpoint (prose-only guard = the hole). Criteria approved inline. 3 user decisions locked (warrant scope=capability-presuming only; enforcement=hard-block at mint; backfill=within change). Contract minted (19 items). Conflict scan: adv_change_validate passed (NO_TASKS/NO_DELTAS expected pre-prep); adv_change_list timed out (Temporal visibility) — non-blocking; agenda has related followups but no conflict.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "9cb1c152d2c0d002d3bd7dda593fa1233c4e07bf19ef804a00e7bd8c4c4f86d8",
+        "non_whitespace_chars": 4493,
+        "checked_at": "2026-06-25T14:09:33.814Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-06-25T14:20:44.520Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design: two-layer guard — structural mint-time warrant verification (declared warrants) + discovery finding-classification process layer. Validator CAUTION resolved: KD1/KD3/KD4/KD5 sound; KD2 revised to live injected tool-surface via runtime dynamic import (no generated manifest, no new check gate) per validator recommendation. Honest boundary documented (mint catches declared-but-wrong; process catches undeclared). DDC purity/no-cycle/liveness recorded.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "6c57b560bdeed757d6cd91dd1a3c708588883aec8de73ea5bb2ddf724c788c0f",
+        "non_whitespace_chars": 8310,
+        "checked_at": "2026-06-25T14:09:33.815Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-06-25T14:22:59.203Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved prep contract inline (\"approve\"). 5 tasks, strict validation passed. AC1-7 traced; C1-5/DONT1-4 mapped to respects. NO_DELTAS advisory — spec rq-* added in T3."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-06-25T14:43:47.615Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 5 tasks done. AC1-AC7 implemented + verified: warrant module + mint verification (21 tests), live tool-surface wiring + no-cycle boundary (6), discovery classification + spec rq-acWarrant01 + asset tests (6), fixStaleCloseVisibility AC6 backfill + re-mint, wisdom captured. pnpm run check fully green. Campsite-fixed two pre-existing trunk failures (rq-changeLifecycleState01 citation; advance-workflow version 1.22→1.23 + stale test pin)."
+    },
+    "acceptance": {
+      "status": "done",
+      "started_at": "2026-06-25T14:52:54.874Z",
+      "completed_at": "2026-06-25T14:53:41.261Z",
+      "completed_by": "agent",
+      "approval_evidence": "Independent adv-reviewer acceptance review: READY, 0 findings. Contract review matrix 19/19 pass/respected. Executive summary persisted (contentHash 6aedb3e6). pnpm run check green.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "6aedb3e6275a3b37b927fa45ae73eaeff2979ecb3810535aa2fe213a7047780b",
+        "non_whitespace_chars": 2751,
+        "checked_at": "2026-06-25T14:09:33.817Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "discovery",
+    "source_artifact": "fixStaleCloseVisibility:AC6-unwarranted-criterion"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "9cb1c152d2c0d002d3bd7dda593fa1233c4e07bf19ef804a00e7bd8c4c4f86d8",
+      "approvedAt": "2026-06-25T14:15:09.137Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "**SC1:** An acceptance criterion that presumes a capability surface which does not exist cannot reach planning — it is rejected at or before contract mint with a precise, actionable error.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9cb1c152d2c0d002d3bd7dda593fa1233c4e07bf19ef804a00e7bd8c4c4f86d8",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "**SC2:** A failed reproduction attempt is explicitly distinguishable from a real requirement in discovery output, so it cannot silently seed a criterion asserting the capability must work.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9cb1c152d2c0d002d3bd7dda593fa1233c4e07bf19ef804a00e7bd8c4c4f86d8",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "**SC3:** Changes with no capability-presuming criteria gain no added ceremony (proportionality preserved).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9cb1c152d2c0d002d3bd7dda593fa1233c4e07bf19ef804a00e7bd8c4c4f86d8",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "**AC1:** Given an agreement that declares a capability warrant naming a tool surface absent from the tool registry, when the contract is minted, then mint fails fast with a precise error identifying the unresolved warrant.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9cb1c152d2c0d002d3bd7dda593fa1233c4e07bf19ef804a00e7bd8c4c4f86d8",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "**AC2:** Given an agreement that declares a capability warrant naming a real tool surface, when the contract is minted, then mint succeeds.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9cb1c152d2c0d002d3bd7dda593fa1233c4e07bf19ef804a00e7bd8c4c4f86d8",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "**AC3:** Given an agreement whose criteria declare no capability warrants (purely behavioral), when the contract is minted, then mint succeeds unchanged.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9cb1c152d2c0d002d3bd7dda593fa1233c4e07bf19ef804a00e7bd8c4c4f86d8",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "**AC4:** The `adv-discover` command contract requires every reproduction-sourced finding to be classified as broken_capability | unwarranted_operation | unverified, and forbids an unwarranted_operation or unverified finding from seeding a criterion asserting the capability must work.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9cb1c152d2c0d002d3bd7dda593fa1233c4e07bf19ef804a00e7bd8c4c4f86d8",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "**AC5:** The `advance-workflow` spec contains a normative requirement (rq-*) for capability-warrant validation at contract mint and reproduction-finding classification at discovery.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9cb1c152d2c0d002d3bd7dda593fa1233c4e07bf19ef804a00e7bd8c4c4f86d8",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "**AC6:** `fixStaleCloseVisibility` AC6 is corrected to reflect status-repair cross-project routing only, with archive's no-target_path-by-design rationale recorded.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9cb1c152d2c0d002d3bd7dda593fa1233c4e07bf19ef804a00e7bd8c4c4f86d8",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "**AC7:** `pnpm run check` and the affected plugin test suites pass.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9cb1c152d2c0d002d3bd7dda593fa1233c4e07bf19ef804a00e7bd8c4c4f86d8",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "**C1:** Patch source in `/home/jon/dev/advance`; no deployed-artifact edits.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9cb1c152d2c0d002d3bd7dda593fa1233c4e07bf19ef804a00e7bd8c4c4f86d8",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "**C2:** The primary guard is structural (registry/spec verification at mint); prose rules are secondary, never the sole authority (P33).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9cb1c152d2c0d002d3bd7dda593fa1233c4e07bf19ef804a00e7bd8c4c4f86d8",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "**C3:** The warrant requirement is proportional — only capability-presuming criteria carry warrants.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9cb1c152d2c0d002d3bd7dda593fa1233c4e07bf19ef804a00e7bd8c4c4f86d8",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "**C4:** Existing specs are law; extend without contradiction. Existing agreements without declared warrants must continue to mint.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9cb1c152d2c0d002d3bd7dda593fa1233c4e07bf19ef804a00e7bd8c4c4f86d8",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "**C5:** No heuristic NLP inference of \"presumed capability\" from free prose as the verification authority.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9cb1c152d2c0d002d3bd7dda593fa1233c4e07bf19ef804a00e7bd8c4c4f86d8",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "**DONT1:** Do not treat a failed reproduction attempt as a requirement.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9cb1c152d2c0d002d3bd7dda593fa1233c4e07bf19ef804a00e7bd8c4c4f86d8",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "**DONT2:** Do not allow a hedged/unverified observation to harden into a firm criterion without a declared warrant.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9cb1c152d2c0d002d3bd7dda593fa1233c4e07bf19ef804a00e7bd8c4c4f86d8",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "**DONT3:** Do not rely solely on the design-phase validator as the catch for unwarranted criteria.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9cb1c152d2c0d002d3bd7dda593fa1233c4e07bf19ef804a00e7bd8c4c4f86d8",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "**DONT4:** Do not impose warrant ceremony on behavioral criteria that presume no capability surface.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9cb1c152d2c0d002d3bd7dda593fa1233c4e07bf19ef804a00e7bd8c4c4f86d8",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-06-25T14:52:36.219Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Catch moved to mint: contract-mint.ts throws CONTRACT_UNRESOLVED_WARRANT before persistence; tool-registry.surface.test.ts proves live-surface rejection of a nonexistent surface."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "adv-discover.md 'Reproduction Finding Classification' section + rq-acWarrant01 require broken_capability|unwarranted_operation|unverified tagging; ac-warrant-guard-assets.test.ts asserts presence."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Proportionality: behavioral criteria with no warrant tag mint unchanged (contract-mint.test.ts AC3 test)."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "contract-mint.test.ts AC1 + tool-registry.surface.test.ts: tool:adv_change_archive#target_path → CONTRACT_UNRESOLVED_WARRANT fail-fast."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "contract-mint.test.ts AC2 + surface test: tool:adv_change_status_repair#target_path resolves; item.warrants recorded; [warrant:] tag stripped."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "contract-mint.test.ts: behavioral criteria with no warrant tag mint unchanged (no lookup needed)."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "ac-warrant-guard-assets.test.ts: adv-discover.md classification + forbid-unwarranted-seeding + warrant-declaration assertions pass (6/6)."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "ac-warrant-guard-assets.test.ts: advance-workflow spec.json contains rq-acWarrant01 with body + scenarios (incl. CONTRACT_UNRESOLVED_WARRANT, unwarranted_operation)."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "fixStaleCloseVisibility contract.items AC6 readback confirms status-repair cross-project routing only + adv_change_archive no-target_path-by-design rationale; reviewer confirmed."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "pnpm run check PASS (schemas/typecheck/isolation/lockfile/lint/format); affected suites green incl. spec-citation-invariant and discover-asset suites; reviewer reran clean."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "All edits in worktree change/addAcWarrantGuard; no deployed runtime artifact edits; git status clean."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Warrant verified structurally via live getToolSurface() lookup, not prose heuristic (P33)."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Proportional: only capability-presuming criteria carry warrants; behavioral untouched (AC3)."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Existing warrant-less agreements still mint (AC3); new rq-acWarrant01 additive, no spec contradiction."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No heuristic NLP inference of presumed capability; only declared warrants verified."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Failed repro != requirement: classification rule + warrant-declaration enforce this."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Hedge not hardened: unverified classification blocks seeding must-work criteria."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Design validator not sole catch: mint-time structural check + discovery classification layers added."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No warrant ceremony on behavioral criteria (C3 + AC3 proportionality test)."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "**AC1:** Given an agreement that declares a capability warrant naming a tool surface absent from the tool registry, when the contract is minted, then mint fails fast with a precise error identifying the unresolved warrant.",
+    "**AC2:** Given an agreement that declares a capability warrant naming a real tool surface, when the contract is minted, then mint succeeds.",
+    "**AC3:** Given an agreement whose criteria declare no capability warrants (purely behavioral), when the contract is minted, then mint succeeds unchanged.",
+    "**AC4:** The `adv-discover` command contract requires every reproduction-sourced finding to be classified as broken_capability | unwarranted_operation | unverified, and forbids an unwarranted_operation or unverified finding from seeding a criterion asserting the capability must work.",
+    "**AC5:** The `advance-workflow` spec contains a normative requirement (rq-*) for capability-warrant validation at contract mint and reproduction-finding classification at discovery.",
+    "**AC6:** `fixStaleCloseVisibility` AC6 is corrected to reflect status-repair cross-project routing only, with archive's no-target_path-by-design rationale recorded.",
+    "**AC7:** `pnpm run check` and the affected plugin test suites pass."
+  ],
+  "documents": {
+    "proposal": "## Problem\n\nADV's discovery → agreement flow can produce acceptance criteria founded on a false premise — a presumed capability that does not exist or is not architecturally warranted. This happened concretely in change `fixStaleCloseVisibility` (AC6 asserted \"target_path archive routing\" when `adv_change_archive` has no `target_path` surface and architecturally should not). The criterion was only caught by the design-phase validator, after it had already been minted into the contract.\n\nRoot causes observed:\n- A failed reproduction attempt was treated as a confirmed capability gap, without classifying \"broken capability that should work\" vs \"user attempted an unwarranted operation.\"\n- A hedged discovery observation (\"needs verification end-to-end\") was hardened into a firm acceptance criterion.\n- Two non-symmetric operations (status-repair vs archive) were bundled into one criterion.\n\n## Why This Matters\n\nThe catch happened at the wrong gate. The design validator is a backstop, not a gate-zero guard. Any change whose discovery makes the same mistake can mint an unwarranted criterion into its contract; if its design validator misses it (or the change is small/fast), the unwarranted criterion drives planning and execution work that should never have existed. This is a systemic discovery-quality defect, not a one-off.\n\n## User Outcomes\n\n- Reproduction-sourced findings are explicitly classified before they can seed an acceptance criterion (broken-capability vs unwarranted-operation vs unverified).\n- Every acceptance criterion that presumes a tool/capability surface declares that surface and is checked against reality (tool registry / spec / code) or carries an explicit warrant rationale.\n- Hedged/unverified observations cannot be silently hardened into firm criteria.\n- The guard fires at discovery (earliest gate), not only at the design validator.\n- Prefer a structural mechanism (typed warrant + machine check against the registry) over prose-only rules, per P33.\n\n## Scope\n\n### In Scope\n\n- Discovery command contract (`.opencode/command/adv-discover.md`): add a reproduction-finding classification step and an acceptance-criteria \"warrant check\" at the AC checkpoint.\n- `advance-workflow` spec (`.adv/specs/`): add the normative requirement(s) for finding-classification and AC warrant validation.\n- A structural enforcement path: where feasible, ACs that name a tool/capability surface are machine-checkable against the tool registry / schema / spec, so an AC presuming a non-existent surface fails fast rather than relying on agent reasoning.\n- Asset/unit tests that enforce the command contract and the structural check.\n- Backfill: apply the corrected classification to `fixStaleCloseVisibility` AC6 (or coordinate its discovery re-entry) so the originating defect is closed, not just guarded against going forward.\n- A durable wisdom entry capturing the rule.\n\n### Out of Scope\n\n- Rewriting the broader discovery protocol beyond the classification + warrant additions.\n- Changing the design-phase validator (it stays as the backstop; this change adds the earlier guard).\n- The runtime terminal-state fix in `fixStaleCloseVisibility` (separate change; only its AC6 criterion is touched here as backfill).\n- Any heuristic NLP that infers \"presumed capability\" from free prose as the sole authority (must be structural/declared, per P33).\n\n### Must Not\n\n- Must not rely solely on prose rules the agent may ignore; the primary guard should be structural where the surface allows.\n- Must not treat a failed reproduction attempt as a requirement.\n- Must not allow a hedged/unverified discovery observation to become a firm AC without an explicit warrant.\n\n## Affected Surfaces (discovery will confirm)\n\n- `.opencode/command/adv-discover.md` — Phase 1.8 completeness verification, Phase 2 ambiguity analysis, Phase 4.5.1 AC checkpoint.\n- `.adv/specs/advance-workflow/spec.json` (+ markdown mirror if present) — new `rq-*` requirement(s).\n- `plugin/src/tools/contract.ts` / contract-mint validation — candidate site for a structural warrant check against the tool registry.\n- `plugin/src/tool-registry.ts` / tool schemas — source of truth for \"does this surface exist.\"\n- Asset tests under `plugin/src/**/*-assets.test.ts` and command/spec anchor tests.\n\n## Constraints\n\n- Patch source in `/home/jon/dev/advance`; no deployed-artifact edits.\n- Prefer structural correctness (typed warrant + registry check) over heuristic prose (P33).\n- Keep the guard proportional — narrow/local changes with no reproduction-sourced capability claims must not be burdened.\n- Existing specs are law; extend, do not contradict.\n\n## Impact\n\nCritical for discovery quality. Closing this gap prevents unwarranted criteria from entering contracts across all future changes, moving the catch from a late, fallible backstop to an early structural gate.\n\n## Discovery Agenda\n\n- Decide the precise structural mechanism: typed `capability_warrant` field on reproduction-derived ACs verified against the tool registry/spec, vs a contract-mint-time check, vs an AC-checkpoint checklist with a machine-checkable subset.\n- Determine how to classify reproduction findings without over-burdening narrow changes (proportionality).\n- Confirm where the check is cheapest and hardest to bypass (discovery output schema, contract mint, or both).\n- Define the backfill path for `fixStaleCloseVisibility` AC6.",
+    "problemStatement": "ADV discovery can harden a hedged/unverified observation into a firm acceptance criterion that presumes a capability which does not exist or is not architecturally warranted. A failed reproduction attempt gets treated as a confirmed requirement, and non-symmetric operations get bundled into one criterion. Today the only thing that catches this is the design-phase validator (a late backstop, after the criterion is already minted into the contract). There is no discovery-phase guard that classifies reproduction-sourced findings (broken-capability vs unwarranted-operation vs unverified) or that validates each acceptance criterion's presumed capability/surface actually exists or is justified. The implementation-free guard checks the inverse (too much mechanism), not unwarranted premise. Result: unwarranted criteria can reach planning/execution in other changes.",
+    "agreement": "# Agreement\n\n## Objectives\n\n1. Move the unwarranted-criterion catch from the late design-phase validator to an early, structural gate: a machine-verified capability-warrant check at contract mint.\n2. Force classification of reproduction-sourced discovery findings (broken_capability | unwarranted_operation | unverified) so a failed attempt cannot silently become a requirement.\n3. Add a declared-warrant mechanism for capability-presuming criteria, verified against the tool registry / spec source of truth.\n4. Encode the rule in the `advance-workflow` spec and the `adv-discover` command contract.\n5. Backfill: correct `fixStaleCloseVisibility` AC6.\n6. Capture a durable wisdom entry encoding the rule.\n\n## Success Criteria\n\n1. **SC1:** An acceptance criterion that presumes a capability surface which does not exist cannot reach planning — it is rejected at or before contract mint with a precise, actionable error.\n2. **SC2:** A failed reproduction attempt is explicitly distinguishable from a real requirement in discovery output, so it cannot silently seed a criterion asserting the capability must work.\n3. **SC3:** Changes with no capability-presuming criteria gain no added ceremony (proportionality preserved).\n\n## Acceptance Criteria\n\n1. **AC1:** Given an agreement that declares a capability warrant naming a tool surface absent from the tool registry, when the contract is minted, then mint fails fast with a precise error identifying the unresolved warrant.\n2. **AC2:** Given an agreement that declares a capability warrant naming a real tool surface, when the contract is minted, then mint succeeds.\n3. **AC3:** Given an agreement whose criteria declare no capability warrants (purely behavioral), when the contract is minted, then mint succeeds unchanged.\n4. **AC4:** The `adv-discover` command contract requires every reproduction-sourced finding to be classified as broken_capability | unwarranted_operation | unverified, and forbids an unwarranted_operation or unverified finding from seeding a criterion asserting the capability must work.\n5. **AC5:** The `advance-workflow` spec contains a normative requirement (rq-*) for capability-warrant validation at contract mint and reproduction-finding classification at discovery.\n6. **AC6:** `fixStaleCloseVisibility` AC6 is corrected to reflect status-repair cross-project routing only, with archive's no-target_path-by-design rationale recorded.\n7. **AC7:** `pnpm run check` and the affected plugin test suites pass.\n\n## Constraints\n\n1. **C1:** Patch source in `/home/jon/dev/advance`; no deployed-artifact edits.\n2. **C2:** The primary guard is structural (registry/spec verification at mint); prose rules are secondary, never the sole authority (P33).\n3. **C3:** The warrant requirement is proportional — only capability-presuming criteria carry warrants.\n4. **C4:** Existing specs are law; extend without contradiction. Existing agreements without declared warrants must continue to mint.\n5. **C5:** No heuristic NLP inference of \"presumed capability\" from free prose as the verification authority.\n\n## Avoidances\n\n1. **DONT1:** Do not treat a failed reproduction attempt as a requirement.\n2. **DONT2:** Do not allow a hedged/unverified observation to harden into a firm criterion without a declared warrant.\n3. **DONT3:** Do not rely solely on the design-phase validator as the catch for unwarranted criteria.\n4. **DONT4:** Do not impose warrant ceremony on behavioral criteria that presume no capability surface.\n\n## Preview Applicability\n\nvisual_surface: false — Change affects ADV discovery/command contract, contract-mint validator, spec, and tests only. No front-end or browser-visible output.\n\n## Decisions\n\n### User Decisions\n\n1. **Warrant scope → only capability-presuming ACs.** Behavioral criteria need no warrant; only criteria claiming a tool/capability surface must work require a declared, verified warrant. (User selected recommended option.)\n2. **Enforcement → hard-block at contract mint.** Mint fails fast with a precise error when a declared warrant names a non-existent surface — the hardest-to-bypass point. (User selected recommended option.)\n3. **Backfill → fix `fixStaleCloseVisibility` AC6 within this change.** Correct the originating defect here, not via separate later re-entry. (User selected recommended option.)\n\n### Agent Decisions (LBP)\n\n1. **Reuse existing mint fail-fast pattern.** Mint-time warrant verification follows the established `CONTRACT_DUPLICATE_ID` / `CONTRACT_ITEMS_EMPTY` throw pattern in `plugin/src/validator/contract-mint.ts` → new `CONTRACT_UNRESOLVED_WARRANT` error class.\n2. **Declared warrant lives in the agreement artifact** so `contract-mint` can parse it deterministically; exact declaration syntax decided in design.\n3. **Tool registry is the surface source of truth**; spec-requirement warrants verified against `.adv/specs`.\n4. **Discovery classification enforced via command contract + asset test** (prose where structure can't reach), with the mint-time check as the hard structural backstop — addressing the \"should-have-declared-but-didn't\" gap.\n\n## Deferred Questions\n\nNone.\n\n## Sign-Off\n\nCriteria and agreement approved by user inline (\"approve\"). Discovery → design.",
+    "design": "# Design\n\n> **Validator: CAUTION → resolved.** KD1/KD3/KD4/KD5 validated sound. KD2 revised per validator recommendation (below): live injected tool-surface via runtime dynamic import instead of a generated manifest + new check gate — simpler, zero drift risk, same objectives. No user-value tradeoff; auto-adopted.\n\n## Architecture Overview\n\nTwo-layer guard with an honest division of authority:\n\n- **Structural layer (hard, machine-verified):** `contract-mint` verifies every *declared* capability warrant against a live tool-surface lookup (and spec ids). A declared warrant naming a non-existent tool/arg/spec surface → `CONTRACT_UNRESOLVED_WARRANT` fail-fast, matching the existing `CONTRACT_DUPLICATE_ID` / `CONTRACT_ITEMS_EMPTY` pattern. (AC1/AC2/AC3)\n- **Process layer (forces declaration):** the `adv-discover` command contract requires reproduction-sourced findings to be classified `broken_capability | unwarranted_operation | unverified`, forbids `unwarranted_operation`/`unverified` findings from seeding a must-work criterion, and requires capability-presuming criteria to declare a warrant. Enforced by an asset test + spec `rq-*`. (AC4/AC5)\n\n**Honest boundary (P33, no overselling):** structure verifies *declared* warrants. It cannot detect an *undeclared* capability-presuming AC from free prose without heuristic NLP (forbidden by C5/DONT4). The process layer forces the declaration; the mint check makes a declared warrant truthful. The AC6 defect is caught by **both** paths: classified `unwarranted_operation` at discovery (blocked by AC4), and — if someone instead declared `tool:adv_change_archive#target_path` — rejected at mint because that arg does not exist (AC1).\n\n## Key Decisions\n\n### KD1 — Warrant declaration syntax in the agreement (parseable, proportional)\nCapability-presuming criteria carry an inline warrant tag appended to the bullet:\n\n```\n- AC2: Cross-project status repair routes through the target namespace. [warrant: tool:adv_change_status_repair#target_path]\n```\n\nGrammar:\n- `[warrant: <ref>(, <ref>)*]` — one tag per criterion, comma-separated refs.\n- ref forms: `tool:<name>` (tool exists), `tool:<name>#<arg>` (tool arg exists), `spec:<rq-id>` (spec requirement exists).\n- Behavioral criteria omit the tag entirely (C3/DONT4 — no ceremony).\n\n`contract-mint` extracts the tag during `parseObligationLine`, strips it from the persisted `text`, and records refs on the contract item for verification. Unknown tag body or malformed ref → fail-fast (typed error), never silently ignored.\n\n### KD2 (REVISED) — Live injected tool-surface, no generated artifact\n`contract-mint.ts` currently imports only `../types`; a static import of the tool registry would create a cycle (`contractTools → tool-registry → contract-mint`). **Revised mechanism (validator-recommended):**\n\n- `buildContractFromAgreement` stays **pure** and accepts an injected resolver: `resolveWarrant(ref) => boolean` (or a `{ toolSurface: Map<string, Set<string>>, specIds: Set<string> }` lookup object). No fs, no registry import (DDC2/DDC3).\n- The tool-layer `adv_contract_mint` (`plugin/src/tools/contract.ts`) builds the live lookup at runtime via **dynamic `await import(\"../tool-registry\")`** (cycle-free at runtime — same pattern as `change.ts` `await import(\"./_recovery-writers\")`), exposing `getToolSurface()` that reads arg-key sets from the already-assembled tool map. Spec ids come from the store/specs already reachable in the tool layer.\n- No generated `tool-surface.json`, no new `tool-surface:check` gate, **no drift risk** — the surface is always live/current.\n\nRejected (was original KD2): a generated manifest + drift check — heavier, adds a CI gate, and introduces a staleness surface the live approach avoids entirely.\n\n### KD3 — Spec-ref warrants verified against `.adv/specs`\n`spec:<rq-id>` refs verified by checking the requirement id exists in loaded specs. Injected into the pure validator alongside the tool-surface (single `resolveWarrant`/lookup seam). Unit tests inject fakes; one integration test exercises the real wiring.\n\n### KD4 — Discovery classification + command contract (AC4/AC5)\n`adv-discover.md`: extend Phase 1.8 / Phase 2 / Phase 4.5.1 with:\n- A **Reproduction Finding Classification** requirement: each reproduction-sourced finding tagged `broken_capability | unwarranted_operation | unverified`.\n- A rule: `unwarranted_operation`/`unverified` findings MUST NOT seed a criterion asserting the capability must work; they become out-of-scope notes or are downgraded.\n- A **Warrant Declaration** step at the AC checkpoint: capability-presuming criteria must carry a `[warrant: ...]` tag.\nAdd `advance-workflow` `rq-*` requirement(s) as spec law; enforce command/spec presence via an asset/anchor test.\n\n### KD5 — Backfill `fixStaleCloseVisibility` AC6\nCorrect that change's agreement AC6 to: *\"Cross-project status-repair routes through the target namespace; `adv_change_archive` does not accept `target_path` by design (git finalization runs in the target repo).\"* Re-mint its contract (paused at design — in-place agreement correction + re-mint). Rationale references this guard change.\n\n## ADR Drafts\n\nCandidate ADR (rubric met: hard-to-reverse syntax/authority choice + cross-cutting + real tradeoff): `docs/adr/NNNN-capability-warrant-declaration.md` — records declared-vs-inferred warrant decision and the live-injected-surface source of truth. Advisory; author during execution if time allows.\n\n## Implementation Strategy\n\nTDD red→green, sequenced (worktree-isolated):\n\n1. **Warrant types + pure parse/verify (KD1/KD2/KD3)** — add optional `warrants?: string[]` to `ContractItemSchema`; extend `contract-mint` to parse/strip `[warrant: ...]` and call injected resolver; add `validator/warrant.ts` pure resolver. RED: AC1 (bad ref → `CONTRACT_UNRESOLVED_WARRANT`), AC2 (good ref → ok), AC3 (no tag → unchanged mint).\n2. **Live wiring (KD2/KD3)** — `getToolSurface()` in tool-registry; `adv_contract_mint` dynamic-imports it + gathers specIds; injects into mint. RED: integration test mints against the real tool surface; boundary test asserts no static `tools/*`/`tool-registry` import from `contract-mint.ts`/`warrant.ts` (DDC3).\n3. **Command + spec (KD4)** — edit `adv-discover.md`; add `advance-workflow` rq-*; asset/anchor tests (AC4/AC5).\n4. **Backfill (KD5)** — correct `fixStaleCloseVisibility` AC6 + re-mint; verify (AC6).\n5. **Wisdom + full gate** — wisdom entry; `pnpm run check` + affected suites (AC7).\n\n## LBP Analysis\n\nDeclared-and-verified warrants (not inferred) is the only P33-compliant option — prose inference would be the exact heuristic-authority anti-pattern this change removes. The revised live-injected surface (vs. a generated manifest) reuses the established runtime dynamic-import pattern, keeps the validator pure, and eliminates a staleness surface and a CI gate. Rejected: (a) static registry import in validator (cycle); (b) generated manifest + drift check (heavier, staleness); (c) heuristic capability-language detection at mint (violates C5/DONT4); (d) validator-only catch (status quo — too late).\n\n## Affected Components\n\n- `plugin/src/validator/contract-mint.ts` — warrant tag parse + strip; call injected resolver (stays pure).\n- `plugin/src/validator/warrant.ts` (new) — pure ref resolver over injected `{ toolSurface, specIds }`.\n- `plugin/src/tools/contract.ts` — runtime dynamic-import `getToolSurface()`, gather specIds, inject into mint.\n- `plugin/src/tool-registry.ts` — export `getToolSurface()` (name → arg-key set from the assembled tool map).\n- `plugin/src/types/changes.ts` — optional `warrants?: string[]` on `ContractItemSchema`.\n- `.opencode/command/adv-discover.md` — classification + warrant declaration steps.\n- `.adv/specs/advance-workflow/spec.json` (+ md mirror) — new `rq-*`.\n- Tests: `contract-mint.test.ts`, new `warrant.test.ts`, contract-mint↔registry integration test, import-boundary test, discover/spec asset tests.\n- Backfill: `fixStaleCloseVisibility` agreement + contract.\n\nNo new `package.json` script / check gate (revised KD2).\n\n## Design-Derived Criteria\n\n- **DDC1 (purity):** `validator/warrant.ts` and `buildContractFromAgreement` stay pure — no fs/registry/tools import; all surface data injected.\n- **DDC2 (no-cycle):** `contract-mint.ts` / `warrant.ts` must not statically import `tool-registry.ts` or any `tools/*` module; tool-layer wiring uses runtime dynamic import. Guarded by an import-boundary test.\n- **DDC3 (liveness):** the tool-surface used for verification is read from the live assembled tool map at mint time — no cached/generated copy.\n\n## Risks / Mitigations\n\n- **R1: Dynamic import resolves the wrong/empty surface at runtime.** Mitigation: integration test mints against the real `getToolSurface()` and asserts a known real arg (e.g. `adv_change_status_repair#target_path`) resolves and a known-absent one (`adv_change_archive#target_path`) fails.\n- **R2: Declaration burden frustrates authors.** Mitigation: proportional — only capability-presuming criteria need tags (AC3 proportionality test).\n- **R3: Undeclared capability-presuming AC slips past mint.** Acknowledged boundary — caught by discovery classification (AC4), not mint. Documented honestly; not oversold.\n- **R4: Import-cycle regression if someone later adds a static import.** Mitigation: DDC2 import-boundary test fails the build.\n- **R5: Live behavior needs rebuild+restart** (source-vs-dist). Mitigation: verify via unit/integration tests in-session; note deferred live validation in archive notes.",
+    "executiveSummary": "# Executive Summary — addAcWarrantGuard\n\n## Outcome\n\nADV discovery could harden a hedged or unverified observation into a firm acceptance criterion that presumed a capability which does not exist or is not architecturally warranted (the real defect: `fixStaleCloseVisibility` AC6 asserted `adv_change_archive` `target_path` routing — a surface that does not and should not exist). Previously this was caught only by the late design-phase validator, after the criterion was already minted into the contract. This change moves the catch to an early, structural gate.\n\n## What Was Built\n\n- **Mint-time structural warrant verification.** Capability-presuming criteria declare a typed `[warrant: tool:<name>#<arg> | spec:<rq-id>]` tag in the agreement. `contract-mint` parses, strips, records, and verifies each declared warrant against a live tool-surface + spec-id lookup; an unresolved warrant fails the mint with `CONTRACT_UNRESOLVED_WARRANT`. (`validator/warrant.ts`, `validator/contract-mint.ts`)\n- **Live, cycle-free tool surface.** `tool-registry.getToolSurface()` exposes tool name → arg-key sets, injected into the pure validator via a runtime dynamic import in `adv_contract_mint` — no generated artifact, no import cycle, no drift. (DDC2 guarded by an import-boundary test.)\n- **Discovery process layer.** `adv-discover` now requires every reproduction-sourced finding to be classified `broken_capability | unwarranted_operation | unverified`, forbids `unwarranted_operation`/`unverified` findings from seeding a must-work criterion, and requires a warrant declaration for capability-presuming criteria.\n- **Spec law.** `rq-acWarrant01` added to `advance-workflow` (spec + docs mirror).\n- **Backfill.** `fixStaleCloseVisibility` AC6 corrected (status-repair cross-project routing only; archive has no `target_path` by design) and re-minted.\n- **Durable wisdom** capturing the rule, promoted to project level.\n\n## Honest Boundary\n\nStructure verifies *declared* warrants (the AC6-class failure: declared-but-wrong). It does not infer an *undeclared* capability-presuming criterion from prose — that would be the heuristic-authority anti-pattern this change removes (C5/DONT4). The discovery classification layer forces the declaration; the mint check makes it truthful. The design validator remains as a backstop.\n\n## Verification\n\n- Independent adv-reviewer acceptance review: **READY**, 0 findings.\n- Contract review matrix: 19/19 rows pass/respected, 0 failing.\n- `pnpm run check` green (schemas, typecheck, isolation, lockfile, lint, format).\n- Affected suites green: warrant, contract-mint, warrant-boundary, tool-registry.surface, ac-warrant-guard-assets, spec-citation-invariant, discover-asset suites.\n- Campsite-fixed two pre-existing trunk failures: cited `rq-changeLifecycleState01`; bumped `advance-workflow` 1.22.0 → 1.23.0 (this change's added requirement) and aligned a stale version pin.\n\n## Deferred / Follow-up\n\n- Live end-to-end validation of warrant verification through the deployed `adv_contract_mint` requires a plugin rebuild + OpenCode restart (source-vs-dist gotcha); validated in-session via unit/integration tests.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-06-25T14:52:36.219Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | **SC1:** An acceptance criterion that presumes a capability surface which does not exist cannot reach planning — it is rejected at or before contract mint with a precise, actionable error. | pass | Catch moved to mint: contract-mint.ts throws CONTRACT_UNRESOLVED_WARRANT before persistence; tool-registry.surface.test.ts proves live-surface rejection of a nonexistent surface. |\n| SC2 | success_criterion | **SC2:** A failed reproduction attempt is explicitly distinguishable from a real requirement in discovery output, so it cannot silently seed a criterion asserting the capability must work. | pass | adv-discover.md 'Reproduction Finding Classification' section + rq-acWarrant01 require broken_capability|unwarranted_operation|unverified tagging; ac-warrant-guard-assets.test.ts asserts presence. |\n| SC3 | success_criterion | **SC3:** Changes with no capability-presuming criteria gain no added ceremony (proportionality preserved). | pass | Proportionality: behavioral criteria with no warrant tag mint unchanged (contract-mint.test.ts AC3 test). |\n| AC1 | acceptance_criterion | **AC1:** Given an agreement that declares a capability warrant naming a tool surface absent from the tool registry, when the contract is minted, then mint fails fast with a precise error identifying the unresolved warrant. | pass | contract-mint.test.ts AC1 + tool-registry.surface.test.ts: tool:adv_change_archive#target_path → CONTRACT_UNRESOLVED_WARRANT fail-fast. |\n| AC2 | acceptance_criterion | **AC2:** Given an agreement that declares a capability warrant naming a real tool surface, when the contract is minted, then mint succeeds. | pass | contract-mint.test.ts AC2 + surface test: tool:adv_change_status_repair#target_path resolves; item.warrants recorded; [warrant:] tag stripped. |\n| AC3 | acceptance_criterion | **AC3:** Given an agreement whose criteria declare no capability warrants (purely behavioral), when the contract is minted, then mint succeeds unchanged. | pass | contract-mint.test.ts: behavioral criteria with no warrant tag mint unchanged (no lookup needed). |\n| AC4 | acceptance_criterion | **AC4:** The `adv-discover` command contract requires every reproduction-sourced finding to be classified as broken_capability | unwarranted_operation | unverified, and forbids an unwarranted_operation or unverified finding from seeding a criterion asserting the capability must work. | pass | ac-warrant-guard-assets.test.ts: adv-discover.md classification + forbid-unwarranted-seeding + warrant-declaration assertions pass (6/6). |\n| AC5 | acceptance_criterion | **AC5:** The `advance-workflow` spec contains a normative requirement (rq-*) for capability-warrant validation at contract mint and reproduction-finding classification at discovery. | pass | ac-warrant-guard-assets.test.ts: advance-workflow spec.json contains rq-acWarrant01 with body + scenarios (incl. CONTRACT_UNRESOLVED_WARRANT, unwarranted_operation). |\n| AC6 | acceptance_criterion | **AC6:** `fixStaleCloseVisibility` AC6 is corrected to reflect status-repair cross-project routing only, with archive's no-target_path-by-design rationale recorded. | pass | fixStaleCloseVisibility contract.items AC6 readback confirms status-repair cross-project routing only + adv_change_archive no-target_path-by-design rationale; reviewer confirmed. |\n| AC7 | acceptance_criterion | **AC7:** `pnpm run check` and the affected plugin test suites pass. | pass | pnpm run check PASS (schemas/typecheck/isolation/lockfile/lint/format); affected suites green incl. spec-citation-invariant and discover-asset suites; reviewer reran clean. |\n| C1 | constraint | **C1:** Patch source in `/home/jon/dev/advance`; no deployed-artifact edits. | respected | All edits in worktree change/addAcWarrantGuard; no deployed runtime artifact edits; git status clean. |\n| C2 | constraint | **C2:** The primary guard is structural (registry/spec verification at mint); prose rules are secondary, never the sole authority (P33). | respected | Warrant verified structurally via live getToolSurface() lookup, not prose heuristic (P33). |\n| C3 | constraint | **C3:** The warrant requirement is proportional — only capability-presuming criteria carry warrants. | respected | Proportional: only capability-presuming criteria carry warrants; behavioral untouched (AC3). |\n| C4 | constraint | **C4:** Existing specs are law; extend without contradiction. Existing agreements without declared warrants must continue to mint. | respected | Existing warrant-less agreements still mint (AC3); new rq-acWarrant01 additive, no spec contradiction. |\n| C5 | constraint | **C5:** No heuristic NLP inference of \"presumed capability\" from free prose as the verification authority. | respected | No heuristic NLP inference of presumed capability; only declared warrants verified. |\n| DONT1 | avoidance | **DONT1:** Do not treat a failed reproduction attempt as a requirement. | respected | Failed repro != requirement: classification rule + warrant-declaration enforce this. |\n| DONT2 | avoidance | **DONT2:** Do not allow a hedged/unverified observation to harden into a firm criterion without a declared warrant. | respected | Hedge not hardened: unverified classification blocks seeding must-work criteria. |\n| DONT3 | avoidance | **DONT3:** Do not rely solely on the design-phase validator as the catch for unwarranted criteria. | respected | Design validator not sole catch: mint-time structural check + discovery classification layers added. |\n| DONT4 | avoidance | **DONT4:** Do not impose warrant ceremony on behavioral criteria that presume no capability surface. | respected | No warrant ceremony on behavioral criteria (C3 + AC3 proportionality test). |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-06-25T14:09:33.846Z",
+      "contentHash": "6a9627993f16a3282e268ba2bb4d7bbf0b65b3bf61f36b78cc453bf9cdb8808b",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-06-25T14:09:33.846Z",
+      "contentHash": "56b9da3d43dd36b758bec9f78c6dfb2400f4b955d511792bece574d8e446aba6",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-06-25T14:15:02.454Z",
+      "contentHash": "9cb1c152d2c0d002d3bd7dda593fa1233c4e07bf19ef804a00e7bd8c4c4f86d8",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-06-25T14:20:38.233Z",
+      "contentHash": "6c57b560bdeed757d6cd91dd1a3c708588883aec8de73ea5bb2ddf724c788c0f",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-06-25T14:53:16.734Z",
+      "contentHash": "6aedb3e6275a3b37b927fa45ae73eaeff2979ecb3810535aa2fe213a7047780b",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-06-25T14:53:41.261Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true
+}
