@@ -231,6 +231,69 @@ describe("epic-state", () => {
       }
       expect(state.epic.entries).toHaveLength(1);
     });
+
+    it("rejects promotion to a different change ID when shell is already promoted", () => {
+      const state = makeState();
+      applyShellAddedToState(state, {
+        entryId: "shell-1",
+        title: "Shell One",
+        successHint: "Do the thing",
+        idempotencyKey: "add-shell-1",
+        addedAt: "2026-06-24T00:01:00.000Z",
+      });
+      applyShellPromotedToState(state, {
+        entryId: "shell-1",
+        changeId: "change-1",
+        promotedBy: "agent",
+        promotedAt: "2026-06-24T00:02:00.000Z",
+        idempotencyKey: "promote-shell-1",
+      });
+      const result = applyShellPromotedToState(state, {
+        entryId: "shell-1",
+        changeId: "change-2",
+        promotedBy: "agent",
+        promotedAt: "2026-06-24T00:03:00.000Z",
+        idempotencyKey: "promote-shell-1-dup",
+      });
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.code).toBe("already_promoted");
+      expect(state.epic.entries).toHaveLength(1);
+      expect((state.epic.entries[0] as { change_id: string }).change_id).toBe(
+        "change-1",
+      );
+    });
+
+    it("returns already_promoted when retrying promotion to a different change ID after the shell is gone", () => {
+      const state = makeState();
+      applyShellAddedToState(state, {
+        entryId: "shell-1",
+        title: "Shell One",
+        successHint: "Do the thing",
+        idempotencyKey: "add-shell-1",
+        addedAt: "2026-06-24T00:01:00.000Z",
+      });
+      applyShellPromotedToState(state, {
+        entryId: "shell-1",
+        changeId: "change-1",
+        promotedBy: "agent",
+        promotedAt: "2026-06-24T00:02:00.000Z",
+        idempotencyKey: "promote-shell-1",
+      });
+      // A misdirected retry claims the shell should have promoted to change-2.
+      const result = applyShellPromotedToState(state, {
+        entryId: "shell-1",
+        changeId: "change-2",
+        promotedBy: "agent",
+        promotedAt: "2026-06-24T00:03:00.000Z",
+        idempotencyKey: "promote-shell-1-wrong",
+      });
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.code).toBe("already_promoted");
+      expect(state.epic.entries).toHaveLength(1);
+      expect((state.epic.entries[0] as { change_id: string }).change_id).toBe(
+        "change-1",
+      );
+    });
   });
 
   describe("applyEntriesReorderedToState", () => {
@@ -403,6 +466,248 @@ describe("epic-state", () => {
         status: "archived",
         completed_at: "2026-06-24T00:02:00.000Z",
       });
+    });
+
+    it("records closed terminal summary and recomputes progress", () => {
+      const state = makeState();
+      applyChangeLinkedToState(state, {
+        entryId: "entry-1",
+        changeId: "change-1",
+        title: "Linked Change",
+        idempotencyKey: "link-1",
+        linkedAt: "2026-06-24T00:01:00.000Z",
+      });
+      const result = applyEntryTerminalSummaryToState(state, {
+        entryId: "entry-1",
+        status: "closed",
+        completedAt: "2026-06-24T00:02:00.000Z",
+        idempotencyKey: "terminal-1",
+      });
+      expect(result.ok).toBe(true);
+      expect(state.epic.progress.completed_entries).toBe(1);
+      expect(state.epic.progress.active_entries).toBe(0);
+      expect(state.epic.progress.status).toBe("completed");
+      const entry = state.epic.entries[0];
+      expect(entry.kind).toBe("change");
+      if (entry.kind !== "change") throw new Error("Expected change entry");
+      expect(entry.terminal_summary?.status).toBe("closed");
+    });
+
+    it("returns entry_not_found for missing entry", () => {
+      const state = makeState();
+      const result = applyEntryTerminalSummaryToState(state, {
+        entryId: "missing",
+        status: "archived",
+        completedAt: "2026-06-24T00:02:00.000Z",
+        idempotencyKey: "terminal-1",
+      });
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.code).toBe("entry_not_found");
+    });
+
+    it("returns entry_not_found for shell entries", () => {
+      const state = makeState();
+      applyShellAddedToState(state, {
+        entryId: "shell-1",
+        title: "Shell",
+        successHint: "hint",
+        idempotencyKey: "add-shell-1",
+        addedAt: "2026-06-24T00:01:00.000Z",
+      });
+      const result = applyEntryTerminalSummaryToState(state, {
+        entryId: "shell-1",
+        status: "archived",
+        completedAt: "2026-06-24T00:02:00.000Z",
+        idempotencyKey: "terminal-1",
+      });
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.code).toBe("entry_not_found");
+    });
+  });
+
+  describe("applyChangeUnlinkedToState", () => {
+    it("removes a linked change entry", () => {
+      const state = makeState();
+      applyChangeLinkedToState(state, {
+        entryId: "entry-1",
+        changeId: "change-1",
+        title: "Linked Change",
+        idempotencyKey: "link-1",
+        linkedAt: "2026-06-24T00:01:00.000Z",
+      });
+      const result = applyChangeUnlinkedToState(state, {
+        entryId: "entry-1",
+        idempotencyKey: "unlink-1",
+        unlinkedAt: "2026-06-24T00:02:00.000Z",
+      });
+      expect(result.ok).toBe(true);
+      expect(state.epic.entries).toHaveLength(0);
+    });
+
+    it("is idempotent when entry is already removed", () => {
+      const state = makeState();
+      const result = applyChangeUnlinkedToState(state, {
+        entryId: "entry-1",
+        idempotencyKey: "unlink-1",
+        unlinkedAt: "2026-06-24T00:02:00.000Z",
+      });
+      expect(result.ok).toBe(true);
+      expect(state.epic.entries).toHaveLength(0);
+    });
+  });
+
+  describe("applyChangeLinkedToState", () => {
+    it("rejects duplicate entry IDs", () => {
+      const state = makeState();
+      applyChangeLinkedToState(state, {
+        entryId: "entry-1",
+        changeId: "change-1",
+        title: "Linked Change",
+        idempotencyKey: "link-1",
+        linkedAt: "2026-06-24T00:01:00.000Z",
+      });
+      const result = applyChangeLinkedToState(state, {
+        entryId: "entry-1",
+        changeId: "change-2",
+        title: "Another Linked Change",
+        idempotencyKey: "link-2",
+        linkedAt: "2026-06-24T00:02:00.000Z",
+      });
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.code).toBe("entry_already_exists");
+      expect(state.epic.entries).toHaveLength(1);
+    });
+  });
+
+  describe("concurrent reorder/promotion conflicts", () => {
+    it("rejects reorder with stale version after concurrent promotion", () => {
+      const state = makeState();
+      applyShellAddedToState(state, {
+        entryId: "shell-1",
+        title: "Shell One",
+        successHint: "Do the thing",
+        idempotencyKey: "add-shell-1",
+        addedAt: "2026-06-24T00:01:00.000Z",
+      });
+      applyShellAddedToState(state, {
+        entryId: "shell-2",
+        title: "Shell Two",
+        successHint: "Do another thing",
+        idempotencyKey: "add-shell-2",
+        addedAt: "2026-06-24T00:02:00.000Z",
+      });
+      // Concurrent promotion bumps the version.
+      const promoteResult = applyShellPromotedToState(state, {
+        entryId: "shell-1",
+        changeId: "change-1",
+        promotedBy: "agent",
+        promotedAt: "2026-06-24T00:03:00.000Z",
+        idempotencyKey: "promote-shell-1",
+      });
+      expect(promoteResult.ok).toBe(true);
+
+      // Reorder payload was prepared before the promotion.
+      const versionBeforePromotion = 1;
+      const reorderResult = applyEntriesReorderedToState(state, {
+        entryIds: ["shell-2", "shell-1"],
+        expectedVersion: versionBeforePromotion,
+        idempotencyKey: "reorder-1",
+        reorderedAt: "2026-06-24T00:04:00.000Z",
+      });
+      expect(reorderResult.ok).toBe(false);
+      if (!reorderResult.ok) expect(reorderResult.code).toBe("stale_version");
+    });
+  });
+
+  describe("recomputeEpicProgress", () => {
+    it("skips terminal entries when selecting next work", () => {
+      const state = makeState();
+      applyShellAddedToState(state, {
+        entryId: "shell-1",
+        title: "Future Shell",
+        successHint: "hint",
+        idempotencyKey: "add-shell-1",
+        addedAt: "2026-06-24T00:01:00.000Z",
+      });
+      applyChangeLinkedToState(state, {
+        entryId: "entry-2",
+        changeId: "change-2",
+        title: "Active Change",
+        idempotencyKey: "link-2",
+        linkedAt: "2026-06-24T00:02:00.000Z",
+      });
+      applyChangeLinkedToState(state, {
+        entryId: "entry-3",
+        changeId: "change-3",
+        title: "Archived Change",
+        idempotencyKey: "link-3",
+        linkedAt: "2026-06-24T00:03:00.000Z",
+      });
+      applyEntryTerminalSummaryToState(state, {
+        entryId: "entry-3",
+        status: "archived",
+        completedAt: "2026-06-24T00:04:00.000Z",
+        idempotencyKey: "terminal-3",
+      });
+
+      expect(state.epic.progress.total_entries).toBe(3);
+      expect(state.epic.progress.completed_entries).toBe(1);
+      expect(state.epic.progress.active_entries).toBe(1);
+      expect(state.epic.progress.next_entry_id).toBe("shell-1");
+      expect(state.epic.progress.status).toBe("active");
+    });
+
+    it("marks Epic completed when all change entries are terminal", () => {
+      const state = makeState();
+      applyChangeLinkedToState(state, {
+        entryId: "entry-1",
+        changeId: "change-1",
+        title: "Archived Change",
+        idempotencyKey: "link-1",
+        linkedAt: "2026-06-24T00:01:00.000Z",
+      });
+      applyChangeLinkedToState(state, {
+        entryId: "entry-2",
+        changeId: "change-2",
+        title: "Closed Change",
+        idempotencyKey: "link-2",
+        linkedAt: "2026-06-24T00:02:00.000Z",
+      });
+      applyEntryTerminalSummaryToState(state, {
+        entryId: "entry-1",
+        status: "archived",
+        completedAt: "2026-06-24T00:03:00.000Z",
+        idempotencyKey: "terminal-1",
+      });
+      applyEntryTerminalSummaryToState(state, {
+        entryId: "entry-2",
+        status: "closed",
+        completedAt: "2026-06-24T00:04:00.000Z",
+        idempotencyKey: "terminal-2",
+      });
+
+      expect(state.epic.progress.total_entries).toBe(2);
+      expect(state.epic.progress.completed_entries).toBe(2);
+      expect(state.epic.progress.active_entries).toBe(0);
+      expect(state.epic.progress.next_entry_id).toBeNull();
+      expect(state.epic.progress.status).toBe("completed");
+    });
+
+    it("keeps next_entry_id null for archived Epics", () => {
+      const state = makeState();
+      applyShellAddedToState(state, {
+        entryId: "shell-1",
+        title: "Future Shell",
+        successHint: "hint",
+        idempotencyKey: "add-shell-1",
+        addedAt: "2026-06-24T00:01:00.000Z",
+      });
+      applyEpicArchivedToState(state, {
+        archivedAt: "2026-06-24T00:02:00.000Z",
+        archivedBy: "agent",
+      });
+      expect(state.epic.progress.status).toBe("archived");
+      expect(state.epic.progress.next_entry_id).toBeNull();
     });
   });
 

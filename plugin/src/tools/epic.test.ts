@@ -183,6 +183,107 @@ describe("adv_epic_show", () => {
     const parsed = parseToolOutput(output);
     expect(parsed.code).toBe("EPIC_NOT_FOUND");
   });
+
+  test("compact view bounds history to COMPACT_HISTORY_LIMIT and includes closed children", async () => {
+    const now = new Date().toISOString();
+    const entries: EpicEntry[] = [];
+    for (let i = 0; i < 6; i++) {
+      entries.push({
+        kind: "change",
+        entry_id: `done-${i}`,
+        order: i,
+        change_id: `doneChange-${i}`,
+        terminal_summary: {
+          status: i % 2 === 0 ? "archived" : "closed",
+          completed_at: now,
+        },
+      });
+    }
+    const store = makeStore({
+      entries,
+      progress: {
+        status: "active",
+        total_entries: entries.length,
+        completed_entries: entries.length,
+        active_entries: 0,
+        next_entry_id: null,
+        updated_at: now,
+      },
+    });
+    const output = await epicTools.adv_epic_show.execute(
+      { epic_id: "addAuthEpic" },
+      store,
+    );
+    const parsed = parseToolOutput(output);
+    expect(parsed.success).toBe(true);
+    expect(parsed.epic.history).toHaveLength(5);
+    expect(parsed.epic.history_total).toBe(6);
+    expect(parsed.epic.history[0].status).toBe("archived");
+    expect(parsed.epic.history[1].status).toBe("closed");
+    expect(
+      parsed.epic.history.map((h: { entry_id: string }) => h.entry_id),
+    ).toEqual(["done-0", "done-1", "done-2", "done-3", "done-4"]);
+  });
+
+  test("compact view next_work skips terminal children", async () => {
+    const now = new Date().toISOString();
+    const store = makeStore({
+      entries: [
+        {
+          kind: "change",
+          entry_id: "archived-1",
+          order: 0,
+          change_id: "archivedChange",
+          terminal_summary: { status: "archived", completed_at: now },
+        },
+        {
+          kind: "change",
+          entry_id: "closed-1",
+          order: 1,
+          change_id: "closedChange",
+          terminal_summary: { status: "closed", completed_at: now },
+        },
+        {
+          kind: "change",
+          entry_id: "active-1",
+          order: 2,
+          change_id: "activeChange",
+        },
+        {
+          kind: "shell",
+          entry_id: "shell-1",
+          order: 3,
+          title: "Future Shell",
+          success_hint: "Do it",
+        },
+      ],
+      progress: {
+        status: "active",
+        total_entries: 4,
+        completed_entries: 2,
+        active_entries: 1,
+        next_entry_id: "active-1",
+        updated_at: now,
+      },
+    });
+    const output = await epicTools.adv_epic_show.execute(
+      { epic_id: "addAuthEpic" },
+      store,
+    );
+    const parsed = parseToolOutput(output);
+    expect(parsed.success).toBe(true);
+    expect(parsed.epic.next_work).toHaveLength(2);
+    expect(parsed.epic.next_work[0]).toMatchObject({
+      entry_id: "active-1",
+      kind: "change",
+      status: "active",
+    });
+    expect(parsed.epic.next_work[1]).toMatchObject({
+      entry_id: "shell-1",
+      kind: "shell",
+      status: "future",
+    });
+  });
 });
 
 describe("adv_epic_add_shell", () => {

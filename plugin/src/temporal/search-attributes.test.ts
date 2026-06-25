@@ -237,5 +237,22 @@ describe("ADV search attributes", () => {
       expect(attrs.AdvEpicId).toEqual(["authV2"]);
       expect(typeof attrs.AdvEpicId?.[0]).toBe("string");
     });
+
+    it("does not let advisory Epic order affect search attributes or current gate", () => {
+      const state = makeState();
+      state.epic_membership = {
+        epic_id: "addAuthEpic",
+        entry_id: "ent-1",
+        order: 999,
+        title: "Add auth",
+        linked_at: "2026-05-05T00:00:00.000Z",
+      };
+
+      const attrs = buildChangeSearchAttributes(state);
+
+      expect(attrs.AdvEpicId).toEqual(["addAuthEpic"]);
+      expect(attrs.AdvCurrentGate).toEqual(["proposal"]);
+      expect(attrs.AdvEpicOrder).toBeUndefined();
+    });
   });
 });

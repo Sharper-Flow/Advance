@@ -244,4 +244,115 @@ describe("createEpicOps", () => {
       expect.objectContaining({ entryIds: ["entry-1"], expectedVersion: 2 }),
     );
   });
+
+  describe("missing-Epic recovery", () => {
+    function setupMissing(epicId = "missingEpic") {
+      const { deps, handle, queryMock, signalMock, getHandleMock } = setup();
+      queryMock.mockImplementation(async () => {
+        throw new Error(`Workflow not found: adv/epic/project-id/${epicId}`);
+      });
+      return { deps, handle, queryMock, signalMock, getHandleMock };
+    }
+
+    test("get returns null when Epic workflow does not exist", async () => {
+      const { deps } = setupMissing();
+      const ops = createEpicOps(deps);
+      const result = await ops.get("missingEpic");
+      expect(result.success).toBe(true);
+      expect(result.data).toBeNull();
+    });
+
+    test("get returns read_error for non-not-found query failures", async () => {
+      const { deps, queryMock } = setup();
+      queryMock.mockRejectedValue(new Error("Temporal connection refused"));
+
+      const ops = createEpicOps(deps);
+      const result = await ops.get("addAuthEpic");
+      expect(result.success).toBe(false);
+      expect(result.type).toBe("read_error");
+    });
+
+    test("update throws epic_not_found when Epic workflow does not exist", async () => {
+      const { deps } = setupMissing();
+      const ops = createEpicOps(deps);
+      await expect(
+        ops.update("missingEpic", { title: "Updated", expectedVersion: 0 }),
+      ).rejects.toMatchObject({ code: "epic_not_found" });
+    });
+
+    test("addShell throws epic_not_found when Epic workflow does not exist", async () => {
+      const { deps } = setupMissing();
+      const ops = createEpicOps(deps);
+      await expect(
+        ops.addShell("missingEpic", {
+          title: "Shell",
+          successHint: "hint",
+        }),
+      ).rejects.toMatchObject({ code: "epic_not_found" });
+    });
+
+    test("promoteShell throws epic_not_found when Epic workflow does not exist", async () => {
+      const { deps } = setupMissing();
+      const ops = createEpicOps(deps);
+      await expect(
+        ops.promoteShell("missingEpic", "shell-1", "change-1", "agent"),
+      ).rejects.toMatchObject({ code: "epic_not_found" });
+    });
+
+    test("linkChange throws epic_not_found when Epic workflow does not exist", async () => {
+      const { deps } = setupMissing();
+      const ops = createEpicOps(deps);
+      await expect(
+        ops.linkChange("missingEpic", {
+          changeId: "change-1",
+          title: "Linked",
+        }),
+      ).rejects.toMatchObject({ code: "epic_not_found" });
+    });
+
+    test("unlinkChange throws epic_not_found when Epic workflow does not exist", async () => {
+      const { deps } = setupMissing();
+      const ops = createEpicOps(deps);
+      await expect(
+        ops.unlinkChange("missingEpic", "entry-1"),
+      ).rejects.toMatchObject({ code: "epic_not_found" });
+    });
+
+    test("reorder throws epic_not_found when Epic workflow does not exist", async () => {
+      const { deps } = setupMissing();
+      const ops = createEpicOps(deps);
+      await expect(
+        ops.reorder("missingEpic", ["entry-1"], 0),
+      ).rejects.toMatchObject({ code: "epic_not_found" });
+    });
+
+    test("list skips Epics that disappear between enumeration and query", async () => {
+      const { deps, queryMock } = setup();
+      const client = deps.input.temporal as {
+        workflow: { list: ReturnType<typeof vi.fn> };
+      };
+      client.workflow.list = vi.fn(() => ({
+        [Symbol.asyncIterator]: async function* () {
+          yield { workflowId: "adv/epic/project-id/presentEpic" };
+          yield { workflowId: "adv/epic/project-id/vanishedEpic" };
+        },
+      })) as unknown as typeof client.workflow.list;
+
+      let callCount = 0;
+      queryMock.mockImplementation(async () => {
+        callCount++;
+        if (callCount === 2) {
+          throw new Error(
+            "Workflow not found: adv/epic/project-id/vanishedEpic",
+          );
+        }
+        return makeState(makeEpic({ id: "presentEpic" }));
+      });
+
+      const ops = createEpicOps(deps);
+      const epics = await ops.list();
+      expect(epics).toHaveLength(1);
+      expect(epics[0].id).toBe("presentEpic");
+    });
+  });
 });

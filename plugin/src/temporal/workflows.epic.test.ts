@@ -7,6 +7,7 @@ import type { WorkflowHandle } from "@temporalio/client";
 import type { EpicWorkflowInput, EpicWorkflowState } from "./contracts";
 import {
   changeLinkedSignal,
+  entryTerminalSummarySignal,
   epicArchivedSignal,
   epicCreatedSignal,
   epicUpdatedSignal,
@@ -247,6 +248,77 @@ describe("epicWorkflow", () => {
       },
     );
   }, 120000);
+
+  it("records entry terminal summary and recomputes Epic progress", async () => {
+    await withTestWorkflowEnvironment(
+      () => TestWorkflowEnvironment.createTimeSkipping(),
+      async (env) => {
+        const taskQueue = `epic-wf-${Date.now()}`;
+        const worker = await Worker.create({
+          connection: env.nativeConnection,
+          workflowsPath,
+          taskQueue,
+        });
+
+        await worker.runUntil(async () => {
+          const input = makeEpicInput();
+          const handle = await env.client.workflow.start("epicWorkflow", {
+            workflowId: `epic-${input.epicId}`,
+            taskQueue,
+            args: [input],
+          });
+
+          await handle.signal(epicCreatedSignal, {
+            id: input.epicId,
+            title: input.title,
+            narrative: input.narrative,
+            entries: [],
+            progress: {
+              status: "active" as const,
+              total_entries: 0,
+              completed_entries: 0,
+              active_entries: 0,
+              next_entry_id: null,
+              updated_at: input.initializedAt,
+            },
+            created_at: input.initializedAt,
+            updated_at: input.initializedAt,
+            version: 0,
+          });
+
+          await handle.signal(changeLinkedSignal, {
+            entryId: "entry-1",
+            changeId: "change-1",
+            title: "Linked Change",
+            order: 0,
+            idempotencyKey: "link-change-1",
+            linkedAt: "2026-06-24T00:01:00.000Z",
+          });
+
+          await handle.signal(entryTerminalSummarySignal, {
+            entryId: "entry-1",
+            status: "archived",
+            completedAt: "2026-06-24T00:02:00.000Z",
+            idempotencyKey: "terminal-1",
+          });
+
+          const state = await queryState(handle);
+          expect(state.epic.entries).toHaveLength(1);
+          const entry = state.epic.entries[0];
+          expect(entry.kind).toBe("change");
+          if (entry.kind !== "change") throw new Error("Expected change entry");
+          expect(entry.terminal_summary).toEqual({
+            status: "archived",
+            completed_at: "2026-06-24T00:02:00.000Z",
+          });
+          expect(state.epic.progress.completed_entries).toBe(1);
+          expect(state.epic.progress.active_entries).toBe(0);
+          expect(state.epic.progress.status).toBe("completed");
+          expect(state.epic.progress.next_entry_id).toBeNull();
+        });
+      },
+    );
+  }, 60000);
 
   it("archives the Epic and completes the workflow", async () => {
     await withTestWorkflowEnvironment(

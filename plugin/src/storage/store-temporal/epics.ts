@@ -23,6 +23,7 @@ function asEpicHandle(handle: unknown): EpicHandleLike {
 }
 
 import { listEpicWorkflowIds } from "../../temporal/list-epic-workflows";
+import { buildEpicWorkflowId } from "../../temporal/client";
 import { createLogger } from "../../utils/debug-log";
 
 const logger = createLogger("store-temporal-epics");
@@ -62,6 +63,24 @@ async function queryEpicState(
   return runTemporalQuery(() => handle.query(getEpicQuery)) as Promise<
     import("../../temporal/contracts").EpicWorkflowState
   >;
+}
+
+function isWorkflowNotFoundError(error: unknown): boolean {
+  const text = error instanceof Error ? error.message : String(error);
+  return /Workflow not found|Workflow execution not found|not found/i.test(
+    text,
+  );
+}
+
+async function tryQueryEpicState(
+  handle: EpicHandleLike,
+): Promise<import("../../temporal/contracts").EpicWorkflowState | null> {
+  try {
+    return await queryEpicState(handle);
+  } catch (error) {
+    if (isWorkflowNotFoundError(error)) return null;
+    throw error;
+  }
 }
 
 function lastRejectionFor(
@@ -118,8 +137,20 @@ async function fireEpicSignal(
 export function createEpicOps(deps: StoreDeps): Store["epics"] {
   const { input, getTemporalWorkflowClient } = deps;
 
-  async function getEpicHandle(epicId: string): Promise<EpicHandleLike> {
-    const client = getTemporalWorkflowClient();
+  function getTemporalClient(): ReturnType<typeof getTemporalWorkflowClient> {
+    return getTemporalWorkflowClient();
+  }
+
+  function getEpicHandle(epicId: string): EpicHandleLike {
+    const client = getTemporalClient();
+    const handle = client.workflow.getHandle(
+      buildEpicWorkflowId(input.projectId, epicId),
+    );
+    return asEpicHandle(handle);
+  }
+
+  async function ensureEpicHandle(epicId: string): Promise<EpicHandleLike> {
+    const client = getTemporalClient();
     const handle = await ensureEpicWorkflowStarted(client, {
       projectId: input.projectId,
       epicId,
@@ -132,9 +163,9 @@ export function createEpicOps(deps: StoreDeps): Store["epics"] {
   }
 
   async function queryEpic(epicId: string): Promise<Epic | null> {
-    const handle = await getEpicHandle(epicId);
-    const state = await queryEpicState(handle);
-    return state.epic ?? null;
+    const handle = getEpicHandle(epicId);
+    const state = await tryQueryEpicState(handle);
+    return state?.epic ?? null;
   }
 
   async function assertEpicExists(epicId: string): Promise<Epic> {
@@ -149,7 +180,7 @@ export function createEpicOps(deps: StoreDeps): Store["epics"] {
 
   return {
     create: async (epicId, title, narrative) => {
-      const handle = await getEpicHandle(epicId);
+      const handle = await ensureEpicHandle(epicId);
 
       const now = new Date().toISOString();
       const epic: Epic = {
@@ -195,7 +226,7 @@ export function createEpicOps(deps: StoreDeps): Store["epics"] {
 
     list: async () => {
       const client =
-        getTemporalWorkflowClient() as unknown as import("../../temporal/list-epic-workflows").ListEpicClient;
+        getTemporalClient() as unknown as import("../../temporal/list-epic-workflows").ListEpicClient;
       const ids = await listEpicWorkflowIds(client, {
         projectId: input.projectId,
       });
@@ -218,7 +249,7 @@ export function createEpicOps(deps: StoreDeps): Store["epics"] {
 
     update: async (epicId, { title, narrative, expectedVersion }) => {
       await assertEpicExists(epicId);
-      const handle = await getEpicHandle(epicId);
+      const handle = getEpicHandle(epicId);
 
       const payload = {
         ...(title !== undefined ? { title } : {}),
@@ -239,7 +270,7 @@ export function createEpicOps(deps: StoreDeps): Store["epics"] {
 
     addShell: async (epicId, { entryId, title, successHint, order }) => {
       await assertEpicExists(epicId);
-      const handle = await getEpicHandle(epicId);
+      const handle = getEpicHandle(epicId);
 
       const finalEntryId =
         entryId ??
@@ -265,7 +296,7 @@ export function createEpicOps(deps: StoreDeps): Store["epics"] {
 
     promoteShell: async (epicId, entryId, changeId, promotedBy) => {
       await assertEpicExists(epicId);
-      const handle = await getEpicHandle(epicId);
+      const handle = getEpicHandle(epicId);
 
       const payload = {
         entryId,
@@ -292,7 +323,7 @@ export function createEpicOps(deps: StoreDeps): Store["epics"] {
 
     linkChange: async (epicId, { entryId, changeId, title, order }) => {
       await assertEpicExists(epicId);
-      const handle = await getEpicHandle(epicId);
+      const handle = getEpicHandle(epicId);
 
       const finalEntryId =
         entryId ??
@@ -323,7 +354,7 @@ export function createEpicOps(deps: StoreDeps): Store["epics"] {
 
     unlinkChange: async (epicId, entryId) => {
       await assertEpicExists(epicId);
-      const handle = await getEpicHandle(epicId);
+      const handle = getEpicHandle(epicId);
 
       const payload = {
         entryId,
@@ -341,7 +372,7 @@ export function createEpicOps(deps: StoreDeps): Store["epics"] {
 
     reorder: async (epicId, entryIds, expectedVersion) => {
       await assertEpicExists(epicId);
-      const handle = await getEpicHandle(epicId);
+      const handle = getEpicHandle(epicId);
 
       const payload = {
         entryIds,
