@@ -149,16 +149,16 @@ export const SubagentConsumerWarningSchema = z
  */
 export const DesignConcernDispositionSchema = z
   .object({
-    taskId: z.string().min(1),
-    concernKey: z.string().min(1),
+    taskId: z.string().trim().min(1),
+    concernKey: z.string().trim().min(1),
     disposition: z.enum([
       "fixed",
       "rejected_with_evidence",
       "split",
       "fast_follow",
     ]),
-    evidence: z.string().min(1),
-    dispositionedAt: z.string().min(1),
+    evidence: z.string().trim().min(1),
+    dispositionedAt: z.string().trim().min(1),
   })
   .strict();
 export type DesignConcernDisposition = z.infer<

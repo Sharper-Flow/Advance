@@ -34,6 +34,7 @@ import { changeTools } from "./tools/change";
 import { followupTools } from "./tools/followup";
 import { opsEvidenceTools } from "./tools/ops-evidence";
 import { contractTools } from "./tools/contract";
+import { designConcernTools } from "./tools/design-concern";
 import { taskTools } from "./tools/task";
 import { subagentReportTools } from "./tools/subagent-report";
 import { wisdomTools } from "./tools/wisdom";
@@ -357,6 +358,11 @@ export function createToolMap(
     adv_contract_review_matrix_set: bindTool(
       contractTools.adv_contract_review_matrix_set,
       "adv_contract_review_matrix_set",
+      store,
+    ),
+    adv_design_concern_disposition: bindTool(
+      designConcernTools.adv_design_concern_disposition,
+      "adv_design_concern_disposition",
       store,
     ),
 
@@ -801,6 +807,7 @@ export const ADV_TOOL_NAMES: readonly string[] = [
   "adv_ops_evidence_add",
   "adv_contract_mint",
   "adv_contract_review_matrix_set",
+  "adv_design_concern_disposition",
   "adv_task_show",
   "adv_task_list",
   "adv_task_ready",
