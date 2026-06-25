@@ -272,4 +272,46 @@ describe("createMeshIssuesForArchive", () => {
     // ghNotFound should not produce an error
     expect(result.errors).toHaveLength(0);
   });
+
+  test("records error when mesh issue creation reports a parse failure (QUAL-005/AC4)", async () => {
+    // gh exits 0 but its stdout could not be parsed: this must NOT be treated
+    // as a silent success-without-URL. The consumer must surface an error.
+    mockCreateMeshIssue.mockResolvedValue({
+      exitCode: 0,
+      stderr: "",
+      parseFailed: true,
+    });
+
+    const link: CrossProjectLink = {
+      relationship: "contributes_to",
+      target_path: "/backend",
+      changeId: "ch-parsefail-target",
+      linked_at: new Date().toISOString(),
+    };
+
+    const change = {
+      id: "ch-parsefail",
+      title: "Parse fail test",
+      status: "active",
+      created_at: new Date().toISOString(),
+      tasks: [],
+      deltas: { "advance-workflow": [] },
+      cross_project_links: [link],
+    } as unknown as Change;
+
+    const trustedRepos: RelatedRepo[] = [
+      {
+        id: "backend",
+        path: "/backend",
+        trusted: true,
+        gh_repo: "org/backend",
+      },
+    ];
+
+    const result = await createMeshIssuesForArchive(change, trustedRepos);
+
+    expect(result.issueUrls).toHaveLength(0);
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0]).toMatch(/parse/i);
+  });
 });

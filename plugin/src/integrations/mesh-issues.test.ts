@@ -121,6 +121,27 @@ describe("createMeshIssue", () => {
     }
   });
 
+  test("flags parseFailed when gh exits 0 but stdout is not valid JSON (QUAL-005/AC4)", async () => {
+    mockExecGh.mockResolvedValue({
+      stdout: "warning emitted to stdout before json\n{ not json",
+      stderr: "",
+      exitCode: 0,
+    });
+
+    const result = await createMeshIssue("org/repo", {
+      title: "Test",
+      body: "body",
+      relationship: "contributes_to",
+      changeId: "ch-1",
+      capability: "cap",
+      sourceProject: "/p",
+    });
+
+    expect(result.parseFailed).toBe(true);
+    expect(result.htmlUrl).toBeUndefined();
+    expect(result.issueNumber).toBeUndefined();
+  });
+
   test("returns error info when gh fails", async () => {
     mockExecGh.mockResolvedValue({
       stdout: "",
