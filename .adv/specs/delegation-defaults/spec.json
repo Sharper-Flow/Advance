@@ -3,8 +3,8 @@
   "name": "delegation-defaults",
   "title": "Delegation Defaults",
   "purpose": "Canonical definition of default delegation modes for each ADV workflow step. Establishes which steps allow sub-agent delegation, which require inline execution, and what safety boundaries constrain delegation. The matrix is the single source of truth for delegation routing decisions; command files and orchestrator guidance reference this spec rather than duplicating delegation prose.",
-  "version": "1.0.0",
-  "updated_at": "2026-06-02T00:00:00.000Z",
+  "version": "1.1.0",
+  "updated_at": "2026-06-25T00:00:00.000Z",
   "delegation_matrix": [
     {
       "step": "proposal",
@@ -451,6 +451,37 @@
             "adv-reviewer frontmatter includes skill: true",
             "adv-reviewer prompt instructs loading skill(\"playwright-mcp\") before Playwright MCP use",
             "Playwright MCP is documented as not for web research"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-delDefaults08",
+      "title": "Designer Delegation Receives Visual Context",
+      "body": "When ADV delegates frontend/component implementation to adv-designer, the Designer Apply Context Packet MUST include a VISUAL_CONTEXT block with surface_type, existing_patterns, tokens_and_style_rules, viewport_targets, forbidden_patterns, and evidence_expectation entries. Each entry MUST either carry sourced context from agreement, design, task scope, project files, or preview discovery, or an explicit unavailable marker with a reason. The packet MUST preserve the backend boundary and apply-only role boundary, and MUST NOT fabricate style context or require Storybook as an Advance dependency.",
+      "priority": "must",
+      "tags": ["delegation", "frontend", "designer", "visual-context", "packets"],
+      "scenarios": [
+        {
+          "id": "rq-delDefaults08.1",
+          "title": "Designer packet includes visual context anchors",
+          "given": ["ADV delegates a task to adv-designer because metadata.frontend is true"],
+          "when": "The Designer Apply Context Packet is prepared",
+          "then": [
+            "The packet includes a VISUAL_CONTEXT block",
+            "The block includes surface_type, existing_patterns, tokens_and_style_rules, viewport_targets, forbidden_patterns, and evidence_expectation",
+            "Missing context is represented by explicit unavailable markers with reasons"
+          ]
+        },
+        {
+          "id": "rq-delDefaults08.2",
+          "title": "Visual context preserves boundaries",
+          "given": ["A frontend task needs visual context but not backend behavior changes"],
+          "when": "ADV prepares the designer packet",
+          "then": [
+            "The packet keeps backend logic, storage, APIs, Temporal behavior, business rules, review, and harden out of scope",
+            "The packet does not route review or harden work to adv-designer",
+            "The packet does not require Storybook as an Advance plugin dependency"
           ]
         }
       ]

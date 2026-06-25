@@ -56,6 +56,75 @@ Capability: Workflow contract layer for ADV — gate model, autonomy boundaries,
 
 ---
 
+### Frontend Design-Quality Evidence in Acceptance Review
+
+**ID:** `rq-designQualityEvidence01` | **Priority:** **[MUST]**
+
+/adv-review MUST consume persisted adv-designer report evidence for frontend/design implementation scope before acceptance. Designer design_dimensions concerns, neighboring_recommendations, required_main_agent_actions, and browser/design verification evidence MUST be surfaced into review synthesis and contract.reviewMatrix proof using existing evidence policies such as design_proof, rubric_review, review, static_check, or test. Owned-scope unresolved design concerns MUST block acceptance unless fixed or rejected_with_evidence. Neighboring or out-of-scope UI concerns MUST be dispositioned through include-now, split/fast-follow, or rejected_with_evidence with rationale; they MUST NOT be silently hidden or represented by a new accepted_debt terminal state. Review and harden ownership remains with adv-reviewer, and adv-designer remains apply-phase only.
+
+**Tags:** `workflow`, `review`, `acceptance`, `frontend`, `design-proof`, `adv-designer`
+
+#### Scenarios
+
+**Designer concerns feed acceptance proof** (`rq-designQualityEvidence01.1`)
+
+**Given:**
+
+- A frontend task has a persisted adv-designer report
+- The report contains a design_dimensions concern
+
+**When:** /adv-review prepares contract.reviewMatrix rows before acceptance
+
+**Then:**
+
+- The concern is surfaced in review synthesis
+- The relevant contract row uses design_proof, rubric_review, review, static_check, or test evidence
+- Acceptance remains blocked until the concern is fixed or rejected_with_evidence
+
+**Neighboring recommendations are dispositioned** (`rq-designQualityEvidence01.2`)
+
+**Given:**
+
+- A persisted adv-designer report includes neighboring_recommendations
+
+**When:** /adv-review emits acceptance evidence
+
+**Then:**
+
+- Each neighboring recommendation is surfaced
+- Each item is dispositioned as include-now, split/fast-follow, or rejected_with_evidence with rationale
+- The item is not silently dropped
+
+**No accepted_debt terminal state is introduced** (`rq-designQualityEvidence01.3`)
+
+**Given:**
+
+- Review evaluates design-quality debt or neighboring UI concerns
+
+**When:** The review/harden workflow records finding disposition
+
+**Then:**
+
+- No accepted_debt terminal state is used
+- In-scope rejected items use rejected_with_evidence
+- Out-of-scope valid items use split or fast-follow handoff
+
+**Runnable visual surface evidence is bounded** (`rq-designQualityEvidence01.4`)
+
+**Given:**
+
+- A frontend change has a runnable visual surface or preview
+
+**When:** /adv-review evaluates design-quality proof
+
+**Then:**
+
+- Browser/design evidence includes viewport context
+- A missing runnable surface records an explicit fallback rationale
+- Advance does not add Storybook as a plugin dependency to satisfy proof
+
+---
+
 ### Fast-Track Tasks Preserve Spec-Law Intent and Crash-Safe Tracking
 
 **ID:** `rq-taskSpecLaw01` | **Priority:** **[MUST]**
