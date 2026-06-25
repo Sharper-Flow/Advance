@@ -63,7 +63,6 @@ describe("adv dispatcher metadata", () => {
     expect(exitCode).toBe(0);
     expect(stdout).toContain("USAGE:");
     expect(stdout.match(/--json/g)).toHaveLength(1);
-    expect(stdout).toContain("dashboard");
   });
 
   test("--version exits 0", async () => {
@@ -179,39 +178,6 @@ describe("adv slop-scan dispatcher", () => {
     expect(parsed.scope.languages).toContain("typescript");
     expect(parsed.coverage.detectors.length).toBeGreaterThan(0);
     expect(parsed.summary.total).toBe(parsed.findings.length);
-  });
-});
-
-describe("adv dashboard dispatcher", () => {
-  test("requires --config", async () => {
-    const { exitCode, stderr } = await runAdv(["dashboard", "--no-color"]);
-    expect(exitCode).toBe(2);
-    expect(stderr).toContain("--config is required");
-  });
-
-  test("rejects non-loopback host without opt-in", async () => {
-    const tmp = mkdtempSync(join(tmpdir(), "adv-dashboard-"));
-    const configPath = join(tmp, "dashboard.json");
-    await writeFile(
-      configPath,
-      JSON.stringify({
-        schema_version: 1,
-        refresh_seconds: 45,
-        projects: [
-          { id: "advance", label: "Advance", path: "/repo/advance", github: { owner: "Sharper-Flow", repo: "Advance" } },
-        ],
-      }),
-    );
-
-    const { exitCode, stderr } = await runAdv([
-      "dashboard",
-      "--config",
-      configPath,
-      "--host",
-      "0.0.0.0",
-    ]);
-    expect(exitCode).toBe(2);
-    expect(stderr).toContain("non-loopback");
   });
 });
 

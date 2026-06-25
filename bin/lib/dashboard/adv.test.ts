@@ -1,6 +1,5 @@
 import { describe, expect, test } from "bun:test";
 
-import { buildSummaryFromSearchAttributes } from "../live-status";
 import type { ChangeRecord, ChangeSummary } from "../types";
 import { readDashboardAdvProject } from "./adv";
 import type { DashboardProjectConfig } from "./config";
@@ -12,7 +11,7 @@ const project: DashboardProjectConfig = {
   github: { owner: "Sharper-Flow", repo: "Advance" },
 };
 
-const baseSummary: ChangeSummary = {
+const baseSummary: ChangeSummary & { worktreeBranches: string[] } = {
   id: "addLocalDashboard",
   title: "Add local dashboard",
   status: "draft",
@@ -72,21 +71,5 @@ describe("dashboard ADV project reader", () => {
     expect(snapshot.changes[0]?.ops_followup).toEqual({ status: "complete" });
     expect(snapshot.changes[0]?.ops_followup_links).toEqual([{ child_change_id: "child" }]);
     expect(snapshot.changes[0]?.correlation_keys.head_shas).toEqual(["abc123"]);
-  });
-
-  test("visibility summary extracts worktree branch search attributes", () => {
-    const summary = buildSummaryFromSearchAttributes(
-      "addLocalDashboard",
-      {
-        AdvChangeTitle: ["Add local dashboard"],
-        AdvCurrentGate: ["execution"],
-        AdvWorktreeBranches: ["change/addLocalDashboard"],
-        AdvWorktreePaths: ["/tmp/change/addLocalDashboard"],
-      },
-      new Date("2026-06-25T21:00:00.000Z"),
-    );
-
-    expect(summary?.worktreeBranches).toEqual(["change/addLocalDashboard"]);
-    expect(summary?.worktreePaths).toEqual(["/tmp/change/addLocalDashboard"]);
   });
 });

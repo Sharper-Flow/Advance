@@ -93,10 +93,15 @@ function mergeAdvChange(summary: ChangeSummary, opsChange: ChangeRecord | undefi
     ops_followup: getField(opsChange, "ops_followup"),
     ops_followup_links: opsLinks,
     correlation_keys: {
-      branches: unique([...(summary.worktreeBranches ?? []), ...worktreeBranches(opsChange)]),
+      branches: unique([...(summaryWorktreeBranches(summary) ?? []), ...worktreeBranches(opsChange)]),
       head_shas: unique(worktreeHeadShas(opsChange)),
     },
   };
+}
+
+function summaryWorktreeBranches(summary: ChangeSummary): string[] | undefined {
+  const value = (summary as ChangeSummary & { worktreeBranches?: unknown }).worktreeBranches;
+  return Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === "string") : undefined;
 }
 
 function projectIdentity(project: DashboardProjectConfig) {

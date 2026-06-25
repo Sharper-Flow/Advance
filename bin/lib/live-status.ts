@@ -232,19 +232,6 @@ function searchAttributeString(
   return str.length > 0 ? str : undefined;
 }
 
-function searchAttributeStringList(
-  attrs: Record<string, unknown> | null | undefined,
-  key: string,
-): string[] | undefined {
-  if (!attrs) return undefined;
-  const value = attrs[key];
-  const values = Array.isArray(value) ? value : value === undefined ? [] : [value];
-  const strings = values
-    .map((entry) => String(entry ?? "").trim())
-    .filter((entry) => entry.length > 0);
-  return strings.length > 0 ? strings : undefined;
-}
-
 /**
  * Synthesize a 7-gate map from the `AdvCurrentGate` search attribute.
  * Gates before the current gate are `done`; the current gate and later
@@ -308,8 +295,6 @@ export function buildSummaryFromSearchAttributes(
     tasksTotal: 0,
     firstIncompleteGate: incomplete,
     gateProgressStr: buildGateProgress(gates),
-    worktreeBranches: searchAttributeStringList(attrs, "AdvWorktreeBranches"),
-    worktreePaths: searchAttributeStringList(attrs, "AdvWorktreePaths"),
   };
 }
 
