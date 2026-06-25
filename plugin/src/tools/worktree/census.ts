@@ -1,4 +1,5 @@
 import type { SessionRecord, WorktreeRecord } from "../../temporal/contracts";
+import { CHANGE_BRANCH_PREFIX } from "../../temporal/contracts";
 import { execFileGitAsync } from "../../utils/git-binary";
 import { inferChangeIdFromBranch } from "./state";
 
@@ -89,7 +90,7 @@ export async function scanGitWorkspaceFacts(
 
   const worktrees: GitWorktreeFact[] = [];
   for (const wt of parseWorktreePorcelain(worktreeText)) {
-    if (!wt.branch?.startsWith("change/")) continue;
+    if (!wt.branch?.startsWith(CHANGE_BRANCH_PREFIX)) continue;
     const status = await git(wt.path, ["status", "--porcelain"]).catch(
       () => "",
     );

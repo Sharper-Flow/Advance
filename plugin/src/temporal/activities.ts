@@ -24,6 +24,7 @@ import { createHash } from "crypto";
 import { listSpecDirs } from "../storage/json";
 import { atomicWriteFile } from "../utils/fs";
 import type { ChangeWorkflowState } from "./contracts";
+import { CHANGE_BRANCH_PREFIX } from "./contracts";
 import { renderBriefSummary } from "../utils/archive-summary";
 import { applySpecDelta } from "../utils/spec-deltas";
 import { appendWisdom } from "../utils/wisdom-append";
@@ -613,7 +614,7 @@ export async function archiveChangeActivity(
       const branch = await getOptionalGitValue(
         project.projectPath,
         ["branch", "--show-current"],
-        `change/${input.state.changeId}`,
+        `${CHANGE_BRANCH_PREFIX}${input.state.changeId}`,
       );
       const headSha = await getOptionalGitValue(
         project.projectPath,

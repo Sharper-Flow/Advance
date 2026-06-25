@@ -10,6 +10,7 @@
 
 import * as fs from "fs";
 import * as path from "path";
+import { isProcessAlive } from "./process-liveness";
 
 // ── Types ──────────────────────────────────────────────────────────────
 
@@ -119,17 +120,6 @@ function deleteLeaseFile(filePath: string): void {
   }
 }
 
-/** Check if a PID is alive on Linux. */
-function isPidAlive(pid: number): boolean {
-  try {
-    // Sending signal 0 checks existence without killing
-    process.kill(pid, 0);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 // ── Public API ─────────────────────────────────────────────────────────
 
 export function acquireLease(input: AcquireLeaseInput): AcquireLeaseResult {
@@ -223,8 +213,10 @@ export function reclaimStaleLease(
     return { status: "reclaimed", previousLease: previous, newLease: record };
   }
 
-  // Check PID liveness (if enabled)
-  if (allowDeadPidReclaim && !isPidAlive(existing.pid)) {
+  // Check PID liveness (if enabled). isProcessAlive is fail-safe: EPERM and
+  // unknown probe errors are treated as alive so a live peer's lease is never
+  // reclaimed on a multi-user host (rq-worktreeLeaseLiveness01).
+  if (allowDeadPidReclaim && !isProcessAlive(existing.pid)) {
     const previous = { ...existing };
     const record: LeaseRecord = {
       pid: newPid,

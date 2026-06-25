@@ -33,6 +33,7 @@ import {
   type WorktreeCrossChangeWarning,
 } from "./state";
 import { detectStaleBranchHead } from "../../utils/stale-head";
+import { CHANGE_BRANCH_PREFIX } from "../../temporal/contracts";
 import { execFileGitAsync } from "../../utils/git-binary";
 import { getDefaultBranch } from "../../utils/git";
 import { resolve } from "path";
@@ -232,7 +233,7 @@ export async function triageWorktrees(
   // under our convention `change/...`).
   for (const dw of diskList) {
     if (!dw.branch) continue;
-    if (!dw.branch.startsWith("change/")) continue;
+    if (!dw.branch.startsWith(CHANGE_BRANCH_PREFIX)) continue;
     if (registryByBranch.has(dw.branch)) continue;
     const reachability = await detectUnmergedBranch(repoRoot, dw.branch);
     if (reachability.unmerged) {
@@ -278,7 +279,7 @@ export async function triageWorktrees(
   // registry_missing_change_id: registry has a canonical change worktree but
   // cannot prove ownership for delete integration checks.
   for (const r of registry) {
-    if (!r.branch?.startsWith("change/")) continue;
+    if (!r.branch?.startsWith(CHANGE_BRANCH_PREFIX)) continue;
     if (r.changeId) continue;
     orphans.push({
       class: "registry_missing_change_id",
@@ -319,7 +320,7 @@ export async function triageWorktrees(
     if (!dw.branch) continue;
     // Skip the main checkout — only flag named-branch worktrees we manage.
     // (Convention: ADV-managed worktrees use `change/...` branches.)
-    if (!dw.branch.startsWith("change/")) continue;
+    if (!dw.branch.startsWith(CHANGE_BRANCH_PREFIX)) continue;
     const dirty = await getWorktreeDirtySummary(dw.path);
     if (!dirty) continue; // git status failed or path missing
     if (dirty.staged === 0 && dirty.modified === 0 && dirty.untracked === 0) {

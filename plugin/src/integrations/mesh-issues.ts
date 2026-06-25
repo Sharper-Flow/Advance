@@ -46,6 +46,12 @@ export interface MeshIssueResult {
   exitCode: number;
   stderr: string;
   ghNotFound?: boolean;
+  /**
+   * True when `gh` exited successfully but its stdout could not be parsed as
+   * JSON. Distinguishes a parse failure (no usable payload) from a genuine
+   * exit-0 success so callers do not treat it as silent success (QUAL-005).
+   */
+  parseFailed?: boolean;
 }
 
 export interface MeshIssue {
@@ -61,6 +67,8 @@ export interface ListMeshIssuesResult {
   exitCode: number;
   stderr: string;
   ghNotFound?: boolean;
+  /** True when `gh` exited successfully but its stdout could not be parsed (QUAL-005). */
+  parseFailed?: boolean;
 }
 
 export interface MeshFrontmatter {
@@ -155,10 +163,13 @@ export async function createMeshIssue(
       stderr: result.stderr,
     };
   } catch {
+    // gh exited 0 but stdout was not valid JSON — flag the parse failure so
+    // callers do not treat this as a silent success-without-payload (QUAL-005).
     return {
       exitCode: result.exitCode,
       stderr: result.stderr,
       ghNotFound: result.ghNotFound,
+      parseFailed: true,
     };
   }
 }
@@ -202,7 +213,13 @@ export async function listMeshIssues(
     const issues = JSON.parse(result.stdout) as MeshIssue[];
     return { issues, exitCode: 0, stderr: result.stderr };
   } catch {
-    return { issues: [], exitCode: 0, stderr: result.stderr };
+    // gh exited 0 but stdout was not valid JSON — flag the parse failure (QUAL-005).
+    return {
+      issues: [],
+      exitCode: 0,
+      stderr: result.stderr,
+      parseFailed: true,
+    };
   }
 }
 
@@ -212,7 +229,9 @@ export async function listMeshIssues(
 export async function getGhIssue(
   repo: string,
   issueNumber: number,
-): Promise<MeshIssue & { exitCode: number; stderr: string }> {
+): Promise<
+  MeshIssue & { exitCode: number; stderr: string; parseFailed?: boolean }
+> {
   const result = await execGh(
     [
       "issue",
@@ -240,12 +259,14 @@ export async function getGhIssue(
     const parsed = JSON.parse(result.stdout);
     return { ...parsed, exitCode: 0, stderr: result.stderr };
   } catch {
+    // gh exited 0 but stdout was not valid JSON — flag the parse failure (QUAL-005).
     return {
       number: issueNumber,
       title: "",
       labels: [],
       exitCode: result.exitCode,
       stderr: result.stderr,
+      parseFailed: true,
     };
   }
 }

@@ -19,6 +19,44 @@ import {
   runTemporalQuery,
 } from "../storage/store-temporal/shared";
 import type { Store } from "../storage/store";
+import { getGateStatusQuery } from "../temporal/messages";
+import type { GateCompletion, GateId } from "../types";
+
+// Temporal signal processing + projection can take several seconds under load.
+// 60 attempts × 500ms = 30s total gives adequate headroom for CI and local dev.
+export const GATE_COMPLETION_POLL_ATTEMPTS = 60;
+export const GATE_COMPLETION_POLL_DELAY_MS = 500;
+
+const gatePollDelay = (ms: number): Promise<void> =>
+  new Promise((resolve) => setTimeout(resolve, ms));
+
+/**
+ * Poll a change workflow until a gate reaches a terminal status (done/stuck)
+ * or the attempt budget is exhausted. Single source of truth for
+ * gate-completion polling shared by the gate-completion and archive
+ * release-gate-completion paths (STRUCT-003).
+ */
+export async function waitForGateCompletion(
+  handle: WorkflowHandleLike,
+  gateId: GateId,
+  opts: { attempts?: number; delayMs?: number } = {},
+): Promise<GateCompletion | undefined> {
+  const attempts = opts.attempts ?? GATE_COMPLETION_POLL_ATTEMPTS;
+  const delayMs = opts.delayMs ?? GATE_COMPLETION_POLL_DELAY_MS;
+  let latest: GateCompletion | undefined;
+  for (let attempt = 0; attempt < attempts; attempt++) {
+    latest = await querySignal<GateCompletion>(
+      handle,
+      getGateStatusQuery,
+      gateId,
+    );
+    if (latest?.status === "done" || latest?.status === "stuck") {
+      return latest;
+    }
+    await gatePollDelay(delayMs);
+  }
+  return latest;
+}
 
 type SignalTarget = WorkflowHandleLike | TemporalStoreBackendInput;
 

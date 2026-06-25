@@ -45,6 +45,7 @@ import {
   fireSignalAndRefresh,
   querySignal,
   getChangeHandle,
+  waitForGateCompletion,
 } from "./_adapters";
 import {
   changeTasksQuery,
@@ -91,14 +92,7 @@ import {
 import { saveRecoveredGateCompletion } from "./_recovery-writers";
 
 // rq-releaseFinalization01: gate completion confirmation must be durable.
-// Temporal signal processing + projection can take several seconds under load.
-// 60 attempts × 500ms = 30s total gives adequate headroom for CI and local dev.
-const GATE_COMPLETION_POLL_ATTEMPTS = 60;
-const GATE_COMPLETION_POLL_DELAY_MS = 500;
 const MIN_RECOVERY_ARTIFACT_NON_WHITESPACE_CHARS = 20;
-
-const delay = (ms: number): Promise<void> =>
-  new Promise((resolve) => setTimeout(resolve, ms));
 
 function gateDoneCount(gates: Gates): number {
   return GATE_ORDER.filter((gateId) => gates[gateId]?.status === "done").length;
@@ -131,19 +125,7 @@ async function waitForGateCompletionResult(
   handle: WorkflowHandleLike,
   gateId: GateId,
 ): Promise<GateCompletion | undefined> {
-  let latest: GateCompletion | undefined;
-  for (let attempt = 0; attempt < GATE_COMPLETION_POLL_ATTEMPTS; attempt++) {
-    latest = await querySignal<GateCompletion>(
-      handle,
-      getGateStatusQuery,
-      gateId,
-    );
-    if (latest?.status === "done" || latest?.status === "stuck") {
-      return latest;
-    }
-    await delay(GATE_COMPLETION_POLL_DELAY_MS);
-  }
-  return latest;
+  return waitForGateCompletion(handle, gateId);
 }
 
 function workflowReadinessBlockedResponse(input: {
