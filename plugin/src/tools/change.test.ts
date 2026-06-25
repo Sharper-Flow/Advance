@@ -1488,7 +1488,7 @@ describe("change tools — signal-driven lifecycle", () => {
       expect(mocks.saveRecoveredChangeStatus).not.toHaveBeenCalled();
     });
 
-    test("recovers completed-workflow close failure with audited disk projection", async () => {
+    test("recovers completed-workflow close failure with audited disk projection and keeps projection readable", async () => {
       const store = createMockStore();
       mocks.fireSignalAndRefresh.mockRejectedValueOnce(
         Object.assign(new Error("workflow execution already completed"), {
@@ -1528,10 +1528,7 @@ describe("change tools — signal-driven lifecycle", () => {
           }),
         }),
       );
-      expect(mocks.removeChangeDir).toHaveBeenCalledWith(
-        store.paths.changes,
-        "test-change",
-      );
+      expect(mocks.removeChangeDir).not.toHaveBeenCalled();
     });
   });
 
@@ -1778,7 +1775,7 @@ describe("change tools — signal-driven lifecycle", () => {
       });
       expect(mocks.saveRecoveredChangeStatus).toHaveBeenCalledTimes(1);
       expect(mocks.sweepClosedChangesFromDisk).toHaveBeenCalledWith(
-        ["chg-1", "chg-2"],
+        ["chg-2"],
         store.paths.changes,
       );
     });
