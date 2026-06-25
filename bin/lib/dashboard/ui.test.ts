@@ -20,6 +20,19 @@ describe("dashboard UI", () => {
     expect(html).toContain("refresh_seconds");
   });
 
+  test("keeps ADV change cards compact and degraded sources single-lane", () => {
+    const html = renderDashboardHtml();
+
+    expect(html).toContain(
+      "if (item.kind === 'adv_change') return advChangeHtml(item)",
+    );
+    expect(html).toContain("status <code>");
+    expect(html).toContain("gate <code>");
+    expect(html).not.toContain(
+      "(project.degradedSources || []).map(degradedHtml)",
+    );
+  });
+
   test("does not render mutation controls", () => {
     const html = renderDashboardHtml().toLowerCase();
     for (const forbidden of [

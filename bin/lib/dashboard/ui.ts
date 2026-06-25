@@ -42,12 +42,17 @@ export function renderDashboardHtml(): string {
 
     function text(value) { return value == null ? '' : String(value); }
     function itemHtml(item) {
+      if (item.kind === 'adv_change') return advChangeHtml(item);
       const title = item.title ? '<div>' + escapeHtml(item.title) + '</div>' : '';
       const evidence = item.evidence ? '<div><strong>Evidence</strong>: <code>' + escapeHtml(item.evidence) + '</code></div>' : '';
       const reason = item.reason ? '<div><strong>Unlinked</strong>: ' + escapeHtml(item.reason) + '</div>' : '';
       const status = item.status ? '<div><strong>Status</strong>: <code>' + escapeHtml(item.status) + '</code></div>' : '';
       const states = item.source_states ? '<div><strong>Source states</strong>: ' + Object.entries(item.source_states).map(([key, value]) => escapeHtml(key) + '=<code>' + escapeHtml(value) + '</code>').join(' ') + '</div>' : '';
       return '<article class="item"><div><strong>' + escapeHtml(item.kind) + '</strong> ' + escapeHtml(item.changeId || '') + '</div>' + title + evidence + reason + status + states + '</article>';
+    }
+    function advChangeHtml(item) {
+      const gate = item.source_states && item.source_states.gate ? item.source_states.gate : 'unknown';
+      return '<article class="item"><div><strong>' + escapeHtml(item.title || item.changeId || 'ADV change') + '</strong></div><div class="muted"><code>' + escapeHtml(item.changeId || '') + '</code> · status <code>' + escapeHtml(item.status || '') + '</code> · gate <code>' + escapeHtml(gate) + '</code></div></article>';
     }
     function degradedHtml(source) {
       const lastSuccess = source.last_success_at ? '<div>Last successful refresh: ' + escapeHtml(source.last_success_at) + '</div>' : '';
@@ -60,9 +65,8 @@ export function renderDashboardHtml(): string {
       lastSuccessfulRefreshAt = text(state.generated_at) || lastSuccessfulRefreshAt;
       freshness.textContent = 'Updated ' + text(state.generated_at) + ' · refresh_seconds=' + text(state.refresh_seconds);
       app.innerHTML = (state.projects || []).map((project) => {
-        const degraded = (project.degradedSources || []).map(degradedHtml).join('');
         const lanes = laneNames.map((name) => renderLane(name, (project.lanes && project.lanes[name]) || [])).join('');
-        return '<section class="project"><h2>' + escapeHtml(project.label || project.id) + '</h2><p class="muted">' + escapeHtml(project.path || '') + '</p>' + degraded + '<div class="lanes">' + lanes + '</div></section>';
+        return '<section class="project"><h2>' + escapeHtml(project.label || project.id) + '</h2><p class="muted">' + escapeHtml(project.path || '') + '</p><div class="lanes">' + lanes + '</div></section>';
       }).join('') || '<p class="muted">No configured projects.</p>';
     }
     function escapeHtml(value) {
