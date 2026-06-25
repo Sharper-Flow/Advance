@@ -135,7 +135,8 @@ export function changeSeedStateFromChange(
   return {
     status: safeChange.status,
     lifecycleState:
-      safeChange.lifecycleState ?? normalizeChangeLifecycleState(safeChange.status),
+      safeChange.lifecycleState ??
+      normalizeChangeLifecycleState(safeChange.status),
     tasks: safeChange.tasks ?? [],
     subagent_reports: safeChange.subagent_reports ?? [],
     deltas: safeChange.deltas ?? {},

@@ -472,7 +472,8 @@ export async function changeWorkflow(
   if (input.seedState) {
     if (input.seedState.status) state.status = input.seedState.status;
     state.lifecycleState =
-      input.seedState.lifecycleState ?? normalizeChangeLifecycleState(state.status);
+      input.seedState.lifecycleState ??
+      normalizeChangeLifecycleState(state.status);
     if (input.seedState.tasks) state.tasks = input.seedState.tasks;
     if (input.seedState.subagent_reports) {
       state.subagent_reports = input.seedState.subagent_reports;

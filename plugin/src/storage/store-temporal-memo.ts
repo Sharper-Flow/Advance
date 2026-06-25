@@ -15,7 +15,11 @@
  *   - bulkSet(): batch hydration (e.g. startup recovery)
  */
 
-import type { ChangeLifecycleState, ChangeStatus, FastFollowOf } from "../types";
+import type {
+  ChangeLifecycleState,
+  ChangeStatus,
+  FastFollowOf,
+} from "../types";
 import type { OpsFollowupLink, OpsFollowupProfile } from "../types/changes";
 
 export type GateStatusValue = "pending" | "done" | "skipped" | "legacy";
