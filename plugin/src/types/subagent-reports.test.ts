@@ -432,7 +432,8 @@ describe("Subagent report schemas", () => {
         design_dimensions: {
           ...designerReport.design_dimensions,
           responsive_behavior: "n/a",
-          notes: "Static icon-only change; no responsive layout behavior affected.",
+          notes:
+            "Static icon-only change; no responsive layout behavior affected.",
         },
       }),
     ).not.toThrow();

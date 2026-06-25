@@ -80,7 +80,9 @@ describe("adv-review non-code evidence policy surface", () => {
     expect(command).toContain("required_main_agent_actions");
     expect(command).toContain("design_proof");
     expect(command).toContain("rubric_review");
-    expect(command).toMatch(/unresolved owned-scope design concerns block acceptance/i);
+    expect(command).toMatch(
+      /unresolved owned-scope design concerns block acceptance/i,
+    );
   });
 
   test("designer neighboring recommendations require explicit disposition", () => {
