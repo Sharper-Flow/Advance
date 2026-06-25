@@ -4,7 +4,7 @@
  * Lease state keyed by (projectID, canonicalWorktreePath) with PID + heartbeat
  * liveness. Stored as JSON in ADV external state directory.
  */
-import { describe, expect, it, beforeEach, afterEach } from "vitest";
+import { describe, expect, it, beforeEach, afterEach, vi } from "vitest";
 import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
@@ -206,6 +206,44 @@ describe("reclaimStaleLease", () => {
       allowDeadPidReclaim: true,
     });
     expect(result.status).toBe("reclaimed");
+  });
+
+  it("does NOT reclaim a fresh-heartbeat lease when the PID probe throws EPERM (live peer, fail-safe) — rq-worktreeLeaseLiveness01 / AC1", () => {
+    const existingPid = 4242;
+    acquireLease({
+      leasesDir: leasesDir(),
+      worktreePath: "/repo/worktree/change/abc",
+      pid: existingPid,
+      sessionId: "ses-peer",
+      staleHeartbeatMs: 600_000, // heartbeat is fresh; reclaim depends solely on PID liveness
+    });
+
+    const killSpy = vi
+      .spyOn(process, "kill")
+      .mockImplementation(((pid: number) => {
+        if (pid === existingPid) {
+          const err = new Error("EPERM") as NodeJS.ErrnoException;
+          err.code = "EPERM";
+          throw err;
+        }
+        return true;
+      }) as typeof process.kill);
+
+    try {
+      const result = reclaimStaleLease({
+        leasesDir: leasesDir(),
+        worktreePath: "/repo/worktree/change/abc",
+        newPid: 22222,
+        newSessionId: "ses-new",
+        staleHeartbeatMs: 60_000,
+        allowDeadPidReclaim: true,
+      });
+      // EPERM means the peer exists but is not signalable by this user →
+      // treated as alive → lease must NOT be reclaimed.
+      expect(result.status).toBe("blocked");
+    } finally {
+      killSpy.mockRestore();
+    }
   });
 });
 
