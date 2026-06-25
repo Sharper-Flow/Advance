@@ -208,9 +208,15 @@ describe("dashboard server state", () => {
     });
 
     const linked = state.projects[0]?.lanes.linked ?? [];
+    const advChange = linked.find((item) => item.kind === "adv_change");
     const deployment = linked.find((item) => item.kind === "deployment");
     const ops = linked.find((item) => item.kind === "ops");
 
+    expect(advChange).toMatchObject({
+      changeId: "addLocalDashboard",
+      title: "Add local dashboard",
+      evidence: "adv.change: addLocalDashboard",
+    });
     expect(deployment?.source_states).toEqual({ github_deployment: "failure" });
     expect(ops?.status).toBe("success");
     expect(deployment?.evidence).toBe(

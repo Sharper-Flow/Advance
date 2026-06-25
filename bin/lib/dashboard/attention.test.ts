@@ -5,9 +5,34 @@ import { buildAttentionLanes } from "./attention";
 describe("dashboard attention lanes", () => {
   test("groups project-first activity into attention, running, linked, and unlinked lanes", () => {
     const lanes = buildAttentionLanes({
+      changes: [
+        {
+          id: "addLocalDashboard",
+          title: "Add local dashboard",
+          status: "active",
+          gateProgressStr:
+            "proposal ✓ discovery ✓ design ✓ planning ✓ execution ✓ acceptance ○ release ○",
+          firstIncompleteGate: "acceptance",
+          lastActivityAt: "2026-06-25T22:00:00.000Z",
+          correlation_keys: {
+            branches: ["change/addLocalDashboard"],
+            head_shas: [],
+          },
+        },
+      ],
       linked: [
-        { kind: "workflow_run", changeId: "addLocalDashboard", status: "in_progress", evidence: "run.head_sha: abc" },
-        { kind: "pull", changeId: "addLocalDashboard", status: "open", evidence: "branch: change/addLocalDashboard" },
+        {
+          kind: "workflow_run",
+          changeId: "addLocalDashboard",
+          status: "in_progress",
+          evidence: "run.head_sha: abc",
+        },
+        {
+          kind: "pull",
+          changeId: "addLocalDashboard",
+          status: "open",
+          evidence: "branch: change/addLocalDashboard",
+        },
         {
           kind: "deployment",
           changeId: "addLocalDashboard",
@@ -16,14 +41,44 @@ describe("dashboard attention lanes", () => {
           source_states: { github_deployment: "failure", adv_ops: "success" },
         },
       ],
-      unlinked: [{ kind: "workflow_run", reason: "no structural match", status: "queued" }],
-      degradedSources: [{ source: "github", code: "GITHUB_PRIMARY_RATE_LIMIT", message: "GitHub primary rate limit reached." }],
+      unlinked: [
+        {
+          kind: "workflow_run",
+          reason: "no structural match",
+          status: "queued",
+        },
+      ],
+      degradedSources: [
+        {
+          source: "github",
+          code: "GITHUB_PRIMARY_RATE_LIMIT",
+          message: "GitHub primary rate limit reached.",
+        },
+      ],
     });
 
-    expect(lanes.attention.map((item) => item.kind)).toEqual(["deployment", "degraded_source"]);
-    expect(lanes.running.map((item) => item.kind)).toEqual(["workflow_run", "workflow_run"]);
-    expect(lanes.linked.map((item) => item.kind)).toEqual(["pull"]);
+    expect(lanes.attention.map((item) => item.kind)).toEqual([
+      "deployment",
+      "degraded_source",
+    ]);
+    expect(lanes.running.map((item) => item.kind)).toEqual([
+      "workflow_run",
+      "workflow_run",
+    ]);
+    expect(lanes.linked.map((item) => item.kind)).toEqual([
+      "adv_change",
+      "pull",
+    ]);
+    expect(lanes.linked[0]).toMatchObject({
+      changeId: "addLocalDashboard",
+      title: "Add local dashboard",
+      evidence: "adv.change: addLocalDashboard",
+      source_states: { gate: "acceptance" },
+    });
     expect(lanes.unlinked).toHaveLength(1);
-    expect(lanes.attention[0]?.source_states).toEqual({ github_deployment: "failure", adv_ops: "success" });
+    expect(lanes.attention[0]?.source_states).toEqual({
+      github_deployment: "failure",
+      adv_ops: "success",
+    });
   });
 });

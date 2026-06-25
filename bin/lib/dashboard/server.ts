@@ -94,7 +94,11 @@ export async function buildDashboardState(
         project_id: adv.project_id,
         generated_at: adv.generated_at,
         changes: adv.changes,
-        lanes: buildAttentionLanes({ ...correlated, degradedSources }),
+        lanes: buildAttentionLanes({
+          changes: adv.changes,
+          ...correlated,
+          degradedSources,
+        }),
         degradedSources,
       };
     }),
