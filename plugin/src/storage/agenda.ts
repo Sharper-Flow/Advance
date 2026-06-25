@@ -19,6 +19,7 @@ import {
   type AgendaStatus,
 } from "../types";
 import { atomicWriteFile, acquireFileLock } from "../utils/fs";
+import { appendDebugLog } from "../utils/debug-log";
 
 // =============================================================================
 // Constants
@@ -108,20 +109,31 @@ const ensureAgendaDir = async (
 };
 
 /**
+ * Result of parsing a single JSONL line. Distinguishes intentional skips
+ * (blank/comment lines) from malformed lines so the loader can surface and
+ * preserve corruption instead of silently dropping it (rq-agendaDurableParse01).
+ */
+type ParseLineResult =
+  | { kind: "skip" }
+  | { kind: "malformed"; error: string }
+  | { kind: "meta"; value: AgendaMeta }
+  | { kind: "item"; value: AgendaItem };
+
+/**
  * Parse a JSONL line into an agenda item or meta.
  */
-const parseLine = (line: string): AgendaItem | AgendaMeta | null => {
+const parseLine = (line: string): ParseLineResult => {
   const trimmed = line.trim();
-  if (!trimmed || trimmed.startsWith("#")) return null;
+  if (!trimmed || trimmed.startsWith("#")) return { kind: "skip" };
 
   try {
     const parsed = JSON.parse(trimmed);
     if (parsed.type === "meta") {
-      return AgendaMetaSchema.parse(parsed);
+      return { kind: "meta", value: AgendaMetaSchema.parse(parsed) };
     }
-    return AgendaItemSchema.parse(parsed);
-  } catch {
-    return null;
+    return { kind: "item", value: AgendaItemSchema.parse(parsed) };
+  } catch (err) {
+    return { kind: "malformed", error: (err as Error).message };
   }
 };
 
@@ -154,29 +166,43 @@ const maybeAutoCompactAgenda = async (
 export const loadAgenda = async (
   projectDir: string,
   options?: { agendaPath?: string },
-): Promise<{ meta: AgendaMeta | null; items: AgendaItem[] }> => {
+): Promise<{
+  meta: AgendaMeta | null;
+  items: AgendaItem[];
+  skippedMalformed: number;
+}> => {
   const path = getAgendaPath(projectDir, options?.agendaPath);
 
   if (!existsSync(path)) {
-    return { meta: null, items: [] };
+    return { meta: null, items: [], skippedMalformed: 0 };
   }
 
   const content = await readFile(path, "utf-8");
   const lines = content.split("\n");
 
   let meta: AgendaMeta | null = null;
+  let skippedMalformed = 0;
   const itemsById = new Map<string, AgendaItem>();
 
   for (const line of lines) {
     const parsed = parseLine(line);
-    if (!parsed) continue;
-
-    if ("type" in parsed && parsed.type === "meta") {
-      meta = parsed as AgendaMeta;
+    if (parsed.kind === "skip") continue;
+    if (parsed.kind === "malformed") {
+      // Surface the corruption instead of silently dropping it. The line is
+      // not added to the in-memory result, but the on-disk content is left
+      // intact so a later compaction does not destroy it (rq-agendaDurableParse01).
+      skippedMalformed += 1;
+      appendDebugLog(
+        "agenda",
+        `Skipping malformed line in ${path}: ${parsed.error}`,
+      );
+      continue;
+    }
+    if (parsed.kind === "meta") {
+      meta = parsed.value;
     } else {
       // Later entries override earlier ones (for updates)
-      const item = parsed as AgendaItem;
-      itemsById.set(item.id, item);
+      itemsById.set(parsed.value.id, parsed.value);
     }
   }
 
@@ -188,7 +214,7 @@ export const loadAgenda = async (
     return a.created_at.localeCompare(b.created_at);
   });
 
-  return { meta, items };
+  return { meta, items, skippedMalformed };
 };
 
 /**
@@ -457,12 +483,26 @@ export const compactAgenda = async (
   const releaseLock = await acquireFileLock(path);
 
   try {
-    // Create backup before destructive operation
-    const backupPath = await createBackup(path);
-
-    const { meta, items } = await loadAgenda(projectDir, {
+    const { meta, items, skippedMalformed } = await loadAgenda(projectDir, {
       agendaPath: options?.agendaPath,
     });
+
+    // Durability guard (rq-agendaDurableParse01.2): compaction rewrites the
+    // file from successfully parsed entries only. If the load skipped any
+    // malformed line, rewriting would permanently destroy that content. Skip
+    // compaction and surface a warning so the corrupt line survives for
+    // manual inspection.
+    if (skippedMalformed > 0) {
+      appendDebugLog(
+        "agenda",
+        `Skipping compaction of ${path}: ${skippedMalformed} malformed line(s) present; ` +
+          `compaction would permanently discard unparsed content. Inspect and repair the file manually.`,
+      );
+      return;
+    }
+
+    // Create backup before destructive operation
+    const backupPath = await createBackup(path);
 
     const lines: string[] = [];
 
