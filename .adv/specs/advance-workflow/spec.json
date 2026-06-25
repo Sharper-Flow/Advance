@@ -1070,6 +1070,67 @@
       ]
     },
     {
+      "id": "rq-acWarrant01",
+      "title": "Capability-Warrant Validation and Reproduction-Finding Classification",
+      "body": "Acceptance and success criteria that presume a capability surface exists (a tool, a tool argument, or a spec requirement) MUST declare a typed warrant tag `[warrant: <ref>]` in the approved agreement, where ref is `tool:<name>`, `tool:<name>#<arg>`, or `spec:<rq-id>`. At contract mint, every declared warrant is verified against the live tool surface and known spec ids; an unresolved warrant fails the mint with CONTRACT_UNRESOLVED_WARRANT. Verification authority is structural — declared warrants are checked against the assembled tool registry and specs, never inferred heuristically from prose. During discovery, every reproduction-sourced finding MUST be classified as broken_capability, unwarranted_operation, or unverified; findings classified unwarranted_operation or unverified MUST NOT seed a criterion asserting the capability must work. Behavioral criteria that presume no capability surface require no warrant (proportionality). This moves the catch for unwarranted criteria from the late design validator to an early structural gate.",
+      "priority": "must",
+      "tags": ["workflow", "contract", "discovery", "warrant", "correctness"],
+      "scenarios": [
+        {
+          "id": "rq-acWarrant01.1",
+          "title": "Mint fails on a warrant naming a nonexistent surface",
+          "given": [
+            "An approved agreement declares a criterion with [warrant: tool:adv_change_archive#target_path]",
+            "adv_change_archive has no target_path argument in the live tool surface"
+          ],
+          "when": "adv_contract_mint mints the contract",
+          "then": [
+            "The mint fails fast with CONTRACT_UNRESOLVED_WARRANT naming the unresolved ref",
+            "No contract is persisted"
+          ]
+        },
+        {
+          "id": "rq-acWarrant01.2",
+          "title": "Mint succeeds and records a warrant that resolves",
+          "given": [
+            "An approved agreement declares a criterion with [warrant: tool:adv_change_status_repair#target_path]",
+            "adv_change_status_repair exposes a target_path argument"
+          ],
+          "when": "adv_contract_mint mints the contract",
+          "then": [
+            "The mint succeeds",
+            "The contract item records the declared warrant ref",
+            "The persisted item text has the [warrant: ...] tag stripped"
+          ]
+        },
+        {
+          "id": "rq-acWarrant01.3",
+          "title": "Behavioral criteria need no warrant",
+          "given": [
+            "An approved agreement contains only behavioral criteria with no [warrant: ...] tags"
+          ],
+          "when": "adv_contract_mint mints the contract",
+          "then": [
+            "The mint succeeds unchanged",
+            "No warrant ceremony is imposed on the behavioral criteria"
+          ]
+        },
+        {
+          "id": "rq-acWarrant01.4",
+          "title": "Discovery classifies reproduction findings and blocks unwarranted seeding",
+          "given": [
+            "Discovery surfaces a reproduction-sourced finding that the user attempted an operation which is not architecturally warranted"
+          ],
+          "when": "The finding is processed during discovery",
+          "then": [
+            "The finding is classified as unwarranted_operation or unverified",
+            "It MUST NOT seed an acceptance criterion asserting the capability must work",
+            "It is downgraded to an out-of-scope note or recorded rationale instead"
+          ]
+        }
+      ]
+    },
+    {
       "id": "rq-remediation01",
       "title": "Validated In-Scope Findings Resolved In-Change",
       "body": "When /adv-review or /adv-harden validates an actionable finding or suggestion as in-scope, the current change must fix it before completion. No report-only, future-work, or accepted-debt path is permitted for validated in-scope findings. Findings may only be left unresolved if rejected with evidence showing they are invalid or out of scope.",

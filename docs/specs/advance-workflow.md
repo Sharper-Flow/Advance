@@ -1078,6 +1078,66 @@ ADV changes with an approved agreement may carry a typed change.contract spine. 
 
 ---
 
+### Capability-Warrant Validation and Reproduction-Finding Classification
+
+**ID:** `rq-acWarrant01` | **Priority:** **[MUST]**
+
+Acceptance and success criteria that presume a capability surface exists (a tool, a tool argument, or a spec requirement) MUST declare a typed warrant tag `[warrant: <ref>]` in the approved agreement, where ref is `tool:<name>`, `tool:<name>#<arg>`, or `spec:<rq-id>`. At contract mint, every declared warrant is verified against the live tool surface and known spec ids; an unresolved warrant fails the mint with CONTRACT_UNRESOLVED_WARRANT. Verification authority is structural — declared warrants are checked against the assembled tool registry and specs, never inferred heuristically from prose. During discovery, every reproduction-sourced finding MUST be classified as broken_capability, unwarranted_operation, or unverified; findings classified unwarranted_operation or unverified MUST NOT seed a criterion asserting the capability must work. Behavioral criteria that presume no capability surface require no warrant (proportionality). This moves the catch for unwarranted criteria from the late design validator to an early structural gate.
+
+**Tags:** `workflow`, `contract`, `discovery`, `warrant`, `correctness`
+
+#### Scenarios
+
+**Mint fails on a warrant naming a nonexistent surface** (`rq-acWarrant01.1`)
+
+**Given:**
+- An approved agreement declares a criterion with [warrant: tool:adv_change_archive#target_path]
+- adv_change_archive has no target_path argument in the live tool surface
+
+**When:** adv_contract_mint mints the contract
+
+**Then:**
+- The mint fails fast with CONTRACT_UNRESOLVED_WARRANT naming the unresolved ref
+- No contract is persisted
+
+**Mint succeeds and records a warrant that resolves** (`rq-acWarrant01.2`)
+
+**Given:**
+- An approved agreement declares a criterion with [warrant: tool:adv_change_status_repair#target_path]
+- adv_change_status_repair exposes a target_path argument
+
+**When:** adv_contract_mint mints the contract
+
+**Then:**
+- The mint succeeds
+- The contract item records the declared warrant ref
+- The persisted item text has the [warrant: ...] tag stripped
+
+**Behavioral criteria need no warrant** (`rq-acWarrant01.3`)
+
+**Given:**
+- An approved agreement contains only behavioral criteria with no [warrant: ...] tags
+
+**When:** adv_contract_mint mints the contract
+
+**Then:**
+- The mint succeeds unchanged
+- No warrant ceremony is imposed on the behavioral criteria
+
+**Discovery classifies reproduction findings and blocks unwarranted seeding** (`rq-acWarrant01.4`)
+
+**Given:**
+- Discovery surfaces a reproduction-sourced finding that the user attempted an operation which is not architecturally warranted
+
+**When:** The finding is processed during discovery
+
+**Then:**
+- The finding is classified as unwarranted_operation or unverified
+- It MUST NOT seed an acceptance criterion asserting the capability must work
+- It is downgraded to an out-of-scope note or recorded rationale instead
+
+---
+
 ### Validated In-Scope Findings Resolved In-Change
 
 **ID:** `rq-remediation01` | **Priority:** **[MUST]**
