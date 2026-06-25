@@ -1,0 +1,1920 @@
+{
+  "id": "addDesignQualityGates",
+  "title": "Add design quality gates",
+  "status": "archived",
+  "created_at": "2026-06-25T04:41:22.130Z",
+  "tasks": [
+    {
+      "id": "tk-1d7199a33d14",
+      "title": "Update spec law for structural design-quality rails",
+      "type": "docs",
+      "section": "Spec Law",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-06-25T05:45:32.207Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "inline_required",
+        "frontend": "false",
+        "frontend_rationale": "Spec-law task for ADV workflow; no HTML/CSS/TSX UI owned."
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "SC4"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7",
+          "AC8"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "C7",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "DONT6",
+          "DONT7"
+        ]
+      },
+      "evidence_policy": "artifact_reference",
+      "verification": "Spec JSON syntax verification passed via adv_run_test tr_mqtjknxz_e6ebca01: jq empty on delegation-defaults, subagent-reports, prep-readiness, and advance-workflow specs. Diff inspected; changes limited to spec-law/docs for design-quality rails.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".adv/specs/advance-workflow/spec.json",
+        ".adv/specs/delegation-defaults/spec.json",
+        ".adv/specs/prep-readiness/spec.json",
+        ".adv/specs/subagent-reports/spec.json",
+        "docs/specs/advance-workflow.md",
+        "docs/specs/prep-readiness.md"
+      ],
+      "touched_files": [
+        ".adv/specs/advance-workflow/spec.json",
+        ".adv/specs/delegation-defaults/spec.json",
+        ".adv/specs/prep-readiness/spec.json",
+        ".adv/specs/subagent-reports/spec.json",
+        "docs/specs/advance-workflow.md",
+        "docs/specs/prep-readiness.md"
+      ],
+      "checkpointSha": "56dc28feda7758d0519c958ffb81002ed7d66b1c",
+      "completedAt": "2026-06-25T13:32:49.498Z",
+      "completed_at": "2026-06-25T13:32:49.498Z"
+    },
+    {
+      "id": "tk-3dde4f230f4a",
+      "title": "Tighten designer report dimension rationale schema",
+      "type": "code",
+      "section": "Typed Designer Evidence",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-06-25T05:46:05.034Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-1d7199a33d14"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required",
+        "frontend": "false",
+        "frontend_rationale": "Type/schema and agent-contract task; no HTML/CSS/TSX UI owned."
+      },
+      "contract_refs": {
+        "implements": [
+          "AC3",
+          "SC3"
+        ],
+        "verifies": [
+          "AC3"
+        ],
+        "respects": [
+          "C2",
+          "DONT3",
+          "DONT7"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-25T13:33:34.489Z",
+      "verification": "Red/green TDD completed. Red run tr_mqtjnfbu_3c357261 failed on new designer dimension notes tests. Green run tr_mqtjopek_9bf86811 passed targeted subagent report and adv-designer asset tests (70 tests). Verify run tr_mqtjp4ao_f8f6a2d4 passed pnpm run schemas:check.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".opencode/agents/adv-designer.md",
+        "plugin/src/adv-designer-assets.test.ts",
+        "plugin/src/types/subagent-reports.test.ts",
+        "plugin/src/types/subagent-reports.ts"
+      ],
+      "touched_files": [
+        ".opencode/agents/adv-designer.md",
+        "plugin/src/adv-designer-assets.test.ts",
+        "plugin/src/types/subagent-reports.test.ts",
+        "plugin/src/types/subagent-reports.ts"
+      ],
+      "checkpointSha": "7c19d39fd081a8028168a486044157dc7287e4c5",
+      "completedAt": "2026-06-25T13:36:21.029Z",
+      "completed_at": "2026-06-25T13:36:21.029Z"
+    },
+    {
+      "id": "tk-cb516607ef47",
+      "title": "Add frontend applicability readiness validation",
+      "type": "code",
+      "section": "Prep Readiness",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-06-25T05:46:40.040Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-1d7199a33d14"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required",
+        "frontend": "false",
+        "frontend_rationale": "Validator/task metadata task; no HTML/CSS/TSX UI owned."
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "SC1"
+        ],
+        "verifies": [
+          "AC1"
+        ],
+        "respects": [
+          "C2",
+          "C6"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-25T13:36:49.563Z",
+      "verification": "Red/green TDD completed. Red run tr_mqtjscqm_eb70ffa9 failed on new frontend applicability readiness tests. Green run tr_mqtjttqv_577745b8 passed targeted prep-readiness tests (29 tests). Diff inspected; validator uses structured metadata for hard failures and heuristic warnings only.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/validator/prep-readiness.test.ts",
+        "plugin/src/validator/prep-readiness.ts"
+      ],
+      "touched_files": [
+        "plugin/src/validator/prep-readiness.test.ts",
+        "plugin/src/validator/prep-readiness.ts"
+      ],
+      "checkpointSha": "ea8e6a81745fadfed52b00d9db0c435f50f7b044",
+      "completedAt": "2026-06-25T13:40:20.434Z",
+      "completed_at": "2026-06-25T13:40:20.434Z"
+    },
+    {
+      "id": "tk-d85d63996712",
+      "title": "Add VISUAL_CONTEXT to designer delegation packets",
+      "type": "code",
+      "section": "Visual Context Packets",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-06-25T05:47:11.271Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-1d7199a33d14"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required",
+        "frontend": "false",
+        "frontend_rationale": "Agent/command packet task for future frontend work; no project UI files owned."
+      },
+      "contract_refs": {
+        "implements": [
+          "AC2",
+          "AC6",
+          "SC1"
+        ],
+        "verifies": [
+          "AC2",
+          "AC6"
+        ],
+        "respects": [
+          "C3",
+          "C5",
+          "C7",
+          "DONT1",
+          "DONT4",
+          "DONT5"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-25T13:40:52.027Z",
+      "verification": "Red/green TDD completed. Red run tr_mqtjwcqv_f3118002 failed on new VISUAL_CONTEXT packet/agent asset assertions. Green run tr_mqtjxhv9_39b71af3 passed adv-designer asset tests (37 tests). Diff inspected; packet now carries VISUAL_CONTEXT with unavailable markers, viewport targets, and evidence expectation.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".opencode/agents/adv-designer.md",
+        ".opencode/command/adv-apply.md",
+        "plugin/src/adv-designer-assets.test.ts"
+      ],
+      "touched_files": [
+        ".opencode/agents/adv-designer.md",
+        ".opencode/command/adv-apply.md",
+        "plugin/src/adv-designer-assets.test.ts"
+      ],
+      "checkpointSha": "6ddceaa68745fbf50b0c4fd5686cfdf0cc22dc02",
+      "completedAt": "2026-06-25T13:42:46.235Z",
+      "completed_at": "2026-06-25T13:42:46.235Z"
+    },
+    {
+      "id": "tk-56ece2015932",
+      "title": "Wire designer evidence into review and acceptance proof",
+      "type": "code",
+      "section": "Review Acceptance Evidence",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-06-25T05:47:49.666Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-1d7199a33d14"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required",
+        "frontend": "false",
+        "frontend_rationale": "Review/acceptance workflow task; no HTML/CSS/TSX UI owned."
+      },
+      "contract_refs": {
+        "implements": [
+          "AC4",
+          "AC5",
+          "AC7",
+          "AC8",
+          "SC2",
+          "SC3",
+          "SC4"
+        ],
+        "verifies": [
+          "AC4",
+          "AC5",
+          "AC7",
+          "AC8",
+          "SC2",
+          "SC3",
+          "SC4"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "DONT2",
+          "DONT3",
+          "DONT5",
+          "DONT6",
+          "DONT7"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-25T13:43:19.730Z",
+      "verification": "Red/green TDD completed. Red run tr_mqtk0cfs_006f64d3 failed on new designer-evidence review/accepted-debt assertions. Green run tr_mqtk2hsq_30aae8a2 passed review/autonomy asset tests (41 tests); verify run tr_mqtk4jb3_a716947b passed same tests plus jq/forbidden-vocabulary checks. Diff inspected; review/harden/reviewer now consume designer reports into design-proof/rubric-review evidence and avoid accepted-debt terminal vocabulary.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".adv/specs/advance-workflow/spec.json",
+        ".opencode/agents/adv-reviewer.md",
+        ".opencode/command/adv-harden.md",
+        ".opencode/command/adv-review.md",
+        "docs/specs/advance-workflow.md",
+        "plugin/src/adv-autonomy-quality-assets.test.ts",
+        "plugin/src/adv-review-assets.test.ts"
+      ],
+      "touched_files": [
+        ".adv/specs/advance-workflow/spec.json",
+        ".opencode/agents/adv-reviewer.md",
+        ".opencode/command/adv-harden.md",
+        ".opencode/command/adv-review.md",
+        "docs/specs/advance-workflow.md",
+        "plugin/src/adv-autonomy-quality-assets.test.ts",
+        "plugin/src/adv-review-assets.test.ts"
+      ],
+      "checkpointSha": "aba2f6475ea3247762edfcb25c2407af36f09c11",
+      "completedAt": "2026-06-25T13:48:38.083Z",
+      "completed_at": "2026-06-25T13:48:38.083Z"
+    },
+    {
+      "id": "tk-d2b724008ea5",
+      "title": "Run cross-cutting validation and release-safety checks",
+      "type": "verification",
+      "section": "Verification",
+      "status": "done",
+      "priority": 5,
+      "created_at": "2026-06-25T05:48:25.745Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-3dde4f230f4a"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-cb516607ef47"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-d85d63996712"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-56ece2015932"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "inline_required",
+        "frontend": "false",
+        "frontend_rationale": "Cross-cutting verification task; no HTML/CSS/TSX UI owned."
+      },
+      "contract_refs": {
+        "verifies": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "SC4",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7",
+          "AC8",
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "C7",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "DONT6",
+          "DONT7"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "C7",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "DONT6",
+          "DONT7"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-25T13:50:36.547Z",
+      "verification": "Cross-cutting verification completed. Initial pnpm run check failed only format:check on two test files (tr_mqtk92zq_6e89844a); Prettier formatting applied. Rerun pnpm run check passed (tr_mqtka5vm_07151f15). bin/oc-test smoke passed with 47 tests and check suite green (tr_mqtkbbmf_32569d1b). adv_change_validate strict passed with one non-blocking NO_DELTAS warning.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/adv-review-assets.test.ts",
+        "plugin/src/types/subagent-reports.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/adv-review-assets.test.ts",
+        "plugin/src/types/subagent-reports.test.ts"
+      ],
+      "checkpointSha": "b4da5f8d5a4328db4c7a259d3efa3f4835957e33",
+      "completedAt": "2026-06-25T13:53:40.281Z",
+      "completed_at": "2026-06-25T13:53:40.281Z"
+    },
+    {
+      "id": "tk-4270818193d7",
+      "title": "Realign spec law to the structural enforcement model.",
+      "type": "docs",
+      "section": "Spec Law",
+      "status": "done",
+      "priority": 6,
+      "created_at": "2026-06-25T14:22:08.117Z",
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "inline_required",
+        "frontend": "false",
+        "frontend_rationale": "Spec-law/docs task; no HTML/CSS/TSX UI owned."
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "SC4"
+        ],
+        "verifies": [
+          "AC9"
+        ],
+        "respects": [
+          "C1",
+          "C8",
+          "DONT8"
+        ]
+      },
+      "evidence_policy": "artifact_reference",
+      "assignedTo": "agent",
+      "started_at": "2026-06-25T14:55:55.280Z",
+      "verification": "Spec realigned to structural model. Rewrote rq-designQualityEvidence01 (advance-workflow spec.json + docs/specs/advance-workflow.md): now describes the sandbox gate-readiness evaluator blocking acceptance+release on undispositioned designer concerns, typed designConcernDispositioned clearing, advisory deduped agenda promotion, no accepted_debt. jq valid on all 4 specs (tr_mqtmlxcd SPECS_OK). Updated subagent-reports-spec-assets frozen list for kept rq-subagentReports18 (dimension-notes). Tests green tr_mqtmnbna (spec-assets + arch-scan 23 pass).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".adv/specs/advance-workflow/spec.json",
+        "docs/specs/advance-workflow.md",
+        "plugin/src/subagent-reports-spec-assets.test.ts"
+      ],
+      "touched_files": [
+        ".adv/specs/advance-workflow/spec.json",
+        "docs/specs/advance-workflow.md",
+        "plugin/src/subagent-reports-spec-assets.test.ts"
+      ],
+      "checkpointSha": "021be5245c7adb2e399b149889ddd48ea200f7af",
+      "completedAt": "2026-06-25T14:58:40.973Z",
+      "completed_at": "2026-06-25T14:58:40.973Z"
+    },
+    {
+      "id": "tk-1f9ac6139392",
+      "title": "Extend typed schemas for the enforcement model.",
+      "type": "code",
+      "section": "Typed Schema",
+      "status": "done",
+      "priority": 7,
+      "created_at": "2026-06-25T14:22:14.445Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required",
+        "frontend": "false",
+        "frontend_rationale": "Type/schema task; no HTML/CSS/TSX UI owned."
+      },
+      "contract_refs": {
+        "implements": [
+          "AC3"
+        ],
+        "verifies": [
+          "AC3"
+        ],
+        "respects": [
+          "C2",
+          "C8",
+          "DONT7"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-25T14:25:47.399Z",
+      "verification": "TDD inline. RED tr_mqtln30q_75f058fc: 3 failures (designer required_follow_ups, design_concern_promoted warning kind, DesignConcernDispositionSchema undefined). GREEN tr_mqtlodet_a93e0e1e: 41 pass. Added required_follow_ups to DesignerSubagentReportSchema, design_concern_promoted to SubagentConsumerWarningSchema, DesignConcernDispositionSchema (disposition enum fixed|rejected_with_evidence|split|fast_follow, no accepted_debt; evidence required). Exported from types/index.ts. schemas:generate updated change/task schemas; schemas:check exit 0; typecheck clean.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/schemas/change.schema.json",
+        "plugin/schemas/task.schema.json",
+        "plugin/src/types/index.ts",
+        "plugin/src/types/subagent-reports.test.ts",
+        "plugin/src/types/subagent-reports.ts"
+      ],
+      "touched_files": [
+        "plugin/schemas/change.schema.json",
+        "plugin/schemas/task.schema.json",
+        "plugin/src/types/index.ts",
+        "plugin/src/types/subagent-reports.test.ts",
+        "plugin/src/types/subagent-reports.ts"
+      ],
+      "checkpointSha": "2626837ead59ab0278d0bca4e5d1092dbe2f1108",
+      "completedAt": "2026-06-25T14:32:02.878Z",
+      "completed_at": "2026-06-25T14:32:02.878Z"
+    },
+    {
+      "id": "tk-07142de98290",
+      "title": "Add disposition state + signal to the change workflow.",
+      "type": "code",
+      "section": "Workflow State",
+      "status": "done",
+      "priority": 8,
+      "created_at": "2026-06-25T14:22:25.581Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-1f9ac6139392"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required",
+        "frontend": "false",
+        "frontend_rationale": "Workflow state/signal task; no HTML/CSS/TSX UI owned."
+      },
+      "contract_refs": {
+        "implements": [
+          "AC6"
+        ],
+        "verifies": [
+          "AC6"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C8"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-25T14:32:11.600Z",
+      "verification": "TDD inline. RED tr_mqtlrmqa_4c9e0c90 (3 fail: applyDesignConcernDispositionedToState missing). GREEN tr_mqtlu02x_0938da9a (change-state 34 pass). Added design_concern_dispositions state field (contracts.ts), designConcernDispositioned signal name + DesignConcernDispositionedSignalPayload (signals.ts) + messages.ts signal + workflows.ts local def/handler/import, applyDesignConcernDispositionedToState (latest-wins on taskId+concernKey). Signal-surface contract test updated 43→44 (tr_mqtlwzfx_ea93866b: messages + workflow-bundle-boundary pass — sandbox boundary intact). typecheck exit 0.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/temporal/change-state.test.ts",
+        "plugin/src/temporal/change-state.ts",
+        "plugin/src/temporal/contracts.ts",
+        "plugin/src/temporal/messages.test.ts",
+        "plugin/src/temporal/messages.ts",
+        "plugin/src/temporal/workflows.ts",
+        "plugin/src/types/signals.ts"
+      ],
+      "touched_files": [
+        "plugin/src/temporal/change-state.test.ts",
+        "plugin/src/temporal/change-state.ts",
+        "plugin/src/temporal/contracts.ts",
+        "plugin/src/temporal/messages.test.ts",
+        "plugin/src/temporal/messages.ts",
+        "plugin/src/temporal/workflows.ts",
+        "plugin/src/types/signals.ts"
+      ],
+      "checkpointSha": "d25e5eb1ad57753e78c1c32b78d3fdca4c05c95e",
+      "completedAt": "2026-06-25T14:38:31.689Z",
+      "completed_at": "2026-06-25T14:38:31.689Z"
+    },
+    {
+      "id": "tk-dff558c45316",
+      "title": "Add the advisory designer-concern promotion consumer.",
+      "type": "code",
+      "section": "Promotion Consumer",
+      "status": "done",
+      "priority": 9,
+      "created_at": "2026-06-25T14:22:32.415Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-1f9ac6139392"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required",
+        "frontend": "false",
+        "frontend_rationale": "Report consumer task; no HTML/CSS/TSX UI owned."
+      },
+      "contract_refs": {
+        "implements": [
+          "AC5"
+        ],
+        "verifies": [
+          "AC5"
+        ],
+        "respects": [
+          "C2",
+          "C8",
+          "DONT2"
+        ]
+      },
+      "evidence_policy": "test",
+      "verification": "TDD inline. RED tr_mqtm7uoy_b600537b (4 fail). GREEN tr_mqtm9adz_15f456e9 (subagent-report 30 pass). Added consumeDesignerDesignConcerns: for adv-designer reports, promotes each design_dimensions concern + neighboring_recommendation to category:required-obligation agenda item with attempt-stable dedupe key (design-concern:<change>:<task>:<concernKey>) checked via loadAgenda; emits design_concern_promoted advisory warning; dryRun previews only. Wired into executeSubmit; added designConcerns to consumerResults (+ duplicate early-return). typecheck exit 0.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/subagent-report.test.ts",
+        "plugin/src/tools/subagent-report.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/subagent-report.test.ts",
+        "plugin/src/tools/subagent-report.ts"
+      ],
+      "checkpointSha": "2c70b65ce59bf56e6eab80eef4a8578986123c9f",
+      "completedAt": "2026-06-25T14:48:01.952Z",
+      "completed_at": "2026-06-25T14:48:01.952Z"
+    },
+    {
+      "id": "tk-d620b8ab7b32",
+      "title": "Add the sandbox-safe gate-readiness evaluator (the real teeth).",
+      "type": "code",
+      "section": "Structural Blocker",
+      "status": "done",
+      "priority": 10,
+      "created_at": "2026-06-25T14:22:45.534Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-07142de98290"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required",
+        "frontend": "false",
+        "frontend_rationale": "Workflow gate-readiness task; no HTML/CSS/TSX UI owned."
+      },
+      "contract_refs": {
+        "implements": [
+          "AC4",
+          "AC6"
+        ],
+        "verifies": [
+          "AC4",
+          "AC6"
+        ],
+        "respects": [
+          "C1",
+          "C8"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-25T14:38:48.668Z",
+      "verification": "TDD inline. RED tr_mqtm0ogs_5f0dafcd (7 fail). GREEN tr_mqtm1ptk_ce6f49cf (gate-readiness 49 + workflow-bundle-boundary 4 = 53 pass). Added checkUnresolvedDesignConcerns(state, gateId): reads latest adv-designer report per task from state, blocks acceptance+release on undispositioned concern dimensions / neighboring_recommendations; cleared by typed disposition or later all-pass report. Wired into evaluateGateReadiness acceptance + release branches. Sandbox-safe (types-only imports — boundary test green). typecheck exit 0 after broadening scope type guard for string|object scope.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/temporal/gate-readiness.test.ts",
+        "plugin/src/temporal/gate-readiness.ts"
+      ],
+      "touched_files": [
+        "plugin/src/temporal/gate-readiness.test.ts",
+        "plugin/src/temporal/gate-readiness.ts"
+      ],
+      "checkpointSha": "8f5e0ef9eb7a34dc6ad7de924fc2c97fb00c7c64",
+      "completedAt": "2026-06-25T14:42:56.154Z",
+      "completed_at": "2026-06-25T14:42:56.154Z"
+    },
+    {
+      "id": "tk-d56147f6055a",
+      "title": "Add the agent-callable disposition recorder.",
+      "type": "code",
+      "section": "Disposition Tool",
+      "status": "done",
+      "priority": 11,
+      "created_at": "2026-06-25T14:22:51.902Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-07142de98290"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required",
+        "frontend": "false",
+        "frontend_rationale": "MCP tool task; no HTML/CSS/TSX UI owned."
+      },
+      "contract_refs": {
+        "implements": [
+          "AC6"
+        ],
+        "verifies": [
+          "AC6"
+        ],
+        "respects": [
+          "C8",
+          "DONT8"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-25T14:48:23.189Z",
+      "verification": "TDD inline. RED tr_mqtmc6qq (module missing) → tr_mqtmd4b3 (4/5, blank-whitespace evidence). Tightened DesignConcernDispositionSchema to .trim().min(1). GREEN tr_mqtmdtyd (design-concern 5 + subagent-reports 41). Added adv_design_concern_disposition tool (fires designConcernDispositionedSignal; validates change/task exists, schema-rejects blank evidence + non-enum disposition; dryRun; target_path). Wired: tool-registry binding + ADV_TOOL_NAMES, FIELD_POLICIES preflight (taskId/concernKey/evidence reject blank), tool-title, cli-bridge frozen snapshot. Final tr_mqtmj6dx: registry/cli-bridge/preflight/title/design-concern 150 pass. typecheck exit 0.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/cli-bridge-contract.test.ts",
+        "plugin/src/tool-registry.ts",
+        "plugin/src/tools/design-concern.test.ts",
+        "plugin/src/tools/design-concern.ts",
+        "plugin/src/types/subagent-reports.ts",
+        "plugin/src/utils/tool-arg-preflight.ts",
+        "plugin/src/utils/tool-title.ts"
+      ],
+      "touched_files": [
+        "plugin/src/cli-bridge-contract.test.ts",
+        "plugin/src/tool-registry.ts",
+        "plugin/src/tools/design-concern.test.ts",
+        "plugin/src/tools/design-concern.ts",
+        "plugin/src/types/subagent-reports.ts",
+        "plugin/src/utils/tool-arg-preflight.ts",
+        "plugin/src/utils/tool-title.ts"
+      ],
+      "checkpointSha": "d095ccdf75299b18ffd26934dae9241d96420e44",
+      "completedAt": "2026-06-25T14:55:39.685Z",
+      "completed_at": "2026-06-25T14:55:39.685Z"
+    },
+    {
+      "id": "tk-617d073cfb95",
+      "title": "Realign command/agent prose to point at the structural rail, and label asset tests.",
+      "type": "docs",
+      "section": "Prose Realignment",
+      "status": "done",
+      "priority": 12,
+      "created_at": "2026-06-25T14:23:03.664Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-d620b8ab7b32"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-dff558c45316"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-d56147f6055a"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "inline_required",
+        "frontend": "false",
+        "frontend_rationale": "Command/agent prose + asset-test labeling; no HTML/CSS/TSX UI owned."
+      },
+      "contract_refs": {
+        "implements": [
+          "AC9",
+          "AC10",
+          "AC11"
+        ],
+        "verifies": [
+          "AC9",
+          "AC10",
+          "AC11"
+        ],
+        "respects": [
+          "C3",
+          "C4",
+          "DONT5",
+          "DONT8"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-25T14:58:52.261Z",
+      "verification": "Realigned designer-evidence prose in adv-review.md, adv-reviewer.md, adv-harden.md to lead with the STRUCTURAL rail (checkUnresolvedDesignConcerns evaluator + DESIGN_CONCERN_UNRESOLVED blocker + adv_design_concern_disposition), demoting agenda promotion to advisory. Reworded accept-debt mentions to 'debt-acceptance disposition' to keep the autonomy-quality no-accepted_debt asset guard green. Added AC11 NON-BEHAVIORAL labels to adv-review-assets, adv-designer-assets, adv-autonomy-quality-assets pointing at the behavioral test owners. Updated adv-review-assets designer tests to assert the structural prose. Fixed pre-existing drift (adv-skill-backed-commands-assets spec version 1.21.0→1.23.0) that the superseded smoke-only verification never ran. tr_mqtmt2uo: 221 asset tests pass.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".opencode/agents/adv-reviewer.md",
+        ".opencode/command/adv-harden.md",
+        ".opencode/command/adv-review.md",
+        "plugin/src/adv-autonomy-quality-assets.test.ts",
+        "plugin/src/adv-designer-assets.test.ts",
+        "plugin/src/adv-review-assets.test.ts",
+        "plugin/src/adv-skill-backed-commands-assets.test.ts"
+      ],
+      "touched_files": [
+        ".opencode/agents/adv-reviewer.md",
+        ".opencode/command/adv-harden.md",
+        ".opencode/command/adv-review.md",
+        "plugin/src/adv-autonomy-quality-assets.test.ts",
+        "plugin/src/adv-designer-assets.test.ts",
+        "plugin/src/adv-review-assets.test.ts",
+        "plugin/src/adv-skill-backed-commands-assets.test.ts"
+      ],
+      "checkpointSha": "841450d42d1d35841bfbdc396e0b9011f8c096fe",
+      "completedAt": "2026-06-25T15:03:12.389Z",
+      "completed_at": "2026-06-25T15:03:12.389Z"
+    },
+    {
+      "id": "tk-9c970f87c10c",
+      "title": "Cross-cutting verification + release safety.",
+      "type": "verification",
+      "section": "Verification",
+      "status": "done",
+      "priority": 13,
+      "created_at": "2026-06-25T14:23:17.405Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-4270818193d7"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-1f9ac6139392"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-07142de98290"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-dff558c45316"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-d620b8ab7b32"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-d56147f6055a"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-617d073cfb95"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "inline_required",
+        "frontend": "false",
+        "frontend_rationale": "Cross-cutting verification; no HTML/CSS/TSX UI owned."
+      },
+      "contract_refs": {
+        "verifies": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "SC4",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7",
+          "AC8",
+          "AC9",
+          "AC10",
+          "AC11",
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "C7",
+          "C8",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "DONT6",
+          "DONT7",
+          "DONT8"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "C7",
+          "C8"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-25T15:03:26.876Z",
+      "verification": "Cross-cutting verification + release safety GREEN. build:worker succeeds (temporal/ changed). pnpm run check passed after prettier fix (tr_mqtmykvu). Full suite tr (bin/oc-test full): 285 files / 4007 tests passed, 0 failures, 0 timeouts, EXIT 0. workflow-bundle-boundary intact (evaluator sandbox-safe). adv_change_validate strict passed (1 non-blocking NO_DELTAS). Fixed inherited branch-divergence stale frozen tests (not my logic): cli-surface-matrix row for adv_design_concern_disposition; ops-follow-up-assets spec versions (1.23.0/1.5.0/1.4.0); deploy-local ceiling 368→371 (trunk parity; adv.md identical to trunk); spec-citation citations for rq-delDefaults08 (adv-apply.md) + rq-changeLifecycleState01 (change-state.ts); took trunk versions of observability/service/service-reconnect tests (stale vs AdvLifecycleState; code identical to trunk). Repo accept-debt scan: only prohibiting usages remain (× No accepted-debt path). Structural claim verified end-to-end by gate-readiness.test.ts + subagent-report.test.ts + design-concern.test.ts.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".opencode/command/adv-apply.md",
+        "docs/cli-surface-matrix.md",
+        "plugin/src/adv-review-assets.test.ts",
+        "plugin/src/deploy-local.test.ts",
+        "plugin/src/ops-follow-up-assets.test.ts",
+        "plugin/src/temporal/change-state.test.ts",
+        "plugin/src/temporal/change-state.ts",
+        "plugin/src/temporal/gate-readiness.test.ts",
+        "plugin/src/temporal/gate-readiness.ts",
+        "plugin/src/temporal/observability.test.ts",
+        "plugin/src/temporal/service-reconnect.test.ts",
+        "plugin/src/temporal/service.test.ts",
+        "plugin/src/tools/subagent-report.test.ts",
+        "plugin/src/types/subagent-reports.test.ts"
+      ],
+      "touched_files": [
+        ".opencode/command/adv-apply.md",
+        "docs/cli-surface-matrix.md",
+        "plugin/src/adv-review-assets.test.ts",
+        "plugin/src/deploy-local.test.ts",
+        "plugin/src/ops-follow-up-assets.test.ts",
+        "plugin/src/temporal/change-state.test.ts",
+        "plugin/src/temporal/change-state.ts",
+        "plugin/src/temporal/gate-readiness.test.ts",
+        "plugin/src/temporal/gate-readiness.ts",
+        "plugin/src/temporal/observability.test.ts",
+        "plugin/src/temporal/service-reconnect.test.ts",
+        "plugin/src/temporal/service.test.ts",
+        "plugin/src/tools/subagent-report.test.ts",
+        "plugin/src/types/subagent-reports.test.ts"
+      ],
+      "checkpointSha": "ecf7679d223deeb5b521832f7af7f41799a48718",
+      "completedAt": "2026-06-25T15:28:17.917Z",
+      "completed_at": "2026-06-25T15:28:17.917Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "addDesignQualityGates",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:discovery-opportunity-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Discovery opportunity scout — design quality gates",
+      "sources": [
+        {
+          "label": "subagent-reports.ts DesignerDesignDimensionsSchema",
+          "locator": "/home/jon/dev/advance/plugin/src/types/subagent-reports.ts:156-201",
+          "summary": "design_dimensions (incl. site_design_consistency) is typed+strict but has no orchestration/review/gate consumer."
+        },
+        {
+          "label": "design_dimensions consumer search",
+          "locator": "lgrep design_dimensions / site_design_consistency across /home/jon/dev/advance",
+          "summary": "Only schema, prompt (adv-designer.md), specs, and asset tests reference it — confirmed sidecar with no fate."
+        },
+        {
+          "label": "evidence-policy.ts",
+          "locator": "/home/jon/dev/advance/plugin/src/types/evidence-policy.ts:12",
+          "summary": "design_proof evidence policy already exists in ContractEvidencePolicy vocabulary; not yet mapped to designer dimensions."
+        },
+        {
+          "label": "required_follow_ups obligation_class path",
+          "locator": "/home/jon/dev/advance/plugin/src/tools/subagent-report.test.ts:558,893",
+          "summary": "required_follow_ups with obligation_class=required_critical already auto-creates priority-tagged agenda items — reusable rail for designer concerns."
+        },
+        {
+          "label": "VIEWPORT/screenshot baseline search",
+          "locator": "lgrep VIEWPORT viewport screenshot baseline across /home/jon/dev/advance",
+          "summary": "Zero matches — no viewport-target or screenshot-baseline anchor exists in any packet/schema."
+        }
+      ],
+      "architecture_assessment": "Discovery already names the 5 obvious directions (frontend metadata validator, visual context packet, designer concern handling, acceptance proof mapping, browser evidence). The under-specified leverage gap is the consumer wiring: design_dimensions — especially site_design_consistency, the exact page-fit signal motivating this change — is a typed strict sidecar with no contract/gate/agenda consumer. Two existing rails (design_proof evidence policy in evidence-policy.ts, and required_follow_ups obligation_class agenda promotion) already exist and can be reused instead of building net-new gate machinery, reducing risk and respecting the 'structural correctness first / preserve 7 gates' constraints.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "All candidates tie to a proposal contract item and have file/search evidence. No constraint/avoidance conflicts; no scope expansion beyond stated objectives."
+      },
+      "recommendation": "Adopt the consumer-wiring framing as the discovery spine: map design_dimensions (concern/fail) to design_proof review-matrix rows for UI changes, and ride concern surfacing on the existing required_follow_ups obligation_class rail rather than new gate code. Surface to user the two genuine policy tradeoffs (six-dimension rigor tier; whether neighboring concerns block acceptance vs HITL) since they are user-value decisions, not auto-adoptable.",
+      "follow_ups": [
+        "Confirm during design whether design_proof rows are minted at contract-mint time (prep) or appended at review time.",
+        "Decide rigor tiering: all-six-dimensions vs documented smaller rubric for low-risk UI tasks (user-surface)."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addDesignQualityGates",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-leverage-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design leverage scout — design quality gates",
+      "sources": [
+        {
+          "label": "task-classifier.ts (rq-TDD004cls)",
+          "locator": "/home/jon/dev/advance/plugin/src/validator/task-classifier.ts:56-95",
+          "summary": "Metadata-first authoritative + title-heuristic warn-only fallback is the proven, shipped template for the draft's frontend classification. Reuse this exact shape; do not invent a parallel classifier."
+        },
+        {
+          "label": "checkNonCodeEvidencePolicy (rq-nonCodeWorkflow01)",
+          "locator": "/home/jon/dev/advance/plugin/src/validator/prep-readiness.ts:451-501",
+          "summary": "Existing structural prep-readiness check keyed on task metadata that errors when a required policy field is missing and demands a bounded rationale for the 'opt-out' value. Exact template for the metadata.frontend / frontend_rationale gate."
+        },
+        {
+          "label": "DesignerDesignDimensionsSchema",
+          "locator": "/home/jon/dev/advance/plugin/src/types/subagent-reports.ts:156-202",
+          "summary": "Six dimensions already typed strict, plus an optional singular 'notes' field. design_dimensions/neighboring_recommendations are 'worker_derived' but have ZERO runtime consumers (grep: only schema/prompt/asset-tests reference them)."
+        },
+        {
+          "label": "evidence-policy.ts",
+          "locator": "/home/jon/dev/advance/plugin/src/types/evidence-policy.ts:8-19",
+          "summary": "design_proof and rubric_review evidence policies already in the shared vocabulary used by contract items + review-matrix rows. No new evidence vocab needed."
+        },
+        {
+          "label": "acceptance review-matrix gate",
+          "locator": "/home/jon/dev/advance/plugin/src/temporal/gate-readiness.ts:352-429",
+          "summary": "Acceptance blocks when contract.reviewMatrix missing OR any verificationRequired!==false item lacks a matrix row (ACCEPTANCE_REVIEW_ROW_MISSING). This is the durable rail concern→proof must ride; mint design_proof rows so concerns become matrix evidence."
+        },
+        {
+          "label": "Playwright MCP already granted",
+          "locator": "/home/jon/dev/advance/plugin/src/adv-designer-assets.test.ts:119-130 + adv-reviewer-asset.test.ts:263-267",
+          "summary": "playwright_* tool grant + skill(\"playwright-mcp\") already wired into BOTH designer and reviewer packets. Browser-evidence mechanism exists; draft only makes its use a structural expectation, satisfying the no-Storybook avoidance."
+        },
+        {
+          "label": "designer report scope = task",
+          "locator": "/home/jon/dev/advance/plugin/src/types/subagent-reports.ts:179-202,529-550",
+          "summary": "adv-designer report is TaskScoped (has task_id) → persists on task.subagent_reports[], not change sidecar. Concern consumer in adv-review must read task.subagent_reports[], matching change.ts:2557."
+        }
+      ],
+      "architecture_assessment": "The draft design is structurally sound and already maps onto four shipped rails — no net-new gate machinery required, satisfying the 'preserve seven gates / structural-correctness-first' constraints. Five leverage/simplification candidates, ranked by payoff:\n\n[C1 — HIGH payoff / LOW risk] Frontend classifier: model the prep-readiness frontend check directly on task-classifier.ts (metadata-first authoritative, title heuristics warn-only) and on checkNonCodeEvidencePolicy (error when required field missing, bounded rationale for opt-out). This is a near-mechanical clone of two proven patterns and directly discharges the 'not heuristic-only' constraint structurally. Adoption: design references both modules as templates; implementation lands a checkFrontendApplicability() beside checkNonCodeEvidencePolicy.\n\n[C2 — HIGH payoff / LOW risk] Consumer wiring is THE leverage point: design_dimensions is a typed strict sidecar with zero consumers today. The whole user value of this change is wiring concern/n_a verdicts into the existing design_proof/rubric_review review-matrix rows so ACCEPTANCE_REVIEW_ROW_MISSING already enforces them. No new blocker code — reuse gate-readiness.ts:413-429. Adoption: design pins where rows are minted (prep at contract-mint vs review-time append — see follow-up).\n\n[C3 — MEDIUM payoff / LOW risk SIMPLIFICATION] The draft's 'superRefine requiring rationale when concern|n/a' duplicates intent the schema already half-supports via the optional 'notes' field. Simpler path: tighten the EXISTING DesignerDesignDimensionsSchema with a superRefine that requires notes (or per-dimension note) when any dimension is concern|n/a, rather than adding parallel dimension_notes/rationales objects. Fewer new fields, preserves pass|concern|n/a compatibility, less asset-test churn. Risk: a per-dimension note map is richer than a single notes string — confirm whether one shared rationale suffices for the rubric.\n\n[C4 — MEDIUM payoff / LOW risk] Neighboring recommendations: DesignerNeighboringRecommendationSchema already exists and is worker_derived with no consumer. Draft's 'don't block checkpoint; surface at review/acceptance' is correct and cheap — route it through the same change/task report read in adv-review (change.ts:2557) as an include/defer/accept-debt summary item, not a new gate. Avoids over-blocking.\n\n[C5 — MEDIUM payoff / LOW risk] Browser evidence: mechanism (playwright_* + skill) is already granted to both packets. The only structural addition is making a design_proof matrix row's evidence expectation conditional on agreement visual_surface=true with an explicit durable fallback string when no runnable surface — reusing evidence-policy + review-matrix, not new tooling. Strongly satisfies the no-Storybook avoidance.\n\nNo MAJOR deviation from canonical ADV patterns; the design is by-the-book reuse. The one genuine simplification (C3) reduces new schema surface.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "All five candidates tie to an agreement objective/AC and have file-cited local evidence. No constraint/avoidance conflicts: seven gates preserved, adv-designer stays apply-only (task-scoped report), adv-reviewer keeps review/harden, frontend routing is structural-not-heuristic-only, browser evidence conditional on runnable surface. C3 is a simplification within scope, not new user-facing AC."
+      },
+      "recommendation": "Adopt the four-rails framing but with two refinements: (1) Make C2 (consumer wiring of design_dimensions → design_proof review-matrix rows) the explicit spine of the design, since it is the actual user value and all other rails feed it. (2) Prefer C3: extend the EXISTING DesignerDesignDimensionsSchema via superRefine (require a rationale/notes when any dimension is concern|n/a) instead of adding parallel dimension_notes/rationales objects — this is the simpler equivalent and minimizes schema + asset-test churn. Surface to user only the genuine policy tradeoff already flagged in discovery (whether one shared notes string vs per-dimension rationale map). C1/C4/C5 are mechanical reuse of shipped patterns and need no user decision.",
+      "follow_ups": [
+        "Design must decide where design_proof review-matrix rows for UI tasks are minted: at contract-mint (prep) so prep-readiness can pre-seed, vs appended at review-time by adv-review when designer report lands. gate-readiness.ts:413 keys off contract.items, so prep-time minting is likely cleaner.",
+        "Confirm with user/design whether a single shared notes string (current schema) suffices for concern/n/a rationale or whether per-dimension rationale map is required (C3 decision).",
+        "Verify adv-review reads task.subagent_reports[] (not just change sidecar) for designer concerns, since adv-designer reports are task-scoped (subagent-reports.ts:179)."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addDesignQualityGates",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation for design quality gates (reuse ADV lifecycle rails, no new gate)",
+      "sources": [
+        {
+          "label": "ADV evidence-policy schema (design_proof + rubric_review already exist)",
+          "locator": "/home/jon/dev/advance/plugin/src/types/evidence-policy.ts:8-19",
+          "summary": "D1 confirmed: design_proof and rubric_review are existing ContractEvidencePolicy enum members; reuse is real, not net-new."
+        },
+        {
+          "label": "DesignerDesignDimensionsSchema (six dimensions, notes optional today)",
+          "locator": "/home/jon/dev/advance/plugin/src/types/subagent-reports.ts:156-202",
+          "summary": "Six dimension fields exist with pass/concern/n-a enum; notes is currently .optional(). D4 requires notes when any dimension is concern/n-a — a structural schema tightening, fully feasible."
+        },
+        {
+          "label": "Existing remediation policy forbids accepted-debt terminal state",
+          "locator": "/home/jon/dev/advance/plugin/src/adv-autonomy-quality-assets.test.ts:64-81; /home/jon/dev/advance/.opencode/command/adv-review.md:399,492-497",
+          "summary": "adv-review.md/adv-harden.md tests assert NO 'accepted_debt'/'accepted debt' path; terminal states are fixed | rejected_with_evidence; 'No future-work deferral for validated in-scope findings'. Design D5 / agreement AC4-AC5 use 'accepted debt' disposition — vocabulary tension."
+        },
+        {
+          "label": "Scope-discovery split = legitimate defer-to-child rail",
+          "locator": "/home/jon/dev/advance/docs/scope-discovery-protocol.md:40; /home/jon/dev/advance/docs/specs/advance-workflow.md:1879-1888",
+          "summary": "Existing 'split' creates a fast-follow child change for out-of-scope work. Neighboring 'defer' should map onto this rail rather than introduce a new accepted_debt terminal state."
+        },
+        {
+          "label": "Existing Preview URL Proof + visual_surface acceptance path",
+          "locator": "/home/jon/dev/advance/.opencode/command/adv-review.md:508-535",
+          "summary": "live/not_applicable/blocked Preview URL proof with reachability evidence + reviewMatrix already gates acceptance for visual surfaces. D6 conditional browser evidence reuses this existing rail; no Storybook needed."
+        },
+        {
+          "label": "UX critique best practice: evidence over preference",
+          "locator": "https://www.uxtigers.com/post/design-crit",
+          "summary": "Canonical: ban 'I like/I don't like'; anchor all feedback to user/goals/usability/research. Supports pass/concern/n-a + required rationale + design_proof evidence over subjective scoring."
+        },
+        {
+          "label": "Design Council Principles & Practice (objective, 3-state verdict)",
+          "locator": "https://www.designcouncil.org.uk/fileadmin/uploads/dc/Documents/Design%20Review_Principles%20and%20Practice_May2019.pdf",
+          "summary": "Canonical 3-state verdict: support-as-stands / support-with-improvements / fundamental-rethink maps to pass/concern/blocking. Objective criteria over stylistic taste = AC8 alignment."
+        },
+        {
+          "label": "Design review rubric pitfalls (score as leading indicator, not authority)",
+          "locator": "https://dancumberlandlabs.com/blog/design-build-engineering/",
+          "summary": "Numeric rubric = leading indicator, NOT causation; require written rationale to avoid score-compression. Supports avoidance: no numeric aesthetic score as sole authority."
+        }
+      ],
+      "architecture_assessment": "Design reuses existing ADV rails (evidence policies design_proof/rubric_review, six-dimension DesignerDesignDimensionsSchema, contract review matrix, Preview URL proof, prep-readiness validator, apply-context packets, adv-designer apply-only / adv-reviewer review-harden boundary). No new gate, no new role, no Storybook — this is the boring, proven path and is strongly endorsed by external design-review best practice (evidence over preference; 3-state verdict; numeric score never sole authority). Most decisions are schema/validator tightenings of surfaces that already exist (D1, D3, D4 confirmed in code). The single material gap is disposition-vocabulary alignment: D5/AC4/AC5 introduce 'accepted debt' for unresolved design concerns and neighboring recommendations, but the existing enforced policy (adv-autonomy-quality-assets.test.ts + adv-review.md) explicitly forbids an 'accepted_debt' terminal state for validated in-scope findings and recognizes only fixed | rejected_with_evidence, with out-of-scope work routed via scope-discovery 'split' (fast-follow child).",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "CAUTION (not CONFLICT): design is architecturally sound and best-practice-aligned. One terminology/policy-mapping caution must be resolved during implementation to avoid contradicting enforced specs: 'accepted debt' for design concerns / neighboring recs must NOT become a new accepted_debt terminal state for validated in-scope findings. Map it onto existing vocabulary: (a) in-scope unresolved design concern => fixed | rejected_with_evidence (matching adv-review.md:492-497); (b) neighboring/out-of-scope 'defer' => scope-discovery 'split' fast-follow child (scope-discovery-protocol.md:40), surfaced before acceptance, not silently dropped. This preserves AC4/AC5 intent (surface, never silently fix/hide) without weakening the no-future-work-deferral guarantee."
+      },
+      "recommendation": "Proceed to planning with one binding refinement: reconcile the 'accepted debt' disposition language in D5/AC4/AC5 with the existing enforced no-accepted-debt policy before writing tests. Concretely — (1) tighten DesignerDesignDimensionsSchema so notes is required when any dimension is concern or n/a (D4 needs a refine()/superRefine, since notes is .optional() today at subagent-reports.ts:166); (2) classify unresolved in-scope design concerns as fixed | rejected_with_evidence (reuse adv-review.md terminal states), and route neighboring/out-of-scope items through scope-discovery split rather than a new accepted_debt state, so the adv-autonomy-quality-assets.test.ts assertions are not violated; (3) reuse the existing Preview URL Proof live/not_applicable/blocked path for D6 conditional browser evidence; (4) keep design-derived criterion 'hard failures structured not heuristic-only' as a schema/validator test, consistent with the warn-only heuristic stance in D2. With these mappings the design is VALIDATED-on-implementation; the only risk is shipping 'accepted_debt' literal vocabulary that collides with existing spec tests.",
+      "follow_ups": [
+        "Implementation: add refine() to DesignerDesignDimensionsSchema requiring notes when any dimension is concern/n-a (notes currently .optional() at subagent-reports.ts:166).",
+        "Implementation: confirm prep-readiness frontend-applicability validation (D2) emits warn-only for heuristics and error/structural only when backed by agreement frontend scope or task metadata.frontend with frontend_rationale — no existing frontend validator found in plugin/src/validator (net-new surface).",
+        "Spec alignment: ensure new review/acceptance consumer language for design concerns/neighboring recs does not introduce 'accepted_debt' literal forbidden by adv-autonomy-quality-assets.test.ts:79; map to fixed|rejected_with_evidence + scope-discovery split.",
+        "Note: adv_change_show/adv_spec/project_context returned no reachable workflow/specs/project.md; validation relied on inline packet + direct codebase evidence under /home/jon/dev/advance."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addDesignQualityGates",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addDesignQualityGates",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [
+        {
+          "id": "review-note-1",
+          "label": "praise",
+          "file": "plugin/src/validator/prep-readiness.ts",
+          "line": 377,
+          "what": "Frontend applicability readiness uses structured metadata for hard failures and leaves title/path heuristics advisory-only.",
+          "why": "Matches contract intent that heuristics must not solely own gate-blocking correctness.",
+          "fix": "n/a"
+        },
+        {
+          "id": "review-note-2",
+          "label": "praise",
+          "file": "plugin/src/types/subagent-reports.ts",
+          "line": 158,
+          "what": "adv-designer design_dimensions schema requires notes when any dimension is concern or n/a.",
+          "why": "Provides structural validation before persistence for non-pass and non-applicable design evidence.",
+          "fix": "n/a"
+        },
+        {
+          "id": "review-note-3",
+          "label": "praise",
+          "file": ".opencode/command/adv-review.md",
+          "line": 475,
+          "what": "Acceptance review instructions consume adv-designer evidence into review matrix proof and block unresolved owned-scope concerns.",
+          "why": "Keeps review/harden ownership with adv-reviewer while preserving adv-designer as apply-phase evidence producer.",
+          "fix": "n/a"
+        }
+      ],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- plugin/src/validator/prep-readiness.test.ts plugin/src/types/subagent-reports.test.ts plugin/src/adv-designer-assets.test.ts plugin/src/adv-review-assets.test.ts plugin/src/adv-autonomy-quality-assets.test.ts (failed: wrapper runs from plugin; root-prefixed filters matched no files)",
+          "bin/oc-test targeted -- src/validator/prep-readiness.test.ts src/types/subagent-reports.test.ts src/adv-designer-assets.test.ts src/adv-review-assets.test.ts src/adv-autonomy-quality-assets.test.ts",
+          "git status --short"
+        ],
+        "results": "pass",
+        "evidence": "Targeted verification passed after correcting wrapper-relative filters: 5 test files, 142 tests passed. git status --short clean. Also reviewed known evidence from prompt: pnpm run check passed tr_mqtka5vm_07151f15, bin/oc-test smoke passed tr_mqtkbbmf_32569d1b, targeted asset/schema/validator tests passed earlier, adv_change_validate strict passed with one non-blocking NO_DELTAS warning."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Review did not run full pnpm run check or smoke again because prompt supplied passing run IDs; targeted acceptance-relevant tests were rerun locally.",
+        "Spawn packet requested change scope_key \"acceptance-review\", but source schema pins change-scoped reviewer reports to \"review:acceptance\" / \"harden:release\"; report submitted with schema-compatible \"review:acceptance\"."
+      ],
+      "required_main_agent_actions": [
+        "Proceed to acceptance/release handoff if orchestrator accepts existing check/smoke evidence plus targeted rerun.",
+        "If exact scope_key \"acceptance-review\" is mandatory for this workflow, update ChangeReportScopeKeySchema and related tests before relying on that key."
+      ],
+      "required_follow_ups": [],
+      "consumer_warnings": [
+        {
+          "kind": "verification_mismatch",
+          "message": "Initial targeted command used root-prefixed filters with bin/oc-test, which runs vitest from plugin/; corrected command with src/... filters passed."
+        }
+      ]
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-06-25T14:11:46.463Z",
+      "completed_by": "agent",
+      "approval_evidence": "Re-defined proposal approved by user via inline reply `approve`. Problem statement and proposal rewritten to make structural enforcement (designer-evidence consumer + obligation rail + acceptance blocking) the core deliverable; prose re-anchored as guidance only.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "ac732387f095c4e90d5ff92e9f4f5683b36f3bf69b6430a9ac96c5a6431702f5",
+        "non_whitespace_chars": 2325,
+        "checked_at": "2026-06-25T04:41:22.339Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-06-25T14:12:56.110Z",
+      "completed_by": "agent",
+      "approval_evidence": "Re-minted agreement approved by user via inline reply `approve`. Contract re-minted with 31 items: removed accept-debt vocabulary, added structural consumer ACs (AC4/AC5 promotion, AC6 acceptance-blocking), AC9 no-accepted_debt, AC11 anti-slop test labeling, C8 reuse-existing-rails, DONT8 prose-not-substitute-for-structure.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "5b2b37d9089fac111904513112b714c5329950d42310954d62a9744863e0344f",
+        "non_whitespace_chars": 5298,
+        "checked_at": "2026-06-25T04:41:22.340Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-06-25T14:21:54.236Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design approved by user (`approve`) for the full state-resident model. Independent validator (adv-researcher, scope design-validation) returned CAUTION; design corrected to address it: removed heuristic agenda-prose acceptance block (P33 violation), replaced with sandbox-safe gate-readiness evaluator checkUnresolvedDesignConcerns + typed designConcernDispositionedSignal; agenda promotion demoted to advisory with attempt-stable dedupe; no agenda reads in workflow sandbox.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "4f9ee69a226837d222be724ad7a88a4501de390e41e9224881160127e8c68a60",
+        "non_whitespace_chars": 4363,
+        "checked_at": "2026-06-25T04:41:22.341Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-06-25T14:25:26.966Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved the re-defined prep plan via inline reply `approve`. 8-task graph: spec realignment, typed schemas, workflow state+signal, advisory promotion consumer, sandbox gate-readiness evaluator (structural blocker), disposition tool, prose realignment + anti-slop labeling, cross-cutting verification. All code tasks TDD inline; prior 6 done tasks (schema teeth + prep validator) kept."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-06-25T15:28:42.191Z",
+      "completed_by": "adv-apply",
+      "approval_evidence": "All 8 re-defined tasks completed with TDD checkpoints through ecf7679d. Structural enforcement built and verified: typed schemas, designConcernDispositioned signal+state, sandbox gate-readiness evaluator (checkUnresolvedDesignConcerns blocks acceptance+release), advisory promotion consumer, adv_design_concern_disposition tool, spec+prose realignment, anti-slop test labels. Full suite 285 files / 4007 tests pass; pnpm run check green; worker bundle builds; boundary intact; strict validate passed."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-06-25T15:41:42.196Z",
+      "completed_by": "adv-reviewer",
+      "approval_evidence": "Independent acceptance review verdict READY; caught + fixed a disposition-persistence gap (now carried through projection/seed/continue-as-new, committed a646a544). Contract review matrix: 31/31 pass/respected, 0 failing. Executive summary persisted. Full suite 285 files/4007 tests green; pnpm run check green; boundary intact; strict validate passed (1 non-blocking NO_DELTAS).",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "83779534707bd1650700b6d93155cb8f8a1ee91c2ad50db9628ba0be7806954d",
+        "non_whitespace_chars": 2670,
+        "checked_at": "2026-06-25T04:41:22.342Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [
+    {
+      "from_gate": "proposal",
+      "reason": "Acceptance review found the change is ~60% prompt/spec prose with weak structural backing. The headline success criterion (SC2: design concerns visible before acceptance, not buried in sidecar reports) has no consumer code — design_dimensions/neighboring_recommendations have zero structural fate. Contract AC4/AC5 also still contain accept-debt language contradicting the approved design refinement. Redefining from the top to make structural enforcement the core deliverable and re-mint a self-consistent contract.",
+      "scope_delta": "Shift from prompt-additions to structural enforcement: (1) build a real consumer that ingests persisted adv-designer design_dimensions concerns + neighboring_recommendations into the contract review matrix and/or the required_follow_ups→agenda rail at acceptance time; (2) add required_follow_ups to the designer report schema so design concerns can ride the existing obligation_class promotion; (3) keep prep-readiness + dimension-notes schema teeth; (4) re-mint contract AC to remove accept-debt vocabulary and add an explicit acceptance criterion that designer concerns are structurally surfaced/blocking, not reviewer-goodwill-dependent; (5) reframe asset tests so prose presence is not mistaken for behavioral coverage.",
+      "reopened_by": "agent",
+      "reopened_at": "2026-06-25T14:09:59.162Z",
+      "gates_reset": [
+        "proposal",
+        "discovery",
+        "design",
+        "planning",
+        "execution",
+        "acceptance",
+        "release"
+      ]
+    }
+  ],
+  "cross_project_origin": {
+    "source_project": "toolbox",
+    "source_path": "/home/jon/toolbox",
+    "linked_at": "2026-06-25T04:41:21.259Z"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "5b2b37d9089fac111904513112b714c5329950d42310954d62a9744863e0344f",
+      "approvedAt": "2026-06-25T14:12:50.487Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "ADV UI work reliably gets page/site design context before implementation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b2b37d9089fac111904513112b714c5329950d42310954d62a9744863e0344f",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "Frontend design concerns are promoted into durable ADV state and made acceptance-blocking by code — not buried in sidecar reports or dependent on reviewer goodwill.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b2b37d9089fac111904513112b714c5329950d42310954d62a9744863e0344f",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "Design proof uses typed, durable ADV evidence and a structural consumer instead of prompt-only judgment.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b2b37d9089fac111904513112b714c5329950d42310954d62a9744863e0344f",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC4",
+        "kind": "success_criterion",
+        "text": "Existing role boundaries stay intact: `adv-designer` apply-only; `adv-reviewer` owns review/harden.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b2b37d9089fac111904513112b714c5329950d42310954d62a9744863e0344f",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "Frontend/UI task planning records explicit frontend applicability and routing intent, or a structured non-frontend rationale, enforced by prep-readiness validation (heuristics advisory only).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b2b37d9089fac111904513112b714c5329950d42310954d62a9744863e0344f",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Frontend worker context includes visual-fit inputs: surface type, relevant existing UI patterns, constraints/avoidances, viewport/evidence expectations, or explicit unavailable markers.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b2b37d9089fac111904513112b714c5329950d42310954d62a9744863e0344f",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Designer six-dimension verdicts require rationale notes for any `concern` or `n/a`, enforced structurally by the designer report schema.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b2b37d9089fac111904513112b714c5329950d42310954d62a9744863e0344f",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "On `adv-designer` report submission, each `design_dimensions == \"concern\"` is structurally promoted into a durable required obligation (the existing required_follow_ups → agenda obligation rail and/or a review-matrix obligation) — not left only in the report.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b2b37d9089fac111904513112b714c5329950d42310954d62a9744863e0344f",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "On `adv-designer` report submission, each `neighboring_recommendation` is structurally promoted into a durable obligation; none can be silently dropped.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b2b37d9089fac111904513112b714c5329950d42310954d62a9744863e0344f",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Unresolved promoted design concerns block the acceptance gate through existing review-matrix/obligation enforcement — no new lifecycle gate is added.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b2b37d9089fac111904513112b714c5329950d42310954d62a9744863e0344f",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "Acceptance proof includes design-quality evidence through existing contract/review evidence paths.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b2b37d9089fac111904513112b714c5329950d42310954d62a9744863e0344f",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC8",
+        "kind": "acceptance_criterion",
+        "text": "Runnable visual surfaces require browser/design evidence with viewport context; missing runnable surface requires explicit durable fallback rationale.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b2b37d9089fac111904513112b714c5329950d42310954d62a9744863e0344f",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC9",
+        "kind": "acceptance_criterion",
+        "text": "Disposition vocabulary is `fixed`, `rejected_with_evidence`, split/fast-follow, or blocking — no `accepted_debt` terminal state exists anywhere in specs, contract, commands, or agents.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b2b37d9089fac111904513112b714c5329950d42310954d62a9744863e0344f",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC10",
+        "kind": "acceptance_criterion",
+        "text": "The change does not add Storybook as an ADV plugin dependency, make numeric aesthetic scores sole authority, weaken backend boundaries, or route review/harden to `adv-designer`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b2b37d9089fac111904513112b714c5329950d42310954d62a9744863e0344f",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC11",
+        "kind": "acceptance_criterion",
+        "text": "Asset tests that assert markdown keyword presence are explicitly labeled non-behavioral; structural behavior (schema, validator, consumer, acceptance blocking) is covered by behavioral tests.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b2b37d9089fac111904513112b714c5329950d42310954d62a9744863e0344f",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Preserve ADV's seven-gate lifecycle and existing human checkpoints.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b2b37d9089fac111904513112b714c5329950d42310954d62a9744863e0344f",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Structural correctness first: schemas, validators, typed reports, the consumer, review-matrix rows, and tests own correctness.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b2b37d9089fac111904513112b714c5329950d42310954d62a9744863e0344f",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Keep `adv-designer` apply-phase only.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b2b37d9089fac111904513112b714c5329950d42310954d62a9744863e0344f",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Keep `adv-reviewer` as review/harden owner.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b2b37d9089fac111904513112b714c5329950d42310954d62a9744863e0344f",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Any project-specific visual identity source must be discoverable and precedence-defined.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b2b37d9089fac111904513112b714c5329950d42310954d62a9744863e0344f",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C6",
+        "kind": "constraint",
+        "text": "Frontend routing correctness must not rely on filename/title heuristics as the sole authority.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b2b37d9089fac111904513112b714c5329950d42310954d62a9744863e0344f",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C7",
+        "kind": "constraint",
+        "text": "Browser/design evidence is required only when a runnable UI or preview surface exists; fallback rationale is required when it does not.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b2b37d9089fac111904513112b714c5329950d42310954d62a9744863e0344f",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C8",
+        "kind": "constraint",
+        "text": "Reuse existing obligation_class → agenda and review-matrix rails; do not invent a new gate or a new evidence vocabulary.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b2b37d9089fac111904513112b714c5329950d42310954d62a9744863e0344f",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not weaken the existing backend boundary for `adv-designer`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b2b37d9089fac111904513112b714c5329950d42310954d62a9744863e0344f",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not silently broaden UI scope to redesign neighboring surfaces without user-visible decision handling.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b2b37d9089fac111904513112b714c5329950d42310954d62a9744863e0344f",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not treat subjective visual scoring as a replacement for typed evidence, review findings, and user acceptance.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b2b37d9089fac111904513112b714c5329950d42310954d62a9744863e0344f",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not add Storybook as a dependency to the Advance plugin itself.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b2b37d9089fac111904513112b714c5329950d42310954d62a9744863e0344f",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "Do not reassign review or harden ownership from `adv-reviewer` to `adv-designer`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b2b37d9089fac111904513112b714c5329950d42310954d62a9744863e0344f",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT6",
+        "kind": "avoidance",
+        "text": "Do not implement a full design-system product inside ADV.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b2b37d9089fac111904513112b714c5329950d42310954d62a9744863e0344f",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT7",
+        "kind": "avoidance",
+        "text": "Do not make numeric aesthetic scores the only acceptance or release authority.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b2b37d9089fac111904513112b714c5329950d42310954d62a9744863e0344f",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT8",
+        "kind": "avoidance",
+        "text": "Do not let prose or markdown-presence tests substitute for structural enforcement.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b2b37d9089fac111904513112b714c5329950d42310954d62a9744863e0344f",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-06-25T15:42:00.000Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "VISUAL_CONTEXT packet (adv-apply.md) + prep-readiness frontend applicability validator give UI work design context before implementation. Reviewer READY.",
+          "notes": "Visual context delivered structurally."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "checkUnresolvedDesignConcerns blocks acceptance+release on undispositioned designer concerns by code, not reviewer goodwill. Reviewer confirmed SC2 holds structurally; no silent path. Tests: gate-readiness.test.ts.",
+          "notes": "Headline criterion now code-enforced."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "design_proof",
+          "evidence": "Typed schemas (DesignerSubagentReportSchema, DesignConcernDispositionSchema) + state-resident dispositions + evaluator own correctness; prompt prose demoted to guidance. subagent-reports.test.ts.",
+          "notes": "Typed durable evidence, not prompt-only."
+        },
+        {
+          "contractId": "SC4",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "adv-designer remains apply-only; adv-reviewer owns review/harden in command/agent docs. Reviewer READY; full suite green.",
+          "notes": "Role boundaries intact."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "checkFrontendApplicability (prep-readiness.ts) blocks prep on structured frontend metadata; heuristics advisory only. prep-readiness.test.ts.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "adv-apply.md Designer Apply Context Packet carries VISUAL_CONTEXT with surface/patterns/constraints/viewport/unavailable markers. adv-designer-assets.test.ts.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "DesignerDesignDimensionsSchema.superRefine requires notes for concern/n/a; six dimensions typed. subagent-reports.test.ts.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "On submit, each design_dimensions concern auto-promoted to required-obligation agenda item (consumeDesignerDesignConcerns). subagent-report.test.ts. Plus gate-readiness blocker.",
+          "notes": "Structural promotion by code."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Each neighboring_recommendation auto-promoted with attempt-stable dedupe; cannot be silently dropped. subagent-report.test.ts.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "checkUnresolvedDesignConcerns emits DESIGN_CONCERN_UNRESOLVED blocking acceptance+release; cleared by typed disposition or later all-pass report; dispositions persist through projection/continue-as-new (harden fix). gate-readiness.test.ts, change-state.test.ts.",
+          "notes": "No new gate; reuses existing rail."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "This contract review matrix records design-quality evidence via design_proof/rubric_review/review policies; adv-review.md maps designer evidence into reviewMatrix. adv-review-assets.test.ts.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC8",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Browser/design viewport context required for runnable surfaces with explicit fallback rationale in VISUAL_CONTEXT guidance. adv-designer-assets.test.ts.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC9",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "No accepted_debt terminal/disposition state anywhere; disposition enum is fixed|rejected_with_evidence|split|fast_follow; repo scan shows only prohibiting usages. adv-autonomy-quality-assets.test.ts, subagent-reports.test.ts.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC10",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "No Storybook dependency; no numeric aesthetic scoring; backend boundary intact; review/harden stay with adv-reviewer. Full suite 4007 tests green.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC11",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Keyword-presence asset tests labeled NON-BEHAVIORAL and point at behavioral owners (gate-readiness/subagent-report/design-concern tests). adv-review-assets.test.ts, adv-designer-assets.test.ts, adv-autonomy-quality-assets.test.ts.",
+          "notes": "Anti-slop guard."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Seven-gate lifecycle preserved; no new gate added; enforcement reuses gate-readiness blocker rail.",
+          "notes": ""
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Correctness owned by Zod schemas, prep validator, sandbox evaluator, state machine, review matrix, and behavioral tests.",
+          "notes": ""
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "adv-designer apply-phase only; guidance limited to apply context. Reviewer READY.",
+          "notes": ""
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "adv-reviewer owns review/harden in adv-review.md/adv-harden.md/adv-reviewer.md.",
+          "notes": ""
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "VISUAL_CONTEXT requires sourced context or explicit unavailable reasons; precedence defined. adv-designer-assets.test.ts.",
+          "notes": ""
+        },
+        {
+          "contractId": "C6",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "prep-readiness uses structured metadata (frontend_required/frontend_scope/visual_surface) as hard authority; title/path heuristics warn only. prep-readiness.test.ts.",
+          "notes": ""
+        },
+        {
+          "contractId": "C7",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Browser/design evidence required only for runnable surfaces; fallback rationale otherwise (VISUAL_CONTEXT guidance).",
+          "notes": ""
+        },
+        {
+          "contractId": "C8",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Reused existing required-obligation agenda rail + gate-readiness blocker pattern + review matrix; no new gate or evidence vocabulary invented.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Backend boundary for adv-designer unchanged; reviewer found no weakening.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Neighboring recommendations require explicit typed disposition; no silent scope broadening.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Categorical design_dimensions with rationale + typed disposition; no numeric aesthetic scoring introduced.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No Storybook dependency added; dependency boundary unchanged. Full suite green.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Review/harden routed to adv-reviewer, not adv-designer.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT6",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Scope limited to ADV workflow/schema/validator/evaluator/tool/test surfaces; no design-system product.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT7",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No numeric aesthetic scoring; typed evidence + structural blocker + user acceptance remain authority.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT8",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Asset keyword-presence tests labeled non-behavioral; structural enforcement covered by behavioral tests. Prose demoted to guidance pointing at the rail.",
+          "notes": "Anti-slop avoidance honored."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "Frontend/UI task planning records explicit frontend applicability and routing intent, or a structured non-frontend rationale, enforced by prep-readiness validation (heuristics advisory only).",
+    "Frontend worker context includes visual-fit inputs: surface type, relevant existing UI patterns, constraints/avoidances, viewport/evidence expectations, or explicit unavailable markers.",
+    "Designer six-dimension verdicts require rationale notes for any `concern` or `n/a`, enforced structurally by the designer report schema.",
+    "On `adv-designer` report submission, each `design_dimensions == \"concern\"` is structurally promoted into a durable required obligation (the existing required_follow_ups → agenda obligation rail and/or a review-matrix obligation) — not left only in the report.",
+    "On `adv-designer` report submission, each `neighboring_recommendation` is structurally promoted into a durable obligation; none can be silently dropped.",
+    "Unresolved promoted design concerns block the acceptance gate through existing review-matrix/obligation enforcement — no new lifecycle gate is added.",
+    "Acceptance proof includes design-quality evidence through existing contract/review evidence paths.",
+    "Runnable visual surfaces require browser/design evidence with viewport context; missing runnable surface requires explicit durable fallback rationale.",
+    "Disposition vocabulary is `fixed`, `rejected_with_evidence`, split/fast-follow, or blocking — no `accepted_debt` terminal state exists anywhere in specs, contract, commands, or agents.",
+    "The change does not add Storybook as an ADV plugin dependency, make numeric aesthetic scores sole authority, weaken backend boundaries, or route review/harden to `adv-designer`.",
+    "Asset tests that assert markdown keyword presence are explicitly labeled non-behavioral; structural behavior (schema, validator, consumer, acceptance blocking) is covered by behavioral tests."
+  ],
+  "documents": {
+    "proposal": "# Proposal: Structural Design-Quality Enforcement (redefined)\n\n## Problem\n\nADV's design-quality work to date is mostly prompt prose. The typed `adv-designer` evidence (`design_dimensions`, `neighboring_recommendations`) has no consumer: a `concern` verdict — including `site_design_consistency`, the exact page-fit signal that motivated this change — has zero structural fate. Acceptance is \"protected\" only by instructions in `adv-review.md` that ask the reviewer LLM to look, plus asset tests that grep markdown for keywords. A green suite proves the words exist, not that behavior improves.\n\n## Why redefine now\n\nRe-entered from the top after the acceptance review found ~60% of the change was prose with weak teeth. SC2 (\"design concerns visible before acceptance, not buried in sidecar reports\") had no backing code. The contract itself drifted (AC4/AC5 still say \"accepted debt\").\n\n## Approach — structure owns correctness (P33)\n\n1. **Designer schema gets a promotion rail.** Add `required_follow_ups` to `DesignerSubagentReportSchema` so design concerns can ride the EXISTING `obligation_class` → agenda consumer (`consumeRequiredFollowUps` in `tools/subagent-report.ts`).\n2. **Build the consumer.** On `adv_subagent_report_submit` of an `adv-designer` report, structurally promote each `design_dimensions == \"concern\"` and each `neighboring_recommendation` into durable fate (required-obligation agenda items and/or review-matrix obligations). Silent drop becomes impossible by code, not by prose.\n3. **Acceptance blocks structurally.** Unresolved design concerns surface as failing/open obligations that the acceptance gate already enforces via the review matrix — no new gate, no prose dependency.\n4. **Keep the genuine teeth.** Retain the dimension-notes `superRefine` and the prep-readiness frontend-applicability validator (these are already real).\n5. **Re-mint a self-consistent contract.** Remove all accept-debt vocabulary; add an explicit acceptance criterion that designer concerns are structurally promoted and acceptance-blocking.\n6. **Reframe tests.** Keep markdown-presence asset tests but add behavioral tests on the consumer, and explicitly mark presence-tests as non-behavioral so a green suite is not mistaken for outcome coverage.\n\n## Scope boundaries (unchanged)\n\n- No new lifecycle gate. No Storybook dependency. No numeric aesthetic scoring authority.\n- `adv-designer` stays apply-phase only; `adv-reviewer` keeps review/harden ownership.\n- Heuristics (filename/title) remain advisory; structured metadata/typed reports own correctness.\n\n## Out of scope\n\n- Full design-system product, visual-regression baselines, vendoring external design tools.",
+    "problemStatement": "ADV has design-review prose and a dedicated `adv-designer`, but design quality is not structurally enforced. A first implementation pass demonstrated the failure mode directly: most of the work landed as command/agent/spec prose whose only tests assert that keywords exist in markdown files — proving the words are present, not that outcomes improve.\n\nConcretely:\n- `adv-designer` `design_dimensions` (incl. `site_design_consistency`) and `neighboring_recommendations` are typed but have NO consumer. No code surfaces a `concern` into the review matrix, the agenda, or any acceptance-blocking signal. A design concern has zero structural fate — it sits in a sidecar report and dies there.\n- Frontend visual-context/routing packets are markdown templates with no code that populates or routes them.\n- The minted contract permitted \"accepted debt\" disposition, contradicting the later design decision that forbids an accepted_debt terminal state — internal contract drift.\n\nDesired outcome: frontend tasks reliably get visual context and routing, and unresolved design-fit concerns are promoted into durable ADV state (review matrix and/or the existing required_follow_ups→agenda obligation rail) and block acceptance by CODE — not by reviewer goodwill. Prose may guide discovery; structure must own correctness, acceptance, and gate completion (P33).",
+    "agreement": "# Agreement\n\n## Objectives\n\n1. Make frontend/UI task classification explicit and structurally checked before planning completes.\n2. Provide designer workers with page/site visual context and explicit missing-context fallbacks.\n3. Structurally promote designer six-dimension concerns and neighboring recommendations into durable ADV obligations consumed at acceptance — by code, not by prose.\n4. Require durable design/browser evidence when a runnable visual surface exists, with explicit fallback when absent.\n5. Preserve current role boundaries and avoid subjective scoring or broad redesign as hidden gate authority.\n\n## Success Criteria\n\n1. ADV UI work reliably gets page/site design context before implementation.\n2. Frontend design concerns are promoted into durable ADV state and made acceptance-blocking by code — not buried in sidecar reports or dependent on reviewer goodwill.\n3. Design proof uses typed, durable ADV evidence and a structural consumer instead of prompt-only judgment.\n4. Existing role boundaries stay intact: `adv-designer` apply-only; `adv-reviewer` owns review/harden.\n\n## Acceptance Criteria\n\n1. Frontend/UI task planning records explicit frontend applicability and routing intent, or a structured non-frontend rationale, enforced by prep-readiness validation (heuristics advisory only).\n2. Frontend worker context includes visual-fit inputs: surface type, relevant existing UI patterns, constraints/avoidances, viewport/evidence expectations, or explicit unavailable markers.\n3. Designer six-dimension verdicts require rationale notes for any `concern` or `n/a`, enforced structurally by the designer report schema.\n4. On `adv-designer` report submission, each `design_dimensions == \"concern\"` is structurally promoted into a durable required obligation (the existing required_follow_ups → agenda obligation rail and/or a review-matrix obligation) — not left only in the report.\n5. On `adv-designer` report submission, each `neighboring_recommendation` is structurally promoted into a durable obligation; none can be silently dropped.\n6. Unresolved promoted design concerns block the acceptance gate through existing review-matrix/obligation enforcement — no new lifecycle gate is added.\n7. Acceptance proof includes design-quality evidence through existing contract/review evidence paths.\n8. Runnable visual surfaces require browser/design evidence with viewport context; missing runnable surface requires explicit durable fallback rationale.\n9. Disposition vocabulary is `fixed`, `rejected_with_evidence`, split/fast-follow, or blocking — no `accepted_debt` terminal state exists anywhere in specs, contract, commands, or agents.\n10. The change does not add Storybook as an ADV plugin dependency, make numeric aesthetic scores sole authority, weaken backend boundaries, or route review/harden to `adv-designer`.\n11. Asset tests that assert markdown keyword presence are explicitly labeled non-behavioral; structural behavior (schema, validator, consumer, acceptance blocking) is covered by behavioral tests.\n\n## Constraints\n\n1. Preserve ADV's seven-gate lifecycle and existing human checkpoints.\n2. Structural correctness first: schemas, validators, typed reports, the consumer, review-matrix rows, and tests own correctness.\n3. Keep `adv-designer` apply-phase only.\n4. Keep `adv-reviewer` as review/harden owner.\n5. Any project-specific visual identity source must be discoverable and precedence-defined.\n6. Frontend routing correctness must not rely on filename/title heuristics as the sole authority.\n7. Browser/design evidence is required only when a runnable UI or preview surface exists; fallback rationale is required when it does not.\n8. Reuse existing obligation_class → agenda and review-matrix rails; do not invent a new gate or a new evidence vocabulary.\n\n## Avoidances\n\n1. Do not weaken the existing backend boundary for `adv-designer`.\n2. Do not silently broaden UI scope to redesign neighboring surfaces without user-visible decision handling.\n3. Do not treat subjective visual scoring as a replacement for typed evidence, review findings, and user acceptance.\n4. Do not add Storybook as a dependency to the Advance plugin itself.\n5. Do not reassign review or harden ownership from `adv-reviewer` to `adv-designer`.\n6. Do not implement a full design-system product inside ADV.\n7. Do not make numeric aesthetic scores the only acceptance or release authority.\n8. Do not let prose or markdown-presence tests substitute for structural enforcement.\n\n## Preview Applicability\n\nvisual_surface: false\n\nRationale: this change modifies ADV workflow, agent packets, schemas, validators, a report consumer, specs, and tests. It does not itself deliver a browser-visible UI surface. Acceptance uses tests/static checks/review evidence rather than a preview URL.\n\n## Decisions\n\n### User Decisions\n\n1. Re-entered from the top after acceptance review found prose-heavy implementation with weak structural backing; structural enforcement is now the core deliverable.\n2. Design rigor: risk-tiered. All six dimensions checked for frontend work; low-risk tasks may mark dimensions `n/a` with rationale; unresolved concerns require resolution, `rejected_with_evidence`, split/fast-follow, or blocking proof.\n3. Neighboring UI issues: structurally promoted before acceptance; workers must not silently broaden scope.\n4. Cross-project origin: toolbox-originated follow-up belongs in `/home/jon/dev/advance`.\n\n### Agent Decisions (LBP)\n\n1. Reuse the existing `required_follow_ups` → agenda obligation rail (`consumeRequiredFollowUps`) as the promotion mechanism for design concerns.\n2. Reuse existing review-matrix and acceptance-gate enforcement rather than adding a new lifecycle gate.\n3. Treat `DESIGNER_REPORT.design_dimensions` and `neighboring_recommendations` as the typed source the consumer ingests.\n4. Keep prep-readiness validation as the structural chokepoint for planned frontend applicability.\n5. Mark markdown-presence asset tests as non-behavioral; cover the consumer with behavioral tests.\n\n## Deferred Questions\n\nNone.\n\n## Sign-Off\n\nPending user approval of re-minted criteria.",
+    "design": "# Design: Structural Design-Quality Enforcement (validator-corrected)\n\n## Architecture context (verified)\n\n- Submit flow `tools/subagent-report.ts::executeSubmit`: parse → persist via `subagentReportSubmittedSignal` (reports land in `ChangeWorkflowState.subagent_reports` / task-scoped) → `consumeFollowUps` → `consumeRequiredFollowUps` (`category:\"required-obligation\"` agenda).\n- **Structural blocking authority is state-resident:** `gate-readiness.ts` evaluators run in the Temporal workflow sandbox over `ChangeWorkflowState` only (`workflow-bundle-boundary.test.ts` forbids `storage/`/`tools/`/`node:*`/agenda imports). Existing `checkRequiredObligationReleaseBlockers`/`checkRequiredObligationRouting` block on `requiredCritical` contract items + review-matrix rows.\n- Agenda `category:\"required-obligation\"` items are **advisory routing**, NOT blocking authority. `AgendaItem` (`types/agenda.ts`) has no `change_id`/agent field — so agenda-prose matching must never gate anything (P33).\n- Duplicate-report guard (`executeSubmit:640-658`) only blocks same-report-id resubmit; a new attempt re-runs consumers.\n\n## Decision: blocking is state-resident (sandbox), promotion is advisory (agenda)\n\n### Layer 1 — Schema (AC3 retained, + parity)\n- Keep `DesignerDesignDimensionsSchema.superRefine` (notes required for `concern`/`n/a`).\n- Add optional `required_follow_ups` to `DesignerSubagentReportSchema` (parity; lets designers emit explicit typed obligations that ride the existing critical→release rail).\n\n### Layer 2 — Advisory promotion consumer (AC5 surfacing; advisory only)\n- New `consumeDesignerDesignConcerns({ store, report, dryRun })`, invoked for `adv-designer` reports in `executeSubmit`.\n- For each `design_dimensions.* === \"concern\"` and each `neighboring_recommendation`: create one `category:\"required-obligation\"` agenda item **with an attempt-stable dedupe key** `design-concern:<change_id>:<task_id>:<dimension|neighbor-index>` so re-submit at a higher attempt does not duplicate (idempotent create).\n- Emits a typed `design_concern_promoted` consumer_warning per item.\n- **Explicitly advisory** — surfacing/routing, never the gate authority.\n\n### Layer 3 — Structural acceptance/release blocker (AC4, AC6) — state-resident, no new layer\n- New sandbox-safe gate-readiness evaluator `checkUnresolvedDesignConcerns(state, gateId)` (reads `state.subagent_reports` + task reports only):\n  - Computes, per task, the **latest** `adv-designer` report (max attempt).\n  - A task has an *unresolved design concern* if its latest designer report has any `design_dimensions.* === \"concern\"` or non-empty `neighboring_recommendations` that are not dispositioned.\n  - Blocks `acceptance` and `release` while any unresolved design concern exists.\n- **Typed disposition path** (no prose, no accept-debt): a new `designConcernDispositionedSignal` records a typed disposition per `(task_id, dimension|neighbor-key)` with `disposition ∈ {fixed, rejected_with_evidence, split, fast_follow}` + evidence string. State holds `design_concern_dispositions[]`. The evaluator treats a concern as resolved when (a) a later designer report clears it, or (b) a matching typed disposition exists. `blocking` is the absence of disposition (i.e., still blocks).\n- This reuses the existing gate-readiness blocker pattern (same shape as `checkRequiredObligationReleaseBlockers`), is replay-safe, and is fully machine-checkable.\n\n### Layer 4 — Prep teeth retained (AC1)\n- `prep-readiness.ts::checkFrontendApplicability` unchanged (structured metadata blocks prep; heuristics advisory).\n\n### Layer 5 — Contract/spec/prose realignment (AC9, AC10)\n- Contract already re-minted without accept-debt. Update specs/docs/commands/agents: strip residual accept-debt; point review/harden prose at the structural rail (the evaluator + disposition signal) rather than asking the reviewer LLM to remember.\n\n### Layer 6 — Anti-slop tests (AC11)\n- Label markdown keyword-presence asset tests **non-behavioral (asset presence only)**.\n- Behavioral coverage: schema parse; consumer promotion + dedupe; evaluator blocks acceptance/release with an unresolved concern; disposition signal clears the block; later all-pass report clears the block; dryRun writes nothing.\n\n## consumer_warning kind addition\n- `SubagentConsumerWarningSchema` is `.strict()` enum → add `design_concern_promoted`, regenerate public schemas (`pnpm run schemas:generate`), update producers/tests.\n\n## Out of scope\n- No new lifecycle gate, no Storybook, no numeric scoring authority, no visual-regression baselines, no external tool vendoring.\n\n## Validator resolution\n- Rejected the original agenda-prose acceptance block (heuristic, P33 violation). Replaced with a state-resident sandbox evaluator + typed disposition signal.\n- Agenda promotion demoted to advisory with attempt-stable dedupe.\n- No agenda reads in `gate-readiness.ts` (boundary preserved); any tool-layer agenda use stays in `tools/`.",
+    "executiveSummary": "# Executive Summary\n\nDelivered **structural** design-quality enforcement for ADV — concerns raised by `adv-designer` reports now block acceptance and release by code, not by reviewer prose. This change was re-defined from the top after an acceptance review found the first attempt was ~60% prompt text whose only tests asserted keyword presence.\n\n## Outcome\n\n- **Structural blocker (the teeth):** a sandbox-safe gate-readiness evaluator `checkUnresolvedDesignConcerns` reads persisted `adv-designer` reports from change state and emits a `DESIGN_CONCERN_UNRESOLVED` blocker on **acceptance and release** while a task's latest designer report has an undispositioned `design_dimensions` concern or `neighboring_recommendation`.\n- **Typed disposition (no accepted_debt):** concerns clear only via a later all-pass report or a typed `designConcernDispositioned` signal (`adv_design_concern_disposition`: `fixed | rejected_with_evidence | split | fast_follow`, non-blank evidence). Dispositions persist through projection, re-seed, and continue-as-new.\n- **Advisory promotion:** on report submit, each concern/neighbor is auto-promoted to a deduped `required-obligation` agenda item so nothing is silently lost — routing only, never the gate authority.\n- **Kept real teeth:** designer dimension-notes `superRefine`; prep-readiness frontend-applicability validator (structured metadata owns routing; heuristics advisory).\n- **Anti-slop:** keyword-presence asset tests are explicitly labeled non-behavioral and point at the behavioral test owners; contract re-minted with zero `accepted_debt` vocabulary.\n\n## What changed vs the first attempt\n\nThe first attempt mapped designer evidence into the review matrix via reviewer prose with no consumer code — a concern could reach acceptance silently. This version makes the concern→block path code-owned and state-resident, satisfying SC2 (\"design concerns visible before acceptance, not buried in sidecar reports\") structurally.\n\n## Verification\n\n- Full suite (`bin/oc-test full`): **285 files / 4007 tests passed, 0 failures**.\n- `pnpm run check` green; worker bundle builds; workflow-bundle boundary intact (evaluator is sandbox-safe).\n- Behavioral coverage: `gate-readiness.test.ts` (evaluator, 7 cases), `subagent-report.test.ts` (consumer, 5 cases), `design-concern.test.ts` (tool, 5 cases), `change-state.test.ts` (disposition apply + persistence), `subagent-reports.test.ts` (schema, 6 cases).\n- Independent acceptance review: **READY**; caught and fixed a disposition-persistence gap (projection/continue-as-new).\n- Contract review matrix: 31/31 pass or respected, 0 failing.\n\n## Remaining concerns\n\n- `adv_change_validate strict` reports one non-blocking `NO_DELTAS` warning (spec edits are in-repo, not change deltas).\n- Branch diverged from a base behind current trunk; several inherited stale frozen-snapshot tests were reconciled to trunk reality (spec versions, deploy ceiling, search-attribute lists, cli-surface row). Eventual PR merge should be routine but is wider than the design-quality code itself.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-06-25T15:42:00.000Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | ADV UI work reliably gets page/site design context before implementation. | pass | VISUAL_CONTEXT packet (adv-apply.md) + prep-readiness frontend applicability validator give UI work design context before implementation. Reviewer READY. |\n| SC2 | success_criterion | Frontend design concerns are promoted into durable ADV state and made acceptance-blocking by code — not buried in sidecar reports or dependent on reviewer goodwill. | pass | checkUnresolvedDesignConcerns blocks acceptance+release on undispositioned designer concerns by code, not reviewer goodwill. Reviewer confirmed SC2 holds structurally; no silent path. Tests: gate-readiness.test.ts. |\n| SC3 | success_criterion | Design proof uses typed, durable ADV evidence and a structural consumer instead of prompt-only judgment. | pass | Typed schemas (DesignerSubagentReportSchema, DesignConcernDispositionSchema) + state-resident dispositions + evaluator own correctness; prompt prose demoted to guidance. subagent-reports.test.ts. |\n| SC4 | success_criterion | Existing role boundaries stay intact: `adv-designer` apply-only; `adv-reviewer` owns review/harden. | pass | adv-designer remains apply-only; adv-reviewer owns review/harden in command/agent docs. Reviewer READY; full suite green. |\n| AC1 | acceptance_criterion | Frontend/UI task planning records explicit frontend applicability and routing intent, or a structured non-frontend rationale, enforced by prep-readiness validation (heuristics advisory only). | pass | checkFrontendApplicability (prep-readiness.ts) blocks prep on structured frontend metadata; heuristics advisory only. prep-readiness.test.ts. |\n| AC2 | acceptance_criterion | Frontend worker context includes visual-fit inputs: surface type, relevant existing UI patterns, constraints/avoidances, viewport/evidence expectations, or explicit unavailable markers. | pass | adv-apply.md Designer Apply Context Packet carries VISUAL_CONTEXT with surface/patterns/constraints/viewport/unavailable markers. adv-designer-assets.test.ts. |\n| AC3 | acceptance_criterion | Designer six-dimension verdicts require rationale notes for any `concern` or `n/a`, enforced structurally by the designer report schema. | pass | DesignerDesignDimensionsSchema.superRefine requires notes for concern/n/a; six dimensions typed. subagent-reports.test.ts. |\n| AC4 | acceptance_criterion | On `adv-designer` report submission, each `design_dimensions == \"concern\"` is structurally promoted into a durable required obligation (the existing required_follow_ups → agenda obligation rail and/or a review-matrix obligation) — not left only in the report. | pass | On submit, each design_dimensions concern auto-promoted to required-obligation agenda item (consumeDesignerDesignConcerns). subagent-report.test.ts. Plus gate-readiness blocker. |\n| AC5 | acceptance_criterion | On `adv-designer` report submission, each `neighboring_recommendation` is structurally promoted into a durable obligation; none can be silently dropped. | pass | Each neighboring_recommendation auto-promoted with attempt-stable dedupe; cannot be silently dropped. subagent-report.test.ts. |\n| AC6 | acceptance_criterion | Unresolved promoted design concerns block the acceptance gate through existing review-matrix/obligation enforcement — no new lifecycle gate is added. | pass | checkUnresolvedDesignConcerns emits DESIGN_CONCERN_UNRESOLVED blocking acceptance+release; cleared by typed disposition or later all-pass report; dispositions persist through projection/continue-as-new (harden fix). gate-readiness.test.ts, change-state.test.ts. |\n| AC7 | acceptance_criterion | Acceptance proof includes design-quality evidence through existing contract/review evidence paths. | pass | This contract review matrix records design-quality evidence via design_proof/rubric_review/review policies; adv-review.md maps designer evidence into reviewMatrix. adv-review-assets.test.ts. |\n| AC8 | acceptance_criterion | Runnable visual surfaces require browser/design evidence with viewport context; missing runnable surface requires explicit durable fallback rationale. | pass | Browser/design viewport context required for runnable surfaces with explicit fallback rationale in VISUAL_CONTEXT guidance. adv-designer-assets.test.ts. |\n| AC9 | acceptance_criterion | Disposition vocabulary is `fixed`, `rejected_with_evidence`, split/fast-follow, or blocking — no `accepted_debt` terminal state exists anywhere in specs, contract, commands, or agents. | pass | No accepted_debt terminal/disposition state anywhere; disposition enum is fixed|rejected_with_evidence|split|fast_follow; repo scan shows only prohibiting usages. adv-autonomy-quality-assets.test.ts, subagent-reports.test.ts. |\n| AC10 | acceptance_criterion | The change does not add Storybook as an ADV plugin dependency, make numeric aesthetic scores sole authority, weaken backend boundaries, or route review/harden to `adv-designer`. | pass | No Storybook dependency; no numeric aesthetic scoring; backend boundary intact; review/harden stay with adv-reviewer. Full suite 4007 tests green. |\n| AC11 | acceptance_criterion | Asset tests that assert markdown keyword presence are explicitly labeled non-behavioral; structural behavior (schema, validator, consumer, acceptance blocking) is covered by behavioral tests. | pass | Keyword-presence asset tests labeled NON-BEHAVIORAL and point at behavioral owners (gate-readiness/subagent-report/design-concern tests). adv-review-assets.test.ts, adv-designer-assets.test.ts, adv-autonomy-quality-assets.test.ts. |\n| C1 | constraint | Preserve ADV's seven-gate lifecycle and existing human checkpoints. | respected | Seven-gate lifecycle preserved; no new gate added; enforcement reuses gate-readiness blocker rail. |\n| C2 | constraint | Structural correctness first: schemas, validators, typed reports, the consumer, review-matrix rows, and tests own correctness. | respected | Correctness owned by Zod schemas, prep validator, sandbox evaluator, state machine, review matrix, and behavioral tests. |\n| C3 | constraint | Keep `adv-designer` apply-phase only. | respected | adv-designer apply-phase only; guidance limited to apply context. Reviewer READY. |\n| C4 | constraint | Keep `adv-reviewer` as review/harden owner. | respected | adv-reviewer owns review/harden in adv-review.md/adv-harden.md/adv-reviewer.md. |\n| C5 | constraint | Any project-specific visual identity source must be discoverable and precedence-defined. | respected | VISUAL_CONTEXT requires sourced context or explicit unavailable reasons; precedence defined. adv-designer-assets.test.ts. |\n| C6 | constraint | Frontend routing correctness must not rely on filename/title heuristics as the sole authority. | respected | prep-readiness uses structured metadata (frontend_required/frontend_scope/visual_surface) as hard authority; title/path heuristics warn only. prep-readiness.test.ts. |\n| C7 | constraint | Browser/design evidence is required only when a runnable UI or preview surface exists; fallback rationale is required when it does not. | respected | Browser/design evidence required only for runnable surfaces; fallback rationale otherwise (VISUAL_CONTEXT guidance). |\n| C8 | constraint | Reuse existing obligation_class → agenda and review-matrix rails; do not invent a new gate or a new evidence vocabulary. | respected | Reused existing required-obligation agenda rail + gate-readiness blocker pattern + review matrix; no new gate or evidence vocabulary invented. |\n| DONT1 | avoidance | Do not weaken the existing backend boundary for `adv-designer`. | respected | Backend boundary for adv-designer unchanged; reviewer found no weakening. |\n| DONT2 | avoidance | Do not silently broaden UI scope to redesign neighboring surfaces without user-visible decision handling. | respected | Neighboring recommendations require explicit typed disposition; no silent scope broadening. |\n| DONT3 | avoidance | Do not treat subjective visual scoring as a replacement for typed evidence, review findings, and user acceptance. | respected | Categorical design_dimensions with rationale + typed disposition; no numeric aesthetic scoring introduced. |\n| DONT4 | avoidance | Do not add Storybook as a dependency to the Advance plugin itself. | respected | No Storybook dependency added; dependency boundary unchanged. Full suite green. |\n| DONT5 | avoidance | Do not reassign review or harden ownership from `adv-reviewer` to `adv-designer`. | respected | Review/harden routed to adv-reviewer, not adv-designer. |\n| DONT6 | avoidance | Do not implement a full design-system product inside ADV. | respected | Scope limited to ADV workflow/schema/validator/evaluator/tool/test surfaces; no design-system product. |\n| DONT7 | avoidance | Do not make numeric aesthetic scores the only acceptance or release authority. | respected | No numeric aesthetic scoring; typed evidence + structural blocker + user acceptance remain authority. |\n| DONT8 | avoidance | Do not let prose or markdown-presence tests substitute for structural enforcement. | respected | Asset keyword-presence tests labeled non-behavioral; structural enforcement covered by behavioral tests. Prose demoted to guidance pointing at the rail. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-06-25T14:10:53.796Z",
+      "contentHash": "ac732387f095c4e90d5ff92e9f4f5683b36f3bf69b6430a9ac96c5a6431702f5",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-06-25T14:10:53.796Z",
+      "contentHash": "6f974f1a67346a41f27e6e3172d08b114c0ae9a819155e01f0a1f091d09dc686",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-06-25T14:12:29.113Z",
+      "contentHash": "5b2b37d9089fac111904513112b714c5329950d42310954d62a9744863e0344f",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-06-25T14:20:16.068Z",
+      "contentHash": "4f9ee69a226837d222be724ad7a88a4501de390e41e9224881160127e8c68a60",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-06-25T15:41:36.866Z",
+      "contentHash": "83779534707bd1650700b6d93155cb8f8a1ee91c2ad50db9628ba0be7806954d",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-06-25T15:41:42.196Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d"
+}
