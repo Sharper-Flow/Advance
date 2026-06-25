@@ -2792,7 +2792,8 @@
                           "enum": [
                             "verification_mismatch",
                             "verification_missing",
-                            "consumer_failure"
+                            "consumer_failure",
+                            "design_concern_promoted"
                           ],
                           "type": "string"
                         },
@@ -3143,7 +3144,8 @@
                           "enum": [
                             "verification_mismatch",
                             "verification_missing",
-                            "consumer_failure"
+                            "consumer_failure",
+                            "design_concern_promoted"
                           ],
                           "type": "string"
                         },
@@ -3487,7 +3489,8 @@
                           "enum": [
                             "verification_mismatch",
                             "verification_missing",
-                            "consumer_failure"
+                            "consumer_failure",
+                            "design_concern_promoted"
                           ],
                           "type": "string"
                         },
@@ -3656,6 +3659,42 @@
                   "related_scan": {
                     "minLength": 1,
                     "type": "string"
+                  },
+                  "required_follow_ups": {
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "obligation_class": {
+                          "enum": [
+                            "required_critical",
+                            "required_standard"
+                          ],
+                          "type": "string"
+                        },
+                        "severity": {
+                          "default": "high",
+                          "enum": [
+                            "critical",
+                            "high"
+                          ],
+                          "type": "string"
+                        },
+                        "source_contract_id": {
+                          "type": "string"
+                        },
+                        "text": {
+                          "minLength": 1,
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "text",
+                        "obligation_class",
+                        "severity"
+                      ],
+                      "type": "object"
+                    },
+                    "type": "array"
                   },
                   "required_main_agent_actions": {
                     "items": {
@@ -3904,7 +3943,8 @@
                           "enum": [
                             "verification_mismatch",
                             "verification_missing",
-                            "consumer_failure"
+                            "consumer_failure",
+                            "design_concern_promoted"
                           ],
                           "type": "string"
                         },
@@ -4210,7 +4250,8 @@
                           "enum": [
                             "verification_mismatch",
                             "verification_missing",
-                            "consumer_failure"
+                            "consumer_failure",
+                            "design_concern_promoted"
                           ],
                           "type": "string"
                         },
@@ -4368,7 +4409,8 @@
                           "enum": [
                             "verification_mismatch",
                             "verification_missing",
-                            "consumer_failure"
+                            "consumer_failure",
+                            "design_concern_promoted"
                           ],
                           "type": "string"
                         },
@@ -4528,7 +4570,8 @@
                           "enum": [
                             "verification_mismatch",
                             "verification_missing",
-                            "consumer_failure"
+                            "consumer_failure",
+                            "design_concern_promoted"
                           ],
                           "type": "string"
                         },
@@ -5143,7 +5186,8 @@
                             "enum": [
                               "verification_mismatch",
                               "verification_missing",
-                              "consumer_failure"
+                              "consumer_failure",
+                              "design_concern_promoted"
                             ],
                             "type": "string"
                           },
@@ -5494,7 +5538,8 @@
                             "enum": [
                               "verification_mismatch",
                               "verification_missing",
-                              "consumer_failure"
+                              "consumer_failure",
+                              "design_concern_promoted"
                             ],
                             "type": "string"
                           },
@@ -5838,7 +5883,8 @@
                             "enum": [
                               "verification_mismatch",
                               "verification_missing",
-                              "consumer_failure"
+                              "consumer_failure",
+                              "design_concern_promoted"
                             ],
                             "type": "string"
                           },
@@ -6007,6 +6053,42 @@
                     "related_scan": {
                       "minLength": 1,
                       "type": "string"
+                    },
+                    "required_follow_ups": {
+                      "items": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "obligation_class": {
+                            "enum": [
+                              "required_critical",
+                              "required_standard"
+                            ],
+                            "type": "string"
+                          },
+                          "severity": {
+                            "default": "high",
+                            "enum": [
+                              "critical",
+                              "high"
+                            ],
+                            "type": "string"
+                          },
+                          "source_contract_id": {
+                            "type": "string"
+                          },
+                          "text": {
+                            "minLength": 1,
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "text",
+                          "obligation_class",
+                          "severity"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
                     },
                     "required_main_agent_actions": {
                       "items": {
