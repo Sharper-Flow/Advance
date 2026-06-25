@@ -164,6 +164,7 @@ export function changeSeedStateFromChange(
     target_worktree_path: safeChange.target_worktree_path,
     scope_worktrees: safeChange.scope_worktrees,
     seenReportIds: safeChange.seenReportIds,
+    design_concern_dispositions: safeChange.design_concern_dispositions,
     signal_rejections: safeChange.signal_rejections,
     signal_rejections_total: safeChange.signal_rejections_total,
     ops_followup: safeChange.ops_followup,

@@ -241,6 +241,7 @@ export interface ChangeWorkflowInput {
       | "target_worktree_path"
       | "scope_worktrees"
       | "seenReportIds"
+      | "design_concern_dispositions"
       | "signal_rejections"
       | "signal_rejections_total"
       | "ops_followup"

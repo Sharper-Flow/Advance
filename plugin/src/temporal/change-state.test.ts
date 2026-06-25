@@ -129,6 +129,32 @@ describe("change-state pure mutation helpers", () => {
     expect(seed.lifecycleState).toBe("archived");
   });
 
+  it("carries design-concern dispositions during workflow re-seed", () => {
+    const change = {
+      id: "design-disposition-change",
+      title: "Design disposition change",
+      status: "active",
+      created_at: "2026-06-25T00:00:00.000Z",
+      tasks: [],
+      deltas: {},
+      design_concern_dispositions: [
+        {
+          taskId: "tk-design123",
+          concernKey: "dimension:site_design_consistency",
+          disposition: "rejected_with_evidence",
+          evidence: "Legacy page explicitly out of scope.",
+          dispositionedAt: "2026-06-25T14:00:00.000Z",
+        },
+      ],
+    } satisfies Change;
+
+    const seed = changeSeedStateFromChange(change);
+
+    expect(seed.design_concern_dispositions).toEqual(
+      change.design_concern_dispositions,
+    );
+  });
+
   it("keeps workflow and I/O imports out of the mutation module", () => {
     const source = readFileSync(sourcePath, "utf8");
 
