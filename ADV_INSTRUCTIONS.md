@@ -535,15 +535,17 @@ Uncertain? Omit. Legacy semantics safe.
 
 ### Epic Context
 
-Epics are **optional** initiative containers for related ADV changes and lightweight shell entries. They replace project-level `ROADMAP.md` as the primary ADV planning surface for initiative-level work, but they do not replace GitHub Project/stakeholder intake or make membership mandatory.
+Epics are **optional** initiative containers for related ADV changes and lightweight shell entries. They replace project-level `ROADMAP.md` as the primary ADV planning surface for initiative-level work, but they do not replace GitHub Project/stakeholder intake or make membership mandatory. Product Epics may span multiple ADV-enabled repos while preserving one compact membership projection per child change.
 
 When a change has `epic_membership`:
 
 1. Load compact Epic context with `adv_epic_show epic_id: {epic_id}`.
-2. Surface Epic ID, title, entry ID, order, and entry title in change show/status/resume outputs.
+2. Surface Epic ID, title, entry ID, order, entry title, projection source, and repo/project owner metadata when present in change show/status/resume outputs.
 3. Use Epic order as advisory for next-work recommendations: warn about earlier incomplete entries, but do not block gates, tasks, or promotion solely because of order.
 4. Include Epic context in sub-agent prompts when it helps the worker understand initiative scope.
 5. If no Epic membership is present, render the change identically to the pre-Epic flow.
+
+Existing changes can be linked into, unlinked from, or moved between Epics only through `adv_epic_link_change`, `adv_epic_unlink_change`, and `adv_epic_move_change` with audit evidence. Use `adv_epic_repair_membership` for `projection_pending`, `projection_stale`, `projection_mismatch`, or `target_unreachable` states; default Epic views show bounded `member_status`, not full target-project traces.
 
 Avoidances:
 
@@ -551,6 +553,8 @@ Avoidances:
 - × Do not add Jira-like assignments, estimates, boards, sprints, or ownership workflows.
 - × Do not clone GitHub Projects.
 - × Do not require shell entries to complete full ADV proposal/discovery before promotion.
+- × Do not overload `fast_follow_of` for retroactive Epic membership.
+- × Do not manually edit ADV state to link, unlink, move, or repair Epic membership.
 - × Do not revive a project-level shared workflow pattern without explicit design proof.
 
 ### Cross-Project Coordination
@@ -561,7 +565,7 @@ Reads use `snapshot-ok` + `_projectContext`; mutations use `temporal-required` +
 #### `target_path` matrix (which tools support cross-project)
 
 - `snapshot-ok`: `adv_change_show`, `adv_change_list`, `adv_change_validate`, `adv_status`, `adv_task_show`, `adv_task_list`, `adv_task_ready`.
-- `temporal-required`: `adv_change_update`, `adv_change_create`, `adv_change_archive`, `adv_change_close`, `adv_change_bulk_close`, `adv_task_update`, `adv_task_cancel`, `adv_task_add`, `adv_task_reclassify_tdd`, `adv_gate_status`, `adv_gate_complete`, `adv_temporal_reconnect`, `adv_run_test`.
+- `temporal-required`: `adv_change_update`, `adv_change_create`, `adv_change_archive`, `adv_change_close`, `adv_change_bulk_close`, `adv_task_update`, `adv_task_cancel`, `adv_task_add`, `adv_task_reclassify_tdd`, `adv_epic_link_change`, `adv_epic_unlink_change`, `adv_epic_move_change`, `adv_epic_repair_membership`, `adv_gate_status`, `adv_gate_complete`, `adv_temporal_reconnect`, `adv_run_test`.
 - Current-project only: `adv_temporal_register_search_attributes`, `adv_temporal_worker_restart`, `adv_reflect`, `adv_conformance`, `adv_agenda_*`, `adv_wisdom_*`, `adv_project_metadata`, `adv_project_context`.
 
 Missing `target_path` and genuinely cross-project? Switch sessions: `cd <other-project> && opencode`.

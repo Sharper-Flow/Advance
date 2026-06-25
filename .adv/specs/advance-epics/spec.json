@@ -232,6 +232,48 @@
       ]
     },
     {
+      "id": "rq-epicMembershipRepair01",
+      "title": "Retroactive Membership Is Audited, Movable, and Repairable",
+      "body": "Existing ADV changes MAY be linked into an Epic after creation, unlinked, or moved between Epics through typed tools only. Link, unlink, move, and repair operations MUST require audit evidence, MUST preserve `fast_follow_of` as creation lineage, and MUST update the child change's compact `epic_membership` projection when the child project is reachable. Cross-project membership mutations MUST follow target-path trust rules. Partial failures MUST surface deterministic membership status such as `projection_pending`, `projection_stale`, or `target_unreachable`, with an explicit repair path.",
+      "priority": "must",
+      "tags": ["epics", "membership", "repair", "audit", "cross-project"],
+      "scenarios": [
+        {
+          "id": "rq-epicMembershipRepair01.1",
+          "title": "Existing change links with child projection",
+          "given": ["An existing ADV change has no Epic membership"],
+          "when": "The change is linked to an Epic with audit evidence",
+          "then": [
+            "The Epic records a project-aware change entry",
+            "The child change receives exactly one `epic_membership` projection",
+            "`fast_follow_of` is not created or changed"
+          ]
+        },
+        {
+          "id": "rq-epicMembershipRepair01.2",
+          "title": "Move preserves one-Epic invariant",
+          "given": ["A child change belongs to one Epic"],
+          "when": "The change is moved to another Epic with audit evidence",
+          "then": [
+            "The source Epic no longer appears as the active membership",
+            "The destination Epic owns the child projection",
+            "No second simultaneous Epic membership is created"
+          ]
+        },
+        {
+          "id": "rq-epicMembershipRepair01.3",
+          "title": "Unreachable target remains recoverable",
+          "given": ["An Epic entry references a target project that cannot be reached"],
+          "when": "Membership is shown or repaired",
+          "then": [
+            "The Epic remains readable",
+            "The member reports `target_unreachable` or another typed repair status",
+            "A repair operation can dry-run before mutating state"
+          ]
+        }
+      ]
+    },
+    {
       "id": "rq-epicProductScope01",
       "title": "Product Epics Carry Repo and Project Scope Metadata",
       "body": "An Epic MAY be scoped to a single repo or to a product spanning multiple repositories/projects. Product Epic scope metadata MUST include the owner ADV project ID and a typed repo list containing repo ID, repo project ID, role, required flag, and optional path. Product Epics MUST NOT require duplicate repo-local Epics for one initiative.",

@@ -286,6 +286,54 @@ In v1, each ADV change MAY belong to zero or one Epic. The change schema MUST re
 
 ---
 
+### Retroactive Membership Is Audited, Movable, and Repairable
+
+**ID:** `rq-epicMembershipRepair01` | **Priority:** **[MUST]**
+
+Existing ADV changes MAY be linked into an Epic after creation, unlinked, or moved between Epics through typed tools only. Link, unlink, move, and repair operations MUST require audit evidence, MUST preserve `fast_follow_of` as creation lineage, and MUST update the child change's compact `epic_membership` projection when the child project is reachable. Cross-project membership mutations MUST follow target-path trust rules. Partial failures MUST surface deterministic membership status such as `projection_pending`, `projection_stale`, or `target_unreachable`, with an explicit repair path.
+
+**Tags:** `epics`, `membership`, `repair`, `audit`, `cross-project`
+
+#### Scenarios
+
+**Existing change links with child projection** (`rq-epicMembershipRepair01.1`)
+
+**Given:**
+- An existing ADV change has no Epic membership
+
+**When:** The change is linked to an Epic with audit evidence
+
+**Then:**
+- The Epic records a project-aware change entry
+- The child change receives exactly one `epic_membership` projection
+- `fast_follow_of` is not created or changed
+
+**Move preserves one-Epic invariant** (`rq-epicMembershipRepair01.2`)
+
+**Given:**
+- A child change belongs to one Epic
+
+**When:** The change is moved to another Epic with audit evidence
+
+**Then:**
+- The source Epic no longer appears as the active membership
+- The destination Epic owns the child projection
+- No second simultaneous Epic membership is created
+
+**Unreachable target remains recoverable** (`rq-epicMembershipRepair01.3`)
+
+**Given:**
+- An Epic entry references a target project that cannot be reached
+
+**When:** Membership is shown or repaired
+
+**Then:**
+- The Epic remains readable
+- The member reports `target_unreachable` or another typed repair status
+- A repair operation can dry-run before mutating state
+
+---
+
 ### V1 Does Not Clone Project-Management Workflows
 
 **ID:** `rq-epicNoJiraClone01` | **Priority:** **[MUST]**

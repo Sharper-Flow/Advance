@@ -34,6 +34,8 @@ describe("Advance Epics spec documentation", () => {
       "rq-epicOrderAdvisory01",
       "rq-epicNextWork01",
       "rq-epicOptionalMembership01",
+      "rq-epicMembershipRepair01",
+      "rq-epicProductScope01",
       "rq-epicNoJiraClone01",
       "rq-epicTemporalConstraints01",
     ]) {
@@ -48,7 +50,7 @@ describe("Advance Epics spec documentation", () => {
     expect(spec.name).toBe("advance-epics");
     expect(
       spec.requirements.some(
-        (r: { id: string }) => r.id === "rq-epicNoJiraClone01",
+        (r: { id: string }) => r.id === "rq-epicMembershipRepair01",
       ),
     ).toBe(true);
   });
@@ -90,6 +92,20 @@ describe("ADV_INSTRUCTIONS.md Epic contract", () => {
 
   test("documents adv_epic_show for context loading", () => {
     expect(instructions).toContain("adv_epic_show epic_id:");
+  });
+
+  test("documents audited retrofit, move, and repair tools", () => {
+    expect(instructions).toContain("adv_epic_link_change");
+    expect(instructions).toContain("adv_epic_move_change");
+    expect(instructions).toContain("adv_epic_repair_membership");
+    expect(instructions).toMatch(/projection_pending|projection_stale/i);
+    expect(instructions).toMatch(/target_unreachable/i);
+  });
+
+  test("documents Epic target_path support for cross-project membership", () => {
+    expect(instructions).toMatch(
+      /adv_epic_link_change.*adv_epic_unlink_change.*adv_epic_move_change.*adv_epic_repair_membership/,
+    );
   });
 });
 
@@ -193,6 +209,13 @@ describe("Epic avoidances are documented and not contradicted", () => {
     expect(specDoc).toMatch(
       /order MUST affect display and next-work recommendations only/i,
     );
+  });
+
+  test("spec doc states retrofit membership is audited and repairable", () => {
+    expect(specDoc).toContain("rq-epicMembershipRepair01");
+    expect(specDoc).toMatch(/MUST require audit evidence/i);
+    expect(specDoc).toMatch(/fast_follow_of.*not created or changed/i);
+    expect(specDoc).toMatch(/target_unreachable/i);
   });
 });
 
