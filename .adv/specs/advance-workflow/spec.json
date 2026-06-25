@@ -3,7 +3,7 @@
   "name": "advance-workflow",
   "title": "Advance Workflow",
   "purpose": "Capability: Workflow contract layer for ADV \u2014 gate model, autonomy boundaries, design validation, scope management, releases, approvals, handoff voice, review remediation, and touched-scope quality. Split from `advance` capability.",
-  "version": "1.22.0",
+  "version": "1.23.0",
   "updated_at": "2026-06-25T00:00:00.000Z",
   "requirements": [
     {

@@ -179,6 +179,10 @@ export function buildChangeSearchAttributes(
   const attrs: Record<string, unknown[]> = {
     AdvChangeId: [state.changeId],
     AdvChangeStatus: [state.status],
+    // rq-changeLifecycleState01: lifecycleState is the canonical terminal/open
+    // authority; legacy status (draft/pending/active) normalizes to open, and
+    // archived/closed normalize to their matching lifecycle states for
+    // Visibility projection. AdvChangeStatus is not the open-change authority.
     AdvLifecycleState: [
       state.lifecycleState ?? normalizeChangeLifecycleState(state.status),
     ],

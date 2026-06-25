@@ -139,7 +139,9 @@ describe("buildContractFromAgreement", () => {
         approvedAt,
         warrantLookup,
       }),
-    ).toThrow(/CONTRACT_UNRESOLVED_WARRANT[\s\S]*adv_change_archive#target_path/);
+    ).toThrow(
+      /CONTRACT_UNRESOLVED_WARRANT[\s\S]*adv_change_archive#target_path/,
+    );
   });
 
   test("AC2: mint succeeds when a declared warrant resolves; tag stripped, refs recorded", () => {

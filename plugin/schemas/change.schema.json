@@ -218,6 +218,12 @@
               "verificationRequired": {
                 "default": true,
                 "type": "boolean"
+              },
+              "warrants": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
               }
             },
             "required": [
