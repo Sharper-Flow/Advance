@@ -100,8 +100,40 @@ describe("adv_epic_create", () => {
 });
 
 describe("adv_epic_show", () => {
-  test("returns Epic state", async () => {
-    const store = makeStore();
+  test("default compact view returns bounded history and next work", async () => {
+    const now = new Date().toISOString();
+    const store = makeStore({
+      entries: [
+        {
+          kind: "change",
+          entry_id: "done-1",
+          order: 0,
+          change_id: "doneChange",
+          terminal_summary: { status: "archived", completed_at: now },
+        },
+        {
+          kind: "change",
+          entry_id: "active-1",
+          order: 1,
+          change_id: "activeChange",
+        },
+        {
+          kind: "shell",
+          entry_id: "shell-1",
+          order: 2,
+          title: "Future Shell",
+          success_hint: "Do it",
+        },
+      ],
+      progress: {
+        status: "active",
+        total_entries: 3,
+        completed_entries: 1,
+        active_entries: 1,
+        next_entry_id: "active-1",
+        updated_at: now,
+      },
+    });
     const output = await epicTools.adv_epic_show.execute(
       { epic_id: "addAuthEpic" },
       store,
@@ -109,6 +141,36 @@ describe("adv_epic_show", () => {
     const parsed = parseToolOutput(output);
     expect(parsed.success).toBe(true);
     expect(parsed.epic.title).toBe("Add Auth Epic");
+    expect(parsed.epic.history).toHaveLength(1);
+    expect(parsed.epic.history[0]).toMatchObject({
+      entry_id: "done-1",
+      change_id: "doneChange",
+      status: "archived",
+    });
+    expect(parsed.epic.history_total).toBe(1);
+    expect(parsed.epic.next_work).toHaveLength(2);
+    expect(parsed.epic.next_work[0]).toMatchObject({
+      entry_id: "active-1",
+      kind: "change",
+      status: "active",
+    });
+    expect(parsed.epic.next_work[1]).toMatchObject({
+      entry_id: "shell-1",
+      kind: "shell",
+      status: "future",
+    });
+    expect(parsed.epic.entries).toBeUndefined();
+  });
+
+  test("full view returns complete entries", async () => {
+    const store = makeStore();
+    const output = await epicTools.adv_epic_show.execute(
+      { epic_id: "addAuthEpic", view: "full" },
+      store,
+    );
+    const parsed = parseToolOutput(output);
+    expect(parsed.success).toBe(true);
+    expect(parsed.epic.entries).toBeDefined();
   });
 
   test("returns typed not-found error", async () => {

@@ -378,6 +378,9 @@ export async function createDiskStore(
           ...(initialMetadata?.scope_repos !== undefined
             ? { scope_repos: initialMetadata.scope_repos }
             : {}),
+          ...(initialMetadata?.epic_membership !== undefined
+            ? { epic_membership: initialMetadata.epic_membership }
+            : {}),
         } as Change;
         await saveChange(paths.changes, change);
 

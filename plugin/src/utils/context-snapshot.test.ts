@@ -157,6 +157,28 @@ describe("formatContextSnapshot", () => {
     expect(output).not.toContain("Wisdom:");
   });
 
+  test("shows compact Epic membership line when epicMembership is provided", () => {
+    const input: ContextSnapshotInput = {
+      ...baseInput,
+      epicMembership: {
+        epic_id: "addAuthEpic",
+        entry_id: "en-001",
+        order: 0,
+        title: "Add OAuth",
+        linked_at: "2026-06-24T00:00:00.000Z",
+      },
+    };
+    const output = formatContextSnapshot(input);
+    expect(output).toContain("Epic:");
+    expect(output).toContain("addAuthEpic");
+    expect(output).toContain("Add OAuth");
+  });
+
+  test("omits Epic line when epicMembership is absent", () => {
+    const output = formatContextSnapshot(baseInput);
+    expect(output).not.toContain("Epic:");
+  });
+
   test("fits within 10 lines with wisdom line and current task", () => {
     const input: ContextSnapshotInput = {
       ...baseInput,
@@ -576,5 +598,31 @@ describe("summarizeTasks", () => {
       { id: "tk-2", title: "T2", status: "pending" },
     ]);
     expect(result.errorBudgetProximity).toBeUndefined();
+  });
+});
+
+describe("buildChangeContextSnapshot epic context", () => {
+  test("surfaces compact Epic membership from change data", () => {
+    const output = buildChangeContextSnapshot({
+      change: {
+        id: "epicChild",
+        title: "Epic child change",
+        tasks: [],
+        epic_membership: {
+          epic_id: "addAuthEpic",
+          entry_id: "en-001",
+          order: 0,
+          title: "Add OAuth",
+          linked_at: "2026-06-24T00:00:00.000Z",
+        },
+      },
+      proposalText: "## User Outcomes\n- One\n",
+      gates: { proposal: { status: "done" } },
+      workdir: "/tmp/worktree",
+    });
+
+    expect(output).toContain("Epic:");
+    expect(output).toContain("addAuthEpic");
+    expect(output).toContain("Add OAuth");
   });
 });

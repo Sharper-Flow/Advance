@@ -148,6 +148,27 @@ describe("formatTable", () => {
     const out = formatTable(summaries, false, now);
     expect(out).toContain("↳ child");
   });
+
+  test("renders epic id next to change id when present", () => {
+    const now = new Date("2024-01-01T12:00:00Z");
+    const summaries: ChangeSummary[] = [
+      {
+        id: "epic-child",
+        title: "Epic child",
+        status: "active",
+        recency: "hot",
+        lastActivityAt: "2024-01-01T11:00:00Z",
+        minutesSinceActivity: 60,
+        tasksDone: 0,
+        tasksTotal: 0,
+        firstIncompleteGate: "proposal",
+        gateProgressStr: "○ ○ ○ ○ ○ ○ ○",
+        epicId: "addAuthEpic",
+      },
+    ];
+    const out = formatTable(summaries, false, now);
+    expect(out).toContain("epic-child [addAuthEpic]");
+  });
 });
 
 // =============================================================================

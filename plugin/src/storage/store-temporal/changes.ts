@@ -413,6 +413,7 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
           completedTasks: change.tasks.filter((task) => task.status === "done")
             .length,
           fast_follow_of: change.fast_follow_of,
+          epic_membership: change.epic_membership,
         })),
       };
     },
@@ -823,6 +824,7 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
         fast_follow_of?: Change["fast_follow_of"];
         ops_followup?: Change["ops_followup"];
         ops_followup_links?: Change["ops_followup_links"];
+        epic_membership?: Change["epic_membership"];
       };
 
       const rows: SummaryRow[] = [];
@@ -843,6 +845,7 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
             fast_follow_of: cached.fast_follow_of,
             ops_followup: cached.ops_followup,
             ops_followup_links: cached.ops_followup_links,
+            epic_membership: cached.epic_membership,
           });
           continue;
         }
@@ -861,6 +864,7 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
             fast_follow_of: summary.fast_follow_of,
             ops_followup: summary.ops_followup,
             ops_followup_links: summary.ops_followup_links,
+            epic_membership: summary.epic_membership,
           });
           continue;
         }
@@ -884,6 +888,7 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
               fast_follow_of: change.fast_follow_of,
               ops_followup: change.ops_followup,
               ops_followup_links: change.ops_followup_links,
+              epic_membership: change.epic_membership,
             });
           }
         } catch (err) {

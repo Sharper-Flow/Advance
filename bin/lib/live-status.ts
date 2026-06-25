@@ -80,6 +80,7 @@ function normalizeWorkflowState(raw: any): ChangeRecord {
     validation: raw.validation,
     fast_follow_of: raw.fast_follow_of,
     lastSignalAt: raw.lastSignalAt,
+    epic_membership: raw.epic_membership,
   };
 }
 
@@ -136,6 +137,7 @@ export function summarizeLiveChanges(
       firstIncompleteGate: firstIncompleteGate(change.gates),
       gateProgressStr: buildGateProgress(change.gates),
       parentChangeId: change.fast_follow_of?.parent_change_id,
+      epicId: change.epic_membership?.epic_id,
     };
   });
 
@@ -295,6 +297,7 @@ export function buildSummaryFromSearchAttributes(
     tasksTotal: 0,
     firstIncompleteGate: incomplete,
     gateProgressStr: buildGateProgress(gates),
+    epicId: searchAttributeString(attrs, "AdvEpicId"),
   };
 }
 

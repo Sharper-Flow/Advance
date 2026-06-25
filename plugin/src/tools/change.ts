@@ -2197,6 +2197,13 @@ export const changeTools = {
               ops_followup_links: compactOpsFollowupLinkAnnotations(
                 change.ops_followup_links,
               ),
+              epic: change.epic_membership
+                ? {
+                    id: change.epic_membership.epic_id,
+                    title: change.epic_membership.title,
+                    entry_id: change.epic_membership.entry_id,
+                  }
+                : undefined,
             };
           });
 

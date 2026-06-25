@@ -36,6 +36,7 @@ export interface ChangeRecord {
   wisdom?: WisdomEntry[];
   validation?: { validated_at?: string };
   fast_follow_of?: { parent_change_id?: string };
+  epic_membership?: { epic_id: string; title: string };
   lastSignalAt?: string;
 }
 
@@ -52,6 +53,7 @@ export interface ChangeSummary {
   firstIncompleteGate: string | null;
   gateProgressStr: string;
   parentChangeId?: string;
+  epicId?: string;
 }
 
 export interface LiveStatusPayload {

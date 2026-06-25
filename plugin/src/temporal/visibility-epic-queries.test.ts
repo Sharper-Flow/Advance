@@ -20,14 +20,14 @@ function makeClient(results: Array<{ workflowId: string }>): {
 }
 
 describe("visibility-epic-queries: query construction (rq-epicTemporalConstraints01)", () => {
-  it("builds Epic-members query scoped by AdvAffectedProjects + AdvEpicId + non-terminal status", () => {
+  it("builds Epic-members query scoped by AdvAffectedProjects + AdvEpicId + open lifecycle", () => {
     const query = buildEpicMembersVisibilityQuery({
       projectId: "pid-abc",
       epicId: "addAuthEpic",
     });
 
     expect(query).toBe(
-      'AdvAffectedProjects = "pid-abc" AND AdvEpicId = "addAuthEpic" AND AdvChangeStatus IN ("draft", "pending", "active")',
+      'AdvAffectedProjects = "pid-abc" AND AdvEpicId = "addAuthEpic" AND AdvLifecycleState = "open" AND ExecutionStatus = "Running"',
     );
   });
 
@@ -41,7 +41,7 @@ describe("visibility-epic-queries: query construction (rq-epicTemporalConstraint
     expect(query).toContain('AdvEpicId = "evil\\"epic"');
   });
 
-  it("supports custom status filtering", () => {
+  it("maps legacy open custom statuses to open lifecycle filtering", () => {
     const query = buildEpicMembersVisibilityQuery({
       projectId: "pid-abc",
       epicId: "addAuthEpic",
@@ -49,7 +49,19 @@ describe("visibility-epic-queries: query construction (rq-epicTemporalConstraint
     });
 
     expect(query).toBe(
-      'AdvAffectedProjects = "pid-abc" AND AdvEpicId = "addAuthEpic" AND AdvChangeStatus IN ("active")',
+      'AdvAffectedProjects = "pid-abc" AND AdvEpicId = "addAuthEpic" AND AdvLifecycleState = "open" AND ExecutionStatus = "Running"',
+    );
+  });
+
+  it("preserves explicit terminal status filtering for archive sweeps", () => {
+    const query = buildEpicMembersVisibilityQuery({
+      projectId: "pid-abc",
+      epicId: "addAuthEpic",
+      statuses: ["archived"],
+    });
+
+    expect(query).toBe(
+      'AdvAffectedProjects = "pid-abc" AND AdvEpicId = "addAuthEpic" AND AdvChangeStatus IN ("archived")',
     );
   });
 

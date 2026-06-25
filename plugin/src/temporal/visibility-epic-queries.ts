@@ -3,16 +3,24 @@
  *
  * Pattern: queries Temporal Visibility on the per-change `AdvEpicId` search
  * attribute (single-value Keyword) plus `AdvAffectedProjects` for project scope
- * and `AdvChangeStatus` for status filtering. The change workflow ID itself
- * carries the change ID, so callers can enumerate members without hydrating
- * each change.
+ * and `AdvLifecycleState = "open"` + `ExecutionStatus = "Running"` for open
+ * membership filtering. `AdvChangeStatus` remains compatibility/read-model
+ * metadata and is not open-membership authority. The change workflow ID itself
+ * carries the change ID, so callers can enumerate members without hydrating each
+ * change.
  */
 
 import type { ChangeStatus } from "../types";
+import {
+  escapeVisibilityValue,
+  isLegacyOpenStatusSet,
+  openLifecycleVisibilityClauses,
+} from "./lifecycle-visibility";
 
 /**
- * Statuses included by default — `draft`, `pending`, `active`. Pass `null`
- * to disable status filtering entirely (e.g. for archive sweeps).
+ * Legacy statuses treated as open for compatibility. Default membership reads
+ * are lifecycle-based; pass `null` to disable filtering entirely (e.g. for
+ * archive sweeps).
  */
 const DEFAULT_STATUSES: readonly ChangeStatus[] = [
   "draft",
@@ -22,16 +30,12 @@ const DEFAULT_STATUSES: readonly ChangeStatus[] = [
 
 const CHANGE_WORKFLOW_PREFIX = "adv/change/";
 
-function escapeQueryValue(value: string): string {
-  return value.replace(/"/g, '\\"');
-}
-
 export interface EpicMembersQueryOptions {
   projectId: string;
   epicId: string;
   /**
-   * Statuses to include. Defaults to non-terminal. Pass `null` to skip
-   * the status filter entirely.
+   * Statuses to include. Defaults to open lifecycle. Legacy open statuses map
+   * to lifecycle filtering. Pass `null` to skip the filter entirely.
    */
   statuses?: ChangeStatus[] | null;
 }
@@ -53,8 +57,8 @@ export interface EpicMembersVisibilityClient {
 export function buildEpicMembersVisibilityQuery(
   options: EpicMembersQueryOptions,
 ): string {
-  const safeProjectId = escapeQueryValue(options.projectId);
-  const safeEpicId = escapeQueryValue(options.epicId);
+  const safeProjectId = escapeVisibilityValue(options.projectId);
+  const safeEpicId = escapeVisibilityValue(options.epicId);
   const parts: string[] = [
     `AdvAffectedProjects = "${safeProjectId}"`,
     `AdvEpicId = "${safeEpicId}"`,
@@ -68,8 +72,12 @@ export function buildEpicMembersVisibilityQuery(
         : DEFAULT_STATUSES;
 
   if (statuses) {
-    const list = statuses.map((s) => `"${s}"`).join(", ");
-    parts.push(`AdvChangeStatus IN (${list})`);
+    if (isLegacyOpenStatusSet(statuses)) {
+      parts.push(...openLifecycleVisibilityClauses());
+    } else {
+      const list = statuses.map((s) => `"${s}"`).join(", ");
+      parts.push(`AdvChangeStatus IN (${list})`);
+    }
   }
 
   return parts.join(" AND ");

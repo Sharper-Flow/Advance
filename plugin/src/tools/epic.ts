@@ -51,6 +51,85 @@ function mapEpicEntry(entry: EpicEntry) {
   };
 }
 
+const COMPACT_HISTORY_LIMIT = 5;
+const COMPACT_NEXT_WORK_LIMIT = 3;
+
+function formatEpicCompact(epic: import("../types").Epic) {
+  const terminalEntries = epic.entries.filter(
+    (
+      entry,
+    ): entry is import("../types").EpicEntry & {
+      kind: "change";
+      terminal_summary: { status: "archived" | "closed"; completed_at: string };
+    } => entry.kind === "change" && entry.terminal_summary != null,
+  );
+
+  const history = terminalEntries
+    .sort((a, b) => a.order - b.order)
+    .slice(0, COMPACT_HISTORY_LIMIT)
+    .map((entry) => ({
+      entry_id: entry.entry_id,
+      kind: entry.kind,
+      change_id: entry.change_id,
+      status: entry.terminal_summary.status,
+      completed_at: entry.terminal_summary.completed_at,
+    }));
+
+  let next_work: Array<
+    | { entry_id: string; kind: "shell"; title: string; status: "future" }
+    | { entry_id: string; kind: "change"; change_id: string; status: "active" }
+  > = [];
+  if (epic.progress.next_entry_id) {
+    const startIndex = epic.entries.findIndex(
+      (entry) => entry.entry_id === epic.progress.next_entry_id,
+    );
+    const candidates =
+      startIndex >= 0 ? epic.entries.slice(startIndex) : epic.entries;
+    next_work = candidates
+      .filter(
+        (entry) =>
+          entry.kind === "shell" ||
+          (entry.kind === "change" && entry.terminal_summary == null),
+      )
+      .slice(0, COMPACT_NEXT_WORK_LIMIT)
+      .map((entry) => {
+        if (entry.kind === "shell") {
+          return {
+            entry_id: entry.entry_id,
+            kind: "shell" as const,
+            title: entry.title,
+            status: "future" as const,
+          };
+        }
+        return {
+          entry_id: entry.entry_id,
+          kind: "change" as const,
+          change_id: entry.change_id,
+          status: "active" as const,
+        };
+      });
+  }
+
+  return {
+    id: epic.id,
+    title: epic.title,
+    narrative: epic.narrative,
+    version: epic.version,
+    status: epic.progress.status,
+    progress: {
+      total_entries: epic.progress.total_entries,
+      completed_entries: epic.progress.completed_entries,
+      active_entries: epic.progress.active_entries,
+      next_entry_id: epic.progress.next_entry_id,
+    },
+    history,
+    history_total: terminalEntries.length,
+    next_work,
+    created_at: epic.created_at,
+    updated_at: epic.updated_at,
+  };
+}
+
 function formatEpic(epic: import("../types").Epic) {
   return {
     id: epic.id,
@@ -107,15 +186,27 @@ export const epicTools = {
 
   adv_epic_show: {
     description:
-      "Show an Epic's current state, including roadmap entries and compact progress summary.",
+      'Show an Epic\'s current state. Default `view: "compact"` returns a bounded summary with archived/closed history and next active/future work; use `view: "full"` for complete entries.',
     args: {
       epic_id: EPIC_ID_SCHEMA,
+      view: z
+        .enum(["compact", "full"])
+        .optional()
+        .default("compact")
+        .describe(
+          'Rendering view: "compact" (default, bounded) or "full" (complete entry list).',
+        ),
     },
-    execute: async ({ epic_id }: { epic_id: string }, store: Store) => {
+    execute: async (
+      { epic_id, view }: { epic_id: string; view?: "compact" | "full" },
+      store: Store,
+    ) => {
       try {
         const epic = await loadEpic(store, epic_id);
         if (!epic) return epicNotFound(epic_id);
-        return formatToolOutput({ success: true, epic: formatEpic(epic) });
+        const rendered =
+          view === "full" ? formatEpic(epic) : formatEpicCompact(epic);
+        return formatToolOutput({ success: true, epic: rendered });
       } catch (err) {
         return epicError(err);
       }

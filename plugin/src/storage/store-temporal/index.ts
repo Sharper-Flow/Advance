@@ -3,7 +3,12 @@ import type { Change } from "../../types";
 import { createLogger } from "../../utils/debug-log";
 import { hasArchiveBundle, listChangeDirs, loadChange } from "../json";
 import { buildChangeRecency } from "../store-types";
-import type { ChangeStatus, ProjectStatus, Spec } from "../../types";
+import type {
+  ChangeStatus,
+  EpicMembership,
+  ProjectStatus,
+  Spec,
+} from "../../types";
 import { SpecSchema } from "../../types";
 import { listSpecsActivity, showSpecActivity } from "../../temporal/activities";
 import type { LoadResult } from "../json";
@@ -103,6 +108,8 @@ export function createTemporalStoreBackend(
       fast_follow_of: state.fast_follow_of,
       ops_followup: state.ops_followup,
       ops_followup_links: state.ops_followup_links,
+      epic_membership: (state as { epic_membership?: EpicMembership })
+        .epic_membership,
     };
   };
 
@@ -154,6 +161,7 @@ export function createTemporalStoreBackend(
       fast_follow_of: change.fast_follow_of,
       ops_followup: change.ops_followup,
       ops_followup_links: change.ops_followup_links,
+      epic_membership: change.epic_membership,
     });
     indexTasksFromChange(change);
     return change;

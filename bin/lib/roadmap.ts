@@ -283,6 +283,9 @@ export function renderRoadmap(
   lines.push(
     "active-change annotation: unavailable in CLI file mode (use adv_backlog_state / adv_roadmap MCP tool)",
   );
+  lines.push(
+    "epic annotation: unavailable in CLI file mode (use adv_epic_show / adv_epic_list MCP tool)",
+  );
   lines.push("");
 
   const kind = opts.kind ?? "all";
@@ -375,6 +378,7 @@ export function roadmapJson(
     project: snapshot.project,
     counts: snapshot.counts,
     active_change_annotation: "unavailable_cli_file_mode",
+    epic_annotation: "unavailable_cli_file_mode",
     bugs: filtered.bugs,
     features: filtered.features,
     deferred: filtered.deferred,

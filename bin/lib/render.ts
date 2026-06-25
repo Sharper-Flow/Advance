@@ -73,9 +73,10 @@ export function formatTable(
   const W = {
     id: Math.max(
       20,
-      ...summaries.map((s) =>
-        s.parentChangeId ? `↳ ${s.id}`.length : s.id.length,
-      ),
+      ...summaries.map((s) => {
+        const base = s.parentChangeId ? `↳ ${s.id}` : s.id;
+        return s.epicId ? `${base} [${s.epicId}]` : base;
+      }).map((label) => label.length),
     ),
     title: Math.max(
       25,
@@ -103,7 +104,9 @@ export function formatTable(
   }
 
   for (const s of summaries) {
-    const idLabel = s.parentChangeId ? `↳ ${s.id}` : s.id;
+    const idLabel = s.parentChangeId
+      ? `↳ ${s.id}${s.epicId ? ` [${s.epicId}]` : ""}`
+      : `${s.id}${s.epicId ? ` [${s.epicId}]` : ""}`;
     const titleStr =
       s.title.length > W.title
         ? s.title.slice(0, W.title - 1) + "…"
