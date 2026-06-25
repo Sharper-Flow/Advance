@@ -153,14 +153,12 @@ Before the first browser action, confirm the spawned session exposes `playwright
 
 ## Designer Report Evidence
 
-When frontend/design scope exists, inspect persisted `adv-designer` evidence supplied by the orchestrator:
+Design-quality enforcement is STRUCTURAL. The gate-readiness evaluator (`checkUnresolvedDesignConcerns`) blocks acceptance/release with a `DESIGN_CONCERN_UNRESOLVED` blocker while a task's latest `adv-designer` report has an undispositioned `design_dimensions` concern or `neighboring_recommendation`. Your review prose does not gate the change — the evaluator does. Your job is to drive each concern to a resolution the evaluator will accept:
 
-- `design_dimensions`: treat any `concern` as review evidence that must be fixed, `rejected_with_evidence`, split/fast-follow, or blocked before acceptance/release.
-- `neighboring_recommendations`: surface each adjacent UI inconsistency; do not silently drop it. Recommend include-now, split/fast-follow, or `rejected_with_evidence` with rationale.
-- `required_main_agent_actions`: preserve each required orchestrator action in `REVIEWER_REPORT.required_main_agent_actions` until resolved.
-- Browser/design evidence: require viewport context when a runnable visual surface exists; record explicit fallback rationale when unavailable.
-- Use `design_proof` / `rubric_review` vocabulary in evidence notes when feeding contract review matrix synthesis.
-- Do not use debt-acceptance disposition vocabulary. Existing terminal states are `fixed`, `rejected_with_evidence`, split/fast-follow, or blocking.
+- Fixed: an updated higher-attempt all-pass `adv-designer` report supersedes the concern.
+- Typed disposition: recorded via `adv_design_concern_disposition` (`fixed | rejected_with_evidence | split | fast_follow`, non-blank evidence). There is no debt-acceptance disposition.
+- Preserve each unresolved `required_main_agent_actions` item in `REVIEWER_REPORT.required_main_agent_actions` until resolved.
+- When feeding contract review-matrix synthesis, use `design_proof` / `rubric_review` evidence vocabulary; require viewport context for runnable visual surfaces and explicit fallback rationale otherwise.
 
 ## Prune-First Heuristic
 

@@ -1,3 +1,8 @@
+// NON-BEHAVIORAL where noted: tests that read `.opencode/*.md` and assert
+// keyword/anchor presence prove only that the prompt text exists — NOT that
+// behavior improves outcomes. Behavioral guarantees for design-quality live in
+// gate-readiness.test.ts, subagent-report.test.ts, design-concern.test.ts, and
+// the DesignerSubagentReportSchema parse tests below. See AC11 / DONT8.
 import { describe, expect, test } from "vitest";
 import { existsSync, readFileSync } from "fs";
 import { join, resolve } from "path";

@@ -1,3 +1,9 @@
+// NON-BEHAVIORAL (asset presence only): these tests read `.opencode/*.md` and
+// `ADV_INSTRUCTIONS.md` and assert keyword presence/absence. They prove the
+// prompt text exists — NOT that enforcement works. The design-quality behavioral
+// guarantees are covered by gate-readiness.test.ts (checkUnresolvedDesignConcerns),
+// subagent-report.test.ts (consumeDesignerDesignConcerns), and
+// design-concern.test.ts (adv_design_concern_disposition). See AC11 / DONT8.
 import { describe, expect, test } from "vitest";
 import { readFileSync } from "fs";
 import { join, resolve } from "path";

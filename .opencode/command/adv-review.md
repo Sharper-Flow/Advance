@@ -472,20 +472,20 @@ For each non-code task, create or verify `contract.reviewMatrix` rows using the 
 
 Each applicable `AC*`/`SC*` row must have `pass` or `fail` status (or `not_applicable` with rationale). Failing, `unknown`, or missing evidence blocks acceptance.
 
-#### Designer Report Evidence in the Review Matrix
+#### Designer Concern Enforcement (structural)
 
 <!-- rq-designQualityEvidence01 -->
 
-For frontend/design implementation scope, inspect persisted task and sidecar reports from `adv-designer` before acceptance proof synthesis:
+Design-quality enforcement is STRUCTURAL, not reviewer-prose. The gate-readiness evaluator (`checkUnresolvedDesignConcerns`) reads persisted `adv-designer` reports from change state and emits a `DESIGN_CONCERN_UNRESOLVED` blocker that blocks the acceptance and release gates while the latest designer report for any task has an undispositioned `design_dimensions` concern or `neighboring_recommendation`. You cannot complete acceptance while that blocker is present — this is enforced by code, not by remembering to look.
 
-- Read `DESIGNER_REPORT.design_dimensions` and map six-dimension evidence into `contract.reviewMatrix` rows using `design_proof`, `rubric_review`, `review`, `static_check`, or `test` evidence policies as appropriate.
-- Any `design_dimensions.* == "concern"` must be classified as fixed, `rejected_with_evidence`, split/fast-follow, or blocking.
-- Unresolved owned-scope design concerns block acceptance.
-- Read `DESIGNER_REPORT.neighboring_recommendations[]`; each recommendation must be dispositioned as include-now, split/fast-follow, or `rejected_with_evidence` with rationale. Neighboring recommendations are not silently dropped.
-- Read `DESIGNER_REPORT.required_main_agent_actions[]`; each required action must be resolved, converted into a linked follow-up, or surfaced as blocking evidence before the acceptance prompt.
-- Browser/design proof for runnable visual surfaces must include viewport context. Missing runnable surface requires explicit fallback rationale in matrix evidence.
-- Do not create a terminal state for accepting unresolved debt. Use existing terminal vocabulary: `fixed`, `rejected_with_evidence`, split/fast-follow, or blocking.
-- Review/harden ownership remains with `adv-reviewer`; `adv-designer` remains apply-phase only.
+To clear a blocked concern, do exactly one of:
+
+- Fix it and have `adv-designer` submit an updated (higher-attempt) all-pass report for the task.
+- Record a typed disposition via `adv_design_concern_disposition` (`changeId`, `taskId`, `concernKey`, `disposition` ∈ `fixed | rejected_with_evidence | split | fast_follow`, non-blank `evidence`). There is no debt-acceptance disposition.
+
+Advisory only: on report submit, each concern and `neighboring_recommendation` is auto-promoted to a `required-obligation` agenda item (deduped) so it is never silently lost — but the agenda item is routing, not the gate authority.
+
+When synthesizing acceptance proof, additionally map relevant `DESIGNER_REPORT.design_dimensions` / `required_main_agent_actions` into `contract.reviewMatrix` rows using `design_proof`, `rubric_review`, `review`, `static_check`, or `test` evidence policies. Browser/design proof for runnable visual surfaces must include viewport context; a missing runnable surface requires explicit fallback rationale. Review/harden ownership remains with `adv-reviewer`; `adv-designer` remains apply-phase only.
 
 The acceptance summary must include a contract proof line: required rows passed/respected, failed/violated/unknown counts, and remaining caveats.
 
