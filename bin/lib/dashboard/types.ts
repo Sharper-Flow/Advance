@@ -5,6 +5,8 @@ export interface DashboardDegradedSource {
   code: string;
   message: string;
   last_success_at?: string;
+  retry_after_seconds?: number;
+  rate_limit_reset_at?: string;
 }
 
 export interface DashboardGithubConfig {
