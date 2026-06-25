@@ -782,6 +782,8 @@ describe("deploy-local.sh", () => {
 
     test("canonical ADV prompt stays under the safe compression ceiling", () => {
       const lines = advAgent.split(/\r?\n/).length;
+      // Ceiling raised from 368 → 400 after adding Epic tools to the canonical
+      // allowlist and Epic context-loading instructions to the ADV agent.
       // Ceiling raised from 365 → 368 after adding compact adv-temporal-repair
       // routing markers and packet anchors.
       // Ceiling raised from 363 → 365 after adding adv_archive_repair and
@@ -794,7 +796,7 @@ describe("deploy-local.sh", () => {
       // refactor exposed `adv_worktree_resume` and we added it to the
       // canonical allowlist to clear deploy-local tool-drift checks.
       // Re-ratchet here once the prompt has been audited for excess.
-      expect(lines).toBeLessThanOrEqual(368);
+      expect(lines).toBeLessThanOrEqual(400);
     });
 
     test("canonical ADV prompt keeps safety-critical markers", () => {

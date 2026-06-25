@@ -493,6 +493,7 @@ Typed primitive: `change.origin = { kind, issue_number?, source_artifact? }` (`p
 
 | Surface                                                     | Source of truth                     | Why                                                                                                       |
 | ----------------------------------------------------------- | ----------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| ADV initiative planning (multi-change initiatives, ordered shells/children) | ADV Epics (Temporal + Visibility)   | In-flight ADV initiative context, next-work recommendations, and shell-to-change promotion live with ADV state. |
 | Ranked backlog                                              | GH Project v2 + `ROADMAP.md` mirror | Multi-stakeholder, public, score fields (V/TC/RROE/E/WSJF). Moving to Temporal kills stakeholder surface. |
 | In-flight ADV state (changes, tasks, gates, agenda, wisdom) | Temporal + on-disk projection       | Session-coordinated, gate-validated, replay-safe. GH can't model.                                         |
 | Linkage                                                     | `change.origin` (in `change.json`)  | Linkage IS ADV state. Lives with rest of ADV state.                                                       |
@@ -531,6 +532,26 @@ Typed primitive: `change.origin = { kind, issue_number?, source_artifact? }` (`p
 - `rq-issueChangeLinkage03`: `github_project` linkage config MUST live in `.adv/github-project.json` with dedicated Zod schema (`plugin/src/storage/github-project-config.ts`). Legacy `project_metadata['github_project']` is read-only fallback that migrates forward on first read; legacy entry NOT deleted post-migration.
 
 Uncertain? Omit. Legacy semantics safe.
+
+### Epic Context
+
+Epics are **optional** initiative containers for related ADV changes and lightweight shell entries. They replace project-level `ROADMAP.md` as the primary ADV planning surface for initiative-level work, but they do not replace GitHub Project/stakeholder intake or make membership mandatory.
+
+When a change has `epic_membership`:
+
+1. Load compact Epic context with `adv_epic_show epic_id: {epic_id}`.
+2. Surface Epic ID, title, entry ID, order, and entry title in change show/status/resume outputs.
+3. Use Epic order as advisory for next-work recommendations: warn about earlier incomplete entries, but do not block gates, tasks, or promotion solely because of order.
+4. Include Epic context in sub-agent prompts when it helps the worker understand initiative scope.
+5. If no Epic membership is present, render the change identically to the pre-Epic flow.
+
+Avoidances:
+
+- × Do not make every ADV change belong to an Epic.
+- × Do not add Jira-like assignments, estimates, boards, sprints, or ownership workflows.
+- × Do not clone GitHub Projects.
+- × Do not require shell entries to complete full ADV proposal/discovery before promotion.
+- × Do not revive a project-level shared workflow pattern without explicit design proof.
 
 ### Cross-Project Coordination
 

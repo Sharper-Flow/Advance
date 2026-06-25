@@ -112,8 +112,9 @@ Before touching anything, establish scope:
    - If MISSING and the file should already exist (existing component to extend):
      - Discover actual structure: `glob pattern: "**/{basename}"` with `workdir`, or `bash "ls {workdir}/"` with `workdir`.
      - If found at a different path → use the corrected path for all subsequent operations.
-     - If not found at all → report in DESIGNER_REPORT `blockers`. Do NOT call `question`; return the blocker for orchestrator recovery.
+     - If not found at all → report in `DESIGNER_REPORT.blockers`. Do NOT call `question`; return the blocker for orchestrator recovery.
    - If MISSING and the file is a create-target (new component file) → skip verification; proceed normally.
+7. **Epic context:** If the Designer Apply Context Packet includes `epic_membership`, treat the Epic id/title/order as supplementary initiative context. Do not block UI work based on Epic order, and do not assume every change belongs to an Epic.
 
 You may not begin work until the scope is locked AND path preflight is complete.
 

@@ -120,6 +120,7 @@ Before touching anything, establish scope:
 5. **Path Preflight**: Before reading any file referenced in the Context Packet, verify it exists in `workdir`:
    - `bash "test -e '{workdir}/{path}' && echo OK || echo MISSING"` per referenced path.
    - If MISSING and essential → record in `REVIEWER_REPORT.required_main_agent_actions` and stop the affected dimension.
+6. **Epic context:** If the Context Packet includes `epic_membership`, treat the Epic id/title/order as supplementary initiative context. Do not block findings or fixes based on Epic order, and do not assume every change belongs to an Epic.
 
 You may not begin analysis until scope is locked AND path preflight is complete.
 

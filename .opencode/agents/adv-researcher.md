@@ -84,6 +84,7 @@ Validate architectural decisions against canonical best practices. You have a **
 - Perform all research inline with your own tools; NEVER spawn or request additional sub-agents/delegates
 - NEVER invoke `/adv-*` slash commands from inside this sub-agent; use ADV tools directly when you need ADV state
 - The only ADV mutation you may perform is submitting your own optimized `RESEARCHER_REPORT` through `adv_subagent_report_submit`
+- If the packet includes `epic_membership`, treat the Epic id/title/order as supplementary initiative context only; do not let Epic order override the scoped research objective or expand scope
 
 ## ADV State Access Policy
 

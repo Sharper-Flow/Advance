@@ -108,7 +108,8 @@ Before touching anything, establish scope:
       - If found at a different path → use the corrected path for all subsequent operations.
       - If not found at all → report in ENGINEER_REPORT `blockers` with the missing path and what you tried. Do NOT call `question`; return the blocker for orchestrator recovery.
    - If MISSING and the file is a create-target (new file to write) → skip verification; proceed normally.
-   - Use the `PROJECT STRUCTURE` line from the Apply Context Packet as a guide if available — it contains verified paths from the orchestrator's Phase 0.1 path verification.
+    - Use the `PROJECT STRUCTURE` line from the Apply Context Packet as a guide if available — it contains verified paths from the orchestrator's Phase 0.1 path verification.
+    - **Epic context:** If the Apply Context Packet or `adv_change_show` includes `epic_membership`, treat the Epic id/title/order as supplementary initiative context. Do not block work based on Epic order, and do not assume every change belongs to an Epic.
 
 You may not begin work until the scope is locked AND path preflight is complete.
 

@@ -33,6 +33,7 @@ $ARGUMENTS
 - review proposal + agreement content from `_proposal` / `_agreement` (or packet state), not artifact paths
 - inspect affected code with `lgrep`/`read`
 - use Context7 when framework/library best practice matters
+- **Epic context:** if the change has `epic_membership`, load compact Epic context with `adv_epic_show epic_id: {epic_id}` and consider the Epic narrative/entry order when sequencing design decisions. Epic order is advisory; do not let it block design gate completion.
 
 If agreement is missing or not approved, stop and complete `/adv-discover` first.
 
