@@ -797,8 +797,10 @@ describe("deploy-local.sh", () => {
       // canonical allowlist to clear deploy-local tool-drift checks.
       // Ceiling raised from 368 → 371 to match trunk (branch base was stale;
       // adv.md is identical to trunk, which already accepts 371).
+      // Ceiling raised from 371 → 372 after addDesignQualityGates shipped
+      // adv_design_concern_disposition and we added it to the allowlists.
       // Re-ratchet here once the prompt has been audited for excess.
-      expect(lines).toBeLessThanOrEqual(371);
+      expect(lines).toBeLessThanOrEqual(372);
     });
 
     test("canonical ADV prompt keeps safety-critical markers", () => {

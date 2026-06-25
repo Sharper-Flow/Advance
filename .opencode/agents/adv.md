@@ -55,6 +55,7 @@ tools:
   adv_archive_repair: true
   adv_change_status_repair: true
   adv_change_forget: true
+  adv_design_concern_disposition: true
   # Tasks
   adv_task_list: true
   adv_task_show: true
