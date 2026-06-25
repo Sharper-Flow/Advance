@@ -150,6 +150,7 @@ export function changeSeedStateFromChange(
     signal_rejections_total: safeChange.signal_rejections_total,
     ops_followup: safeChange.ops_followup,
     ops_followup_links: safeChange.ops_followup_links,
+    epic_membership: safeChange.epic_membership,
   };
 }
 

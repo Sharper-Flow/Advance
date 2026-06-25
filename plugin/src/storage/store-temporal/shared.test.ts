@@ -209,4 +209,35 @@ describe("mapTemporalChangeStateToChange", () => {
     expect(change.ops_followup_links).toHaveLength(1);
     expect(change.ops_followup_links?.[0]?.changeId).toBe("child-1");
   });
+
+  test("projects epic_membership into Change read model", () => {
+    const state = createChangeWorkflowState({
+      changeId: "epic-projection",
+      title: "Epic projection",
+      createdAt: "2026-06-20T04:00:00.000Z",
+    });
+    state.epic_membership = {
+      epic_id: "addAuthEpic",
+      entry_id: "ent-1",
+      order: 0,
+      title: "Add auth",
+      linked_at: "2026-06-20T04:00:00.000Z",
+    };
+
+    const change = mapTemporalChangeStateToChange(state);
+
+    expect(change.epic_membership).toEqual(state.epic_membership);
+  });
+
+  test("leaves epic_membership undefined when workflow state lacks it", () => {
+    const state = createChangeWorkflowState({
+      changeId: "no-epic",
+      title: "No epic",
+      createdAt: "2026-06-20T04:00:00.000Z",
+    });
+
+    const change = mapTemporalChangeStateToChange(state);
+
+    expect(change.epic_membership).toBeUndefined();
+  });
 });

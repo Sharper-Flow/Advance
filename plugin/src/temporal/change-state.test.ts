@@ -325,6 +325,55 @@ describe("change-state pure mutation helpers", () => {
     expect(seed.external_dependencies).toEqual(externalDependencies);
   });
 
+  it("carries epic_membership when seeding workflow state", () => {
+    const epicMembership = {
+      epic_id: "addAuthEpic",
+      entry_id: "ent-1",
+      order: 0,
+      title: "Add auth",
+      linked_at: "2026-06-06T20:00:00.000Z",
+    };
+
+    const seed = changeSeedStateFromChange({
+      id: "epic-child",
+      title: "Epic child",
+      status: "active",
+      created_at: "2026-06-06T20:00:00.000Z",
+      tasks: [],
+      deltas: {},
+      wisdom: [],
+      gates: createChangeWorkflowState({
+        changeId: "epic-child",
+        title: "Epic child",
+        createdAt: "2026-06-06T20:00:00.000Z",
+      }).gates,
+      reentry_history: [],
+      epic_membership: epicMembership,
+    } as unknown as Change);
+
+    expect(seed.epic_membership).toEqual(epicMembership);
+  });
+
+  it("leaves epic_membership undefined when seeding a change without it", () => {
+    const seed = changeSeedStateFromChange({
+      id: "no-epic",
+      title: "No epic",
+      status: "active",
+      created_at: "2026-06-06T20:00:00.000Z",
+      tasks: [],
+      deltas: {},
+      wisdom: [],
+      gates: createChangeWorkflowState({
+        changeId: "no-epic",
+        title: "No epic",
+        createdAt: "2026-06-06T20:00:00.000Z",
+      }).gates,
+      reentry_history: [],
+    } as unknown as Change);
+
+    expect(seed.epic_membership).toBeUndefined();
+  });
+
   it("records task lifecycle mutations without task-run ledger state", () => {
     const state = createChangeWorkflowState({
       changeId: "change-state-test",

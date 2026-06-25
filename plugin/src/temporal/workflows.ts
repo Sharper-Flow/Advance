@@ -605,6 +605,9 @@ export async function changeWorkflow(
     if (input.seedState.ops_followup_links) {
       state.ops_followup_links = [...input.seedState.ops_followup_links];
     }
+    if (input.seedState.epic_membership) {
+      state.epic_membership = input.seedState.epic_membership;
+    }
   }
 
   wf.setHandler(changeBootstrapQuery, () => bootstrap);
@@ -1611,6 +1614,7 @@ export async function changeWorkflow(
       signal_rejections_total: state.signal_rejections_total,
       ops_followup: state.ops_followup,
       ops_followup_links: state.ops_followup_links,
+      epic_membership: state.epic_membership,
     },
   };
   await wf.condition(wf.allHandlersFinished);

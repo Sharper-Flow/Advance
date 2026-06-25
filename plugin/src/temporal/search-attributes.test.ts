@@ -60,6 +60,8 @@ describe("ADV search attributes", () => {
       AdvWorktreePaths: "KeywordList",
       // rq-backlogCoord01: single-value Keyword (NOT KeywordList — no slot pressure on the 3-KeywordList dev-server limit).
       AdvBacklogIssueNumber: "Keyword",
+      // rq-epicTemporalConstraints01: single-value Keyword for one Epic per change.
+      AdvEpicId: "Keyword",
     });
   });
 
@@ -76,6 +78,7 @@ describe("ADV search attributes", () => {
       { name: "AdvWorktreeBranches", type: "KeywordList", typeCode: 7 },
       { name: "AdvWorktreePaths", type: "KeywordList", typeCode: 7 },
       { name: "AdvBacklogIssueNumber", type: "Keyword", typeCode: 2 },
+      { name: "AdvEpicId", type: "Keyword", typeCode: 2 },
     ]);
   });
 
@@ -128,6 +131,7 @@ describe("ADV search attributes", () => {
       "AdvWorktreeBranches",
       "AdvWorktreePaths",
       "AdvBacklogIssueNumber",
+      "AdvEpicId",
     ]);
     expect(addSearchAttributes).toHaveBeenCalledWith({
       namespace: "default",
@@ -142,6 +146,7 @@ describe("ADV search attributes", () => {
         AdvWorktreeBranches: 7,
         AdvWorktreePaths: 7,
         AdvBacklogIssueNumber: 2,
+        AdvEpicId: 2,
       },
     });
   });
@@ -184,6 +189,47 @@ describe("ADV search attributes", () => {
       // Keyword search attributes carry string values, not numbers.
       expect(attrs.AdvBacklogIssueNumber).toEqual(["7"]);
       expect(typeof attrs.AdvBacklogIssueNumber?.[0]).toBe("string");
+    });
+  });
+
+  describe("rq-epicTemporalConstraints01: AdvEpicId population from state.epic_membership", () => {
+    it("populates AdvEpicId when state.epic_membership.epic_id is set", () => {
+      const state = makeState();
+      state.epic_membership = {
+        epic_id: "addAuthEpic",
+        entry_id: "ent-1",
+        order: 0,
+        title: "Add auth",
+        linked_at: "2026-05-05T00:00:00.000Z",
+      };
+
+      const attrs = buildChangeSearchAttributes(state);
+
+      expect(attrs.AdvEpicId).toEqual(["addAuthEpic"]);
+    });
+
+    it("omits AdvEpicId when state.epic_membership is undefined", () => {
+      const state = makeState();
+
+      const attrs = buildChangeSearchAttributes(state);
+
+      expect(attrs.AdvEpicId).toBeUndefined();
+    });
+
+    it("stringifies AdvEpicId as a Keyword value", () => {
+      const state = makeState();
+      state.epic_membership = {
+        epic_id: "authV2",
+        entry_id: "ent-2",
+        order: 1,
+        title: "Auth v2",
+        linked_at: "2026-05-05T00:00:00.000Z",
+      };
+
+      const attrs = buildChangeSearchAttributes(state);
+
+      expect(attrs.AdvEpicId).toEqual(["authV2"]);
+      expect(typeof attrs.AdvEpicId?.[0]).toBe("string");
     });
   });
 });

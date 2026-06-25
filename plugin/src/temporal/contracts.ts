@@ -251,6 +251,7 @@ export interface ChangeWorkflowInput {
       | "signal_rejections_total"
       | "ops_followup"
       | "ops_followup_links"
+      | "epic_membership"
     >
   >;
 }
@@ -452,6 +453,13 @@ export interface ChangeWorkflowState extends ChangeWorkflowInput {
    * search attribute (rq-backlogCoord01).
    */
   origin?: ChangeOrigin;
+  /**
+   * Optional Epic membership projection on the child change. Mirrors
+   * `ChangeSchema.epic_membership` on disk. Populated from seedState and
+   * read by `buildChangeSearchAttributes` to populate `AdvEpicId` search
+   * attribute (rq-epicTemporalConstraints01).
+   */
+  epic_membership?: import("../types").Change["epic_membership"];
   /** Cross-project provenance for target follow-up changes. */
   cross_project_origin?: import("../types").Change["cross_project_origin"];
   /** Source-side outbound links to target project follow-up changes. */

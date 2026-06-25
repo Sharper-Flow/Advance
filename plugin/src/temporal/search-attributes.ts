@@ -10,9 +10,9 @@ import { bucketCtxFromState, deriveBucket } from "../utils/buckets";
 // If a path-level filter is needed in the future, encode it as a single
 // `Keyword` (joined value) or replace one of the other KeywordLists.
 //
-// `AdvBacklogIssueNumber` (rq-backlogCoord01) is a single-value `Keyword`,
-// NOT a KeywordList — it carries one issue number per change. Adding it
-// does not consume any of the 3 KeywordList slots.
+// `AdvBacklogIssueNumber` (rq-backlogCoord01) and `AdvEpicId`
+// (rq-epicTemporalConstraints01) are single-value `Keyword` attributes,
+// NOT KeywordList entries — neither consumes a KeywordList slot.
 export const ADV_SEARCH_ATTRIBUTES = {
   AdvChangeId: "Keyword",
   AdvChangeStatus: "Keyword",
@@ -25,6 +25,7 @@ export const ADV_SEARCH_ATTRIBUTES = {
   AdvWorktreeBranches: "KeywordList",
   AdvWorktreePaths: "KeywordList",
   AdvBacklogIssueNumber: "Keyword",
+  AdvEpicId: "Keyword",
 } as const;
 
 const SEARCH_ATTRIBUTE_TYPE_CODE = {
@@ -216,6 +217,12 @@ export function buildChangeSearchAttributes(
   // attributes carry string values, so the issue number is stringified.
   if (state.origin?.issue_number !== undefined) {
     attrs.AdvBacklogIssueNumber = [String(state.origin.issue_number)];
+  }
+
+  // rq-epicTemporalConstraints01: populate AdvEpicId from state.epic_membership
+  // so Epic member lookup can use Visibility without hydrating all changes.
+  if (state.epic_membership?.epic_id !== undefined) {
+    attrs.AdvEpicId = [state.epic_membership.epic_id];
   }
 
   return attrs;

@@ -90,6 +90,7 @@ export async function ensureChangeWorkflowStarted(
         changeStatus: "draft",
         activeGate: "proposal",
         backlogIssueNumber: inputWithHydration.seedState?.origin?.issue_number,
+        epicId: inputWithHydration.seedState?.epic_membership?.epic_id,
       });
     }
     return await client.workflow.start(changeWorkflow, startOpts);
