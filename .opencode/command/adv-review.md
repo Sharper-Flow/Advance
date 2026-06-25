@@ -390,7 +390,7 @@ Before applying ANY fix, evaluate: **"If I apply this fix, will any agreement ac
 - **NO** → auto-remediate (proceed with fix)
 - **YES** → **STOP** — present the finding and proposed fix to user via `question` tool:
   - **Approve fix and update scope** — user agrees the scope should expand
-  - **Skip fix, document as accepted debt** — finding is valid but out of scope
+  - **Reject with evidence / split** — finding is valid but outside current scope; use `rejected_with_evidence` for in-scope rejected findings or split/fast-follow for out-of-scope work
   - **Cancel review** — user wants to reconsider
 
 This is the single declarative drift detection rule. It applies to every finding, every fix, every auto-remediation action.
@@ -471,6 +471,21 @@ For each non-code task, create or verify `contract.reviewMatrix` rows using the 
 - `not_applicable` — requires `contract_refs.not_applicable_reason`.
 
 Each applicable `AC*`/`SC*` row must have `pass` or `fail` status (or `not_applicable` with rationale). Failing, `unknown`, or missing evidence blocks acceptance.
+
+#### Designer Report Evidence in the Review Matrix
+
+<!-- rq-designQualityEvidence01 -->
+
+For frontend/design implementation scope, inspect persisted task and sidecar reports from `adv-designer` before acceptance proof synthesis:
+
+- Read `DESIGNER_REPORT.design_dimensions` and map six-dimension evidence into `contract.reviewMatrix` rows using `design_proof`, `rubric_review`, `review`, `static_check`, or `test` evidence policies as appropriate.
+- Any `design_dimensions.* == "concern"` must be classified as fixed, `rejected_with_evidence`, split/fast-follow, or blocking.
+- Unresolved owned-scope design concerns block acceptance.
+- Read `DESIGNER_REPORT.neighboring_recommendations[]`; each recommendation must be dispositioned as include-now, split/fast-follow, or `rejected_with_evidence` with rationale. Neighboring recommendations are not silently dropped.
+- Read `DESIGNER_REPORT.required_main_agent_actions[]`; each required action must be resolved, converted into a linked follow-up, or surfaced as blocking evidence before the acceptance prompt.
+- Browser/design proof for runnable visual surfaces must include viewport context. Missing runnable surface requires explicit fallback rationale in matrix evidence.
+- Do not create a terminal state for accepting unresolved debt. Use existing terminal vocabulary: `fixed`, `rejected_with_evidence`, split/fast-follow, or blocking.
+- Review/harden ownership remains with `adv-reviewer`; `adv-designer` remains apply-phase only.
 
 The acceptance summary must include a contract proof line: required rows passed/respected, failed/violated/unknown counts, and remaining caveats.
 

@@ -411,7 +411,7 @@ Before applying ANY fix, evaluate: **"If I apply this fix, will any agreement ac
 - **YES** → **STOP** — present the finding and proposed fix to user via `question` tool:
   - **Approve fix and update scope** — user agrees the scope should expand; route through scope-discovery protocol (`docs/scope-discovery-protocol.md`)
   - **Split** — create a fast-follow child change via `adv_change_create parent_change_id: <current>` for the scope expansion
-  - **Skip fix, document as accepted debt** — finding is valid but out of scope
+  - **Reject with evidence / split** — finding is valid but out of scope; use `rejected_with_evidence` for in-scope rejected findings or split/fast-follow for out-of-scope work
   - **Cancel hardening** — user wants to reconsider
 
 This is the single declarative drift detection rule. It applies to every finding, every fix, every auto-remediation action.
@@ -474,6 +474,7 @@ FRONTEND DESIGN REVIEW SKILL: when the change includes frontend/design implement
     - finer details — hover/focus/active/disabled states, empty/loading/error states, keyboard navigation, copy correctness
     - component correctness — props, state, events, behavior match the intended contract; no regressions in adjacent component behavior
 Review/harden ownership remains with `adv-reviewer`; `adv-designer` is apply-phase only and MUST NOT be spawned here.
+DESIGNER REPORT EVIDENCE: inspect persisted `adv-designer` reports when frontend/design scope exists. Surface unresolved `design_dimensions` concerns, `neighboring_recommendations`, and `required_main_agent_actions`; each must be fixed, `rejected_with_evidence`, split/fast-follow, or blocking before release. Do not silently drop neighboring recommendations and do not introduce a terminal state for accepting unresolved debt.
 EXPECTED OUTPUT: fix scoped hardening finding(s), run verification, call adv_subagent_report_submit with REVIEWER_REPORT per .opencode/agents/adv-reviewer.md
 ```
 

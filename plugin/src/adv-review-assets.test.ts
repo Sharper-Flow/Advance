@@ -71,4 +71,22 @@ describe("adv-review non-code evidence policy surface", () => {
       /Failing, `unknown`, or missing evidence blocks acceptance/,
     );
   });
+
+  test("designer report evidence is consumed into design-quality review proof", () => {
+    expect(command).toContain("Designer Report Evidence");
+    expect(command).toContain("adv-designer");
+    expect(command).toContain("design_dimensions");
+    expect(command).toContain("neighboring_recommendations");
+    expect(command).toContain("required_main_agent_actions");
+    expect(command).toContain("design_proof");
+    expect(command).toContain("rubric_review");
+    expect(command).toMatch(/unresolved owned-scope design concerns block acceptance/i);
+  });
+
+  test("designer neighboring recommendations require explicit disposition", () => {
+    expect(command).toMatch(/include-now/i);
+    expect(command).toMatch(/split\/fast-follow/i);
+    expect(command).toMatch(/rejected_with_evidence/);
+    expect(command).toMatch(/not silently dropped/i);
+  });
 });

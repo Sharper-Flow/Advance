@@ -60,7 +60,7 @@ Capability: Workflow contract layer for ADV — gate model, autonomy boundaries,
 
 **ID:** `rq-designQualityEvidence01` | **Priority:** **[MUST]**
 
-/adv-review MUST consume persisted adv-designer report evidence for frontend/design implementation scope before acceptance. Designer design_dimensions concerns, neighboring_recommendations, required_main_agent_actions, and browser/design verification evidence MUST be surfaced into review synthesis and contract.reviewMatrix proof using existing evidence policies such as design_proof, rubric_review, review, static_check, or test. Owned-scope unresolved design concerns MUST block acceptance unless fixed or rejected_with_evidence. Neighboring or out-of-scope UI concerns MUST be dispositioned through include-now, split/fast-follow, or rejected_with_evidence with rationale; they MUST NOT be silently hidden or represented by a new accepted_debt terminal state. Review and harden ownership remains with adv-reviewer, and adv-designer remains apply-phase only.
+/adv-review MUST consume persisted adv-designer report evidence for frontend/design implementation scope before acceptance. Designer design_dimensions concerns, neighboring_recommendations, required_main_agent_actions, and browser/design verification evidence MUST be surfaced into review synthesis and contract.reviewMatrix proof using existing evidence policies such as design_proof, rubric_review, review, static_check, or test. Owned-scope unresolved design concerns MUST block acceptance unless fixed or rejected_with_evidence. Neighboring or out-of-scope UI concerns MUST be dispositioned through include-now, split/fast-follow, or rejected_with_evidence with rationale; they MUST NOT be silently hidden or represented by a new terminal state for accepting unresolved debt. Review and harden ownership remains with adv-reviewer, and adv-designer remains apply-phase only.
 
 **Tags:** `workflow`, `review`, `acceptance`, `frontend`, `design-proof`, `adv-designer`
 
@@ -95,7 +95,7 @@ Capability: Workflow contract layer for ADV — gate model, autonomy boundaries,
 - Each item is dispositioned as include-now, split/fast-follow, or rejected_with_evidence with rationale
 - The item is not silently dropped
 
-**No accepted_debt terminal state is introduced** (`rq-designQualityEvidence01.3`)
+**No unresolved-debt acceptance terminal state is introduced** (`rq-designQualityEvidence01.3`)
 
 **Given:**
 
@@ -105,7 +105,7 @@ Capability: Workflow contract layer for ADV — gate model, autonomy boundaries,
 
 **Then:**
 
-- No accepted_debt terminal state is used
+- No terminal state for accepting unresolved debt is used
 - In-scope rejected items use rejected_with_evidence
 - Out-of-scope valid items use split or fast-follow handoff
 

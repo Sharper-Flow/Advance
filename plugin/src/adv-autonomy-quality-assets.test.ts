@@ -77,6 +77,15 @@ describe("Validated in-scope remediation policy", () => {
     const content = readAsset(join(COMMAND_DIR, "adv-review.md"));
     expect(content).toMatch(/no future-work deferral/i);
     expect(content).not.toMatch(/accepted_debt/);
+    expect(content).not.toMatch(/accepted-debt/i);
+    expect(content).not.toMatch(/accepted debt/i);
+    expect(content).toMatch(/rejected_with_evidence/);
+  });
+
+  test("adv-reviewer.md avoids accepted-debt disposition vocabulary", () => {
+    const content = readAsset(join(AGENT_DIR, "adv-reviewer.md"));
+    expect(content).not.toMatch(/accepted-debt/i);
+    expect(content).not.toMatch(/accepted debt/i);
     expect(content).toMatch(/rejected_with_evidence/);
   });
 });
