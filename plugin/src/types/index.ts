@@ -206,6 +206,8 @@ export {
 export {
   ChangeStatusSchema,
   type ChangeStatus,
+  ChangeLifecycleStateSchema,
+  type ChangeLifecycleState,
   ChangeListStatusFilterSchema,
   ChangeClosureSchema,
   type ChangeClosure,

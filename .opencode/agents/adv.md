@@ -83,6 +83,9 @@ tools:
   adv_run_test: true
   # Sub-agent reports
   adv_subagent_report_submit: true
+  # Ops follow-ups
+  adv_followup_promote: true
+  adv_ops_evidence_add: true
   # Temporal / workflow ops
   adv_temporal_diagnose: true
   adv_temporal_reconnect: true

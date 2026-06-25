@@ -22,16 +22,22 @@
  * filtering and an optional hard `limit` cap.
  *
  * Search-attribute strategy: ADV registers `AdvAffectedProjects`
- * (KeywordList) and `AdvChangeStatus` (Keyword) as custom search
- * attributes (see `search-attributes.ts:ADV_SEARCH_ATTRIBUTES` and
- * `service.ts:registerAdvSearchAttributes`). The visibility query filters
- * on these to scope reads to one project + non-archived statuses by
- * default. `AdvAffectedProjects` matches the backlog-claim Visibility
+ * (KeywordList), `AdvLifecycleState` (Keyword), and `AdvChangeStatus`
+ * (Keyword) as custom search attributes (see
+ * `search-attributes.ts:ADV_SEARCH_ATTRIBUTES` and
+ * `service.ts:registerAdvSearchAttributes`). The default visibility query
+ * filters on project scope + `AdvLifecycleState = "open"` + running
+ * executions. `AdvAffectedProjects` matches the backlog-claim Visibility
  * scope (`visibility-claim-queries.ts`) so list/claim paths use the same
  * registered attribute.
  */
 
 import type { ChangeStatus } from "../types";
+import {
+  escapeVisibilityValue,
+  isLegacyOpenStatusSet,
+  openLifecycleVisibilityClauses,
+} from "./lifecycle-visibility";
 
 /**
  * Statuses included by default — `draft`, `pending`, `active`. Excludes
@@ -44,8 +50,6 @@ const DEFAULT_STATUSES: readonly ChangeStatus[] = [
   "pending",
   "active",
 ];
-
-const RUNNING_EXECUTION_STATUSES = new Set<ChangeStatus>(DEFAULT_STATUSES);
 
 export interface ListChangeWorkflowIdsOptions {
   projectId: string;
@@ -93,7 +97,7 @@ export function buildVisibilityQuery(
   // the list, so a single registered attribute serves both single-project
   // and multi-project change workflows. This converges list-change-workflows
   // with visibility-claim-queries on the same registered attribute.
-  const safeProjectId = projectId.replace(/"/g, '\\"');
+  const safeProjectId = escapeVisibilityValue(projectId);
   parts.push(`AdvAffectedProjects = "${safeProjectId}"`);
 
   // statuses=null is the explicit "all statuses" mode; statuses=undefined
@@ -106,14 +110,11 @@ export function buildVisibilityQuery(
         : DEFAULT_STATUSES;
 
   if (effectiveStatuses) {
-    const list = effectiveStatuses.map((s) => `"${s}"`).join(", ");
-    parts.push(`AdvChangeStatus IN (${list})`);
-    if (
-      effectiveStatuses.every((status) =>
-        RUNNING_EXECUTION_STATUSES.has(status),
-      )
-    ) {
-      parts.push(`ExecutionStatus = "Running"`);
+    if (isLegacyOpenStatusSet(effectiveStatuses)) {
+      parts.push(...openLifecycleVisibilityClauses());
+    } else {
+      const list = effectiveStatuses.map((s) => `"${s}"`).join(", ");
+      parts.push(`AdvChangeStatus IN (${list})`);
     }
   }
 

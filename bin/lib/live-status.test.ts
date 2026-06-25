@@ -162,6 +162,7 @@ describe("visibility search-attribute status reader", () => {
       {
         AdvChangeTitle: ["Harden migration safety"],
         AdvChangeStatus: ["draft"],
+        AdvLifecycleState: ["open"],
         AdvCurrentGate: ["release"],
         AdvLastSignalAt: ["2026-06-05T16:55:26.526Z"],
         AdvCreatedAt: ["2026-06-05T16:05:54.815Z"],
@@ -173,6 +174,7 @@ describe("visibility search-attribute status reader", () => {
     expect(summary?.id).toBe("hardenMigrationSafety");
     expect(summary?.title).toBe("Harden migration safety");
     expect(summary?.status).toBe("draft");
+    expect(summary?.lifecycleState).toBe("open");
     expect(summary?.firstIncompleteGate).toBe("release");
     expect(summary?.gateProgressStr).toBe("✓ ✓ ✓ ✓ ✓ ✓ ○");
     expect(summary?.lastActivityAt).toBe("2026-06-05T16:55:26.526Z");
@@ -185,6 +187,22 @@ describe("visibility search-attribute status reader", () => {
         AdvChangeTitle: ["Done change"],
         AdvChangeStatus: ["draft"],
         AdvCurrentGate: ["done"],
+        AdvLastSignalAt: ["2026-06-05T16:00:00.000Z"],
+      },
+      now,
+    );
+
+    expect(summary).toBeNull();
+  });
+
+  test("excludes non-open lifecycle rows even when gate data is stale", () => {
+    const summary = buildSummaryFromSearchAttributes(
+      "archivedButStale",
+      {
+        AdvChangeTitle: ["Archived but stale"],
+        AdvChangeStatus: ["active"],
+        AdvLifecycleState: ["archived"],
+        AdvCurrentGate: ["execution"],
         AdvLastSignalAt: ["2026-06-05T16:00:00.000Z"],
       },
       now,
@@ -219,6 +237,7 @@ describe("visibility search-attribute status reader", () => {
 
     expect(summary?.title).toBe("sparse");
     expect(summary?.status).toBe("draft");
+    expect(summary?.lifecycleState).toBe("open");
     expect(summary?.firstIncompleteGate).toBe("proposal");
     expect(summary?.gateProgressStr).toBe("○ ○ ○ ○ ○ ○ ○");
     expect(summary?.lastActivityAt).toBe("2026-06-05T15:00:00.000Z");
@@ -292,9 +311,7 @@ describe("visibility search-attribute status reader", () => {
 
     expect(client.queries).toHaveLength(1);
     expect(client.queries[0]).toContain('AdvAffectedProjects = "project123"');
-    expect(client.queries[0]).toContain(
-      'AdvChangeStatus IN ("draft", "pending", "active")',
-    );
+    expect(client.queries[0]).not.toContain("AdvChangeStatus");
     expect(client.queries[0]).toContain('ExecutionStatus = "Running"');
     expect(summaries.map((s) => s.id)).toEqual(["runningActive"]);
   });

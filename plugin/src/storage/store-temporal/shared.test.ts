@@ -128,6 +128,21 @@ describe("getGuardedChangeHandle owner guard cache", () => {
 });
 
 describe("mapTemporalChangeStateToChange", () => {
+  test("projects lifecycleState into Change read model", () => {
+    const state = createChangeWorkflowState({
+      changeId: "legacy-open-projection",
+      title: "Legacy open projection",
+      createdAt: "2026-06-25T00:00:00.000Z",
+    });
+    state.status = "pending";
+    state.lifecycleState = "open";
+
+    const change = mapTemporalChangeStateToChange(state);
+
+    expect(change.status).toBe("pending");
+    expect(change.lifecycleState).toBe("open");
+  });
+
   test("preserves and normalizes sidecar sub-agent reports", () => {
     const state = createChangeWorkflowState({
       changeId: "legacy-sidecar",

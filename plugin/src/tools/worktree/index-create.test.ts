@@ -629,7 +629,7 @@ describe.skipIf(!isLinux)(
       });
       expect(workflowList).toHaveBeenCalledWith({
         query:
-          'AdvAffectedProjects = "test-id" AND AdvWorktreeBranches = "change/feature" AND AdvChangeStatus = "active"',
+          'AdvAffectedProjects = "test-id" AND AdvWorktreeBranches = "change/feature" AND AdvLifecycleState = "open" AND ExecutionStatus = "Running"',
       });
       const list = execSync("git worktree list", { cwd: repoRoot }).toString();
       expect(list).not.toContain("change/feature");

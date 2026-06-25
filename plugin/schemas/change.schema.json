@@ -2258,6 +2258,14 @@
     "lastSignalAt": {
       "type": "string"
     },
+    "lifecycleState": {
+      "enum": [
+        "open",
+        "archived",
+        "closed"
+      ],
+      "type": "string"
+    },
     "ops_followup": {
       "additionalProperties": false,
       "properties": {

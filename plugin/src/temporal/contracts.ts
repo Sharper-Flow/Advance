@@ -133,6 +133,7 @@ export interface ChangeSummaryPayload {
   changeId: string;
   title: string;
   status: import("../types").ChangeStatus;
+  lifecycleState?: import("../types").ChangeLifecycleState;
   gateProgress: {
     proposal: string;
     discovery: string;
@@ -218,6 +219,7 @@ export interface ChangeWorkflowInput {
     Pick<
       ChangeWorkflowState,
       | "status"
+      | "lifecycleState"
       | "tasks"
       | "subagent_reports"
       | "deltas"
@@ -347,6 +349,7 @@ export interface TestRunRecord {
 export interface ChangeWorkflowState extends ChangeWorkflowInput {
   id: string;
   status: import("../types").ChangeStatus;
+  lifecycleState: import("../types").ChangeLifecycleState;
   createdAt: string;
   tasks: import("../types").Task[];
   subagent_reports?: ScopedSubagentReport[];

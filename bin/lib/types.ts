@@ -29,6 +29,7 @@ export interface ChangeRecord {
   id: string;
   title: string;
   status: string;
+  lifecycleState?: string;
   created_at: string;
   tasks: TaskRecord[];
   gates?: Record<string, GateState>;
@@ -42,6 +43,7 @@ export interface ChangeSummary {
   id: string;
   title: string;
   status: string;
+  lifecycleState?: string;
   recency: "hot" | "warm" | "stale";
   lastActivityAt: string;
   minutesSinceActivity: number;
