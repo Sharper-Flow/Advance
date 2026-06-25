@@ -795,6 +795,8 @@ describe("deploy-local.sh", () => {
       // Ceiling raised from 360 → 361 after the signal-driven workflow
       // refactor exposed `adv_worktree_resume` and we added it to the
       // canonical allowlist to clear deploy-local tool-drift checks.
+      // Ceiling raised from 368 → 371 to match trunk (branch base was stale;
+      // adv.md is identical to trunk, which already accepts 371).
       // Re-ratchet here once the prompt has been audited for excess.
       expect(lines).toBeLessThanOrEqual(371);
     });

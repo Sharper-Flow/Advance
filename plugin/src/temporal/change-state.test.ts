@@ -943,7 +943,10 @@ describe("applyDesignConcernDispositionedToState", () => {
   };
 
   it("appends a design-concern disposition to state", () => {
-    const state = applyDesignConcernDispositionedToState(baseState(), disposition);
+    const state = applyDesignConcernDispositionedToState(
+      baseState(),
+      disposition,
+    );
     expect(state.design_concern_dispositions).toHaveLength(1);
     expect(state.design_concern_dispositions![0].concernKey).toBe(
       "dimension:site_design_consistency",
@@ -954,7 +957,10 @@ describe("applyDesignConcernDispositionedToState", () => {
   });
 
   it("latest-wins on the same (taskId, concernKey)", () => {
-    let state = applyDesignConcernDispositionedToState(baseState(), disposition);
+    let state = applyDesignConcernDispositionedToState(
+      baseState(),
+      disposition,
+    );
     state = applyDesignConcernDispositionedToState(state, {
       ...disposition,
       disposition: "fixed",
@@ -970,7 +976,10 @@ describe("applyDesignConcernDispositionedToState", () => {
   });
 
   it("keeps distinct (taskId, concernKey) dispositions separate", () => {
-    let state = applyDesignConcernDispositionedToState(baseState(), disposition);
+    let state = applyDesignConcernDispositionedToState(
+      baseState(),
+      disposition,
+    );
     state = applyDesignConcernDispositionedToState(state, {
       ...disposition,
       concernKey: "neighbor:0",

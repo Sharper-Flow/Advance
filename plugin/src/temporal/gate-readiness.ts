@@ -538,7 +538,9 @@ const DESIGN_DIMENSION_KEYS = [
   "finer_details",
 ] as const;
 
-function designerReportTaskId(report: DesignerSubagentReport): string | undefined {
+function designerReportTaskId(
+  report: DesignerSubagentReport,
+): string | undefined {
   if (typeof report.scope === "object" && report.scope.kind === "task") {
     return report.scope.task_id;
   }

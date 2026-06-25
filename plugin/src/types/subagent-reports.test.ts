@@ -566,7 +566,8 @@ describe("Subagent report schemas", () => {
     it("accepts design_concern_promoted consumer warning kind", () => {
       const parsed = SubagentConsumerWarningSchema.parse({
         kind: "design_concern_promoted",
-        message: "Promoted site_design_consistency concern to a durable obligation",
+        message:
+          "Promoted site_design_consistency concern to a durable obligation",
       });
       expect(parsed.kind).toBe("design_concern_promoted");
     });

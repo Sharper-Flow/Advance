@@ -77,6 +77,8 @@ export interface StateMutationContext {
   uuid: () => string;
 }
 
+// rq-changeLifecycleState01: change lifecycle state (open/archived/closed) is
+// tracked separately from gate progress and compatibility status.
 export function normalizeChangeLifecycleState(
   status: ChangeStatus | ChangeLifecycleState | undefined,
 ): ChangeLifecycleState {

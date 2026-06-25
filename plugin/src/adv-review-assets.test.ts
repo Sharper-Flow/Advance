@@ -71,7 +71,6 @@ describe("adv-review non-code evidence policy surface", () => {
       /Failing, `unknown`, or missing evidence blocks acceptance/,
     );
   });
-
 });
 
 // NON-BEHAVIORAL (asset presence only): these tests assert that the command

@@ -314,23 +314,25 @@ function scannerBundleReport(
   };
 }
 
-function designerReport(overrides: {
-  attempt?: number;
-  taskId?: string;
-  dimensions?: Partial<
-    Record<
-      | "component_correctness"
-      | "semantic_html_a11y"
-      | "responsive_behavior"
-      | "visual_polish"
-      | "site_design_consistency"
-      | "finer_details",
-      "pass" | "concern" | "n/a"
-    >
-  >;
-  neighbors?: { what: string; why: string }[];
-  notes?: string;
-} = {}) {
+function designerReport(
+  overrides: {
+    attempt?: number;
+    taskId?: string;
+    dimensions?: Partial<
+      Record<
+        | "component_correctness"
+        | "semantic_html_a11y"
+        | "responsive_behavior"
+        | "visual_polish"
+        | "site_design_consistency"
+        | "finer_details",
+        "pass" | "concern" | "n/a"
+      >
+    >;
+    neighbors?: { what: string; why: string }[];
+    notes?: string;
+  } = {},
+) {
   const taskId = overrides.taskId ?? "tk-1";
   return {
     schema_version: "1.0" as const,

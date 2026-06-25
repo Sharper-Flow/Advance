@@ -1147,9 +1147,7 @@ describe("checkUnresolvedDesignConcerns — rq-designQualityEvidence01 (structur
       agent: "adv-designer" as const,
       status: "complete" as const,
       files_touched: ["src/components/Button.tsx"],
-      verification: [
-        { command: "pnpm test", exit_code: 0, summary: "pass" },
-      ],
+      verification: [{ command: "pnpm test", exit_code: 0, summary: "pass" }],
       decisions: [],
       blockers: [],
       scope_drift: null,
@@ -1249,7 +1247,10 @@ describe("checkUnresolvedDesignConcerns — rq-designQualityEvidence01 (structur
       subagent_reports: [
         designerReport({
           neighbors: [
-            { what: "IconButton lacks focus ring", why: "adjacent inconsistency" },
+            {
+              what: "IconButton lacks focus ring",
+              why: "adjacent inconsistency",
+            },
           ],
         }),
       ],
@@ -1261,7 +1262,9 @@ describe("checkUnresolvedDesignConcerns — rq-designQualityEvidence01 (structur
   });
 
   it("returns no blockers when there is no designer report", () => {
-    expect(checkUnresolvedDesignConcerns(makeState(), "acceptance")).toEqual([]);
+    expect(checkUnresolvedDesignConcerns(makeState(), "acceptance")).toEqual(
+      [],
+    );
   });
 
   it("is wired into evaluateGateReadiness for acceptance", () => {
@@ -1269,7 +1272,8 @@ describe("checkUnresolvedDesignConcerns — rq-designQualityEvidence01 (structur
       gates: acceptanceReadyGates(),
       contract: passingContract(),
       documents: {
-        acceptance: "# Acceptance\n\nSubstantive acceptance proof content here.",
+        acceptance:
+          "# Acceptance\n\nSubstantive acceptance proof content here.",
       },
       subagent_reports: [
         designerReport({
