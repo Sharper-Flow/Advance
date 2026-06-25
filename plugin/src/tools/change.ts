@@ -1511,6 +1511,30 @@ async function recoverReleaseGateViaDiskProjection(input: {
   };
 }
 
+/**
+ * Single source of truth for the completed-workflow recovery dance used by the
+ * archive release-gate completion path (STRUCT-002). Classifies the error; on a
+ * completed/poisoned workflow it recovers the release gate via disk projection,
+ * otherwise it rethrows. Replaces three byte-identical inline catch blocks.
+ */
+async function recoverReleaseGateIfWorkflowCompleted(
+  error: unknown,
+  ctx: { store: Store; change: Change; evidence: string },
+): Promise<Extract<ArchiveReleaseGateResult, { ok: true }>> {
+  const { isWorkflowCompletedError } = await import(
+    "../temporal/recovery-classification"
+  );
+  if (isWorkflowCompletedError(error)) {
+    return recoverReleaseGateViaDiskProjection({
+      store: ctx.store,
+      change: ctx.change,
+      evidence: ctx.evidence,
+      recoveryEvidence: collectErrorText(error),
+    });
+  }
+  throw error;
+}
+
 type DurableReleaseGateProofResult =
   | { ok: true; gate: GateCompletion }
   | {
@@ -1616,17 +1640,11 @@ async function completeReleaseGateAfterFinalization(input: {
       "release",
     );
   } catch (error) {
-    const { isWorkflowCompletedError } =
-      await import("../temporal/recovery-classification");
-    if (isWorkflowCompletedError(error)) {
-      return recoverReleaseGateViaDiskProjection({
-        store: input.store,
-        change: input.change,
-        evidence,
-        recoveryEvidence: collectErrorText(error),
-      });
-    }
-    throw error;
+    return recoverReleaseGateIfWorkflowCompleted(error, {
+      store: input.store,
+      change: input.change,
+      evidence,
+    });
   }
   if (currentGate?.status === "done") {
     return { ok: true, gate: currentGate, alreadyDone: true };
@@ -1646,34 +1664,22 @@ async function completeReleaseGateAfterFinalization(input: {
       },
     );
   } catch (error) {
-    const { isWorkflowCompletedError } =
-      await import("../temporal/recovery-classification");
-    if (isWorkflowCompletedError(error)) {
-      return recoverReleaseGateViaDiskProjection({
-        store: input.store,
-        change: input.change,
-        evidence,
-        recoveryEvidence: collectErrorText(error),
-      });
-    }
-    throw error;
+    return recoverReleaseGateIfWorkflowCompleted(error, {
+      store: input.store,
+      change: input.change,
+      evidence,
+    });
   }
 
   let postSignalGate: GateCompletion | undefined;
   try {
     postSignalGate = await waitForArchiveReleaseGateCompletion(handle);
   } catch (error) {
-    const { isWorkflowCompletedError } =
-      await import("../temporal/recovery-classification");
-    if (isWorkflowCompletedError(error)) {
-      return recoverReleaseGateViaDiskProjection({
-        store: input.store,
-        change: input.change,
-        evidence,
-        recoveryEvidence: collectErrorText(error),
-      });
-    }
-    throw error;
+    return recoverReleaseGateIfWorkflowCompleted(error, {
+      store: input.store,
+      change: input.change,
+      evidence,
+    });
   }
   if (postSignalGate?.status === "done") {
     return { ok: true, gate: postSignalGate, alreadyDone: false };
