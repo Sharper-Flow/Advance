@@ -436,4 +436,36 @@ describe("adv-designer assets", () => {
     expect(packet).toContain("DESIGNER_REPORT");
     expect(packet).toContain("adv-designer");
   });
+
+  test("adv-apply.md Designer Apply Context Packet includes VISUAL_CONTEXT anchors", () => {
+    const content = readFileSync(APPLY_COMMAND_PATH, "utf8");
+    const packet = firstFencedBlock(
+      sectionAfterHeading(content, "Designer Apply Context Packet"),
+    );
+
+    expect(packet).toContain("VISUAL_CONTEXT:");
+    for (const anchor of [
+      "surface_type",
+      "existing_patterns",
+      "tokens_and_style_rules",
+      "viewport_targets",
+      "forbidden_patterns",
+      "evidence_expectation",
+    ]) {
+      expect(packet, `missing ${anchor}`).toContain(anchor);
+    }
+    expect(packet).toMatch(/unavailable/i);
+    expect(packet).toMatch(/viewport/i);
+  });
+
+  test("adv-designer.md instructs workers to consume VISUAL_CONTEXT without fabricating style context", () => {
+    const content = readFileSync(AGENT_PATH, "utf8");
+
+    expect(content).toContain("VISUAL_CONTEXT");
+    expect(content).toContain("surface_type");
+    expect(content).toContain("viewport_targets");
+    expect(content).toContain("evidence_expectation");
+    expect(content).toMatch(/must not fabricate/i);
+    expect(content).toMatch(/unavailable/i);
+  });
 });

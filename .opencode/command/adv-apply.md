@@ -535,6 +535,17 @@ VERIFICATION:
   required_when_possible:
     - {task-specific component/lint/typecheck/a11y command}
   optional_additional_checks: true
+VISUAL_CONTEXT:
+  surface_type: {tool | dashboard | form | docs | marketing | component | unknown | unavailable: reason}
+  existing_patterns:
+    - {relevant primitives/components/layout patterns, or unavailable: reason}
+  tokens_and_style_rules:
+    - {known design tokens/style constraints, or unavailable: reason}
+  viewport_targets:
+    - {viewport/breakpoint expectations, or unavailable: reason}
+  forbidden_patterns:
+    - {agreement avoidances, project avoidances, and design anti-patterns}
+  evidence_expectation: {browser/design proof expected with viewport context, or fallback rationale when unavailable}
 DESIGN QUALITY BAR: component correctness, semantic HTML/accessibility, responsive behavior, visual polish, matching site design, finer details
 NEIGHBORING RECOMMENDATIONS: finish owned UI scope if safe; surface adjacent UI inconsistencies (e.g., unstyled neighboring buttons, inconsistent tokens) via `DESIGNER_REPORT.neighboring_recommendations[]` and `required_main_agent_actions` for orchestrator/user HITL. Do not silently broaden scope.
 BACKEND BOUNDARY: if the UI task requires changing storage, APIs, Temporal, or business logic, stop and report. Populate `scope_drift.recommendation: "stop_and_report"` and `required_main_agent_actions` with a handoff to `adv-engineer`. Do NOT edit backend files.
@@ -545,7 +556,7 @@ ACCEPTANCE CRITERIA: {criteria relevant to this task}
 EXPECTED OUTPUT: implement the UI/component task, run tests, call adv_subagent_report_submit with DESIGNER_REPORT per .opencode/agents/adv-designer.md
 ```
 
-The Designer Apply Context Packet uses the same identity anchors as the Apply Context Packet (`WORKING DIRECTORY`, `CHANGE`, `TASK`, `ATTEMPT`). The packet adds `DESIGN QUALITY BAR`, `NEIGHBORING RECOMMENDATIONS`, and `BACKEND BOUNDARY` as warn-first anchors specific to designer delegation. `EXPECTED OUTPUT` references `adv_subagent_report_submit` with `DESIGNER_REPORT` — `adv-designer` MUST NOT submit `ENGINEER_REPORT`.
+The Designer Apply Context Packet uses the same identity anchors as the Apply Context Packet (`WORKING DIRECTORY`, `CHANGE`, `TASK`, `ATTEMPT`). The packet adds `VISUAL_CONTEXT`, `DESIGN QUALITY BAR`, `NEIGHBORING RECOMMENDATIONS`, and `BACKEND BOUNDARY` as warn-first anchors specific to designer delegation. `VISUAL_CONTEXT` must use existing agreement/design/task/project/preview sources or explicit unavailable markers with reasons; it must not fabricate style context. `EXPECTED OUTPUT` references `adv_subagent_report_submit` with `DESIGNER_REPORT` — `adv-designer` MUST NOT submit `ENGINEER_REPORT`.
 
 ### Task Flow
 
