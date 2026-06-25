@@ -1,7 +1,7 @@
 # Advance Workflow
 
-> **Version:** 1.21.0
-> **Updated:** 2026-06-24
+> **Version:** 1.22.0
+> **Updated:** 2026-06-25
 
 ## Purpose
 
@@ -22,13 +22,11 @@ Capability: Workflow contract layer for ADV — gate model, autonomy boundaries,
 **Behavior-significant finding routes to proposal with spec-law obligation** (`rq-problemSpecLaw01.1`)
 
 **Given:**
-
 - A user reports through /adv-problem that page X must have behavior Y
 
 **When:** Triage concludes behavior Y is a durable expected behavior or contract change
 
 **Then:**
-
 - The triage summary includes a spec-law impact assessment
 - The next step is proposal-sized, carrying a draft spec-delta obligation
 - The issue is not classified as a trivial direct-fix candidate
@@ -36,13 +34,11 @@ Capability: Workflow contract layer for ADV — gate model, autonomy boundaries,
 **Non-law direct fix requires no-delta rationale** (`rq-problemSpecLaw01.2`)
 
 **Given:**
-
 - /adv-problem identifies a narrow defect that does not alter durable behavior or existing spec law
 
 **When:** The command recommends a direct-fix candidate
 
 **Then:**
-
 - The triage summary states that no spec law update is required and why
 - Direct fix remains allowed only when all direct-fix guardrails pass
 - The existing direct-fix guardrails remain satisfied
@@ -50,68 +46,13 @@ Capability: Workflow contract layer for ADV — gate model, autonomy boundaries,
 **Problem triage remains read-only** (`rq-problemSpecLaw01.3`)
 
 **Given:**
-
 - /adv-problem identifies a behavior-significant issue
 
 **When:** The command completes triage
 
 **Then:**
-
 - It does not create or mutate changes, tasks, gates, or spec files
 - It hands off to /adv-proposal for artifact creation
-
----
-
-### Large Non-Code Deliverables Use Tracked ADV Workflow
-
-**ID:** `rq-nonCodeWorkflow01` | **Priority:** **[MUST]**
-
-Large non-code deliverables such as market research, design improvement, competitive research, writing, analysis, and planning MUST route to a tracked ADV change after any optional pre-change research clarifies direction, unless the user explicitly scopes the work as one-off/read-only. /adv-improve remains a read-only pre-proposal research-pack command: it may create docs/\*-prep.md evidence packs consumed by proposal/discovery, but it MUST NOT replace the tracked workflow for consequential deliverables or mutate ADV change/task/gate state.
-
-**Tags:** `workflow`, `non-code`, `routing`, `adv-improve`, `deliverables`
-
-#### Scenarios
-
-**Large non-code deliverable becomes tracked change** (`rq-nonCodeWorkflow01.1`)
-
-**Given:**
-
-- A user asks ADV for a consequential market research, design improvement, competitive research, writing, analysis, or planning deliverable
-
-**When:** The agent classifies the requested work after any needed clarification
-
-**Then:**
-
-- The work is routed to a tracked ADV change with proposal, discovery, design, prep, execution, acceptance, and release gates
-- The agent does not deliver the consequential work solely as ad hoc chat or a utility report
-- The change agreement defines acceptance criteria and evidence expectations for the non-code deliverable
-
-**Explicit one-off read-only work may stay untracked** (`rq-nonCodeWorkflow01.2`)
-
-**Given:**
-
-- A user explicitly asks for a one-off or read-only summary, scan, or analysis
-
-**When:** The requested output is not a consequential durable deliverable
-
-**Then:**
-
-- The agent may complete the read-only work without creating ADV change/task/gate state
-- If durable implementation or acceptance criteria emerge, the agent routes the follow-up through a tracked ADV change
-
-**adv-improve remains a pre-proposal research pack** (`rq-nonCodeWorkflow01.3`)
-
-**Given:**
-
-- /adv-improve produces a docs/\*-prep.md research pack
-
-**When:** The pack identifies a significant improvement or direction
-
-**Then:**
-
-- The pack is cited by /adv-proposal or /adv-discover as prior research
-- /adv-improve does not create changes, tasks, gates, spec deltas, or agenda items
-- The pack does not replace tracked acceptance evidence for the resulting deliverable
 
 ---
 
@@ -119,7 +60,7 @@ Large non-code deliverables such as market research, design improvement, competi
 
 **ID:** `rq-taskSpecLaw01` | **Priority:** **[MUST]**
 
-/adv-task MUST include a spec-law impact assessment for small well-understood durable changes before planning completes. The assessment MUST classify impact as add, modify, remove, No spec law update required, or Uncertain. Add/modify/remove outcomes MUST persist draft spec-delta obligations with concrete rq-\* requirement IDs and at least one Given/When/Then scenario per obligation before implementation tasks are generated. No-update outcomes MUST persist a no-delta rationale. Uncertain outcomes MUST NOT complete planning or create implementation tasks for the uncertain scope; they route to /adv-proposal or deeper discovery. ADV agent routing SHOULD prefer /adv-task over ad hoc/direct implementation when full /adv-proposal ceremony is not warranted but durable change/task state exists before implementation for crash recovery.
+/adv-task MUST include a spec-law impact assessment for small well-understood durable changes before planning completes. The assessment MUST classify impact as add, modify, remove, No spec law update required, or Uncertain. Add/modify/remove outcomes MUST persist draft spec-delta obligations with concrete rq-* requirement IDs and at least one Given/When/Then scenario per obligation before implementation tasks are generated. No-update outcomes MUST persist a no-delta rationale. Uncertain outcomes MUST NOT complete planning or create implementation tasks for the uncertain scope; they route to /adv-proposal or deeper discovery. ADV agent routing SHOULD prefer /adv-task over ad hoc/direct implementation when full /adv-proposal ceremony is not warranted but durable change/task state exists before implementation for crash recovery.
 
 **Tags:** `workflow`, `adv-task`, `spec-law`, `tracking`
 
@@ -128,27 +69,23 @@ Large non-code deliverables such as market research, design improvement, competi
 **Fast-track spec delta obligations are concrete** (`rq-taskSpecLaw01.1`)
 
 **Given:**
-
 - A small well-understood durable change is routed through /adv-task
 
 **When:** The spec-law impact assessment classifies the change as add, modify, or remove
 
 **Then:**
-
 - The change artifacts include draft spec-delta obligations before planning completes
-- Each obligation has a concrete rq-\* requirement ID
+- Each obligation has a concrete rq-* requirement ID
 - Each obligation has at least one Given/When/Then scenario
 
 **No-delta fast-track records rationale** (`rq-taskSpecLaw01.2`)
 
 **Given:**
-
 - A small well-understood durable change is routed through /adv-task
 
 **When:** The spec-law impact assessment determines no spec law update is required
 
 **Then:**
-
 - The change artifacts state No spec law update required
 - The change artifacts include the no-delta rationale
 - Planning may complete only after the rationale is persisted
@@ -156,13 +93,11 @@ Large non-code deliverables such as market research, design improvement, competi
 **Small durable changes use tracked fast path** (`rq-taskSpecLaw01.3`)
 
 **Given:**
-
 - A user asks for a small well-understood durable change
 
 **When:** Full /adv-proposal ceremony is not warranted but implementation work is needed
 
 **Then:**
-
 - ADV agent routing prefers /adv-task over ad hoc/direct implementation
 - Durable change/task state exists before implementation begins
 - A crash can resume from tracked change/task state
@@ -170,14 +105,12 @@ Large non-code deliverables such as market research, design improvement, competi
 **Uncertain fast-track scope routes deeper before planning** (`rq-taskSpecLaw01.4`)
 
 **Given:**
-
 - A small durable change is routed through /adv-task
 - The spec-law impact assessment cannot resolve whether spec law must be added, modified, removed, or left unchanged
 
 **When:** The assessment classifies the impact as Uncertain
 
 **Then:**
-
 - /adv-task does not complete planning for the uncertain scope
 - /adv-task creates no implementation tasks for the uncertain scope
 - The change routes to /adv-proposal or deeper discovery before implementation planning resumes
@@ -195,13 +128,11 @@ Large non-code deliverables such as market research, design improvement, competi
 **Evidence-backed clean verdict validation** (`rq-R3v13wR1.1`)
 
 **Given:**
-
 - A review or harden pass produces few or no actionable findings
 
 **When:** The final verdict is emitted
 
 **Then:**
-
 - The verdict includes evidence-backed clean justification for checked dimensions
 - Red-flag invalidators are evaluated before accepting the clean result
 - The gate does not remain open solely because a fixed finding count was not reached
@@ -209,13 +140,11 @@ Large non-code deliverables such as market research, design improvement, competi
 **Review remediation is mandatory** (`rq-R3v13wR1.2`)
 
 **Given:**
-
 - Review or harden produces blocker/issue findings or validated in-scope findings
 
 **When:** The phase enters remediation
 
 **Then:**
-
 - All blocker and issue findings are fixed and verified unless rejected with evidence as invalid or out of scope
 - Each suggestion/question is investigated and marked validated or rejected with evidence
 - Validated suggestions are implemented
@@ -237,55 +166,47 @@ When new objectives or acceptance criteria are introduced after a change has alr
 **Scope expansion triggers re-entry** (`rq-scopeReentry01.1`)
 
 **Given:**
-
 - A change is in execution or a later gate
 - New objectives or acceptance criteria are discovered that were not part of the approved agreement
 
 **When:** adv_change_reenter is used from the earliest affected gate
 
 **Then:**
-
 - The newly added scope is routed back through discovery, agreement, design, and planning as needed before execution resumes
 - Execution does not silently absorb the new scope without re-entry
 
 **Unaffected approved scope continues without re-entry** (`rq-scopeReentry01.2`)
 
 **Given:**
-
 - A change has approved scope already in execution
 - A newly discovered item does not invalidate the existing approved work
 
 **When:** The unaffected scope is evaluated
 
 **Then:**
-
 - Previously approved scope may continue without reopening unrelated gates
 - Only the newly invalidated scope is routed back through re-entry
 
 **Non-invalidating clarification does not require re-entry** (`rq-scopeReentry01.3`)
 
 **Given:**
-
 - A change is in progress
 - A clarification is discovered that does not alter objectives, acceptance criteria, or design intent
 
 **When:** The clarification is applied
 
 **Then:**
-
 - adv_change_reenter is not required
 - Execution may continue within the existing scope
 
 **Re-entry may proceed without explicit user approval** (`rq-scopeReentry01.4`)
 
 **Given:**
-
 - A change needs scope-expansion re-entry
 
 **When:** adv_change_reenter is executed
 
 **Then:**
-
 - The call may succeed without approvedByUser or approvalEvidence
 - approvalEvidence is optional audit context when re-entry follows an explicit user instruction
 
@@ -304,39 +225,33 @@ Reopening a change from gate X must reset gate X and all downstream gates to pen
 **Cascade from discovery resets downstream gates** (`rq-scopeReentry02.1`)
 
 **Given:**
-
 - A change has completed proposal, discovery, design, planning, execution, acceptance, and release is still pending
 
 **When:** adv_change_reenter reopens from discovery
 
 **Then:**
-
 - discovery, design, planning, execution, acceptance, and release are reset to pending
 - proposal remains satisfied
 
 **Tasks remain intact after cascade reset** (`rq-scopeReentry02.2`)
 
 **Given:**
-
 - A change has existing tasks, including completed tasks
 
 **When:** adv_change_reenter resets gates to pending
 
 **Then:**
-
 - All existing tasks remain on the change
 - Task status and task content are preserved
 
 **Re-entry appends audit history** (`rq-scopeReentry02.3`)
 
 **Given:**
-
 - A change has been reopened via adv_change_reenter
 
 **When:** The re-entry is persisted
 
 **Then:**
-
 - A reentry_history entry is appended with from_gate, reason, reopened_by, approval_evidence, reopened_at, and gates_reset
 - scope_delta is included when provided
 
@@ -355,34 +270,29 @@ The canonical ADV workflow is seven sequential gates: proposal, discovery, desig
 **Sequential gate enforcement** (`rq-gatemodel01.1`)
 
 **Given:**
-
 - A change with the proposal gate pending
 
 **When:** adv_gate_complete is called for the discovery gate
 
 **Then:**
-
 - The call is rejected
 - The response identifies proposal as the blocking gate
 
 **Archive requires all seven gates satisfied** (`rq-gatemodel01.2`)
 
 **Given:**
-
 - A change with gates proposal through acceptance marked done
 - The release gate still pending
 
 **When:** adv_change_archive is called
 
 **Then:**
-
 - The archive is rejected with incomplete-gates error
 - release is listed as the remaining gate
 
 **Archive blocked when conformance-required spec has non-PASS verdict** (`rq-gatemodel01.3`)
 
 **Given:**
-
 - A change touches a spec with conformance_required: true
 - All seven gates including release are otherwise satisfied
 - Conformance verdict is DRIFT and no override is recorded
@@ -390,7 +300,6 @@ The canonical ADV workflow is seven sequential gates: proposal, discovery, desig
 **When:** /adv-archive Phase 5.5 evaluates the conformance gate
 
 **Then:**
-
 - Archive is halted before Phase 6 (Execute Archive)
 - adv_change_archive is not called
 - The user is presented with the failing AC labels and three explicit options (fix locally, override, unlock + amend) per rq-confTriage01
@@ -398,14 +307,12 @@ The canonical ADV workflow is seven sequential gates: proposal, discovery, desig
 **Execution-gate requires all non-cancelled tasks done** (`rq-gatemodel01.4`)
 
 **Given:**
-
 - A change whose execution gate is being completed
 - The change has tasks with status not 'done' and not 'cancelled'
 
 **When:** adv_gate_complete is called with gateId 'execution'
 
 **Then:**
-
 - The call is rejected
 - The response lists each incomplete task with id, title, and status
 - The execution gate remains pending
@@ -413,14 +320,12 @@ The canonical ADV workflow is seven sequential gates: proposal, discovery, desig
 **Execution-gate passes when all tasks done or cancelled** (`rq-gatemodel01.5`)
 
 **Given:**
-
 - A change whose execution gate is being completed
 - All tasks are either 'done' or 'cancelled' (including zero tasks)
 
 **When:** adv_gate_complete is called with gateId 'execution'
 
 **Then:**
-
 - The gate completes normally
 
 ---
@@ -438,7 +343,6 @@ Archive of a change that touches a spec with `conformance_required: true` is blo
 **Archive halts on DRIFT without override** (`rq-extConfGate01.1`)
 
 **Given:**
-
 - A change touches a spec with conformance_required: true
 - Phase 5.5 conformance run returns verdict: DRIFT
 - No valid override has been recorded for this archive attempt
@@ -446,7 +350,6 @@ Archive of a change that touches a spec with `conformance_required: true` is blo
 **When:** The orchestrator evaluates whether to advance to Phase 6
 
 **Then:**
-
 - Archive halts at Phase 5.5
 - adv_change_archive is not invoked
 - The drift triage flow defined by rq-confTriage01 is surfaced to the user
@@ -454,21 +357,18 @@ Archive of a change that touches a spec with `conformance_required: true` is blo
 **Archive proceeds on PASS** (`rq-extConfGate01.2`)
 
 **Given:**
-
 - A change touches a spec with conformance_required: true
 - Phase 5.5 conformance run returns verdict: PASS
 
 **When:** The orchestrator evaluates whether to advance to Phase 6
 
 **Then:**
-
 - Phase 6 (Execute Archive) runs
 - rq-archiveRetirement01 source removal proceeds normally
 
 **Archive proceeds on valid override** (`rq-extConfGate01.3`)
 
 **Given:**
-
 - A change touches a spec with conformance_required: true
 - Phase 5.5 conformance run returns DRIFT or is unavailable
 - A valid override entry has been recorded for this archive attempt with required audit fields per rq-confOverride01
@@ -476,7 +376,6 @@ Archive of a change that touches a spec with `conformance_required: true` is blo
 **When:** The orchestrator evaluates whether to advance to Phase 6
 
 **Then:**
-
 - Phase 6 (Execute Archive) runs
 - The override entry is preserved in the spec's append-only audit log
 
@@ -495,7 +394,6 @@ Phase 9 Git Finalization must refresh the current default-branch basis before de
 **No-remote archive uses local fast path** (`rq-releaseFinalization01.1`)
 
 **Given:**
-
 - A change branch is already on the current default-branch basis
 - No `origin` remote is configured
 - No overlap-risk or PR-only policy applies
@@ -503,7 +401,6 @@ Phase 9 Git Finalization must refresh the current default-branch basis before de
 **When:** Phase 9 Git Finalization chooses an integration path
 
 **Then:**
-
 - The archive uses the local `--ff-only` path
 - No branch rewrite is required
 - The archive may complete release locally and report `Merged locally.`
@@ -511,41 +408,35 @@ Phase 9 Git Finalization must refresh the current default-branch basis before de
 **Conflicting reconcile stops before cleanup** (`rq-releaseFinalization01.2`)
 
 **Given:**
-
 - A change branch must reconcile with a fresher default branch
 - Compatibility preflight or rebase finds conflicts
 
 **When:** Phase 9 Git Finalization evaluates the reconcile path
 
 **Then:**
-
 - The archive reports the conflicting files
 - The archive does not delete the worktree
 
 **Risky archive routes to PR workflow** (`rq-releaseFinalization01.3`)
 
 **Given:**
-
 - A change has overlap-risk, PR-only policy, or non-fast-forward publish risk
 
 **When:** Phase 9 Git Finalization chooses an integration path
 
 **Then:**
-
 - The archive routes to PR workflow instead of forcing local merge-back
 - Cleanup remains blocked until merged-state verification succeeds
 
 **Remote-backed direct archive requires origin proof** (`rq-releaseFinalization01.4`)
 
 **Given:**
-
 - A change branch has been merged into the local default branch
 - An origin remote is configured
 
 **When:** Phase 9 Git Finalization publishes the archive result
 
 **Then:**
-
 - The archive attempts safe `git push origin {default-branch}`
 - The archive fetches and verifies post-push `origin/{default-branch}` reachability before recording release
 - If origin reachability succeeds, the archive reports `Shipped.`
@@ -554,14 +445,12 @@ Phase 9 Git Finalization must refresh the current default-branch basis before de
 **Release gate structurally enforces origin or PR proof** (`rq-releaseFinalization01.5`)
 
 **Given:**
-
 - A change has completed all gates before release
 - The change lacks no-remote local proof, post-fetch `origin/{default-branch}` reachability, and merged PR state
 
 **When:** Any caller invokes `adv_gate_complete` with `gateId: "release"`
 
 **Then:**
-
 - The gate rejects completion with code `RELEASE_REQUIRES_TRUNK_MERGE`
 - The response cites `rq-releaseFinalization01`
 - The response points to `/adv-archive {change-id}` to complete Phase 9
@@ -569,7 +458,6 @@ Phase 9 Git Finalization must refresh the current default-branch basis before de
 **PR auto-merge pending keeps release incomplete** (`rq-releaseFinalization01.6`)
 
 **Given:**
-
 - An origin remote is configured
 - Default-branch protection prevents direct push or policy routes the change to PR workflow
 - GitHub auto-merge is armed for the opened or reused PR
@@ -577,7 +465,6 @@ Phase 9 Git Finalization must refresh the current default-branch basis before de
 **When:** Archive finalization runs for the change
 
 **Then:**
-
 - The change branch is pushed for the PR workflow without force-push
 - The archive reports `Pending auto-merge.`
 - The release gate remains incomplete until the PR state is `MERGED`
@@ -586,7 +473,6 @@ Phase 9 Git Finalization must refresh the current default-branch basis before de
 **Dirty default-branch main checkpoints before merge** (`rq-releaseFinalization01.7`)
 
 **Given:**
-
 - Main checkout is on the resolved default branch
 - Main checkout has non-ignored uncommitted changes (tracked or untracked)
 - Main checkout is not in an active merge, rebase, cherry-pick, or revert state
@@ -595,7 +481,6 @@ Phase 9 Git Finalization must refresh the current default-branch basis before de
 **When:** Phase 9 Git Finalization detects a dirty main checkout
 
 **Then:**
-
 - ADV commits all non-ignored tracked and untracked changes with an auditable checkpoint commit message referencing the change ID
 - The checkpoint commit SHA is recorded on GitFinalizeOutcome.mainCheckpointCommitSha
 - The checkpoint SHA is surfaced in the archive terminal report
@@ -605,13 +490,11 @@ Phase 9 Git Finalization must refresh the current default-branch basis before de
 **Unsafe main states block before checkpoint** (`rq-releaseFinalization01.8`)
 
 **Given:**
-
 - Phase 9 is evaluating the main checkout for merge readiness
 
 **When:** Any of the following unsafe states is detected
 
 **Then:**
-
 - Wrong main branch: archive blocks with diagnostics showing actual vs expected branch; does not switch branches
 - Missing git identity: archive blocks with MISSING_GIT_IDENTITY and instructs user to configure `user.name` and `user.email`
 - Active merge/rebase/cherry-pick/revert: archive blocks with MAIN_IN_PROGRESS_STATE and lists the detected in-progress operation
@@ -623,14 +506,12 @@ Phase 9 Git Finalization must refresh the current default-branch basis before de
 **Phase 9 skip cannot bypass release proof** (`rq-releaseFinalization01.9`)
 
 **Given:**
-
 - A caller requests `adv_change_archive` with `phase9:"skip"`
 - The change is remote-backed or otherwise requires origin/default or merged PR proof
 
 **When:** Archive attempts to transition the change to archived
 
 **Then:**
-
 - The archive revalidates the same release proof required by normal Phase 9
 - Without no-remote local proof, post-fetch `origin/{default-branch}` reachability, merged PR state, or explicit audited override evidence, the archive refuses to mark release done or archived
 - The response reports `Blocked.` with the missing proof reason
@@ -638,14 +519,12 @@ Phase 9 Git Finalization must refresh the current default-branch basis before de
 **Release recovery revalidates release proof** (`rq-releaseFinalization01.10`)
 
 **Given:**
-
 - Release gate recovery or poisoned-history repair is requested
 - Prior workflow state cannot be trusted as proof by itself
 
 **When:** The recovery path considers recording `gateId: "release"` as done
 
 **Then:**
-
 - Recovery revalidates no-remote local proof, post-fetch `origin/{default-branch}` reachability, or merged PR state before recording release
 - Pending auto-merge, unmerged PRs, local-only remote-backed branches, and unverifiable evidence are refused
 - The recovery audit cites the proof source used
@@ -653,7 +532,6 @@ Phase 9 Git Finalization must refresh the current default-branch basis before de
 **Archived-but-unmerged detector re-drives PR auto-merge** (`rq-releaseFinalization01.11`)
 
 **Given:**
-
 - A remote `change/*` branch exists
 - The branch is not reachable from post-fetch `origin/{default-branch}`
 - The branch appears archived or otherwise stranded
@@ -661,7 +539,6 @@ Phase 9 Git Finalization must refresh the current default-branch basis before de
 **When:** `adv_archive_repair` scans or re-drives the branch
 
 **Then:**
-
 - Scan reports the archived-but-unmerged branch with release-proof diagnostics
 - Re-drive opens or reuses exactly one PR for the branch and arms GitHub auto-merge when possible
 - Re-drive never force-pushes and does not mark release complete until origin/default reachability or merged PR state is proven
@@ -681,14 +558,12 @@ When `/adv-archive` Phase 9 finalization succeeds, archive success MUST be gated
 **Archive success proves gate-status-equivalent release done** (`rq-releaseProjectionDurability01.1`)
 
 **Given:**
-
 - Phase 9 finalization returns no-remote local proof, direct shipped origin proof, or merged PR proof
 - The release gate completion signal or recovery path has run
 
 **When:** adv_change_archive phase9:"run" is about to return success
 
 **Then:**
-
 - The store-backed gate read used by adv_gate_status reports gates.release.status === "done"
 - The release completion record includes Phase 9 evidence
 - Archive does not report success while the gate-status-equivalent read would show release pending
@@ -696,14 +571,12 @@ When `/adv-archive` Phase 9 finalization succeeds, archive success MUST be gated
 **Unproven release projection blocks retirement side effects** (`rq-releaseProjectionDurability01.2`)
 
 **Given:**
-
 - Phase 9 finalization has succeeded
 - The store-backed release gate proof is missing, stale, pending, unreadable, or lacks matching Phase 9 evidence
 
 **When:** adv_change_archive evaluates archive success
 
 **Then:**
-
 - The archive returns a blocked or recoverable result citing rq-releaseProjectionDurability01
 - The change is not retired as successfully archived
 - Linked issue closure and terminal worktree cleanup are not reported as successful retirement effects
@@ -711,14 +584,12 @@ When `/adv-archive` Phase 9 finalization succeeds, archive success MUST be gated
 **Terminal retry repairs projection only with structural finalization evidence** (`rq-releaseProjectionDurability01.3`)
 
 **Given:**
-
 - An archive bundle already exists or the change workflow has completed
 - Release gate metadata is stale or missing from the store-backed read
 
 **When:** Archive retry attempts release projection repair
 
 **Then:**
-
 - Direct archive mode re-verifies the change branch is reachable from and pushed with the default branch before repair
 - PR archive mode re-verifies the change branch was pushed for PR handoff before repair
 - If finalization evidence is missing or invalid, repair is rejected and release remains not done
@@ -738,14 +609,12 @@ Archive finalization recovery and status repair MUST be structural, idempotent, 
 **PR-merged pending_merge finalizes idempotently** (`rq-archiveRecoveryConsistency01.1`)
 
 **Given:**
-
 - A change has acceptance done, an archive bundle, and `phase9_status: pending_merge` with a PR number
 - The PR is structurally proven merged or equivalent release proof exists
 
 **When:** Archive finalization recovery runs
 
 **Then:**
-
 - Recovery uses PR merge evidence, no-remote local proof, or post-fetch `origin/{default-branch}` reachability rather than title matching or branch ancestry alone
 - The release gate is recorded done with Phase 9 evidence before archived status is saved
 - `phase9_status` is recorded as `done` before success is reported
@@ -754,14 +623,12 @@ Archive finalization recovery and status repair MUST be structural, idempotent, 
 **Failed phase9 without proof fails closed** (`rq-archiveRecoveryConsistency01.2`)
 
 **Given:**
-
 - A change has `phase9_status: failed`
 - Merged PR, no-remote local, and post-fetch origin/default release proof are absent or unverifiable
 
 **When:** Archive finalization recovery runs
 
 **Then:**
-
 - The tool returns a typed phase9 failure classification with blocker, remediation, and details when available
 - The release gate remains incomplete
 - The change status is not marked archived
@@ -770,7 +637,6 @@ Archive finalization recovery and status repair MUST be structural, idempotent, 
 **Status repair success proves read-after-write visibility** (`rq-archiveRecoveryConsistency01.3`)
 
 **Given:**
-
 - All seven gates are done
 - The archive bundle exists
 - A status repair attempts to flip a non-archived status to archived
@@ -778,7 +644,6 @@ Archive finalization recovery and status repair MUST be structural, idempotent, 
 **When:** The repair is about to report success
 
 **Then:**
-
 - The same durable source used by `adv_change_show` reads status `archived`
 - The in-flight change list omits the repaired change
 - The archived change list includes the repaired change exactly once
@@ -787,13 +652,11 @@ Archive finalization recovery and status repair MUST be structural, idempotent, 
 **Target repair mutates directly or emits packet** (`rq-archiveRecoveryConsistency01.4`)
 
 **Given:**
-
 - Archive/status repair is requested for a target_path project
 
 **When:** The target mutation boundary is evaluated
 
 **Then:**
-
 - If target confirmation and fresh target queue/serviceability proof are present, the repair uses the target project's store/read model directly
 - If target serviceability is absent, stale, or failed, the source project does not mutate target state
 - The response emits an exact same-project recovery packet for the operator to run from the target project
@@ -814,13 +677,11 @@ Archive finalization recovery and status repair MUST be structural, idempotent, 
 **Archive report exposes deploy/reflection advisory state** (`rq-archiveVisibility01.1`)
 
 **Given:**
-
 - A change is finalized through /adv-archive
 
 **When:** The archive terminal report is emitted
 
 **Then:**
-
 - Local deploy status is shown as ran, not available, not needed, or failed with reason and nonblocking marker
 - Reflection status is shown as completed or failed with reason and nonblocking marker
 - Deploy and reflection visibility does not reintroduce investment-report summary noise
@@ -828,14 +689,12 @@ Archive finalization recovery and status repair MUST be structural, idempotent, 
 **Advisory deploy/reflection failures do not block release** (`rq-archiveVisibility01.2`)
 
 **Given:**
-
 - Phase 9 merge/push/release projection proof is structurally satisfied
 - Deploy or reflection generation fails without invalidating release safety
 
 **When:** Archive completion is evaluated
 
 **Then:**
-
 - The release remains complete
 - The failed deploy or reflection is reported as a nonblocking advisory
 - Archive blocks only when the failure also proves structural release-safety failure
@@ -843,13 +702,11 @@ Archive finalization recovery and status repair MUST be structural, idempotent, 
 **Overlap boundaries stay outside this policy slice** (`rq-archiveVisibility01.3`)
 
 **Given:**
-
 - Related active changes own archive cleanup scanner behavior or executive-summary artifact semantics
 
 **When:** Workflow-noise policy is updated
 
 **Then:**
-
 - This policy does not duplicate archive cleanup scanner implementation
 - This policy does not change executive-summary ownership beyond removing investment-report noise
 - Coordination boundaries are visible in design and command/test surfaces
@@ -869,14 +726,12 @@ ADV MAY link separate repositories into one product state plane. Linked products
 **Secondary resolves canonical product state** (`rq-productLinking01.1`)
 
 **Given:**
-
 - A secondary repo has product.role = secondary
 - related_repos identifies the primary repo with repo_project_id or resolvable path
 
 **When:** ADV initializes product context
 
 **Then:**
-
 - product_project_id resolves to the primary repo ADV project id
 - repo_project_id remains the secondary repo ADV project id
 - Product changes, wisdom, reflections, agenda, and status queries use the product state plane
@@ -884,26 +739,22 @@ ADV MAY link separate repositories into one product state plane. Linked products
 **Single repo remains unchanged** (`rq-productLinking01.2`)
 
 **Given:**
-
 - A project has no product config
 
 **When:** ADV initializes project context
 
 **Then:**
-
 - product_project_id equals repo_project_id
 - No product filtering, origin tags, or multi-repo archive metadata is required
 
 **Missing primary handled structurally** (`rq-productLinking01.3`)
 
 **Given:**
-
 - A secondary repo cannot resolve the primary repo project id
 
 **When:** missing_primary_policy is block, read_only, or isolated
 
 **Then:**
-
 - block rejects initialization
 - read_only reports degraded product state
 - isolated reports degraded repo-local state
@@ -923,25 +774,21 @@ Product-linked changes MUST declare repository scope structurally with scope_rep
 **Create defaults to current repo scope** (`rq-productScopedChanges01.1`)
 
 **Given:**
-
 - ADV is running from a linked secondary repo
 
 **When:** adv_change_create is called without scope_repos
 
 **Then:**
-
 - The change has one scope_repos entry for the current repo
 
 **List/status default to current repo** (`rq-productScopedChanges01.2`)
 
 **Given:**
-
 - Product state contains backend-scoped and web-scoped changes
 
 **When:** adv_change_list or adv_status runs without scope: product
 
 **Then:**
-
 - Current repo scoped changes are shown
 - Other repo scoped changes are hidden
 - Legacy unscoped changes remain visible
@@ -949,13 +796,11 @@ Product-linked changes MUST declare repository scope structurally with scope_rep
 **Product-wide mode shows all product changes** (`rq-productScopedChanges01.3`)
 
 **Given:**
-
 - Product state contains changes scoped to multiple repos
 
 **When:** scope: product is requested
 
 **Then:**
-
 - All product-scoped changes are visible with product context metadata
 
 ---
@@ -973,25 +818,21 @@ Wisdom and reflection entries created in linked-product state MUST persist origi
 **New wisdom has origin tags** (`rq-productLearning01.1`)
 
 **Given:**
-
 - ADV runs from a linked product repo
 
 **When:** adv_wisdom_add records or promotes an entry
 
 **Then:**
-
 - The entry includes product_id, origin_repo_id, origin_repo_project_id, and origin_repo_path
 
 **Repo query includes safe legacy and promoted entries** (`rq-productLearning01.2`)
 
 **Given:**
-
 - Product wisdom contains current repo entries, other repo entries, promoted entries, and legacy untagged entries
 
 **When:** adv_wisdom_list runs with default scope
 
 **Then:**
-
 - Current repo entries are returned
 - Promoted/global entries are returned
 - Legacy untagged entries are returned
@@ -1000,13 +841,11 @@ Wisdom and reflection entries created in linked-product state MUST persist origi
 **Product query includes all product wisdom** (`rq-productLearning01.3`)
 
 **Given:**
-
 - Product wisdom contains entries from multiple repos
 
 **When:** adv_wisdom_list runs with scope: product
 
 **Then:**
-
 - All matching product wisdom entries are returned
 
 ---
@@ -1024,13 +863,11 @@ When a change has scope_repos, archive MUST collect multi-repo evidence before b
 **Archive writes multi-repo metadata** (`rq-multiRepoArchive01.1`)
 
 **Given:**
-
 - A change has backend and web scope_repos with merge_order
 
 **When:** adv_change_archive creates the archive bundle
 
 **Then:**
-
 - multi-repo-archive.json exists in the bundle
 - Repos are ordered by merge_order
 - Each repo has branch, default_branch, head_before, head_after, and ff_only_preflight fields
@@ -1039,13 +876,11 @@ When a change has scope_repos, archive MUST collect multi-repo evidence before b
 **Preflight failure has no archive side effects** (`rq-multiRepoArchive01.2`)
 
 **Given:**
-
 - A required scoped repo cannot fast-forward merge to the default branch
 
 **When:** adv_change_archive runs preflight
 
 **Then:**
-
 - The tool returns success: false
 - The error names the repo and ff-only preflight failure
 - No archive bundle is written
@@ -1065,13 +900,11 @@ When adv_change_archive completes successfully, ADV MUST create the archive bund
 **Archive retires active source after durable status transition** (`rq-archiveRetirement01.1`)
 
 **Given:**
-
 - A change has satisfied all archive gates
 
 **When:** adv_change_archive completes successfully
 
 **Then:**
-
 - The archive bundle exists
 - The change status is archived in durable state
 - The source changes/<id>/ directory is removed
@@ -1080,26 +913,22 @@ When adv_change_archive completes successfully, ADV MUST create the archive bund
 **Post-archive persistence cannot resurrect active change state** (`rq-archiveRetirement01.2`)
 
 **Given:**
-
 - A change has been transitioned to archived
 
 **When:** Archive completion persists final state or refreshes caches
 
 **Then:**
-
 - No active changes/<id>/change.json is written for the archived change
 - Archived change lookups resolve from durable archived state or the archive bundle
 
 **Cleanup refuses to remove active changes** (`rq-archiveRetirement01.3`)
 
 **Given:**
-
 - A change in active status still has a source changes/<id>/ directory
 
 **When:** adv_cleanup or archive flow attempts source removal
 
 **Then:**
-
 - The change status is verified as archived before source removal
 - Active changes are skipped with a structured warning
 - A candidate that is not archived is not removed
@@ -1119,54 +948,46 @@ ADV must pause for human input only at explicit approval/judgment checkpoints an
 **Clean agent-owned step auto-continues** (`rq-autonomy01.1`)
 
 **Given:**
-
 - A change has completed the proposal gate
 - The next step is discovery with no unresolved user-value tradeoffs
 
 **When:** The ADV orchestrator evaluates the next gate
 
 **Then:**
-
 - Discovery proceeds without prompting the user
 - No question tool call is made for the gate transition
 
 **Human checkpoint pauses for approval** (`rq-autonomy01.2`)
 
 **Given:**
-
 - A change has completed the acceptance gate via /adv-review
 - Archive sign-off is the next step
 
 **When:** The ADV orchestrator evaluates the next gate
 
 **Then:**
-
 - The orchestrator stops and presents a change report
 - The user is asked for explicit sign-off via inline handoff text per docs/command-voice-standard.md § Inline Approval Voice (Tier B)
 
 **Design approval conditional on tradeoffs** (`rq-autonomy01.3`)
 
 **Given:**
-
 - A change has a straightforward design with no user-value tradeoffs
 
 **When:** The design gate completes
 
 **Then:**
-
 - The orchestrator proceeds to planning without a design-approval pause
 
 **Apply auto-continues across task boundaries** (`rq-autonomy01.4`)
 
 **Given:**
-
 - A change is in the execution gate with multiple pending ready tasks
 - No enumerated human checkpoint has triggered (no doom-loop, no environmental blocker, no cancellation, no re-entry)
 
 **When:** A task completes successfully and `adv_task_ready` returns another pending task
 
 **Then:**
-
 - `/adv-apply` proceeds immediately to the next task's TDD loop
 - No "task complete", "section complete", "progress update", or "shall I continue?" pause is emitted
 - No question tool call is made between tasks
@@ -1174,28 +995,24 @@ ADV must pause for human input only at explicit approval/judgment checkpoints an
 **Apply forbids execution-start approval pause** (`rq-autonomy01.5`)
 
 **Given:**
-
 - A change has completed planning and is entering the execution gate
 - User-value tradeoffs have been resolved at the design approval checkpoint per rq-autonomy01.3
 
 **When:** `/adv-apply` begins the TDD work loop
 
 **Then:**
-
 - No "Begin work / Modify criteria / Cancel" prompt or equivalent execution-start approval is emitted
 - The first ready task's TDD phase starts directly
 
 **Contract-compromise risk triggers design pause** (`rq-autonomy01.6`)
 
 **Given:**
-
 - A change is at the design gate
 - The agent identifies that delivering the design would require compromising agreed acceptance criteria, explicit constraints, or stated avoidances
 
 **When:** The orchestrator evaluates whether to proceed from design to planning
 
 **Then:**
-
 - The orchestrator pauses for human input before proceeding
 - The design approval checkpoint is triggered regardless of whether user-value tradeoffs exist
 
@@ -1214,14 +1031,12 @@ ADV changes with an approved agreement may carry a typed change.contract spine. 
 **Discovery mints typed contract from approved agreement** (`rq-contractTrace01.1`)
 
 **Given:**
-
 - The user has approved acceptance criteria during /adv-discover
 - The change will use structural contract traceability
 
 **When:** The discovery gate is completed
 
 **Then:**
-
 - The workflow persists a typed ChangeContract before completing discovery
 - Contract item IDs distinguish SC, AC, C, DONT, and OOS obligations
 - Legacy acceptanceCriteria is a projection of AC contract items
@@ -1229,13 +1044,11 @@ ADV changes with an approved agreement may carry a typed change.contract spine. 
 **Prep connects tasks to contract items** (`rq-contractTrace01.2`)
 
 **Given:**
-
 - A change has change.contract set
 
 **When:** /adv-prep synthesizes or updates the task graph
 
 **Then:**
-
 - Tasks that implement obligations carry contract_refs.implements
 - Tasks that prove obligations carry contract_refs.verifies
 - Tasks that preserve constraints, avoidances, or out-of-scope boundaries carry contract_refs.respects or a not_applicable_reason
@@ -1243,13 +1056,11 @@ ADV changes with an approved agreement may carry a typed change.contract spine. 
 **Review persists bounded proof matrix** (`rq-contractTrace01.3`)
 
 **Given:**
-
 - A change with change.contract reaches /adv-review
 
 **When:** Acceptance evidence is prepared
 
 **Then:**
-
 - /adv-review persists contract.reviewMatrix before acceptance sign-off
 - Each required contract item has a bounded evidence row
 - Failing, violated, unknown, or missing required proof blocks acceptance until fixed or formally amended
@@ -1257,13 +1068,11 @@ ADV changes with an approved agreement may carry a typed change.contract spine. 
 **Re-entry invalidates stale contract proof** (`rq-contractTrace01.4`)
 
 **Given:**
-
 - A change has contract.reviewMatrix evidence
 
 **When:** The change re-enters a gate before release or receives a substantive contract amendment
 
 **Then:**
-
 - The stale review matrix is cleared or invalidated
 - Fresh proof is required before acceptance/archive can proceed
 
@@ -1282,39 +1091,33 @@ When /adv-review or /adv-harden validates an actionable finding or suggestion as
 **Validated suggestion implemented before completion** (`rq-remediation01.1`)
 
 **Given:**
-
 - /adv-review validates a suggestion as in-scope and correct
 
 **When:** Remediation runs
 
 **Then:**
-
 - The validated suggestion is implemented and verified in the current change
 - The finding status is updated to fixed
 
 **Report-only path rejected for in-scope findings** (`rq-remediation01.2`)
 
 **Given:**
-
 - /adv-harden identifies an actionable in-scope finding
 
 **When:** Remediation options are presented
 
 **Then:**
-
 - No report-only or future-work option is offered
 - The finding must be fixed before the release gate can complete
 
 **Rejection with evidence is permitted** (`rq-remediation01.3`)
 
 **Given:**
-
 - /adv-review flags a suggestion as potentially in-scope
 
 **When:** Investigation determines the suggestion is invalid or out of scope
 
 **Then:**
-
 - The finding is rejected with documented evidence
 - The rejection does not block gate completion
 
@@ -1333,42 +1136,36 @@ A change owns quality and test coverage for: (1) directly touched implementation
 **Adjacent test gaps addressed** (`rq-touchedScope01.1`)
 
 **Given:**
-
 - A change modifies an implementation file
 - The corresponding test file has gaps in coverage for the touched code
 
 **When:** Execution completes
 
 **Then:**
-
 - The test gaps are addressed as part of the change
 - The execution gate is not marked complete while known test gaps remain in touched files
 
 **Same-pattern issues fixed in local subsystem** (`rq-touchedScope01.2`)
 
 **Given:**
-
 - A change fixes a defect pattern in one file
 - The same pattern exists in other files within the local touched subsystem
 
 **When:** Review or harden identifies the related instances
 
 **Then:**
-
 - The same-pattern instances are fixed in the current change
 - The fixes are verified before gate completion
 
 **Ownership boundary remains local** (`rq-touchedScope01.3`)
 
 **Given:**
-
 - A change touches files in one subsystem
 - A similar pattern exists in unrelated subsystems
 
 **When:** Ownership scope is evaluated
 
 **Then:**
-
 - Only the local touched subsystem is in scope
 - Unrelated subsystems are not implicitly pulled into the change
 
@@ -1387,13 +1184,11 @@ Before the design gate can complete, /adv-design must run an independent validat
 **Validator runs before design gate completion** (`rq-designval01.1`)
 
 **Given:**
-
 - A change has a confirmed agreement and completed design work
 
 **When:** /adv-design is executed
 
 **Then:**
-
 - An independent validation sub-agent pass runs before adv_gate_complete is called for the design gate
 - The validator is a distinct agent from the designer with read-only state access and external research capabilities
 - The validator assesses at least: correctness, simplicity, spec-law compliance, and key alternatives
@@ -1401,13 +1196,11 @@ Before the design gate can complete, /adv-design must run an independent validat
 **Validator failure results in INCONCLUSIVE, not a block** (`rq-designval01.2`)
 
 **Given:**
-
 - The validator sub-agent fails, returns empty, or times out
 
 **When:** /adv-design handles the failed validator response
 
 **Then:**
-
 - The result is recorded as INCONCLUSIVE with a warning
 - The design gate is not blocked by the validator failure
 - The warning is surfaced in the /adv-design presentation output
@@ -1427,26 +1220,22 @@ When /adv-design summarizes the design, it must include the validator verdict an
 **Clean-pass note shown for VALIDATED verdict** (`rq-designval02.1`)
 
 **Given:**
-
 - The design validator returned VALIDATED
 
 **When:** /adv-design presents the design summary
 
 **Then:**
-
 - The output includes a one-line clean-pass note (e.g. 'Validator: clean pass')
 - No detailed findings are shown
 
 **Conflict details shown for CONFLICT verdict** (`rq-designval02.2`)
 
 **Given:**
-
 - The design validator returned CONFLICT with findings
 
 **When:** /adv-design presents the design summary
 
 **Then:**
-
 - The conflict details and unresolved findings are shown to the user
 - The presentation pauses for user resolution before proceeding to planning
 
@@ -1465,26 +1254,22 @@ When the design validator returns a CONFLICT verdict, the orchestrator must not 
 **CONFLICT verdict blocks silent auto-continue to planning** (`rq-designval03.1`)
 
 **Given:**
-
 - The design validator returned a CONFLICT verdict with unresolved findings
 
 **When:** The orchestrator evaluates whether to proceed from design to planning
 
 **Then:**
-
 - The orchestrator does not silently proceed to /adv-prep
 - The conflict is surfaced to the user via /adv-design presentation pause or inline resolution attempt
 
 **VALIDATED and CAUTION verdicts auto-continue** (`rq-designval03.2`)
 
 **Given:**
-
 - The design validator returned VALIDATED or CAUTION
 
 **When:** The orchestrator evaluates whether to proceed from design to planning
 
 **Then:**
-
 - Planning proceeds without a new user-facing checkpoint (assuming no other user-value tradeoffs)
 
 ---
@@ -1502,28 +1287,24 @@ When an agent identifies that a proposed design can only be delivered by comprom
 **Contract-compromise risk triggers design pause** (`rq-designval04.1`)
 
 **Given:**
-
 - A design is being evaluated
 - The agent determines that implementing the design would violate an agreed acceptance criterion or explicit constraint
 
 **When:** The orchestrator evaluates whether to proceed from design to planning
 
 **Then:**
-
 - The orchestrator pauses for human input
 - No silent auto-continue to planning occurs
 
 **No compromise risk auto-continues** (`rq-designval04.2`)
 
 **Given:**
-
 - A design is being evaluated
 - The agent confirms the design can be delivered without compromising any acceptance criteria, constraints, or stated avoidances
 
 **When:** The orchestrator evaluates whether to proceed from design to planning
 
 **Then:**
-
 - Planning proceeds without a new design-approval checkpoint (assuming no other user-value tradeoffs)
 
 ---
@@ -1532,7 +1313,7 @@ When an agent identifies that a proposed design can only be delivered by comprom
 
 **ID:** `rq-handoffVoice01` | **Priority:** **[MUST]**
 
-Every /adv-\* command that emits a user-facing gate-transition message MUST use the Gate Handoff Voice spine: Problem / Chosen direction / Delivered, followed by a blockquote wayfinder block. The blockquote MUST contain three rows: bolded `**{change-id}**`, the gate transition `{gate} ✓ → {next-gate}`, and an arrow-prefixed runnable command `→ `/adv-{next-command} {change-id}``. The command shown MUST be the single command needed to continue — no redundant or alternative command lines. Canonical source: docs/command-voice-standard.md § Gate Handoff Voice.
+Every /adv-* command that emits a user-facing gate-transition message MUST use the Gate Handoff Voice spine: Problem / Chosen direction / Delivered, followed by a blockquote wayfinder block. The blockquote MUST contain three rows: bolded `**{change-id}**`, the gate transition `{gate} ✓ → {next-gate}`, and an arrow-prefixed runnable command `→ `/adv-{next-command} {change-id}``. The command shown MUST be the single command needed to continue — no redundant or alternative command lines. Canonical source: docs/command-voice-standard.md § Gate Handoff Voice.
 
 **Tags:** `voice`, `handoff`, `presentation`
 
@@ -1541,13 +1322,11 @@ Every /adv-\* command that emits a user-facing gate-transition message MUST use 
 **Handoff follows spine with blockquote wayfinder block** (`rq-handoffVoice01.1`)
 
 **Given:**
-
-- An /adv-\* command completes a gate and emits a user-facing gate-transition message
+- An /adv-* command completes a gate and emits a user-facing gate-transition message
 
 **When:** The handoff message is rendered
 
 **Then:**
-
 - All three narrative spine headings are present: Problem, Chosen direction, Delivered, followed by a blockquote wayfinder block below a --- separator
 - The blockquote contains a row with `**{change-id}**` (bolded change ID)
 - The blockquote contains a row with `{gate} ✓ → {next-gate}` (gate transition)
@@ -1558,13 +1337,11 @@ Every /adv-\* command that emits a user-facing gate-transition message MUST use 
 **No mechanics leakage** (`rq-handoffVoice01.2`)
 
 **Given:**
-
-- An /adv-\* command completes a gate and emits a user-facing gate-transition message
+- An /adv-* command completes a gate and emits a user-facing gate-transition message
 
 **When:** The handoff message is rendered
 
 **Then:**
-
 - No todo checklists appear as primary handoff content
 - No step-completed logs appear as primary handoff content
 - No orchestration summaries appear as primary handoff content
@@ -1574,7 +1351,6 @@ Every /adv-\* command that emits a user-facing gate-transition message MUST use 
 **Auto-continue transitions unaffected** (`rq-handoffVoice01.3`)
 
 **Given:**
-
 - rq-autonomy01 permits auto-continue between stages
 - No unresolved user-value tradeoff exists
 - No required approval is pending
@@ -1582,20 +1358,17 @@ Every /adv-\* command that emits a user-facing gate-transition message MUST use 
 **When:** The agent proceeds without emitting a user-facing message
 
 **Then:**
-
 - No handoff message is emitted
 - No handoff validation is required for the silent transition
 
 **Blockquote wayfinder block replaces Next sections** (`rq-handoffVoice01.4`)
 
 **Given:**
-
-- An /adv-\* command completes a gate and emits a user-facing gate-transition message
+- An /adv-* command completes a gate and emits a user-facing gate-transition message
 
 **When:** The handoff message is rendered
 
 **Then:**
-
 - ## Next stage and ## Next headings are absent from the handoff
 - A blockquote wayfinder block appears after ## Delivered with three rows: change-id, gate transition, arrow-prefixed runnable command
 - The archive terminal variant ends with a single-line blockquote using `release ✓` only for final states (Shipped. or no-remote Merged locally.); Pending auto-merge. and Blocked. use `release pending` or `release blocked` and no separate labeled block
@@ -1604,13 +1377,11 @@ Every /adv-\* command that emits a user-facing gate-transition message MUST use 
 **Blockquote wayfinder shows only the needed command** (`rq-handoffVoice01.5`)
 
 **Given:**
-
-- An /adv-\* command completes a gate and emits a user-facing gate-transition message
+- An /adv-* command completes a gate and emits a user-facing gate-transition message
 
 **When:** The blockquote wayfinder block is inspected
 
 **Then:**
-
 - Exactly one runnable command is shown in the wayfinder block (in the arrow-prefixed row)
 - No redundant alternative command lines appear
 - The command shown is the single next action needed to continue
@@ -1630,27 +1401,23 @@ ADV's seven named human checkpoints (proposal confirmation, agreement sign-off, 
 **Checkpoint approval uses inline handoff** (`rq-inlineApproval01.1`)
 
 **Given:**
-
 - An ADV workflow reaches a named human checkpoint
 
 **When:** The agent presents the checkpoint to the user
 
 **Then:**
-
 - The presentation uses the Gate Handoff Voice spine plus inline reply instructions
 - The question tool is not used for the checkpoint approval
 
 **Tier A whitelist + LLM fallback for reversible checkpoints** (`rq-inlineApproval01.2`)
 
 **Given:**
-
 - A reversible checkpoint (proposal, agreement, design, prep, acceptance) is presented
 - User replies with a whitelist word OR an ambiguous reply
 
 **When:** The agent processes the reply
 
 **Then:**
-
 - Whitelist words (continue, go, approve, yes, ok, proceed, accept, lgtm, etc.) trigger immediate approval
 - Ambiguous replies are classified by LLM into approve / revise / redirect / stop / unclear
 - Unclear replies trigger re-prompt
@@ -1658,13 +1425,11 @@ ADV's seven named human checkpoints (proposal confirmation, agreement sign-off, 
 **Tier B whitelist-only for irreversible actions** (`rq-inlineApproval01.3`)
 
 **Given:**
-
 - An irreversible checkpoint (archive sign-off, cancellation approval) is presented
 
 **When:** The agent processes the reply
 
 **Then:**
-
 - Only exact whitelist matches trigger approval
 - LLM fallback is not used
 - Anything else triggers re-prompt with the same options
@@ -1673,13 +1438,11 @@ ADV's seven named human checkpoints (proposal confirmation, agreement sign-off, 
 **Cancellation uses structured inline format** (`rq-inlineApproval01.4`)
 
 **Given:**
-
 - A cancellation approval is needed
 
 **When:** The agent presents the cancellation
 
 **Then:**
-
 - The agent emits a numbered per-task list as inline prose
 - Reply instructions cover approve all, reject all, keep N, cancel N, stop
 - Replies are parsed by exact regex; LLM fallback is not used
@@ -1688,13 +1451,11 @@ ADV's seven named human checkpoints (proposal confirmation, agreement sign-off, 
 **Prep gate machine contract preserved** (`rq-inlineApproval01.5`)
 
 **Given:**
-
 - The user replies with a Tier A whitelist word at the prep checkpoint
 
 **When:** The agent calls adv_gate_complete gateId: planning
 
 **Then:**
-
 - userApproved: true is passed
 - The machine contract is satisfied
 - Inline approval is the upstream signal source independent of the API surface
@@ -1702,27 +1463,23 @@ ADV's seven named human checkpoints (proposal confirmation, agreement sign-off, 
 **Non-checkpoint question uses unaffected** (`rq-inlineApproval01.6`)
 
 **Given:**
-
 - A non-checkpoint workflow step uses the question tool (change-id selection, doom-loop, drift detection, AC clarification round, triage)
 
 **When:** The step executes
 
 **Then:**
-
 - The question tool continues to be used
 - The inline approval pattern does not apply
 
 **Exact shown Tier A continuation command counts as approval** (`rq-inlineApproval01.7`)
 
 **Given:**
-
 - A Tier A checkpoint (proposal, agreement, design, prep, acceptance) is presented with a blockquote wayfinder block showing a specific continuation command (e.g., `/adv-apply {change-id}`)
 - The user invokes that exact command while the checkpoint is pending
 
 **When:** The agent processes the command invocation
 
 **Then:**
-
 - The invocation counts as explicit approval equivalent to a Tier A whitelist word
 - The agent completes the pending gate with userApproved: true
 - The agent proceeds immediately to the next stage without a second approval prompt
@@ -1730,13 +1487,11 @@ ADV's seven named human checkpoints (proposal confirmation, agreement sign-off, 
 **Tier B remains whitelist-only with no command-as-approval bypass** (`rq-inlineApproval01.8`)
 
 **Given:**
-
 - A Tier B checkpoint (archive sign-off, cancellation approval) is presented
 
 **When:** The user invokes a slash command or provides a non-whitelist reply
 
 **Then:**
-
 - Only exact whitelist matches trigger approval
 - No slash command invocation counts as approval
 - LLM fallback is not used
@@ -1757,39 +1512,33 @@ The ChangeSchema must support an optional `fast_follow_of` field that records sa
 **parent_change_id creates fast_follow_of metadata** (`rq-scopeFollowupSchema01.1`)
 
 **Given:**
-
 - A valid parent change ID in the current project
 
 **When:** adv_change_create is called with parent_change_id
 
 **Then:**
-
 - The new change has fast_follow_of: { parent_change_id, linked_at } set
 - linked_at is an ISO8601 timestamp
 
 **Backward compatibility without fast_follow_of** (`rq-scopeFollowupSchema01.2`)
 
 **Given:**
-
 - A change created without parent_change_id
 
 **When:** ChangeSchema is parsed
 
 **Then:**
-
 - The fast_follow_of field is absent
 - Parsing succeeds normally
 
 **Mutual exclusion with target_path** (`rq-scopeFollowupSchema01.3`)
 
 **Given:**
-
 - Both target_path and parent_change_id are provided
 
 **When:** adv_change_create is called
 
 **Then:**
-
 - A mutual-exclusion error is returned
 - No change is created
 
@@ -1808,14 +1557,12 @@ ADV tools that support cross-project coordination must use explicit `target_path
 **Target path routes cross-project tools** (`rq-crossProjectCoordination01.1`)
 
 **Given:**
-
 - An ADV tool supports cross-project reads or contributions
 - The caller provides target_path
 
 **When:** The tool resolves the target project
 
 **Then:**
-
 - The tool validates target_path as a git-backed project root
 - The tool derives the target project identity from that repository
 - The tool never reads ADV state files directly
@@ -1823,28 +1570,24 @@ ADV tools that support cross-project coordination must use explicit `target_path
 **Untrusted target mutation requires confirmation** (`rq-crossProjectCoordination01.2`)
 
 **Given:**
-
 - A mutating ADV tool is called with target_path
 - The target is not configured as a trusted related repository
 
 **When:** The mutation is evaluated
 
 **Then:**
-
 - The tool requires explicit target confirmation evidence before changing target state
 - Without confirmation, the tool fails before any target state mutation
 
 **Cross-project create starts target workflow state** (`rq-crossProjectCoordination01.5`)
 
 **Given:**
-
 - adv_change_create is called with target_path for another ADV project
 - The target mutation is trusted or explicitly confirmed
 
 **When:** The target change is created
 
 **Then:**
-
 - Creation is routed through the target project's Temporal-backed store or equivalent workflow-start path
 - cross_project_origin is seeded before target workflow start
 - The source process does not issue a target workflow getState query after creation
@@ -1853,14 +1596,12 @@ ADV tools that support cross-project coordination must use explicit `target_path
 **Active disk-only target changes reconcile through list/read** (`rq-crossProjectCoordination01.6`)
 
 **Given:**
-
 - A target project has non-terminal change.json records whose workflows are missing
 - The target project also has archived or closed disk records
 
 **When:** A Temporal-backed change read or list loads target project changes
 
 **Then:**
-
 - Each non-terminal disk-only change is reseeded into workflow state through the normal read/list path
 - Archived and closed disk records are returned only as terminal projections when requested and are not recreated as active workflows
 - No startup scanner or one-off repair path is required
@@ -1868,7 +1609,6 @@ ADV tools that support cross-project coordination must use explicit `target_path
 **Target mutation readiness accepts fresh server pollers** (`rq-targetMutationReadiness01`)
 
 **Given:**
-
 - A temporal-required target_path mutation is evaluated
 - The current process has no registered worker for the target project queue
 - Temporal task-queue inspection reports a fresh workflow poller for the target project queue
@@ -1876,7 +1616,6 @@ ADV tools that support cross-project coordination must use explicit `target_path
 **When:** The target mutation readiness check runs
 
 **Then:**
-
 - The readiness check treats the target queue as serviceable using the shared queue serviceability model
 - The mutation proceeds to the Temporal-backed target store path
 - The mutation does not fail solely because the current process has no local worker object
@@ -1884,7 +1623,6 @@ ADV tools that support cross-project coordination must use explicit `target_path
 **Unproven target mutation readiness fails closed** (`rq-targetMutationReadiness02`)
 
 **Given:**
-
 - A temporal-required target_path mutation is evaluated
 - The current process has no registered worker for the target project queue
 - Temporal task-queue inspection is stale, absent, unavailable, or otherwise not serviceable
@@ -1892,7 +1630,6 @@ ADV tools that support cross-project coordination must use explicit `target_path
 **When:** The target mutation readiness check runs
 
 **Then:**
-
 - The tool fails before constructing or mutating target project state
 - The failure reports the target queue name and typed serviceability blockers
 - The failure includes an actionable recovery instruction for opening or restarting the target project ADV worker
@@ -1900,13 +1637,11 @@ ADV tools that support cross-project coordination must use explicit `target_path
 **Status and mutation readiness share serviceability semantics** (`rq-targetMutationReadiness03`)
 
 **Given:**
-
 - ADV status or diagnostics report a target project queue as serviceable from fresh server poller evidence
 
 **When:** A temporal-required target_path mutation checks the same queue with a fresh mutation-boundary probe
 
 **Then:**
-
 - Mutation readiness uses the same structural queue serviceability semantics as status and diagnostics
 - Mutation readiness does not contradict status by failing solely because the current process is client-only
 - Cached status or health evidence is not the sole authority for mutation readiness
@@ -1914,26 +1649,22 @@ ADV tools that support cross-project coordination must use explicit `target_path
 **Dependencies remain advisory** (`rq-crossProjectCoordination01.3`)
 
 **Given:**
-
 - A change has external_dependencies that reference another project
 
 **When:** Gate completion or archive readiness is evaluated
 
 **Then:**
-
 - Unmet external dependencies are reported as warnings or status metadata
 - Unmet external dependencies do not block gates or archive by default
 
 **Status defaults to summary with drilldown** (`rq-crossProjectCoordination01.4`)
 
 **Given:**
-
 - A change has cross_project_links or external_dependencies
 
 **When:** Cross-project status is displayed
 
 **Then:**
-
 - Default output summarizes linked projects and dependency health concisely
 - Detailed dependency graph and target diagnostics are available only through drilldown or coordinate output
 
@@ -1952,13 +1683,11 @@ Task mutation tools that support task creation, cancellation, status updates, or
 **Task add uses target store end to end** (`rq-crossProjectTaskMutation01.1`)
 
 **Given:**
-
 - adv_task_add is called with target_path for a target ADV project
 
 **When:** The tool validates and creates the task
 
 **Then:**
-
 - Planning-gate checks use the target project state
 - blockedBy validation uses target project task ids
 - taskAddedSignal is sent to the target project change workflow
@@ -1967,13 +1696,11 @@ Task mutation tools that support task creation, cancellation, status updates, or
 **Task cancel and TDD reclassify use target store end to end** (`rq-crossProjectTaskMutation01.2`)
 
 **Given:**
-
 - adv_task_cancel or adv_task_reclassify_tdd is called with target_path
 
 **When:** The tool validates task ids and applies the mutation
 
 **Then:**
-
 - Task lookup and change lookup use the target project store
 - The Temporal signal is sent to the target project change workflow
 - Cache refresh invalidates the target project cache, not the source project cache
@@ -1981,13 +1708,11 @@ Task mutation tools that support task creation, cancellation, status updates, or
 **Target dry-run task mutation is read-only** (`rq-crossProjectTaskMutation01.3`)
 
 **Given:**
-
 - A task mutation tool supports dryRun and is called with target_path
 
 **When:** dryRun is true
 
 **Then:**
-
 - The tool may read target state to validate the preview
 - The tool must not fire task mutation signals or write target state
 - Untrusted-target mutation confirmation is not required for the read-only preview
@@ -2007,7 +1732,6 @@ ADV tools that resolve another ADV-enabled project via `target_path` MUST derive
 **Sharded target create writes target canonical shard** (`rq-targetPathCanonicalShard01.1`)
 
 **Given:**
-
 - The caller session has XDG_DATA_HOME set to .../opencode-projects/{sourceProjectId}
 - An ADV tool creates or mutates state for a different project via target_path
 - The target project id is targetProjectId
@@ -2015,7 +1739,6 @@ ADV tools that resolve another ADV-enabled project via `target_path` MUST derive
 **When:** The target store external root is resolved
 
 **Then:**
-
 - The external root is .../opencode-projects/{targetProjectId}/opencode/plugins/advance/{targetProjectId}
 - The target state is not written under the caller shard
 - Subsequent target_path reads use the same target canonical root
@@ -2023,28 +1746,24 @@ ADV tools that resolve another ADV-enabled project via `target_path` MUST derive
 **Non-sharded sessions preserve legacy target root** (`rq-targetPathCanonicalShard01.2`)
 
 **Given:**
-
 - XDG_DATA_HOME does not structurally match .../opencode-projects/{40-hex-project-id}
 - An ADV tool resolves a target project via target_path
 
 **When:** The target store external root is resolved
 
 **Then:**
-
 - The external root remains $XDG_DATA_HOME/opencode/plugins/advance/{targetProjectId}
 - The operation does not fail solely because the canonical shard layout is absent
 
 **Existing shadow records are not auto-migrated** (`rq-targetPathCanonicalShard01.3`)
 
 **Given:**
-
 - A prior target_path operation wrote target state under a caller project shard
 - The canonical target shard can now be derived
 
 **When:** A future target_path operation resolves target state
 
 **Then:**
-
 - The future operation uses the canonical target shard
 - The tool does not automatically copy, move, or delete the old caller-shard shadow record
 - Any recovery of old shadow state remains an explicit operator action
@@ -2064,14 +1783,12 @@ ADV mutation tools that expose `dryRun` must execute schema and relational valid
 **Dry-run validates and returns same-shape preview** (`rq-dryRunMutation01.1`)
 
 **Given:**
-
 - A mutation tool supports dryRun
 - The caller provides otherwise valid mutation arguments
 
 **When:** dryRun is true
 
 **Then:**
-
 - The tool performs the same schema and relational validation as the real mutation
 - The response includes the same success fields the real mutation would return
 - The response includes dryRun: true
@@ -2079,13 +1796,11 @@ ADV mutation tools that expose `dryRun` must execute schema and relational valid
 **Dry-run skips all mutation side effects** (`rq-dryRunMutation01.2`)
 
 **Given:**
-
 - A dry-run preview passes validation
 
 **When:** The tool returns the preview
 
 **Then:**
-
 - No Temporal mutation signal is fired
 - No ADV state or conformance audit file is saved
 - No worktree is deleted and no preDelete hook runs
@@ -2094,13 +1809,11 @@ ADV mutation tools that expose `dryRun` must execute schema and relational valid
 **Dry-run validation failures match real-run failures** (`rq-dryRunMutation01.3`)
 
 **Given:**
-
 - A dry-run call has invalid arguments or invalid relational state
 
 **When:** The tool validates the call
 
 **Then:**
-
 - The tool fails before side effects
 - The error message identifies the same validation problem the real mutation would report
 
@@ -2119,13 +1832,11 @@ ADV must not ship a direct non-LLM cross-project tool-execution CLI unless it ca
 **Stable runtime path is required before CLI execution ships** (`rq-nonLlmToolExec01.1`)
 
 **Given:**
-
 - A change proposes a non-LLM CLI that executes ADV tools across projects
 
 **When:** The design evaluates implementation feasibility
 
 **Then:**
-
 - The design identifies a stable OpenCode or equivalent structural tool execution path
 - The path preserves ADV plugin initialization, Temporal access, validation, and audit semantics
 - If no such path exists, the CLI execution behavior is not shipped
@@ -2133,13 +1844,11 @@ ADV must not ship a direct non-LLM cross-project tool-execution CLI unless it ca
 **Blocked non-LLM execution is documented, not bypassed** (`rq-nonLlmToolExec01.2`)
 
 **Given:**
-
 - No stable non-LLM ADV tool execution path is available
 
 **When:** The change resolves the requirement
 
 **Then:**
-
 - The blocker and evidence are documented in the investigation notes or linked issue
 - ADV does not duplicate STSL, Temporal workflow access, or store lifecycle in an ad-hoc CLI
 - Existing LLM-mediated or session-mediated execution paths remain the supported fallback
@@ -2159,52 +1868,44 @@ When non-P23-campsite-eligible scope is discovered during /adv-apply, /adv-revie
 **Non-campsite scope triggers inline prompt** (`rq-scopeDiscoveryProtocol01.1`)
 
 **Given:**
-
 - Non-P23-campsite-eligible scope discovered during /adv-apply, /adv-review, or /adv-harden
 
 **When:** The agent evaluates the discovered scope
 
 **Then:**
-
 - A Tier A inline prompt is emitted with options: reenter {gate}, split, keep, cancel
 - The agent never silently absorbs the scope
 
 **Split creates fast-follow child** (`rq-scopeDiscoveryProtocol01.2`)
 
 **Given:**
-
 - User replies split to the scope-discovery prompt
 
 **When:** The agent processes the reply
 
 **Then:**
-
 - adv_change_create is called with parent_change_id set to the current change
 - The new change is a fast-follow child
 
 **Keep with new objectives requires re-entry** (`rq-scopeDiscoveryProtocol01.3`)
 
 **Given:**
-
 - User replies keep and the absorbed scope adds new objectives or acceptance criteria
 
 **When:** The agent processes the reply
 
 **Then:**
-
 - adv_change_reenter is invoked per rq-scopeReentry01
 - Keep does not bypass re-entry when scope adds objectives/AC
 
 **Campsite-eligible scope applied freely** (`rq-scopeDiscoveryProtocol01.4`)
 
 **Given:**
-
 - P23-campsite-eligible adjacent scope (any size, clear, safe, focused)
 
 **When:** The agent evaluates the scope
 
 **Then:**
-
 - The campsite-rule is applied freely without prompting
 - No inline approval is required
 
@@ -2214,49 +1915,43 @@ When non-P23-campsite-eligible scope is discovered during /adv-apply, /adv-revie
 
 **ID:** `rq-scopeFollowupSurfacing01` | **Priority:** **[MUST]**
 
-Tools that surface change data must display fast-follow lineage: adv_change_show includes \_fastFollowOrigin, adv_change_list annotates entries with parent_change_id, and adv_status prefixes child labels and references parents in recommendations.
+Tools that surface change data must display fast-follow lineage: adv_change_show includes _fastFollowOrigin, adv_change_list annotates entries with parent_change_id, and adv_status prefixes child labels and references parents in recommendations.
 
 **Tags:** `lineage`, `surfacing`, `ui`
 
 #### Scenarios
 
-**adv_change_show surfaces \_fastFollowOrigin** (`rq-scopeFollowupSurfacing01.1`)
+**adv_change_show surfaces _fastFollowOrigin** (`rq-scopeFollowupSurfacing01.1`)
 
 **Given:**
-
 - A change with fast_follow_of set
 
 **When:** adv_change_show is called
 
 **Then:**
-
-- Output includes \_fastFollowOrigin parallel to \_crossProjectOrigin
-- \_fastFollowOrigin contains note, parent_change_id, and linked_at
+- Output includes _fastFollowOrigin parallel to _crossProjectOrigin
+- _fastFollowOrigin contains note, parent_change_id, and linked_at
 
 **adv_change_list annotates parent_change_id** (`rq-scopeFollowupSurfacing01.2`)
 
 **Given:**
-
 - Changes with fast_follow_of in the list
 
 **When:** adv_change_list is called
 
 **Then:**
-
 - Entries with fast_follow_of include parent_change_id at the top level
 - Children remain top-level (not nested)
 
 **adv_status prefixes and references parents** (`rq-scopeFollowupSurfacing01.3`)
 
 **Given:**
-
 - Changes with fast_follow_of in the project
 
 **When:** adv_status is called
 
 **Then:**
-
-- Child change labels are prefixed with ↳
+- Child change labels are prefixed with ↳ 
 - Recommendations reference the parent change ID
 - Archived parents are annotated with (archived)
 
@@ -2275,26 +1970,22 @@ Once a change has completed the prep gate with userApproved, the agent must not 
 **No split-suggestion after prep approval** (`rq-largeScopeValidity01.1`)
 
 **Given:**
-
 - A change has completed the prep gate with userApproved
 
 **When:** The agent evaluates whether to suggest splitting
 
 **Then:**
-
 - The agent does not emit split-suggestions based on size, task count, or complexity alone
 - Execution proceeds as planned
 
 **Hardstop remains advisory** (`rq-largeScopeValidity01.3`)
 
 **Given:**
-
 - High-investment advisory threshold fires
 
 **When:** The agent evaluates the hardstop signal
 
 **Then:**
-
 - The hardstop is advisory only
 - It does not auto-trigger split or adv_change_reenter
 
@@ -2313,41 +2004,35 @@ The /adv-atc agent provides autonomous ROADMAP execution that defers all HITL mo
 **ATC invocation records change-level audit** (`rq-atc01.1`)
 
 **Given:**
-
 - A change has proposal gate pending
 - /adv-atc {change-id} is invoked
 
 **When:** ATC workflow begins
 
 **Then:**
-
 - Gate transitions record `completedBy: 'adv-atc'`
 - Audit trail is forensically distinguishable from manual approval
 
 **Auto-transitioned gates record adv-atc as completer** (`rq-atc01.2`)
 
 **Given:**
-
 - An ATC run is in progress
 - The discovery gate is being completed (no HITL needed)
 
 **When:** adv_gate_complete is called
 
 **Then:**
-
 - completedBy is set to 'adv-atc'
 - notes contain 'auto-transitioned by adv-atc at <ISO>'
 
 **HITL-deferred gates post structured GH comment** (`rq-atc01.3`)
 
 **Given:**
-
 - ATC reaches planning gate which requires userApproved: true
 
 **When:** ATC cannot auto-transition the gate
 
 **Then:**
-
 - A structured comment with `<!-- ADV_ATC_DEFERRED v1 -->` marker is posted to the linked GitHub issue
 - The comment includes: gate name, reason for deferral, context summary, response instructions
 - The change is marked as awaiting_approval
@@ -2356,14 +2041,12 @@ The /adv-atc agent provides autonomous ROADMAP execution that defers all HITL mo
 **Tier B and system interrupts deferred to GH** (`rq-atc01.4`)
 
 **Given:**
-
 - ATC reaches acceptance gate completion
 - Design validator returns CONFLICT
 
 **When:** The orchestrator evaluates whether to proceed
 
 **Then:**
-
 - Archive sign-off is deferred to GitHub via structured comment (Tier B preserved)
 - Design CONFLICT defers to GitHub with full error context
 - Cancellation always requires adv_task_cancel approvedByUser: true
@@ -2372,14 +2055,12 @@ The /adv-atc agent provides autonomous ROADMAP execution that defers all HITL mo
 **Resume detection via content-based markers** (`rq-atc01.5`)
 
 **Given:**
-
 - A change is in awaiting_approval state
 - A user has commented on the linked GitHub issue with `<!-- ADV_ATC_RESPONSE v1 -->`
 
 **When:** ATC performs workflow-boundary resume check
 
 **Then:**
-
 - The response marker is detected (content-based, not timestamp-based)
 - The change is prepended to the execution queue
 - Planning gate is completed with `userApproved: true` and `approvalEvidence` citing the GH comment URL
@@ -2398,41 +2079,35 @@ The Temporal OperatorService search-attribute health check MUST use `listSearchA
 **OperatorService method name is listSearchAttributes** (`rq-searchAttrHealth01.1`)
 
 **Given:**
-
 - A Temporal connection with operatorService available
 - Search attributes AdvChangeId, AdvChangeStatus, AdvActiveGate, AdvProjectId, AdvDoomLoopActive are registered
 
 **When:** checkAdvSearchAttributes is called
 
 **Then:**
-
 - It calls operatorService.listSearchAttributes (not getSearchAttributes)
 - It returns { ok: true, present: [...], missing: [], wrongType: [] }
 
 **Workflow handlers conditionally skip upsertSearchAttributes** (`rq-searchAttrHealth01.2`)
 
 **Given:**
-
 - A ChangeWorkflowInput with searchAttributesEnabled: false
 
 **When:** gateCompletedSignal, archiveRequestedSignal, or changeCancelledSignal handlers execute
 
 **Then:**
-
 - wf.upsertSearchAttributes is NOT called
 - The handler completes normally without error
 
 **initStsl verifies search attributes after registration** (`rq-searchAttrHealth01.3`)
 
 **Given:**
-
 - initStsl is called on a Temporal namespace
 - OperatorService.listSearchAttributes and addSearchAttributes are available
 
 **When:** initStsl completes
 
 **Then:**
-
 - After registerAdvSearchAttributes, verifyAdvSearchAttributes is called
 - getStslStats().saVerification reflects the verification result
 - The verification polls checkAdvSearchAttributes until ok:true or maxAttempts exhausted
@@ -2440,14 +2115,12 @@ The Temporal OperatorService search-attribute health check MUST use `listSearchA
 **adv_temporal_register_search_attributes returns verification result** (`rq-searchAttrHealth01.4`)
 
 **Given:**
-
 - A Temporal namespace where ADV search attributes need registration
 - User has approved registration with approvedByUser: true
 
 **When:** adv_temporal_register_search_attributes is called
 
 **Then:**
-
 - After registerMissingAdvSearchAttributes, checkAdvSearchAttributes is called for verification
 - The tool output includes a verification field with ok, present, missing, wrongType
 - The tool success field requires both registration ok AND verification ok
@@ -2458,7 +2131,7 @@ The Temporal OperatorService search-attribute health check MUST use `listSearchA
 
 **ID:** `rq-workflowVersioning01` | **Priority:** **[MUST]**
 
-Changes to Temporal workflow code under plugin/src/temporal/\*\* or other workflow-bundled command-producing helpers MUST be replay-verified against committed sanitized histories before archive. A workflow-code change that adds, removes, or reorders command-producing operations (Activities, timers, search-attribute upserts, patch markers, child workflows, continue-as-new, or similar Temporal commands) MUST include wf.patched, Worker Versioning, or an explicit reset/recovery plan. Patch markers MUST document the old branch, new branch, and a deprecation plan or non-deprecation rationale. Restarting a worker alone is not a repair for nondeterministic history mismatch.
+Changes to Temporal workflow code under plugin/src/temporal/** or other workflow-bundled command-producing helpers MUST be replay-verified against committed sanitized histories before archive. A workflow-code change that adds, removes, or reorders command-producing operations (Activities, timers, search-attribute upserts, patch markers, child workflows, continue-as-new, or similar Temporal commands) MUST include wf.patched, Worker Versioning, or an explicit reset/recovery plan. Patch markers MUST document the old branch, new branch, and a deprecation plan or non-deprecation rationale. Restarting a worker alone is not a repair for nondeterministic history mismatch.
 
 **Tags:** `temporal`, `replay`, `versioning`, `determinism`
 
@@ -2467,13 +2140,11 @@ Changes to Temporal workflow code under plugin/src/temporal/\*\* or other workfl
 **Committed histories replay in CI** (`rq-workflowVersioning01.1`)
 
 **Given:**
-
-- A sanitized changeWorkflow history fixture is committed under plugin/src/temporal/**tests**/replay/histories
+- A sanitized changeWorkflow history fixture is committed under plugin/src/temporal/__tests__/replay/histories
 
 **When:** The replay determinism test runs
 
 **Then:**
-
 - Worker.runReplayHistory is invoked against the current workflow bundle
 - The test fails on DeterminismViolationError or ReplayError
 - The fixture metadata identifies the incident class or workflow behavior covered
@@ -2481,26 +2152,22 @@ Changes to Temporal workflow code under plugin/src/temporal/\*\* or other workfl
 **Command-producing changes declare an evolution strategy** (`rq-workflowVersioning01.2`)
 
 **Given:**
-
 - A workflow-bundled change adds, removes, or reorders command-producing operations
 
 **When:** The change is prepared for archive
 
 **Then:**
-
 - The change includes wf.patched, Worker Versioning, or an explicit reset/recovery plan
 - Any patch marker includes a deprecation plan or documented non-deprecation rationale
 
 **Worker restart is not nondeterminism repair** (`rq-workflowVersioning01.3`)
 
 **Given:**
-
 - A workflow query or task fails with TMPRL1100, NonDeterministic, Nondeterminism, WorkflowTaskFailedCauseNonDeterministicError, No command scheduled, or WorkflowExecutionUpdateAccepted evidence
 
 **When:** Recovery guidance is presented
 
 **Then:**
-
 - The guidance does not classify worker restart as sufficient repair
 - Recovery starts with diagnosis, replay/versioning analysis, and audited quarantine/reset planning as appropriate
 
@@ -2517,7 +2184,6 @@ adv_change_archive MUST be idempotent when retrying after a previous failure whe
 **Idempotent retry skips disk write** (`rq-archiveOrdering01.1`)
 
 **Given:**
-
 - An archive bundle exists at {archiveDir}/{changeId}/change.json
 - The change status is not 'archived' (previous status transition failed)
 - dryRun is false
@@ -2525,7 +2191,6 @@ adv_change_archive MUST be idempotent when retrying after a previous failure whe
 **When:** adv_change_archive is called
 
 **Then:**
-
 - archiveChange() is NOT called (disk write skipped)
 - The status transition to 'archived' proceeds
 - The result includes the existing archivePath
@@ -2533,14 +2198,12 @@ adv_change_archive MUST be idempotent when retrying after a previous failure whe
 **Error output includes cause chain** (`rq-archiveOrdering01.2`)
 
 **Given:**
-
 - The archive disk write succeeded
 - store.changes.save(change) throws a Temporal WorkflowUpdateFailedError with a nested cause
 
 **When:** The error is caught
 
 **Then:**
-
 - The tool output includes the full cause chain (not just the outer error class name)
 - The output shows success: false with a descriptive error message
 
@@ -2559,40 +2222,34 @@ The ADV plugin must emit at most one plugin-controlled entry into output.system 
 **Healthy turn produces at most one system entry** (`rq-singleSystemBlock01.1`)
 
 **Given:**
-
 - An active change is set
 - The plugin store initialized successfully
 
 **When:** experimental.chat.system.transform runs
 
 **Then:**
-
 - output.system.length is at most 1 after the hook returns
 - All ADV markers (active change, worktree, wisdom prompt) appear in output.system[0]
 
 **Degraded mode also obeys single-entry contract** (`rq-singleSystemBlock01.2`)
 
 **Given:**
-
 - The plugin store initialization failed
 
 **When:** experimental.chat.system.transform runs
 
 **Then:**
-
 - The [ADV:DEGRADED] banner is appended to output.system[0]
 - output.system.length is at most 1
 
 **Internal-call short-circuit** (`rq-singleSystemBlock01.3`)
 
 **Given:**
-
 - output.system[0] matches an OpenCode internal-call pattern (title generation or summarizer)
 
 **When:** experimental.chat.system.transform runs
 
 **Then:**
-
 - The assembler returns null and ADV content is NOT appended
 - output.system remains unchanged
 
@@ -2611,27 +2268,59 @@ experimental.session.compacting must use buildChangeContextSnapshot to produce i
 **Compaction uses buildChangeContextSnapshot** (`rq-compactionFidelity01.1`)
 
 **Given:**
-
 - An active change with at least one task
 
 **When:** experimental.session.compacting runs
 
 **Then:**
-
 - output.context contains the rendered change-context snapshot
 - The snapshot uses the same formatter as the live system-block emission
 
 **Specs summary is retained** (`rq-compactionFidelity01.2`)
 
 **Given:**
-
 - The project has at least one spec
 
 **When:** experimental.session.compacting runs
 
 **Then:**
-
 - output.context includes an ADV SPECS CONTEXT block listing the specs
+
+---
+
+### Change lifecycle state is separate from gates and compatibility status
+
+**ID:** `rq-changeLifecycleState01` | **Priority:** **[MUST]**
+
+Change workflow state MUST persist lifecycleState as the canonical terminal/open lifecycle value: open, archived, or closed. Legacy compatibility status values such as draft, pending, and active MUST normalize to lifecycleState open on read/projection; archived and closed normalize to their matching lifecycle states. Change.status MUST NOT mirror the current gate and MUST NOT be the authority for open-change, claim, worktree-owner, or terminal filtering. Gate progress remains represented by the seven gate records and current-gate search attributes.
+
+**Tags:** `workflow`, `lifecycle`, `visibility`
+
+#### Scenarios
+
+**Legacy open statuses normalize to open lifecycle** (`rq-changeLifecycleState01.1`)
+
+**Given:**
+- A change workflow or local projection has legacy status draft, pending, or active
+
+**When:** The change is read or projected into search attributes
+
+**Then:**
+- lifecycleState is open
+- The current gate remains represented by gates and AdvCurrentGate
+- Open-change authority does not depend on AdvChangeStatus
+
+**Terminal lifecycle excludes open reads** (`rq-changeLifecycleState01.2`)
+
+**Given:**
+- A change workflow has lifecycleState archived or closed
+
+**When:** Default open-change, claim, status, or worktree-owner reads run
+
+**Then:**
+- The change is excluded from open results
+- A stale AdvChangeStatus value cannot make the change appear open
+- ExecutionStatus = "Running" or an equivalent terminal guard protects Visibility reads from stale completed workflow attributes
 
 ---
 
@@ -2648,13 +2337,11 @@ Backlog coordination state (claims, search attributes, snapshot freshness) is up
 **Gate transitions emit search attribute upserts including AdvBacklogIssueNumber when origin set** (`rq-aw-backlog01.1`)
 
 **Given:**
-
 - A change workflow with state.origin = { kind: roadmap, issue_number: 42 } progressing through gates
 
 **When:** Any gate completes (proposal, discovery, design, planning, execution, acceptance, release)
 
 **Then:**
-
 - The workflow upserts search attributes via buildChangeSearchAttributes
 - AdvBacklogIssueNumber remains populated with [42]
 - AdvCurrentGate reflects the newly completed gate semantics
@@ -2663,13 +2350,11 @@ Backlog coordination state (claims, search attributes, snapshot freshness) is up
 **Changes without origin.issue_number do not emit AdvBacklogIssueNumber** (`rq-aw-backlog01.2`)
 
 **Given:**
-
 - A change workflow with state.origin undefined OR state.origin.issue_number undefined
 
 **When:** Any gate completes
 
 **Then:**
-
 - AdvBacklogIssueNumber is NOT present in the search-attribute upsert payload
 - Other gate-related search attributes (AdvCurrentGate, AdvChangeStatus, etc.) populate normally
 
@@ -2686,13 +2371,11 @@ Backlog coordination state (claims, search attributes, snapshot freshness) is up
 **Ambiguity detection runs for each spec audited** (`rq-ambiguityScan01.1`)
 
 **Given:**
-
 - An /adv-audit execution targeting one or more specs
 
 **When:** Phase 3 Synthesis executes
 
 **Then:**
-
 - runSpecAmbiguityChecks is called for each spec's markdown content
 - Findings use B/F/S/Q/E taxonomy categories
 - Each finding includes category, severity, spec ref, verbatim specText, issue, and fix
@@ -2700,13 +2383,11 @@ Backlog coordination state (claims, search attributes, snapshot freshness) is up
 **Ambiguity detection is pure-function and inline** (`rq-ambiguityScan01.2`)
 
 **Given:**
-
 - The audit command is executing Phase 3
 
 **When:** Ambiguity checks are invoked
 
 **Then:**
-
 - No sub-agent is spawned for ambiguity detection
 - The scan completes synchronously as a pure function call
 - Results are aggregated with other synthesis data
@@ -2724,26 +2405,22 @@ Ambiguity findings MUST appear as a distinct section in audit reports. Each find
 **Text report includes ambiguity section** (`rq-ambiguityScan02.1`)
 
 **Given:**
-
 - An audit produces ambiguity findings
 
 **When:** The text report is rendered
 
 **Then:**
-
 - A distinct ambiguity section appears in the report
 - Each finding shows category, severity, spec ref, verbatim text, issue, and fix
 
 **JSON report includes ambiguity array** (`rq-ambiguityScan02.2`)
 
 **Given:**
-
 - An audit produces ambiguity findings and --json is requested
 
 **When:** The JSON report is emitted
 
 **Then:**
-
 - The root object contains an ambiguity array
 - Each element has id, category, severity, spec, specText, issue, and fix fields
 
@@ -2760,37 +2437,31 @@ Quality gates MUST promote health status based on ambiguity severity. CRITICAL a
 **CRITICAL ambiguity promotes to MAJOR_DRIFT** (`rq-ambiguityScan03.1`)
 
 **Given:**
-
 - An audit detects at least one CRITICAL ambiguity finding
 
 **When:** Quality gates are applied
 
 **Then:**
-
 - Health status is MAJOR_DRIFT regardless of other gate results
 
 **HIGH ambiguity threshold promotes to DRIFT_DETECTED** (`rq-ambiguityScan03.2`)
 
 **Given:**
-
 - Standard mode audit detects > 3 HIGH ambiguity findings
 
 **When:** Quality gates are applied
 
 **Then:**
-
 - Health status is DRIFT_DETECTED
 
 **Strict mode enforces zero HIGH ambiguity** (`rq-ambiguityScan03.3`)
 
 **Given:**
-
 - Strict mode audit detects any HIGH ambiguity finding
 
 **When:** Quality gates are applied
 
 **Then:**
-
 - Health status is DRIFT_DETECTED or MAJOR_DRIFT
 
 ---
@@ -2806,26 +2477,22 @@ When clarify_enforcement is 'off', ambiguity detection MUST be skipped entirely.
 **off mode skips ambiguity detection** (`rq-ambiguityScan04.1`)
 
 **Given:**
-
 - clarify_enforcement is set to 'off'
 
 **When:** /adv-audit Phase 3 Synthesis runs
 
 **Then:**
-
 - runSpecAmbiguityChecks is NOT called
 - No ambiguity findings appear in the report
 
 **advisory mode includes findings without gate enforcement** (`rq-ambiguityScan04.2`)
 
 **Given:**
-
 - clarify_enforcement is set to 'advisory'
 
 **When:** Quality gates are applied
 
 **Then:**
-
 - Ambiguity findings appear in the report
 - Ambiguity findings do NOT affect health status promotion
 
@@ -2842,13 +2509,11 @@ Remediation handoff for ambiguity findings MUST be informational only. The audit
 **Audit report suggests clarify handoff without state mutation** (`rq-ambiguityScan05.1`)
 
 **Given:**
-
 - An audit produces ambiguity findings
 
 **When:** The remediation section is rendered
 
 **Then:**
-
 - The report contains informational text suggesting /adv-clarify
 - No ADV state is mutated (no task updates, no gate changes, no change creation)
 
@@ -2867,29 +2532,25 @@ ADV task-readiness surfaces MUST expose a TodoWrite-safe projection derived from
 **adv_task_ready emits projection rows** (`rq-todoProjection01.1`)
 
 **Given:**
-
 - A change has pending or in-progress ADV tasks
 
 **When:** adv_task_ready is called
 
 **Then:**
-
-- The response includes \_todoProjection rows derived from ADV task state
+- The response includes _todoProjection rows derived from ADV task state
 - Each row content is formatted as `tk-id — title`
 - Completed ADV tasks are omitted from the projection
 
 **change show ready-task include emits same projection** (`rq-todoProjection01.2`)
 
 **Given:**
-
 - A change has ready tasks
 - adv_change_show is called with include.readyTasks true
 
 **When:** The response is built
 
 **Then:**
-
-- The response includes \_todoProjection with the same row shape as adv_task_ready
+- The response includes _todoProjection with the same row shape as adv_task_ready
 - The default projection window includes the current in-progress task when present plus the next three ready tasks
 - Legacy ready-task fields remain present for existing callers
 
@@ -2908,49 +2569,41 @@ During top-level ADV execution after a planned task graph exists, TodoWrite call
 **Unknown task IDs are blocked in active execution** (`rq-todoGuard01.1`)
 
 **Given:**
-
 - A top-level ADV session has an active change with a planned task graph
 
 **When:** TodoWrite contains a `tk-*` ID that is not known to the active change
 
 **Then:**
-
 - The TodoWrite call is rejected with a deterministic error
 
 **Other-change task IDs are blocked** (`rq-todoGuard01.2`)
 
 **Given:**
-
 - A top-level ADV session has an active change with a planned task graph
 
 **When:** TodoWrite contains a task ID structurally owned by another change
 
 **Then:**
-
 - The TodoWrite call is rejected with a deterministic error
 
 **TodoWrite completion cannot outrun ADV completion** (`rq-todoGuard01.3`)
 
 **Given:**
-
 - A TodoWrite entry references an ADV task whose ADV status is not done
 
 **When:** The TodoWrite entry status is completed during active top-level ADV execution
 
 **Then:**
-
 - The TodoWrite call is rejected with a deterministic error
 
 **Scratchpad and degraded scopes are preserved** (`rq-todoGuard01.4`)
 
 **Given:**
-
 - TodoWrite is used outside active top-level ADV execution or ADV state cannot be resolved safely
 
 **When:** TodoWrite contains no task IDs or local scratchpad entries
 
 **Then:**
-
 - The call is allowed or warning-only
 - Non-ADV work, early gates without tasks, degraded ADV state, and subagent scratchpads are not hard-blocked
 
@@ -2969,13 +2622,11 @@ ADV tools MUST reject missing required arguments and high-risk empty mutation pa
 **Missing required args fail fast** (`rq-toolArgPreflight01.1`)
 
 **Given:**
-
 - An ADV tool invocation omits required fields
 
 **When:** The tool registry receives the invocation
 
 **Then:**
-
 - The invocation returns `INVALID_TOOL_ARGS` before tool execution
 - The response lists missing fields
 - The response does not surface `ToolExecutionTimeout`
@@ -2983,26 +2634,22 @@ ADV tools MUST reject missing required arguments and high-risk empty mutation pa
 **Cross-field constraints fail fast** (`rq-toolArgPreflight01.2`)
 
 **Given:**
-
 - An ADV tool has a cross-field mutation constraint such as artifact update requiring at least one non-empty artifact field
 
 **When:** The invocation omits all constrained fields or provides only empty strings
 
 **Then:**
-
 - The invocation returns `INVALID_TOOL_ARGS` before tool execution
 - The response explains the cross-field constraint
 
 **Received args are redacted** (`rq-toolArgPreflight01.3`)
 
 **Given:**
-
 - A rejected tool invocation includes secret-like argument keys
 
 **When:** The preflight error response is formatted
 
 **Then:**
-
 - Sensitive values in `received_args` are redacted
 
 ---
@@ -3020,13 +2667,11 @@ ADV tool invocation preflight MUST centrally classify placeholder-sensitive argu
 **Required content placeholders fail before execution** (`rq-toolPlaceholderPolicy01.1`)
 
 **Given:**
-
 - An ADV tool receives a blank required content field such as task content, wisdom content, run-test command, agenda title, or worktree branch
 
 **When:** Tool argument preflight runs
 
 **Then:**
-
 - The invocation returns INVALID_TOOL_ARGS before tool execution
 - The response names the offending field
 - No workflow signal, shell command, artifact write, git worktree operation, or durable state mutation occurs
@@ -3034,13 +2679,11 @@ ADV tool invocation preflight MUST centrally classify placeholder-sensitive argu
 **Audit and linkage placeholders are rejected** (`rq-toolPlaceholderPolicy01.2`)
 
 **Given:**
-
 - An ADV mutation tool receives a blank or sentinel audit, approval-evidence, target path, origin, parent, source, supersession, recovery-evidence, or cancellation-reason value
 
 **When:** Tool argument preflight runs
 
 **Then:**
-
 - The invocation fails before mutation
 - The diagnostic names each invalid field or record entry
 - Placeholder strings are not persisted as workflow or audit facts
@@ -3048,26 +2691,22 @@ ADV tool invocation preflight MUST centrally classify placeholder-sensitive argu
 **Omission-equivalent placeholders require explicit normalization policy** (`rq-toolPlaceholderPolicy01.3`)
 
 **Given:**
-
 - An ADV tool receives an empty array or other placeholder that might mean omitted
 
 **When:** The field has no explicit omit policy
 
 **Then:**
-
 - The placeholder is rejected or left to schema validation rather than silently normalized
 - Only explicitly whitelisted fields such as adv_change_create scope_repos: [] may be removed from normalizedArgs
 
 **Normalized arguments are the execute payload** (`rq-toolPlaceholderPolicy01.4`)
 
 **Given:**
-
 - Preflight applies a field policy that omits or otherwise normalizes a placeholder
 
 **When:** The tool registry calls the tool implementation
 
 **Then:**
-
 - The tool receives normalizedArgs rather than the raw caller payload
 - Execute paths contain only defensive safety checks needed for bypass resilience
 - Preflight and execute behavior do not diverge for placeholder-sensitive fields
@@ -3075,13 +2714,11 @@ ADV tool invocation preflight MUST centrally classify placeholder-sensitive argu
 **Strict-mode optional fields normalize blanks to omitted** (`rq-toolPlaceholderPolicy01.5`)
 
 **Given:**
-
 - A strict-mode provider sends adv_change_create with optional fields filled with blank strings or zero
 
 **When:** Tool argument preflight runs
 
 **Then:**
-
 - Blank optional fields are normalized to omitted
 - The invocation succeeds with normalizedArgs
 - Required-when-present fields still reject blank values
@@ -3089,13 +2726,11 @@ ADV tool invocation preflight MUST centrally classify placeholder-sensitive argu
 **Field policy drift guards cover audited tool args** (`rq-toolPlaceholderPolicy01.6`)
 
 **Given:**
-
 - A high-risk agent-callable ADV tool adds or renames a placeholder-sensitive argument
 
 **When:** The preflight policy and registry tests run
 
 **Then:**
-
 - Audited required content, audit, evidence, recovery, target path, command, and worktree fields have explicit `FIELD_POLICIES` coverage
 - Dead policy entries for removed or renamed tool fields fail tests
 - Representative malformed invocations return `INVALID_TOOL_ARGS` before handler execution or mutation
@@ -3115,13 +2750,11 @@ ADV mutation tools MUST normalize provided blank or whitespace-only strings to o
 **Mixed update payload normalizes blank field to omitted; only writes provided non-blank artifacts** (`rq-toolArgBlankArtifactLinkage01.1`)
 
 **Given:**
-
 - adv_change_update receives a payload with proposal: 'real content' and design: ''
 
 **When:** The tool invocation is validated
 
 **Then:**
-
 - design is normalized to omitted
 - The invocation succeeds
 - Only proposal is written
@@ -3129,26 +2762,22 @@ ADV mutation tools MUST normalize provided blank or whitespace-only strings to o
 **Omitted artifact fields keep omission semantics** (`rq-toolArgBlankArtifactLinkage01.2`)
 
 **Given:**
-
 - adv_change_update receives proposal: 'new content' and omits design
 
 **When:** The update succeeds
 
 **Then:**
-
 - The proposal artifact may change
 - The omitted design artifact remains unchanged
 
 **Create normalizes blank provided narrative artifacts to omitted** (`rq-toolArgBlankArtifactLinkage01.3`)
 
 **Given:**
-
-- adv_change_create receives agreement: ' '
+- adv_change_create receives agreement: '   '
 
 **When:** The create invocation is validated
 
 **Then:**
-
 - agreement is normalized to omitted
 - The invocation succeeds
 - Omitted narrative artifact fields still use create defaults or skip behavior
@@ -3156,39 +2785,33 @@ ADV mutation tools MUST normalize provided blank or whitespace-only strings to o
 **Storage boundary rejects blank artifact writes** (`rq-toolArgBlankArtifactLinkage01.4`)
 
 **Given:**
-
 - A caller bypasses tool preflight and attempts to persist a blank artifact value
 
 **When:** The storage artifact write boundary validates the content
 
 **Then:**
-
 - The write is rejected before any artifact file is overwritten
 - The error identifies the blank artifact field
 
 **Blank origin source artifact is normalized to omitted** (`rq-toolArgBlankArtifactLinkage01.5`)
 
 **Given:**
-
-- adv_change_create receives origin_source_artifact: ' '
+- adv_change_create receives origin_source_artifact: '   '
 
 **When:** The create invocation is validated
 
 **Then:**
-
 - origin_source_artifact is normalized to omitted
 - The invocation succeeds
 
 **Required-when-present audit fields still reject blank** (`rq-toolArgBlankArtifactLinkage01.6`)
 
 **Given:**
-
 - adv_change_update receives confirmationEvidence: ''
 
 **When:** The update invocation is validated
 
 **Then:**
-
 - The invocation fails before writes or workflow signals
 - The response names confirmationEvidence as an offending field
 
@@ -3207,13 +2830,11 @@ The Temporal change workflow MUST enforce required artifact preconditions before
 **Missing artifact blocks artifact-backed gate** (`rq-gateArtifactEnforcement01.1`)
 
 **Given:**
-
 - An artifact-backed gate completion signal is handled by the change workflow
 
 **When:** The gate's required artifact is missing or unreadable
 
 **Then:**
-
 - The workflow does not mark the gate done
 - The gate remains pending or records a structured blocker
 - The blocker identifies the gate and missing artifact kind
@@ -3221,54 +2842,46 @@ The Temporal change workflow MUST enforce required artifact preconditions before
 **Blank or undersized artifact blocks completion** (`rq-gateArtifactEnforcement01.2`)
 
 **Given:**
-
 - A required gate artifact exists
 
 **When:** The artifact is blank, whitespace-only, or below deterministic minimum-content rules
 
 **Then:**
-
 - The workflow refuses gate completion
 - The refusal is deterministic and does not depend on LLM quality scoring
 
 **Valid required artifact permits completion** (`rq-gateArtifactEnforcement01.3`)
 
 **Given:**
-
 - All prior gates are done
 - The required artifact exists and passes deterministic checks
 
 **When:** gateCompletedSignal is handled for the artifact-backed gate
 
 **Then:**
-
 - The workflow may mark the gate done
 - Artifact evidence is available for audit when configured
 
 **Compatibility requires explicit rationale** (`rq-gateArtifactEnforcement01.4`)
 
 **Given:**
-
 - A replay or migration fixture cannot provide the required artifact evidence
 
 **When:** Compatibility completion is allowed
 
 **Then:**
-
 - The completion records an explicit compatibility rationale
 - Silent legacy bypasses are not accepted for new gate completions
 
 **Post-approval late artifact write does not satisfy gate proof** (`rq-gateArtifactEnforcement01.5`)
 
 **Given:**
-
 - A user has approved an artifact-backed gate checkpoint
 - A required proof artifact was not durably persisted and workflow-visible before the approval prompt
 
 **When:** Gate completion is evaluated
 
 **Then:**
-
 - The workflow refuses completion or records a deterministic stuck blocker
 - The approval text alone is not treated as artifact proof
 - The blocker names the missing or stale artifact evidence
@@ -3288,13 +2901,11 @@ Gate readiness MUST be derived from workflow-owned state and expose deterministi
 **Prior gate blocker is reported** (`rq-gateReadiness01.1`)
 
 **Given:**
-
 - A gate completion is requested while an earlier gate is not done
 
 **When:** Readiness is evaluated
 
 **Then:**
-
 - Readiness fails
 - The blocker identifies the prior incomplete gate
 - The workflow does not complete the requested gate
@@ -3302,27 +2913,23 @@ Gate readiness MUST be derived from workflow-owned state and expose deterministi
 **Artifact blocker is reported** (`rq-gateReadiness01.2`)
 
 **Given:**
-
 - Prior gates are complete
 - The requested gate requires an artifact
 
 **When:** The required artifact is missing or invalid
 
 **Then:**
-
 - Readiness fails with a stable blocker code
 - The blocker includes gateId, artifactKind, and remediation text
 
 **Tool surfaces workflow readiness blockers** (`rq-gateReadiness01.3`)
 
 **Given:**
-
 - Workflow readiness rejects a gate completion
 
 **When:** adv_gate_complete or adv_gate_status reports the result
 
 **Then:**
-
 - The tool response includes the workflow-derived blockers
 - Tool success is not reported unless workflow state actually advanced
 
@@ -3341,40 +2948,34 @@ When a gate requires artifact evidence, successful gate completion SHOULD record
 **Artifact evidence recorded on completion** (`rq-gateArtifactAudit01.1`)
 
 **Given:**
-
 - A gate requiring artifact evidence completes successfully
 
 **When:** The gate completion record is persisted
 
 **Then:**
-
 - The record includes the artifact kind and checked timestamp
 - The record includes artifact path or projection identity when available
 
 **Caller-provided audit data is not authoritative** (`rq-gateArtifactAudit01.2`)
 
 **Given:**
-
 - A caller sends gate completion payload data that claims artifact evidence
 
 **When:** The workflow handles the completion signal
 
 **Then:**
-
 - The workflow validates the artifact independently or rejects completion
 - Caller-provided metadata alone cannot mark the gate done
 
 **Executive summary proof uses workflow-visible hash metadata** (`rq-gateArtifactAudit01.3`)
 
 **Given:**
-
 - A new contract-era change reaches acceptance
 - executive-summary.md is required acceptance proof
 
 **When:** The workflow validates acceptance readiness
 
 **Then:**
-
 - The workflow requires executive-summary artifact metadata with a content hash
 - The current artifact hash must match workflow-visible metadata
 - Missing or stale metadata blocks acceptance
@@ -3394,39 +2995,33 @@ Acceptance gate completion MUST use typed contract, review matrix state, generat
 **Missing contract blocks acceptance** (`rq-acceptanceProjection01.1`)
 
 **Given:**
-
 - A new contract-era change reaches acceptance gate completion
 
 **When:** ChangeContract state is missing and no explicit compatibility rationale applies
 
 **Then:**
-
 - The workflow refuses acceptance completion
 - The blocker identifies the missing contract proof
 
 **Incomplete or failing review matrix blocks acceptance** (`rq-acceptanceProjection01.2`)
 
 **Given:**
-
 - A ChangeContract exists
 
 **When:** A verification-required contract item lacks a review row or has a failing/violated status
 
 **Then:**
-
 - The workflow refuses acceptance completion
 - The blocker identifies the unmet contract item
 
 **Passing matrix generates durable acceptance projection** (`rq-acceptanceProjection01.3`)
 
 **Given:**
-
 - All verification-required contract items have acceptable review rows
 
 **When:** The acceptance gate is completed
 
 **Then:**
-
 - The workflow writes acceptance.md through an activity or storage boundary
 - The workflow records acceptance artifact evidence
 - The acceptance gate may be marked done
@@ -3434,14 +3029,12 @@ Acceptance gate completion MUST use typed contract, review matrix state, generat
 **Executive summary evidence blocks acceptance when absent or stale** (`rq-acceptanceProjection01.4`)
 
 **Given:**
-
 - A new contract-era change reaches acceptance gate completion
 - The contract and review matrix pass
 
 **When:** executive-summary.md is missing, unreadable, undersized, lacks workflow-visible metadata, or its content hash is stale
 
 **Then:**
-
 - The workflow refuses acceptance completion
 - The blocker identifies executive-summary evidence as missing or stale
 - Chat approval alone does not mark acceptance done
@@ -3461,13 +3054,11 @@ Acceptance gate completion MUST use typed contract, review matrix state, generat
 **Review stops before prompt when required proof is missing** (`rq-acceptanceEvidenceTiming01.1`)
 
 **Given:**
-
 - /adv-review is preparing the acceptance checkpoint
 
 **When:** contract.reviewMatrix, acceptance projection proof, or workflow-visible executive-summary evidence is missing or invalid
 
 **Then:**
-
 - The acceptance approval prompt is not presented
 - The missing proof is surfaced with remediation
 - The acceptance gate remains pending or stuck
@@ -3475,14 +3066,12 @@ Acceptance gate completion MUST use typed contract, review matrix state, generat
 **Approval alone is not durable acceptance proof** (`rq-acceptanceEvidenceTiming01.2`)
 
 **Given:**
-
 - A user replies with an acceptance approval
 - A required acceptance proof write failed before or after that reply
 
 **When:** The acceptance gate is evaluated
 
 **Then:**
-
 - The approval text alone does not complete acceptance
 - The workflow requires persisted proof or audited recovery proof
 - The gate remains pending or stuck until proof is durable
@@ -3502,14 +3091,12 @@ Completed-workflow or poisoned-history acceptance recovery MUST be explicit and 
 **Audited recovery repairs terminal acceptance evidence** (`rq-acceptanceRecovery01.1`)
 
 **Given:**
-
 - A change workflow is completed or poisoned
 - Acceptance proof was produced but could not be fully persisted through Temporal
 
 **When:** Recovery is invoked with precise evidence, recovery rationale, and prior user approval evidence
 
 **Then:**
-
 - The recovery path validates contract rows and required artifacts deterministically
 - The disk projection may be repaired with audit metadata
 - The response marks the mutation as recovery and warns that workflow history is not healed
@@ -3517,13 +3104,11 @@ Completed-workflow or poisoned-history acceptance recovery MUST be explicit and 
 **Recovery without evidence is rejected** (`rq-acceptanceRecovery01.2`)
 
 **Given:**
-
 - An acceptance recovery mutation is requested
 
 **When:** Precise recovery evidence, rationale, or prior user approval evidence is missing
 
 **Then:**
-
 - No disk projection repair occurs
 - The response identifies the missing audit field
 - The acceptance gate remains pending or stuck
@@ -3543,13 +3128,11 @@ Completed-workflow or poisoned-history acceptance recovery MUST be explicit and 
 **Discovery records preview applicability** (`rq-acceptancePreviewUrl01.1`)
 
 **Given:**
-
 - A change is being finalized through /adv-discover
 
 **When:** The agreement is drafted and persisted
 
 **Then:**
-
 - The agreement records visual_surface as true, false, or unknown
 - The agreement records rationale for the preview applicability value
 - visual_surface unknown is carried forward as an acceptance blocker until clarified
@@ -3557,13 +3140,11 @@ Completed-workflow or poisoned-history acceptance recovery MUST be explicit and 
 **Applicable visual work shows reachable preview before acceptance** (`rq-acceptancePreviewUrl01.2`)
 
 **Given:**
-
 - A change has visual_surface true or implementation evidence of front-end, browser-visible, or visual-output work
 
 **When:** /adv-review presents the acceptance summary before the Inline Approval prompt
 
 **Then:**
-
 - The summary includes Preview URL: {url}
 - The summary includes reachability evidence with verification method, result, and reviewed timestamp or equivalent context
 - The contract review evidence records the preview proof
@@ -3571,13 +3152,11 @@ Completed-workflow or poisoned-history acceptance recovery MUST be explicit and 
 **Missing applicable preview blocks acceptance** (`rq-acceptancePreviewUrl01.3`)
 
 **Given:**
-
 - A change requires preview proof because visual_surface is true or visual-output work is detected
 
 **When:** No dev-environment URL or reachability evidence is available
 
 **Then:**
-
 - /adv-review reports Preview URL: blocked with a concrete reason
 - The acceptance checkpoint is not presented
 - The acceptance gate remains pending
@@ -3585,14 +3164,12 @@ Completed-workflow or poisoned-history acceptance recovery MUST be explicit and 
 **Visual-surface drift blocks acceptance until agreement is updated** (`rq-acceptancePreviewUrl01.4`)
 
 **Given:**
-
 - The approved agreement records visual_surface false
 - /adv-review detects implementation evidence of front-end, browser-visible, or visual-output work
 
 **When:** /adv-review evaluates preview applicability
 
 **Then:**
-
 - /adv-review reports Preview URL: blocked with a visual-surface drift reason
 - The acceptance checkpoint is not presented
 - The agreement must be clarified or re-entered before acceptance can proceed
@@ -3600,13 +3177,11 @@ Completed-workflow or poisoned-history acceptance recovery MUST be explicit and 
 **Non-visual work may mark preview not applicable** (`rq-acceptancePreviewUrl01.5`)
 
 **Given:**
-
 - A change has visual_surface false and no implementation evidence of front-end, browser-visible, or visual-output work
 
 **When:** /adv-review presents the acceptance summary
 
 **Then:**
-
 - The summary may include Preview URL: not_applicable
 - The not_applicable state includes rationale
 - Preview URL absence does not block acceptance for the non-visual change
@@ -3626,13 +3201,11 @@ Completed-workflow or poisoned-history acceptance recovery MUST be explicit and 
 **Design records technical criteria without new user AC** (`rq-stageDesignCriteriaBoundary01.1`)
 
 **Given:**
-
 - A change reaches /adv-design with approved discovery criteria
 
 **When:** /adv-design writes design.md
 
 **Then:**
-
 - design.md may include a Design-Derived Criteria section for technical budgets and constraints
 - design.md does not add new user-facing acceptance criteria as if they were approved agreement items
 - The design explains how approved discovery criteria will be delivered
@@ -3640,13 +3213,11 @@ Completed-workflow or poisoned-history acceptance recovery MUST be explicit and 
 **Design-invalidated AC uses discovery re-entry** (`rq-stageDesignCriteriaBoundary01.2`)
 
 **Given:**
-
 - A design decision proves an approved acceptance criterion invalid, incomplete, or mechanism-derived
 
 **When:** /adv-design handles the conflict
 
 **Then:**
-
 - The conflict is surfaced before planning
 - adv_change_reenter is used from discovery when criteria must change
 - The design gate does not silently rewrite approved user-facing criteria
@@ -3666,13 +3237,11 @@ Workflow enforcement MUST NOT require proposal.md to contain testable success cr
 **Proposal without success criteria reaches planning** (`rq-stageCriteriaEnforcementRetarget01.1`)
 
 **Given:**
-
 - proposal.md contains `## User Outcomes` and no proposal-level `## Success Criteria` section
 
 **When:** The change reaches planning-gate readiness checks
 
 **Then:**
-
 - No clarify-readiness finding fires solely because proposal success criteria are absent
 - The planning gate is not blocked on that basis
 - Criteria checks use agreement.md and the ChangeContract instead
@@ -3680,13 +3249,11 @@ Workflow enforcement MUST NOT require proposal.md to contain testable success cr
 **Acceptance contract behavior unchanged** (`rq-stageCriteriaEnforcementRetarget01.2`)
 
 **Given:**
-
 - The ChangeContract contains approved `AC*` items from discovery
 
 **When:** /adv-review builds the acceptance review matrix
 
 **Then:**
-
 - Each `AC*` item is reviewed with its evidence policy as before
 - No proposal `## User Outcomes` item is reviewed as an `AC*` unless it was approved through discovery agreement
 - The absence of proposal success criteria does not weaken acceptance review of approved contract items
@@ -3706,14 +3273,12 @@ Workflow enforcement MUST NOT require proposal.md to contain testable success cr
 **Scout phase executes for full proposals** (`rq-designOpportunityScout01.1`)
 
 **Given:**
-
 - A /adv-design invocation for a full proposal workflow
 - Design Phase 2 (draft design) has completed
 
 **When:** Phase 2.5 executes
 
 **Then:**
-
 - The orchestrator prepares schema, routing, fallback/degradation, and adoption rules
 - adv-researcher is spawned with design-mode prompt and may load adv-opportunity-scout in worker context
 - ≤5 candidates are returned with 8-field ScoutCandidate schema
@@ -3723,14 +3288,12 @@ Workflow enforcement MUST NOT require proposal.md to contain testable success cr
 **Design validator remains distinct** (`rq-designOpportunityScout01.2`)
 
 **Given:**
-
 - Phase 2.5 (scout) has completed
 - Phase 3.5 (validator) runs after
 
 **When:** The design validation flow executes
 
 **Then:**
-
 - The existing design validator runs unchanged
 - The validator validates the design including any scout-adopted improvements
 - The scout and validator serve different purposes (opportunity vs correctness)
@@ -3750,7 +3313,6 @@ The review/harden flow MUST block release when required in-scope obligations rem
 **Unresolved required-critical item blocks release** (`rq-requiredObligation01.1`)
 
 **Given:**
-
 - A change has a required-critical contract item in-scope
 - The item has no notRequiredReason
 - The contract review matrix shows the item as unverified or failed
@@ -3758,7 +3320,6 @@ The review/harden flow MUST block release when required in-scope obligations rem
 **When:** The release gate is evaluated
 
 **Then:**
-
 - The release gate is NOT marked done
 - A REQUIRED_OBLIGATION_UNRESOLVED blocker is surfaced
 - The response identifies the specific contract item and required evidence
@@ -3766,27 +3327,23 @@ The review/harden flow MUST block release when required in-scope obligations rem
 **Verified required-critical item allows release** (`rq-requiredObligation01.2`)
 
 **Given:**
-
 - A change has a required-critical contract item in-scope
 - The contract review matrix shows the item as pass with evidence
 
 **When:** The release gate is evaluated
 
 **Then:**
-
 - The release gate may proceed if all other conditions are met
 
 **Not-required reason exempts item from release block** (`rq-requiredObligation01.3`)
 
 **Given:**
-
 - A change has a required-critical contract item
 - The item has an explicit notRequiredReason set
 
 **When:** The release gate is evaluated
 
 **Then:**
-
 - The item does not block release
 
 ---
@@ -3804,13 +3361,11 @@ Out-of-scope required obligations MUST NOT be silently dropped or auto-resolved.
 **Out-of-scope required item requires explicit routing** (`rq-requiredObligation02.1`)
 
 **Given:**
-
 - A required-critical contract item is marked out-of-scope during execution or review
 
 **When:** The workflow evaluates release readiness
 
 **Then:**
-
 - The release gate is NOT marked done
 - A REQUIRED_OBLIGATION_ROUTING_MISSING blocker is surfaced
 - The response demands explicit re-enter or split action with rationale
@@ -3818,28 +3373,24 @@ Out-of-scope required obligations MUST NOT be silently dropped or auto-resolved.
 **Re-enter with rationale resolves routing blocker** (`rq-requiredObligation02.2`)
 
 **Given:**
-
 - An out-of-scope required-critical item is re-entered via adv_change_reenter
 - The re-enter rationale explains why the item is now in-scope
 
 **When:** The release gate is re-evaluated
 
 **Then:**
-
 - The REQUIRED_OBLIGATION_ROUTING_MISSING blocker is cleared
 - The item is treated as in-scope for release checks
 
 **Split into new change resolves routing blocker** (`rq-requiredObligation02.3`)
 
 **Given:**
-
 - An out-of-scope required-critical item is split into a new tracked change
 - The original change records the split reference (new change ID and rationale)
 
 **When:** The release gate is re-evaluated
 
 **Then:**
-
 - The REQUIRED_OBLIGATION_ROUTING_MISSING blocker is cleared
 - The original change may proceed to release
 - The new change carries the required obligation forward
@@ -3859,41 +3410,35 @@ ADV read surfaces MUST NOT expose nonexistent active artifact filesystem paths a
 **Temporal-only artifact content does not expose fake readable path** (`rq-artifactPathTruth01.1`)
 
 **Given:**
-
 - An active change has state.documents.design populated
 - No active design.md file exists on disk for the change
 
 **When:** adv_change_show is called with include.design true
 
 **Then:**
-
-- The response includes the design content in \_design
+- The response includes the design content in _design
 - The response does not present artifacts.design.path as a readable existing file
 - Artifact metadata is machine-readable enough to distinguish Temporal content from a materialized file
 
 **Legacy and archive artifact fallbacks remain readable** (`rq-artifactPathTruth01.2`)
 
 **Given:**
-
 - Artifact content exists only as a legacy active disk artifact or a materialized archive bundle artifact
 
 **When:** Artifact readback runs for that change
 
 **Then:**
-
 - The fallback content is returned
 - A filesystem path is exposed only when the file is actually materialized and readable
 
 **Recovery and archive evidence keeps verified real paths** (`rq-artifactPathTruth01.3`)
 
 **Given:**
-
 - A recovery or archive path intentionally writes or verifies an artifact file
 
 **When:** Gate or archive evidence is emitted
 
 **Then:**
-
 - The real verified filesystem path may be included in evidence
 - The behavior does not reintroduce active artifact-content disk writes as the primary source of truth
 
@@ -3912,65 +3457,55 @@ PR-mode ADV archives that survive through PR creation must be cleanable post-mer
 **Squash-merge-safe detection** (`rq-archiveBranchCleanup01.1`)
 
 **Given:**
-
 - An archived ADV change whose `change/{id}` branch was squash-merged into the default branch
 
 **When:** operator runs `adv_archive_repair action=cleanup_merged`
 
 **Then:**
-
 - The branch is detected as `tree-identical` (tree-SHA match) OR `patch-equivalent` (git cherry)
 - The branch is included in cleanup candidates
 
 **Worktree-checked-out refusal** (`rq-archiveBranchCleanup01.2`)
 
 **Given:**
-
 - An archived ADV change whose `change/{id}` branch is currently checked out in any active worktree
 
 **When:** operator runs `adv_archive_repair action=cleanup_merged`
 
 **Then:**
-
 - The branch is excluded from deletion candidates
 - The exclusion rationale cites the worktree path
 
 **Dry-run preview** (`rq-archiveBranchCleanup01.3`)
 
 **Given:**
-
 - Operator wants to preview before deleting
 
 **When:** operator runs `adv_archive_repair action=cleanup_merged dryRun=true`
 
 **Then:**
-
 - The tool returns the candidate list with per-branch merge proof
 - Zero deletions are performed
 
 **Status observability** (`rq-archiveBranchCleanup01.4`)
 
 **Given:**
-
 - At least 1 archived-change local branch is safely deletable
 
 **When:** operator runs `adv_status view:"summary"`
 
 **Then:**
-
 - A recommendation line appears in `recommendations[]`
 - When operator runs `adv_status view:"hygiene"`, a full `archived_branch_hygiene` section appears with per-branch detail
 
 **Non-regression of direct-archive path** (`rq-archiveBranchCleanup01.5`)
 
 **Given:**
-
 - A change archived via direct-archive mode
 
 **When:** archive finalization completes
 
 **Then:**
-
 - The existing branch cleanup gate at `change.ts:4436-4441` continues to delete the branch at archive time
 - Direct-archive cleanup behavior is unchanged by the addition of cleanup_merged action
 
@@ -3989,14 +3524,12 @@ Linked ops/enabler follow-up work MUST persist structural source provenance in a
 **Promoted required follow-up records provenance on both sides** (`rq-opsFollowTrace01.1`)
 
 **Given:**
-
 - A sub-agent report contains a required_critical follow-up tied to contract item C8
 - The parent change has no existing ops_followup_links
 
 **When:** adv_followup_promote creates the ops follow-up change
 
 **Then:**
-
 - The child change ops_followup.source records the parent change ID, source artifact ID, relationship, and created_at
 - The parent change ops_followup_links[] records the child ID and the same relationship
 - The provenance is structurally queryable from both sides
@@ -4004,14 +3537,12 @@ Linked ops/enabler follow-up work MUST persist structural source provenance in a
 **Manual ops follow-up records source rationale** (`rq-opsFollowTrace01.2`)
 
 **Given:**
-
 - An agent creates an ops follow-up from a manual source with a parent change
 - No report or agenda artifact exists
 
 **When:** adv_followup_promote uses source kind manual
 
 **Then:**
-
 - The child source provenance records the parent change ID and manual rationale
 - The parent link records the relationship and linked_at
 - The manual rationale is preserved as typed provenance, not agenda text
@@ -4019,13 +3550,11 @@ Linked ops/enabler follow-up work MUST persist structural source provenance in a
 **Cross-project ops link records target path** (`rq-opsFollowTrace01.3`)
 
 **Given:**
-
 - Parent project A creates an ops follow up in project B
 
 **When:** Promotion writes both sides of the link
 
 **Then:**
-
 - The child source records the origin project and path
 - The parent link records target_project_id and target_path
 - Product-scoped queries resolve the cross-project target
@@ -4045,26 +3574,22 @@ An ops follow-up change MUST support append-only light evidence entries capturin
 **Evidence append updates status** (`rq-opsFollowEvidence01.1`)
 
 **Given:**
-
 - An ops follow-up has status running
 
 **When:** adv_ops_evidence_add appends a batch result with status partial and 50% progress summary
 
 **Then:**
-
 - The evidence[] array contains the entry with env, action, status, timestamp, and summary
 - The profile status becomes partial
 
 **Completion signal records final state** (`rq-opsFollowEvidence01.2`)
 
 **Given:**
-
 - An ops follow-up cleanup runs after release
 
 **When:** The final evidence entry signals complete
 
 **Then:**
-
 - The profile status becomes complete
 - The completion_signal field records the final signal
 - The next step is omitted or marked done
@@ -4072,13 +3597,11 @@ An ops follow-up change MUST support append-only light evidence entries capturin
 **Failed/rerun evidence is captured** (`rq-opsFollowEvidence01.3`)
 
 **Given:**
-
 - A backfill fails due to bad input data
 
 **When:** An evidence entry with status failed and rerun_needed rationale is appended
 
 **Then:**
-
 - The profile status becomes failed or rerun_needed
 - The entry preserves the error summary and next step
 - The evidence trail supports resumption without re-deriving state from chat
@@ -4098,42 +3621,83 @@ Parent release/archive reporting MUST surface open linked ops obligations and re
 **Blocking ops obligation prevents release** (`rq-opsFollowRelease01.1`)
 
 **Given:**
-
 - A parent change has an ops_followup_link with relationship blocks and status not complete
 
 **When:** The release gate is evaluated
 
 **Then:**
-
 - The release gate is NOT marked done
 - An OPS_FOLLOWUP_BLOCKING_UNRESOLVED blocker is surfaced with the link ID
 
 **Non-blocking release-first allows release with handoff** (`rq-opsFollowRelease01.2`)
 
 **Given:**
-
 - A parent change has a follows_release link that is not complete
 - An explicit surviving-obligation handoff is recorded
 
 **When:** The release gate is evaluated
 
 **Then:**
-
 - Release may proceed if all other conditions are met
 - The archive report lists the surviving obligation and handoff
 
 **Archive reports open ops obligations** (`rq-opsFollowRelease01.3`)
 
 **Given:**
-
 - A parent change is archived with an open follows_release link
 
 **When:** /adv-archive terminal output is emitted
 
 **Then:**
-
 - The output includes the open ops follow-up list
 - Each entry shows relationship, status, and handoff note
 - The open obligation is not silently dropped
+
+---
+
+### Large Non-Code Deliverables Use Tracked ADV Workflow
+
+**ID:** `rq-nonCodeWorkflow01` | **Priority:** **[MUST]**
+
+Large non-code deliverables such as market research, design improvement, competitive research, writing, analysis, and planning MUST route to a tracked ADV change after any optional pre-change research clarifies direction, unless the user explicitly scopes the work as one-off/read-only. /adv-improve remains a read-only pre-proposal research-pack command: it may create docs/*-prep.md evidence packs consumed by proposal/discovery, but it MUST NOT replace the tracked workflow for consequential deliverables or mutate ADV change/task/gate state.
+
+**Tags:** `workflow`, `non-code`, `routing`, `adv-improve`, `deliverables`
+
+#### Scenarios
+
+**Large non-code deliverable becomes tracked change** (`rq-nonCodeWorkflow01.1`)
+
+**Given:**
+- A user asks ADV for a consequential market research, design improvement, competitive research, writing, analysis, or planning deliverable
+
+**When:** The agent classifies the requested work after any needed clarification
+
+**Then:**
+- The work is routed to a tracked ADV change with proposal, discovery, design, prep, execution, acceptance, and release gates
+- The agent does not deliver the consequential work solely as ad hoc chat or a utility report
+- The change agreement defines acceptance criteria and evidence expectations for the non-code deliverable
+
+**Explicit one-off read-only work may stay untracked** (`rq-nonCodeWorkflow01.2`)
+
+**Given:**
+- A user explicitly asks for a one-off or read-only summary, scan, or analysis
+
+**When:** The requested output is not a consequential durable deliverable
+
+**Then:**
+- The agent may complete the read-only work without creating ADV change/task/gate state
+- If durable implementation or acceptance criteria emerge, the agent routes the follow-up through a tracked ADV change
+
+**adv-improve remains a pre-proposal research pack** (`rq-nonCodeWorkflow01.3`)
+
+**Given:**
+- /adv-improve produces a docs/*-prep.md research pack
+
+**When:** The pack identifies a significant improvement or direction
+
+**Then:**
+- The pack is cited by /adv-proposal or /adv-discover as prior research
+- /adv-improve does not create changes, tasks, gates, spec deltas, or agenda items
+- The pack does not replace tracked acceptance evidence for the resulting deliverable
 
 ---

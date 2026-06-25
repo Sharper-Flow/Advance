@@ -3,13 +3,13 @@
   "name": "backlog-coordination",
   "title": "Backlog Coordination",
   "purpose": "Multi-agent backlog and WIP coordination via per-change Temporal workflows + cross-entity search attributes. Eliminates drift between agent view and user view in single-developer-multi-agent workflows. GitHub Project remains canonical for ranking and Value (V); the change workflow itself acts as the durable claim record (no separate claim primitive, no project-level shared workflow).",
-  "version": "1.3.0",
-  "updated_at": "2026-06-20T00:00:00.000Z",
+  "version": "1.4.0",
+  "updated_at": "2026-06-25T00:00:00.000Z",
   "requirements": [
     {
       "id": "rq-backlogCoord01",
       "title": "Cross-session claim visibility via AdvBacklogIssueNumber search attribute",
-      "body": "When a change workflow is created with origin.kind === 'roadmap' and origin.issue_number set, the workflow's AdvBacklogIssueNumber search attribute is populated from state.origin.issue_number. Peer agent sessions can detect existing claims by querying Temporal Visibility filtered on AdvAffectedProjects + AdvBacklogIssueNumber + non-terminal AdvChangeStatus. The change workflow itself IS the durable claim: status draft|pending|active = claim held; archived|closed = claim released. This mirrors the in-repo precedent set by AdvWorktreeBranches / AdvWorktreePaths (see plugin/src/temporal/search-attributes.ts).",
+      "body": "When a change workflow is created with origin.kind === 'roadmap' and origin.issue_number set, the workflow's AdvBacklogIssueNumber search attribute is populated from state.origin.issue_number. Peer agent sessions can detect existing claims by querying Temporal Visibility filtered on AdvAffectedProjects + AdvBacklogIssueNumber + AdvLifecycleState = \"open\" + ExecutionStatus = \"Running\". The change workflow itself IS the durable claim: lifecycleState open = claim held; lifecycleState archived|closed = claim released. AdvChangeStatus is compatibility/read-model metadata and MUST NOT be the open-claim authority. This mirrors the in-repo precedent set by AdvWorktreeBranches / AdvWorktreePaths (see plugin/src/temporal/search-attributes.ts).",
       "priority": "must",
       "tags": ["coordination", "search-attributes", "claims"],
       "scenarios": [
@@ -40,7 +40,7 @@
             "Session A creates a change with origin.issue_number = 51 in project pid-abc",
             "Search attribute propagation has completed (\u2264 ~5s on SQLite dev server)"
           ],
-          "when": "Session B queries Temporal Visibility with 'AdvAffectedProjects = \"pid-abc\" AND AdvBacklogIssueNumber = \"51\" AND AdvChangeStatus IN (\"draft\", \"pending\", \"active\")'",
+          "when": "Session B queries Temporal Visibility with 'AdvAffectedProjects = \"pid-abc\" AND AdvBacklogIssueNumber = \"51\" AND AdvLifecycleState = \"open\" AND ExecutionStatus = \"Running\"'",
           "then": ["The response includes session A's change workflow ID"]
         }
       ]
@@ -48,7 +48,7 @@
     {
       "id": "rq-backlogCoord02",
       "title": "Atomic claim check at change-create time",
-      "body": "adv_change_create with origin.kind === 'roadmap' and origin.issue_number set performs a Temporal Visibility query before workflow start. If any existing change workflow in the same project has the same AdvBacklogIssueNumber and non-terminal AdvChangeStatus, the tool returns a typed CLAIM_CONFLICT error including the existing change ID. The agent surfaces the conflict to the user (resume existing change, override, or cancel). The change workflow itself becomes the durable claim record on successful create.",
+      "body": "adv_change_create with origin.kind === 'roadmap' and origin.issue_number set performs a Temporal Visibility query before workflow start. If any existing running open-lifecycle change workflow in the same project has the same AdvBacklogIssueNumber, the tool returns a typed CLAIM_CONFLICT error including the existing change ID. The agent surfaces the conflict to the user (resume existing change, override, or cancel). The change workflow itself becomes the durable claim record on successful create.",
       "priority": "must",
       "tags": ["coordination", "claims", "atomicity"],
       "scenarios": [
@@ -56,12 +56,12 @@
           "id": "rq-backlogCoord02.1",
           "title": "CLAIM_CONFLICT returned when active change exists for same issue",
           "given": [
-            "A change workflow exists in status 'active' with origin.issue_number = 51 in project pid-abc"
+            "A change workflow exists with lifecycleState 'open' and origin.issue_number = 51 in project pid-abc"
           ],
           "when": "adv_change_create is called with origin_kind: 'roadmap', origin_issue_number: 51 in pid-abc",
           "then": [
             "The tool returns an error response with code 'CLAIM_CONFLICT'",
-            "The response includes the existing change ID and its non-terminal status",
+            "The response includes the existing change ID and open lifecycle state",
             "No new change workflow is started"
           ]
         },
@@ -127,7 +127,7 @@
     {
       "id": "rq-backlogCoord04",
       "title": "Single-call WIP visibility aggregator",
-      "body": "adv_wip_state returns a single aggregated view of an ADV project's in-flight coordination state: (a) active changes (status IN draft|pending|active) from Temporal Visibility, (b) worktree state from the worktree state DB, (c) peer sessions from the session registry. One tool call per agent session; no client-side composition required. Read-only \u2014 does not mutate state.",
+      "body": "adv_wip_state returns a single aggregated view of an ADV project's in-flight coordination state: (a) running open-lifecycle changes from Temporal Visibility, (b) worktree state from the worktree state DB, (c) peer sessions from the session registry. One tool call per agent session; no client-side composition required. Read-only \u2014 does not mutate state.",
       "priority": "must",
       "tags": ["coordination", "wip", "aggregation"],
       "scenarios": [

@@ -1,6 +1,7 @@
 import * as wf from "@temporalio/workflow";
 import type { ChangeWorkflowState } from "./contracts";
 import { bucketCtxFromState, deriveBucket } from "../utils/buckets";
+import { normalizeChangeLifecycleState } from "./change-state";
 
 // NOTE: Temporal dev server hard-caps custom search attributes at 3 per
 // `KeywordList` type per namespace. Keep KeywordList entries to ≤ 3:
@@ -16,6 +17,7 @@ import { bucketCtxFromState, deriveBucket } from "../utils/buckets";
 export const ADV_SEARCH_ATTRIBUTES = {
   AdvChangeId: "Keyword",
   AdvChangeStatus: "Keyword",
+  AdvLifecycleState: "Keyword",
   AdvChangeTitle: "Keyword",
   AdvAffectedProjects: "KeywordList",
   AdvCurrentGate: "Keyword",
@@ -177,6 +179,9 @@ export function buildChangeSearchAttributes(
   const attrs: Record<string, unknown[]> = {
     AdvChangeId: [state.changeId],
     AdvChangeStatus: [state.status],
+    AdvLifecycleState: [
+      state.lifecycleState ?? normalizeChangeLifecycleState(state.status),
+    ],
     AdvChangeTitle: [state.title],
     AdvCurrentGate: [currentGate(state)],
     AdvCurrentBucket: [deriveBucket(bucketCtxFromState(state, nowMs))],
@@ -212,8 +217,8 @@ export function buildChangeSearchAttributes(
   // rq-backlogCoord01: populate AdvBacklogIssueNumber from state.origin so
   // peer agent sessions can detect claim collisions via Visibility queries
   // (`AdvAffectedProjects = pid AND AdvBacklogIssueNumber = N AND
-  // AdvChangeStatus IN ("draft","pending","active")`). Keyword search
-  // attributes carry string values, so the issue number is stringified.
+  // AdvLifecycleState = "open" AND ExecutionStatus = "Running"`). Keyword
+  // search attributes carry string values, so the issue number is stringified.
   if (state.origin?.issue_number !== undefined) {
     attrs.AdvBacklogIssueNumber = [String(state.origin.issue_number)];
   }

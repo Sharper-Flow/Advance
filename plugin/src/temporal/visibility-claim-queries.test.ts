@@ -27,14 +27,14 @@ function makeClient(
 }
 
 describe("visibility-claim-queries: query construction (rq-backlogCoord01, rq-backlogCoord02)", () => {
-  it("builds claim-collision query scoped by AdvAffectedProjects + AdvBacklogIssueNumber + non-terminal status", () => {
+  it("builds claim-collision query scoped by AdvAffectedProjects + AdvBacklogIssueNumber + open lifecycle", () => {
     const query = buildClaimVisibilityQuery({
       projectId: "pid-abc",
       issueNumber: 42,
     });
 
     expect(query).toBe(
-      'AdvAffectedProjects = "pid-abc" AND AdvBacklogIssueNumber = "42" AND AdvChangeStatus IN ("draft", "pending", "active")',
+      'AdvAffectedProjects = "pid-abc" AND AdvBacklogIssueNumber = "42" AND AdvLifecycleState = "open" AND ExecutionStatus = "Running"',
     );
   });
 
@@ -54,7 +54,7 @@ describe("visibility-claim-queries: query construction (rq-backlogCoord01, rq-ba
     });
 
     expect(query).toBe(
-      'AdvAffectedProjects = "pid-abc" AND AdvBacklogIssueNumber IN ("51", "52", "60") AND AdvChangeStatus IN ("draft", "pending", "active")',
+      'AdvAffectedProjects = "pid-abc" AND AdvBacklogIssueNumber IN ("51", "52", "60") AND AdvLifecycleState = "open" AND ExecutionStatus = "Running"',
     );
   });
 

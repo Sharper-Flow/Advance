@@ -5,6 +5,8 @@ import type {
   Cancellation,
   Change,
   ChangeCancelledSignalPayload,
+  ChangeLifecycleState,
+  ChangeStatus,
   AcceptanceUpdatedSignalPayload,
   ChangeClosure,
   ContractAmendedSignalPayload,
@@ -74,6 +76,13 @@ export interface StateMutationContext {
   uuid: () => string;
 }
 
+export function normalizeChangeLifecycleState(
+  status: ChangeStatus | ChangeLifecycleState | undefined,
+): ChangeLifecycleState {
+  if (status === "archived" || status === "closed") return status;
+  return "open";
+}
+
 function getTaskOrThrow(state: ChangeWorkflowState, taskId: string): Task {
   const task = state.tasks.find((candidate) => candidate.id === taskId);
   if (!task) {
@@ -100,6 +109,7 @@ export function createChangeWorkflowState(input: {
     changeId: input.changeId,
     title: input.title,
     status: "draft",
+    lifecycleState: "open",
     initializedAt: input.createdAt,
     createdAt: input.createdAt,
     tasks: [],
@@ -124,6 +134,9 @@ export function changeSeedStateFromChange(
 
   return {
     status: safeChange.status,
+    lifecycleState:
+      safeChange.lifecycleState ??
+      normalizeChangeLifecycleState(safeChange.status),
     tasks: safeChange.tasks ?? [],
     subagent_reports: safeChange.subagent_reports ?? [],
     deltas: safeChange.deltas ?? {},
@@ -1172,6 +1185,7 @@ export function applyArchiveRequestedToState(
   payload: ArchiveRequestedSignalPayload,
 ): ChangeWorkflowState {
   state.status = "archived";
+  state.lifecycleState = "archived";
   state.terminated = true;
   state.archiveRequest = payload;
   setLastSignalAt(state, payload.requestedAt);
@@ -1183,6 +1197,7 @@ export function applyChangeCancelledToState(
   payload: ChangeCancelledSignalPayload,
 ): ChangeWorkflowState {
   state.status = "closed";
+  state.lifecycleState = "closed";
   state.terminated = true;
   state.closure = {
     reason: payload.supersededBy ? "superseded" : "cancelled",
@@ -1405,6 +1420,7 @@ export function closeChangeInChangeState(
   closure: ChangeClosure,
 ): ChangeWorkflowState {
   state.status = "closed";
+  state.lifecycleState = "closed";
   state.closure = closure;
   return state;
 }
@@ -1413,5 +1429,6 @@ export function archiveChangeInChangeState(
   state: ChangeWorkflowState,
 ): ChangeWorkflowState {
   state.status = "archived";
+  state.lifecycleState = "archived";
   return state;
 }

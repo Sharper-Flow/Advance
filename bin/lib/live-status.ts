@@ -27,6 +27,7 @@ import {
   createTemporalClientBundle,
 } from "../../plugin/src/temporal/client";
 import { CHANGE_WORKFLOW_QUERY_NAMES } from "../../plugin/src/temporal/contracts";
+import { escapeVisibilityValue } from "../../plugin/src/temporal/lifecycle-visibility";
 
 export const QUERY_TIMEOUT_MS = 5_000;
 
@@ -66,6 +67,7 @@ function normalizeWorkflowState(raw: any): ChangeRecord {
     id: String(raw.id ?? raw.changeId ?? ""),
     title: String(raw.title ?? raw.id ?? raw.changeId ?? "(untitled)"),
     status: String(raw.status ?? "draft"),
+    lifecycleState: String(raw.lifecycleState ?? "open"),
     created_at: String(
       raw.created_at ??
         raw.createdAt ??
@@ -125,6 +127,7 @@ export function summarizeLiveChanges(
       id: change.id,
       title: change.title,
       status: change.status,
+      lifecycleState: change.lifecycleState ?? "open",
       recency: classifyRecency(minutesSinceActivity),
       lastActivityAt,
       minutesSinceActivity,
@@ -262,6 +265,10 @@ export function buildSummaryFromSearchAttributes(
   attrs: Record<string, unknown> | null | undefined,
   now: Date,
 ): ChangeSummary | null {
+  const lifecycleState =
+    searchAttributeString(attrs, "AdvLifecycleState") ?? "open";
+  if (lifecycleState !== "open") return null;
+
   const currentGate = searchAttributeString(attrs, "AdvCurrentGate");
   const gates = gatesFromCurrentGate(currentGate);
   const incomplete = firstIncompleteGate(gates);
@@ -280,6 +287,7 @@ export function buildSummaryFromSearchAttributes(
     id: changeId,
     title: searchAttributeString(attrs, "AdvChangeTitle") ?? changeId,
     status: searchAttributeString(attrs, "AdvChangeStatus") ?? "draft",
+    lifecycleState,
     recency: classifyRecency(minutesSinceActivity),
     lastActivityAt,
     minutesSinceActivity,
@@ -302,11 +310,11 @@ export async function summariesFromVisibility(
   const { projectId, now } = options;
   const timeoutMs = options.timeoutMs ?? QUERY_TIMEOUT_MS;
   const projectPrefix = `${CHANGE_WORKFLOW_PREFIX}${projectId}/`;
-  const safeProjectId = projectId.replace(/"/g, '\\"');
-  const query =
-    `AdvAffectedProjects = "${safeProjectId}" ` +
-    `AND AdvChangeStatus IN ("draft", "pending", "active") ` +
-    `AND ExecutionStatus = "Running"`;
+  const clauses = [
+    `AdvAffectedProjects = "${escapeVisibilityValue(projectId)}"`,
+    `ExecutionStatus = "Running"`,
+  ];
+  const query = clauses.join(" AND ");
 
   const collect = async (): Promise<ChangeSummary[]> => {
     const summaries: ChangeSummary[] = [];

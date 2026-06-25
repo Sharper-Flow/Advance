@@ -70,6 +70,7 @@ import {
   getTaskFromChangeState,
   getReadyTasksFromChangeState,
   listTasksFromChangeState,
+  normalizeChangeLifecycleState,
   updateArtifactMetadataInChangeState,
 } from "./change-state";
 
@@ -470,6 +471,9 @@ export async function changeWorkflow(
   state.archiveProjects = input.archiveProjects;
   if (input.seedState) {
     if (input.seedState.status) state.status = input.seedState.status;
+    state.lifecycleState =
+      input.seedState.lifecycleState ??
+      normalizeChangeLifecycleState(state.status);
     if (input.seedState.tasks) state.tasks = input.seedState.tasks;
     if (input.seedState.subagent_reports) {
       state.subagent_reports = input.seedState.subagent_reports;
@@ -1314,6 +1318,7 @@ export async function changeWorkflow(
       "archiveRequested",
       async (payload) => {
         const previousStatus = state.status;
+        const previousLifecycleState = state.lifecycleState;
         const previousTerminated = state.terminated;
         applyArchiveRequestedToState(state, payload);
         upsertSignalSearchAttributes("archiveRequested");
@@ -1323,6 +1328,7 @@ export async function changeWorkflow(
           : false;
         if (!projected || !archived) {
           state.status = previousStatus;
+          state.lifecycleState = previousLifecycleState;
           if (typeof previousTerminated === "undefined")
             delete state.terminated;
           else state.terminated = previousTerminated;
@@ -1357,6 +1363,7 @@ export async function changeWorkflow(
       "changeCancelled",
       async (payload) => {
         const previousStatus = state.status;
+        const previousLifecycleState = state.lifecycleState;
         const previousTerminated = state.terminated;
         const previousClosure = state.closure;
         applyChangeCancelledToState(state, payload);
@@ -1367,6 +1374,7 @@ export async function changeWorkflow(
           : false;
         if (!projected || !archived) {
           state.status = previousStatus;
+          state.lifecycleState = previousLifecycleState;
           if (typeof previousTerminated === "undefined")
             delete state.terminated;
           else state.terminated = previousTerminated;
@@ -1525,6 +1533,7 @@ export async function changeWorkflow(
     archiveProjects: input.archiveProjects,
     seedState: {
       status: state.status,
+      lifecycleState: state.lifecycleState,
       tasks: state.tasks,
       subagent_reports: state.subagent_reports,
       deltas: state.deltas,
