@@ -1,0 +1,19 @@
+{
+  "entries": [
+    {
+      "id": "ws-ErK8Oh",
+      "type": "gotcha",
+      "content": "Adding fields to `ChangeSchema` requires regenerating public JSON schemas; otherwise broad `pnpm test` surfaces schema-registry drift even when the targeted lifecycle tests pass.",
+      "source_task": "tk-69adb25af2b0",
+      "recorded_at": "2026-06-25T02:45:40.884Z"
+    },
+    {
+      "id": "ws-F-ArHz",
+      "type": "pattern",
+      "content": "For lifecycle/open-state Visibility changes, add a new single-value Keyword search attribute and retain older attributes as compatibility projection; this avoids Temporal SQL Visibility remove/re-add remapping hazards while not consuming KeywordList slots.",
+      "source_task": "tk-57a369598d7b",
+      "recorded_at": "2026-06-25T02:49:24.277Z"
+    }
+  ],
+  "count": 2
+}

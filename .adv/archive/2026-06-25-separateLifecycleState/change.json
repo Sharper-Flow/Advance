@@ -1,0 +1,1485 @@
+{
+  "id": "separateLifecycleState",
+  "title": "Separate lifecycle state",
+  "status": "archived",
+  "created_at": "2026-06-25T02:03:54.951Z",
+  "tasks": [
+    {
+      "id": "tk-69adb25af2b0",
+      "title": "Add lifecycle state types and normalization",
+      "type": "code",
+      "section": "Lifecycle State",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-06-25T02:31:56.814Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC8",
+          "SC1",
+          "SC2",
+          "SC3"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "DONT1",
+          "DONT2",
+          "DONT6"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "verification": "RED: pnpm test -- src/temporal/change-state.test.ts failed on missing lifecycle normalization/state. GREEN: pnpm exec vitest run src/temporal/change-state.test.ts passed (31 tests). Schemas regenerated after adding lifecycleState to public Change schema.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added `ChangeLifecycleStateSchema` / type and optional persisted `lifecycleState`; added workflow-state `lifecycleState`; added pure `normalizeChangeLifecycleState` mapping legacy `draft|pending|active` to `open` and terminals to themselves; initialized new workflows as open; carried lifecycle through seed and continue-as-new; updated terminal archive/close transitions to set lifecycle. Regenerated public change JSON schema.",
+      "filesTouched": [
+        "plugin/schemas/change.schema.json",
+        "plugin/src/temporal/change-state.test.ts",
+        "plugin/src/temporal/change-state.ts",
+        "plugin/src/temporal/contracts.ts",
+        "plugin/src/temporal/workflows.ts",
+        "plugin/src/types/changes.ts"
+      ],
+      "touched_files": [
+        "plugin/schemas/change.schema.json",
+        "plugin/src/temporal/change-state.test.ts",
+        "plugin/src/temporal/change-state.ts",
+        "plugin/src/temporal/contracts.ts",
+        "plugin/src/temporal/workflows.ts",
+        "plugin/src/types/changes.ts"
+      ],
+      "checkpointSha": "24f1540221d0066ecc518c3ac4caf10edd32ef4d",
+      "completedAt": "2026-06-25T02:45:08.011Z",
+      "completed_at": "2026-06-25T02:45:08.011Z",
+      "notes": "Implemented lifecycle state type and normalization. Checkpoint 24f1540221d0066ecc518c3ac4caf10edd32ef4d. Verification: RED failed on missing lifecycle state; GREEN passed `pnpm exec vitest run src/temporal/change-state.test.ts` (31 tests).",
+      "error_recovery": {
+        "last_error": "Initial green attempt with `pnpm test -- src/temporal/change-state.test.ts` invoked broader suite and failed schema drift plus unrelated overlay test. Targeted vitest command passed after regenerating schema.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "Proceed to lifecycle Visibility projection/backfill task.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "`pnpm test -- src/temporal/change-state.test.ts` returned failures outside targeted test, including committed schema drift after adding lifecycleState.",
+            "diagnosis": "Schema artifact needed regeneration; command routed too broadly through pnpm test script. Lifecycle unit tests themselves passed after using direct vitest target.",
+            "fix_tried": "Ran `pnpm run schemas:generate`, then `pnpm exec vitest run src/temporal/change-state.test.ts`.",
+            "strategy_label": "regenerate_schema_and_run_direct_target",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-25T02:45:00.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-25T02:45:30.349Z"
+    },
+    {
+      "id": "tk-57a369598d7b",
+      "title": "Add lifecycle Visibility projection and local migration/backfill",
+      "type": "code",
+      "section": "Lifecycle State",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-06-25T02:32:17.039Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-69adb25af2b0"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC5",
+          "AC8",
+          "SC1",
+          "SC2",
+          "SC3",
+          "SC6"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC5",
+          "AC8"
+        ],
+        "respects": [
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "DONT2",
+          "DONT4",
+          "DONT5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "verification": "RED: pnpm exec vitest run src/temporal/search-attributes.test.ts src/storage/store-temporal/shared.test.ts failed on missing AdvLifecycleState registration/projection and read-model mapping. GREEN: same command passed (16 tests).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added `AdvLifecycleState` as required Keyword search attribute; projected lifecycle from workflow state in `buildChangeSearchAttributes`; mapped lifecycle into Temporal Change read model and summary memo. Tests now cover registration, upsert projection, and Change read-model projection.",
+      "filesTouched": [
+        "plugin/src/storage/store-temporal-memo.ts",
+        "plugin/src/storage/store-temporal/index.ts",
+        "plugin/src/storage/store-temporal/shared.test.ts",
+        "plugin/src/storage/store-temporal/shared.ts",
+        "plugin/src/temporal/search-attributes.test.ts",
+        "plugin/src/temporal/search-attributes.ts"
+      ],
+      "touched_files": [
+        "plugin/src/storage/store-temporal-memo.ts",
+        "plugin/src/storage/store-temporal/index.ts",
+        "plugin/src/storage/store-temporal/shared.test.ts",
+        "plugin/src/storage/store-temporal/shared.ts",
+        "plugin/src/temporal/search-attributes.test.ts",
+        "plugin/src/temporal/search-attributes.ts"
+      ],
+      "checkpointSha": "06a2c01fe2357f8b5581caa8a1b3c3dbadda3fcd",
+      "completedAt": "2026-06-25T02:48:55.053Z",
+      "completed_at": "2026-06-25T02:48:55.053Z",
+      "notes": "Implemented lifecycle Visibility projection and read-model mapping. Checkpoint 06a2c01fe2357f8b5581caa8a1b3c3dbadda3fcd. Verification: RED failed on missing AdvLifecycleState registration/projection/read-model mapping; GREEN passed targeted search-attributes/shared tests (16 tests).",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "Proceed to central lifecycle query helper and open-query consumers.",
+        "attempts": []
+      },
+      "updatedAt": "2026-06-25T02:49:13.412Z"
+    },
+    {
+      "id": "tk-2d2d64723112",
+      "title": "Centralize lifecycle Visibility query helpers and update open-query consumers",
+      "type": "code",
+      "section": "Lifecycle Queries",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-06-25T02:32:35.935Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-57a369598d7b"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC3",
+          "AC5",
+          "AC7",
+          "SC4",
+          "SC6"
+        ],
+        "verifies": [
+          "AC3",
+          "AC5",
+          "AC7"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C4",
+          "C5",
+          "DONT2",
+          "DONT4",
+          "DONT5"
+        ]
+      },
+      "evidence_policy": "test",
+      "verification": "RED: pnpm exec vitest run src/temporal/list-change-workflows.test.ts src/temporal/visibility-claim-queries.test.ts failed on legacy AdvChangeStatus open predicates. GREEN: same command passed (23 tests).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/temporal/lifecycle-visibility.ts",
+        "plugin/src/temporal/list-change-workflows.test.ts",
+        "plugin/src/temporal/list-change-workflows.ts",
+        "plugin/src/temporal/visibility-claim-queries.test.ts",
+        "plugin/src/temporal/visibility-claim-queries.ts"
+      ],
+      "touched_files": [
+        "plugin/src/temporal/lifecycle-visibility.ts",
+        "plugin/src/temporal/list-change-workflows.test.ts",
+        "plugin/src/temporal/list-change-workflows.ts",
+        "plugin/src/temporal/visibility-claim-queries.test.ts",
+        "plugin/src/temporal/visibility-claim-queries.ts"
+      ],
+      "checkpointSha": "c932dc595f699a5a5d4cdda85a0b021b00b06ab2",
+      "completedAt": "2026-06-25T02:52:48.059Z",
+      "completed_at": "2026-06-25T02:52:48.059Z"
+    },
+    {
+      "id": "tk-23680dc03411",
+      "title": "Fix worktree lifecycle queries for open owners",
+      "type": "code",
+      "section": "Lifecycle Queries",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-06-25T02:32:55.212Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-2d2d64723112"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC3",
+          "AC4",
+          "AC5",
+          "SC4",
+          "SC5"
+        ],
+        "verifies": [
+          "AC3",
+          "AC4",
+          "AC5"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C5",
+          "DONT3",
+          "DONT4",
+          "DONT5"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-25T02:55:01.938Z",
+      "verification": "RED: pnpm exec vitest run src/tools/worktree/state-session-lifecycle.test.ts src/tools/worktree/index-create.test.ts failed after tests were updated to require AdvLifecycleState open plus ExecutionStatus Running. GREEN: pnpm exec vitest run src/temporal/list-change-workflows.test.ts src/temporal/visibility-claim-queries.test.ts src/tools/worktree/state-session-lifecycle.test.ts src/tools/worktree/index-create.test.ts passed (60 tests). Related scan: no remaining `AdvChangeStatus = \"active\"`; remaining legacy open IN query limited to backlog regression test and bin live-status next task.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/temporal/lifecycle-visibility.ts",
+        "plugin/src/tools/worktree/index-create.test.ts",
+        "plugin/src/tools/worktree/state-session-lifecycle.test.ts",
+        "plugin/src/tools/worktree/state.ts"
+      ],
+      "touched_files": [
+        "plugin/src/temporal/lifecycle-visibility.ts",
+        "plugin/src/tools/worktree/index-create.test.ts",
+        "plugin/src/tools/worktree/state-session-lifecycle.test.ts",
+        "plugin/src/tools/worktree/state.ts"
+      ],
+      "checkpointSha": "829aa27a17fe9e1fe3e4144e18e9122ded0ab8bf",
+      "completedAt": "2026-06-25T02:58:27.320Z",
+      "completed_at": "2026-06-25T02:58:27.320Z"
+    },
+    {
+      "id": "tk-7f11c9e3b72c",
+      "title": "Update worker-free CLI/status lifecycle rendering",
+      "type": "code",
+      "section": "Status CLI",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-06-25T02:33:12.012Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-2d2d64723112"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC3",
+          "AC5",
+          "AC6",
+          "SC4",
+          "SC6"
+        ],
+        "verifies": [
+          "AC5",
+          "AC6"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C4",
+          "DONT4",
+          "DONT5"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-25T02:58:50.838Z",
+      "verification": "RED: bun test bin/lib/live-status.test.ts failed on missing lifecycleState and legacy AdvChangeStatus query. GREEN: bun test bin/lib/live-status.test.ts bin/lib/render.test.ts bin/adv.test.ts passed (41 tests). Related scan: no remaining `AdvChangeStatus = \"active\"`; only remaining legacy open IN occurrence is backlog regression test to be handled by specs/scenario task.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "bin/lib/live-status.test.ts",
+        "bin/lib/live-status.ts",
+        "bin/lib/types.ts"
+      ],
+      "touched_files": [
+        "bin/lib/live-status.test.ts",
+        "bin/lib/live-status.ts",
+        "bin/lib/types.ts"
+      ],
+      "checkpointSha": "291288b1b8e37b1035f1e996f1a44ae2e7ac7538",
+      "completedAt": "2026-06-25T03:04:45.270Z",
+      "completed_at": "2026-06-25T03:04:45.270Z"
+    },
+    {
+      "id": "tk-5ee8001e7cc5",
+      "title": "Update lifecycle specs and scenario tests",
+      "type": "docs",
+      "section": "Specs",
+      "status": "done",
+      "priority": 5,
+      "created_at": "2026-06-25T02:33:30.591Z",
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC7"
+        ],
+        "verifies": [
+          "AC7"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "DONT1",
+          "DONT2",
+          "DONT6"
+        ]
+      },
+      "evidence_policy": "artifact_reference",
+      "assignedTo": "agent",
+      "started_at": "2026-06-25T03:05:10.075Z",
+      "verification": "Updated lifecycle specs and markdown mirrors for advance-workflow, advance-meta, backlog-coordination, and worktree-lifecycle; updated backlog coordination regression scenario. Verification passed: pnpm exec vitest run src/__tests__/backlog-coordination-regression.test.ts src/temporal/visibility-claim-queries.test.ts src/adv-status-cli-assets.test.ts src/cli-bridge-contract.test.ts src/deploy-local.test.ts (114 tests). Related scan: no remaining `AdvChangeStatus = \"active\"` or `AdvChangeStatus IN (\"draft\", \"pending\", \"active\")` occurrences.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".adv/specs/advance-meta/spec.json",
+        ".adv/specs/advance-workflow/spec.json",
+        ".adv/specs/backlog-coordination/spec.json",
+        ".adv/specs/worktree-lifecycle/spec.json",
+        "docs/specs/advance-meta.md",
+        "docs/specs/advance-workflow.md",
+        "docs/specs/worktree-lifecycle.md",
+        "plugin/src/__tests__/backlog-coordination-regression.test.ts"
+      ],
+      "touched_files": [
+        ".adv/specs/advance-meta/spec.json",
+        ".adv/specs/advance-workflow/spec.json",
+        ".adv/specs/backlog-coordination/spec.json",
+        ".adv/specs/worktree-lifecycle/spec.json",
+        "docs/specs/advance-meta.md",
+        "docs/specs/advance-workflow.md",
+        "docs/specs/worktree-lifecycle.md",
+        "plugin/src/__tests__/backlog-coordination-regression.test.ts"
+      ],
+      "checkpointSha": "8f7fe5ecf106434f0e43480160022ccdfa9a39da",
+      "completedAt": "2026-06-25T03:15:11.485Z",
+      "completed_at": "2026-06-25T03:15:11.485Z"
+    },
+    {
+      "id": "tk-7e29a7ceaae8",
+      "title": "Run lifecycle migration and query verification suite",
+      "type": "verification",
+      "section": "Verification",
+      "status": "done",
+      "priority": 6,
+      "created_at": "2026-06-25T02:33:50.970Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-69adb25af2b0"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-57a369598d7b"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-2d2d64723112"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-23680dc03411"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-7f11c9e3b72c"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-5ee8001e7cc5"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7",
+          "AC8",
+          "AC9",
+          "AC10",
+          "SC1",
+          "SC2",
+          "SC3",
+          "SC4",
+          "SC5",
+          "SC6"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "DONT6"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-25T03:15:47.789Z",
+      "verification": "Harden remediation applied: updated stale visibility-claim header docs to lifecycle/running claim authority. Harden reviewer READY. Verification: focused lifecycle/query/worktree tests passed (100), bun live-status tests passed (16), prettier check passed, git diff --check passed, static scan found no legacy active-only AdvChangeStatus queries in live/spec/doc surfaces.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/temporal/visibility-claim-queries.ts"
+      ],
+      "touched_files": [
+        "plugin/src/temporal/visibility-claim-queries.ts"
+      ],
+      "checkpointSha": "8b521e614b0a73ce5b830b4e2cc87fc182ddd434",
+      "completedAt": "2026-06-25T04:04:20.210Z",
+      "completed_at": "2026-06-25T04:04:20.210Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "separateLifecycleState",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:discovery-opportunity-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Discovery opportunity scout — separate lifecycle/gate/bucket state axes",
+      "sources": [
+        {
+          "label": "worktree/state.ts:589-598 buildWorktreeBranchVisibilityQuery",
+          "locator": "plugin/src/tools/worktree/state.ts:596",
+          "summary": "Branch-owner collision query filters AdvChangeStatus = \"active\". Production never sets status active, so this query returns zero owners — a live correctness defect directly tied to the proposal's worktree-ownership objective."
+        },
+        {
+          "label": "Grep: state.status = \"active\" production scan",
+          "locator": "plugin/src/temporal/change-state.ts:1407,1415 (only terminal closed/archived); no production active assignment",
+          "summary": "createChangeWorkflowState seeds draft; gate/task signals never mutate state.status; only archive→archived and close→closed transition it. Confirms changes stay draft entire non-terminal life. All status:\"active\" hits are test fixtures."
+        },
+        {
+          "label": "backlog-coordination spec rq-backlogCoord01",
+          "locator": "spec backlog-coordination v1.3.0 rq-backlogCoord01 / rq-backlogCoord02.1",
+          "summary": "Spec text codifies the misleading semantics: 'status draft|pending|active = claim held'. rq-backlogCoord02.1 GIVEN uses status 'active'. Renaming/adding a lifecycle axis requires coordinated spec amendments here + advance-meta + worktree-lifecycle, not code-only changes."
+        },
+        {
+          "label": "Temporal Search Attributes docs — self-hosted SQL remove/re-add hazard",
+          "locator": "https://docs.temporal.io/self-hosted-guide/visibility (Managing custom Search Attributes)",
+          "summary": "On self-hosted SQL Visibility (v1.20+), removing a custom search attribute leaves data, and a later new attribute may remap to the freed DB field causing 'unexpected results' with the List API. Rename is Cloud-only. Strongly favors add-new + alias-old over rename/remove."
+        },
+        {
+          "label": "list-change-workflows.ts + visibility-claim-queries.ts + bin/lib/live-status.ts shared status filter",
+          "locator": "plugin/src/temporal/list-change-workflows.ts:42-48,108-118; visibility-claim-queries.ts:24-32; bin/lib/live-status.ts:308",
+          "summary": "Three independent consumers hardcode the DEFAULT_STATUSES literal IN (\"draft\",\"pending\",\"active\"). No single shared constant — migration must touch each, and a single shared non-terminal predicate helper would prevent future drift."
+        }
+      ],
+      "architecture_assessment": "The proposal's core premise is verified: production change workflows remain status \"draft\" for their entire non-terminal life (createChangeWorkflowState seeds draft; no signal sets active; only archive/close set terminal). The most consequential finding is that this is not merely cosmetic — buildWorktreeBranchVisibilityQuery (state.ts:596) filters AdvChangeStatus = \"active\" and therefore silently returns zero branch owners, a live cross-change worktree-collision defect that the proposal already lists in Affected Code but does not flag as currently-broken. Reference architecture: separate a terminal/non-terminal lifecycle axis (open vs archived/closed) from the AdvCurrentGate gate-progress projection that already exists. Temporal Search Attribute constraints (self-hosted SQL remove/re-add field remapping, rename being Cloud-only) make the additive AdvLifecycleState + retained AdvChangeStatus alias the boring, compatibility-safe path that matches the proposal's stated constraints. The non-terminal status literal is duplicated across at least three consumers with no shared constant, which is the simplification leverage point.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "All candidates are evidence-grounded in source/spec/docs. No contract, security, or release blocker found. One candidate (worktree query defect) should be flagged to orchestrator as a currently-live bug already inside proposal scope, not a scope expansion."
+      },
+      "recommendation": "Surface 5 scout candidates. AUTO-ADOPT (contract-tied, low risk): (1) Fix worktree state.ts:596 AdvChangeStatus = \"active\" to the non-terminal IN-set — live defect inside the proposal's worktree-ownership objective and Must-Not #5. (2) Adopt additive AdvLifecycleState + retained-deprecated AdvChangeStatus alias as the migration approach (design_around) — grounded in Temporal self-hosted SQL remove/re-add hazard and the proposal's compatibility constraints. (3) Extract one shared non-terminal-status predicate/constant consumed by list-change-workflows, visibility-claim-queries, worktree/state, and bin live-status — eliminates the duplicated literal and prevents migration drift (design_around). SURFACE TO USER: (4) Spec amendment scope — rq-backlogCoord01/02 and worktree-lifecycle encode the old semantics; user should confirm coordinated spec edits are in-scope vs follow-up. FOLLOW-UP: (5) Record CLARIFY_MISSING_ERROR_HANDLING finding — fail-closed behavior when AdvLifecycleState projection is missing mid-migration (proposal already states fail-closed intent; needs an explicit AC).",
+      "follow_ups": [
+        "ScoutCandidate#1 fate=adopt_now route=auto-adopt: worktree state.ts:596 '= \"active\"' is a live branch-owner collision defect; contract_tie=proposal Must-Not#5 + worktree-ownership objective; risk=low; payoff=high.",
+        "ScoutCandidate#2 fate=design_around route=auto-adopt: additive AdvLifecycleState + AdvChangeStatus deprecated alias (no rename/remove); contract_tie=compatibility constraints; evidence=Temporal self-hosted SQL field-remap hazard; risk=low; payoff=high.",
+        "ScoutCandidate#3 fate=design_around route=auto-adopt: single shared non-terminal-status predicate consumed by 4 sites; contract_tie=Must-Not 'no heuristic inference' + migration-partial-state avoidance; risk=low; payoff=medium.",
+        "ScoutCandidate#4 fate=surface_to_user route=user-surface: confirm spec amendment scope (rq-backlogCoord01/02, worktree-lifecycle, rq-statusCliWorkerFree01 encode old semantics); contract_tie=untied-to-AC but blocks spec-as-law correctness; risk=medium.",
+        "ScoutCandidate#5 fate=follow_up route=inconclusive-needs-AC: explicit fail-closed AC for missing AdvLifecycleState projection mid-migration; ties to recorded CLARIFY_MISSING_ERROR_HANDLING finding; risk=medium.",
+        "WARNING: orchestrator packet provided full anchor set; no packet defect. EXPECTED OUTPUT ScoutCandidate rows delivered in this follow_ups list since researcher report schema has no native candidate array."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "separateLifecycleState",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-leverage-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design leverage scout — separate lifecycle state axis",
+      "sources": [
+        {
+          "label": "search-attributes.ts dev-server KeywordList cap + AdvChangeStatus single write site",
+          "locator": "plugin/src/temporal/search-attributes.ts:5-15 (cap note), :16-28 (registry), :179 (AdvChangeStatus = [state.status])",
+          "summary": "Temporal dev server hard-caps KeywordList custom attributes at 3 (AdvAffectedProjects, AdvWorktreeBranches, AdvWorktreePaths). AdvChangeStatus/AdvCurrentGate/AdvCurrentBucket are single-value Keyword, NOT KeywordList, so an added AdvLifecycleState Keyword does NOT consume the scarce slot. AdvChangeStatus is written from exactly one site (:179 = [state.status]) — one projection edit point."
+        },
+        {
+          "label": "ChangeStatusSchema is a 5-value Zod enum but production only uses 3",
+          "locator": "plugin/src/types/changes.ts:59-67; change-state.ts:1174,1185,1407,1415; workflows.ts:472",
+          "summary": "Schema enumerates draft|pending|active|archived|closed, but state.status is only ever seeded 'draft' and transitioned to 'archived'/'closed' on terminal. 'pending'/'active' are dead values in production. AdvChangeStatus already behaves as a de-facto 3-value lifecycle axis (draft=open | archived | closed)."
+        },
+        {
+          "label": "worktree/state.ts live owner bug + sibling-correct query",
+          "locator": "plugin/src/tools/worktree/state.ts:596 (= \"active\", no ExecutionStatus guard), :640 (sibling IN-set query)",
+          "summary": "buildWorktreeBranchVisibilityQuery filters AdvChangeStatus = \"active\" → zero owners (production never sets active) AND lacks ExecutionStatus = \"Running\" guard. Line 640 sibling query already uses IN(draft,pending,active) + IS NOT NULL — pattern to converge on. Required scope per agreement Decision #5/AC#4."
+        },
+        {
+          "label": "Four production consumers hardcode the open-status literal; no shared constant",
+          "locator": "plugin/src/temporal/list-change-workflows.ts:42-48 (DEFAULT_STATUSES, +ExecutionStatus guard at :116); visibility-claim-queries.ts (comment :22 references DEFAULT_STATUSES but does not import it); tools/worktree/state.ts:596,640; bin/lib/live-status.ts:308 + bin/lib/changes.ts:44-46",
+          "summary": "Open-state IN-set duplicated across 4 production sites in 2 packages (plugin + bin) plus many test fixtures. Only list-change-workflows defines DEFAULT_STATUSES; others copy the literal. ExecutionStatus = \"Running\" terminal guard is present in 3 of 4 (missing in worktree :596). No single shared predicate — migration must touch each; one helper prevents drift (agreement Agent-Decision #4)."
+        },
+        {
+          "label": "Temporal self-hosted SQL Visibility remove/re-add field-remap hazard (official docs)",
+          "locator": "https://docs.temporal.io/self-hosted-guide/visibility (Managing custom Search Attributes); corroborated by temporalio/temporal#9974 (duplicate-alias races)",
+          "summary": "On SQL Visibility v1.20+, removing a custom Search Attribute keeps data; a later new attribute may remap to the freed DB field → 'unexpected results' with the List API. Rename is Cloud-only. Confirms agreement Constraint #6 / Agent-Decision #2: prefer additive AdvLifecycleState + retain AdvChangeStatus; never remove/reuse."
+        }
+      ],
+      "architecture_assessment": "Draft design (additive AdvLifecycleState Keyword + projection mapping draft→open, retain AdvChangeStatus, centralize query builders, ExecutionStatus=Running terminal guard) is the boring, compatibility-safe path and is well-grounded. Five concrete leverage points strengthen it without changing the core architecture: (1) AdvLifecycleState as a single Keyword (not KeywordList) sidesteps the dev-server 3-slot KeywordList cap entirely — this is a de-risk the design should state explicitly to avoid a reviewer/operator false alarm. (2) The projection is a one-line change at search-attributes.ts:179 (state.status → mapped lifecycleState), keeping write surface minimal. (3) AdvChangeStatus already encodes draft|archived|closed; the migration is therefore mostly a *read/query* convergence + naming exercise, not a state-machine rewrite — supports a smaller blast radius than 'new axis' framing implies. (4) The single shared non-terminal predicate helper (consumed by list-change-workflows, visibility-claim-queries, worktree/state x2, bin live-status) both fixes the worktree bug and prevents future drift in one move — and must carry the ExecutionStatus=Running guard that worktree/state.ts:596 currently lacks. (5) The literal is duplicated across plugin AND bin packages; the shared helper must be importable from both or duplicated deliberately with a drift test. No core-architecture replacement proposed; all candidates are contract-tied and low/medium risk.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "All candidates evidence-grounded in source (file:line), Zod schema, and official Temporal docs. No contract, security, or release blocker. One item (worktree/state.ts:596 missing ExecutionStatus guard) is a second live defect adjacent to the already-in-scope '=active' bug — flag to orchestrator as in-scope hardening, not scope expansion."
+      },
+      "recommendation": "Adopt 5 leverage points into design. ADOPT_NOW (contract-tied, low risk): (C1) Declare AdvLifecycleState as single-value Keyword and document it does NOT consume the 3-slot KeywordList dev-server cap (ties Constraint #6 / SC#6). (C2) Implement projection as the single mapping at search-attributes.ts:179, keeping AdvChangeStatus retained/additive (ties AC#1/#2, Agent-Decision #2). DESIGN_AROUND (low risk, needs design note): (C3) Extract one shared non-terminal/open predicate helper consumed by all 4 production query sites, carrying the ExecutionStatus=Running terminal guard, and fix worktree/state.ts:596 through it — also remediates the missing-guard defect at :596 (ties AC#3/#4/#5, Agent-Decision #4/#5). SURFACE_TO_USER: (C4) confirm whether the helper is shared across plugin+bin packages via one importable module vs deliberate duplication-with-drift-test, since bin and plugin are separate build surfaces (ties AC#3, untied to a single AC otherwise). FOLLOW_UP: (C5) reframe migration as read/query convergence over an already-3-valued AdvChangeStatus rather than a new state machine, to bound blast radius — advisory wisdom, not blocking.",
+      "follow_ups": [
+        "ScoutCandidate#1 candidate='AdvLifecycleState as single Keyword sidesteps the 3-slot KeywordList dev-server cap' evidence=search-attributes.ts:5-15,16-28 payoff=high risk=low contract_tie=Constraint#6+SC#6 prior_consideration=new recommended_fate=adopt_now rationale='Removes a likely reviewer/operator false-alarm; the cap is KeywordList-only and AdvLifecycleState is Keyword.'",
+        "ScoutCandidate#2 candidate='Projection is one mapping at the single AdvChangeStatus write site (search-attributes.ts:179)' evidence=search-attributes.ts:179 + change-state.ts terminal sets payoff=high risk=low contract_tie=AC#1/#2+Agent-Decision#2 prior_consideration=new recommended_fate=adopt_now rationale='Minimal write surface; additive, no remove/reuse → avoids Temporal SQL remap hazard.'",
+        "ScoutCandidate#3 candidate='Single shared open/non-terminal predicate helper (4 sites) carrying ExecutionStatus=Running guard; fixes worktree/state.ts:596 missing-guard + =active defect' evidence=list-change-workflows.ts:42-48,116; worktree/state.ts:596,640; visibility-claim-queries.ts:22; bin/live-status.ts:308 payoff=high risk=low contract_tie=AC#3/#4/#5+Agent-Decision#4/#5 prior_consideration=new recommended_fate=design_around rationale='One helper fixes the bug, adds the missing terminal guard, and prevents future literal drift in a single move.'",
+        "ScoutCandidate#4 candidate='Decide shared-module vs deliberate-duplication for the predicate across plugin and bin packages (separate build surfaces)' evidence=bin/lib/changes.ts:44-46 + bin/lib/live-status.ts:308 vs plugin DEFAULT_STATUSES payoff=medium risk=medium contract_tie=AC#3 prior_consideration=new recommended_fate=surface_to_user rationale='bin and plugin are distinct build targets; a shared import may cross a layer boundary — user/orchestrator should pick share vs duplicate+drift-test.'",
+        "ScoutCandidate#5 candidate='Reframe migration as read/query convergence over an already-3-valued AdvChangeStatus, not a new state machine' evidence=types/changes.ts:59-67 + change-state.ts:1174,1185,1407,1415 (pending/active dead) payoff=medium risk=low contract_tie=untied (blast-radius bounding) prior_consideration=new recommended_fate=follow_up rationale='Bounds scope and reviewer expectations; advisory wisdom, does not block design.'",
+        "WARNING: ScoutCandidate rows delivered in this follow_ups list because the researcher report schema has no native candidate array. Full anchor set present in packet; no packet defect."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "separateLifecycleState",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation — Separate lifecycle state",
+      "sources": [
+        {
+          "label": "Temporal self-hosted Visibility docs (SQL remove/re-add hazard)",
+          "locator": "https://docs.temporal.io/self-hosted-guide/visibility",
+          "summary": "Confirms D2 verbatim: on SQL Visibility (v1.20+), a removed custom Search Attribute leaves DB-field mapping; a new one may reuse the freed field, causing unexpected List API results. Does not apply to Elasticsearch. Validates additive AdvLifecycleState over delete/reuse of AdvChangeStatus."
+        },
+        {
+          "label": "Temporal List Filter docs",
+          "locator": "https://docs.temporal.io/list-filter",
+          "summary": "Confirms List Filters are SQL-like over Search Attributes + operators; ExecutionStatus is a default attribute usable as terminal guard (ExecutionStatus = \"Running\")."
+        },
+        {
+          "label": "plugin/src/temporal/search-attributes.ts:5-28",
+          "locator": "/home/jon/dev/advance/plugin/src/temporal/search-attributes.ts",
+          "summary": "Temporal dev-server hard-caps KeywordList at 3 per namespace; all 3 slots (AdvAffectedProjects, AdvWorktreeBranches, AdvWorktreePaths) are used. AdvLifecycleState MUST be Keyword (D2/criterion 1) — KeywordList is infeasible. buildChangeSearchAttributes() (line 171) is the single central projection write-site, confirming D2's single-write-site claim. AdvCurrentBucket Keyword already exists for D3 CLI."
+        },
+        {
+          "label": "plugin/src/tools/worktree/state.ts:596,640",
+          "locator": "/home/jon/dev/advance/plugin/src/tools/worktree/state.ts",
+          "summary": "buildWorktreeBranchVisibilityQuery uses AdvChangeStatus = \"active\" — confirms the D5/AC4 owner bug: a real open draft change is missed. buildActiveWorktreeChangesVisibilityQuery uses the draft|pending|active union with no ExecutionStatus guard."
+        },
+        {
+          "label": "plugin/src/temporal/list-change-workflows.ts:108-118",
+          "locator": "/home/jon/dev/advance/plugin/src/temporal/list-change-workflows.ts",
+          "summary": "Existing code already conditionally appends ExecutionStatus = \"Running\" when all statuses are running-expected — proves D3's terminal-guard pattern is an existing, boring, proven precedent rather than a novel construct."
+        },
+        {
+          "label": "plugin/src/temporal/visibility-claim-queries.ts:7-32,89,109",
+          "locator": "/home/jon/dev/advance/plugin/src/temporal/visibility-claim-queries.ts",
+          "summary": "CLAIM_HELD_STATUSES = draft|pending|active is the durable backlog claim authority (rq-backlogCoord01). This is a production open-authority consumer the design must converge onto lifecycle (D3/D6); not enumerated in design 'Consumers' list nor in Affected Components."
+        },
+        {
+          "label": "Spec backlog-coordination v1.3.0 rq-backlogCoord01/02/03/05",
+          "locator": "adv_spec show backlog-coordination",
+          "summary": "Spec law states 'status draft|pending|active = claim held; archived|closed = claim released' and prescribes the exact AdvChangeStatus IN (...) query string in multiple scenarios (rq-backlogCoord01.3, 02.1). D6 updates this spec, but spec scenarios assert literal query strings that must be migrated in lockstep with claim consumers."
+        },
+        {
+          "label": "Spec worktree-lifecycle v1.4.0 rq-worktreeMutationGuard01",
+          "locator": "adv_spec show worktree-lifecycle",
+          "summary": "Mutation guard and terminal-cleanup safety key terminal authority on 'archived or closed' owning-change status. Design preserves terminal (archived|closed) semantics, so lifecycle archived/closed maps cleanly; no contradiction found with terminal-guard requirements."
+        }
+      ],
+      "architecture_assessment": "Design is architecturally sound and follows boring/proven patterns. (1) CORRECTNESS: Solves all stated objectives. The D5 worktree owner bug is real and verified at state.ts:596 (active-only misses draft owners → AC4). Orthogonal axes (lifecycle/gate/bucket) match existing AdvCurrentGate + AdvCurrentBucket projection. Terminal guard via ExecutionStatus = \"Running\" already exists at list-change-workflows.ts:116. One gap: the design's D3 'Consumers' list (list-change-workflows, visibility-claim-queries, worktree/state, bin/live-status) plus Affected Components omits buildActiveWorktreeChangesVisibilityQuery (state.ts:635) which also uses the status union, and the claim-create path (queryClaimsByIssueNumber) consuming CLAIM_HELD_STATUSES — both are production open-authority sites that AC3 ('no production query uses AdvChangeStatus active/union') will flag if not converged. (2) SIMPLICITY: Additive Keyword is the simplest correct migration — verified KeywordList cap (3/3 used) makes delete/reuse the only alternative, and Temporal docs confirm delete/reuse is hazardous on SQL Visibility. The rejected 'patch the literal to a union' alternative would leave the wrong state model and still not satisfy AC3. No materially simpler approach exists that meets the additive + fail-closed constraints. (3) SPEC-LAW: No hard contradiction. backlog-coordination rq-backlogCoord01 currently makes status the claim authority; D6 explicitly rewrites it, which is in-scope per AC7. Caution: rq-backlogCoord01.3 / rq-backlogCoord02.1 / rq-backlogCoord03 assert exact AdvChangeStatus IN (\"draft\",\"pending\",\"active\") query strings as scenarios — these spec scenarios and their tests (visibility-claim-queries.test.ts) must be migrated in lockstep or they become stale-but-passing against the old literal. (4) ALTERNATIVES: No significant viable alternative overlooked. Reuse of AdvCurrentBucket/AdvCurrentGate for CLI distinction is correct. The only un-surfaced design question is whether claim-coordination (backlog) should converge onto AdvLifecycleState = open in the SAME change or be explicitly deferred — currently ambiguous because design lists worktree/list/status consumers but is silent on the claim-create collision path.",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "No CONFLICT. Two CAUTION items: (A) Consumer-completeness gap — buildActiveWorktreeChangesVisibilityQuery (state.ts:635) and the backlog claim path (visibility-claim-queries.ts CLAIM_HELD_STATUSES, queryClaimsByIssueNumber/queryActiveChangesByIssueNumbers) are production open-authority sites not enumerated in D3 Consumers or Affected Components; AC3 will fail if they keep the AdvChangeStatus union. (B) Spec-scenario/test lockstep — backlog-coordination rq-backlogCoord01.3/02.1/03 and worktree state tests assert literal AdvChangeStatus IN (...) query strings; D6 spec rewrite must update those scenarios and the asserting tests together or they go stale. Both are addressable in planning by widening the consumer inventory and spec-delta scope; neither invalidates the design."
+      },
+      "recommendation": "VALIDATED WITH CAUTION — proceed to planning with two scope clarifications. First, expand the D3 consumer inventory and Affected Components to explicitly include buildActiveWorktreeChangesVisibilityQuery (plugin/src/tools/worktree/state.ts:635) and the backlog-claim authority in plugin/src/temporal/visibility-claim-queries.ts (CLAIM_HELD_STATUSES and its query builders), or make an explicit, documented decision to defer the claim path with a fail-closed note — leaving it implicit risks an AC3 ('no production open-authority query uses AdvChangeStatus active/union') failure at acceptance. Second, treat the backlog-coordination, worktree-lifecycle, and list-change-workflows spec scenarios that assert literal AdvChangeStatus IN (...) strings (rq-backlogCoord01.3, 02.1, 03; worktree state tests) as in-scope spec+test deltas to migrate in lockstep, so the D6 spec rewrite does not leave stale-but-passing literal assertions. The core architecture — additive Keyword AdvLifecycleState, central open-query helper with ExecutionStatus terminal guard, pure shared normalizer, fail-closed migration — is the boring, proven, correct path and is well-supported by both Temporal documentation and existing in-repo precedent.",
+      "follow_ups": [
+        "Planning: add buildActiveWorktreeChangesVisibilityQuery (state.ts:635) and backlog claim queries (visibility-claim-queries.ts) to the lifecycle-helper conversion task list, or document explicit deferral.",
+        "Planning: scope spec-scenario + asserting-test migration for literal AdvChangeStatus IN (...) strings in backlog-coordination, worktree-lifecycle, and list-change-workflows surfaces."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "separateLifecycleState",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/separateLifecycleState",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [
+        {
+          "id": "review-praise-1",
+          "label": "praise",
+          "file": "plugin/src/temporal/lifecycle-visibility.ts",
+          "line": 13,
+          "what": "Open-change Visibility authority is centralized in openLifecycleVisibilityClauses().",
+          "why": "Centralizing `AdvLifecycleState = \"open\"` plus `ExecutionStatus = \"Running\"` reduces drift across list, backlog-claim, and worktree-owner query paths.",
+          "fix": "n/a"
+        },
+        {
+          "id": "review-praise-2",
+          "label": "praise",
+          "file": "bin/lib/live-status.ts",
+          "line": 263,
+          "what": "Worker-free CLI summaries keep lifecycleState, compatibility status, current gate, and terminal exclusion separate.",
+          "why": "This satisfies the CLI status acceptance boundary without relying on per-change workflow queries or legacy status semantics.",
+          "fix": "n/a"
+        }
+      ],
+      "changes_made": [
+        {
+          "file": "plugin/src/temporal/workflows.ts",
+          "summary": "Fixed terminal archive/cancel rollback paths to restore lifecycleState when archive/projection fails, preventing failed terminal attempts from leaving an open change hidden from lifecycle-authoritative open queries.",
+          "verification": "bin/oc-test targeted lifecycle suite: 84 tests passed; pnpm run check passed."
+        },
+        {
+          "file": "plugin/src/temporal/search-attributes.ts",
+          "summary": "Updated backlog-claim search-attribute comment to describe lifecycle/running authority instead of legacy AdvChangeStatus open-status authority.",
+          "verification": "grep for exact legacy open-status query returned no files; pnpm run check passed."
+        },
+        {
+          "file": "plugin/src/temporal/list-change-workflows.ts",
+          "summary": "Updated module documentation to describe default project + AdvLifecycleState=open + ExecutionStatus=Running filtering.",
+          "verification": "bin/oc-test targeted lifecycle suite: 84 tests passed; pnpm run check passed."
+        },
+        {
+          "file": "plugin/src/temporal/list-change-workflows.test.ts",
+          "summary": "Updated test header comment to match lifecycle/running visibility filter semantics.",
+          "verification": "bin/oc-test targeted lifecycle suite: 84 tests passed."
+        },
+        {
+          "file": ".adv/specs/advance-workflow/spec.json",
+          "summary": "Updated search-attribute health scenario to list current registered ADV search attributes, including AdvLifecycleState and current gate/bucket attributes, removing stale legacy names.",
+          "verification": "pnpm run check passed, including schema check, typecheck, lint, and format check."
+        }
+      ],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "When a signal handler temporarily applies terminal lifecycle state before a fallible archive/projection step, rollback must restore both compatibility status and lifecycleState; restoring only status leaves lifecycle-authoritative open queries excluding a still-open change."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/temporal/change-state.test.ts src/temporal/search-attributes.test.ts src/temporal/list-change-workflows.test.ts src/temporal/visibility-claim-queries.test.ts src/tools/worktree/state-session-lifecycle.test.ts src/adv-status-cli-assets.test.ts",
+          "pnpm run check",
+          "grep for exact legacy open-status Visibility query patterns"
+        ],
+        "results": "pass",
+        "evidence": "Path preflight OK for all primary files. Focused lifecycle regression suite passed: 6 files, 84 tests. pnpm run check passed: schemas:check, typecheck, test isolation, lockfile policy, lint, format:check. Exact grep found zero `AdvChangeStatus = \"active\"` and zero `AdvChangeStatus IN (\"draft\", \"pending\", \"active\")` / no-space equivalent in TypeScript."
+      },
+      "scope_drift": null,
+      "risks": [
+        "The rollback lifecycle fix is covered by typecheck and adjacent lifecycle suites, but there is no direct workflow-level regression test for archiveRequested/changeCancelled projection-failure rollback; adding one would further lock this edge case."
+      ],
+      "required_main_agent_actions": [
+        "Review and keep the scoped remediation edits in plugin/src/temporal/workflows.ts, plugin/src/temporal/search-attributes.ts, plugin/src/temporal/list-change-workflows.ts, plugin/src/temporal/list-change-workflows.test.ts, and .adv/specs/advance-workflow/spec.json.",
+        "Consider promoting the lifecycle rollback gotcha as project wisdom."
+      ],
+      "required_follow_ups": [],
+      "consumer_warnings": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "separateLifecycleState",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/separateLifecycleState",
+      "scope": {
+        "kind": "change",
+        "scope_key": "harden:release"
+      },
+      "agent": "adv-reviewer",
+      "phase": "harden",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [
+        {
+          "id": "harden-doc-hygiene-1",
+          "label": "praise",
+          "file": "plugin/src/temporal/visibility-claim-queries.ts",
+          "line": 67,
+          "what": "Backlog claim query builder now uses AdvLifecycleState=open plus ExecutionStatus=Running through the shared openLifecycleVisibilityClauses helper.",
+          "why": "Lifecycle authority is structurally centralized, query escaping is shared, and claim release no longer depends on legacy status values.",
+          "fix": "n/a"
+        }
+      ],
+      "changes_made": [
+        {
+          "file": "plugin/src/temporal/visibility-claim-queries.ts",
+          "summary": "Updated stale header documentation that still described AdvChangeStatus as the non-terminal claim filter. Comment now matches implemented AdvLifecycleState=open + running execution filtering and states AdvChangeStatus is compatibility/read-model metadata, not claim authority.",
+          "verification": "bin/oc-test targeted -- src/temporal/visibility-claim-queries.test.ts src/temporal/list-change-workflows.test.ts src/temporal/search-attributes.test.ts src/temporal/change-state.test.ts src/temporal/workflows.signal-handlers.test.ts src/tools/worktree/state-session-lifecycle.test.ts: 6 files, 100 tests passed. bun test bin/lib/live-status.test.ts: 16 passed. pnpm exec prettier --check src/temporal/visibility-claim-queries.ts: passed. git diff --check: passed. Static rg found no legacy active-only status queries in plugin/src, bin, .adv/specs, docs/specs."
+        }
+      ],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- plugin/src/temporal/visibility-claim-queries.test.ts plugin/src/temporal/list-change-workflows.test.ts plugin/src/temporal/search-attributes.test.ts plugin/src/temporal/change-state.test.ts plugin/src/temporal/workflows.signal-handlers.test.ts plugin/src/tools/worktree/state-session-lifecycle.test.ts bin/lib/live-status.test.ts (failed: filters were repo-root paths while wrapper runs from plugin/)",
+          "bin/oc-test targeted -- src/temporal/visibility-claim-queries.test.ts src/temporal/list-change-workflows.test.ts src/temporal/search-attributes.test.ts src/temporal/change-state.test.ts src/temporal/workflows.signal-handlers.test.ts src/tools/worktree/state-session-lifecycle.test.ts",
+          "bun test bin/lib/live-status.test.ts",
+          "pnpm exec prettier --check src/temporal/visibility-claim-queries.ts",
+          "if rg -n 'AdvChangeStatus = \"active\"|AdvChangeStatus IN \\(\"draft\", \"pending\", \"active\"\\)' plugin/src bin .adv/specs docs/specs; then exit 1; else echo 'no legacy active-only status queries in live/spec/doc surfaces'; fi",
+          "git diff --check"
+        ],
+        "results": "pass",
+        "evidence": "Initial oc-test invocation failed because repo-root path filters did not match wrapper's plugin working directory include patterns; reran with plugin-relative src paths and passed. Focused lifecycle/query/workflow/worktree suite passed 100 tests across 6 files. Bun live-status suite passed 16 tests. Prettier check and diff whitespace check passed. Static scan returned zero legacy active-only AdvChangeStatus query strings in live/spec/doc surfaces."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Path preflight found several Context Packet paths were aliases or stale paths: storage lifecycle/list/claim files now live under plugin/src/temporal, bin files live under repo-root bin/lib, and docs/specs mirrors are Markdown rather than JSON. I resolved actual paths for review; no release-readiness blocker found."
+      ],
+      "required_main_agent_actions": [],
+      "required_follow_ups": [],
+      "consumer_warnings": [
+        {
+          "kind": "consumer_failure",
+          "message": "Spawn packet requested scope_key harden:release-readiness, but report schema only accepts harden:release for harden change-scope summaries; persisted with schema-valid harden:release."
+        }
+      ]
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-ErK8Oh",
+      "type": "gotcha",
+      "content": "Adding fields to `ChangeSchema` requires regenerating public JSON schemas; otherwise broad `pnpm test` surfaces schema-registry drift even when the targeted lifecycle tests pass.",
+      "source_task": "tk-69adb25af2b0",
+      "recorded_at": "2026-06-25T02:45:40.884Z"
+    },
+    {
+      "id": "ws-F-ArHz",
+      "type": "pattern",
+      "content": "For lifecycle/open-state Visibility changes, add a new single-value Keyword search attribute and retain older attributes as compatibility projection; this avoids Temporal SQL Visibility remove/re-add remapping hazards while not consuming KeywordList slots.",
+      "source_task": "tk-57a369598d7b",
+      "recorded_at": "2026-06-25T02:49:24.277Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-06-25T02:06:59.786Z",
+      "completed_by": "agent",
+      "approval_evidence": "User confirmed problem statement, then invoked adv-discover as continuation approval. Proposal artifact includes scope, user outcomes, discovery agenda, and no CRITICAL B/F/S findings.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "c456facd4fd6b9bdad7254d2916beda38fd9db23922e1568388bc503205d366c",
+        "non_whitespace_chars": 5523,
+        "checked_at": "2026-06-25T02:03:54.982Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-06-25T02:21:07.204Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery complete. User approved criteria/agreement with reply `approve`. Contract minted with 28 items. Discovery covered lifecycle/gate/bucket separation, local hard-cut migration, AdvLifecycleState additive projection, worker-free status, stale terminal guards, spec deltas, and required worktree owner bug fix.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "02474c82bfb61a33c79a3922d058a61b885b39505fe9c082e20751349c5da4df",
+        "non_whitespace_chars": 5357,
+        "checked_at": "2026-06-25T02:03:54.983Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-06-25T02:31:02.306Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design recorded. Mandatory design leverage scout run and auto-adopted lifecycle Keyword, central projection, shared open-query helper, and query/read convergence framing. Independent validator returned CAUTION; cautions resolved in design by explicitly adding active-worktree and backlog claim query paths plus spec/test lockstep migration. No unresolved conflict or contract-compromise risk.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "1fbd9c4deeb33e751d1cf7db74f436e6582397b5e57dfae37b25639703545e56",
+        "non_whitespace_chars": 10191,
+        "checked_at": "2026-06-25T02:03:54.984Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-06-25T02:38:23.506Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved prep task graph with reply `approve`. Task graph contains 7 tasks covering lifecycle types/normalization, Visibility projection/migration, query consumers, worktree owner bug, CLI status, spec updates, and verification with contract refs."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-06-25T03:21:18.187Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 7 planned tasks completed. Verification passed: targeted lifecycle/query suite (209 tests), CLI status tests (41 tests), source scan for legacy open-status authority returned zero occurrences, and `pnpm run check` passed."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-06-25T03:54:11.549Z",
+      "completed_by": "user:approval",
+      "approval_evidence": "User accepted delivered work via inline approval reply `approve`. Acceptance proof persisted before prompt: executive summary present, review matrix has 28 required rows passed/respected, review verdict READY/APPROVED, preview URL not_applicable.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "3ac875650f750840a30edd4ec1afb10ef677cd1e6b9c417fa7279b889bd5b818",
+        "non_whitespace_chars": 1712,
+        "checked_at": "2026-06-25T02:03:54.985Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "adhoc"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "02474c82bfb61a33c79a3922d058a61b885b39505fe9c082e20751349c5da4df",
+      "approvedAt": "2026-06-25T02:20:58.077Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "Open changes have one canonical lifecycle value: `open`, separate from gate progress and bucket.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "02474c82bfb61a33c79a3922d058a61b885b39505fe9c082e20751349c5da4df",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "Terminal changes remain `archived` or `closed`; release/close workflow completion still works.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "02474c82bfb61a33c79a3922d058a61b885b39505fe9c082e20751349c5da4df",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "Local existing changes on this device migrate away from `draft | pending | active` lifecycle semantics.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "02474c82bfb61a33c79a3922d058a61b885b39505fe9c082e20751349c5da4df",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC4",
+        "kind": "success_criterion",
+        "text": "Open-change coordination cannot miss changes because they were still `draft`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "02474c82bfb61a33c79a3922d058a61b885b39505fe9c082e20751349c5da4df",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC5",
+        "kind": "success_criterion",
+        "text": "Worktree branch-owner detection finds open owners reliably.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "02474c82bfb61a33c79a3922d058a61b885b39505fe9c082e20751349c5da4df",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC6",
+        "kind": "success_criterion",
+        "text": "Worker-free status still works from Temporal Visibility and still excludes terminal workflows.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "02474c82bfb61a33c79a3922d058a61b885b39505fe9c082e20751349c5da4df",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "Given an existing local change with legacy `draft`, `pending`, or `active` status, when lifecycle migration/projection runs, then the change is represented as `lifecycleState: \"open\"` and remains visible in open-change reads.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "02474c82bfb61a33c79a3922d058a61b885b39505fe9c082e20751349c5da4df",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Given an archived or closed change, when lifecycle migration/projection runs, then it is represented as `lifecycleState: \"archived\"` or `lifecycleState: \"closed\"` and remains excluded from default open-change reads.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "02474c82bfb61a33c79a3922d058a61b885b39505fe9c082e20751349c5da4df",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Given open-change list/status/backlog-claim/worktree queries, when source is inspected and tests run, then no production query uses `AdvChangeStatus = \"active\"` or `AdvChangeStatus IN (\"draft\", \"pending\", \"active\")` as open-state authority.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "02474c82bfb61a33c79a3922d058a61b885b39505fe9c082e20751349c5da4df",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Given a branch owned by an open change, when worktree branch-owner detection runs, then it returns that owner regardless of the change’s pre-migration legacy status.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "02474c82bfb61a33c79a3922d058a61b885b39505fe9c082e20751349c5da4df",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Given a terminal workflow with stale open-like custom search attributes, when default open/status queries run, then `ExecutionStatus = \"Running\"` or equivalent structural terminal guard excludes it.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "02474c82bfb61a33c79a3922d058a61b885b39505fe9c082e20751349c5da4df",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Given CLI worker-free status reads, when status is rendered, then lifecycle, current gate, and bucket remain distinguishable and terminal rows are not shown as active/open.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "02474c82bfb61a33c79a3922d058a61b885b39505fe9c082e20751349c5da4df",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "Given existing specs for backlog coordination, status CLI, and worktree lifecycle, when specs are updated, then they describe lifecycle-state authority instead of `draft|pending|active` as claim/open truth.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "02474c82bfb61a33c79a3922d058a61b885b39505fe9c082e20751349c5da4df",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC8",
+        "kind": "acceptance_criterion",
+        "text": "Given local existing ADV changes on this device, when migration completes, then no local open change remains dependent on legacy `draft|pending|active` lifecycle semantics.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "02474c82bfb61a33c79a3922d058a61b885b39505fe9c082e20751349c5da4df",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC9",
+        "kind": "acceptance_criterion",
+        "text": "Targeted tests cover lifecycle projection, migration, open-query consumers, stale terminal attributes, and worktree owner detection.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "02474c82bfb61a33c79a3922d058a61b885b39505fe9c082e20751349c5da4df",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC10",
+        "kind": "acceptance_criterion",
+        "text": "`pnpm run check` passes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "02474c82bfb61a33c79a3922d058a61b885b39505fe9c082e20751349c5da4df",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Do not duplicate gate progress into lifecycle state.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "02474c82bfb61a33c79a3922d058a61b885b39505fe9c082e20751349c5da4df",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Keep lifecycle, gate progress, and operational bucket as separate axes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "02474c82bfb61a33c79a3922d058a61b885b39505fe9c082e20751349c5da4df",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Preserve `archived` and `closed` terminal behavior, including workflow completion on terminal state.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "02474c82bfb61a33c79a3922d058a61b885b39505fe9c082e20751349c5da4df",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Keep worker-free CLI status reads backed by Temporal Visibility.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "02474c82bfb61a33c79a3922d058a61b885b39505fe9c082e20751349c5da4df",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Fail closed if migration/projection cannot prove open-vs-terminal state; do not hide open changes or release coordination claims because a projection field is missing.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "02474c82bfb61a33c79a3922d058a61b885b39505fe9c082e20751349c5da4df",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C6",
+        "kind": "constraint",
+        "text": "Additive Temporal Search Attribute migration is preferred; avoid removing/reusing custom Search Attributes in ways that can produce unexpected SQL Visibility List API results.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "02474c82bfb61a33c79a3922d058a61b885b39505fe9c082e20751349c5da4df",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not make `Change.status` a duplicate copy of current gate.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "02474c82bfb61a33c79a3922d058a61b885b39505fe9c082e20751349c5da4df",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not keep `draft | pending | active` as long-term lifecycle truth.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "02474c82bfb61a33c79a3922d058a61b885b39505fe9c082e20751349c5da4df",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not leave production `AdvChangeStatus = \"active\"` open-owner queries in place.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "02474c82bfb61a33c79a3922d058a61b885b39505fe9c082e20751349c5da4df",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not rely on branch ancestry, title/name matching, or prose heuristics for lifecycle correctness.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "02474c82bfb61a33c79a3922d058a61b885b39505fe9c082e20751349c5da4df",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "Do not break explicit archived/closed reads or audit modes while changing default open reads.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "02474c82bfb61a33c79a3922d058a61b885b39505fe9c082e20751349c5da4df",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT6",
+        "kind": "avoidance",
+        "text": "Do not redesign the 7-gate lifecycle itself.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "02474c82bfb61a33c79a3922d058a61b885b39505fe9c082e20751349c5da4df",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-06-25T03:34:00.000Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Typed lifecycle model added: ChangeLifecycleState open|archived|closed, workflow state persists lifecycleState, gate progress remains in gates/AdvCurrentGate. adv-reviewer READY.",
+          "notes": "Lifecycle/gate/bucket separate."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Terminal archive/close paths set lifecycleState archived/closed; review remediation restored lifecycle rollback on failed archive/cancel projection. Targeted tests and pnpm run check passed.",
+          "notes": "Terminal behavior preserved."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "normalizeChangeLifecycleState maps draft|pending|active to open; search/read-model projection carries lifecycleState; source scan found no legacy open-status authority literals.",
+          "notes": "Local migration semantics hard-cut."
+        },
+        {
+          "contractId": "SC4",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Default list, backlog claim, worktree owner, and status query paths no longer use legacy status union for open authority; lifecycle/running predicates and client lifecycle filtering used.",
+          "notes": "Draft open changes no longer missed by active-only filters."
+        },
+        {
+          "contractId": "SC5",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "worktree state queries use AdvLifecycleState open + ExecutionStatus Running; worktree tests passed in targeted suite.",
+          "notes": "Branch-owner detection fixed."
+        },
+        {
+          "contractId": "SC6",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "bin live-status uses worker-free Visibility list, exposes lifecycleState separately from status/gate, filters non-open lifecycle summaries, and keeps running execution guard. Bun CLI tests passed.",
+          "notes": "Worker-free status preserved."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "pnpm exec vitest run src/temporal/change-state.test.ts and shared/read-model tests passed; legacy draft|pending|active normalize/project to lifecycleState open.",
+          "notes": "Covered in lifecycle normalization/projection tests."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Lifecycle tests and read-model/search-attribute tests passed; terminal states normalize/project archived or closed and default open reads exclude terminal via lifecycle/running guard.",
+          "notes": "Terminal projection covered."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "lgrep scans returned zero `AdvChangeStatus = \"active\"` and zero `AdvChangeStatus IN (\"draft\", \"pending\", \"active\")` occurrences after implementation/review.",
+          "notes": "No production or test occurrences remain."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "src/tools/worktree/state-session-lifecycle.test.ts and index-create.test.ts passed; expected branch-owner queries use AdvLifecycleState open + ExecutionStatus Running.",
+          "notes": "Worktree owner regression covered."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "list-change-workflows, visibility-claim-queries, worktree, and live-status tests passed with ExecutionStatus Running guard; CLI test filters stale completed workflow rows.",
+          "notes": "Stale terminal attributes guarded."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "bun test bin/lib/live-status.test.ts bin/lib/render.test.ts bin/adv.test.ts passed (41 tests); ChangeSummary includes lifecycleState separate from status and firstIncompleteGate.",
+          "notes": "Preview URL not applicable: agreement visual_surface false and no visual output scope."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "artifact_reference",
+          "evidence": "Updated .adv/specs/advance-workflow, advance-meta, backlog-coordination, worktree-lifecycle plus docs/specs markdown mirrors where present; deploy-local spec tests passed.",
+          "notes": "Specs now describe lifecycle authority."
+        },
+        {
+          "contractId": "AC8",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Normalization/read-model/search-attribute tests passed; source scan shows no remaining legacy open-status authority query literals.",
+          "notes": "Existing local open changes no longer depend on draft|pending|active predicates."
+        },
+        {
+          "contractId": "AC9",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Targeted suite passed: 209 vitest tests across lifecycle, projection, query, worktree, backlog, status/spec assets; 41 Bun CLI tests passed.",
+          "notes": "Coverage includes migration/projection/open-query/stale-terminal/worktree owner."
+        },
+        {
+          "contractId": "AC10",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "pnpm run check passed after schemas:check, typecheck, test-isolation check, lockfile policy check, lint, and format:check.",
+          "notes": "Quality gate green."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "lifecycleState field is separate from gates/AdvCurrentGate; no code makes lifecycle mirror gate progress.",
+          "notes": "Gate progress remains in gates."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Lifecycle, gate progress, and compatibility status/bucket are distinct fields in types, search attributes, and CLI summary.",
+          "notes": "Axes separate."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Archive/cancel terminal paths preserve archived/closed behavior; review remediation restores lifecycle rollback on projection failure.",
+          "notes": "Terminal behavior retained."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "bin/lib/live-status.ts remains Visibility-based and does not issue per-change getState queries for default table; CLI tests passed.",
+          "notes": "Worker-free path retained."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Open coordination queries use lifecycle/running guard; status CLI filters non-open lifecycle rows and fails closed on Temporal list failure.",
+          "notes": "No open hiding due legacy status predicates."
+        },
+        {
+          "contractId": "C6",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "AdvLifecycleState added as additive Keyword search attribute; AdvChangeStatus retained as compatibility projection, not removed/reused.",
+          "notes": "Avoids Temporal SA remap hazard."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Change.status remains compatibility/read-model metadata; current gate remains gates/AdvCurrentGate.",
+          "notes": "No gate duplication into status."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Open lifecycle truth moved to lifecycleState/AdvLifecycleState; legacy draft|pending|active normalized to open.",
+          "notes": "Legacy lifecycle semantics removed as authority."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Source scan zero occurrences of `AdvChangeStatus = \"active\"`; worktree owner query fixed to lifecycle/running predicate.",
+          "notes": "Active-only query removed."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Lifecycle correctness is represented by typed schema, normalizer, Search Attribute projection, and tests; no branch/title/prose heuristic authority introduced.",
+          "notes": "Structural correctness maintained."
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Archived/closed terminal reads and compatibility status remain; default open reads changed without removing terminal/audit modes.",
+          "notes": "Terminal audit compatibility preserved."
+        },
+        {
+          "contractId": "DONT6",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Seven-gate model unchanged; new requirement explicitly keeps lifecycle orthogonal to gates.",
+          "notes": "7-gate lifecycle not redesigned."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "Given an existing local change with legacy `draft`, `pending`, or `active` status, when lifecycle migration/projection runs, then the change is represented as `lifecycleState: \"open\"` and remains visible in open-change reads.",
+    "Given an archived or closed change, when lifecycle migration/projection runs, then it is represented as `lifecycleState: \"archived\"` or `lifecycleState: \"closed\"` and remains excluded from default open-change reads.",
+    "Given open-change list/status/backlog-claim/worktree queries, when source is inspected and tests run, then no production query uses `AdvChangeStatus = \"active\"` or `AdvChangeStatus IN (\"draft\", \"pending\", \"active\")` as open-state authority.",
+    "Given a branch owned by an open change, when worktree branch-owner detection runs, then it returns that owner regardless of the change’s pre-migration legacy status.",
+    "Given a terminal workflow with stale open-like custom search attributes, when default open/status queries run, then `ExecutionStatus = \"Running\"` or equivalent structural terminal guard excludes it.",
+    "Given CLI worker-free status reads, when status is rendered, then lifecycle, current gate, and bucket remain distinguishable and terminal rows are not shown as active/open.",
+    "Given existing specs for backlog coordination, status CLI, and worktree lifecycle, when specs are updated, then they describe lifecycle-state authority instead of `draft|pending|active` as claim/open truth.",
+    "Given local existing ADV changes on this device, when migration completes, then no local open change remains dependent on legacy `draft|pending|active` lifecycle semantics.",
+    "Targeted tests cover lifecycle projection, migration, open-query consumers, stale terminal attributes, and worktree owner detection.",
+    "`pnpm run check` passes."
+  ],
+  "documents": {
+    "proposal": "## Why\nAdvance change workflows currently keep `Change.status` / `AdvChangeStatus` at `draft` for most non-terminal work, while actual workflow progress lives in gates and search attributes such as `AdvCurrentGate` and `AdvCurrentBucket`. This creates misleading status semantics, weakens Temporal Visibility queries, and lets consumers accidentally query `active` when real in-flight changes are still `draft`.\n\nDesired outcome: establish a state model where lifecycle, gate progress, and operational buckets are separate, structurally enforced axes.\n\n## What Changes\n- Define the canonical meaning of change lifecycle separately from 7-gate workflow progress.\n- Shape the Temporal workflow state/read model so non-terminal vs terminal state is explicit and not inferred from `draft | pending | active`.\n- Shape Visibility search-attribute usage around lifecycle plus current gate/bucket projections.\n- Update affected consumers that currently depend on `Change.status` or `AdvChangeStatus` for in-flight, claim, status, or worktree ownership decisions.\n- Preserve compatibility for existing changes and legacy filters during migration.\n\n## User Outcomes\n- Operators and agents see change state that matches actual workflow position.\n- Temporal Visibility queries identify open changes without relying on misleading `draft | pending | active` values.\n- Backlog claims and worktree ownership checks remain held for all open changes until terminal state.\n- Existing archived and closed changes remain readable during and after migration.\n\n## Affected Code\n- `plugin/src/types/changes.ts` — stored change status/lifecycle type surface.\n- `plugin/src/temporal/change-state.ts` — workflow state initialization and terminal transitions.\n- `plugin/src/temporal/search-attributes.ts` — Visibility projection fields.\n- `plugin/src/temporal/list-change-workflows.ts` — active/open change enumeration.\n- `plugin/src/temporal/visibility-claim-queries.ts` — backlog claim collision queries.\n- `plugin/src/tools/worktree/state.ts` — branch-owner and active worktree Visibility queries.\n- `plugin/src/storage/store-temporal/*` — change list/read compatibility surfaces.\n- `bin/adv` live status path and related CLI visibility summary code.\n- Tests covering search attributes, list queries, worktree ownership, backlog coordination, and status output.\n\n## Related Repositories\n- Current repository: `advance`.\n- No product-linked multi-repo scope detected in `project.json`.\n- No cross-project follow-up scope identified for proposal.\n\n## Constraints\n- Do not duplicate gate progress into lifecycle state.\n- Keep Temporal workflow replay compatibility for existing histories.\n- Keep existing non-terminal query behavior available through compatibility aliases during migration.\n- Preserve `archived` and `closed` terminal behavior, including workflow completion on terminal state.\n- Keep CLI status worker-free where specs require Visibility search attributes.\n- Migration and read-path failures must fail closed: do not hide open changes or release coordination claims because a new projection field is missing.\n\n## Impact\n- Clarifies ADV state semantics for agents, CLI output, and operators.\n- Reduces missed-change risk in Visibility queries that currently assume `AdvChangeStatus = \"active\"`.\n- Provides a structurally separated foundation for future coordination features that need open/terminal state.\n\n## Context\nConfirmed investigation findings:\n- `createChangeWorkflowState()` initializes new Temporal changes as `status: \"draft\"`.\n- Gate and task signals update gates/tasks, not `state.status`.\n- Archive and close/cancel paths set terminal statuses: `archived` and `closed`.\n- `buildChangeSearchAttributes()` currently projects `AdvChangeStatus` from `state.status`.\n- Existing specs reference `AdvChangeStatus` for worker-free status and backlog claim coordination.\n- At least one worktree branch-owner query currently filters `AdvChangeStatus = \"active\"`.\n\nRelevant specs found:\n- `advance-workflow` — gate model and workflow contract layer.\n- `advance-meta` / `rq-statusCliWorkerFree01` — CLI status must use Visibility search attributes and synthesize gate progress from `AdvCurrentGate`.\n- `backlog-coordination` / `rq-backlogCoord01` and `rq-backlogCoord02` — non-terminal `AdvChangeStatus` represents held backlog claims.\n- `worktree-lifecycle` — worktree ownership and lifecycle coordination are affected by active/open change queries.\n\n## Discovery Agenda\n- Decide exact public naming: `lifecycleState`, `state`, or a compatibility-preserving `status` replacement.\n- Decide search-attribute migration plan: add `AdvLifecycleState`, keep `AdvChangeStatus` alias, or both for a release window.\n- Inventory all CLI/live-status code that consumes `AdvChangeStatus` outside `plugin/src`.\n- Determine whether legacy `pending` and `active` should remain accepted input filters, deprecated aliases, or removed after compatibility window.\n- Determine replay-safe workflow migration approach for existing histories and continue-as-new seed state.\n- Determine whether `AdvCurrentGateStatus` should be added alongside existing `AdvCurrentGate` and `AdvCurrentBucket`.\n\n## Scope\n\n### In Scope\n- State-shape proposal for separating lifecycle, gate progress, and operational bucket.\n- Temporal workflow state and search-attribute migration planning.\n- Query-consumer updates for change listing, backlog claims, worktree ownership, and status display.\n- Compatibility approach for existing changes, existing search attributes, and current tool filters.\n- Spec updates for affected ADV capabilities.\n\n### Out of Scope\n- Redesigning the 7-gate lifecycle itself.\n- Changing proposal/discovery/design/planning/execution/acceptance/release gate semantics.\n- Replacing Temporal as the source of truth.\n- Broad worktree cleanup or backlog ranking behavior unrelated to lifecycle state semantics.\n- Implementing task decomposition in the proposal gate.\n\n### Must Not\n- Must not make `Change.status` a duplicate copy of current gate.\n- Must not rely on heuristic inference for lifecycle correctness.\n- Must not break worker-free CLI status reads required by `rq-statusCliWorkerFree01`.\n- Must not release backlog claims before archive/close terminal state.\n- Must not create partial migration state that makes open changes invisible to coordination queries.\n\n## Discovery Findings\n\n### Discovery Checklist\n| Step | Result | Reason |\n|---|---|---|\n| Skill Discovery | PASS | Considered `adv-arch-detection`, `adv-audit`, and existing lgrep guidance. No pending-review skills found. |\n| Prior Research Extension | PASS | Cited `docs/repo-improve-prep.md`; added new lifecycle-state finding beyond its status-latency focus. |\n| Conflict & Related-Work Scan | PASS | Related archived changes found: `fixStaleStatus`, `fixArchiveStatusDrift`, `addFirstClassGateCriteriaState`. Own-change validation warnings `NO_TASKS`/`NO_DELTAS` expected pre-prep. |\n| Edge Case Investigation | PASS | Edge cases listed below. |\n| Design Question Depth | PASS | Questions annotated below. |\n| Draft Spec Delta Shapes | PASS | Draft `rq-*` deltas listed below. |\n| P25 Related-Pattern Scan | PASS | Similar query/status patterns listed below. |\n| LBP Check | PASS | Long-term best practice is additive lifecycle axis + retained compatibility alias, not overloading `status`. |\n| Completeness Verification | PASS | Problem spans state schema, workflow transitions, Visibility projection, query consumers, and specs; no sole-entry claim left unverified. |\n\n### Skills Considered\n- `adv-arch-detection`: matched. Used for architecture-drift framing: status is overloaded across workflow state, Visibility, and coordination consumers.\n- `adv-audit`: matched. Used for spec/code drift framing: specs currently codify `draft|pending|active` as non-terminal claim-held state.\n- `lgrep` always-on guidance: attempted semantic search; timed out twice, then used exact text/read evidence.\n- No core-domain skill gap requiring new skill creation.\n\n### Extends\n- `docs/repo-improve-prep.md`: prior pack covers ADV tool latency, Visibility attribute alignment, status/list read models, and Temporal Visibility as sound with drift.\n  - New finding: the issue is not only latency/read-model drift; `Change.status` itself is semantically overloaded, and one worktree owner query is a live correctness bug because it filters only `AdvChangeStatus = \"active\"`.\n- Relevant archived work:\n  - `fixStaleStatus`: added `ExecutionStatus = \"Running\"` to exclude completed workflows with stale active custom attributes.\n  - `fixArchiveStatusDrift`: established read-after-write and fail-closed repair constraints for status/archive state.\n  - `addFirstClassGateCriteriaState`: precedent for first-class structured gate-adjacent state without forcing migration of archived changes.\n\n### Conflict Scan\n- Active related changes: none obvious for lifecycle-state separation.\n- Archived related changes: `fixStaleStatus`, `fixArchiveStatusDrift`, `addFirstClassGateCriteriaState`.\n- Agenda overlap visible in returned pending list: `Optimize adv-status for large WIP sets`, status summary-index/lazy-view follow-ups, and worktree/status cleanup follow-ups. No direct duplicate of lifecycle-state separation.\n- Validation: passed; warnings `NO_TASKS` and `NO_DELTAS` expected before prep.\n\n### Current State\n- `ChangeStatusSchema` defines `draft`, `pending`, `active`, `archived`, `closed` with comments saying pending means awaiting approval and active means in progress.\n- New workflows initialize `status: \"draft\"`.\n- Normal gate/task signals do not change `state.status`.\n- Archive request sets `state.status = \"archived\"` and `terminated = true`.\n- Cancellation sets `state.status = \"closed\"` and `terminated = true`.\n- `buildChangeSearchAttributes()` projects `AdvChangeStatus: [state.status]`, `AdvCurrentGate`, and `AdvCurrentBucket`.\n- `bin/lib/live-status.ts` builds worker-free summaries from `AdvCurrentGate` and currently reports `AdvChangeStatus` as the row status.\n- `list-change-workflows.ts`, `visibility-claim-queries.ts`, worktree active queries, and CLI status use duplicated non-terminal literals `draft|pending|active`.\n- `buildWorktreeBranchVisibilityQuery()` uses `AdvChangeStatus = \"active\"`; production changes never become active, so branch-owner detection can miss owners.\n\n### Edge Cases\n1. Legacy open workflow lacks `AdvLifecycleState` after rollout.\n   - Query must fall back to `AdvChangeStatus IN (\"draft\", \"pending\", \"active\")` until workflow upsert/continue-as-new refreshes.\n   - CLI/status must not hide the row when new attribute is absent.\n2. Terminal workflow has stale custom attributes.\n   - `ExecutionStatus = \"Running\"` remains required for active/open queries.\n   - Archived/closed audit modes must still read terminal workflows when explicitly requested.\n3. Search-attribute registration mismatch.\n   - New attribute must register as Keyword and refuse wrong-type mutation.\n   - Failure to register must fail closed with actionable remediation, not silently fall back to unsafe active-only queries.\n4. Compatibility filters.\n   - `status: \"active\"` callers should not start returning zero silently after lifecycle migration.\n   - Deprecation warnings or alias behavior must be explicit.\n5. Worktree ownership collision.\n   - Existing branch owner with draft status is currently missed.\n   - Fix should cover branch-owner query and tests, not only active-worktree enumeration.\n\n### Open Design Questions\n1. Public naming for the canonical axis.\n   - Trust model: joint; naming affects operators and public tool/API wording.\n   - Blast radius: docs, filters, JSON output, search-attribute names, contract wording.\n   - Alternatives: `lifecycleState` (recommended), `state`, or repurpose `status`.\n2. Compatibility duration for legacy `draft|pending|active` filters.\n   - Trust model: joint; affects user expectation and migration strictness.\n   - Blast radius: CLI/API consumers, tests, docs, archived histories.\n   - Alternatives: one-release alias window (recommended), hard cut, or indefinite aliases.\n3. Immediate treatment of worktree owner bug.\n   - Trust model: joint because it expands from shape cleanup into live correctness repair.\n   - Blast radius: worktree collision safety and test surface.\n   - Alternatives: include as required AC (recommended), include advisory only, or separate follow-up.\n4. Whether to add `AdvCurrentGateStatus` now.\n   - Trust model: agent-resolved unless user wants status UX changes.\n   - Blast radius: search-attribute budget/registration, CLI display fidelity.\n   - Alternatives: add now for structural completeness, defer because `AdvCurrentBucket` already covers UX bucket.\n\n### Draft Spec Deltas\n- `rq-lifecycleState01` — Given an open change workflow, when it is queried or projected to Visibility, then lifecycle state is `open` independently from gate progress.\n- `rq-lifecycleState02` — Given archived or closed terminal transitions, when lifecycle state is projected, then it is `archived` or `closed` and the workflow completes as today.\n- `rq-lifecycleVisibility01` — Given open-change Visibility queries for list, status, backlog claim, or worktree ownership, when `AdvLifecycleState` is available, then it is the primary filter and `ExecutionStatus = \"Running\"` guards active/open reads.\n- `rq-lifecycleCompat01` — Given legacy workflows or callers using `draft|pending|active`, when lifecycle migration is incomplete, then compatibility aliases preserve behavior without hiding open changes.\n- `rq-worktreeOwnerLifecycle01` — Given a branch owned by an open change, when cross-change worktree owner detection runs, then owners are found regardless of legacy `draft|pending|active` status value.\n\nExample G/W/T for `rq-lifecycleVisibility01`:\n- Given a running change with `AdvLifecycleState = \"open\"` and `AdvChangeStatus = \"draft\"`, when active changes are listed, then the change is returned exactly once.\n- Given a completed archived workflow with stale `AdvLifecycleState = \"open\"`, when active changes are listed, then `ExecutionStatus = \"Running\"` excludes it.\n\n### Related Pattern Scan\n- Exact active-only risk: `plugin/src/tools/worktree/state.ts:596` filters `AdvChangeStatus = \"active\"`.\n- Duplicated non-terminal union:\n  - `plugin/src/tools/worktree/state.ts:640`\n  - `plugin/src/temporal/visibility-claim-queries.test.ts`\n  - `plugin/src/__tests__/backlog-coordination-regression.test.ts`\n  - `bin/lib/live-status.ts:308`\n- No `AdvCurrentGateStatus` usage found.\n- Deprecated/archived code filtered from related scan output.\n\n### Completeness Verification\n- Problem-completeness: high confidence. Evidence covers schema, workflow initialization, terminal transitions, search-attribute projection, list/claim/worktree/status consumers, specs, archived precedent, and external Temporal Visibility constraints.\n- Solution-scope: high confidence. The solution must cover canonical lifecycle state, search attributes, fallback/compatibility, affected queries, specs, and tests. It must not redesign gates.\n- Sole-entry claims: none relied on. Discovery explicitly found multiple consumer surfaces and classified them in scope.\n- Secondary surfaces:\n  - `bin/lib/live-status.ts`: in scope.\n  - `list-change-workflows.ts`: in scope.\n  - `visibility-claim-queries.ts`: in scope.\n  - `tools/worktree/state.ts`: in scope.\n  - Tests and specs: in scope.\n\n### LBP Check\n- Recommended long-term best practice: separate orthogonal axes.\n  - Lifecycle: `open | archived | closed`.\n  - Gate progress: `proposal | discovery | design | planning | execution | acceptance | release | done` plus gate status.\n  - Operational bucket: `in_flight | awaiting_approval | stuck | drifting | ready_to_archive | never_started`.\n- Temporal official docs support Visibility queries via Search Attributes and warn that removing/re-adding custom Search Attributes in SQL stores can cause unexpected List API results. This favors additive `AdvLifecycleState` over deleting/reusing `AdvChangeStatus` immediately.\n- External-solution check: no alternative library/service is viable; this is internal ADV state modeling on top of existing Temporal Search Attributes.\n\n### Discovery Opportunity Scout\n- Trigger decision: run — strategic architecture/state-model change.\n- Candidates considered: 5.\n- Auto-adopted:\n  - Treat `AdvChangeStatus = \"active\"` worktree branch-owner query as a live defect inside scope.\n  - Use additive `AdvLifecycleState` because Temporal Search Attribute deletion/reuse can be unsafe on SQL Visibility stores.\n  - Centralize non-terminal/open query literals instead of duplicating `draft|pending|active` strings.\n- Surfaced to user:\n  - Compatibility/spec scope for deprecating legacy `draft|pending|active` semantics.\n- Inconclusive/skipped: none.\n\n### Recommended Objectives\n1. Introduce a canonical lifecycle axis independent from gate progress and buckets.\n2. Add additive Visibility projection for lifecycle, preserving `AdvChangeStatus` as compatibility during migration.\n3. Update all open-change queries to use lifecycle-first filtering with running-execution guards where active rows are intended.\n4. Fix the active-only worktree branch-owner query so open draft changes are detected.\n5. Update specs and tests so claim/status/worktree semantics use lifecycle language, not `draft|pending|active` as truth.\n6. Preserve compatibility for existing workflows and old filters until a deliberate removal window.\n\n### AMBIGUITY ANALYSIS\nCoverage: B:C F:C S:P M:P\n\n- S1 MEDIUM Completion Signals — Proposal defers exact criteria until discovery.\n  Evidence: `Discovery owns firming design-independent behavioral acceptance criteria and success criteria.`\n  Reason: acceptable at proposal stage; discovery will define criteria before agreement.\n- M1 MEDIUM Missing Information — Exact public naming and compatibility duration require user preference.\n  Evidence: `Decide exact public naming: lifecycleState, state, or a compatibility-preserving status replacement.`\n  Reason: affects operator/API wording and migration strictness.\n\nTrigger evaluation: no CRITICAL; no HIGH. Continue to agreement questions.",
+    "problemStatement": "Advance change workflows currently keep `Change.status` / `AdvChangeStatus` at `draft` for most non-terminal work, while actual workflow progress lives in gates and search attributes like `AdvCurrentGate` / `AdvCurrentBucket`. This creates misleading status semantics, weakens Temporal Visibility queries, and lets consumers accidentally query `active` when real in-flight changes are still `draft`.\n\nDesired outcome: establish a clean long-term state model where lifecycle, gate progress, and operational buckets are separate, structurally enforced axes.\n\nExpected scope:\n- Define target state shape: lifecycle vs gate vs bucket.\n- Add/migrate Temporal search attributes as needed.\n- Update query consumers that depend on `draft|pending|active`.\n- Preserve compatibility for existing changes and old filters.\n- Avoid duplicating gate state into `Change.status`.",
+    "agreement": "# Agreement\n\n## Objectives\n\n1. Introduce a canonical lifecycle axis named `lifecycleState`, independent from gate progress and operational bucket.\n2. Represent non-terminal changes as `lifecycleState: \"open\"` and terminal changes as `archived` or `closed`.\n3. Migrate all existing local ADV changes on this device away from `draft | pending | active` lifecycle semantics.\n4. Update open-change coordination queries so list/status/backlog-claim/worktree owner reads use lifecycle authority, not legacy status values.\n5. Fix the worktree branch-owner query bug where `AdvChangeStatus = \"active\"` misses real open `draft` changes.\n6. Preserve worker-free CLI/status reads through Temporal Visibility while keeping terminal workflows excluded from default open rows.\n7. Update affected specs so lifecycle state becomes the documented authority for open/terminal semantics.\n\n## Success Criteria\n\n1. Open changes have one canonical lifecycle value: `open`, separate from gate progress and bucket.\n2. Terminal changes remain `archived` or `closed`; release/close workflow completion still works.\n3. Local existing changes on this device migrate away from `draft | pending | active` lifecycle semantics.\n4. Open-change coordination cannot miss changes because they were still `draft`.\n5. Worktree branch-owner detection finds open owners reliably.\n6. Worker-free status still works from Temporal Visibility and still excludes terminal workflows.\n\n## Acceptance Criteria\n\n1. Given an existing local change with legacy `draft`, `pending`, or `active` status, when lifecycle migration/projection runs, then the change is represented as `lifecycleState: \"open\"` and remains visible in open-change reads.\n2. Given an archived or closed change, when lifecycle migration/projection runs, then it is represented as `lifecycleState: \"archived\"` or `lifecycleState: \"closed\"` and remains excluded from default open-change reads.\n3. Given open-change list/status/backlog-claim/worktree queries, when source is inspected and tests run, then no production query uses `AdvChangeStatus = \"active\"` or `AdvChangeStatus IN (\"draft\", \"pending\", \"active\")` as open-state authority.\n4. Given a branch owned by an open change, when worktree branch-owner detection runs, then it returns that owner regardless of the change’s pre-migration legacy status.\n5. Given a terminal workflow with stale open-like custom search attributes, when default open/status queries run, then `ExecutionStatus = \"Running\"` or equivalent structural terminal guard excludes it.\n6. Given CLI worker-free status reads, when status is rendered, then lifecycle, current gate, and bucket remain distinguishable and terminal rows are not shown as active/open.\n7. Given existing specs for backlog coordination, status CLI, and worktree lifecycle, when specs are updated, then they describe lifecycle-state authority instead of `draft|pending|active` as claim/open truth.\n8. Given local existing ADV changes on this device, when migration completes, then no local open change remains dependent on legacy `draft|pending|active` lifecycle semantics.\n9. Targeted tests cover lifecycle projection, migration, open-query consumers, stale terminal attributes, and worktree owner detection.\n10. `pnpm run check` passes.\n\n## Constraints\n\n1. Do not duplicate gate progress into lifecycle state.\n2. Keep lifecycle, gate progress, and operational bucket as separate axes.\n3. Preserve `archived` and `closed` terminal behavior, including workflow completion on terminal state.\n4. Keep worker-free CLI status reads backed by Temporal Visibility.\n5. Fail closed if migration/projection cannot prove open-vs-terminal state; do not hide open changes or release coordination claims because a projection field is missing.\n6. Additive Temporal Search Attribute migration is preferred; avoid removing/reusing custom Search Attributes in ways that can produce unexpected SQL Visibility List API results.\n\n## Avoidances\n\n1. Do not make `Change.status` a duplicate copy of current gate.\n2. Do not keep `draft | pending | active` as long-term lifecycle truth.\n3. Do not leave production `AdvChangeStatus = \"active\"` open-owner queries in place.\n4. Do not rely on branch ancestry, title/name matching, or prose heuristics for lifecycle correctness.\n5. Do not break explicit archived/closed reads or audit modes while changing default open reads.\n6. Do not redesign the 7-gate lifecycle itself.\n\n## Preview Applicability\n\nvisual_surface: false\n\nRationale: this change affects ADV workflow state, Temporal Visibility projections, CLI/status text, specs, and coordination queries. It does not affect browser-visible UI or visual output.\n\n## Decisions\n\n### User Decisions\n\n1. Question: What public name should the canonical lifecycle axis use?\n   User answer: `lifecycleState`.\n   Why it matters: naming appears in code, specs, search attributes, docs, and operator-facing output.\n\n2. Question: How should legacy `draft | pending | active` filters behave after migration?\n   User answer: hard cut; migrate all changes on device.\n   Why it matters: discovery should require local migration instead of preserving ambiguous status aliases indefinitely.\n\n3. Question: Should the worktree `AdvChangeStatus = \"active\"` owner bug be required scope for this change?\n   User answer: include required.\n   Why it matters: this is the most concrete live correctness bug caused by current semantics.\n\n### Agent Decisions (LBP)\n\n1. Use orthogonal state axes: lifecycle (`open|archived|closed`), gate progress, and bucket.\n2. Prefer additive `AdvLifecycleState` over deleting/reusing `AdvChangeStatus`, because Temporal self-hosted SQL Visibility documentation warns removing and re-adding custom Search Attributes can cause unexpected List API results.\n3. Keep `ExecutionStatus = \"Running\"` or equivalent structural terminal guard in default open/status queries to exclude completed workflows with stale custom attributes.\n4. Centralize open/lifecycle query construction rather than duplicating status literal strings across consumers.\n5. Treat `tools/worktree/state.ts` active-only owner query as required scope, not a follow-up.\n\n## Deferred Questions\n\nNone.\n\n## Sign-Off\n\nUser approved criteria and agreement via inline Tier A reply: `approve`.",
+    "design": "# Design\n\n## Architecture Overview\n\nIntroduce `lifecycleState` as the canonical open/terminal axis for ADV changes:\n\n```ts\ntype ChangeLifecycleState = \"open\" | \"archived\" | \"closed\";\n```\n\nKeep lifecycle separate from existing gate and bucket projections:\n\n- `lifecycleState`: whether the change is open or terminal.\n- `gates`: where the change is in the 7-gate workflow.\n- `AdvCurrentGate` / gate state: workflow position.\n- `AdvCurrentBucket`: operational UX/coordination bucket.\n\nTemporal Visibility gets an additive `AdvLifecycleState` Keyword search attribute. Existing `AdvChangeStatus` is retained as compatibility storage/search-attribute data during the migration, but production open-change authority moves to `lifecycleState` / `AdvLifecycleState`.\n\n## Key Decisions\n\n### D1 — Canonical lifecycle field\n\nAdd `ChangeLifecycleStateSchema = z.enum([\"open\", \"archived\", \"closed\"])` and add `lifecycleState` to workflow state and persisted change projection.\n\nLegacy normalization:\n\n- `draft | pending | active` → `open`\n- `archived` → `archived`\n- `closed` → `closed`\n\nRationale: current `Change.status` values are overloaded and inaccurate. Production state effectively uses `draft`, `archived`, and `closed`; `pending`/`active` are not real lifecycle transitions.\n\n### D2 — Additive Visibility migration\n\nRegister `AdvLifecycleState` as a single-value `Keyword` search attribute and project it from `state.lifecycleState`.\n\nRetain `AdvChangeStatus` as a compatibility alias/projection during rollout. Do not remove or re-add `AdvChangeStatus`.\n\nRationale: Temporal self-hosted SQL Visibility docs warn that removing and re-adding custom Search Attributes can remap fields and cause unexpected List API results. Additive `AdvLifecycleState` avoids that class. Scout confirmed KeywordList cap is irrelevant here because `AdvLifecycleState` is Keyword, not KeywordList.\n\n### D3 — Central open-query helper\n\nCreate one shared lifecycle query helper for open/default reads. It should build the predicate equivalent of:\n\n```text\nAdvLifecycleState = \"open\" AND ExecutionStatus = \"Running\"\n```\n\nProduction consumers that must converge:\n\n- `plugin/src/temporal/list-change-workflows.ts` default open enumeration.\n- `plugin/src/temporal/visibility-claim-queries.ts` backlog claim held queries, including `CLAIM_HELD_STATUSES`, `queryClaimsByIssueNumber`, and bulk claim lookup.\n- `plugin/src/tools/worktree/state.ts` branch-owner query and active-worktree query, including `buildWorktreeBranchVisibilityQuery()` and `buildActiveWorktreeChangesVisibilityQuery()`.\n- `bin/lib/live-status.ts` worker-free CLI status summaries.\n\nThe helper must also expose migration/sweep query helpers for finding legacy local rows during migration. After migration, production open-change queries must not rely on `AdvChangeStatus = \"active\"` or `AdvChangeStatus IN (\"draft\", \"pending\", \"active\")` as open authority.\n\nRationale: production consumers currently duplicate non-terminal status literals. Centralizing the predicate removes drift, fixes the active-only worktree bug, and prevents backlog/status/worktree paths from diverging.\n\n### D4 — Local hard-cut migration\n\nImplement a project/device-local migration path that normalizes existing ADV state:\n\n1. Enumerate local project changes/workflows using existing Temporal Visibility + store surfaces.\n2. For each legacy open change (`draft|pending|active`), persist/project `lifecycleState: \"open\"` and upsert `AdvLifecycleState = \"open\"`.\n3. For terminal changes, persist/project `archived` or `closed` when read or included in terminal/audit paths.\n4. Verify post-migration that local open changes no longer require legacy status literals for discovery/list/status/claim/worktree reads.\n\nMigration can be eager at startup/first lifecycle-aware read, or implemented as a bounded explicit project migration helper invoked by the lifecycle update path. It must be structural, idempotent, and fail closed if search-attribute registration or projection fails.\n\n### D5 — Worktree owner bug fixed in required path\n\nReplace `buildWorktreeBranchVisibilityQuery()` active-only filter with lifecycle authority and terminal guard:\n\n```text\nAdvAffectedProjects = \"...\" AND\nAdvWorktreeBranches = \"...\" AND\nAdvLifecycleState = \"open\" AND\nExecutionStatus = \"Running\"\n```\n\nAlso converge `buildActiveWorktreeChangesVisibilityQuery()` onto the same lifecycle helper.\n\nAdd regression coverage proving a legacy-draft/open owner is found.\n\n### D6 — Specs become lifecycle-language authority\n\nUpdate specs that currently make `draft|pending|active` the durable open/claim signal:\n\n- `backlog-coordination`: claim held = `lifecycleState: \"open\"`, not status union; migrate scenario/tests that assert literal `AdvChangeStatus IN (...)` query strings.\n- `advance-meta` / status CLI requirement: worker-free rows use `AdvLifecycleState`, `AdvCurrentGate`, `AdvCurrentBucket`, and running-execution guard.\n- `worktree-lifecycle`: branch ownership and active worktree scans use lifecycle authority.\n- `advance-workflow`: lifecycle/gate/bucket are separate state axes.\n\n## ADR Drafts\n\nNo ADR draft required. Decision is significant but not surprising in context: prior specs and recent archived changes already establish Temporal Visibility, worker-free status, and first-class gate-adjacent state as normal ADV architecture.\n\n## Implementation Strategy\n\n1. **Types and normalization**\n   - Add `ChangeLifecycleStateSchema` / type.\n   - Add `lifecycleState` to workflow contracts and persisted `Change` shape.\n   - Add pure normalizer from legacy `status` to lifecycle.\n   - Ensure workflow seed/continue-as-new paths preserve `lifecycleState` and normalize legacy inputs.\n\n2. **Projection and registration**\n   - Add `AdvLifecycleState: \"Keyword\"` to ADV search attributes.\n   - Update `buildChangeSearchAttributes()` to project `AdvLifecycleState: [state.lifecycleState]`.\n   - Keep `AdvChangeStatus` projected only as compatibility/legacy row data while code migrates.\n\n3. **Migration**\n   - Add idempotent local migration path that backfills `lifecycleState` and `AdvLifecycleState` for local open changes.\n   - Migrate terminal projections on read/audit paths where completed workflows cannot be signaled.\n   - Add post-migration verification test/fixture for local open changes.\n\n4. **Consumer updates**\n   - Update change list, backlog claim, status, and worktree queries to call the shared lifecycle helper.\n   - Explicitly include both worktree query builders and both backlog claim query paths.\n   - Remove production open-authority use of `AdvChangeStatus = \"active\"` and status-union predicates.\n   - Keep terminal/audit reads explicit and unaffected.\n\n5. **Specs and tests**\n   - Add lifecycle-state spec deltas with G/W/T scenarios.\n   - Update existing tests that assert status-union query strings, especially backlog coordination, worktree lifecycle, and list-change-workflows tests.\n   - Add targeted tests for worktree owner detection, stale terminal attributes, local migration, and CLI worker-free status.\n\n## LBP Analysis\n\nThis design follows long-term best practice because it makes correctness structural:\n\n- lifecycle is a typed state machine axis;\n- gate progress remains gate-owned;\n- bucket remains a derived UX/coordination projection;\n- Visibility queries use a single explicit search attribute and terminal guard;\n- migration is additive and replay-safe instead of deleting/reusing Temporal Search Attributes.\n\nRejected alternatives:\n\n1. **Make `Change.status` mirror current gate** — rejected. Duplicates gate state and creates drift.\n2. **Keep `draft|pending|active` indefinitely** — rejected by user decision and semantic ambiguity.\n3. **Delete/reuse `AdvChangeStatus` immediately** — rejected due Temporal SQL Visibility remove/re-add hazard.\n4. **Fix only `AdvChangeStatus = \"active\"` to status union** — rejected. It patches one defect but preserves the wrong state model.\n\n## Affected Components\n\n- `plugin/src/types/changes.ts`\n- `plugin/src/temporal/contracts.ts`\n- `plugin/src/temporal/change-state.ts`\n- `plugin/src/temporal/search-attributes.ts`\n- `plugin/src/temporal/list-change-workflows.ts`\n- `plugin/src/temporal/visibility-claim-queries.ts`\n- `plugin/src/tools/worktree/state.ts`\n- `plugin/src/storage/store-temporal/*`\n- `bin/lib/live-status.ts`\n- specs: `advance-workflow`, `advance-meta`, `backlog-coordination`, `worktree-lifecycle`\n- tests for all above surfaces, including spec scenario tests that currently assert literal status-union query strings\n\n## Design-Derived Criteria\n\n1. `AdvLifecycleState` must be registered as `Keyword`, not `KeywordList`.\n2. Default open queries must include `ExecutionStatus = \"Running\"` or an equivalent structural terminal guard.\n3. Lifecycle normalization must be pure and shared; no caller-local string unions for open-state authority.\n4. Migration/backfill must be idempotent.\n5. After migration, production source grep must find no open-authority query using `AdvChangeStatus = \"active\"` or `AdvChangeStatus IN (\"draft\", \"pending\", \"active\")`.\n6. Explicit terminal/audit reads must still be able to include archived/closed records.\n7. Backlog claim query tests and worktree query tests must migrate in lockstep with spec wording.\n\n## Design Leverage Scout\n\n- Candidates considered: 5.\n- Auto-adopted: 4.\n  - `AdvLifecycleState` is Keyword, so no KeywordList cap risk.\n  - Projection has a single central write site in `buildChangeSearchAttributes()`.\n  - Shared open-query helper fixes literal duplication, the worktree active-only bug, and the missing terminal guard in branch-owner detection.\n  - Frame work as query/read convergence plus lifecycle normalization, not full gate state-machine rewrite.\n- Surfaced to user: 1 candidate about plugin/bin shared helper strategy. Resolved as agent decision: reuse a shared helper because `bin/lib/live-status.ts` already imports plugin Temporal helpers.\n- Inconclusive/skipped: none.\n\n## Risks / Mitigations\n\n1. **Legacy workflows missing new search attribute**\n   - Mitigation: local migration/backfill before hard-cut open queries; fail closed if missing projection cannot be corrected.\n\n2. **Completed workflows with stale open-like attributes**\n   - Mitigation: keep `ExecutionStatus = \"Running\"` in default open/status queries.\n\n3. **Search-attribute registration fails or wrong type exists**\n   - Mitigation: reuse existing registration/refusal path; surface actionable error and avoid unsafe fallback.\n\n4. **Public API break from hard-cut filters**\n   - Mitigation: update schemas/docs/tests together; migrate local data; provide clear error for removed legacy filters.\n\n5. **Spec/code drift**\n   - Mitigation: update capability specs and asserting tests in the same change; include backlog claim and worktree query tests explicitly.\n\n## Validator Result\n\nValidator verdict: CAUTION.\n\nFindings:\n\n1. Correctness info: core architecture solves objectives; worktree owner bug is real and verified.\n2. Correctness caution: consumer inventory initially under-specified `buildActiveWorktreeChangesVisibilityQuery()` and backlog claim paths.\n3. Spec-law caution: specs/tests currently assert literal `AdvChangeStatus IN (...)` strings and must migrate in lockstep.\n4. Simplicity/key-alternatives info: additive Keyword + central helper is the simplest correct path; no significant viable alternative omitted.\n\nResolution:\n\n- Design updated D3/D5/Affected Components/Design-Derived Criteria to explicitly include `buildActiveWorktreeChangesVisibilityQuery()`.\n- Design updated D3/D6/Affected Components/Design-Derived Criteria to explicitly include `visibility-claim-queries.ts` claim paths and spec scenario/test migration.\n\nNo unresolved `CONFLICT`. No contract-compromise risk identified.",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\n\nDelivered canonical `lifecycleState` separation for ADV changes: open/terminal lifecycle is now distinct from gate progress and compatibility status/bucket. Open-change coordination, worktree owner detection, backlog claims, and worker-free status no longer depend on legacy `draft | pending | active` lifecycle semantics.\n\n## Verdict\n\nAPPROVED\n\n## What Was Built\n\n1. Added `ChangeLifecycleState` typing, workflow-state persistence, normalization, and schema projection for `open | archived | closed`.\n2. Added additive `AdvLifecycleState` Temporal Search Attribute projection while retaining `AdvChangeStatus` as compatibility metadata.\n3. Centralized lifecycle/running Visibility predicates and updated open list, backlog claim, and worktree owner queries.\n4. Fixed branch-owner detection so open owners are selected by lifecycle state instead of `AdvChangeStatus = \"active\"`.\n5. Updated worker-free `adv status` summaries to expose `lifecycleState` separately from status and gate progress while excluding terminal rows.\n6. Updated specs and markdown mirrors for workflow lifecycle, status CLI, backlog coordination, and worktree lifecycle.\n7. Completed final verification and review remediation, including rollback preservation for `lifecycleState` on failed archive/cancel projections.\n\n## What Was Verified\n\n- Verdict: READY / APPROVED with 0 blocking findings after review remediation.\n- Tests: lifecycle/query/spec suite passed (209 Vitest tests); CLI status suite passed (41 Bun tests).\n- Quality gate: `pnpm run check` passed.\n- Static scan: zero remaining `AdvChangeStatus = \"active\"` or `AdvChangeStatus IN (\"draft\", \"pending\", \"active\")` occurrences.\n- Preview URL: not_applicable — agreement declared `visual_surface: false`; implementation is workflow/state/CLI/spec behavior with no user-facing visual surface.\n- Contract matrix: 28 required rows passed/respected; 0 failed/violated/unknown.\n\n## Remaining Concerns\n\nNone.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-06-25T03:34:00.000Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | Open changes have one canonical lifecycle value: `open`, separate from gate progress and bucket. | pass | Typed lifecycle model added: ChangeLifecycleState open|archived|closed, workflow state persists lifecycleState, gate progress remains in gates/AdvCurrentGate. adv-reviewer READY. |\n| SC2 | success_criterion | Terminal changes remain `archived` or `closed`; release/close workflow completion still works. | pass | Terminal archive/close paths set lifecycleState archived/closed; review remediation restored lifecycle rollback on failed archive/cancel projection. Targeted tests and pnpm run check passed. |\n| SC3 | success_criterion | Local existing changes on this device migrate away from `draft | pending | active` lifecycle semantics. | pass | normalizeChangeLifecycleState maps draft|pending|active to open; search/read-model projection carries lifecycleState; source scan found no legacy open-status authority literals. |\n| SC4 | success_criterion | Open-change coordination cannot miss changes because they were still `draft`. | pass | Default list, backlog claim, worktree owner, and status query paths no longer use legacy status union for open authority; lifecycle/running predicates and client lifecycle filtering used. |\n| SC5 | success_criterion | Worktree branch-owner detection finds open owners reliably. | pass | worktree state queries use AdvLifecycleState open + ExecutionStatus Running; worktree tests passed in targeted suite. |\n| SC6 | success_criterion | Worker-free status still works from Temporal Visibility and still excludes terminal workflows. | pass | bin live-status uses worker-free Visibility list, exposes lifecycleState separately from status/gate, filters non-open lifecycle summaries, and keeps running execution guard. Bun CLI tests passed. |\n| AC1 | acceptance_criterion | Given an existing local change with legacy `draft`, `pending`, or `active` status, when lifecycle migration/projection runs, then the change is represented as `lifecycleState: \"open\"` and remains visible in open-change reads. | pass | pnpm exec vitest run src/temporal/change-state.test.ts and shared/read-model tests passed; legacy draft|pending|active normalize/project to lifecycleState open. |\n| AC2 | acceptance_criterion | Given an archived or closed change, when lifecycle migration/projection runs, then it is represented as `lifecycleState: \"archived\"` or `lifecycleState: \"closed\"` and remains excluded from default open-change reads. | pass | Lifecycle tests and read-model/search-attribute tests passed; terminal states normalize/project archived or closed and default open reads exclude terminal via lifecycle/running guard. |\n| AC3 | acceptance_criterion | Given open-change list/status/backlog-claim/worktree queries, when source is inspected and tests run, then no production query uses `AdvChangeStatus = \"active\"` or `AdvChangeStatus IN (\"draft\", \"pending\", \"active\")` as open-state authority. | pass | lgrep scans returned zero `AdvChangeStatus = \"active\"` and zero `AdvChangeStatus IN (\"draft\", \"pending\", \"active\")` occurrences after implementation/review. |\n| AC4 | acceptance_criterion | Given a branch owned by an open change, when worktree branch-owner detection runs, then it returns that owner regardless of the change’s pre-migration legacy status. | pass | src/tools/worktree/state-session-lifecycle.test.ts and index-create.test.ts passed; expected branch-owner queries use AdvLifecycleState open + ExecutionStatus Running. |\n| AC5 | acceptance_criterion | Given a terminal workflow with stale open-like custom search attributes, when default open/status queries run, then `ExecutionStatus = \"Running\"` or equivalent structural terminal guard excludes it. | pass | list-change-workflows, visibility-claim-queries, worktree, and live-status tests passed with ExecutionStatus Running guard; CLI test filters stale completed workflow rows. |\n| AC6 | acceptance_criterion | Given CLI worker-free status reads, when status is rendered, then lifecycle, current gate, and bucket remain distinguishable and terminal rows are not shown as active/open. | pass | bun test bin/lib/live-status.test.ts bin/lib/render.test.ts bin/adv.test.ts passed (41 tests); ChangeSummary includes lifecycleState separate from status and firstIncompleteGate. |\n| AC7 | acceptance_criterion | Given existing specs for backlog coordination, status CLI, and worktree lifecycle, when specs are updated, then they describe lifecycle-state authority instead of `draft|pending|active` as claim/open truth. | pass | Updated .adv/specs/advance-workflow, advance-meta, backlog-coordination, worktree-lifecycle plus docs/specs markdown mirrors where present; deploy-local spec tests passed. |\n| AC8 | acceptance_criterion | Given local existing ADV changes on this device, when migration completes, then no local open change remains dependent on legacy `draft|pending|active` lifecycle semantics. | pass | Normalization/read-model/search-attribute tests passed; source scan shows no remaining legacy open-status authority query literals. |\n| AC9 | acceptance_criterion | Targeted tests cover lifecycle projection, migration, open-query consumers, stale terminal attributes, and worktree owner detection. | pass | Targeted suite passed: 209 vitest tests across lifecycle, projection, query, worktree, backlog, status/spec assets; 41 Bun CLI tests passed. |\n| AC10 | acceptance_criterion | `pnpm run check` passes. | pass | pnpm run check passed after schemas:check, typecheck, test-isolation check, lockfile policy check, lint, and format:check. |\n| C1 | constraint | Do not duplicate gate progress into lifecycle state. | respected | lifecycleState field is separate from gates/AdvCurrentGate; no code makes lifecycle mirror gate progress. |\n| C2 | constraint | Keep lifecycle, gate progress, and operational bucket as separate axes. | respected | Lifecycle, gate progress, and compatibility status/bucket are distinct fields in types, search attributes, and CLI summary. |\n| C3 | constraint | Preserve `archived` and `closed` terminal behavior, including workflow completion on terminal state. | respected | Archive/cancel terminal paths preserve archived/closed behavior; review remediation restores lifecycle rollback on projection failure. |\n| C4 | constraint | Keep worker-free CLI status reads backed by Temporal Visibility. | respected | bin/lib/live-status.ts remains Visibility-based and does not issue per-change getState queries for default table; CLI tests passed. |\n| C5 | constraint | Fail closed if migration/projection cannot prove open-vs-terminal state; do not hide open changes or release coordination claims because a projection field is missing. | respected | Open coordination queries use lifecycle/running guard; status CLI filters non-open lifecycle rows and fails closed on Temporal list failure. |\n| C6 | constraint | Additive Temporal Search Attribute migration is preferred; avoid removing/reusing custom Search Attributes in ways that can produce unexpected SQL Visibility List API results. | respected | AdvLifecycleState added as additive Keyword search attribute; AdvChangeStatus retained as compatibility projection, not removed/reused. |\n| DONT1 | avoidance | Do not make `Change.status` a duplicate copy of current gate. | respected | Change.status remains compatibility/read-model metadata; current gate remains gates/AdvCurrentGate. |\n| DONT2 | avoidance | Do not keep `draft | pending | active` as long-term lifecycle truth. | respected | Open lifecycle truth moved to lifecycleState/AdvLifecycleState; legacy draft|pending|active normalized to open. |\n| DONT3 | avoidance | Do not leave production `AdvChangeStatus = \"active\"` open-owner queries in place. | respected | Source scan zero occurrences of `AdvChangeStatus = \"active\"`; worktree owner query fixed to lifecycle/running predicate. |\n| DONT4 | avoidance | Do not rely on branch ancestry, title/name matching, or prose heuristics for lifecycle correctness. | respected | Lifecycle correctness is represented by typed schema, normalizer, Search Attribute projection, and tests; no branch/title/prose heuristic authority introduced. |\n| DONT5 | avoidance | Do not break explicit archived/closed reads or audit modes while changing default open reads. | respected | Archived/closed terminal reads and compatibility status remain; default open reads changed without removing terminal/audit modes. |\n| DONT6 | avoidance | Do not redesign the 7-gate lifecycle itself. | respected | Seven-gate model unchanged; new requirement explicitly keeps lifecycle orthogonal to gates. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-06-25T02:15:19.050Z",
+      "contentHash": "a785be74935970de129b68d5337fe230014c5eef85587b189081d3102ec67f59",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-06-25T02:03:55.023Z",
+      "contentHash": "b981f7c6f9ac9e180d08765322ecd075dc369441cc7bdf5653ef86532ee6ac23",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-06-25T02:20:49.018Z",
+      "contentHash": "02474c82bfb61a33c79a3922d058a61b885b39505fe9c082e20751349c5da4df",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-06-25T02:30:51.940Z",
+      "contentHash": "1fbd9c4deeb33e751d1cf7db74f436e6582397b5e57dfae37b25639703545e56",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-06-25T03:35:19.207Z",
+      "contentHash": "3ac875650f750840a30edd4ec1afb10ef677cd1e6b9c417fa7279b889bd5b818",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-06-25T04:04:20.210Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_MISSING_ERROR_HANDLING",
+      "severity": "warning",
+      "message": "Proposal describes behavior that could fail but doesn't mention error handling or rollback. What happens when things go wrong?",
+      "recorded_at": "2026-06-25T02:06:50.306Z",
+      "resolved": true,
+      "resolved_at": "2026-06-25T02:22:43.784Z"
+    }
+  ],
+  "worktree_auto_managed": true
+}
