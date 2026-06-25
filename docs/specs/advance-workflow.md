@@ -56,58 +56,58 @@ Capability: Workflow contract layer for ADV — gate model, autonomy boundaries,
 
 ---
 
-### Frontend Design-Quality Evidence in Acceptance Review
+### Structural Design-Quality Enforcement at Acceptance and Release
 
 **ID:** `rq-designQualityEvidence01` | **Priority:** **[MUST]**
 
-/adv-review MUST consume persisted adv-designer report evidence for frontend/design implementation scope before acceptance. Designer design_dimensions concerns, neighboring_recommendations, required_main_agent_actions, and browser/design verification evidence MUST be surfaced into review synthesis and contract.reviewMatrix proof using existing evidence policies such as design_proof, rubric_review, review, static_check, or test. Owned-scope unresolved design concerns MUST block acceptance unless fixed or rejected_with_evidence. Neighboring or out-of-scope UI concerns MUST be dispositioned through include-now, split/fast-follow, or rejected_with_evidence with rationale; they MUST NOT be silently hidden or represented by a new terminal state for accepting unresolved debt. Review and harden ownership remains with adv-reviewer, and adv-designer remains apply-phase only.
+Design-quality concerns raised by adv-designer reports MUST be enforced structurally, not by reviewer prose. A sandbox-safe gate-readiness evaluator MUST read persisted adv-designer reports from change state and block the acceptance and release gates while the latest designer report for any task carries an undispositioned design_dimensions concern or neighboring_recommendation. A concern clears only when (a) a later all-pass designer report supersedes it, or (b) a typed disposition (fixed, rejected_with_evidence, split, or fast_follow) is recorded via the designConcernDispositioned signal path (adv_design_concern_disposition). On report submission, each concern and neighboring recommendation MUST also be promoted to a durable required-obligation agenda item with an attempt-stable dedupe key; this agenda promotion is ADVISORY routing only and MUST NOT be the gate authority. No accepted_debt terminal state exists anywhere in specs, contract, commands, or agents. Review and harden ownership remains with adv-reviewer, and adv-designer remains apply-phase only.
 
-**Tags:** `workflow`, `review`, `acceptance`, `frontend`, `design-proof`, `adv-designer`
+**Tags:** `workflow`, `review`, `acceptance`, `release`, `frontend`, `design-proof`, `adv-designer`, `structural`
 
 #### Scenarios
 
-**Designer concerns feed acceptance proof** (`rq-designQualityEvidence01.1`)
+**Unresolved designer concern structurally blocks acceptance and release** (`rq-designQualityEvidence01.1`)
 
 **Given:**
 
-- A frontend task has a persisted adv-designer report
-- The report contains a design_dimensions concern
+- A task's latest adv-designer report contains a design_dimensions concern
+- No typed disposition exists for that concern
 
-**When:** /adv-review prepares contract.reviewMatrix rows before acceptance
+**When:** Gate readiness is evaluated for acceptance or release
 
 **Then:**
 
-- The concern is surfaced in review synthesis
-- The relevant contract row uses design_proof, rubric_review, review, static_check, or test evidence
-- Acceptance remains blocked until the concern is fixed or rejected_with_evidence
+- The gate-readiness evaluator emits a DESIGN_CONCERN_UNRESOLVED blocker
+- The gate is blocked by code, not by reviewer judgment
+- The evaluator reads only change state (sandbox-safe; no agenda or storage access)
 
-**Neighboring recommendations are dispositioned** (`rq-designQualityEvidence01.2`)
+**Concerns and neighboring recommendations are advisably promoted, never silently dropped** (`rq-designQualityEvidence01.2`)
 
 **Given:**
 
-- A persisted adv-designer report includes neighboring_recommendations
+- An adv-designer report includes a design_dimensions concern or a neighboring_recommendation
 
-**When:** /adv-review emits acceptance evidence
+**When:** The report is submitted
 
 **Then:**
 
-- Each neighboring recommendation is surfaced
-- Each item is dispositioned as include-now, split/fast-follow, or rejected_with_evidence with rationale
-- The item is not silently dropped
+- Each concern/recommendation is promoted to a required-obligation agenda item with an attempt-stable dedupe key
+- Re-submission at a higher attempt does not duplicate the agenda item
+- The agenda promotion is advisory and is not the gate authority
 
-**No unresolved-debt acceptance terminal state is introduced** (`rq-designQualityEvidence01.3`)
+**Typed disposition clears the block; no accepted_debt state** (`rq-designQualityEvidence01.3`)
 
 **Given:**
 
-- Review evaluates design-quality debt or neighboring UI concerns
+- An unresolved design concern blocks acceptance
 
-**When:** The review/harden workflow records finding disposition
+**When:** A disposition is recorded via adv_design_concern_disposition (fixed, rejected_with_evidence, split, or fast_follow), or a later all-pass designer report supersedes the concern
 
 **Then:**
 
-- No terminal state for accepting unresolved debt is used
-- In-scope rejected items use rejected_with_evidence
-- Out-of-scope valid items use split or fast-follow handoff
+- The DESIGN_CONCERN_UNRESOLVED blocker is cleared
+- No accepted_debt terminal state is used
+- The disposition carries non-blank typed evidence
 
 **Runnable visual surface evidence is bounded** (`rq-designQualityEvidence01.4`)
 
