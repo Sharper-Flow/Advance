@@ -6,6 +6,12 @@ import { describe, expect, test } from "vitest";
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 
 const ADV_AGENT_PATH = join(REPO_ROOT, ".opencode", "agents", "adv.md");
+const ADV_CI_WAITER_AGENT_PATH = join(
+  REPO_ROOT,
+  ".opencode",
+  "agents",
+  "adv-ci-waiter.md",
+);
 const ATC_AGENT_PATH = join(REPO_ROOT, ".opencode", "agents", "adv-atc.md");
 const APPLY_COMMAND_PATH = join(
   REPO_ROOT,
@@ -58,6 +64,7 @@ describe("orchestrator operational delegation assets", () => {
     expectIncludes(section, "check-run", "adv.md section");
     expectIncludes(section, "second", "adv.md section");
     expectIncludes(section, "general", "adv.md section");
+    expectIncludes(section, "adv-ci-waiter", "adv.md section");
 
     expect(
       section,
@@ -75,7 +82,10 @@ describe("orchestrator operational delegation assets", () => {
       "ADV_INSTRUCTIONS.md",
     );
     expect(content).toMatch(
-      /\|\s*GitHub CI \/ check-run \/ status investigation\s*\|\s*`general`\s*\|/,
+      /\|\s*GitHub CI \/ check-run \/ status investigation\s*\|[^\n]*`general`[^\n]*`adv-ci-waiter`[^\n]*\|/,
+    );
+    expect(content).toMatch(
+      /\|\s*release\/archive PR pending checks after sign-off\s*\|\s*`adv-ci-waiter`\s*\|/,
     );
     expect(content).toMatch(
       /\|\s*code edits after task scope known\s*\|\s*`adv-engineer`/i,
@@ -122,6 +132,7 @@ describe("orchestrator operational delegation assets", () => {
     expect(requirement).toBeTruthy();
     expect(requirement?.body).toContain("orchestrator-session operational");
     expect(requirement?.body).toContain("GitHub CI");
+    expect(requirement?.body).toContain("adv-ci-waiter");
     expect(requirement?.body).toContain("no second");
 
     const scenarioIds =
@@ -136,6 +147,19 @@ describe("orchestrator operational delegation assets", () => {
         "rq-orchestratorOpsDelegation01.6",
       ]),
     );
+  });
+
+  test("adv-ci-waiter is a repo-owned synced CI polling agent", () => {
+    const content = readRepoFile(ADV_CI_WAITER_AGENT_PATH);
+
+    expectIncludes(content, "mode: subagent", "adv-ci-waiter.md");
+    expectIncludes(content, "Do not return while CI is still", "adv-ci-waiter.md");
+    expectIncludes(content, "discovering", "adv-ci-waiter.md");
+    expectIncludes(content, "watching", "adv-ci-waiter.md");
+    expectIncludes(content, "release/archive workflow", "adv-ci-waiter.md");
+    expectIncludes(content, "task: deny", "adv-ci-waiter.md");
+    expectIncludes(content, "edit: deny", "adv-ci-waiter.md");
+    expectIncludes(content, "bash: allow", "adv-ci-waiter.md");
   });
 
   test("adv-atc remains out of scope for this change", () => {

@@ -267,9 +267,9 @@ Choose inline vs delegation for context continuity and progress tracking.
 - Delegate: independent research dimensions, specialist domain, or self-contained mechanical implementation.
 - Pre-change investigation: Due diligence first. Unknown platform/architecture/capability questions require source-appropriate evidence before answer/recommend/decide. Quick-answer requests shorten reply only; blocked diligence stops and surfaces blockage.
 - Context-shed delegation: delegate only when design decisions are made, task HOW does not feed downstream decisions, AC are defined, task is mechanical implementation, and floor ≈5 files or ≈50 lines. If unsure, inline.
-- Orchestrator operational delegation: shed authority-free ops work before context gets noisy: expected >5 reads/searches, repo/dependency/same-pattern scans, DB/log/status/usage audits, GitHub CI/check-run/status investigation, and repeated verify/test bursts.
-- Do not run a second primary recon, shell/test, status, or CI-check cycle when mapped operational work can go to a worker; resume inline for synthesis, decisions, and ADV state mutation after the worker returns.
-- Worker routing: use `explore`/`adv-tron` for scans, `general` for ops/verify bursts, `adv-engineer` for code edits, `adv-designer` for frontend edits, `adv-researcher` for sourced architecture, and `adv-temporal-repair` for Temporal/session-pointer/artifact-phantom triage.
+- Orchestrator operational delegation: shed authority-free ops work before context gets noisy: expected >5 reads/searches, repo/dependency/same-pattern scans, DB/log/status/usage audits, GitHub CI/check-run/status investigation, terminal release/archive CI waiting, and repeated verify/test bursts.
+- Do not run a second primary recon, shell/test, status, CI-check, or CI-wait cycle when mapped operational work can go to a worker; resume inline for synthesis, decisions, and ADV state mutation after the worker returns.
+- Worker routing: use `explore`/`adv-tron` for scans, `general` for ops/verify bursts, `adv-ci-waiter` for GitHub CI/PR wait-to-terminal work, `adv-engineer` for code edits, `adv-designer` for frontend edits, `adv-researcher` for sourced architecture, and `adv-temporal-repair` for Temporal/session-pointer/artifact-phantom triage.
 
 ### Worktree Isolation Routing
 
@@ -285,6 +285,7 @@ Sub-agent nesting depth and parallelism are agent-self-enforced (no runtime guar
 | `adv-engineer`   | Delegate ADV code-writing execution (implementation, remediation fixes) | Completed changes + persisted ENGINEER_REPORT via `adv_subagent_report_submit` |
 | `adv-reviewer`   | `/adv-review` and `/adv-harden` analysis with scoped repo-write remediation | Persisted REVIEWER_REPORT via `adv_subagent_report_submit` (verdict + findings + changes_made + scope_drift + required_main_agent_actions) |
 | `adv-researcher` | Docs/API/examples research and architecture validation (Context7, Exa, searchcode, webfetch, lgrep) | Sourced findings with examples and architecture assessment |
+| `adv-ci-waiter`  | User-requested CI wait, or release/archive PR checks must reach terminal before finalization | Final bounded CI/PR status; no file or ADV state mutation |
 | `adv-temporal-repair` | Temporal/workflow/session-pointer/target-path/artifact-phantom diagnosis; packet includes WORKING DIRECTORY, CHANGE if known, TARGET_PATH, SYMPTOM, RECENT_TOOL_ERROR, ATTEMPT | Classification + primary-ADV next actions |
 | `general`        | Need verify-only / generic multi-step bursts (lint/typecheck/test suites) | Completed changes or verify results (file:line refs) |
 | `adv-tron`       | Codebase reconnaissance, hotspots, risk mapping (repo-local)         | Structure + risk report               |

@@ -799,7 +799,7 @@ For `/adv-arch-scan`, run stack-pack tools, Context7, and Exa inline; do not spa
 
 Context-Shed Test = all four true + floor met (~5 files OR ~50 lines): decided HOW, HOW does not feed downstream decisions, AC defined, mechanical implementation. Unsure → `inline_required`. After delegation, P23 campsite scan touched scope.
 
-ADV code-writing → `adv-engineer` (not `general`). Verify-burst/non-ADV → `general`.
+ADV code-writing → `adv-engineer` (not `general`). Verify-burst/non-ADV → `general`. Terminal CI/PR waiting → `adv-ci-waiter`.
 
 ### Orchestrator-Session Operational Routing
 
@@ -810,7 +810,8 @@ This table is session-level operational routing, distinct from task-level Step 4
 | >5 file reads/searches expected | `explore` |
 | repo structure / dependency map / same-pattern scan | `explore` or `adv-tron` |
 | DB/log/status/usage audit | `general` |
-| GitHub CI / check-run / status investigation | `general` |
+| GitHub CI / check-run / status investigation | `general` for one-shot investigation; `adv-ci-waiter` when the requested end-state requires waiting until terminal |
+| release/archive PR pending checks after sign-off | `adv-ci-waiter` |
 | repeated verify/test bursts | `general` |
 | code edits after task scope known | `adv-engineer` |
 | frontend/component edits | `adv-designer` |

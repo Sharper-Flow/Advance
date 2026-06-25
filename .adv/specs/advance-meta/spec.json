@@ -1017,7 +1017,7 @@
     {
       "id": "rq-orchestratorOpsDelegation01",
       "title": "Orchestrator-Session Operational Delegation",
-      "body": "The primary adv orchestrator SHOULD delegate broad operational work before repeating expensive primary-context cycles, while retaining all ADV authority boundaries. Operational work includes expected >5 file reads/searches, repo structure/dependency/same-pattern scans, DB/log/status/usage audits, GitHub CI/check-run/status investigation, repeated verify/test bursts, and known-scope code edits. The no second primary-cycle rule applies when another recon/shell/test/CI-check cycle is needed and the next step is authority-free. Delegation guidance is instruction/spec/test-level only: adv.md Context-Optimal Execution carries prose-only guidance, ADV_INSTRUCTIONS.md carries the single orchestrator-session operational routing table, adv-apply.md task-level Step 4.5 routing remains unchanged, and adv-atc.md remains out of scope unless a future change explicitly updates it. The primary adv must keep gate completion, task-graph mutation, checkpoint/archive/sign-off, scope-drift, contract-compromise, safety, release, and user-facing synthesis authority. Operational routing must not make general the ADV code-writing default; code-edit rows route to adv-engineer or adv-designer by scope.",
+      "body": "The primary adv orchestrator SHOULD delegate broad operational work before repeating expensive primary-context cycles, while retaining all ADV authority boundaries. Operational work includes expected >5 file reads/searches, repo structure/dependency/same-pattern scans, DB/log/status/usage audits, GitHub CI/check-run/status investigation, terminal release/archive CI waiting, repeated verify/test bursts, and known-scope code edits. The no second primary-cycle rule applies when another recon/shell/test/CI-check/CI-wait cycle is needed and the next step is authority-free. GitHub CI one-shot investigation routes to general, while user-requested CI waiting and release/archive PR pending checks after sign-off route to adv-ci-waiter until terminal. Delegation guidance is instruction/spec/test-level only: adv.md Context-Optimal Execution carries prose-only guidance, ADV_INSTRUCTIONS.md carries the single orchestrator-session operational routing table, adv-apply.md task-level Step 4.5 routing remains unchanged, and adv-atc.md remains out of scope unless a future change explicitly updates it. The primary adv must keep gate completion, task-graph mutation, checkpoint/archive/sign-off, scope-drift, contract-compromise, safety, release, and user-facing synthesis authority. Operational routing must not make general the ADV code-writing default; code-edit rows route to adv-engineer or adv-designer by scope.",
       "priority": "must",
       "tags": [
         "delegation",
@@ -1051,7 +1051,8 @@
             ">5 file reads/searches routes to explore",
             "Repo structure, dependency map, or same-pattern scan routes to explore or adv-tron",
             "DB/log/status/usage audit routes to general",
-            "GitHub CI / check-run / status investigation routes to general",
+            "GitHub CI / check-run / status investigation routes to general for one-shot investigation and to adv-ci-waiter when the requested end-state requires waiting until terminal",
+            "Release/archive PR pending checks after sign-off route to adv-ci-waiter",
             "Repeated verify/test bursts route to general",
             "Code edits after task scope is known route to adv-engineer, or adv-designer for frontend/component scope"
           ]
@@ -1079,7 +1080,7 @@
           ],
           "when": "Operational delegation guidance is checked",
           "then": [
-            "The section includes operational delegation prose tokens including GitHub CI, check-run, reads/searches, second, and general",
+            "The section includes operational delegation prose tokens including GitHub CI, check-run, reads/searches, second, general, and adv-ci-waiter",
             "The section contains no markdown routing table",
             "The section contains no pipe characters"
           ]
@@ -1093,7 +1094,8 @@
           "when": "Operational delegation routing guidance is checked",
           "then": [
             "ADV_INSTRUCTIONS.md contains a clearly labeled Orchestrator-Session Operational Routing table",
-            "The table contains a GitHub CI / check-run / status investigation row mapped to general",
+            "The table contains a GitHub CI / check-run / status investigation row mapped to general for one-shot investigation and adv-ci-waiter for wait-to-terminal work",
+            "The table contains a release/archive PR pending checks row mapped to adv-ci-waiter",
             "The table routes code-edit rows to adv-engineer or adv-designer, not general",
             "adv-apply.md does not duplicate the operational routing table"
           ]
