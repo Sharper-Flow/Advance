@@ -42,6 +42,10 @@ import {
   isWorkflowCompletedError,
 } from "../../temporal/recovery-classification";
 import { workflowPoisonedDescriptionEvidence } from "../recovery-probe";
+import {
+  escapeVisibilityValue,
+  openLifecycleVisibilityClauses,
+} from "../../temporal/lifecycle-visibility";
 
 // =============================================================================
 // TYPES — back-compat wrappers around the new contracts.
@@ -261,10 +265,6 @@ async function classifyWorktreeWorkflowFailure(
     };
   }
   return { evidenceSummary: summarizeErrorEvidence(error) };
-}
-
-function escapeVisibilityValue(value: string): string {
-  return value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 }
 
 function pendingDeletesPath(access: WorktreeStateAccess): string {
@@ -593,7 +593,7 @@ export function buildWorktreeBranchVisibilityQuery(
   return [
     `AdvAffectedProjects = "${escapeVisibilityValue(projectId)}"`,
     `AdvWorktreeBranches = "${escapeVisibilityValue(branch)}"`,
-    `AdvChangeStatus = "active"`,
+    ...openLifecycleVisibilityClauses(),
   ].join(" AND ");
 }
 
@@ -637,7 +637,7 @@ export function buildActiveWorktreeChangesVisibilityQuery(
 ): string {
   return [
     `AdvAffectedProjects = "${escapeVisibilityValue(projectId)}"`,
-    `AdvChangeStatus IN ("draft", "pending", "active")`,
+    ...openLifecycleVisibilityClauses(),
     `AdvWorktreeBranches IS NOT NULL`,
   ].join(" AND ");
 }

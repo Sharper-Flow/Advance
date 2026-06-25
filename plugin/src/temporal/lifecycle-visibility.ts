@@ -7,7 +7,7 @@ const LEGACY_OPEN_STATUSES = new Set<ChangeStatus>([
 ]);
 
 export function escapeVisibilityValue(value: string): string {
-  return value.replace(/"/g, '\\"');
+  return value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 }
 
 export function openLifecycleVisibilityClauses(): string[] {

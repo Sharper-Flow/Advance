@@ -128,9 +128,9 @@ describe("cross-change worktree visibility helpers (T22)", () => {
     vi.clearAllMocks();
   });
 
-  it("builds branch-in-use query from AdvAffectedProjects, AdvWorktreeBranches, and active status", () => {
+  it("builds branch-in-use query from AdvAffectedProjects, AdvWorktreeBranches, and open lifecycle", () => {
     expect(buildWorktreeBranchVisibilityQuery("proj", "change/feature")).toBe(
-      'AdvAffectedProjects = "proj" AND AdvWorktreeBranches = "change/feature" AND AdvChangeStatus = "active"',
+      'AdvAffectedProjects = "proj" AND AdvWorktreeBranches = "change/feature" AND AdvLifecycleState = "open" AND ExecutionStatus = "Running"',
     );
   });
 
@@ -138,7 +138,7 @@ describe("cross-change worktree visibility helpers (T22)", () => {
     expect(
       buildWorktreeBranchVisibilityQuery('proj\\"id', 'change/a"b\\c'),
     ).toBe(
-      'AdvAffectedProjects = "proj\\\\\\"id" AND AdvWorktreeBranches = "change/a\\"b\\\\c" AND AdvChangeStatus = "active"',
+      'AdvAffectedProjects = "proj\\\\\\"id" AND AdvWorktreeBranches = "change/a\\"b\\\\c" AND AdvLifecycleState = "open" AND ExecutionStatus = "Running"',
     );
   });
 
@@ -156,9 +156,9 @@ describe("cross-change worktree visibility helpers (T22)", () => {
     ).resolves.toEqual(["other"]);
   });
 
-  it("builds active worktree owner query from project, non-terminal status, and worktree branch presence", () => {
+  it("builds active worktree owner query from project, open lifecycle, running executions, and worktree branch presence", () => {
     expect(buildActiveWorktreeChangesVisibilityQuery("proj")).toBe(
-      'AdvAffectedProjects = "proj" AND AdvChangeStatus IN ("draft", "pending", "active") AND AdvWorktreeBranches IS NOT NULL',
+      'AdvAffectedProjects = "proj" AND AdvLifecycleState = "open" AND ExecutionStatus = "Running" AND AdvWorktreeBranches IS NOT NULL',
     );
   });
 
@@ -188,7 +188,7 @@ describe("cross-change worktree visibility helpers (T22)", () => {
 
     expect(workflowList).toHaveBeenCalledWith({
       query:
-        'AdvAffectedProjects = "test-id" AND AdvChangeStatus IN ("draft", "pending", "active") AND AdvWorktreeBranches IS NOT NULL',
+        'AdvAffectedProjects = "test-id" AND AdvLifecycleState = "open" AND ExecutionStatus = "Running" AND AdvWorktreeBranches IS NOT NULL',
     });
     expect(workflowGetHandle).toHaveBeenCalledTimes(1);
     expect(workflowGetHandle).toHaveBeenCalledWith("adv/change/test-id/owner");
