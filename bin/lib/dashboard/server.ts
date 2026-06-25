@@ -2,6 +2,7 @@ import { readDashboardAdvProject, type DashboardAdvProjectSnapshot } from "./adv
 import { buildAttentionLanes } from "./attention";
 import { correlateDashboardItems } from "./correlation";
 import { createGitHubDashboardClient, type GitHubDashboardResult } from "./github";
+import { renderDashboardHtml } from "./ui";
 import type { DashboardConfig, DashboardDegradedSource, DashboardProjectConfig } from "./types";
 
 export interface DashboardProjectState {
@@ -120,5 +121,5 @@ function isLoopbackHost(host: string): boolean {
 }
 
 function defaultDashboardHtml(): string {
-  return "<!doctype html><html><head><title>ADV Dashboard</title></head><body><main id=\"app\">ADV Dashboard</main></body></html>";
+  return renderDashboardHtml();
 }
