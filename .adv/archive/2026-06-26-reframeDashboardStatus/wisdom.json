@@ -1,0 +1,19 @@
+{
+  "entries": [
+    {
+      "id": "ws-M_3Qeb",
+      "type": "pattern",
+      "content": "For CI dashboards, derive status via event-to-state fold before lane bucketing. Use stable source identity (`workflow_id ?? name` + branch) plus timestamp recency; never use run id for supersession because reruns/new pushes have different semantics. Pick representative source by overall state so attention cards show the failing current check, not merely newest green check.",
+      "source_task": "tk-e4fef5d1e8a2",
+      "recorded_at": "2026-06-26T17:21:03.158Z"
+    },
+    {
+      "id": "ws-CsB9UD",
+      "type": "success",
+      "content": "For dashboard refactors that intentionally change lane keys, updating model/server/UI tests in sequence kept the blast radius controlled: first prove pure reducer semantics, then server API shape, then static UI contracts, then targeted/full bin verification.",
+      "source_task": "tk-c8342793d838",
+      "recorded_at": "2026-06-26T17:29:25.687Z"
+    }
+  ],
+  "count": 2
+}

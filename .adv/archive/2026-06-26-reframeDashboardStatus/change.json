@@ -1,0 +1,1188 @@
+{
+  "id": "reframeDashboardStatus",
+  "title": "Reframe dashboard status",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-06-26T14:06:08.272Z",
+  "tasks": [
+    {
+      "id": "tk-e4fef5d1e8a2",
+      "title": "Implement ADV-centered latest-source reducer",
+      "type": "code",
+      "section": "Latest-state model",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-06-26T17:06:40.941Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required",
+        "frontend": "false"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "SC4",
+          "SC5",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC7",
+          "AC8"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC7",
+          "AC8"
+        ],
+        "respects": [
+          "C4",
+          "C5",
+          "C6",
+          "DONT5",
+          "DONT6"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-26T17:11:18.577Z",
+      "verification": "RED tr_mqv6wl1a_a6dbf979 failed because old event-centered lanes lacked latest-status keys and suppression. GREEN tr_mqv74wne_95632b32 passed `bun test bin/lib/dashboard/attention.test.ts` (6 tests, 19 expects).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Replaced source-event primary lanes with ADV-centered latest-status lanes: `needs_attention`, `running`, `ready_landed`, `backlog`, and secondary `unmatched_source`. Added `adv_change_status` lane item model and latest-source reducer. Workflow latest identity is `(workflow_id ?? name/title) + branch`; recency uses max valid `run_started_at`, `created_at`, `updated_at`; deployment identity is environment/title + ref. Same-identity newer success/running suppresses older failures; distinct workflows/branches remain visible; missing timestamps cannot suppress valid failures; degraded sources stay visible without false green.",
+      "filesTouched": [
+        "bin/lib/dashboard/attention.test.ts",
+        "bin/lib/dashboard/attention.ts"
+      ],
+      "touched_files": [
+        "bin/lib/dashboard/attention.test.ts",
+        "bin/lib/dashboard/attention.ts"
+      ],
+      "checkpointSha": "d824cac1da93a9b53b62ec2d3f67c7287e44ac38",
+      "completedAt": "2026-06-26T17:20:18.940Z",
+      "completed_at": "2026-06-26T17:20:18.940Z",
+      "notes": "Completed. RED tr_mqv6wl1a_a6dbf979; GREEN tr_mqv74wne_95632b32. Checkpoint d824cac1.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 2,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "GREEN attempt tr_mqv6zwp6_b030553c failed because helper functions `latestItemOrUndefined`, `stringOrNumberField`, and `isReadyStatus` were missing and old tests still asserted event-centered lanes.",
+            "diagnosis": "Initial implementation left helper gaps and stale tests from prior dashboard lane model.",
+            "fix_tried": "Replaced outdated tests with latest-status contract tests and added missing helpers.",
+            "strategy_label": "complete-latest-status-model",
+            "outcome": "failed",
+            "attempted_at": "2026-06-26T17:17:00.000Z"
+          },
+          {
+            "attempt_number": 2,
+            "error": "GREEN attempt tr_mqv741uq_057bdc27 failed because attention card chose newest workflow summary rather than failing summary when a distinct latest workflow failed.",
+            "diagnosis": "Overall lane was attention, but representative `latest.ci` picked newest timestamp among all workflow identities instead of attention-relevant source.",
+            "fix_tried": "Added representativeSource selection by overall state: attention sources first, then running, then ready; latest within category.",
+            "strategy_label": "state-aware-source-representative",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-26T17:19:00.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-26T17:20:47.205Z"
+    },
+    {
+      "id": "tk-a20745f27ee3",
+      "title": "Wire server state and lane API to change-centered status board",
+      "type": "code",
+      "section": "Server state",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-06-26T17:07:07.668Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-e4fef5d1e8a2"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required",
+        "frontend": "false"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "SC4",
+          "AC2",
+          "AC6",
+          "AC7",
+          "AC8",
+          "AC10"
+        ],
+        "verifies": [
+          "AC2",
+          "AC6",
+          "AC7",
+          "AC8",
+          "AC10"
+        ],
+        "respects": [
+          "C1",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "DONT5",
+          "DONT6"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-26T17:21:19.881Z",
+      "verification": "RED tr_mqv77dqj_3eb05da6 failed because server tests still expected old event-centered lane API. GREEN tr_mqv79h3f_d3ed3f73 passed `bun test bin/lib/dashboard/server.test.ts` (8 tests, 32 expects).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Updated server integration tests and API expectations for the ADV-centered latest-status board. `buildDashboardState` now exposes new lane keys from the reducer (`needs_attention`, `running`, `ready_landed`, `backlog`, `unmatched_source`). Server tests verify linked deployment failure is attached to the ADV change card, live-shaped state uses primary ADV change cards, unmatched source remains secondary, degraded/read-only/cache behavior remains intact.",
+      "filesTouched": [
+        "bin/lib/dashboard/server.test.ts"
+      ],
+      "touched_files": [
+        "bin/lib/dashboard/server.test.ts"
+      ],
+      "checkpointSha": "d310f22ed34cb32207008c9555411e0982c5147f",
+      "completedAt": "2026-06-26T17:23:46.520Z",
+      "completed_at": "2026-06-26T17:23:46.520Z",
+      "notes": "Completed. RED tr_mqv77dqj_3eb05da6; GREEN tr_mqv79h3f_d3ed3f73. Checkpoint d310f22e.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "RED server tests expected old lanes `attention`, `active`, `unmatched`, `inventory` and raw deployment/source-event cards.",
+            "diagnosis": "Server integration fixtures needed to assert new change-centered API shape and source attachment to `adv_change_status` cards.",
+            "fix_tried": "Updated server tests to expect new lane keys, `adv_change_status` primary cards, secondary `unmatched_source`, and backlog change items.",
+            "strategy_label": "server-lane-api-update",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-26T17:24:00.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-26T17:24:09.452Z"
+    },
+    {
+      "id": "tk-af093a0e646c",
+      "title": "Render ADV-centered dashboard columns and source details",
+      "type": "code",
+      "section": "UI rendering",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-06-26T17:07:36.835Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-a20745f27ee3"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed",
+        "frontend": "true"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC3",
+          "SC4",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7",
+          "AC9"
+        ],
+        "verifies": [
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7",
+          "AC9"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C6",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-26T17:24:29.143Z",
+      "verification": "RED tr_mqv7c3ci_b1eda816 failed because UI still rendered old actionability lanes and no `adv_change_status` cards. GREEN tr_mqv7dt3u_d9ea75a9 passed `bun test bin/lib/dashboard/ui.test.ts` (6 tests, 68 expects).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Updated dashboard UI to render new ADV-centered columns and `adv_change_status` cards. Lane labels now show Needs attention, Running, Ready / landed, Backlog / inventory, and Unmatched source. Change cards render title/id/status/gate/overall plus latest PR, CI, deployment summaries and read-only source details. Existing safeUrl, escapeHtml, degraded setup, no forms, and no mutation controls are preserved.",
+      "filesTouched": [
+        "bin/lib/dashboard/ui.test.ts",
+        "bin/lib/dashboard/ui.ts"
+      ],
+      "touched_files": [
+        "bin/lib/dashboard/ui.test.ts",
+        "bin/lib/dashboard/ui.ts"
+      ],
+      "checkpointSha": "ef4a59345270c5fe41e4500efcf2f31d8b79b586",
+      "completedAt": "2026-06-26T17:27:07.902Z",
+      "completed_at": "2026-06-26T17:27:07.902Z",
+      "notes": "Completed. RED tr_mqv7c3ci_b1eda816; GREEN tr_mqv7dt3u_d9ea75a9. Checkpoint ef4a5934.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "RED UI tests expected new data-lane attrs and `adv_change_status` rendering, but UI still emitted old `attention/active/unmatched/inventory` lanes and old ADV cards.",
+            "diagnosis": "Renderer and tests were still coupled to prior actionability lane model.",
+            "fix_tried": "Updated lane definitions/template/project stats and added `changeStatusHtml`, `sourceSummaryHtml`, and read-only source details rendering.",
+            "strategy_label": "render-change-status-board",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-26T17:28:00.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-26T17:27:30.241Z"
+    },
+    {
+      "id": "tk-c8342793d838",
+      "title": "Verify latest-status board end to end with live-shaped fixtures",
+      "type": "verification",
+      "section": "Integration verification",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-06-26T17:08:06.378Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-af093a0e646c"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "inline_required",
+        "frontend": "false"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "SC4",
+          "SC5",
+          "AC10"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7",
+          "AC8",
+          "AC9",
+          "AC10"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "DONT6"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-26T17:27:47.564Z",
+      "verification": "VERIFY tr_mqv7ff29_5df2600b passed targeted dashboard attention/server/UI tests (20 tests, 119 expects). VERIFY tr_mqv7g1mj_6c94a733 passed full `bun test bin/` (165 tests, 491 expects).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Verified latest-status dashboard end to end. Targeted dashboard tests cover latest-run precedence, same-identity suppression, distinct workflow/branch failures, missing timestamp conservatism, deployment landed state, secondary unmatched source, degraded fallback, server API shape, UI labels/cards, and read-only constraints. Full `bun test bin/` passed.",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "ef4a59345270c5fe41e4500efcf2f31d8b79b586",
+      "completedAt": "2026-06-26T17:28:54.852Z",
+      "completed_at": "2026-06-26T17:28:54.852Z",
+      "notes": "Completed. Targeted verify tr_mqv7ff29_5df2600b; full verify tr_mqv7g1mj_6c94a733. No additional checkpoint commit needed; tree clean at ef4a5934.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "updatedAt": "2026-06-26T17:29:13.339Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "reframeDashboardStatus",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:dashboard-latest-status-model"
+      },
+      "agent": "adv-researcher",
+      "topic": "ADV-centered dashboard latest-status (event-fold) model validation",
+      "sources": [
+        {
+          "label": "GitHub REST: List workflow runs for a repository (object schema)",
+          "locator": "https://docs.github.com/en/rest/actions/workflow-runs",
+          "summary": "Workflow Run object exposes stable identity + recency fields: name (string|null), workflow_id (int, stable), head_branch (string|null), run_number, run_attempt, run_started_at, created_at, updated_at, conclusion, status, previous_attempt_url. actions/runs returns most-recent-first and supports ?branch= and ?head_sha= server-side narrowing. Confirms design can derive a deterministic 'latest same-identity' fold."
+        },
+        {
+          "label": "GitHub REST: Re-run a workflow / rerun-failed-jobs",
+          "locator": "https://docs.github.com/en/rest/actions/workflow-runs",
+          "summary": "POST /runs/{run_id}/rerun and /rerun-failed-jobs re-run using the SAME run_id (increments run_attempt, sets previous_attempt_url) — a rerun does NOT mint a new run object. Therefore stale-failure noise comes from DISTINCT runs (new push/event = new id) of the same workflow+branch, not from duplicate ids. The fold key must be workflow identity + branch, and recency must use run_started_at/created_at, not run id."
+        },
+        {
+          "label": "Local: github.ts fetch shape",
+          "locator": "bin/lib/dashboard/github.ts:148-161",
+          "summary": "Current client fetches actions/runs?per_page=100 unfiltered (all historical runs across all workflows/branches) and only the latest deployment status per deployment id. This is the raw event firehose the new fold must reduce."
+        },
+        {
+          "label": "Local: attention.ts current (broken) suppression",
+          "locator": "bin/lib/dashboard/attention.ts:104-138,290-299",
+          "summary": "isSuccessfulHistory only folds success/skipped runs into summaries; it NEVER lets a newer same-identity success/running suppress an older FAILURE. Failures unconditionally attention.unshift (line 109/117). This is the exact root cause of stale CI/deploy failures persisting after a corrected rerun."
+        },
+        {
+          "label": "Local: correlation.ts structural-only linking",
+          "locator": "bin/lib/dashboard/correlation.ts:41-145",
+          "summary": "Linking is purely structural (branch/sha/ops-key index, single-match only, ambiguous>1 => unlinked). Design's 'source linking remains structural only' is already satisfied and should be preserved untouched."
+        }
+      ],
+      "architecture_assessment": "The new design is the canonical fix and the boring one. Reducing an append-only source-event stream (workflow_runs, deployment_statuses) to a single derived latest-state per stable identity is the textbook read-model/projection fold (CQRS read model / event-to-state reduce). The existing code already half-implements this fold for SUCCESS history but omits the failure case, which is precisely the user-observed bug. Making ADV changes the primary cards and deriving latest linked source state per change is a clean inversion that matches the structural-link index already present. Key correctness invariants from authoritative docs: (1) Identity must be workflow_id (or name as fallback) + head_branch for runs, and environment + ref for deployments — NOT run id, because rerun reuses the id while distinct push runs create new ids. (2) Recency ordering must use run_started_at || created_at || updated_at (timestamps), never id ordering or array order, since attention.ts:377-383 already shows id-agnostic timestamp comparison is the established pattern. (3) Suppression must be scoped to the SAME identity tuple only — design's 'unrelated workflows/branches do not suppress' is correct and prevents a green deploy from masking a red lint. (4) Degraded reads stay visible / no false green is already enforced via degradedSources threading (server.ts:104-140) and must remain a hard rule: a missing/timed-out source must render as degraded, never collapse to success.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "VALIDATED. Design direction is architecturally sound and is the simplest correct model. Proceed, but pin the identity/recency/suppression-scope invariants below as tests — they are the failure-prone seams."
+      },
+      "recommendation": "VALIDATED — implement the per-identity latest-state fold. Concrete adjustments: (1) Run identity key = `${workflow_id ?? name ?? 'unknown'}\\u0000${head_branch ?? ''}`; deployment identity key = `${environment}\\u0000${ref}`. Do NOT key on run id. (2) Recency = max(run_started_at, created_at, updated_at) parsed as timestamp; reuse the existing isIsoLikeTimestamp/latestItem comparator (attention.ts:377-383) rather than inventing a new one (LBP). (3) Fold rule: within an identity group, the newest event wins; a newer success/in_progress/queued REPLACES (not merely summarizes) an older failure/cancelled/timed_out. Only emit needs_attention when the WINNER of the group is a failure-class status. (4) Suppression must never cross identity tuples — assert this with a test: two workflows on same branch, one red one green, both surface independently. (5) Keep correlation.ts structural-only; build the fold as a new pure reduce step between correlate and lane-bucketing so it is independently testable. (6) New lane keys (needs_attention/running/ready_landed/backlog + secondary unmatched_source) require updating the frozen `Object.keys(lanes)` assertion in attention.test.ts:82-87 and the ui.ts lane-template (ui.ts:75-80) data-lane attributes — these are coupled contracts that will silently break rendering if not co-updated. (7) Preserve degraded-source visibility: a degraded/timeout/missing GitHub read must keep the change card's source state as unknown/degraded, never default to ready_landed/green (guard with a test feeding empty github data + a degraded source).",
+      "follow_ups": [
+        "Consider adding ?branch= server-side narrowing to actions/runs fetch (github.ts:150) to shrink the firehose, but only as an optimization AFTER the client-side fold is correct — server filtering alone does not solve cross-run staleness.",
+        "Add explicit test: rerun scenario where same run id changes conclusion failure->success across two polls must show ready/running, not attention.",
+        "Add explicit test: distinct run ids (new push) same workflow+branch, newest=success suppresses older=failure; AND newest=failure surfaces despite older=success."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "reframeDashboardStatus",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/reframeDashboardStatus",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [
+        {
+          "id": "review-praise-1",
+          "label": "praise",
+          "file": "bin/lib/dashboard/attention.ts",
+          "line": 194,
+          "what": "ADV-centered reduce model matches agreement/design lanes and stale-run precedence.",
+          "why": "Implementation seeds every ADV change, attaches structurally linked source items, folds latest workflow/deployment items by identity, and buckets into needs_attention/running/ready_landed/backlog with unmatched_source secondary.",
+          "fix": "n/a"
+        },
+        {
+          "id": "review-praise-2",
+          "label": "praise",
+          "file": "bin/lib/dashboard/ui.ts",
+          "line": 117,
+          "what": "UI renders adv_change_status cards with escaped summaries/details and safe source links.",
+          "why": "Change cards preserve title/id/gate/status, latest PR/CI/deployment summaries, read-only details, safeUrl allowlisting, escapeHtml, no forms, and no mutation controls.",
+          "fix": "n/a"
+        }
+      ],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "test -e 'bin/lib/dashboard/attention.ts' && test -e 'bin/lib/dashboard/attention.test.ts' && test -e 'bin/lib/dashboard/server.test.ts' && test -e 'bin/lib/dashboard/ui.ts' && test -e 'bin/lib/dashboard/ui.test.ts' && printf OK || printf MISSING",
+          "bun test bin/lib/dashboard/attention.test.ts bin/lib/dashboard/server.test.ts bin/lib/dashboard/ui.test.ts",
+          "bun test bin/",
+          "git diff -- bin/lib/dashboard/attention.ts bin/lib/dashboard/attention.test.ts bin/lib/dashboard/server.test.ts bin/lib/dashboard/ui.ts bin/lib/dashboard/ui.test.ts"
+        ],
+        "results": "pass",
+        "evidence": "Packet TASK acceptance-review is not an existing ADV task anchor, so report persisted as independent change-scoped acceptance review after INVALID_TASK_ANCHOR. Path preflight OK. Targeted dashboard tests passed: 20 pass, 0 fail, 119 expect() calls. Full bin suite passed: 165 pass, 0 fail, 491 expect() calls. Focus-file diff empty; no remediation applied."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Context packet TASK value 'acceptance-review' was not an existing ADV task ID; first task-scoped submission failed with INVALID_TASK_ANCHOR. Durable report persisted under change scope review:acceptance."
+      ],
+      "required_main_agent_actions": [],
+      "required_follow_ups": [],
+      "consumer_warnings": [
+        {
+          "kind": "consumer_failure",
+          "message": "Initial task-scoped report submission failed: INVALID_TASK_ANCHOR for TASK acceptance-review. Valid anchors were tk-e4fef5d1e8a2, tk-a20745f27ee3, tk-af093a0e646c, tk-c8342793d838. Retried as independent change-scoped review:acceptance."
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "reframeDashboardStatus",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/reframeDashboardStatus",
+      "scope": {
+        "kind": "change",
+        "scope_key": "harden:release"
+      },
+      "agent": "adv-reviewer",
+      "phase": "harden",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [
+        {
+          "id": "harden-praise-1",
+          "label": "praise",
+          "file": "bin/lib/dashboard/attention.ts",
+          "line": 269,
+          "what": "Latest-source reducer keys workflow runs by workflow identity plus branch and deployments by environment plus ref, then compares ISO-like recency before selecting lane state.",
+          "why": "This preserves distinct failing sources while suppressing stale same-identity failures, matching release harden focus.",
+          "fix": "not applicable"
+        },
+        {
+          "id": "harden-praise-2",
+          "label": "praise",
+          "file": "bin/lib/dashboard/ui.ts",
+          "line": 201,
+          "what": "Dashboard rendering escapes untrusted strings and filters links through safeUrl before creating anchors.",
+          "why": "Review found no mutation controls, no unsafe javascript/data URL path, and GET-only server handling rejects mutating methods.",
+          "fix": "not applicable"
+        }
+      ],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "bun test bin/lib/dashboard/attention.test.ts bin/lib/dashboard/server.test.ts bin/lib/dashboard/ui.test.ts"
+        ],
+        "results": "pass",
+        "evidence": "20 pass, 0 fail, 119 expect() calls. Also incorporated known evidence: acceptance reviewer READY; full bin verify tr_mqv7g1mj_6c94a733 passed 165 tests/491 expects; conformance status empty/no required specs."
+      },
+      "scope_drift": null,
+      "risks": [],
+      "required_main_agent_actions": [],
+      "required_follow_ups": [],
+      "consumer_warnings": []
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-M_3Qeb",
+      "type": "pattern",
+      "content": "For CI dashboards, derive status via event-to-state fold before lane bucketing. Use stable source identity (`workflow_id ?? name` + branch) plus timestamp recency; never use run id for supersession because reruns/new pushes have different semantics. Pick representative source by overall state so attention cards show the failing current check, not merely newest green check.",
+      "source_task": "tk-e4fef5d1e8a2",
+      "recorded_at": "2026-06-26T17:21:03.158Z"
+    },
+    {
+      "id": "ws-CsB9UD",
+      "type": "success",
+      "content": "For dashboard refactors that intentionally change lane keys, updating model/server/UI tests in sequence kept the blast radius controlled: first prove pure reducer semantics, then server API shape, then static UI contracts, then targeted/full bin verification.",
+      "source_task": "tk-c8342793d838",
+      "recorded_at": "2026-06-26T17:29:25.687Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-06-26T16:43:18.006Z",
+      "completed_by": "agent",
+      "approval_evidence": "Proposal approved by explicit user reply `approve` after investigation confirmed current dashboard is still source-event/history centered and can show stale failed CI/deployment events after reruns. Direction: ADV-change-centered status board with latest source state and links to CI/deployment details.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "a81ea6217676a67605c9d2d0d1ebb7700fa8daf1dc46e2beb816db03b6a692d7",
+        "non_whitespace_chars": 3149,
+        "checked_at": "2026-06-26T14:06:08.297Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-06-26T16:59:59.083Z",
+      "completed_by": "agent",
+      "approval_evidence": "Agreement approved by explicit user reply `approve`. Discovery confirmed current shipped dashboard is source-event/history centered: GitHub reader returns recent runs/deployments, correlation links raw events, and lane builder classifies historical failures before latest-state supersession. Contract minted with 27 items.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "5b77cec3e1e1e452a134eadb050381cc7fbbb70140aac77a1f2faf5a14bde471",
+        "non_whitespace_chars": 3296,
+        "checked_at": "2026-06-26T14:06:08.298Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-06-26T17:05:58.182Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design completed and independently validated. Validator returned VALIDATED. Key decisions: implement pure latest-state reduce before lane bucketing; workflow run identity is `(workflow_id ?? name) + branch`, never run id; recency uses max(run_started_at, created_at, updated_at); suppression scoped to same identity only; lane keys/UI must be co-updated; degraded reads never default green. No product tradeoff, conflict, or contract-compromise risk remains.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "5ee6915f95f3c8cfc4cc5b6f2e9a02610bf16fb0a596620fca10e9f093aecb00",
+        "non_whitespace_chars": 6336,
+        "checked_at": "2026-06-26T14:06:08.299Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-06-26T17:10:42.984Z",
+      "completed_by": "agent",
+      "approval_evidence": "Prep approved by explicit user reply `approve` after task graph presentation. Task graph has 4 tasks with TDD intent, dependencies, evidence policies, and contract refs. Validation passed with accepted NO_DELTAS warning because dashboard CLI/UI behavior is not a spec-law change."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-06-26T17:29:57.531Z",
+      "completed_by": "agent",
+      "approval_evidence": "Execution complete: 4/4 tasks done with checkpoints. Delivered ADV-centered latest-status board, pure source event-to-state reducer, new lane keys, change status cards, source detail links, secondary unmatched source, and verification. Targeted dashboard tests tr_mqv7ff29_5df2600b passed 20 tests/119 expects. Full `bun test bin/` tr_mqv7g1mj_6c94a733 passed 165 tests/491 expects."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-06-26T17:36:59.767Z",
+      "completed_by": "user:jon",
+      "approval_evidence": "User accepted delivered work by explicit reply `approve` after acceptance summary. Evidence: contract matrix 27/27 pass/respected; acceptance reviewer READY; targeted dashboard tests tr_mqv7ff29_5df2600b passed 20 tests/119 assertions; full bin suite tr_mqv7g1mj_6c94a733 passed 165 tests/491 assertions.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "b2bccdc2ff53183fd47543137a29206921094e826251e08f7e287c7ed9618b12",
+        "non_whitespace_chars": 1593,
+        "checked_at": "2026-06-26T14:06:08.300Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "fast_follow_of": {
+    "parent_change_id": "simplifyDashboardView",
+    "linked_at": "2026-06-26T14:06:08.267Z"
+  },
+  "origin": {
+    "kind": "discovery",
+    "source_artifact": "user-feedback:stale-ci-failures-and-adv-centered-dashboard"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "5b77cec3e1e1e452a134eadb050381cc7fbbb70140aac77a1f2faf5a14bde471",
+      "approvedAt": "2026-06-26T16:59:48.847Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "Primary visible cards are ADV changes, not raw `workflow_run`/`deployment`/`pull` event cards.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b77cec3e1e1e452a134eadb050381cc7fbbb70140aac77a1f2faf5a14bde471",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "A change’s column reflects latest linked CI/deployment status.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b77cec3e1e1e452a134eadb050381cc7fbbb70140aac77a1f2faf5a14bde471",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "Older failed runs no longer create false attention after a newer same workflow+branch run succeeds.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b77cec3e1e1e452a134eadb050381cc7fbbb70140aac77a1f2faf5a14bde471",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC4",
+        "kind": "success_criterion",
+        "text": "Current failures and running work remain visible.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b77cec3e1e1e452a134eadb050381cc7fbbb70140aac77a1f2faf5a14bde471",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC5",
+        "kind": "success_criterion",
+        "text": "Unmatched source work remains inspectable, but secondary.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b77cec3e1e1e452a134eadb050381cc7fbbb70140aac77a1f2faf5a14bde471",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "Given multiple workflow runs exist for the same workflow and branch, when a newer run succeeds, then older failed runs do not place the change in `Needs attention`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b77cec3e1e1e452a134eadb050381cc7fbbb70140aac77a1f2faf5a14bde471",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Given multiple workflow runs exist for the same workflow and branch, when the newest run is failing, then the linked change appears in `Needs attention` with a link to that latest failing run.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b77cec3e1e1e452a134eadb050381cc7fbbb70140aac77a1f2faf5a14bde471",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Given the newest workflow run for a linked change is queued, pending, in_progress, or running, when the dashboard renders, then the change appears in `Running`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b77cec3e1e1e452a134eadb050381cc7fbbb70140aac77a1f2faf5a14bde471",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Given the newest workflow/deployment state for a linked change is success or landed, when the dashboard renders, then the change appears in `Ready / landed`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b77cec3e1e1e452a134eadb050381cc7fbbb70140aac77a1f2faf5a14bde471",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Given an ADV change has no correlated source activity and is draft/non-active, when the dashboard renders, then it appears in `Backlog / inventory`, not `Needs attention`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b77cec3e1e1e452a134eadb050381cc7fbbb70140aac77a1f2faf5a14bde471",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Given an ADV change has correlated source activity, when the dashboard renders, then the change card shows the change title/id/gate plus latest PR, CI, and deployment links/details where present.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b77cec3e1e1e452a134eadb050381cc7fbbb70140aac77a1f2faf5a14bde471",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "Given a source item cannot be linked to any ADV change, when the dashboard renders, then it appears in a secondary unmatched source section and does not determine primary columns.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b77cec3e1e1e452a134eadb050381cc7fbbb70140aac77a1f2faf5a14bde471",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC8",
+        "kind": "acceptance_criterion",
+        "text": "Given GitHub or ADV reads fail, when the dashboard renders, then degraded source cards remain visible and no false green/latest status is inferred.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b77cec3e1e1e452a134eadb050381cc7fbbb70140aac77a1f2faf5a14bde471",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC9",
+        "kind": "acceptance_criterion",
+        "text": "Given source links/metadata render on change-centered cards, when the dashboard loads, then safe URL allowlisting, HTML escaping, no-secret behavior, and no mutation controls remain intact.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b77cec3e1e1e452a134eadb050381cc7fbbb70140aac77a1f2faf5a14bde471",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC10",
+        "kind": "acceptance_criterion",
+        "text": "Given dashboard tests run, when `bun test bin/` completes, then latest-run precedence, change-centered columns, unmatched secondary section, degraded fallback, and read-only constraints are covered by tests.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b77cec3e1e1e452a134eadb050381cc7fbbb70140aac77a1f2faf5a14bde471",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Keep dashboard local-only at `127.0.0.1`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b77cec3e1e1e452a134eadb050381cc7fbbb70140aac77a1f2faf5a14bde471",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Read-only UI only: no rerun/merge/approve/deploy/archive/cancel controls.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b77cec3e1e1e452a134eadb050381cc7fbbb70140aac77a1f2faf5a14bde471",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "No token/secret display.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b77cec3e1e1e452a134eadb050381cc7fbbb70140aac77a1f2faf5a14bde471",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "GitHub auth model unchanged: `GITHUB_TOKEN` first, then bounded `gh auth token` fallback.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b77cec3e1e1e452a134eadb050381cc7fbbb70140aac77a1f2faf5a14bde471",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "No fuzzy title-based correctness; source-to-change linking must remain structural (branch/SHA/known keys).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b77cec3e1e1e452a134eadb050381cc7fbbb70140aac77a1f2faf5a14bde471",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C6",
+        "kind": "constraint",
+        "text": "If latest derivation cannot prove a superseding newer source state, preserve visibility as unknown/unmatched/attention as appropriate rather than hiding risk.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b77cec3e1e1e452a134eadb050381cc7fbbb70140aac77a1f2faf5a14bde471",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "No GitHub mutation controls.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b77cec3e1e1e452a134eadb050381cc7fbbb70140aac77a1f2faf5a14bde471",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "No ADV mutation controls.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b77cec3e1e1e452a134eadb050381cc7fbbb70140aac77a1f2faf5a14bde471",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "No server-side preference store.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b77cec3e1e1e452a134eadb050381cc7fbbb70140aac77a1f2faf5a14bde471",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "No hosted dashboard behavior.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b77cec3e1e1e452a134eadb050381cc7fbbb70140aac77a1f2faf5a14bde471",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "No false green from missing/ambiguous data.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b77cec3e1e1e452a134eadb050381cc7fbbb70140aac77a1f2faf5a14bde471",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT6",
+        "kind": "avoidance",
+        "text": "No primary raw event wall.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b77cec3e1e1e452a134eadb050381cc7fbbb70140aac77a1f2faf5a14bde471",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-06-26T17:35:37.210Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Primary visible cards now use `adv_change_status` model; tests tr_mqv74wne_95632b32 and tr_mqv7ff29_5df2600b passed.",
+          "notes": "Reviewer READY."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Lane classification derives from latest linked CI/deployment state; attention/server tests verify needs_attention, running, ready_landed, backlog.",
+          "notes": ""
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Test `centers lanes on ADV changes and suppresses stale same-identity CI failures` proves newer same workflow+branch success suppresses older failure; tr_mqv74wne_95632b32 passed.",
+          "notes": ""
+        },
+        {
+          "contractId": "SC4",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Newest failing/running sources remain visible in needs_attention/running; tests tr_mqv74wne_95632b32 passed.",
+          "notes": ""
+        },
+        {
+          "contractId": "SC5",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Unlinked source appears in secondary `unmatched_source`; tests tr_mqv74wne_95632b32 and tr_mqv79h3f_d3ed3f73 passed.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Newer same workflow+branch success suppresses older failed run in tr_mqv74wne_95632b32.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Newest same workflow+branch failure yields `needs_attention` and latest failing CI summary; tr_mqv74wne_95632b32 passed.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Newest in_progress run yields `running`; tr_mqv74wne_95632b32 passed.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Latest deployment inactive/success-like state yields `ready_landed`; tr_mqv74wne_95632b32 passed.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Draft/no-source change goes to `backlog`; tr_mqv74wne_95632b32 passed.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "ADV change status cards expose title/id/gate plus latest PR/CI/deployment and source details; UI tests tr_mqv7dt3u_d9ea75a9 passed.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Unlinked source remains in secondary `unmatched_source`; model/server tests passed tr_mqv74wne_95632b32/tr_mqv79h3f_d3ed3f73.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC8",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Degraded sources remain visible and no false green is inferred; model tests and existing degraded server tests passed in tr_mqv7ff29_5df2600b.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC9",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "UI tests preserve safeUrl, escapeHtml, no forms/mutation controls; tr_mqv7dt3u_d9ea75a9 passed.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC10",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Targeted dashboard tests tr_mqv7ff29_5df2600b passed 20 tests/119 expects; full bin suite tr_mqv7g1mj_6c94a733 passed 165 tests/491 expects.",
+          "notes": ""
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No dashboard host/listener behavior changed; server tests for loopback default passed in tr_mqv79h3f_d3ed3f73 and full tr_mqv7g1mj_6c94a733.",
+          "notes": ""
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No mutation controls/forms rendered; UI no-mutation test passed tr_mqv7dt3u_d9ea75a9.",
+          "notes": ""
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No token/secret display; existing sanitization/degraded tests passed full suite tr_mqv7g1mj_6c94a733.",
+          "notes": ""
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "GitHub auth code unchanged; dashboard auth fallback remains GITHUB_TOKEN then gh auth token.",
+          "notes": ""
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Source linking remains structural in correlation.ts branch/SHA/ops keys; no fuzzy title matching added.",
+          "notes": ""
+        },
+        {
+          "contractId": "C6",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Missing timestamp does not suppress valid failure; degraded/missing data does not false green. tr_mqv74wne_95632b32 passed.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No GitHub mutation controls added; UI no-mutation tests passed.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No ADV mutation controls added; UI no-mutation tests passed.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No server-side preference store added.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No hosted dashboard behavior added; local server behavior unchanged.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Missing/ambiguous data does not produce false green; tests cover missing timestamp and degraded source behavior.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT6",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Primary raw event wall removed; primary cards are ADV change status cards and raw unmatched source is secondary. Tests passed.",
+          "notes": ""
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "Given multiple workflow runs exist for the same workflow and branch, when a newer run succeeds, then older failed runs do not place the change in `Needs attention`.",
+    "Given multiple workflow runs exist for the same workflow and branch, when the newest run is failing, then the linked change appears in `Needs attention` with a link to that latest failing run.",
+    "Given the newest workflow run for a linked change is queued, pending, in_progress, or running, when the dashboard renders, then the change appears in `Running`.",
+    "Given the newest workflow/deployment state for a linked change is success or landed, when the dashboard renders, then the change appears in `Ready / landed`.",
+    "Given an ADV change has no correlated source activity and is draft/non-active, when the dashboard renders, then it appears in `Backlog / inventory`, not `Needs attention`.",
+    "Given an ADV change has correlated source activity, when the dashboard renders, then the change card shows the change title/id/gate plus latest PR, CI, and deployment links/details where present.",
+    "Given a source item cannot be linked to any ADV change, when the dashboard renders, then it appears in a secondary unmatched source section and does not determine primary columns.",
+    "Given GitHub or ADV reads fail, when the dashboard renders, then degraded source cards remain visible and no false green/latest status is inferred.",
+    "Given source links/metadata render on change-centered cards, when the dashboard loads, then safe URL allowlisting, HTML escaping, no-secret behavior, and no mutation controls remain intact.",
+    "Given dashboard tests run, when `bun test bin/` completes, then latest-run precedence, change-centered columns, unmatched secondary section, degraded fallback, and read-only constraints are covered by tests."
+  ],
+  "documents": {
+    "proposal": "# Reframe dashboard status\n\n## Problem\nThe dashboard still surfaces stale CI/deployment failures that were later corrected by reruns. It groups historical events, but does not reduce each branch/ADV change to the latest meaningful source state.\n\nLive evidence after `simplifyDashboardView`:\n- `pokeedge` still shows attention failures such as old deployment/workflow failures from 2026-06-22/25.\n- `attention` groups are built from raw historical workflow_run/deployment items rather than latest-per-branch/workflow status.\n- GitHub fetch reads recent workflow runs/deployments; lane builder classifies all failures before supersession/latest-state reduction.\n- Current board is source-event centered (`workflow_run`, `deployment`, `pull`) rather than ADV-change centered.\n\nUser feedback: “failures showing for ci runs that were corrected and re-run” and “rewrite to be centered around adv changes and then have links to their ci runs. columns reflect where their latest ci run is or landed.”\n\n## Scope\nAffected surface:\n- `bin/lib/dashboard/correlation.ts` — source-to-ADV matching/link data.\n- `bin/lib/dashboard/attention.ts` or successor lane model — derived dashboard lanes/cards.\n- `bin/lib/dashboard/server.ts` — dashboard state assembly.\n- `bin/lib/dashboard/ui.ts` — rendered columns/cards.\n- `bin/lib/dashboard/*.test.ts` — latest-status and read-only coverage.\n\nAuth model remains unchanged:\n- `GITHUB_TOKEN` first, then bounded `gh auth token` fallback.\n- No browser login flow.\n- No token display.\n- Auth degraded state remains a separate setup/degraded card.\n\nError/fallback behavior:\n- If GitHub/ADV reads fail, show degraded source cards as today.\n- If a source item cannot be linked structurally, keep it in secondary unmatched source section.\n- If latest-state derivation lacks enough data, fall back to conservative visible unknown/unmatched status, not false green.\n\n## Value target\nDashboard should be an ADV work/status board:\n- Primary cards are ADV changes.\n- Each ADV card shows latest linked CI/deployment/source state.\n- Columns represent current state of the change, not historical event categories.\n- Historical runs are available as links/details, but never drive status if superseded.\n\n## Initial direction\nReplace raw source-event-first lanes with change-centered derived rows:\n1. Correlate GitHub PRs/workflow runs/deployments to ADV changes by branch/SHA as today.\n2. For each ADV change, derive latest source state by workflow/deployment identity.\n3. Ignore older failures when a newer run for the same workflow + branch/head status succeeds or is running.\n4. Render columns by latest state:\n   - Needs attention: latest CI/deploy failing or auth/data degradation.\n   - Running: latest CI/deploy queued/in_progress/running.\n   - Ready / landed: latest CI/deploy successful, PR merged/closed, or deployment landed.\n   - Backlog/inventory: draft/non-active ADV changes with no current source activity.\n5. Show source links/details inside each ADV card: PR, latest CI runs, latest deployment, recent history.\n6. Keep unmatched source work as secondary section, not primary columns.\n\n## Acceptance criteria draft\n1. Given multiple workflow runs exist for the same workflow and branch, when a newer run succeeds, then older failed runs do not place the change in Needs attention.\n2. Given an ADV change has correlated workflow/deployment activity, when the dashboard renders, then the ADV change card shows latest source status and links to latest runs/deployments.\n3. Given a source item cannot be linked to any ADV change, when the dashboard renders, then it appears in a secondary unmatched section, not the primary change columns.\n4. Given an ADV change is draft/non-active with no latest source activity, when the dashboard renders, then it appears in backlog/inventory, not attention.\n5. Given active/running CI exists for a change, when the dashboard renders, then the change appears in Running based on latest run status.\n6. Given latest CI/deployment status is success/landed, when the dashboard renders, then the change appears in Ready/Landed rather than attention.\n7. Given source cards include URLs/metadata, when rendering new change-centered cards, safe URL allowlisting, HTML escaping, no-secret behavior, and no mutation controls remain intact.\n8. Given dashboard tests run, when `bun test bin/` completes, then latest-run precedence, change-centered columns, unmatched secondary section, and read-only constraints are covered by tests.",
+    "problemStatement": "Dashboard still reports stale CI/deployment failures because it is source-event/history centered. The desired value is an ADV-centered board where each change shows its latest CI/deploy state, with source links as supporting details.",
+    "agreement": "# Agreement: Reframe dashboard status\n\n## Problem\nThe dashboard still reports stale CI/deployment failures because it is source-event/history centered. Grouping reduced volume, but older failed runs/deployments still influence `Attention` even when newer source activity for the same branch/workflow/deployment supersedes them.\n\n## Objectives\n1. Make the primary dashboard an ADV-change-centered status board.\n2. Derive each change’s current status from latest linked source state, not raw historical events.\n3. Suppress stale failed workflow/deployment events when a newer same-identity source event supersedes them.\n4. Keep links/details to supporting CI runs, PRs, and deployments on the ADV change card.\n5. Move unmatched source work into a secondary section.\n6. Preserve local-only, read-only, sanitized dashboard behavior.\n7. Preserve current GitHub auth model and degraded-source handling.\n\n## Success criteria\n- Primary visible cards are ADV changes, not raw `workflow_run`/`deployment`/`pull` event cards.\n- A change’s column reflects latest linked CI/deployment status.\n- Older failed runs no longer create false attention after a newer same workflow+branch run succeeds.\n- Current failures and running work remain visible.\n- Unmatched source work remains inspectable, but secondary.\n\n## Acceptance criteria\n1. Given multiple workflow runs exist for the same workflow and branch, when a newer run succeeds, then older failed runs do not place the change in `Needs attention`.\n2. Given multiple workflow runs exist for the same workflow and branch, when the newest run is failing, then the linked change appears in `Needs attention` with a link to that latest failing run.\n3. Given the newest workflow run for a linked change is queued, pending, in_progress, or running, when the dashboard renders, then the change appears in `Running`.\n4. Given the newest workflow/deployment state for a linked change is success or landed, when the dashboard renders, then the change appears in `Ready / landed`.\n5. Given an ADV change has no correlated source activity and is draft/non-active, when the dashboard renders, then it appears in `Backlog / inventory`, not `Needs attention`.\n6. Given an ADV change has correlated source activity, when the dashboard renders, then the change card shows the change title/id/gate plus latest PR, CI, and deployment links/details where present.\n7. Given a source item cannot be linked to any ADV change, when the dashboard renders, then it appears in a secondary unmatched source section and does not determine primary columns.\n8. Given GitHub or ADV reads fail, when the dashboard renders, then degraded source cards remain visible and no false green/latest status is inferred.\n9. Given source links/metadata render on change-centered cards, when the dashboard loads, then safe URL allowlisting, HTML escaping, no-secret behavior, and no mutation controls remain intact.\n10. Given dashboard tests run, when `bun test bin/` completes, then latest-run precedence, change-centered columns, unmatched secondary section, degraded fallback, and read-only constraints are covered by tests.\n\n## Constraints\n- Keep dashboard local-only at `127.0.0.1`.\n- Read-only UI only: no rerun/merge/approve/deploy/archive/cancel controls.\n- No token/secret display.\n- GitHub auth model unchanged: `GITHUB_TOKEN` first, then bounded `gh auth token` fallback.\n- No fuzzy title-based correctness; source-to-change linking must remain structural (branch/SHA/known keys).\n- If latest derivation cannot prove a superseding newer source state, preserve visibility as unknown/unmatched/attention as appropriate rather than hiding risk.\n\n## Avoidances\n- No GitHub mutation controls.\n- No ADV mutation controls.\n- No server-side preference store.\n- No hosted dashboard behavior.\n- No false green from missing/ambiguous data.\n- No primary raw event wall.",
+    "design": "# Design: Reframe dashboard status\n\n## Summary\nReplace the current source-event lane model with an ADV-change-centered status model.\n\nCurrent architecture:\n- `github.ts` reads open PRs, recent workflow runs, deployments, and deployment statuses.\n- `correlation.ts` matches raw source events to changes by branch/SHA/ops keys.\n- `attention.ts` projects and groups source events into lanes.\n- `ui.ts` renders lane items and grouped details.\n\nRoot cause validated:\n- `github.ts` fetches recent Actions runs broadly.\n- `correlation.ts` links raw events structurally.\n- `attention.ts` folds successes into summaries but sends failures directly to attention with no newer-success/newer-running suppression.\n- Therefore old failed workflow/deployment events can remain attention items after newer same-identity reruns.\n\n## New model\nIntroduce a pure event-to-state reduce step between correlation and lane bucketing. Keep dashboard API read-only and sanitized.\n\n### Lane keys and labels\nUse new primary lane keys:\n- `needs_attention` → `Needs attention`\n- `running` → `Running`\n- `ready_landed` → `Ready / landed`\n- `backlog` → `Backlog / inventory`\n\nAdd a secondary unmatched section/lane:\n- `unmatched_source` → `Unmatched source`\n\nCompatibility note: UI is known local consumer. Tests must pin new keys and labels. Existing tests that assert `attention`, `active`, `unmatched`, `inventory` must be deliberately updated.\n\n### Primary item type\nAdd a typed ADV-centered dashboard item, e.g.:\n\n```ts\nexport interface ChangeStatusLaneItem {\n  kind: \"adv_change_status\";\n  changeId: string;\n  title: string;\n  status: string;\n  gate: string;\n  progress: string;\n  latest: {\n    overall: \"attention\" | \"running\" | \"ready_landed\" | \"backlog\" | \"unknown\";\n    pr?: SourceStatusSummary;\n    ci?: SourceStatusSummary;\n    deployment?: SourceStatusSummary;\n  };\n  sources: {\n    prs: ProjectedSourceLaneItem[];\n    workflow_runs: ProjectedSourceLaneItem[];\n    deployments: ProjectedSourceLaneItem[];\n  };\n  metadata?: LaneCardMetadata[];\n}\n```\n\n`SourceStatusSummary`:\n- `kind`: `pull` | `workflow_run` | `deployment`\n- `title`\n- `status`\n- `url?`\n- `updated_at?`\n- `metadata?`\n\n## Data flow\n1. Correlate source items structurally as today.\n2. Project linked/unlinked source items into typed source summaries as today.\n3. Build a map `changeId -> ChangeStatusAccumulator`.\n4. Seed every ADV change into the map.\n5. Attach linked PR/workflow/deployment source items to the matching change.\n6. Reduce each change’s sources to latest status summaries.\n7. Classify the change into one primary lane.\n8. Keep unlinked source items in secondary `unmatched_source`.\n\n## Latest-state rules\n### Workflow runs\nIdentity key:\n`(workflow_id ?? workflow name/title) + head_branch`\n\nDo not key on `run_id`: GitHub reruns reuse the same run id with increasing `run_attempt`, while new pushes create distinct run ids. Correct stale-failure suppression requires workflow identity + branch and timestamp recency, not run id dedupe.\n\nRecency timestamp:\n`max(run_started_at, created_at, updated_at)` among valid ISO-like strings.\n\nSupersession:\n- Newer `success`/`skipped` for same workflow identity + branch suppresses older `failure` for that same key.\n- Newer `queued`/`pending`/`in_progress`/`running` suppresses older failure for that same key and classifies as running.\n- Distinct workflow names/ids or branches do not suppress each other.\n- Missing/invalid timestamps cannot suppress a valid-timestamp failure; preserve conservative visibility.\n\n### Deployments\nIdentity key:\n`environment/title + ref`\n\nUse deployment status `updated_at` when present, otherwise deployment `updated_at`, otherwise created time.\n\nLatest deployment state determines deployment summary for that key. A newer success/inactive/success-like landed state can supersede older failure only for the same environment+ref.\n\n### PRs\nOpen PRs linked to an ADV change appear on the change card.\nPR state alone should not create failure unless GitHub explicitly reports an error status through workflow/deployment data. Current GitHub fetch only asks open PRs, so current implementation must not infer merged from absence.\n\n## Overall lane classification\nFor each change:\n1. If any latest linked workflow/deployment summary is attention status (`failure`, `failed`, `error`, `cancelled`, `timed_out`, `degraded`) → `needs_attention`.\n2. Else if any latest linked workflow/deployment summary is running status (`queued`, `requested`, `waiting`, `pending`, `in_progress`, `running`) → `running`.\n3. Else if any latest linked workflow/deployment summary is success/landed (`success`, `skipped`, `inactive`, deployment success-like state) → `ready_landed`.\n4. Else → `backlog`.\n\nDo not infer green from missing GitHub data. Degraded source cards remain visible in `needs_attention` as separate `degraded_source` items. If GitHub read fails, do not infer source status for changes.\n\n## Unmatched source section\n`unmatched_source` contains source items that do not structurally match any ADV change. It is secondary and compact:\n- open PRs first\n- latest unsuperseded failures next\n- historical successful/deployment history grouped/summarized\n\nUnmatched source items do not determine primary change columns.\n\n## UI rendering\nUpdate `ui.ts` to render:\n- project stats for new lane labels\n- `adv_change_status` cards as primary cards\n- source summaries/links inside each card\n- recent history in read-only `<details>`\n- secondary unmatched source lane/section\n\nKeep:\n- `safeUrl`\n- `escapeHtml`\n- no forms/mutation controls\n- no links inside `<summary>` if summaries are used\n\n## Safety and fallback\n- Source-to-change linking remains structural only: branch/SHA/known correlation keys. No fuzzy title matching for correctness.\n- If timestamps are missing or ambiguous, do not hide older failures based on unproven supersession.\n- If GitHub/ADV reads fail, show degraded source cards and avoid false green.\n- If source shape changes, projection should fall back to unknown/unmatched display rather than throwing or hiding.\n\n## Test strategy\nAdd/update Bun tests:\n- Lane model tests:\n  - newer same workflow+branch success suppresses older failure.\n  - newest same workflow+branch failure produces `needs_attention`.\n  - newest running state produces `running`.\n  - distinct branch/workflow failures are not suppressed by unrelated successes.\n  - missing timestamp does not suppress valid failure.\n  - draft/no-source change goes to `backlog`.\n  - unlinked source remains in `unmatched_source`.\n- Server tests:\n  - end-to-end state shape uses new lane keys and ADV-centered items.\n  - degraded GitHub read keeps degraded card and does not create false ready status.\n- UI tests:\n  - new labels and `data-lane` attrs render.\n  - change-centered card structure renders source links/details.\n  - source links/details render through safe URL and escaping.\n  - no mutation controls/forms.\n- Full verification: `bun test bin/`.\n\n## Validator outcome\nIndependent validator verdict: `VALIDATED`.\n\nAdjustments applied:\n- Fold key for workflow runs uses `workflow_id ?? name` + branch, never run id.\n- Recency uses max of `run_started_at`, `created_at`, `updated_at`.\n- Suppression is same-identity only; unrelated workflow/branch failures stay visible.\n- Lane-key/UI coupling must be co-updated and pinned by tests.\n- Degraded reads must never default to green.\n- Implement fold as pure reduce step before lane bucketing.",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\n\nReframed the local dashboard from a source-event/history board into an ADV-change-centered latest-status board. The dashboard now derives each change’s current state from the latest structurally linked CI/deployment events, so older failed runs are not shown as current failures after a newer same workflow+branch run succeeds or is running.\n\n## Verdict\n\nAPPROVED\n\n## What Was Built\n\n1. Added `adv_change_status` primary dashboard cards.\n2. Replaced primary lane keys with latest-status lanes: `needs_attention`, `running`, `ready_landed`, `backlog`, and secondary `unmatched_source`.\n3. Added a pure latest-source reducer before lane bucketing.\n4. Workflow run identity uses `(workflow_id ?? name/title) + branch`; never run id.\n5. Recency uses max valid `run_started_at`, `created_at`, and `updated_at` timestamps.\n6. Newer same-identity success/running suppresses older failures.\n7. Distinct workflow/branch failures remain visible.\n8. Missing/invalid timestamps do not suppress valid failures.\n9. ADV cards show latest PR, CI, deployment summaries plus read-only source details.\n10. Unmatched source work remains secondary.\n11. Safe URL allowlisting, HTML escaping, no-secret behavior, degraded-source fallback, and no mutation controls were preserved.\n\n## What Was Verified\n\n- Contract matrix: 27/27 rows pass/respected.\n- Acceptance reviewer: `reframeDashboardStatus|change:review:acceptance|adv-reviewer|1` returned READY.\n- Targeted dashboard tests: `tr_mqv7ff29_5df2600b` passed 20 tests, 119 assertions.\n- Full bin suite: `tr_mqv7g1mj_6c94a733` passed `bun test bin/` with 165 tests, 491 assertions.\n\n## Remaining Concerns\n\nNone for the accepted contract. The installed dashboard service still runs the previous release until this change is archived/merged and the service is restarted from trunk.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-06-26T17:35:37.210Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | Primary visible cards are ADV changes, not raw `workflow_run`/`deployment`/`pull` event cards. | pass | Primary visible cards now use `adv_change_status` model; tests tr_mqv74wne_95632b32 and tr_mqv7ff29_5df2600b passed. |\n| SC2 | success_criterion | A change’s column reflects latest linked CI/deployment status. | pass | Lane classification derives from latest linked CI/deployment state; attention/server tests verify needs_attention, running, ready_landed, backlog. |\n| SC3 | success_criterion | Older failed runs no longer create false attention after a newer same workflow+branch run succeeds. | pass | Test `centers lanes on ADV changes and suppresses stale same-identity CI failures` proves newer same workflow+branch success suppresses older failure; tr_mqv74wne_95632b32 passed. |\n| SC4 | success_criterion | Current failures and running work remain visible. | pass | Newest failing/running sources remain visible in needs_attention/running; tests tr_mqv74wne_95632b32 passed. |\n| SC5 | success_criterion | Unmatched source work remains inspectable, but secondary. | pass | Unlinked source appears in secondary `unmatched_source`; tests tr_mqv74wne_95632b32 and tr_mqv79h3f_d3ed3f73 passed. |\n| AC1 | acceptance_criterion | Given multiple workflow runs exist for the same workflow and branch, when a newer run succeeds, then older failed runs do not place the change in `Needs attention`. | pass | Newer same workflow+branch success suppresses older failed run in tr_mqv74wne_95632b32. |\n| AC2 | acceptance_criterion | Given multiple workflow runs exist for the same workflow and branch, when the newest run is failing, then the linked change appears in `Needs attention` with a link to that latest failing run. | pass | Newest same workflow+branch failure yields `needs_attention` and latest failing CI summary; tr_mqv74wne_95632b32 passed. |\n| AC3 | acceptance_criterion | Given the newest workflow run for a linked change is queued, pending, in_progress, or running, when the dashboard renders, then the change appears in `Running`. | pass | Newest in_progress run yields `running`; tr_mqv74wne_95632b32 passed. |\n| AC4 | acceptance_criterion | Given the newest workflow/deployment state for a linked change is success or landed, when the dashboard renders, then the change appears in `Ready / landed`. | pass | Latest deployment inactive/success-like state yields `ready_landed`; tr_mqv74wne_95632b32 passed. |\n| AC5 | acceptance_criterion | Given an ADV change has no correlated source activity and is draft/non-active, when the dashboard renders, then it appears in `Backlog / inventory`, not `Needs attention`. | pass | Draft/no-source change goes to `backlog`; tr_mqv74wne_95632b32 passed. |\n| AC6 | acceptance_criterion | Given an ADV change has correlated source activity, when the dashboard renders, then the change card shows the change title/id/gate plus latest PR, CI, and deployment links/details where present. | pass | ADV change status cards expose title/id/gate plus latest PR/CI/deployment and source details; UI tests tr_mqv7dt3u_d9ea75a9 passed. |\n| AC7 | acceptance_criterion | Given a source item cannot be linked to any ADV change, when the dashboard renders, then it appears in a secondary unmatched source section and does not determine primary columns. | pass | Unlinked source remains in secondary `unmatched_source`; model/server tests passed tr_mqv74wne_95632b32/tr_mqv79h3f_d3ed3f73. |\n| AC8 | acceptance_criterion | Given GitHub or ADV reads fail, when the dashboard renders, then degraded source cards remain visible and no false green/latest status is inferred. | pass | Degraded sources remain visible and no false green is inferred; model tests and existing degraded server tests passed in tr_mqv7ff29_5df2600b. |\n| AC9 | acceptance_criterion | Given source links/metadata render on change-centered cards, when the dashboard loads, then safe URL allowlisting, HTML escaping, no-secret behavior, and no mutation controls remain intact. | pass | UI tests preserve safeUrl, escapeHtml, no forms/mutation controls; tr_mqv7dt3u_d9ea75a9 passed. |\n| AC10 | acceptance_criterion | Given dashboard tests run, when `bun test bin/` completes, then latest-run precedence, change-centered columns, unmatched secondary section, degraded fallback, and read-only constraints are covered by tests. | pass | Targeted dashboard tests tr_mqv7ff29_5df2600b passed 20 tests/119 expects; full bin suite tr_mqv7g1mj_6c94a733 passed 165 tests/491 expects. |\n| C1 | constraint | Keep dashboard local-only at `127.0.0.1`. | respected | No dashboard host/listener behavior changed; server tests for loopback default passed in tr_mqv79h3f_d3ed3f73 and full tr_mqv7g1mj_6c94a733. |\n| C2 | constraint | Read-only UI only: no rerun/merge/approve/deploy/archive/cancel controls. | respected | No mutation controls/forms rendered; UI no-mutation test passed tr_mqv7dt3u_d9ea75a9. |\n| C3 | constraint | No token/secret display. | respected | No token/secret display; existing sanitization/degraded tests passed full suite tr_mqv7g1mj_6c94a733. |\n| C4 | constraint | GitHub auth model unchanged: `GITHUB_TOKEN` first, then bounded `gh auth token` fallback. | respected | GitHub auth code unchanged; dashboard auth fallback remains GITHUB_TOKEN then gh auth token. |\n| C5 | constraint | No fuzzy title-based correctness; source-to-change linking must remain structural (branch/SHA/known keys). | respected | Source linking remains structural in correlation.ts branch/SHA/ops keys; no fuzzy title matching added. |\n| C6 | constraint | If latest derivation cannot prove a superseding newer source state, preserve visibility as unknown/unmatched/attention as appropriate rather than hiding risk. | respected | Missing timestamp does not suppress valid failure; degraded/missing data does not false green. tr_mqv74wne_95632b32 passed. |\n| DONT1 | avoidance | No GitHub mutation controls. | respected | No GitHub mutation controls added; UI no-mutation tests passed. |\n| DONT2 | avoidance | No ADV mutation controls. | respected | No ADV mutation controls added; UI no-mutation tests passed. |\n| DONT3 | avoidance | No server-side preference store. | respected | No server-side preference store added. |\n| DONT4 | avoidance | No hosted dashboard behavior. | respected | No hosted dashboard behavior added; local server behavior unchanged. |\n| DONT5 | avoidance | No false green from missing/ambiguous data. | respected | Missing/ambiguous data does not produce false green; tests cover missing timestamp and degraded source behavior. |\n| DONT6 | avoidance | No primary raw event wall. | respected | Primary raw event wall removed; primary cards are ADV change status cards and raw unmatched source is secondary. Tests passed. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-06-26T16:44:32.590Z",
+      "contentHash": "ecbea54da2410724a9e4ba4640e52af1927183989dc6fbbf95ab96feea6fbacf",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-06-26T14:06:08.329Z",
+      "contentHash": "08a49a764a83346d599732acf5df6700ad2e54cf60672f8de2341fdc21f51ddf",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-06-26T16:44:32.590Z",
+      "contentHash": "5b77cec3e1e1e452a134eadb050381cc7fbbb70140aac77a1f2faf5a14bde471",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-06-26T17:05:41.096Z",
+      "contentHash": "5ee6915f95f3c8cfc4cc5b6f2e9a02610bf16fb0a596620fca10e9f093aecb00",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-06-26T17:36:08.966Z",
+      "contentHash": "b2bccdc2ff53183fd47543137a29206921094e826251e08f7e287c7ed9618b12",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-06-26T17:44:50.894Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_UNCLEAR_SCOPE",
+      "severity": "warning",
+      "message": "Proposal has no Scope section. What files and modules will be affected?",
+      "recorded_at": "2026-06-26T16:43:07.506Z",
+      "resolved": true,
+      "resolved_at": "2026-06-26T16:59:39.995Z"
+    },
+    {
+      "code": "CLARIFY_ASSUMPTION_HEAVY",
+      "severity": "warning",
+      "message": "Proposal references authentication/authorization without specifying the model. What auth mechanism will be used?",
+      "recorded_at": "2026-06-26T16:43:07.506Z"
+    },
+    {
+      "code": "CLARIFY_MISSING_ERROR_HANDLING",
+      "severity": "warning",
+      "message": "Proposal describes behavior that could fail but doesn't mention error handling or rollback. What happens when things go wrong?",
+      "recorded_at": "2026-06-26T16:43:07.506Z",
+      "resolved": true,
+      "resolved_at": "2026-06-26T16:59:39.995Z"
+    }
+  ],
+  "worktree_auto_managed": true
+}
