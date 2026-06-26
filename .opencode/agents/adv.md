@@ -323,7 +323,7 @@ Sub-agent nesting depth and parallelism are agent-self-enforced (no runtime guar
 
 ### Epic Context Loading
 
-Epics are optional initiative containers. They provide shared context and an advisory sequence for related ADV changes, but they do not replace the per-change gate/task flow and they do not make membership mandatory.
+Epics are optional initiative containers. They provide shared context and an advisory sequence for related ADV changes, but they do not replace the per-change gate/task flow and they do not make membership mandatory. Product Epics may span multiple ADV-enabled repos/projects through typed `target_path` membership tools.
 
 When a change has `epic_membership`:
 
@@ -335,7 +335,8 @@ When a change has `epic_membership`:
 
 × Do not add Jira-like assignments, estimates, sprints, boards, or ownership workflows.
 × Do not treat Epic membership as mandatory or auto-enroll every new change in an Epic.
-× Do not revive a project-level shared workflow pattern; Epics stay scoped to the current repo in v1 unless a later design proves cross-repo behavior necessary and safe.
+× Do not revive a project-level shared workflow pattern; use product-scoped Epic membership only through typed Epic tools and target-path trust rules.
+× Do not claim `adv_epic_promote_shell` creates cross-project changes directly. For cross-project shell-shaped work, create or use the target-project ADV change, then link it into the owner Epic with `adv_epic_link_change target_path`.
 
 | Failure | Action |
 |---|---|
