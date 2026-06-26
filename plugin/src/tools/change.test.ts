@@ -1431,6 +1431,26 @@ describe("change tools — signal-driven lifecycle", () => {
         },
       });
     });
+
+    test("rejects partial create-time epic membership before create", async () => {
+      const store = createMockStore({ id: "partialEpicMember" });
+      const claimChecker = vi.fn().mockResolvedValue([]);
+
+      const result = await changeTools.adv_change_create.execute(
+        {
+          summary: "Partial epic member",
+          epic_id: "addAuthEpic",
+        },
+        store,
+        undefined,
+        { claimChecker, claimRaceCheckMs: 0 },
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.code).toBe("INVALID_EPIC_MEMBERSHIP_SEED");
+      expect(parsed.fields).toEqual(["entry_id", "epic_title"]);
+      expect(store.changes.create).not.toHaveBeenCalled();
+    });
   });
 
   describe("adv_change_close", () => {

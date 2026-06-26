@@ -2936,12 +2936,30 @@ export const changeTools = {
       if (fastFollowOf) initialMetadata.fast_follow_of = fastFollowOf;
       if (scopeResolution.scope)
         initialMetadata.scope_repos = scopeResolution.scope;
-      if (epic_id) {
+      const epicSeedFields = [
+        ["epic_id", epic_id],
+        ["entry_id", entry_id],
+        ["epic_title", epic_title],
+      ] as const;
+      const missingEpicSeedFields = epicSeedFields
+        .filter(([, value]) => value === undefined)
+        .map(([field]) => field);
+      const hasAnyEpicSeedField =
+        epicSeedFields.length !== missingEpicSeedFields.length;
+      if (hasAnyEpicSeedField && missingEpicSeedFields.length > 0) {
+        return formatToolOutput({
+          error:
+            "Complete create-time Epic membership requires epic_id, entry_id, and epic_title; omit all Epic fields when no Epic membership is intended.",
+          code: "INVALID_EPIC_MEMBERSHIP_SEED",
+          fields: missingEpicSeedFields,
+        });
+      }
+      if (epic_id && entry_id && epic_title) {
         initialMetadata.epic_membership = {
           epic_id,
-          entry_id: entry_id ?? "",
+          entry_id,
           order: epic_order ?? 0,
-          title: epic_title ?? summary,
+          title: epic_title,
           linked_at: new Date().toISOString(),
         };
       }
