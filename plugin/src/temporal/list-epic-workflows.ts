@@ -1,10 +1,10 @@
 /**
  * Visibility-API-backed Epic enumeration.
  *
- * Mirrors list-change-workflows.ts but scopes to the Epic workflow type
- * and the `adv/epic/{projectId}/` workflow ID prefix. Epic workflows do
- * not use custom search attributes; `WorkflowType = "epicWorkflow"` is
- * sufficient because the workflow ID carries the project scope.
+ * Mirrors list-change-workflows.ts but scopes to the Epic workflow type.
+ * Epic workflows do not use custom search attributes; the workflow ID carries
+ * project scope, so we enumerate by workflow type and filter the canonical
+ * `adv/epic/{projectId}/` prefix in-process.
  */
 
 export interface ListEpicWorkflowIdsOptions {
@@ -24,16 +24,11 @@ export interface ListEpicClient {
   };
 }
 
-function escapeQueryValue(value: string): string {
-  return value.replace(/"/g, '\\"');
-}
-
 /**
  * Build the visibility-API query string for epic-workflow enumeration.
  */
-export function buildEpicVisibilityQuery(projectId: string): string {
-  const safeProjectId = escapeQueryValue(projectId);
-  return `WorkflowType = "epicWorkflow" AND WorkflowId LIKE "adv/epic/${safeProjectId}/%"`;
+export function buildEpicVisibilityQuery(_projectId: string): string {
+  return `WorkflowType = "epicWorkflow"`;
 }
 
 const EPIC_WORKFLOW_PREFIX = "adv/epic/";
