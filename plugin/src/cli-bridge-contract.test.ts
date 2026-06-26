@@ -247,7 +247,15 @@ describe("NO-CLI-MUTATION GUARD (AC9/DONT3)", () => {
     expect(content).toContain("EPIC_READ_ONLY_SUBCOMMANDS");
     expect(content).toContain('"list"');
 
-    const forbidden = ["create", "update", "delete", "archive", "close", "gate", "task"];
+    const forbidden = [
+      "create",
+      "update",
+      "delete",
+      "archive",
+      "close",
+      "gate",
+      "task",
+    ];
     const nestedDispatch = forbidden.filter(
       (verb) =>
         content.includes(`nested === "${verb}"`) ||
