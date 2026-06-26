@@ -45,6 +45,43 @@ export interface DashboardStateDeps {
   ) => Promise<GitHubDashboardResult>;
 }
 
+export interface DashboardStateProviderOptions extends DashboardStateDeps {
+  stateBuilder?: () => Promise<DashboardApiState>;
+}
+
+export function createDashboardStateProvider(
+  config: DashboardConfig,
+  options: DashboardStateProviderOptions = {},
+): () => Promise<DashboardApiState> {
+  const now = options.now ?? (() => new Date());
+  const ttlMs = config.refresh_seconds * 1000;
+  let cached: { state: DashboardApiState; expiresAtMs: number } | undefined;
+  let inFlight: Promise<DashboardApiState> | undefined;
+
+  async function refresh(): Promise<DashboardApiState> {
+    const state = options.stateBuilder
+      ? await options.stateBuilder()
+      : await buildDashboardState(config, {
+          now,
+          readerTimeoutMs: options.readerTimeoutMs,
+          advReader: options.advReader,
+          githubReader: options.githubReader,
+        });
+    cached = { state, expiresAtMs: now().getTime() + ttlMs };
+    return state;
+  }
+
+  return function getDashboardState(): Promise<DashboardApiState> {
+    const nowMs = now().getTime();
+    if (cached && nowMs < cached.expiresAtMs) return Promise.resolve(cached.state);
+    if (inFlight) return inFlight;
+    inFlight = refresh().finally(() => {
+      inFlight = undefined;
+    });
+    return inFlight;
+  };
+}
+
 export async function buildDashboardState(
   config: DashboardConfig,
   deps: DashboardStateDeps = {},
@@ -234,6 +271,8 @@ export interface DashboardHandlerOptions {
 }
 
 export function createDashboardHandler(options: DashboardHandlerOptions) {
+  const stateBuilder =
+    options.stateBuilder ?? createDashboardStateProvider(options.config);
   return async function handleDashboardRequest(
     request: Request,
   ): Promise<Response> {
@@ -245,9 +284,7 @@ export function createDashboardHandler(options: DashboardHandlerOptions) {
     }
     const url = new URL(request.url);
     if (url.pathname === "/api/state") {
-      const state = await (
-        options.stateBuilder ?? (() => buildDashboardState(options.config))
-      )();
+      const state = await stateBuilder();
       return Response.json(state);
     }
     if (url.pathname === "/") {

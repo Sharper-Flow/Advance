@@ -150,6 +150,69 @@ Advance keeps the core workflow in this repository and exposes runtime-safe seam
 
 `bin/adv dashboard` runs a local read-only web dashboard for explicitly configured projects. It binds to `127.0.0.1` by default and exposes only `GET /` plus `GET /api/state`.
 
+For the PokeEdge workspace, install the always-on local user service:
+
+```bash
+bin/adv dashboard install --profile pokeedge
+```
+
+This writes:
+
+- `~/.config/advance/dashboard/pokeedge.json`
+- `~/.config/systemd/user/adv-dashboard-pokeedge.service`
+
+Then it runs:
+
+```bash
+systemctl --user daemon-reload
+systemctl --user enable --now adv-dashboard-pokeedge.service
+```
+
+Open the dashboard at:
+
+```text
+http://127.0.0.1:8765/
+```
+
+The PokeEdge profile contains:
+
+| Project | Path | GitHub repo |
+| ------- | ---- | ----------- |
+| PokeEdge | `/home/jon/dev/pokeedge` | `Sharper-Flow/PokeEdge` |
+| PokeEdge Web | `/home/jon/dev/pokeedge-web` | `Sharper-Flow/PokeEdge-Web` |
+
+Health and logs:
+
+```bash
+bin/adv dashboard doctor --profile pokeedge
+systemctl --user status adv-dashboard-pokeedge.service
+journalctl --user -u adv-dashboard-pokeedge.service
+```
+
+Logged-out startup depends on user lingering. Check it with:
+
+```bash
+loginctl show-user "$USER" --property=Linger
+```
+
+If disabled, enable it with:
+
+```bash
+loginctl enable-linger "$USER"
+```
+
+To disable or uninstall:
+
+```bash
+systemctl --user disable --now adv-dashboard-pokeedge.service
+rm ~/.config/systemd/user/adv-dashboard-pokeedge.service
+systemctl --user daemon-reload
+```
+
+The service uses fixed port `8765`. If another process already owns the port, startup fails loudly and systemd does not restart-loop on the dashboard's port-collision exit code.
+
+GitHub auth resolution is local-only: `GITHUB_TOKEN` first, then `gh auth token`. If neither is available, the page shows an inline setup card and keeps local/ADV state visible.
+
 Example config (`schema_version: 1`):
 
 ```json
@@ -180,6 +243,8 @@ bin/adv dashboard --config ./dashboard.json --port 8765
 ```
 
 V1 is observation-only: no rerun, approval, merge, deployment, cancellation, archive, or other mutation controls. Source failures are shown per project/source as degraded instead of blanking the whole page. Non-loopback hosts require explicit `--allow-network-host`.
+
+The dashboard does not open a browser automatically, does not host anything externally by default, and does not provide write controls for ADV, GitHub, deployments, repositories, or services.
 
 - `scripts/maintenance/inspect.mjs --project-root <path>` emits `schema_version: 1`, archived change summaries, release-gate eligibility, and a verification summary so external tools can inspect release readiness without mutating ADV state.
 - `adv_change_update_issues` accepts full GitHub issue URLs only (`https://github.com/<owner>/<repo>/issues/<number>`). Shorthand refs are rejected before persistence so invalid state cannot be saved.

@@ -1,4 +1,5 @@
-import { isAbsolute } from "path";
+import { homedir } from "os";
+import { isAbsolute, join } from "path";
 
 import type {
   DashboardConfig,
@@ -13,6 +14,8 @@ const DEFAULT_REFRESH_SECONDS = 45;
 const MIN_REFRESH_SECONDS = 30;
 const MAX_REFRESH_SECONDS = 60;
 const REDACTED = "[REDACTED]";
+
+export type DashboardProfile = "pokeedge";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -131,6 +134,48 @@ export function parseDashboardConfig(raw: unknown): DashboardConfigParseResult {
     projectResults,
     errors,
   };
+}
+
+export function createPokeEdgeDashboardConfig(): DashboardConfig {
+  return {
+    schema_version: 1,
+    refresh_seconds: DEFAULT_REFRESH_SECONDS,
+    projects: [
+      {
+        id: "pokeedge",
+        label: "PokeEdge",
+        path: "/home/jon/dev/pokeedge",
+        github: { owner: "Sharper-Flow", repo: "PokeEdge" },
+      },
+      {
+        id: "pokeedge-web",
+        label: "PokeEdge Web",
+        path: "/home/jon/dev/pokeedge-web",
+        github: { owner: "Sharper-Flow", repo: "PokeEdge-Web" },
+      },
+    ],
+  };
+}
+
+export function createDashboardProfileConfig(
+  profile: DashboardProfile,
+): DashboardConfig {
+  if (profile === "pokeedge") return createPokeEdgeDashboardConfig();
+  return assertNeverProfile(profile);
+}
+
+export function dashboardProfileConfigPath(
+  profile: DashboardProfile,
+  homeDir: string = homedir(),
+): string {
+  if (profile === "pokeedge") {
+    return join(homeDir, ".config", "advance", "dashboard", "pokeedge.json");
+  }
+  return assertNeverProfile(profile);
+}
+
+function assertNeverProfile(profile: never): never {
+  throw new Error(`unsupported dashboard profile: ${String(profile)}`);
 }
 
 export function sanitizeDashboardState<T>(value: T): T {

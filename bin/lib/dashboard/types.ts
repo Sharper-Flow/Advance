@@ -7,6 +7,12 @@ export interface DashboardDegradedSource {
   last_success_at?: string;
   retry_after_seconds?: number;
   rate_limit_reset_at?: string;
+  setup?: {
+    title: string;
+    message: string;
+    commands: string[];
+    env_vars: string[];
+  };
 }
 
 export interface DashboardGithubConfig {

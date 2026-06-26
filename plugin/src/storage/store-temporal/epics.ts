@@ -10,7 +10,7 @@ import {
   changeProjectionStatusUpdatedSignal,
   changeUnlinkedSignal,
   entriesReorderedSignal,
-  getEpicQuery,
+  getEpicStateQuery,
 } from "../../temporal/messages";
 import { runTemporal, runTemporalQuery, type StoreDeps } from "./shared";
 
@@ -61,9 +61,23 @@ function extractMutationRejection(
 async function queryEpicState(
   handle: EpicHandleLike,
 ): Promise<import("../../temporal/contracts").EpicWorkflowState> {
-  return runTemporalQuery(() => handle.query(getEpicQuery)) as Promise<
-    import("../../temporal/contracts").EpicWorkflowState
-  >;
+  const state = await runTemporalQuery(() => handle.query(getEpicStateQuery));
+  if (!isEpicWorkflowState(state)) {
+    throw new Error("Epic workflow state query returned malformed state");
+  }
+  return state;
+}
+
+function isEpicWorkflowState(
+  value: unknown,
+): value is import("../../temporal/contracts").EpicWorkflowState {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "epic" in value &&
+    typeof (value as { epic?: unknown }).epic === "object" &&
+    (value as { epic?: unknown }).epic !== null
+  );
 }
 
 function isWorkflowNotFoundError(error: unknown): boolean {

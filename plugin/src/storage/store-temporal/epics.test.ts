@@ -17,7 +17,7 @@ import {
   changeLinkedSignal,
   changeUnlinkedSignal,
   entriesReorderedSignal,
-  getEpicQuery,
+  getEpicStateQuery,
 } from "../../temporal/messages";
 import type { Epic, EpicWorkflowState } from "../../types";
 
@@ -102,7 +102,21 @@ describe("createEpicOps", () => {
     const result = await ops.get("addAuthEpic");
     expect(result.success).toBe(true);
     expect(result.data?.title).toBe("Add Auth Epic");
-    expect(queryMock).toHaveBeenCalledWith(getEpicQuery);
+    expect(queryMock).toHaveBeenCalledWith(getEpicStateQuery);
+  });
+
+  test("get treats an Epic-only query response as unreadable state", async () => {
+    const { deps, queryMock } = setup();
+    queryMock.mockResolvedValue(makeEpic());
+
+    const ops = createEpicOps(deps);
+    const result = await ops.get("addAuthEpic");
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.type).toBe("read_error");
+    }
+    expect(queryMock).toHaveBeenCalledWith(getEpicStateQuery);
   });
 
   test("update fires epicUpdated with expected version", async () => {

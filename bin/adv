@@ -11,7 +11,7 @@
 
 import { join } from "path";
 import { parseArgs } from "node:util";
-import { readFile } from "fs/promises";
+import { mkdir, readFile, writeFile } from "fs/promises";
 
 import { listChanges } from "./lib/changes";
 import {
@@ -29,7 +29,18 @@ import {
 import { readSnapshotFile, renderRoadmap, roadmapJson } from "./lib/roadmap";
 import { runSlopScan } from "./lib/slop-scan/scan";
 import { renderSlopScanReport } from "./lib/slop-scan/render";
-import { parseDashboardConfig } from "./lib/dashboard/config";
+import {
+  createDashboardProfileConfig,
+  parseDashboardConfig,
+  type DashboardProfile,
+} from "./lib/dashboard/config";
+import {
+  buildDashboardDoctorReport,
+  buildDashboardServiceUnit,
+  dashboardServicePaths,
+  DASHBOARD_PORT_IN_USE_EXIT_CODE,
+  type CommandResult,
+} from "./lib/dashboard/service";
 import {
   createDashboardHandler,
   normalizeDashboardServerOptions,
@@ -201,6 +212,9 @@ async function runSlopScanCommand(
 }
 
 async function runDashboard(argv: string[]): Promise<number> {
+  if (argv[0] === "install") return runDashboardInstall(argv.slice(1));
+  if (argv[0] === "doctor") return runDashboardDoctor(argv.slice(1));
+
   let values: Record<string, unknown>;
   try {
     const parsed = parseArgs({
@@ -275,13 +289,167 @@ async function runDashboard(argv: string[]): Promise<number> {
   }
 
   const handler = createDashboardHandler({ config: parsedConfig.config });
-  const server = bun.serve({
-    hostname: serverOptions.host,
-    port: serverOptions.port,
-    fetch: handler,
-  });
+  let server: { hostname: string; port: number };
+  try {
+    server = bun.serve({
+      hostname: serverOptions.host,
+      port: serverOptions.port,
+      fetch: handler,
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    if (isAddressInUseError(message)) {
+      process.stderr.write(
+        `dashboard: port ${serverOptions.port} is already in use on ${serverOptions.host}; stop the existing process or choose an explicit --port for a manual preview\n`,
+      );
+      return DASHBOARD_PORT_IN_USE_EXIT_CODE;
+    }
+    process.stderr.write(`dashboard: failed to start server: ${message}\n`);
+    return 2;
+  }
   process.stdout.write(`adv dashboard listening at http://${server.hostname}:${server.port}\n`);
   return await new Promise<number>(() => undefined);
+}
+
+async function runDashboardInstall(argv: string[]): Promise<number> {
+  const parsed = parseDashboardProfileArgs("dashboard install", argv);
+  if (!parsed.ok) return parsed.exitCode;
+  const { profile, homeDir, dryRun } = parsed;
+  const paths = dashboardServicePaths(profile, homeDir);
+  const unit = buildDashboardServiceUnit({
+    profile,
+    advPath: process.argv[1] ?? "adv",
+    homeDir,
+    pathEnv: process.env.PATH ?? "/usr/bin:/bin",
+  });
+
+  if (dryRun) {
+    process.stdout.write(renderDashboardInstallPlan(paths, unit));
+    return 0;
+  }
+
+  await mkdir(join(homeDir, ".config", "advance", "dashboard"), { recursive: true });
+  await mkdir(paths.serviceDir, { recursive: true });
+  await writeFile(
+    paths.configPath,
+    JSON.stringify(createDashboardProfileConfig(profile), null, 2) + "\n",
+  );
+  await writeFile(paths.servicePath, unit);
+  const reload = await runCommand(["systemctl", "--user", "daemon-reload"]);
+  if (reload.exitCode !== 0) return commandFailure("dashboard install", reload);
+  const enable = await runCommand(["systemctl", "--user", "enable", "--now", paths.serviceName]);
+  if (enable.exitCode !== 0) return commandFailure("dashboard install", enable);
+  process.stdout.write(`installed ${paths.serviceName}\nopen http://127.0.0.1:8765/\n`);
+  return 0;
+}
+
+async function runDashboardDoctor(argv: string[]): Promise<number> {
+  const parsed = parseDashboardProfileArgs("dashboard doctor", argv);
+  if (!parsed.ok) return parsed.exitCode;
+  const { profile, homeDir, dryRun } = parsed;
+  const paths = dashboardServicePaths(profile, homeDir);
+
+  if (dryRun) {
+    process.stdout.write(
+      [
+        `doctor profile=${profile}`,
+        `service=${paths.serviceName}`,
+        `config=${paths.configPath}`,
+        `check: loginctl show-user $USER --property=Linger`,
+        `check: systemctl --user status ${paths.serviceName}`,
+        `logs: journalctl --user -u ${paths.serviceName}`,
+        "",
+      ].join("\n"),
+    );
+    return 0;
+  }
+
+  const report = await buildDashboardDoctorReport({ profile, homeDir });
+  for (const check of report.checks) {
+    process.stdout.write(`${check.ok ? "ok" : "fail"}: ${check.code} — ${check.message}\n`);
+  }
+  if (report.remediation.length > 0) {
+    process.stdout.write("remediation:\n");
+    for (const item of report.remediation) process.stdout.write(`- ${item}\n`);
+  }
+  return report.ok ? 0 : 1;
+}
+
+function parseDashboardProfileArgs(
+  label: string,
+  argv: string[],
+):
+  | { ok: true; profile: DashboardProfile; homeDir: string; dryRun: boolean }
+  | { ok: false; exitCode: number } {
+  let values: Record<string, unknown>;
+  try {
+    const parsed = parseArgs({
+      args: argv,
+      options: {
+        profile: { type: "string" },
+        "dry-run": { type: "boolean" },
+        home: { type: "string" },
+      },
+      allowPositionals: false,
+      strict: true,
+    });
+    values = parsed.values as Record<string, unknown>;
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    process.stderr.write(`${label}: ${msg}\n`);
+    return { ok: false, exitCode: 2 };
+  }
+  if (values.profile !== "pokeedge") {
+    process.stderr.write(`${label}: --profile pokeedge is required\n`);
+    return { ok: false, exitCode: 2 };
+  }
+  return {
+    ok: true,
+    profile: "pokeedge",
+    homeDir: typeof values.home === "string" ? values.home : process.env.HOME ?? "",
+    dryRun: Boolean(values["dry-run"]),
+  };
+}
+
+function renderDashboardInstallPlan(
+  paths: ReturnType<typeof dashboardServicePaths>,
+  unit: string,
+): string {
+  return [
+    `install ${paths.serviceName}`,
+    `write config: ${paths.configPath}`,
+    `write unit: ${paths.servicePath}`,
+    "unit:",
+    unit.trimEnd(),
+    `run: systemctl --user daemon-reload`,
+    `run: systemctl --user enable --now ${paths.serviceName}`,
+    "open: http://127.0.0.1:8765/",
+    "",
+  ].join("\n");
+}
+
+async function runCommand(cmd: string[]): Promise<CommandResult> {
+  const bun = (globalThis as any).Bun;
+  if (!bun || typeof bun.spawn !== "function") {
+    return { exitCode: 127, stdout: "", stderr: "Bun.spawn unavailable" };
+  }
+  const proc = bun.spawn(cmd, { stdout: "pipe", stderr: "pipe" });
+  const [stdout, stderr, exitCode] = await Promise.all([
+    new Response(proc.stdout).text(),
+    new Response(proc.stderr).text(),
+    proc.exited,
+  ]);
+  return { exitCode, stdout, stderr };
+}
+
+function commandFailure(label: string, result: CommandResult): number {
+  process.stderr.write(`${label}: command failed (${result.exitCode})\n`);
+  if (result.stderr.trim()) process.stderr.write(`${result.stderr.trim()}\n`);
+  return 2;
+}
+
+function isAddressInUseError(message: string): boolean {
+  return /EADDRINUSE|address already in use|Failed to start server/i.test(message);
 }
 
 function runHelp(): number {
@@ -294,6 +462,8 @@ USAGE:
 SUBCOMMANDS:
   status      (default)  Show active changes table
   dashboard            Run local read-only ADV/GitHub dashboard
+  dashboard install     Install a dashboard user service profile
+  dashboard doctor      Check dashboard user service health
   roadmap              Show prioritized backlog from file snapshot
   slop-scan            Run deterministic slop scanner
 
@@ -315,6 +485,10 @@ FLAGS (dashboard only):
       --port <N>           Local port (default: 8765)
       --host <host>        Bind host (default: 127.0.0.1)
       --allow-network-host Explicitly allow non-loopback host
+
+FLAGS (dashboard install/doctor):
+      --profile pokeedge   Use the PokeEdge dashboard profile
+      --dry-run            Print planned writes/checks without mutating
 
 EXIT CODES:
   0  Success

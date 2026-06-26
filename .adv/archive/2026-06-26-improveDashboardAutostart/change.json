@@ -1,0 +1,1796 @@
+{
+  "id": "improveDashboardAutostart",
+  "title": "Improve dashboard autostart",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-06-26T00:36:05.048Z",
+  "tasks": [
+    {
+      "id": "tk-0bc2f4f9410c",
+      "title": "Add PokeEdge dashboard profile and default config generation",
+      "type": "code",
+      "section": "Profile and config",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-06-26T01:21:52.397Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed",
+        "frontend": "false"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC3",
+          "SC2",
+          "C3"
+        ],
+        "verifies": [
+          "AC3"
+        ],
+        "respects": [
+          "C7",
+          "OOS6"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-26T01:29:37.876Z",
+      "verification": "RED tr_mqu99814_d6cd792b failed for missing profile config exports. GREEN tr_mqu9d3uc_a6103f20 passed config profile tests. Same implementation slice also has GREEN evidence for fixed-port, cache/coalescing, and GitHub auth fallback tasks.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added typed PokeEdge dashboard profile helpers: `createPokeEdgeDashboardConfig`, `createDashboardProfileConfig`, and `dashboardProfileConfigPath`. Default config covers `/home/jon/dev/pokeedge` → `Sharper-Flow/PokeEdge` and `/home/jon/dev/pokeedge-web` → `Sharper-Flow/PokeEdge-Web`; path resolves to user config under `.config/advance/dashboard/pokeedge.json`.",
+      "filesTouched": [
+        "bin/adv",
+        "bin/dashboard-cli.test.ts",
+        "bin/lib/dashboard/config.test.ts",
+        "bin/lib/dashboard/config.ts",
+        "bin/lib/dashboard/github.test.ts",
+        "bin/lib/dashboard/github.ts",
+        "bin/lib/dashboard/server.test.ts",
+        "bin/lib/dashboard/server.ts",
+        "bin/lib/dashboard/types.ts"
+      ],
+      "touched_files": [
+        "bin/adv",
+        "bin/dashboard-cli.test.ts",
+        "bin/lib/dashboard/config.test.ts",
+        "bin/lib/dashboard/config.ts",
+        "bin/lib/dashboard/github.test.ts",
+        "bin/lib/dashboard/github.ts",
+        "bin/lib/dashboard/server.test.ts",
+        "bin/lib/dashboard/server.ts",
+        "bin/lib/dashboard/types.ts"
+      ],
+      "checkpointSha": "b12aa9e3a80575d7b4cc6a6a69b4da93fb4a4fa4",
+      "completedAt": "2026-06-26T01:35:04.783Z",
+      "completed_at": "2026-06-26T01:35:04.783Z",
+      "notes": "Completed. RED tr_mqu99814_d6cd792b; GREEN tr_mqu9d3uc_a6103f20. Checkpoint b12aa9e3.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "RED missing dashboardProfileConfigPath/createPokeEdgeDashboardConfig exports",
+            "diagnosis": "Profile/default config helpers did not exist yet.",
+            "fix_tried": "Added profile helpers and tests.",
+            "strategy_label": "add-typed-profile-helpers",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-26T01:32:00.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-26T01:36:25.077Z"
+    },
+    {
+      "id": "tk-7804b61a1f83",
+      "title": "Harden fixed-port dashboard server startup and collision behavior",
+      "type": "code",
+      "section": "Server lifecycle",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-06-26T01:22:12.424Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed",
+        "frontend": "false"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC4",
+          "C4"
+        ],
+        "verifies": [
+          "AC4"
+        ],
+        "respects": [
+          "C3",
+          "DONT7"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-26T01:29:37.895Z",
+      "verification": "RED tr_mqu998p8_05615678 failed because occupied-port dashboard exit code was 1 instead of required 75. GREEN tr_mqu9d4d5_f4404a80 passed dashboard CLI fixed-port collision tests.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added fixed-port startup error handling. `adv dashboard` now detects address-in-use startup failures, emits a clear diagnostic for the configured host/port, and exits with distinct code 75 instead of silently falling back or throwing an unclassified process error.",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "b12aa9e3a80575d7b4cc6a6a69b4da93fb4a4fa4",
+      "completedAt": "2026-06-26T01:35:30.835Z",
+      "completed_at": "2026-06-26T01:35:30.835Z",
+      "notes": "Completed. RED tr_mqu998p8_05615678; GREEN tr_mqu9d4d5_f4404a80. Checkpoint b12aa9e3.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "RED occupied-port test received exit code 1 instead of 75",
+            "diagnosis": "Bun.serve exceptions were not classified by dashboard CLI.",
+            "fix_tried": "Caught startup errors and mapped EADDRINUSE/address-in-use to exit 75 with fixed-port diagnostic.",
+            "strategy_label": "classify-port-collision",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-26T01:32:00.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-26T01:36:25.106Z"
+    },
+    {
+      "id": "tk-4c6f443940b6",
+      "title": "Add dashboard install and doctor commands for PokeEdge user service",
+      "type": "code",
+      "section": "Service installation",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-06-26T01:22:35.731Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-0bc2f4f9410c"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-7804b61a1f83"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required",
+        "frontend": "false"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC3",
+          "SC1",
+          "SC2",
+          "C1"
+        ],
+        "verifies": [
+          "AC1",
+          "AC3"
+        ],
+        "respects": [
+          "C5",
+          "C7",
+          "OOS6"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-26T01:38:26.229Z",
+      "verification": "RED tr_mqu9k3ah_d6374b85 failed for missing install/doctor CLI and service module. GREEN tr_mqu9oxzv_64bda9f3 passed dashboard CLI install/doctor dry-run and service tests. UI task green tr_mqu9oa0g_22d0d847 also passed in same slice.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added `adv dashboard install --profile pokeedge` and `adv dashboard doctor --profile pokeedge`, with dry-run visibility for tests/docs. Install writes default config and user systemd unit, then runs `systemctl --user daemon-reload` and `enable --now`; doctor reports config, unit, linger, service-active checks and remediation.",
+      "filesTouched": [
+        "bin/adv",
+        "bin/dashboard-cli.test.ts",
+        "bin/lib/dashboard/service.test.ts",
+        "bin/lib/dashboard/service.ts",
+        "bin/lib/dashboard/ui.test.ts",
+        "bin/lib/dashboard/ui.ts"
+      ],
+      "touched_files": [
+        "bin/adv",
+        "bin/dashboard-cli.test.ts",
+        "bin/lib/dashboard/service.test.ts",
+        "bin/lib/dashboard/service.ts",
+        "bin/lib/dashboard/ui.test.ts",
+        "bin/lib/dashboard/ui.ts"
+      ],
+      "checkpointSha": "8bf368da5f2c14bb429f95e8da3dc75b559bda80",
+      "completedAt": "2026-06-26T01:44:03.478Z",
+      "completed_at": "2026-06-26T01:44:03.478Z",
+      "notes": "Completed. RED tr_mqu9k3ah_d6374b85; GREEN tr_mqu9oxzv_64bda9f3. Checkpoint 8bf368d.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "RED missing install/doctor CLI and service module",
+            "diagnosis": "Dashboard subcommand only supported serving from explicit config.",
+            "fix_tried": "Added dashboard install/doctor routing, profile arg parsing, config/unit write path, systemctl integration, and dry-run output.",
+            "strategy_label": "add-profile-service-cli",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-26T01:42:00.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-26T01:45:12.644Z"
+    },
+    {
+      "id": "tk-c257b823b337",
+      "title": "Add linger handling and restart-safe systemd unit generation",
+      "type": "code",
+      "section": "Service installation",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-06-26T01:23:00.485Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-7804b61a1f83"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed",
+        "frontend": "false"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC4",
+          "SC1"
+        ],
+        "verifies": [
+          "AC2",
+          "AC4"
+        ],
+        "respects": [
+          "C3",
+          "C4",
+          "C5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-26T01:38:28.085Z",
+      "verification": "RED tr_mqu9k2lk_84900c75 failed for missing service module. GREEN tr_mqu9ox8b_377a0ba2 passed service unit, RestartPreventExitStatus, default.target, and linger remediation tests.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added user systemd unit generation with `WantedBy=default.target`, `Restart=on-failure`, `RestartPreventExitStatus=75`, `StartLimitIntervalSec=60`, `StartLimitBurst=3`, journal logging, and PATH environment. Added linger parsing and doctor remediation for disabled lingering via `loginctl enable-linger`.",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "8bf368da5f2c14bb429f95e8da3dc75b559bda80",
+      "completedAt": "2026-06-26T01:44:22.001Z",
+      "completed_at": "2026-06-26T01:44:22.001Z",
+      "notes": "Completed. RED tr_mqu9k2lk_84900c75; GREEN tr_mqu9ox8b_377a0ba2. Checkpoint 8bf368d.",
+      "error_recovery": {
+        "last_error": "Initial green run failed because test expected exact remediation without username.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "RED missing service module",
+            "diagnosis": "No structural systemd unit generation or linger parsing existed.",
+            "fix_tried": "Added service module with unit generation and doctor checks.",
+            "strategy_label": "service-unit-and-linger-module",
+            "outcome": "failed",
+            "attempted_at": "2026-06-26T01:42:00.000Z"
+          },
+          {
+            "attempt_number": 2,
+            "error": "Green test expected exact `loginctl enable-linger`, received `loginctl enable-linger jon`.",
+            "diagnosis": "Implementation correctly includes username; test assertion was too strict.",
+            "fix_tried": "Adjusted test to assert remediation prefix.",
+            "strategy_label": "fix-remediation-assertion",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-26T01:43:00.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-26T01:45:12.760Z"
+    },
+    {
+      "id": "tk-9dcd9f1741fa",
+      "title": "Add dashboard state cache and in-flight refresh coalescing",
+      "type": "code",
+      "section": "Runtime performance",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-06-26T01:23:23.430Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed",
+        "frontend": "false"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC7",
+          "AC8",
+          "SC4",
+          "C6"
+        ],
+        "verifies": [
+          "AC7",
+          "AC8"
+        ],
+        "respects": [
+          "C8",
+          "DONT7"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-26T01:29:37.925Z",
+      "verification": "RED tr_mqu998aq_b4d3d04f failed for missing createDashboardStateProvider export. GREEN tr_mqu9d40u_d6ce5feb passed server cache/coalescing tests.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added `createDashboardStateProvider`, giving `/api/state` a server-lifetime TTL cache keyed to `refresh_seconds` plus in-flight refresh coalescing. Default handler now creates one provider at server startup; pure `buildDashboardState` remains available for direct tests/callers.",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "b12aa9e3a80575d7b4cc6a6a69b4da93fb4a4fa4",
+      "completedAt": "2026-06-26T01:35:30.916Z",
+      "completed_at": "2026-06-26T01:35:30.916Z",
+      "notes": "Completed. RED tr_mqu998aq_b4d3d04f; GREEN tr_mqu9d40u_d6ce5feb. Checkpoint b12aa9e3.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "RED missing createDashboardStateProvider export",
+            "diagnosis": "Handler rebuilt state directly on every `/api/state` request.",
+            "fix_tried": "Added cached/coalesced state provider and wired default handler to use it.",
+            "strategy_label": "server-lifetime-state-provider",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-26T01:32:00.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-26T01:36:25.127Z"
+    },
+    {
+      "id": "tk-f1617f2683a9",
+      "title": "Add GitHub CLI auth fallback and structured setup metadata",
+      "type": "code",
+      "section": "GitHub auth",
+      "status": "done",
+      "priority": 5,
+      "created_at": "2026-06-26T01:23:44.316Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed",
+        "frontend": "false"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC5",
+          "AC6",
+          "SC5"
+        ],
+        "verifies": [
+          "AC5",
+          "AC6"
+        ],
+        "respects": [
+          "C7",
+          "DONT6"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-26T01:29:37.926Z",
+      "verification": "RED tr_mqu9985g_580a0cdf failed for missing GitHub token-provider exports. GREEN tr_mqu9d3vo_29b2db8c passed GitHub CLI fallback and safe degraded setup metadata tests.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added bounded `gh auth token` fallback behind `createDefaultGitHubTokenProvider`, preserving `GITHUB_TOKEN` priority. Added fakeable CLI execution for tests. Auth-unavailable degradation now includes sanitized setup metadata (`gh auth login`, `GITHUB_TOKEN`) without raw stderr or secret material.",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "b12aa9e3a80575d7b4cc6a6a69b4da93fb4a4fa4",
+      "completedAt": "2026-06-26T01:35:32.349Z",
+      "completed_at": "2026-06-26T01:35:32.349Z",
+      "notes": "Completed. RED tr_mqu9985g_580a0cdf; GREEN tr_mqu9d3vo_29b2db8c. Checkpoint b12aa9e3.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "RED missing default/gh CLI token-provider exports",
+            "diagnosis": "GitHub client only read `GITHUB_TOKEN`, so locally authenticated gh CLI users degraded unnecessarily.",
+            "fix_tried": "Added env-first default token provider with bounded/fakeable gh CLI fallback and safe setup metadata.",
+            "strategy_label": "env-then-gh-cli-provider",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-26T01:32:00.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-26T01:36:25.140Z"
+    },
+    {
+      "id": "tk-8c9fc79ef5be",
+      "title": "Render inline GitHub setup card and preserve read-only UI behavior",
+      "type": "code",
+      "section": "Dashboard UI",
+      "status": "done",
+      "priority": 6,
+      "created_at": "2026-06-26T01:24:10.438Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-f1617f2683a9"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed",
+        "frontend": "true"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC6",
+          "AC8",
+          "AC9",
+          "SC3",
+          "SC5"
+        ],
+        "verifies": [
+          "AC6",
+          "AC9"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C7",
+          "DONT2",
+          "DONT6"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-26T01:38:30.116Z",
+      "verification": "RED tr_mqu9k2ly_425c6c5e failed because setup card markup was absent. GREEN tr_mqu9oa0g_22d0d847 passed UI setup-card and read-only control tests.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added inline GitHub auth setup card rendering for `GITHUB_AUTH_UNAVAILABLE`, using sanitized setup metadata or safe fallback copy. Card shows `gh auth login` and `GITHUB_TOKEN`; existing read-only/mutation-control tests remain green.",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "8bf368da5f2c14bb429f95e8da3dc75b559bda80",
+      "completedAt": "2026-06-26T01:44:22.015Z",
+      "completed_at": "2026-06-26T01:44:22.015Z",
+      "notes": "Completed. RED tr_mqu9k2ly_425c6c5e; GREEN tr_mqu9oa0g_22d0d847. Checkpoint 8bf368d.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "RED setup card markup/function missing from dashboard shell",
+            "diagnosis": "Auth-unavailable degraded source rendered as generic degraded item only.",
+            "fix_tried": "Added setup card CSS and `githubSetupHtml` rendering for GitHub auth-unavailable degraded source.",
+            "strategy_label": "safe-auth-setup-card",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-26T01:42:00.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-26T01:45:14.113Z"
+    },
+    {
+      "id": "tk-89f29d4b5303",
+      "title": "Document dashboard autostart install, health, logs, linger, and uninstall",
+      "type": "docs",
+      "section": "Documentation",
+      "status": "done",
+      "priority": 7,
+      "created_at": "2026-06-26T01:24:36.780Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-4c6f443940b6"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-c257b823b337"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-8c9fc79ef5be"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "delegate_allowed",
+        "frontend": "false"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "SC5"
+        ],
+        "verifies": [],
+        "respects": [
+          "C1",
+          "C2",
+          "C5",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "artifact_reference",
+      "assignedTo": "agent",
+      "started_at": "2026-06-26T01:45:34.252Z",
+      "verification": "README local dashboard section documents install, stable URL, PokeEdge projects, health/log commands, lingering, disable/uninstall, fixed-port collision, GitHub auth/setup card, and local-only/read-only/no-auto-open constraints. VERIFY tr_mqu9t3xf_a34f91ab passed dashboard CLI help/install/doctor tests.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Updated README Local dashboard section with PokeEdge autostart service instructions and updated `adv --help` to list `dashboard install` and `dashboard doctor` profile flags.",
+      "filesTouched": [
+        "README.md",
+        "bin/adv"
+      ],
+      "touched_files": [
+        "README.md",
+        "bin/adv"
+      ],
+      "checkpointSha": "c9c83a4450a69a32103e3fbe2c9781f78ddb862a",
+      "completedAt": "2026-06-26T01:47:14.892Z",
+      "completed_at": "2026-06-26T01:47:14.892Z",
+      "notes": "Completed. Artifact evidence: README.md lines 149-247 cover install, stable URL, profile projects, health/log commands, lingering, disable/uninstall, fixed-port behavior, GitHub auth/setup card, and local-only/read-only/no-auto-open constraints. VERIFY tr_mqu9t3xf_a34f91ab passed dashboard CLI help/install/doctor tests. Checkpoint c9c83a4.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "updatedAt": "2026-06-26T01:47:29.469Z"
+    },
+    {
+      "id": "tk-0dca566f6011",
+      "title": "Run integrated autostart dashboard verification",
+      "type": "verification",
+      "section": "Verification",
+      "status": "done",
+      "priority": 8,
+      "created_at": "2026-06-26T01:25:03.557Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-4c6f443940b6"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-c257b823b337"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-9dcd9f1741fa"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-8c9fc79ef5be"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-89f29d4b5303"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "inline_required",
+        "frontend": "false"
+      },
+      "contract_refs": {
+        "implements": [],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7",
+          "AC8",
+          "AC9",
+          "SC1",
+          "SC2",
+          "SC3",
+          "SC4",
+          "SC5"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "C7",
+          "C8",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "DONT6",
+          "DONT7",
+          "OOS1",
+          "OOS2",
+          "OOS3",
+          "OOS4",
+          "OOS5",
+          "OOS6"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-26T01:47:57.264Z",
+      "verification": "VERIFY tr_mqu9uvzi_93294154 passed `bun test bin/` — 149 tests across 23 files. Git status/diff in Advance worktree clean after checkpoints. PokeEdge source repos were not used as workdirs or mutation targets; status check only observed existing untracked files in /home/jon/dev/pokeedge.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Integrated verification covered profile/default config, install/doctor dry-run, fixed-port collision exit 75, restart-safe service unit/linger remediation, state cache/coalescing, GitHub CLI auth fallback, setup-card UI, read-only routes, and full bin regression suite.",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "c9c83a4450a69a32103e3fbe2c9781f78ddb862a",
+      "completedAt": "2026-06-26T01:48:51.890Z",
+      "completed_at": "2026-06-26T01:48:51.890Z",
+      "notes": "Completed. VERIFY tr_mqu9uvzi_93294154 passed `bun test bin/` — 149 tests across 23 files, 417 expects, 0 failures. Advance worktree clean after checkpoints. PokeEdge repos were not mutation targets; status check observed existing untracked files in /home/jon/dev/pokeedge only.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "updatedAt": "2026-06-26T01:49:09.034Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "improveDashboardAutostart",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:discovery-opportunity-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Discovery opportunity scout — dashboard login-start, stable URL, low CPU/API, GitHub auth guidance",
+      "sources": [
+        {
+          "label": "bin/lib/dashboard/server.ts createDashboardHandler default stateBuilder",
+          "locator": "/home/jon/dev/advance/bin/lib/dashboard/server.ts:248-250 + :54",
+          "summary": "Per-request default stateBuilder calls buildDashboardState(config), which constructs a fresh createGitHubDashboardClient each request. The ETag cache Map lives inside that client, so it is discarded on every /api/state poll — no server-side response cache/TTL."
+        },
+        {
+          "label": "bin/lib/dashboard/github.ts readRepository fan-out",
+          "locator": "/home/jon/dev/advance/bin/lib/dashboard/github.ts:85-117",
+          "summary": "Each repo read fans out to pulls + actions/runs + deployments, then one statuses call PER deployment (up to 30). Every poll re-fetches all endpoints for all projects with no warm ETag cache, directly stressing the low-CPU/API constraint."
+        },
+        {
+          "label": "bin/lib/dashboard/github.ts createEnvTokenProvider",
+          "locator": "/home/jon/dev/advance/bin/lib/dashboard/github.ts:49-54,87-90",
+          "summary": "Token provider only reads GITHUB_TOKEN env; absence yields GITHUB_AUTH_UNAVAILABLE degraded source. Environment has gh CLI authenticated but no GITHUB_TOKEN, so dashboard would degrade despite available auth."
+        },
+        {
+          "label": "gh auth token (GitHub CLI manual)",
+          "locator": "https://cli.github.com/manual/gh_auth_token",
+          "summary": "`gh auth token` outputs the active account auth token for scripts — canonical, boring fallback to bridge gh-authenticated environments without exporting GITHUB_TOKEN."
+        },
+        {
+          "label": "systemd user service WantedBy=default.target (man systemd.special / Unix StackExchange)",
+          "locator": "https://unix.stackexchange.com/questions/597990/enabled-systemd-user-service-doesnt-start-at-login",
+          "summary": "For non-GUI user services, WantedBy=default.target (with loginctl enable-linger for boot-time) is the canonical login-start mechanism. There is no user multi-user.target. Matches existing temporal-dev.service / vision.service repo precedent (Type=simple, Restart=on-failure, WantedBy=default.target)."
+        },
+        {
+          "label": "bin/adv dashboard dispatcher requires --config",
+          "locator": "/home/jon/dev/advance/bin/adv:225-256",
+          "summary": "dashboard subcommand hard-requires --config absolute path and per-project github owner/repo; no default/generated config path exists for a login-started service to consume."
+        }
+      ],
+      "architecture_assessment": "The proposal's stated constraints (login-start, stable URL, low CPU/API, GitHub-auth guidance) map cleanly onto the existing dashboard with NO new architecture. The dominant risk is the existing per-request GitHub fan-out with a discarded ETag cache: a login-started background service that is polled by one or more open browser tabs every 30-60s will multiply API calls and conflict with the low-CPU/API constraint. The boring, proven fixes are: (1) a single long-lived stateBuilder closure that reuses one GitHubDashboardClient (preserving its ETag cache) plus a short server-side TTL so concurrent tabs share one upstream fetch; (2) a `gh auth token` fallback in the token provider to use the already-available gh auth; (3) a `WantedBy=default.target` user systemd unit mirroring the repo's existing temporal-dev/vision services; (4) a default/generated config for the two PokeEdge repos so the service has something to serve at login. All four are in-scope and tie to stated constraints. No candidate proposes hosted service, mutation, analytics, or browser auto-open.",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "No release/security/contract blockers. Caution flag is for the cache-reuse candidate: it is a behavior change to the server lifecycle (long-lived client + TTL) that must preserve per-request degraded-source isolation already present in readAdvProjectSafely/readGitHubProjectSafely. The two CLARIFY warnings on the change (auth model, error handling) are partially answered here: auth model = read-only gh token via `gh auth token`, no auth material persisted (sanitizeDashboardState already redacts); error handling = existing per-source degraded model plus a clear GitHub setup prompt. Token sanitization path (config.ts sanitizeString/isSecretKey) already covers the must-not-expose-secrets constraint."
+      },
+      "recommendation": "Adopt now into the agreement: (A) reuse a single GitHubDashboardClient across requests + add a short server-side state TTL/in-flight de-dupe so the ETag cache survives and concurrent browser tabs share one upstream read — this is the primary lever for the low-CPU/API constraint. (B) Extend the token provider with a `gh auth token` fallback when GITHUB_TOKEN is unset, and reshape GITHUB_AUTH_UNAVAILABLE into actionable setup guidance (run `gh auth login`). (C) Ship a WantedBy=default.target user systemd unit modeled on existing temporal-dev.service/vision.service (Type=simple, Restart=on-failure) for login-start + stable http://127.0.0.1:8765 URL. (D) Provide a default/generated config for ~/dev/pokeedge and ~/dev/pokeedge-web so --config is satisfied at login. Surface to user: confirm fixed port 8765 reservation and exact stable URL, and confirm `gh auth token` invocation is acceptable (it shells out to gh). Defer: missing-project tolerance polish beyond existing per-source degradation.",
+      "follow_ups": [
+        "Confirm with user: reserve port 8765 and stable URL http://127.0.0.1:8765 as the daily URL, including collision behavior when port is taken.",
+        "Confirm with user: token provider may shell out to `gh auth token` (subprocess) vs env-only — affects the auth model CLARIFY warning.",
+        "Design phase: decide default-config location (user-level XDG vs Advance-owned generated file) so observed PokeEdge repos do not require repo-local config files.",
+        "Verify low-CPU/API claim empirically in design/acceptance: measure GitHub API calls per refresh interval with N open tabs before vs after client/TTL reuse."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "improveDashboardAutostart",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-leverage-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design leverage scout — dashboard autostart: port-collision loudness, restart-loop guard, linger self-enable, cache lifecycle, gh-token fallback",
+      "sources": [
+        {
+          "label": "bin/adv runDashboard Bun.serve — no try/catch, no reusePort",
+          "locator": "/home/jon/dev/advance/bin/adv:271-285",
+          "summary": "runDashboard calls bun.serve({hostname,port,fetch}) with NO try/catch and NO reusePort:false. On port collision it relies entirely on Bun's default listen behavior — which historically did not throw (SO_REUSEPORT). AC4/C4 (fail loudly, no silent fallback) is not structurally guaranteed today."
+        },
+        {
+          "label": "Bun GitHub #1443 / #7207 — Bun.serve silent port reuse",
+          "locator": "https://github.com/oven-sh/bun/issues/1443",
+          "summary": "Bun.serve did not throw on port-in-use because reusePort/SO_REUSEPORT was the implicit default; later made explicit via reusePort:true. Two servers could bind the same port silently. Design must verify current Bun throws EADDRINUSE on a real bound port and explicitly set reusePort:false, then map the error to a distinct non-restart exit code."
+        },
+        {
+          "label": "systemd.service(5) RestartPreventExitStatus + StartLimitIntervalSec/Burst",
+          "locator": "https://www.freedesktop.org/software/systemd/man/252/systemd.service.html",
+          "summary": "RestartPreventExitStatus= is the canonical mechanism to stop auto-restart for a specific fatal exit code regardless of Restart=. StartLimitIntervalSec/StartLimitBurst is the rate-limit backstop. Design point 4 is by-the-book; pairing both is defense-in-depth against a restart storm on persistent port collision."
+        },
+        {
+          "label": "loginctl(1) enable-linger — no root for self",
+          "locator": "https://freedesktop.org/software/systemd/man/latest/loginctl.html",
+          "summary": "enable-linger with no USER arg targets the caller's own user and spawns a user manager at boot kept across logouts — does not require root for self. Installer/doctor CAN self-enable linger for the current user without sudo, enabling a one-shot AC2 remediation rather than emit-only guidance."
+        },
+        {
+          "label": "buildDashboardState per-request client (discovery scout, re-confirmed)",
+          "locator": "/home/jon/dev/advance/bin/lib/dashboard/server.ts:48-60,236-260",
+          "summary": "createDashboardHandler default stateBuilder calls buildDashboardState(config) per /api/state request; buildDashboardState constructs a fresh createGitHubDashboardClient each call, discarding its in-client ETag cache. No server-side TTL or in-flight de-dupe exists. The stateBuilder injection seam already exists, so a long-lived client + TTL is a low-risk closure swap in runDashboard, not an architecture change."
+        }
+      ],
+      "architecture_assessment": "Draft design maps cleanly onto existing code with no new architecture; the dominant value is in two under-specified correctness risks, not the install scaffolding. (1) PORT-COLLISION LOUDNESS (AC4/C4): runDashboard's bun.serve has no error handling and Bun historically swallowed port-in-use via SO_REUSEPORT — fail-loud is NOT structurally guaranteed. The design must (a) set reusePort:false, (b) wrap serve in try/catch, (c) emit a clear diagnostic, (d) exit with a distinct code wired to RestartPreventExitStatus. These are coupled; doing the systemd RestartPreventExitStatus (point 4) WITHOUT the bun.serve guard leaves the loud-failure path unproven. (2) CACHE LIFECYCLE (AC7/C6/SC4): the per-request fresh GitHub client discards the ETag cache every poll; the existing stateBuilder injection seam makes a long-lived-client + short TTL + in-flight de-dupe a low-risk closure swap. These two are the highest-leverage, contract-tied items. The install/doctor/systemd/config scaffolding (points 1-3,6-8) is boring and correct; the one upgrade is that linger self-enable needs no root, so AC2 remediation can be one-shot rather than emit-only. Add StartLimitIntervalSec/Burst as a restart-storm backstop beyond RestartPreventExitStatus.",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "No release/security/contract blockers. Caution: AC4 (fail loudly on port collision) is currently unproven in code — runDashboard's bun.serve lacks try/catch and reusePort:false, and Bun's historical default was silent reuse. Treat the bun.serve collision guard + distinct exit code as a required design element coupled to the systemd RestartPreventExitStatus, with a TDD red test that binds 8765 first and asserts a non-zero distinct exit + diagnostic. AC7 cache-coalescing requires preserving the existing per-source degraded isolation in readAdvProjectSafely/readGitHubProjectSafely when moving to a long-lived client. No conflict with constraints/avoidances (still local-only, read-only, no browser auto-open)."
+      },
+      "recommendation": "Adopt now (contract-tied, low risk): (A) In runDashboard set reusePort:false, wrap bun.serve in try/catch, emit a clear collision diagnostic, and exit with a distinct dedicated code; wire that code into the systemd unit's RestartPreventExitStatus and add StartLimitIntervalSec/StartLimitBurst as a backstop — closes AC4/C4 and prevents a restart storm. Add a TDD red test that pre-binds 8765 and asserts the distinct non-zero exit. (B) Make runDashboard inject a long-lived stateBuilder that reuses ONE createGitHubDashboardClient (preserving its ETag cache) plus a short server-side TTL (= refresh_seconds) and in-flight /api/state promise de-dupe via the existing stateBuilder seam — closes AC7/SC4/C6 with no architecture change. Design-around: (C) doctor/install may self-enable linger via `loginctl enable-linger` (no root for caller) as a one-shot AC2 remediation, falling back to emit-only guidance if it fails. Surface to user (medium): confirm a fixed dedicated exit code value for port collision and whether doctor should auto-run enable-linger vs only print it. Follow-up: empirically measure GitHub API calls per refresh with N tabs before/after the cache change during acceptance.",
+      "follow_ups": [
+        "TASK_SCOPE/IN_SCOPE/OUT_OF_SCOPE/DONE_WHEN/STOP_WHEN/VERIFICATION anchors were not all present in the packet; proceeded with prompt scope (design-mode leverage scouting) per skill routing.",
+        "Design: pick the concrete distinct exit code for port collision and document it in both bin/adv and the systemd unit RestartPreventExitStatus.",
+        "Acceptance: add a test that binds 8765 first, then starts the dashboard, asserting a distinct non-zero exit and a no-fallback-port diagnostic (AC4).",
+        "Acceptance: measure GitHub API request count per refresh interval with multiple open tabs before vs after the long-lived-client + TTL change (AC7/SC4)."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "improveDashboardAutostart",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation: dashboard autostart (systemd user service, port-collision hardening, runtime cache, gh auth fallback)",
+      "sources": [
+        {
+          "label": "systemd.service(5) — RestartPreventExitStatus / Restart=on-failure",
+          "locator": "https://www.freedesktop.org/software/systemd/man/252/systemd.service.html",
+          "summary": "RestartPreventExitStatus prevents auto-restart for a specific exit code regardless of Restart=; Restart=on-failure is the recommended choice for long-running services. Validates D2 collision exit-code design."
+        },
+        {
+          "label": "systemd.unit(5) — StartLimitIntervalSec/StartLimitBurst",
+          "locator": "https://www.freedesktop.org/software/systemd/man/systemd.unit",
+          "summary": "Start rate limiting is particularly useful in conjunction with Restart=; units exceeding burst within interval are not restarted. Validates D2/D5 restart-storm backstop."
+        },
+        {
+          "label": "systemd#2690 + serverfault — user-service WantedBy=default.target + linger",
+          "locator": "https://github.com/systemd/systemd/issues/2690",
+          "summary": "systemd maintainers: no multi-user.target in --user mode; user services must be WantedBy=default.target. loginctl enable-linger required to run after logout / before first login. Validates D1/D4."
+        },
+        {
+          "label": "GitHub CLI manual — gh auth token",
+          "locator": "https://cli.github.com/manual/gh_auth_token",
+          "summary": "gh auth token prints the auth token for the active account/host. Canonical local-auth fallback. Validates D6."
+        },
+        {
+          "label": "Bun PR #30364 + Bun.serve reference",
+          "locator": "https://github.com/oven-sh/bun/pull/30364",
+          "summary": "Bun.serve throws on bind failure with code EADDRINUSE (now with non-zero errno). reusePort (SO_REUSEPORT) is opt-in, Linux-only, default off. Validates D2 try/catch + no-silent-fallback."
+        },
+        {
+          "label": "Repo evidence — server.ts / github.ts / bin/adv",
+          "locator": "/home/jon/dev/advance/bin/lib/dashboard/server.ts:54,249; github.ts:59-63; bin/adv:278",
+          "summary": "buildDashboardState creates a fresh GitHub client (with per-client ETag cache Map) on every /api/state request, confirming D5 cache-discard rationale. tokenProvider is a pluggable seam and GITHUB_TOKEN handling already exists, confirming D6 is a clean extension. bin/adv Bun.serve has no try/catch, confirming D2 hardening is a real gap. Repo already uses gh subprocess (roadmap.ts, git-finalize.ts) + gh auth status (gh-cli.ts), so D6 follows existing convention."
+        }
+      ],
+      "architecture_assessment": "Design is correct, boring, and well-grounded. All four load-bearing technical decisions match canonical references: (D1/D4) user systemd service with WantedBy=default.target + loginctl enable-linger is the by-the-book mechanism for autostart-after-logout; (D2) Bun.serve throws catchable EADDRINUSE and RestartPreventExitStatus + StartLimit* is the canonical restart-storm backstop; (D5) cache/coalescing addresses a verified per-request client+ETag-discard inefficiency in server.ts; (D6) gh auth token is the canonical fallback and follows existing repo gh-subprocess convention. Design is scoped outside .adv/specs/ spec-law (bin/adv tooling), so no spec conflict is possible. Test seams (fakeable systemctl/loginctl adapters, deterministic unit-content tests, pre-bound-port regression) are appropriate and avoid host mutation.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "VALIDATED. No blockers. Minor non-blocking observations: (1) systemd docs suggest Type=exec over Type=simple for more accurate start-failure reporting (e.g. missing executable) — optional refinement, Type=simple is acceptable. (2) reusePort is Linux-only and already defaults to false; explicitly setting reusePort:false is belt-and-suspenders, correctly hedged by 'where supported'. (3) loginctl enable-linger for the caller's own session can work without sudo via no-arg form, but may be policy-blocked; design's 'attempt then report exact remediation' correctly handles this. (4) Confirm the distinct port-collision exit code does not collide with the existing exit-code 2 used for config/server errors (bin/adv) and exit-code 3 documented for dashboard config errors — pick a dedicated code (e.g. RestartPreventExitStatus target) and keep it disjoint."
+      },
+      "recommendation": "Proceed to planning. Design is VALIDATED against agreement objectives, AC1-AC9, and external canonical docs. During planning, (a) reserve a dedicated, disjoint exit code for port collision and wire it identically into both the Bun catch path and RestartPreventExitStatus; (b) consider Type=exec for the unit; (c) ensure DDC6 adapter seams cover loginctl enable-linger permission-denied so AC2 remediation path is unit-tested without host mutation.",
+      "follow_ups": [
+        "Planning: confirm port-collision exit code is disjoint from existing bin/adv exit codes 2/3 and matches RestartPreventExitStatus.",
+        "Planning: evaluate Type=exec vs Type=simple for adv-dashboard-pokeedge.service per systemd start-failure-reporting guidance.",
+        "Note: lgrep semantic search timed out (8s) during research; fell back to grep/read — no impact on findings completeness."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "improveDashboardAutostart",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/improveDashboardAutostart",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [
+        {
+          "id": "review-praise-1",
+          "label": "praise",
+          "file": "bin/lib/dashboard/server.ts",
+          "line": 52,
+          "what": "Dashboard state provider structurally caches and coalesces refreshes for the configured refresh interval.",
+          "why": "This directly satisfies AC7 while keeping implementation small and testable.",
+          "fix": "n/a"
+        }
+      ],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "bun test bin/"
+        ],
+        "results": "pass",
+        "evidence": "Passed locally: 149 tests across 23 files, 417 expects, 0 failures. Also reviewed known execution evidence runId tr_mqu9uvzi_93294154 with same pass count."
+      },
+      "scope_drift": null,
+      "risks": [],
+      "required_main_agent_actions": [],
+      "required_follow_ups": [],
+      "consumer_warnings": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "improveDashboardAutostart",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/improveDashboardAutostart",
+      "scope": {
+        "kind": "change",
+        "scope_key": "harden:release"
+      },
+      "agent": "adv-reviewer",
+      "phase": "harden",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "Path preflight for 14 delivered files",
+          "git status --short && git diff --stat origin/trunk...HEAD -- delivered files",
+          "grep cleanup/slop patterns in bin dashboard scope",
+          "bun test bin/",
+          "bin/adv slop-scan bin --json"
+        ],
+        "results": "pass",
+        "evidence": "All delivered files present. Diff limited to README.md and bin dashboard/autostart surfaces. bun test bin/ passed: 149 tests, 23 files, 417 expects, 0 failures. slop-scan found 0 findings; detector coverage still shows eslint/knip failed because no root package manifest, ast-grep/jscpd unavailable, Semgrep externally covered by CI. Cleanup grep found no TODO/FIXME/HACK/debugger/console.log/test-only leftovers in dashboard scope."
+      },
+      "scope_drift": null,
+      "risks": [
+        "slop-scan coverage remains partially degraded for eslint/knip/ast-grep/jscpd in this root-level bin surface; deterministic scan findings are zero and Semgrep is externally covered by CI.",
+        "Dashboard install intentionally mutates only user-local config and systemd user service files; operator still needs local systemd/GitHub auth environment for always-on behavior."
+      ],
+      "required_main_agent_actions": [
+        "No blocker/high release actions from harden review; proceed with release/archive if orchestrator-owned release checks remain green."
+      ],
+      "required_follow_ups": [],
+      "consumer_warnings": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "improveDashboardAutostart",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/improveDashboardAutostart",
+      "scope": {
+        "kind": "change",
+        "scope_key": "scanner-bundle:harden"
+      },
+      "agent": "adv-scanner-bundle",
+      "phase": "harden",
+      "scanner_count": 2,
+      "dimensions": [
+        "release-deploy-readiness",
+        "production-readiness",
+        "documentation-hygiene",
+        "cleanup-readiness",
+        "residual-slop-maintainability",
+        "test-coverage"
+      ],
+      "summary": "Release hardening passed. Merge dry-run with origin/trunk succeeded, bin suite passed, deterministic slop scan found zero findings with partial detector degradation, independent harden reviewer returned READY with no findings.",
+      "findings": [
+        {
+          "scanner": "slop-scan",
+          "severity": "info",
+          "summary": "0 findings. Coverage degraded: eslint/knip failed due no root package manifest, ast-grep/jscpd unavailable; Semgrep externally covered by CI.",
+          "evidence": [
+            {
+              "label": "slop scan",
+              "locator": "adv_run_test tr_mqub3x52_fda8a2c6",
+              "summary": "`bin/adv slop-scan bin --json` exit 0; summary findings=0."
+            }
+          ]
+        },
+        {
+          "scanner": "harden-reviewer",
+          "severity": "info",
+          "summary": "READY with 0 blocker/high/nonblocking findings and no changes made.",
+          "evidence": [
+            {
+              "label": "reviewer report",
+              "locator": "improveDashboardAutostart|change:harden:release|adv-reviewer|1",
+              "summary": "Independent harden reviewer inspected release readiness and reran `bun test bin/`."
+            }
+          ]
+        },
+        {
+          "scanner": "merge-compat",
+          "severity": "info",
+          "summary": "Dry-run merge into origin/trunk succeeded cleanly.",
+          "evidence": [
+            {
+              "label": "merge dry-run",
+              "locator": "git merge --no-commit --no-ff origin/trunk",
+              "summary": "Automatic merge went well; merge aborted after dry-run."
+            }
+          ]
+        }
+      ],
+      "follow_ups": [],
+      "consumer_warnings": []
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-LXZe9r",
+      "type": "pattern",
+      "content": "For dashboard/API polling surfaces, keep the pure state-builder function separate from a server-lifetime state provider. Wire handlers to one provider instance at server startup so tests can assert TTL caching and in-flight Promise coalescing without hiding direct builder behavior.",
+      "source_task": "tk-9dcd9f1741fa",
+      "recorded_at": "2026-06-26T01:36:39.036Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-06-26T00:36:34.907Z",
+      "completed_by": "agent",
+      "approval_evidence": "Proposal approved by explicit user reply `approve` after problem framing confirmation. Full proposal persisted with scope, user outcomes, constraints, avoidances, and discovery agenda. B/F/S scan: no critical findings; advisory only for exact low-CPU/API thresholds and stable URL details, carried into discovery. Validation passed with proposal-stage warnings NO_TASKS and NO_DELTAS.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "f673daf98f682a76dc0a648936b9d54a9cac8540e5ba30a816a31028b842fcc3",
+        "non_whitespace_chars": 4452,
+        "checked_at": "2026-06-26T00:36:05.068Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-06-26T01:09:22.423Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery completed. Findings recorded in proposal; agreement persisted and approved by user reply `approve`; ChangeContract minted with 35 items. Key decisions: user systemd service with lingering guidance, stable URL http://127.0.0.1:8765/, fail loudly on port collision, PokeEdge default config, GitHub setup card, GITHUB_TOKEN plus gh auth token fallback, TTL/cache/coalescing for low API usage.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "9290af7fabf644a272d0e9acd61a85f680dc2a996c9ab58c8c6160d6fbb5275e",
+        "non_whitespace_chars": 5578,
+        "checked_at": "2026-06-26T00:36:05.069Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-06-26T01:20:46.838Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design completed and validator returned VALIDATED. Architecture: user systemd service profile for PokeEdge dashboard, stable 127.0.0.1:8765 URL, user-level config, linger handling, server-lifetime cache/coalescing, GITHUB_TOKEN + gh auth token fallback, inline setup card. No user-value tradeoff or contract-compromise risk remains; planning notes captured for port-collision exit code, Type=exec consideration, and linger-denied tests.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "987417441dfd974757480a622c9a96bd31cc0f60473386947d7f65376298ff2b",
+        "non_whitespace_chars": 11323,
+        "checked_at": "2026-06-26T00:36:05.070Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-06-26T01:27:13.131Z",
+      "completed_by": "agent",
+      "approval_evidence": "Planning approved by user reply `Continue if you have next steps, or stop and ask for clarification if you are unsure how to proceed.` after prep vision presented. Task graph has 9 tasks, with typed task classes, evidence policies, TDD intent, dependencies, and contract refs. Validation passed; NO_DELTAS warning accepted because this change currently affects tooling/docs, not capability spec law."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-06-26T01:49:35.928Z",
+      "completed_by": "agent",
+      "approval_evidence": "Execution complete: 9/9 tasks done with checkpoints. Delivered PokeEdge default dashboard config/profile helpers; fixed-port collision exit 75; server-lifetime cache/coalescing; GITHUB_TOKEN then bounded `gh auth token` fallback; inline GitHub setup card; PokeEdge install/doctor commands; restart-safe user systemd unit with linger diagnostics; README install/health/log/linger/uninstall docs. Verification: tr_mqu9uvzi_93294154 `bun test bin/` passed 149 tests across 23 files, 417 expects, 0 failures. Checkpoints: b12aa9e3, 8bf368d, c9c83a4."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-06-26T02:21:52.320Z",
+      "completed_by": "user:jon",
+      "approval_evidence": "User accepted delivered work by explicit reply `approve` after acceptance summary. Pre-acceptance proof persisted and verified before prompt: contract review matrix 35/35 pass/respected, executive-summary artifact present with content hash 898beef4f500375431a62f3ac01eae8102c4bb564cffe12d9372f033871fc704, independent reviewer READY, preview proof tr_mqua4gap_96126434, full bin test tr_mqu9uvzi_93294154 passed.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "898beef4f500375431a62f3ac01eae8102c4bb564cffe12d9372f033871fc704",
+        "non_whitespace_chars": 1841,
+        "checked_at": "2026-06-26T00:36:05.071Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "adhoc"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "9290af7fabf644a272d0e9acd61a85f680dc2a996c9ab58c8c6160d6fbb5275e",
+      "approvedAt": "2026-06-26T01:09:10.855Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "User can open `http://127.0.0.1:8765/` after login or reboot without manually running `bin/adv dashboard`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9290af7fabf644a272d0e9acd61a85f680dc2a996c9ab58c8c6160d6fbb5275e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "User can see both `/home/jon/dev/pokeedge` and `/home/jon/dev/pokeedge-web` from one local dashboard view.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9290af7fabf644a272d0e9acd61a85f680dc2a996c9ab58c8c6160d6fbb5275e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "Dashboard remains local-only and read-only while running as a background service.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9290af7fabf644a272d0e9acd61a85f680dc2a996c9ab58c8c6160d6fbb5275e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC4",
+        "kind": "success_criterion",
+        "text": "Dashboard avoids noticeable background load by not repeating full GitHub/API fetch work more often than the configured refresh cadence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9290af7fabf644a272d0e9acd61a85f680dc2a996c9ab58c8c6160d6fbb5275e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC5",
+        "kind": "success_criterion",
+        "text": "When GitHub auth is unavailable, user sees clear inline setup guidance instead of only a noisy degraded state.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9290af7fabf644a272d0e9acd61a85f680dc2a996c9ab58c8c6160d6fbb5275e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "Given dashboard autostart is installed, when the user manager starts after boot/login, then the dashboard service starts in the background and serves `GET /` at `http://127.0.0.1:8765/` without opening a browser.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9290af7fabf644a272d0e9acd61a85f680dc2a996c9ab58c8c6160d6fbb5275e",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Given the user is logged out after setup, when the user service manager is active via lingering, then the dashboard service remains configured to run; if lingering is unavailable or disabled, setup reports the exact status and remediation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9290af7fabf644a272d0e9acd61a85f680dc2a996c9ab58c8c6160d6fbb5275e",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Given default dashboard config is used, when `/api/state` is requested, then the response includes projects for `/home/jon/dev/pokeedge` and `/home/jon/dev/pokeedge-web` with GitHub repos `Sharper-Flow/PokeEdge` and `Sharper-Flow/PokeEdge-Web`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9290af7fabf644a272d0e9acd61a85f680dc2a996c9ab58c8c6160d6fbb5275e",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Given port `8765` is occupied by a non-dashboard process, when the service starts, then startup fails with a clear diagnostic and does not silently choose another port.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9290af7fabf644a272d0e9acd61a85f680dc2a996c9ab58c8c6160d6fbb5275e",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Given `GITHUB_TOKEN` is unset but `gh auth token` succeeds, when the dashboard reads GitHub state, then GitHub data is not degraded solely because `GITHUB_TOKEN` is absent.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9290af7fabf644a272d0e9acd61a85f680dc2a996c9ab58c8c6160d6fbb5275e",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Given neither `GITHUB_TOKEN` nor `gh auth token` is available, when the dashboard renders, then it shows an inline GitHub setup card with local remediation guidance and does not expose tokens or secrets.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9290af7fabf644a272d0e9acd61a85f680dc2a996c9ab58c8c6160d6fbb5275e",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "Given repeated `/api/state` requests occur within the configured refresh interval, when GitHub reads are needed, then requests are cached or coalesced so one browser/tab burst does not trigger repeated full GitHub fanout per project.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9290af7fabf644a272d0e9acd61a85f680dc2a996c9ab58c8c6160d6fbb5275e",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC8",
+        "kind": "acceptance_criterion",
+        "text": "Given one configured project is missing, not ADV-enabled, or temporarily unreadable, when the dashboard loads, then that project/source is shown as degraded and the other configured project still renders.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9290af7fabf644a272d0e9acd61a85f680dc2a996c9ab58c8c6160d6fbb5275e",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC9",
+        "kind": "acceptance_criterion",
+        "text": "Given the dashboard is open, when the user interacts with it or sends non-GET requests, then no ADV, GitHub, deployment, repository, or service mutation is available, and unsupported methods are rejected.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9290af7fabf644a272d0e9acd61a85f680dc2a996c9ab58c8c6160d6fbb5275e",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "The dashboard must remain local-only.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9290af7fabf644a272d0e9acd61a85f680dc2a996c9ab58c8c6160d6fbb5275e",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "The dashboard browser UI and API must remain read-only.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9290af7fabf644a272d0e9acd61a85f680dc2a996c9ab58c8c6160d6fbb5275e",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "The default stable URL is `http://127.0.0.1:8765/`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9290af7fabf644a272d0e9acd61a85f680dc2a996c9ab58c8c6160d6fbb5275e",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Port collision must fail clearly; no silent fallback port.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9290af7fabf644a272d0e9acd61a85f680dc2a996c9ab58c8c6160d6fbb5275e",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "The service must not open a browser automatically.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9290af7fabf644a272d0e9acd61a85f680dc2a996c9ab58c8c6160d6fbb5275e",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C6",
+        "kind": "constraint",
+        "text": "Background behavior must prioritize low CPU/API usage over aggressive refresh.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9290af7fabf644a272d0e9acd61a85f680dc2a996c9ab58c8c6160d6fbb5275e",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C7",
+        "kind": "constraint",
+        "text": "Config/logs/browser output must not expose GitHub tokens or auth material.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9290af7fabf644a272d0e9acd61a85f680dc2a996c9ab58c8c6160d6fbb5275e",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C8",
+        "kind": "constraint",
+        "text": "The implementation must preserve source-specific degradation; one source/project failure must not blank the whole dashboard.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9290af7fabf644a272d0e9acd61a85f680dc2a996c9ab58c8c6160d6fbb5275e",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not create a hosted dashboard service.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9290af7fabf644a272d0e9acd61a85f680dc2a996c9ab58c8c6160d6fbb5275e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not add write actions or mutation controls for ADV, GitHub, deployment, repository, or service state.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9290af7fabf644a272d0e9acd61a85f680dc2a996c9ab58c8c6160d6fbb5275e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not turn the dashboard into generic BI, trend analytics, or historical reporting.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9290af7fabf644a272d0e9acd61a85f680dc2a996c9ab58c8c6160d6fbb5275e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not auto-open a browser tab at login.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9290af7fabf644a272d0e9acd61a85f680dc2a996c9ab58c8c6160d6fbb5275e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "Do not expand into provider-specific deployment API integrations.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9290af7fabf644a272d0e9acd61a85f680dc2a996c9ab58c8c6160d6fbb5275e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT6",
+        "kind": "avoidance",
+        "text": "Do not store or display GitHub tokens or secrets.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9290af7fabf644a272d0e9acd61a85f680dc2a996c9ab58c8c6160d6fbb5275e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT7",
+        "kind": "avoidance",
+        "text": "Do not use high-frequency polling that creates noticeable CPU load or API churn.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9290af7fabf644a272d0e9acd61a85f680dc2a996c9ab58c8c6160d6fbb5275e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "Hosted multi-user dashboard or external backend.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9290af7fabf644a272d0e9acd61a85f680dc2a996c9ab58c8c6160d6fbb5275e",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "Dashboard write/mutation controls.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9290af7fabf644a272d0e9acd61a85f680dc2a996c9ab58c8c6160d6fbb5275e",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "BI/trend analytics, historical reporting, or portfolio reporting.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9290af7fabf644a272d0e9acd61a85f680dc2a996c9ab58c8c6160d6fbb5275e",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS4",
+        "kind": "out_of_scope",
+        "text": "Auto-opening a browser tab at login.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9290af7fabf644a272d0e9acd61a85f680dc2a996c9ab58c8c6160d6fbb5275e",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS5",
+        "kind": "out_of_scope",
+        "text": "Provider-specific deployment API expansion.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9290af7fabf644a272d0e9acd61a85f680dc2a996c9ab58c8c6160d6fbb5275e",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS6",
+        "kind": "out_of_scope",
+        "text": "Repo-local PokeEdge code changes unless design proves repo-local config is necessary.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9290af7fabf644a272d0e9acd61a85f680dc2a996c9ab58c8c6160d6fbb5275e",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-06-26T01:52:00.000Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "CLI install dry-run and service unit tests passed; README documents open URL. `bun test bin/` run tr_mqu9uvzi_93294154 passed.",
+          "notes": "User can install service and open stable URL after service starts."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Config profile test tr_mqu9d3uc_a6103f20 verifies PokeEdge and PokeEdge Web paths/repos in default config.",
+          "notes": "Both configured projects present."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Route/UI tests verify GET-only routes, no mutation controls; full bin test tr_mqu9uvzi_93294154 passed.",
+          "notes": "Local-only default host and read-only UI/API preserved."
+        },
+        {
+          "contractId": "SC4",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Cache/coalescing test tr_mqu9d40u_d6ce5feb verifies one refresh per interval and in-flight Promise reuse.",
+          "notes": "Background API work bounded by refresh cadence."
+        },
+        {
+          "contractId": "SC5",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "GitHub fallback/setup tests tr_mqu9d3vo_29b2db8c and UI setup-card test tr_mqu9oa0g_22d0d847 passed.",
+          "notes": "Auth-unavailable state gives inline setup guidance."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Install dry-run/service unit tests tr_mqu9oxzv_64bda9f3; preview reachability tr_mqua4gap_96126434 returned page=200 api=200 on loopback preview.",
+          "notes": "Unit uses default.target; dashboard code serves `/` and `/api/state`."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Service test tr_mqu9ox8b_377a0ba2 verifies Linger=no parsing and `loginctl enable-linger` remediation.",
+          "notes": "Setup reports linger remediation rather than assuming availability."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Config profile test tr_mqu9d3uc_a6103f20 verifies `/home/jon/dev/pokeedge`, `/home/jon/dev/pokeedge-web`, `Sharper-Flow/PokeEdge`, `Sharper-Flow/PokeEdge-Web`.",
+          "notes": "Default profile satisfies PokeEdge project mapping."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Dashboard CLI test tr_mqu9d4d5_f4404a80 verifies occupied 8765 exits 75 with clear diagnostic and no fallback.",
+          "notes": "Systemd unit also uses RestartPreventExitStatus=75."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "GitHub auth test tr_mqu9d3vo_29b2db8c verifies absent GITHUB_TOKEN falls back to fake `gh auth token` and uses bearer auth.",
+          "notes": "Env token remains first priority."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "GitHub/UI tests tr_mqu9d3vo_29b2db8c and tr_mqu9oa0g_22d0d847 verify setup metadata/card and no token/stderr leakage.",
+          "notes": "Setup card uses `gh auth login` and `GITHUB_TOKEN` only."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Server test tr_mqu9d40u_d6ce5feb verifies cached and coalesced `/api/state` provider behavior within refresh interval.",
+          "notes": "Prevents browser/tab burst fanout."
+        },
+        {
+          "contractId": "AC8",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Server tests tr_mqu9d40u_d6ce5feb and full run tr_mqu9uvzi_93294154 verify per-project/source degradation persists while other projects render.",
+          "notes": "Existing degraded-source isolation preserved."
+        },
+        {
+          "contractId": "AC9",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Handler/UI tests tr_mqu9d40u_d6ce5feb and tr_mqu9oa0g_22d0d847 verify non-GET 405 and no mutation controls/forms.",
+          "notes": "No write surface added."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "normalizeDashboardServerOptions defaults to 127.0.0.1 and rejects non-loopback without explicit opt-in; tests passed in tr_mqu9d40u_d6ce5feb.",
+          "notes": "Service ExecStart does not opt into network host."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Route/UI tests verify GET-only API and no mutation controls; full bin suite tr_mqu9uvzi_93294154 passed.",
+          "notes": "Read-only preserved."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "CLI/server defaults keep port 8765; README documents stable `http://127.0.0.1:8765/`; tests passed.",
+          "notes": "Manual `--port` remains for explicit preview only."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Collision test tr_mqu9d4d5_f4404a80 verifies no silent fallback and exit 75 diagnostic.",
+          "notes": "Unit prevents restart loop on exit 75."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Service unit generation contains no browser-open command; README says no auto-open; tests assert unit does not contain `open `.",
+          "notes": "Background-only behavior."
+        },
+        {
+          "contractId": "C6",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Cache/coalescing test tr_mqu9d40u_d6ce5feb verifies refresh cadence reuse; config keeps refresh 30-60s validation.",
+          "notes": "Low API/CPU priority represented structurally."
+        },
+        {
+          "contractId": "C7",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Sanitization, GitHub degraded metadata, and setup-card tests verify no tokens/stderr/secret strings exposed.",
+          "notes": "No token persistence added."
+        },
+        {
+          "contractId": "C8",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Server degradation tests verify source/project failure isolation; tr_mqu9d40u_d6ce5feb passed.",
+          "notes": "One source failure does not blank dashboard."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Only local CLI, local config, and user systemd unit were added; no hosted backend or remote service code.",
+          "notes": "Hosted service avoided."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "UI/handler tests verify no mutation controls and non-GET rejection.",
+          "notes": "No write console."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Reviewer report `improveDashboardAutostart|change:review:acceptance|adv-reviewer|1` READY; inspected delivered files and found no BI/trend expansion.",
+          "notes": "Dashboard remains operational status view."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Service unit ExecStart only runs `adv dashboard --config ...`; tests assert no `open ` command in unit.",
+          "notes": "No browser auto-open."
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Reviewer READY report and diff scope show no provider-specific deployment API integrations added.",
+          "notes": "Deployment API expansion avoided."
+        },
+        {
+          "contractId": "DONT6",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "GitHub/setup/sanitizer tests verify no token-like material, raw stderr, or secret fields are exposed.",
+          "notes": "No token storage/display."
+        },
+        {
+          "contractId": "DONT7",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Cache/coalescing and refresh validation tests pass; no high-frequency polling introduced.",
+          "notes": "Browser refresh remains 30-60s; server caches within interval."
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Reviewer READY report; implementation is local CLI/user service only.",
+          "notes": "No hosted multi-user dashboard."
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "UI/handler tests verify no mutations.",
+          "notes": "No write controls."
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Reviewer READY report and diff scope show no analytics/history feature.",
+          "notes": "No BI/trend analytics."
+        },
+        {
+          "contractId": "OOS4",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Service unit has no browser-open command; README documents no auto-open.",
+          "notes": "No auto-opening tab."
+        },
+        {
+          "contractId": "OOS5",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Reviewer READY report and diff scope show no provider deployment API expansion.",
+          "notes": "No provider-specific expansion."
+        },
+        {
+          "contractId": "OOS6",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "source_audit",
+          "evidence": "Implementation used Advance worktree only; status check observed no PokeEdge worktree use/mutation by this change, though `/home/jon/dev/pokeedge` has pre-existing untracked files.",
+          "notes": "No repo-local PokeEdge code changes by this change."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "Given dashboard autostart is installed, when the user manager starts after boot/login, then the dashboard service starts in the background and serves `GET /` at `http://127.0.0.1:8765/` without opening a browser.",
+    "Given the user is logged out after setup, when the user service manager is active via lingering, then the dashboard service remains configured to run; if lingering is unavailable or disabled, setup reports the exact status and remediation.",
+    "Given default dashboard config is used, when `/api/state` is requested, then the response includes projects for `/home/jon/dev/pokeedge` and `/home/jon/dev/pokeedge-web` with GitHub repos `Sharper-Flow/PokeEdge` and `Sharper-Flow/PokeEdge-Web`.",
+    "Given port `8765` is occupied by a non-dashboard process, when the service starts, then startup fails with a clear diagnostic and does not silently choose another port.",
+    "Given `GITHUB_TOKEN` is unset but `gh auth token` succeeds, when the dashboard reads GitHub state, then GitHub data is not degraded solely because `GITHUB_TOKEN` is absent.",
+    "Given neither `GITHUB_TOKEN` nor `gh auth token` is available, when the dashboard renders, then it shows an inline GitHub setup card with local remediation guidance and does not expose tokens or secrets.",
+    "Given repeated `/api/state` requests occur within the configured refresh interval, when GitHub reads are needed, then requests are cached or coalesced so one browser/tab burst does not trigger repeated full GitHub fanout per project.",
+    "Given one configured project is missing, not ADV-enabled, or temporarily unreadable, when the dashboard loads, then that project/source is shown as degraded and the other configured project still renders.",
+    "Given the dashboard is open, when the user interacts with it or sends non-GET requests, then no ADV, GitHub, deployment, repository, or service mutation is available, and unsupported methods are rejected."
+  ],
+  "documents": {
+    "proposal": "# Improve dashboard autostart\n\n## Why\n\nThe local dashboard currently behaves like a manual development tool: it must be started explicitly and configured ad hoc before it is useful. That makes it easy to forget, unavailable when the user needs it, and less effective as a day-to-day operator surface for PokeEdge work.\n\nThe dashboard should become a lightweight, login-started, read-only local service with a stable URL, focused on the two PokeEdge projects the user actively wants to watch.\n\n## What Changes\n\n- Make the local dashboard reliably available after machine login without requiring manual startup.\n- Provide a stable local URL for the dashboard.\n- Configure the dashboard to observe:\n  - `~/dev/pokeedge`\n  - `~/dev/pokeedge-web`\n- Keep background behavior lightweight, especially in CPU usage and GitHub/API usage.\n- Improve the GitHub-auth-unavailable experience from noisy degraded state to clear setup guidance.\n- Preserve dashboard v1 as local-only and read-only.\n\n## User Outcomes\n\n- User can open a known local URL after login and see the PokeEdge dashboard without first running a command.\n- User can trust that the dashboard is present in the background while working, without noticeable CPU/API overhead.\n- User can see both configured PokeEdge projects from one dashboard view.\n- User gets clear GitHub setup guidance when auth/API access is unavailable.\n- User does not see mutation controls or generic analytics/trend reporting.\n\n## Affected Code\n\n- Local dashboard CLI/runtime entrypoint.\n- Dashboard configuration loading/defaulting.\n- Dashboard documentation and setup guidance.\n- GitHub-auth unavailable/degraded presentation.\n- Possible local startup integration surface, pending discovery.\n\n## Related Repositories\n\nPrimary implementation repo:\n- `advance` (`/home/jon/dev/advance`)\n\nConfigured observed repos:\n- `~/dev/pokeedge`\n- `~/dev/pokeedge-web`\n\nThe observed repos are dashboard inputs, not necessarily implementation targets. Discovery verified both directories exist, are ADV-enabled, and have GitHub remotes:\n- `/home/jon/dev/pokeedge` → `Sharper-Flow/PokeEdge`\n- `/home/jon/dev/pokeedge-web` → `Sharper-Flow/PokeEdge-Web`\n\n## Constraints\n\n- Must remain local-only.\n- Must remain read-only.\n- Must run in the background after login and not open a browser automatically.\n- Must provide a stable local URL.\n- Must prioritize low CPU/API usage over aggressive refresh.\n- Must preserve clear behavior when GitHub auth/API is unavailable.\n- Must not expose secrets or auth material in config, logs, or browser output.\n\n## Impact\n\nThis makes the dashboard useful as a persistent operator surface rather than a manual preview tool. It reduces startup friction and makes PokeEdge project state easier to check routinely.\n\n## Context\n\nPrior dashboard work delivered a read-only local dashboard with explicit project config, structural correlation, per-source degradation, and a browser UI. Follow-up usage clarified that the next valuable improvement is not more data or write actions, but making the dashboard automatically available for the specific PokeEdge projects with low overhead.\n\n## Scope\n\n### In Scope\n\n- Login-start/background availability for the local dashboard.\n- Stable local URL behavior.\n- Default or generated configuration for `~/dev/pokeedge` and `~/dev/pokeedge-web`.\n- Low CPU/API operation model.\n- GitHub setup guidance when authentication/API access is unavailable.\n- Documentation for setup, operation, and troubleshooting.\n\n### Out of Scope\n\n- Hosted dashboard service.\n- Dashboard write actions or mutation controls.\n- Generic BI dashboard, trend analytics, or historical reporting.\n- Auto-opening a browser tab at login.\n- Provider-specific deployment API expansion.\n\n### Must Not\n\n- Must not mutate ADV state, GitHub state, deployment state, or repository state.\n- Must not run high-frequency polling that creates noticeable CPU load or API churn.\n- Must not require the dashboard to be opened manually before the background service exists.\n- Must not store or display GitHub tokens or secrets.\n- Must not turn this into a general-purpose hosted dashboard product.\n\n## Discovery Agenda\n\n### Codebase unknowns\n\n- Current dashboard command/config entrypoints and where persistent defaults should live.\n- Existing repo conventions for user-level config, background processes, wrappers, and generated files.\n- Whether the dashboard can reuse existing config parsing as-is or needs a separate user-level default config path.\n\n### Ecosystem unknowns\n\n- Best login-start mechanism for this environment: user systemd service, shell/session hook, OpenCode-adjacent wrapper, or another lightweight mechanism.\n- How to make startup reliable without adding daemon complexity or high idle overhead.\n\n### Domain unknowns\n\n- Preferred fixed port and collision behavior.\n- Exact static URL to reserve for daily use.\n- How explicit the GitHub auth setup prompt should be and whether it should link to commands/docs.\n\n### Integration unknowns\n\n- Whether `~/dev/pokeedge` and `~/dev/pokeedge-web` are both ADV-enabled and how their project IDs/state should be resolved.\n- Whether any active dashboard/autostart process already exists outside this repository.\n- How startup should behave if one configured project is missing or temporarily unavailable.\n\n## Discovery Findings\n\n### Discovery Checklist\n\n| Step | Result | Reason |\n|---|---|---|\n| Skill Discovery | PASS | No pending-review skills found. No exact local-autostart skill matched; existing skills were tangential. |\n| Prior Research Extension | PASS | Cited repo-improve, adv-run-test, slop-scan prep docs plus archived `addLocalDashboard`. |\n| Conflict & Related-Work Scan | PASS | No conflicting active change found; own validation passed with expected proposal-stage warnings. |\n| Edge Case Investigation | PASS | Edge cases documented for autostart, config, auth, API usage, and missing projects. |\n| Design Question Depth | PASS | Open questions include trust model, blast radius, alternatives, and recommendations. |\n| Draft Spec Delta Shapes | PASS | Draft `rq-localDashboard*` shapes captured; new local-dashboard spec likely needed. |\n| P25 Related-Pattern Scan | PASS | Similar patterns found in `bin/adv`, dashboard modules, user services, and prep docs. |\n| LBP Check | PASS | User systemd service + lingering, generated config, gh-token fallback, and TTL cache are the likely LBP. |\n| Completeness Verification | PASS | Problem and solution scope cover lifecycle, config, auth, URL, low API, and failure behavior. |\n\n### Skills Considered\n\n- `adv-frontend-review`: tangential; visual surface exists, but this change is lifecycle/autostart first.\n- `customize-opencode`: not loaded; this is Advance product code, not OpenCode config customization.\n- `adv-ci-release`: tangential; no CI/CD release pattern decision.\n- `adv-worktree`: not applicable; no worktree lifecycle change in discovery.\n- No core skill for local login services/autostart was found. Gap recorded; no skill created because the evidence needed here is narrow and current discovery already cites local user-service precedents plus systemd/XDG sources.\n\n### Extends\n\n- Archived `addLocalDashboard`: delivered `adv dashboard`, static UI, explicit config, GET-only routes, 30–60s refresh, per-source degradation, and read-only behavior. New finding: autostart requires service lifecycle, default config, cache reuse, and setup prompt behavior beyond the archived dashboard implementation.\n- `docs/repo-improve-prep.md`: warns hot status views can do too much work (`adv_status view:\"summary\"` builds full payload; lines 35–46). New finding: dashboard autostart must avoid reproducing that pattern by caching/de-duping GitHub reads and not doing work when no browser/state request occurs.\n- `docs/adv-run-test-prep.md`: notes existing user services `temporal-dev.service` and `vision.service` (lines 163–169). New finding: this repo already uses user-level systemd services with `WantedBy=default.target`, `Restart=on-failure`, and journal logging, providing a local precedent.\n- `docs/adv-slop-scan-prep.md`: rejects enterprise dashboards for local command determinism (lines 100–126). New finding: this dashboard should remain local operator status, not expand into BI/trend analytics.\n\n### Conflict Scan\n\n- `adv_change_list` active scan found `improveDashboardAutostart` and unrelated active changes (`reduceAdvPromptSlop`, `addCiWaitAgent`, `fixWedgedWorktreeCleanup`, etc.); no direct active autostart/dashboard duplicate.\n- `adv_change_validate improveDashboardAutostart` passed. Warnings `NO_TASKS` and `NO_DELTAS` are expected before prep/spec delta decisions.\n- `adv_agenda_list` is large; no obvious dashboard-autostart duplicate in returned high-signal subset. Related general issues: status overhead and user-service observations are already captured through prep docs.\n- Archived `addLocalDashboard` is direct prior work and informs constraints: keep local, read-only, explicit project config, source degradation, and 30–60s refresh.\n\n### Current State\n\n- `bin/adv dashboard` currently hard-requires `--config`; missing config exits with `dashboard: --config is required` (`bin/adv:225-229`).\n- Dashboard default host is `127.0.0.1`, default port is `8765`, and non-loopback hosts require explicit opt-in (`server.ts:268-282`).\n- Dashboard exposes only `GET /` and `GET /api/state`; mutation methods return 405 (`server.ts:236-258`).\n- Config parser requires schema version 1, 30–60s `refresh_seconds`, absolute project paths, and GitHub owner/repo (`config.ts:81-133`).\n- GitHub client fetches pulls, workflow runs, deployments, and per-deployment status (`github.ts:85-117`).\n- GitHub token provider currently checks only `GITHUB_TOKEN` (`github.ts:49-54`), but local `gh auth status` is authenticated.\n- `buildDashboardState` creates a fresh GitHub client per state build (`server.ts:48-60`), so ETag cache is not reused across `/api/state` polls.\n- Local systemd user manager is running; existing user services include `temporal-dev.service` and `vision.service` with `Type=simple`, `Restart=on-failure`, `WantedBy=default.target`.\n- `loginctl show-user $USER --property=Linger` returned `Linger=no`, so always-running after logout requires enabling or documenting lingering.\n- `/home/jon/dev/pokeedge` and `/home/jon/dev/pokeedge-web` both contain `project.json`, are git repos, and have GitHub remotes under `Sharper-Flow`.\n\n### Edge Cases\n\nAutostart/lifecycle:\n- User manager unavailable or `systemctl --user` fails on a minimal/non-systemd environment.\n- Linger is disabled, so service starts after login but stops after logout unless setup enables or prompts for lingering.\n- Dashboard executable path changes after repo move or local deploy; service must fail clearly rather than silently running stale code.\n\nStable URL/port:\n- Port `8765` is occupied by another process at login.\n- Port `8765` is occupied by an existing healthy dashboard instance.\n- Service restart loops if collision is treated as retryable without clear diagnostics.\n\nConfig/projects:\n- One of `~/dev/pokeedge` or `~/dev/pokeedge-web` is missing or moved.\n- Repo exists but is not a git repo or ADV project resolution fails.\n- GitHub owner/repo config drifts from remote URL.\n\nGitHub auth/API:\n- `GITHUB_TOKEN` is absent but `gh auth token` works.\n- Neither env token nor `gh auth token` works.\n- Rate limit or secondary throttle is returned for one project but not the other.\n- Token or auth error text could leak sensitive values if not sanitized.\n\nLow CPU/API:\n- Multiple browser tabs poll `/api/state` concurrently.\n- Refresh interval causes repeated full GitHub fanout for two repos.\n- Deployments endpoint with up to 30 deployments causes up to 30 status calls per repo per refresh.\n\n### Open Design Questions\n\n1. **Autostart mechanism** — Trust model: agent. Blast radius: wrong choice makes service unreliable or too invasive. Alternatives: user systemd service, XDG autostart desktop file, shell/session hook, OpenCode wrapper. Recommendation: user systemd service, because current environment supports it, existing repo-adjacent services use it, and it supports background supervision/logs.\n2. **Persistence after logout** — Trust model: user + agent. Blast radius: without lingering, dashboard is not always running as user requested; with lingering, setup may require operator action. Alternatives: login-only, enable lingering, or document optional lingering. User resolved: should always run even logged out, so design should include linger detection/setup guidance.\n3. **Stable URL and collision behavior** — Trust model: user. Blast radius: fallback ports break bookmark/static URL; hard failure blocks dashboard until fixed. Alternatives: fixed 8765 fail loudly, fallback port, reuse healthy dashboard if detectable. User resolved: use `http://127.0.0.1:8765/`; fail loudly on collision.\n4. **Auth source and setup prompt** — Trust model: agent. Blast radius: env-only token creates false degraded state; noisy auth failures undermine dashboard. Alternatives: `GITHUB_TOKEN` only, `gh auth token` fallback, or manual token file. Recommendation: `GITHUB_TOKEN` first, then `gh auth token`; show inline setup card if unavailable.\n5. **Low API strategy** — Trust model: agent. Blast radius: background service may create API churn or CPU load. Alternatives: per-request live reads, shared long-lived client, TTL/in-flight de-dupe, manual refresh only. Recommendation: shared state builder/client with TTL and in-flight de-dupe bounded by refresh interval.\n6. **Config ownership** — Trust model: agent + user. Blast radius: repo-local config mutates observed repos unnecessarily; user-level config may be harder to discover. Alternatives: require `--config`, repo-local config, user-level generated config. Recommendation: user-level generated default config for the two PokeEdge repos, with docs and CLI override.\n\n### Draft Spec Deltas\n\nLikely new capability/spec: `local-dashboard` or an `advance-meta` addition if local dashboard remains CLI-adjacent.\n\n- `rq-localDashboardAutostart01`: Given dashboard autostart is installed and the user manager starts, when the machine boots or the user session is created, then the dashboard service runs in the background without opening a browser.\n- `rq-localDashboardStableUrl01`: Given the dashboard service starts, when port 8765 is available, then the dashboard is reachable at `http://127.0.0.1:8765/`; when unavailable, startup fails with a clear diagnostic and no silent fallback port.\n- `rq-localDashboardPokeedgeConfig01`: Given default dashboard config is generated, when the dashboard reads it, then it includes `/home/jon/dev/pokeedge` and `/home/jon/dev/pokeedge-web` with the correct GitHub repositories.\n- `rq-localDashboardAuthPrompt01`: Given GitHub authentication is unavailable, when the dashboard renders, then it shows an inline setup prompt and continues to show available local/ADV state without leaking secrets.\n- `rq-localDashboardLowApi01`: Given browser refreshes or multiple tabs call `/api/state`, when requests occur within the configured refresh interval, then GitHub reads are cached or coalesced so repeated requests do not create repeated full GitHub fanout.\n- `rq-localDashboardReadOnly01`: Given the autostarted dashboard is open, when the user interacts with it, then no ADV, GitHub, deployment, repository, or service mutation control is available from the browser UI.\n\n### Related Pattern Scan\n\n- Similar CLI pattern: `bin/adv` already owns read-only local commands (`status`, `roadmap`, `slop-scan`, `dashboard`) and should remain the entrypoint.\n- Similar config parser: `bin/lib/dashboard/config.ts` already validates schema and absolute paths; can be extended with default config loading/generation rather than replaced.\n- Similar service precedent: `~/.config/systemd/user/temporal-dev.service` and `vision.service` provide local examples for `Type=simple`, `Restart=on-failure`, `WantedBy=default.target`, journal logging, and PATH environment handling.\n- Similar performance warning: `repo-improve-prep` documents default status read doing too much work; dashboard must avoid a new hot-path all-sources recomputation pattern.\n- No existing `adv dashboard` autostart config/service found in `~/.config/systemd/user` or autostart scan.\n\n### Completeness Verification\n\n- Problem-completeness: high confidence. The problem is not just `--config` friction; it includes lifecycle availability, stable URL, specific PokeEdge config, auth setup clarity, and low API/CPU behavior.\n- Solution-scope: high confidence for discovery. Intended scope includes service lifecycle, lingering, default config, auth fallback/setup prompt, URL collision behavior, and API caching/de-dupe. It explicitly excludes hosted service, write console, BI/trends, auto-open browser, and provider-specific deployment expansion.\n- Sole-entry claim status: no unverified sole-entry claim is required. Discovery identifies multiple affected surfaces: CLI entrypoint, dashboard config, dashboard server/state builder, GitHub token/client, docs, and user service installer/config.\n- Secondary-surface dispositions: user service setup is in scope; repo-local PokeEdge code changes are out of scope unless discovery/design proves repo-local config is necessary; desktop autostart/XDG is out of scope as a rejected alternative; dashboard UI auth prompt is in scope; write controls remain out of scope.\n- Reproduction finding classification: no failed-operation reproduction is being turned into a criterion. Existing manual-start behavior is an approved new capability gap, not a defect in an already-promised autostart capability.\n\n### LBP Check\n\n- User systemd service is the long-term boring fit for Linux login/background lifecycle in this environment: systemd service units supervise long-running processes, `Type=simple` assumes the process continues, and user services use `WantedBy=default.target`. Existing local services already follow this pattern.\n- XDG autostart is viable for graphical session startup but is less fitting because the user wants background service availability even logged out; freedesktop autostart is desktop-session oriented and may be generator-managed by desktop environments.\n- Shell hooks are rejected because they depend on interactive shells and do not provide stable supervision or logout behavior.\n- OpenCode wrapper startup is rejected because the user wants login-level availability independent of opening OpenCode.\n- `gh auth token` fallback is LBP for local GitHub auth because GitHub CLI is installed and authenticated locally; env-only `GITHUB_TOKEN` is too brittle.\n- Shared client/cache with TTL/in-flight de-dupe is LBP for low API use because the current implementation creates a fresh GitHub client per request and otherwise loses ETag cache value.\n- Fresh external research found no need for a hosted dashboard framework; the problem is local lifecycle/config/auth, not a product-dashboard stack.\n\n### Discovery Opportunity Scout\n\n- Trigger decision: run — strategic lifecycle/config/performance surface with external platform choice.\n- Candidates considered: 5.\n- Auto-adopted/design-adopted: 4.\n  - Reuse GitHub client/cache + TTL/in-flight de-dupe.\n  - Add `gh auth token` fallback and setup prompt.\n  - Use user systemd service with `default.target` and lingering behavior.\n  - Generate/provide PokeEdge default config.\n- Surfaced to user: fixed URL/collision behavior; user chose 8765 and fail loudly.\n- Scout validation: caution only; cache-reuse must preserve per-source degradation isolation.\n\n### AMBIGUITY ANALYSIS\n\nCoverage: B:C F:C S:C M:C\n\nNo blocking ambiguity findings.\n\nAdvisory resolved during discovery:\n- S1 ADVISORY Completion Signals: proposal said `stable local URL`; user resolved to `http://127.0.0.1:8765/` and fail loudly on collision.\n- M1 ADVISORY Missing Information: proposal said `GitHub setup guidance`; user resolved to inline setup card and local token persistence expectation.\n- M2 ADVISORY Missing Information: proposal said `run in the background after login`; user resolved to always running even logged out, requiring lingering/boot-capable behavior.\n\n### Recommended Objectives\n\n1. Make `adv dashboard` available as an always-running local user service for the PokeEdge dashboard.\n2. Serve the dashboard at stable URL `http://127.0.0.1:8765/` and fail clearly on port collision.\n3. Provide or generate default config for `/home/jon/dev/pokeedge` and `/home/jon/dev/pokeedge-web`.\n4. Keep the dashboard local-only and read-only.\n5. Keep CPU/API overhead low through bounded refresh, cache reuse, and request coalescing.\n6. Use local GitHub auth from `GITHUB_TOKEN` or `gh auth token`; show inline setup guidance when unavailable.\n7. Document installation, service health, logs, lingering behavior, and troubleshooting.\n\n### User Decisions\n\n- Stable URL: use `http://127.0.0.1:8765/`.\n- Port collision: fail loudly; do not silently use fallback port.\n- GitHub auth unavailable: show inline setup card.\n- Service lifetime: should always run, including when logged out; discovery evidence shows `Linger=no`, so setup must handle or clearly guide lingering.\n\n### Agent Decisions\n\n- Prefer user systemd service over XDG autostart, shell hooks, or OpenCode wrapper.\n- Prefer user-level generated config over repo-local config in observed PokeEdge repos unless design proves otherwise.\n- Prefer `GITHUB_TOKEN` plus `gh auth token` fallback over env-only auth.\n- Prefer server-lifetime caching/coalescing over per-request fresh clients.\n",
+    "problemStatement": "The local dashboard currently requires manual startup and ad-hoc configuration, so it is not reliably available when working on PokeEdge projects. We need a lightweight, read-only dashboard service that starts at login, serves a stable local URL, watches `~/dev/pokeedge` and `~/dev/pokeedge-web`, minimizes CPU/API usage, and guides GitHub auth setup when unavailable.",
+    "agreement": "# Agreement\n\n## Objectives\n\n1. Make the local dashboard available as an always-running local user service for PokeEdge work.\n2. Serve the dashboard at stable URL `http://127.0.0.1:8765/` and fail clearly on port collision.\n3. Provide default dashboard configuration for `/home/jon/dev/pokeedge` and `/home/jon/dev/pokeedge-web`.\n4. Keep the dashboard local-only and read-only.\n5. Keep CPU/API overhead low through bounded refresh, cache reuse, and request coalescing.\n6. Use local GitHub authentication from `GITHUB_TOKEN` or `gh auth token`; show inline setup guidance when unavailable.\n7. Document installation, service health, logs, lingering behavior, and troubleshooting.\n\n## Success Criteria\n\n- SC1: User can open `http://127.0.0.1:8765/` after login or reboot without manually running `bin/adv dashboard`.\n- SC2: User can see both `/home/jon/dev/pokeedge` and `/home/jon/dev/pokeedge-web` from one local dashboard view.\n- SC3: Dashboard remains local-only and read-only while running as a background service.\n- SC4: Dashboard avoids noticeable background load by not repeating full GitHub/API fetch work more often than the configured refresh cadence.\n- SC5: When GitHub auth is unavailable, user sees clear inline setup guidance instead of only a noisy degraded state.\n\n## Acceptance Criteria\n\n- AC1: Given dashboard autostart is installed, when the user manager starts after boot/login, then the dashboard service starts in the background and serves `GET /` at `http://127.0.0.1:8765/` without opening a browser.\n- AC2: Given the user is logged out after setup, when the user service manager is active via lingering, then the dashboard service remains configured to run; if lingering is unavailable or disabled, setup reports the exact status and remediation.\n- AC3: Given default dashboard config is used, when `/api/state` is requested, then the response includes projects for `/home/jon/dev/pokeedge` and `/home/jon/dev/pokeedge-web` with GitHub repos `Sharper-Flow/PokeEdge` and `Sharper-Flow/PokeEdge-Web`.\n- AC4: Given port `8765` is occupied by a non-dashboard process, when the service starts, then startup fails with a clear diagnostic and does not silently choose another port.\n- AC5: Given `GITHUB_TOKEN` is unset but `gh auth token` succeeds, when the dashboard reads GitHub state, then GitHub data is not degraded solely because `GITHUB_TOKEN` is absent.\n- AC6: Given neither `GITHUB_TOKEN` nor `gh auth token` is available, when the dashboard renders, then it shows an inline GitHub setup card with local remediation guidance and does not expose tokens or secrets.\n- AC7: Given repeated `/api/state` requests occur within the configured refresh interval, when GitHub reads are needed, then requests are cached or coalesced so one browser/tab burst does not trigger repeated full GitHub fanout per project.\n- AC8: Given one configured project is missing, not ADV-enabled, or temporarily unreadable, when the dashboard loads, then that project/source is shown as degraded and the other configured project still renders.\n- AC9: Given the dashboard is open, when the user interacts with it or sends non-GET requests, then no ADV, GitHub, deployment, repository, or service mutation is available, and unsupported methods are rejected.\n\n## Constraints\n\n- C1: The dashboard must remain local-only.\n- C2: The dashboard browser UI and API must remain read-only.\n- C3: The default stable URL is `http://127.0.0.1:8765/`.\n- C4: Port collision must fail clearly; no silent fallback port.\n- C5: The service must not open a browser automatically.\n- C6: Background behavior must prioritize low CPU/API usage over aggressive refresh.\n- C7: Config/logs/browser output must not expose GitHub tokens or auth material.\n- C8: The implementation must preserve source-specific degradation; one source/project failure must not blank the whole dashboard.\n\n## Avoidances\n\n- DONT1: Do not create a hosted dashboard service.\n- DONT2: Do not add write actions or mutation controls for ADV, GitHub, deployment, repository, or service state.\n- DONT3: Do not turn the dashboard into generic BI, trend analytics, or historical reporting.\n- DONT4: Do not auto-open a browser tab at login.\n- DONT5: Do not expand into provider-specific deployment API integrations.\n- DONT6: Do not store or display GitHub tokens or secrets.\n- DONT7: Do not use high-frequency polling that creates noticeable CPU load or API churn.\n\n## Out of Scope\n\n- OOS1: Hosted multi-user dashboard or external backend.\n- OOS2: Dashboard write/mutation controls.\n- OOS3: BI/trend analytics, historical reporting, or portfolio reporting.\n- OOS4: Auto-opening a browser tab at login.\n- OOS5: Provider-specific deployment API expansion.\n- OOS6: Repo-local PokeEdge code changes unless design proves repo-local config is necessary.\n\n## Preview Applicability\n\nvisual_surface: true\n\nRationale: The change affects a browser-visible dashboard and GitHub-auth-unavailable UI state. Review must verify preview reachability, stable URL behavior, inline setup prompt behavior, and no mutation controls.\n\n## Decisions\n\n### User Decisions\n\n- Stable URL: use `http://127.0.0.1:8765/`.\n- Port collision behavior: fail loudly; do not silently choose a fallback port.\n- GitHub auth unavailable behavior: show an inline setup card.\n- Service lifetime: should always run even when logged out; setup must handle or guide lingering/boot-capable user-service behavior.\n- Browser behavior: background-only; do not open browser automatically.\n- Scope avoidances: no hosted service, no write console, no generic BI/trends dashboard.\n\n### Agent Decisions (LBP)\n\n- Prefer a user systemd service over XDG autostart, shell hooks, or OpenCode wrapper because current environment supports `systemctl --user`, existing local services use it, and it provides supervision/journal logs.\n- Include lingering detection/remediation because current `loginctl show-user $USER --property=Linger` returned `Linger=no` and the user wants service availability after logout.\n- Prefer user-level generated/default config for PokeEdge projects over mutating the observed repos.\n- Prefer `GITHUB_TOKEN` first, then `gh auth token` fallback, because `gh` is installed/authenticated locally and env-only auth creates false degradation.\n- Prefer server-lifetime GitHub client/cache plus TTL/in-flight de-dupe over per-request fresh clients.\n\n## Deferred Questions\n\nNone.\n\n## Sign-Off\n\nAcceptance criteria and success criteria approved by user reply `approve` on 2026-06-26 during `/adv-discover improveDashboardAutostart`.\n",
+    "design": "# Design\n\n## Architecture Overview\n\nAdd a lightweight dashboard autostart layer around the existing `bin/adv dashboard` runtime.\n\nThe design keeps the browser dashboard read-only and local-only. The only setup mutations happen through an explicit CLI install/doctor surface that writes user-level config and a user systemd service. Runtime dashboard requests continue to expose only `GET /` and `GET /api/state`.\n\nCore pieces:\n\n1. **User-level dashboard profile** — generated config for the PokeEdge pair under a user config directory.\n2. **User systemd service** — starts the dashboard on the stable loopback URL and keeps it supervised.\n3. **Linger handling** — setup detects/enables or reports lingering so the service can run after logout.\n4. **Low-API runtime cache** — server-lifetime GitHub client/cache plus TTL and in-flight request coalescing.\n5. **Local auth fallback** — `GITHUB_TOKEN` first, then bounded `gh auth token`.\n6. **Inline setup card** — GitHub-auth-unavailable state is rendered as clear setup guidance, not just noisy degradation.\n\n## Key Decisions\n\n### D1 — User systemd service is the autostart mechanism\n\nUse a user systemd service named `adv-dashboard-pokeedge.service` installed under `~/.config/systemd/user/`.\n\nRationale:\n- Current machine has working `systemctl --user`.\n- Existing local services (`temporal-dev.service`, `vision.service`) use this model.\n- `WantedBy=default.target` is the canonical user-service enable target.\n- systemd gives supervision, restart policy, journal logs, and explicit health/status checks.\n\nRejected alternatives:\n- XDG autostart: desktop-session oriented and weaker for logged-out/lingering behavior.\n- Shell profile hook: depends on interactive shells and lacks supervision.\n- OpenCode wrapper hook: does not satisfy login/boot availability independent of OpenCode.\n\n### D2 — Stable URL is fixed at `http://127.0.0.1:8765/`\n\nThe service binds to `127.0.0.1:8765`. Port collision is a hard startup failure.\n\nDesign requirements:\n- Bun server startup uses explicit non-reuse behavior where supported (`reusePort: false`) and wraps `Bun.serve` in try/catch.\n- Port collision exits with a distinct non-restart exit status.\n- The systemd unit uses `RestartPreventExitStatus` for that exit status and `StartLimitIntervalSec` / `StartLimitBurst` as a restart-storm backstop.\n- No silent fallback port.\n\n### D3 — Installer writes user-level PokeEdge config\n\nAdd an explicit install/profile command, e.g. `bin/adv dashboard install --profile pokeedge`, that writes default config to a user-owned config path such as:\n\n```text\n~/.config/advance/dashboard/pokeedge.json\n```\n\nGenerated config:\n\n```json\n{\n  \"schema_version\": 1,\n  \"refresh_seconds\": 45,\n  \"projects\": [\n    {\n      \"id\": \"pokeedge\",\n      \"label\": \"PokeEdge\",\n      \"path\": \"/home/jon/dev/pokeedge\",\n      \"github\": { \"owner\": \"Sharper-Flow\", \"repo\": \"PokeEdge\" }\n    },\n    {\n      \"id\": \"pokeedge-web\",\n      \"label\": \"PokeEdge Web\",\n      \"path\": \"/home/jon/dev/pokeedge-web\",\n      \"github\": { \"owner\": \"Sharper-Flow\", \"repo\": \"PokeEdge-Web\" }\n    }\n  ]\n}\n```\n\nRationale:\n- Observed repos are inputs; no repo-local PokeEdge code mutation is needed.\n- User-level config matches user-specific machine paths and auth context.\n- Existing config parser already validates absolute paths and repo refs.\n\n### D4 — Installer/doctor owns service setup and linger visibility\n\nAdd a dashboard doctor/status command, e.g. `bin/adv dashboard doctor --profile pokeedge`, to report:\n\n- config path exists and parses\n- service unit exists\n- `systemctl --user is-enabled` / `is-active` status\n- `loginctl show-user $USER --property=Linger`\n- URL reachability for `GET /` and `/api/state`\n- GitHub auth source status without printing tokens\n\nFor the install command:\n- writes config and service unit\n- runs `systemctl --user daemon-reload`\n- runs `systemctl --user enable --now adv-dashboard-pokeedge.service`\n- attempts caller-scoped `loginctl enable-linger` when needed, or reports exact remediation if permission/platform blocks it\n\nThis satisfies the user expectation that the dashboard should run even after logout while keeping setup explicit and auditable.\n\n### D5 — Runtime cache/coalescing protects CPU/API budget\n\nRefactor dashboard state serving so `createDashboardHandler` can own a long-lived state provider rather than rebuilding all source clients per request.\n\nBehavior:\n- Shared GitHub dashboard client lives for the server process lifetime.\n- `/api/state` uses a TTL equal to configured `refresh_seconds`.\n- Concurrent requests within a refresh window share one in-flight state build.\n- Cached state is returned for repeated requests within TTL.\n- Per-source degradation semantics are preserved; a failed project/source does not poison the whole cache beyond the normal refresh TTL.\n\nRationale:\n- Current `buildDashboardState` creates a fresh GitHub client on each request, discarding ETag cache.\n- Multiple browser tabs should not create repeated full GitHub fanout.\n\n### D6 — GitHub auth uses env first, then `gh auth token`\n\nToken provider order:\n\n1. `GITHUB_TOKEN` if non-empty.\n2. Bounded `gh auth token` subprocess.\n3. Auth-unavailable degraded source with setup metadata.\n\nRules:\n- Token values are never logged, returned, persisted, or rendered.\n- Subprocess stderr/stdout is not surfaced raw.\n- `gh auth token` has a short timeout and does not block the whole dashboard indefinitely.\n- If auth is unavailable, local/ADV state still renders.\n\n### D7 — Auth-unavailable state renders as setup card\n\nFor degraded source `github/GITHUB_AUTH_UNAVAILABLE`, UI renders a concise setup card:\n\n- explains GitHub auth is needed for PR/Actions/deployment data\n- suggests local remediation, e.g. `gh auth login` or setting `GITHUB_TOKEN`\n- states dashboard remains read-only\n- does not show token values or raw auth output\n\n## ADR Drafts\n\nNone. Decisions are important but not hard-to-reverse enough to require ADRs; systemd service naming and config paths can be revised in follow-up if needed.\n\n## Implementation Strategy\n\n1. **Profile constants and config generation**\n   - Add PokeEdge profile definition with two projects and default port/config path/service name.\n   - Add tests that generated config parses and uses correct repos/paths.\n\n2. **Dashboard CLI subcommands**\n   - Extend `bin/adv dashboard` parsing to support install/doctor/status-like actions while preserving existing `dashboard --config` server mode.\n   - Keep `--config`, `--host`, and `--port` for manual use.\n   - Ensure `--help` documents profile install and doctor commands.\n\n3. **Systemd unit generation**\n   - Generate deterministic unit content with `Type=simple`, `WantedBy=default.target`, journal output, fixed URL args, PATH environment, `Restart=on-failure`, `RestartPreventExitStatus=<port-collision-code>`, and start-limit settings.\n   - Add unit-content tests; avoid relying on host systemd in unit tests.\n\n4. **Install/doctor runtime operations**\n   - Add process adapter seams for `systemctl`, `loginctl`, and URL reachability checks so behavior is testable without mutating host state.\n   - Install command writes files, reloads/enables/starts service, checks/attempts lingering, then prints stable URL and diagnostics.\n   - Doctor command reports status without mutation unless an explicit repair/install path is invoked.\n\n5. **Port collision hardening**\n   - Wrap `Bun.serve` startup with typed error classification.\n   - Disable port reuse where supported.\n   - Return distinct collision exit code so systemd does not restart-loop on occupied 8765.\n   - Add regression that pre-binds the port and asserts clear failure/no fallback.\n\n6. **State cache/coalescing**\n   - Add server-lifetime state provider with TTL and in-flight promise de-dupe.\n   - Keep existing `buildDashboardState` usable for pure tests.\n   - Add tests proving multiple requests inside TTL do not call GitHub reader repeatedly.\n\n7. **GitHub auth fallback and setup card**\n   - Extend token provider with bounded `gh auth token` fallback.\n   - Add structured auth-degraded remediation data.\n   - Update UI to render setup card for auth-unavailable source.\n   - Add tests for env token, gh fallback, no-auth setup card, and token redaction.\n\n8. **Docs**\n   - Document `adv dashboard install --profile pokeedge`, stable URL, service status/log commands, lingering behavior, disable/uninstall path, and troubleshooting.\n\n## LBP Analysis\n\nThis approach is the lowest-boring-path for the agreed constraints:\n\n- It reuses the existing dashboard CLI/server instead of introducing a hosted service or frontend stack.\n- User systemd services are already present in the local environment and provide reliable supervision with logs.\n- User-level config avoids mutating the PokeEdge repos while still making the dashboard specific to this machine.\n- Caching/coalescing addresses the actual low-API risk in the current implementation: fresh clients and repeated fanout per `/api/state` call.\n- `gh auth token` fallback matches the operator's existing GitHub CLI auth and prevents false degradation when `GITHUB_TOKEN` is unset.\n\n## Affected Components\n\n- `bin/adv`\n  - dashboard subcommand parsing\n  - install/doctor actions\n  - server startup error handling\n\n- `bin/lib/dashboard/config.ts`\n  - profile/default config helpers\n  - maybe config path resolution helpers\n\n- `bin/lib/dashboard/server.ts`\n  - reusable state provider / cache / coalescing\n  - server startup options and collision handling\n\n- `bin/lib/dashboard/github.ts`\n  - token provider fallback and auth-unavailable remediation metadata\n\n- `bin/lib/dashboard/ui.ts`\n  - inline GitHub setup card\n\n- `bin/dashboard-cli.test.ts` and `bin/lib/dashboard/*.test.ts`\n  - CLI install/doctor behavior\n  - systemd unit generation\n  - port collision\n  - caching/coalescing\n  - auth fallback/setup prompt\n\n- `README.md` or dashboard docs\n  - install/run/status/logs/uninstall/linger guidance\n\n## Design-Derived Criteria\n\n- DDC1: `/api/state` cache TTL must be tied to `refresh_seconds`; repeated requests within the TTL must not trigger repeated full GitHub reads per project.\n- DDC2: Concurrent `/api/state` requests while refresh is in progress must share one in-flight refresh.\n- DDC3: `gh auth token` fallback must be bounded by a short timeout and must not surface raw stdout/stderr in dashboard output.\n- DDC4: Port collision on `127.0.0.1:8765` must produce a distinct exit code used by the generated systemd unit's `RestartPreventExitStatus`.\n- DDC5: Generated service unit must include restart-storm limits.\n- DDC6: Install/doctor commands must be testable through fake process/filesystem/network adapters; unit tests must not mutate real `~/.config/systemd/user`.\n- DDC7: All auth/setup diagnostics must be token-redacted through existing dashboard sanitizer or stricter equivalent.\n\n## Risks / Mitigations\n\n- Risk: enabling lingering may need privileges or fail on non-systemd systems.\n  - Mitigation: installer/doctor reports exact status and remediation; design keeps service unit user-scoped.\n\n- Risk: systemd-specific design is Linux-specific.\n  - Mitigation: current environment is Linux/systemd; design keeps manual `--config` server mode intact for other environments.\n\n- Risk: caching can hide a transient recovery for up to one refresh interval.\n  - Mitigation: TTL is bounded by existing 30–60s refresh semantics; failures remain visible as degraded and retry on next refresh.\n\n- Risk: `gh auth token` subprocess may hang or output sensitive data.\n  - Mitigation: short timeout, no raw output rendering, token sanitizer, tests for redaction.\n\n- Risk: service restart loop on port collision.\n  - Mitigation: distinct exit code, `RestartPreventExitStatus`, and `StartLimit*` settings.\n\n## Design Leverage Scout\n\n- Candidates considered: 5.\n- Auto-adopted: 4.\n  - Structural port-collision failure via explicit no-reuse/startup catch/distinct exit code.\n  - Server-lifetime GitHub client/cache with TTL and in-flight de-dupe.\n  - Restart-storm backstop through systemd start limits.\n  - Linger handling in install/doctor flow.\n- Surfaced to user: none after routing; exit code value and exact linger operation are technical implementation details within approved behavior.\n- Validator note for later review: port collision behavior must be TDD-proven because current `Bun.serve` call lacks explicit handling.\n\n## Validation Result\n\nValidator: VALIDATED.\n\nFindings:\n- Correctness: design maps to AC1-AC9. User systemd service plus lingering covers lifecycle; fixed port plus port-collision handling covers stable URL; cache/coalescing covers low API; auth fallback/setup card covers GitHub setup.\n- Simplicity: no materially simpler approach satisfies always-running-after-logout plus supervision/logging; rejected alternatives are correctly out of scope.\n- Spec-law: no existing spec conflict found for dashboard/autostart surface.\n- Alternatives: XDG autostart, shell hooks, OpenCode wrapper, and hosted dashboard alternatives were considered; none better fit the agreement.\n\nNon-blocking planning notes:\n- Reserve a disjoint port-collision exit code and wire it consistently to Bun startup and `RestartPreventExitStatus`.\n- Consider `Type=exec` instead of `Type=simple` if implementation can preserve compatibility and improve start-failure reporting.\n- Unit-test linger-denied path through fake process adapters.\n",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\n\nImplemented PokeEdge dashboard autostart support in Advance: a local-only read-only dashboard profile, install/doctor commands, restart-safe user systemd unit generation, GitHub auth fallback/setup guidance, and low-churn `/api/state` caching/coalescing.\n\n## Verdict\n\nAPPROVED\n\n## What Was Built\n\n1. Added PokeEdge dashboard profile/default config helpers for `/home/jon/dev/pokeedge` and `/home/jon/dev/pokeedge-web` with `Sharper-Flow/PokeEdge` and `Sharper-Flow/PokeEdge-Web`.\n2. Hardened dashboard startup so occupied fixed port `8765` fails loudly with exit code `75` and no silent fallback.\n3. Added server-lifetime `/api/state` cache/coalescing keyed to configured `refresh_seconds`.\n4. Added `GITHUB_TOKEN`-first, bounded `gh auth token` fallback plus safe auth-unavailable setup metadata.\n5. Added inline GitHub setup-card UI while preserving read-only/no-mutation behavior.\n6. Added `adv dashboard install --profile pokeedge` and `adv dashboard doctor --profile pokeedge`.\n7. Added restart-safe user systemd unit generation with `WantedBy=default.target`, `RestartPreventExitStatus=75`, journal logging, and linger diagnostics/remediation.\n8. Documented install, stable URL, health/log commands, lingering, uninstall, fixed-port behavior, GitHub auth, and local-only/read-only constraints.\n\n## What Was Verified\n\n- Verdict: APPROVED with 0 blockers/issues; independent reviewer report `improveDashboardAutostart|change:review:acceptance|adv-reviewer|1` returned READY.\n- Tests: `bun test bin/` passed in run `tr_mqu9uvzi_93294154` — 149 tests across 23 files, 417 expects, 0 failures.\n- Preview URL: local loopback preview verified in run `tr_mqua4gap_96126434`: `http://127.0.0.1:43372/` returned `GET /` 200 and `GET /api/state` 200 during verification. Stable installed URL is `http://127.0.0.1:8765/`.\n- Contract matrix: 35/35 required rows passed/respected; 0 failed/violated/unknown.\n\n## Remaining Concerns\n\nNone for the accepted contract. Operator still must run `bin/adv dashboard install --profile pokeedge` to enable the real user service.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-06-26T01:52:00.000Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | User can open `http://127.0.0.1:8765/` after login or reboot without manually running `bin/adv dashboard`. | pass | CLI install dry-run and service unit tests passed; README documents open URL. `bun test bin/` run tr_mqu9uvzi_93294154 passed. |\n| SC2 | success_criterion | User can see both `/home/jon/dev/pokeedge` and `/home/jon/dev/pokeedge-web` from one local dashboard view. | pass | Config profile test tr_mqu9d3uc_a6103f20 verifies PokeEdge and PokeEdge Web paths/repos in default config. |\n| SC3 | success_criterion | Dashboard remains local-only and read-only while running as a background service. | pass | Route/UI tests verify GET-only routes, no mutation controls; full bin test tr_mqu9uvzi_93294154 passed. |\n| SC4 | success_criterion | Dashboard avoids noticeable background load by not repeating full GitHub/API fetch work more often than the configured refresh cadence. | pass | Cache/coalescing test tr_mqu9d40u_d6ce5feb verifies one refresh per interval and in-flight Promise reuse. |\n| SC5 | success_criterion | When GitHub auth is unavailable, user sees clear inline setup guidance instead of only a noisy degraded state. | pass | GitHub fallback/setup tests tr_mqu9d3vo_29b2db8c and UI setup-card test tr_mqu9oa0g_22d0d847 passed. |\n| AC1 | acceptance_criterion | Given dashboard autostart is installed, when the user manager starts after boot/login, then the dashboard service starts in the background and serves `GET /` at `http://127.0.0.1:8765/` without opening a browser. | pass | Install dry-run/service unit tests tr_mqu9oxzv_64bda9f3; preview reachability tr_mqua4gap_96126434 returned page=200 api=200 on loopback preview. |\n| AC2 | acceptance_criterion | Given the user is logged out after setup, when the user service manager is active via lingering, then the dashboard service remains configured to run; if lingering is unavailable or disabled, setup reports the exact status and remediation. | pass | Service test tr_mqu9ox8b_377a0ba2 verifies Linger=no parsing and `loginctl enable-linger` remediation. |\n| AC3 | acceptance_criterion | Given default dashboard config is used, when `/api/state` is requested, then the response includes projects for `/home/jon/dev/pokeedge` and `/home/jon/dev/pokeedge-web` with GitHub repos `Sharper-Flow/PokeEdge` and `Sharper-Flow/PokeEdge-Web`. | pass | Config profile test tr_mqu9d3uc_a6103f20 verifies `/home/jon/dev/pokeedge`, `/home/jon/dev/pokeedge-web`, `Sharper-Flow/PokeEdge`, `Sharper-Flow/PokeEdge-Web`. |\n| AC4 | acceptance_criterion | Given port `8765` is occupied by a non-dashboard process, when the service starts, then startup fails with a clear diagnostic and does not silently choose another port. | pass | Dashboard CLI test tr_mqu9d4d5_f4404a80 verifies occupied 8765 exits 75 with clear diagnostic and no fallback. |\n| AC5 | acceptance_criterion | Given `GITHUB_TOKEN` is unset but `gh auth token` succeeds, when the dashboard reads GitHub state, then GitHub data is not degraded solely because `GITHUB_TOKEN` is absent. | pass | GitHub auth test tr_mqu9d3vo_29b2db8c verifies absent GITHUB_TOKEN falls back to fake `gh auth token` and uses bearer auth. |\n| AC6 | acceptance_criterion | Given neither `GITHUB_TOKEN` nor `gh auth token` is available, when the dashboard renders, then it shows an inline GitHub setup card with local remediation guidance and does not expose tokens or secrets. | pass | GitHub/UI tests tr_mqu9d3vo_29b2db8c and tr_mqu9oa0g_22d0d847 verify setup metadata/card and no token/stderr leakage. |\n| AC7 | acceptance_criterion | Given repeated `/api/state` requests occur within the configured refresh interval, when GitHub reads are needed, then requests are cached or coalesced so one browser/tab burst does not trigger repeated full GitHub fanout per project. | pass | Server test tr_mqu9d40u_d6ce5feb verifies cached and coalesced `/api/state` provider behavior within refresh interval. |\n| AC8 | acceptance_criterion | Given one configured project is missing, not ADV-enabled, or temporarily unreadable, when the dashboard loads, then that project/source is shown as degraded and the other configured project still renders. | pass | Server tests tr_mqu9d40u_d6ce5feb and full run tr_mqu9uvzi_93294154 verify per-project/source degradation persists while other projects render. |\n| AC9 | acceptance_criterion | Given the dashboard is open, when the user interacts with it or sends non-GET requests, then no ADV, GitHub, deployment, repository, or service mutation is available, and unsupported methods are rejected. | pass | Handler/UI tests tr_mqu9d40u_d6ce5feb and tr_mqu9oa0g_22d0d847 verify non-GET 405 and no mutation controls/forms. |\n| C1 | constraint | The dashboard must remain local-only. | respected | normalizeDashboardServerOptions defaults to 127.0.0.1 and rejects non-loopback without explicit opt-in; tests passed in tr_mqu9d40u_d6ce5feb. |\n| C2 | constraint | The dashboard browser UI and API must remain read-only. | respected | Route/UI tests verify GET-only API and no mutation controls; full bin suite tr_mqu9uvzi_93294154 passed. |\n| C3 | constraint | The default stable URL is `http://127.0.0.1:8765/`. | respected | CLI/server defaults keep port 8765; README documents stable `http://127.0.0.1:8765/`; tests passed. |\n| C4 | constraint | Port collision must fail clearly; no silent fallback port. | respected | Collision test tr_mqu9d4d5_f4404a80 verifies no silent fallback and exit 75 diagnostic. |\n| C5 | constraint | The service must not open a browser automatically. | respected | Service unit generation contains no browser-open command; README says no auto-open; tests assert unit does not contain `open `. |\n| C6 | constraint | Background behavior must prioritize low CPU/API usage over aggressive refresh. | respected | Cache/coalescing test tr_mqu9d40u_d6ce5feb verifies refresh cadence reuse; config keeps refresh 30-60s validation. |\n| C7 | constraint | Config/logs/browser output must not expose GitHub tokens or auth material. | respected | Sanitization, GitHub degraded metadata, and setup-card tests verify no tokens/stderr/secret strings exposed. |\n| C8 | constraint | The implementation must preserve source-specific degradation; one source/project failure must not blank the whole dashboard. | respected | Server degradation tests verify source/project failure isolation; tr_mqu9d40u_d6ce5feb passed. |\n| DONT1 | avoidance | Do not create a hosted dashboard service. | respected | Only local CLI, local config, and user systemd unit were added; no hosted backend or remote service code. |\n| DONT2 | avoidance | Do not add write actions or mutation controls for ADV, GitHub, deployment, repository, or service state. | respected | UI/handler tests verify no mutation controls and non-GET rejection. |\n| DONT3 | avoidance | Do not turn the dashboard into generic BI, trend analytics, or historical reporting. | respected | Reviewer report `improveDashboardAutostart|change:review:acceptance|adv-reviewer|1` READY; inspected delivered files and found no BI/trend expansion. |\n| DONT4 | avoidance | Do not auto-open a browser tab at login. | respected | Service unit ExecStart only runs `adv dashboard --config ...`; tests assert no `open ` command in unit. |\n| DONT5 | avoidance | Do not expand into provider-specific deployment API integrations. | respected | Reviewer READY report and diff scope show no provider-specific deployment API integrations added. |\n| DONT6 | avoidance | Do not store or display GitHub tokens or secrets. | respected | GitHub/setup/sanitizer tests verify no token-like material, raw stderr, or secret fields are exposed. |\n| DONT7 | avoidance | Do not use high-frequency polling that creates noticeable CPU load or API churn. | respected | Cache/coalescing and refresh validation tests pass; no high-frequency polling introduced. |\n| OOS1 | out_of_scope | Hosted multi-user dashboard or external backend. | respected | Reviewer READY report; implementation is local CLI/user service only. |\n| OOS2 | out_of_scope | Dashboard write/mutation controls. | respected | UI/handler tests verify no mutations. |\n| OOS3 | out_of_scope | BI/trend analytics, historical reporting, or portfolio reporting. | respected | Reviewer READY report and diff scope show no analytics/history feature. |\n| OOS4 | out_of_scope | Auto-opening a browser tab at login. | respected | Service unit has no browser-open command; README documents no auto-open. |\n| OOS5 | out_of_scope | Provider-specific deployment API expansion. | respected | Reviewer READY report and diff scope show no provider deployment API expansion. |\n| OOS6 | out_of_scope | Repo-local PokeEdge code changes unless design proves repo-local config is necessary. | respected | Implementation used Advance worktree only; status check observed no PokeEdge worktree use/mutation by this change, though `/home/jon/dev/pokeedge` has pre-existing untracked files. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-06-26T01:05:59.960Z",
+      "contentHash": "0d34dece861bd1ce69e49c6fc34b7b1a10861184682d358208b461b06fbc44f5",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-06-26T00:36:05.086Z",
+      "contentHash": "88f8dd23d40e5ff4a9a506f16d16ef18cc1c93c14d1bff53337e5e64ae55b2c1",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-06-26T01:09:02.582Z",
+      "contentHash": "9290af7fabf644a272d0e9acd61a85f680dc2a996c9ab58c8c6160d6fbb5275e",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-06-26T01:20:35.293Z",
+      "contentHash": "987417441dfd974757480a622c9a96bd31cc0f60473386947d7f65376298ff2b",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-06-26T01:58:04.207Z",
+      "contentHash": "898beef4f500375431a62f3ac01eae8102c4bb564cffe12d9372f033871fc704",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-06-26T02:27:55.604Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_ASSUMPTION_HEAVY",
+      "severity": "warning",
+      "message": "Proposal references authentication/authorization without specifying the model. What auth mechanism will be used?",
+      "recorded_at": "2026-06-26T00:40:38.611Z"
+    },
+    {
+      "code": "CLARIFY_MISSING_ERROR_HANDLING",
+      "severity": "warning",
+      "message": "Proposal describes behavior that could fail but doesn't mention error handling or rollback. What happens when things go wrong?",
+      "recorded_at": "2026-06-26T00:40:38.611Z",
+      "resolved": true,
+      "resolved_at": "2026-06-26T01:11:13.615Z"
+    }
+  ],
+  "worktree_auto_managed": true
+}

@@ -1,7 +1,9 @@
 import { describe, expect, test } from "bun:test";
 
 import {
+  createDefaultGitHubTokenProvider,
   createGitHubDashboardClient,
+  createGhCliTokenProvider,
   createStaticTokenProvider,
   type DashboardFetch,
 } from "./github";
@@ -78,6 +80,31 @@ describe("dashboard GitHub client", () => {
     expect(JSON.stringify(snapshot)).not.toContain("token");
     if (snapshot.ok) throw new Error("expected degraded result");
     expect(snapshot.degraded.code).toBe("GITHUB_AUTH_UNAVAILABLE");
+    expect(snapshot.degraded.setup?.commands).toContain("gh auth login");
+    expect(JSON.stringify(snapshot.degraded)).not.toContain("stderr");
+  });
+
+  test("falls back to gh auth token when GITHUB_TOKEN is absent", async () => {
+    const tokenProvider = createDefaultGitHubTokenProvider({
+      env: {},
+      ghCliTokenProvider: createGhCliTokenProvider({
+        exec: async () => ({ exitCode: 0, stdout: "ghp_from_cli\n", stderr: "" }),
+      }),
+    });
+    const seen: string[] = [];
+    const client = createGitHubDashboardClient({
+      tokenProvider,
+      fetcher: async (_url, init) => {
+        seen.push(new Headers(init?.headers).get("authorization") ?? "");
+        return jsonResponse([], { status: 200 });
+      },
+      endpoints: ["pulls"],
+    });
+
+    const snapshot = await client.readRepository({ owner: "Sharper-Flow", repo: "Advance" });
+
+    expect(snapshot.ok).toBe(true);
+    expect(seen).toEqual(["Bearer ghp_from_cli"]);
   });
 
   test("distinguishes secondary and primary rate-limit signals", async () => {
