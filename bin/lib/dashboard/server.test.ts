@@ -372,9 +372,9 @@ describe("dashboard server state", () => {
       latestUpdatedAt: "2026-06-26T01:06:22Z",
     });
     expect(lanes?.backlog.map((item) => item.changeId)).toEqual([
-      "draft0",
-      "draft1",
       "draft2",
+      "draft1",
+      "draft0",
     ]);
   });
 

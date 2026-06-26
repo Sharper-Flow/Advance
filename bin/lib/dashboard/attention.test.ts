@@ -164,16 +164,82 @@ describe("dashboard latest-status lanes", () => {
     expect(lanes.ready_landed).toEqual([]);
     expect(lanes.backlog.map((item) => item.changeId)).toEqual(["draftNoSource"]);
   });
+
+  test("sorts ADV cards inside a lane from most completed gate progress to least", () => {
+    const lanes = buildAttentionLanes({
+      github: { owner: "Sharper-Flow", repo: "PokeEdge" },
+      changes: [
+        change("early", "Early change", "draft", "change/early", {
+          firstIncompleteGate: "design",
+        }),
+        change("complete", "Complete change", "draft", "change/complete", {
+          firstIncompleteGate: null,
+        }),
+        change("late", "Late change", "draft", "change/late", {
+          firstIncompleteGate: "acceptance",
+        }),
+      ],
+      linked: [],
+      unlinked: [],
+      degradedSources: [],
+    });
+
+    expect(lanes.backlog.map((item) => item.changeId)).toEqual([
+      "complete",
+      "late",
+      "early",
+    ]);
+  });
+
+  test("uses deterministic recency/title/id tie-breaks for equal gate progress", () => {
+    const lanes = buildAttentionLanes({
+      github: { owner: "Sharper-Flow", repo: "PokeEdge" },
+      changes: [
+        change("oldTitleB", "Beta", "draft", "change/oldTitleB", {
+          lastActivityAt: "2026-06-25T10:00:00.000Z",
+        }),
+        change("newTitleB", "Beta", "draft", "change/newTitleB", {
+          lastActivityAt: "2026-06-25T11:00:00.000Z",
+        }),
+        change("newTitleA", "Alpha", "draft", "change/newTitleA", {
+          lastActivityAt: "2026-06-25T11:00:00.000Z",
+        }),
+      ],
+      linked: [],
+      unlinked: [],
+      degradedSources: [],
+    });
+
+    expect(lanes.backlog.map((item) => item.changeId)).toEqual([
+      "newTitleA",
+      "newTitleB",
+      "oldTitleB",
+    ]);
+  });
 });
 
-function change(id: string, title: string, status: string, branch: string) {
+function change(
+  id: string,
+  title: string,
+  status: string,
+  branch: string,
+  overrides: Partial<{
+    gateProgressStr: string;
+    firstIncompleteGate: string | null;
+    lastActivityAt: string;
+  }> = {},
+) {
   return {
     id,
     title,
     status,
-    gateProgressStr: "proposal ✓ discovery ✓ design ✓ planning ✓ execution ○ acceptance ○ release ○",
-    firstIncompleteGate: "execution",
-    lastActivityAt: "2026-06-25T12:00:00.000Z",
+    gateProgressStr:
+      overrides.gateProgressStr ??
+      "proposal ✓ discovery ✓ design ✓ planning ✓ execution ○ acceptance ○ release ○",
+    firstIncompleteGate: Object.hasOwn(overrides, "firstIncompleteGate")
+      ? overrides.firstIncompleteGate!
+      : "execution",
+    lastActivityAt: overrides.lastActivityAt ?? "2026-06-25T12:00:00.000Z",
     correlation_keys: { branches: [branch], head_shas: [] },
   };
 }
