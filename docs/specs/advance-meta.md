@@ -238,6 +238,67 @@ The `adv status` default table must build active-change rows from Temporal Visib
 
 ---
 
+### Local Dashboard Routine Refresh Is Worker-Free and Read-Only
+
+**ID:** `rq-dashboardWorkerFree01` | **Priority:** **[MUST]**
+
+The local `adv dashboard` routine `/api/state` refresh must build ADV summary cards from Temporal Visibility/search-attribute read-model data, not from per-change `getState` workflow queries. Routine refresh must remain read-only, bounded, cached/coalesced, and usable when no local project worker is polling. Optional detail enrichment that needs workflow state may run only after explicit user navigation to a single-change detail route, must be one-change scoped and bounded, and must degrade independently from `/api/state`. Source-health degradation must be displayed as source status, not as an ADV change failure, and must avoid exposing secrets or raw state-file paths.
+
+**Tags:** `dashboard`, `visibility`, `worker-free`, `read-only`, `no-fanout`
+
+#### Scenarios
+
+**Routine dashboard state uses Visibility without per-change queries** (`rq-dashboardWorkerFree01.1`)
+
+**Given:**
+- The local dashboard serves `/api/state`
+- Temporal Visibility is reachable for the configured ADV project
+
+**When:** The dashboard builds ADV summary cards for routine refresh
+
+**Then:**
+- ADV summary cards are built from Visibility/search-attribute data
+- The routine refresh does not issue per-change `getState` workflow queries
+- The routine refresh remains read-only and does not signal, update, start, cancel, archive, merge, deploy, or rerun anything
+
+**Worktree branch and path metadata comes from Visibility** (`rq-dashboardWorkerFree01.2`)
+
+**Given:**
+- A change workflow has upserted `AdvWorktreeBranches` or `AdvWorktreePaths` search attributes
+
+**When:** The dashboard builds ADV summaries from Visibility
+
+**Then:**
+- All non-blank branch values are decoded without collapsing the KeywordList to a single value
+- All non-blank path values are decoded without requiring workflow state queries
+- Missing attributes yield empty metadata rather than fuzzy inference
+
+**Optional enrichment degrades without hiding base cards** (`rq-dashboardWorkerFree01.3`)
+
+**Given:**
+- Optional enrichment such as ops, head SHA, GitHub, or ADV detail data is unavailable, times out, or requires a worker query
+
+**When:** The routine dashboard refresh renders `/api/state`
+
+**Then:**
+- Base ADV summary cards remain visible when Visibility data is available
+- Unavailable optional data is omitted or represented as bounded degradation
+- The routine refresh does not fall back to per-change query fan-out
+
+**Detail route is explicit, bounded, and read-only** (`rq-dashboardWorkerFree01.4`)
+
+**Given:**
+- A user explicitly opens a local ADV change detail route from the dashboard
+
+**When:** The detail route needs richer state than Visibility provides
+
+**Then:**
+- At most one change is read for that request
+- The read is bounded and failure degrades the detail view only
+- The detail route exposes no mutation controls, no secrets, and no raw ADV state-file links
+
+---
+
 ### Roadmap Slash Command Uses CLI Bridge
 
 **ID:** `rq-roadmapCliBridge01` | **Priority:** **[MUST]**

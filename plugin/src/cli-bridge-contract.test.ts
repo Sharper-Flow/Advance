@@ -316,6 +316,25 @@ describe("STATUS LIVE DEFAULT GUARDS (AC8/AC9/AC10)", () => {
     expect(liveStatus).toContain("AdvAffectedProjects");
   });
 
+  test("advance-meta pins dashboard worker-free routine refresh law", () => {
+    const spec = readAdvanceMetaSpec();
+    const requirement = spec.requirements?.find(
+      (item) => item.id === "rq-dashboardWorkerFree01",
+    );
+    expect(requirement).toMatchObject({
+      id: "rq-dashboardWorkerFree01",
+      priority: "must",
+    });
+    expect(requirement?.body).toContain("/api/state");
+    expect(requirement?.body).toContain("per-change `getState` workflow queries");
+    expect(requirement?.scenarios?.map((s) => s.id)).toEqual([
+      "rq-dashboardWorkerFree01.1",
+      "rq-dashboardWorkerFree01.2",
+      "rq-dashboardWorkerFree01.3",
+      "rq-dashboardWorkerFree01.4",
+    ]);
+  });
+
   test("default status active rows are not loaded from disk changes directory", () => {
     const content = readFileSync(ADV_CLI, "utf8");
 
