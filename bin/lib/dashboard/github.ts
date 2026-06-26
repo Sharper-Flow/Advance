@@ -58,6 +58,7 @@ export interface GitHubDashboardClient {
 }
 
 const DEFAULT_ENDPOINTS: GitHubEndpoint[] = ["pulls", "workflow_runs", "deployments"];
+export const DEFAULT_DEPLOYMENT_STATUS_LIMIT = 6;
 const API_ROOT = "https://api.github.com";
 
 export function createStaticTokenProvider(token: string | null): GitHubTokenProvider {
@@ -143,24 +144,31 @@ export function createGitHubDashboardClient(
           deployments: [],
           deployment_statuses: {},
         };
-        for (const endpoint of endpoints) {
-          if (endpoint === "pulls") {
-            data.pulls = asArray(await requestJson(repoUrl(repo, "pulls?state=open&per_page=100"), token));
-          } else if (endpoint === "workflow_runs") {
-            const runs = await requestJson(repoUrl(repo, "actions/runs?per_page=100"), token);
-            data.workflow_runs = asArray(isRecord(runs) ? runs.workflow_runs : runs);
-          } else if (endpoint === "deployments") {
-            data.deployments = asArray(await requestJson(repoUrl(repo, "deployments?per_page=30"), token));
-            for (const deployment of data.deployments) {
-              if (!isRecord(deployment) || deployment.id === undefined) continue;
-              const id = String(deployment.id);
-              const statuses = asArray(
-                await requestJson(repoUrl(repo, `deployments/${encodeURIComponent(id)}/statuses?per_page=1`), token),
+        await Promise.all(
+          endpoints.map(async (endpoint) => {
+            if (endpoint === "pulls") {
+              data.pulls = asArray(await requestJson(repoUrl(repo, "pulls?state=open&per_page=100"), token));
+            } else if (endpoint === "workflow_runs") {
+              const runs = await requestJson(repoUrl(repo, "actions/runs?per_page=100"), token);
+              data.workflow_runs = asArray(isRecord(runs) ? runs.workflow_runs : runs);
+            } else if (endpoint === "deployments") {
+              data.deployments = asArray(await requestJson(repoUrl(repo, "deployments?per_page=30"), token));
+              const currentDeployments = data.deployments
+                .filter((deployment) => isRecord(deployment) && deployment.id !== undefined)
+                .slice(0, DEFAULT_DEPLOYMENT_STATUS_LIMIT) as Record<string, unknown>[];
+              const statusEntries = await Promise.all(
+                currentDeployments.map(async (deployment) => {
+                  const id = String(deployment.id);
+                  const statuses = asArray(
+                    await requestJson(repoUrl(repo, `deployments/${encodeURIComponent(id)}/statuses?per_page=1`), token),
+                  );
+                  return [id, statuses[0] ?? null] as const;
+                }),
               );
-              data.deployment_statuses[id] = statuses[0] ?? null;
+              for (const [id, status] of statusEntries) data.deployment_statuses[id] = status;
             }
-          }
-        }
+          }),
+        );
         return sanitizeDashboardState({ ok: true, data, fetched_at: fetchedAt }) as GitHubDashboardResult;
       } catch (error) {
         return sanitizeDashboardState(failureToResult(error, fetchedAt)) as GitHubDashboardResult;

@@ -5,6 +5,7 @@ import {
   createGitHubDashboardClient,
   createGhCliTokenProvider,
   createStaticTokenProvider,
+  DEFAULT_DEPLOYMENT_STATUS_LIMIT,
   type DashboardFetch,
 } from "./github";
 
@@ -19,7 +20,7 @@ function jsonResponse(
 }
 
 describe("dashboard GitHub client", () => {
-  test("uses bearer auth, GitHub headers, and serial GET requests", async () => {
+  test("uses bearer auth, GitHub headers, and bounded GET requests", async () => {
     const seen: Array<{ url: string; auth: string | null; method: string | undefined }> = [];
     const fetcher: DashboardFetch = async (url, init) => {
       seen.push({
@@ -42,6 +43,70 @@ describe("dashboard GitHub client", () => {
     expect(seen.every((request) => request.method === "GET")).toBe(true);
     expect(seen.every((request) => request.auth === "Bearer ghp_secret123")).toBe(true);
     expect(seen[0]?.url).toContain("/pulls?state=open&per_page=100");
+  });
+
+  test("prioritizes current status by capping deployment status lookups", async () => {
+    const seen: string[] = [];
+    const deployments = Array.from({ length: 30 }, (_, index) => ({ id: index + 1 }));
+    const fetcher: DashboardFetch = async (url) => {
+      const text = String(url);
+      seen.push(text);
+      if (text.includes("/pulls?")) return jsonResponse([{ number: 7 }], { status: 200 });
+      if (text.includes("/actions/runs?")) {
+        return jsonResponse({ workflow_runs: [{ id: 8, status: "in_progress" }] }, { status: 200 });
+      }
+      if (text.includes("/deployments?")) return jsonResponse(deployments, { status: 200 });
+      return jsonResponse([{ state: "in_progress" }], { status: 200 });
+    };
+    const client = createGitHubDashboardClient({
+      tokenProvider: createStaticTokenProvider("ghp_secret123"),
+      fetcher,
+    });
+
+    const snapshot = await client.readRepository({ owner: "Sharper-Flow", repo: "Advance" });
+
+    expect(snapshot.ok).toBe(true);
+    if (!snapshot.ok) throw new Error("expected snapshot");
+    expect(snapshot.data.pulls).toEqual([{ number: 7 }]);
+    expect(snapshot.data.workflow_runs).toEqual([{ id: 8, status: "in_progress" }]);
+    expect(snapshot.data.deployments).toHaveLength(30);
+    expect(Object.keys(snapshot.data.deployment_statuses)).toEqual(
+      Array.from({ length: DEFAULT_DEPLOYMENT_STATUS_LIMIT }, (_, index) => String(index + 1)),
+    );
+    expect(seen.filter((url) => url.includes("/statuses?")).length).toBe(
+      DEFAULT_DEPLOYMENT_STATUS_LIMIT,
+    );
+  });
+
+  test("runs bounded deployment status lookups concurrently", async () => {
+    let inFlightStatuses = 0;
+    let maxInFlightStatuses = 0;
+    const fetcher: DashboardFetch = async (url) => {
+      const text = String(url);
+      if (text.includes("/deployments?")) {
+        return jsonResponse(
+          Array.from({ length: DEFAULT_DEPLOYMENT_STATUS_LIMIT }, (_, index) => ({ id: index + 1 })),
+          { status: 200 },
+        );
+      }
+      if (text.includes("/statuses?")) {
+        inFlightStatuses++;
+        maxInFlightStatuses = Math.max(maxInFlightStatuses, inFlightStatuses);
+        await new Promise((resolve) => setTimeout(resolve, 5));
+        inFlightStatuses--;
+        return jsonResponse([{ state: "success" }], { status: 200 });
+      }
+      return jsonResponse([], { status: 200 });
+    };
+    const client = createGitHubDashboardClient({
+      tokenProvider: createStaticTokenProvider("ghp_secret123"),
+      fetcher,
+    });
+
+    const snapshot = await client.readRepository({ owner: "Sharper-Flow", repo: "Advance" });
+
+    expect(snapshot.ok).toBe(true);
+    expect(maxInFlightStatuses).toBeGreaterThan(1);
   });
 
   test("reuses cached body for etag 304 responses", async () => {
