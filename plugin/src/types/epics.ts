@@ -22,7 +22,13 @@ import { z } from "zod";
 // =============================================================================
 
 // rq-epicEntity01: Epic lifecycle status is part of the compact progress summary.
-export const EpicStatusSchema = z.enum(["active", "completed", "archived"]);
+// rq-epicMerge01: merged source Epics remain readable but produce no active work.
+export const EpicStatusSchema = z.enum([
+  "active",
+  "completed",
+  "archived",
+  "merged",
+]);
 export type EpicStatus = z.infer<typeof EpicStatusSchema>;
 
 // =============================================================================
@@ -74,6 +80,36 @@ export const EpicScopeSchema = z.object({
 });
 
 export type EpicScope = z.infer<typeof EpicScopeSchema>;
+
+export const EpicScopeLabelSchema = z.enum([
+  "legacy-unscoped",
+  "local",
+  "product-spanning",
+]);
+
+export type EpicScopeLabel = z.infer<typeof EpicScopeLabelSchema>;
+
+export function deriveEpicScopeLabel(
+  scope: EpicScope | null | undefined,
+): EpicScopeLabel {
+  if (!scope) return "legacy-unscoped";
+  return scope.repos.length > 1 ? "product-spanning" : "local";
+}
+
+export const EpicMergedIntoSchema = z.object({
+  /** Survivor Epic ID that now owns the initiative. */
+  epic_id: z.string(),
+  /** ISO8601 timestamp when merge finalization completed. */
+  merged_at: z.string(),
+  /** Identity that finalized the merge. */
+  merged_by: z.string(),
+  /** Audit evidence for merging this source Epic. */
+  evidence: z.string(),
+  /** Number of source entries moved/copied into the survivor. */
+  moved_entry_count: z.number().int().min(0),
+});
+
+export type EpicMergedInto = z.infer<typeof EpicMergedIntoSchema>;
 
 // =============================================================================
 // Shell Promotion Provenance
@@ -276,6 +312,8 @@ export const EpicSchema = z
     narrative: z.string(),
     /** Repo/product scope metadata. Optional for legacy Epics. */
     epic_scope: EpicScopeSchema.optional(),
+    /** Survivor pointer when this active source Epic has been merged. */
+    merged_into: EpicMergedIntoSchema.optional(),
     /** Ordered roadmap entries (changes and shells). */
     entries: z.array(EpicEntrySchema),
     /** Compact status/progress summary. */

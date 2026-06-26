@@ -17,13 +17,18 @@ import {
   EpicScopeSchema,
   EpicSchema,
   EpicStatusSchema,
+  deriveEpicScopeLabel,
   ShellPromotionProvenanceSchema,
 } from "../types";
+import {
+  EpicMergedSignalPayloadSchema,
+  EpicScopeUpdatedSignalPayloadSchema,
+} from "./signals";
 
 describe("Epic schema foundation", () => {
   describe("EpicStatusSchema", () => {
     test("accepts known Epic statuses", () => {
-      for (const status of ["active", "completed", "archived"]) {
+      for (const status of ["active", "completed", "archived", "merged"]) {
         expect(EpicStatusSchema.parse(status)).toBe(status);
       }
     });
@@ -287,6 +292,46 @@ describe("Epic schema foundation", () => {
         }),
       ).toThrow();
     });
+
+    test("derives scope labels from repo count instead of kind", () => {
+      expect(
+        deriveEpicScopeLabel({
+          kind: "product",
+          owner_project_id: "project-web",
+          repos: [
+            {
+              repo_id: "pokeedge-web",
+              repo_project_id: "project-web",
+              role: "primary",
+              required: true,
+            },
+          ],
+        }),
+      ).toBe("local");
+
+      expect(
+        deriveEpicScopeLabel({
+          kind: "repo",
+          owner_project_id: "project-web",
+          repos: [
+            {
+              repo_id: "pokeedge-web",
+              repo_project_id: "project-web",
+              role: "primary",
+              required: true,
+            },
+            {
+              repo_id: "pokeedge-api",
+              repo_project_id: "project-api",
+              role: "secondary",
+              required: true,
+            },
+          ],
+        }),
+      ).toBe("product-spanning");
+
+      expect(deriveEpicScopeLabel(undefined)).toBe("legacy-unscoped");
+    });
   });
 
   describe("EpicProgressSummarySchema", () => {
@@ -307,6 +352,18 @@ describe("Epic schema foundation", () => {
         status: "completed",
         total_entries: 3,
         completed_entries: 3,
+        active_entries: 0,
+        next_entry_id: null,
+        updated_at: "2026-06-24T00:00:00.000Z",
+      };
+      expect(EpicProgressSummarySchema.parse(summary)).toEqual(summary);
+    });
+
+    test("parses merged progress summary with no active next work", () => {
+      const summary = {
+        status: "merged",
+        total_entries: 3,
+        completed_entries: 0,
         active_entries: 0,
         next_entry_id: null,
         updated_at: "2026-06-24T00:00:00.000Z",
@@ -400,6 +457,35 @@ describe("Epic schema foundation", () => {
         created_at: "2026-06-24T00:00:00.000Z",
         updated_at: "2026-06-24T00:00:00.000Z",
         version: 1,
+      };
+
+      expect(EpicSchema.parse(epic)).toEqual(epic);
+    });
+
+    test("parses Epic with merged_into pointer", () => {
+      const epic = {
+        id: "legacyAuthEpic",
+        title: "Legacy auth Epic",
+        narrative: "Merged into product auth Epic.",
+        merged_into: {
+          epic_id: "productAuthEpic",
+          merged_at: "2026-06-24T00:00:00.000Z",
+          merged_by: "agent",
+          evidence: "Duplicate active Epic merged after user approval.",
+          moved_entry_count: 2,
+        },
+        entries: [],
+        progress: {
+          status: "merged",
+          total_entries: 0,
+          completed_entries: 0,
+          active_entries: 0,
+          next_entry_id: null,
+          updated_at: "2026-06-24T00:00:00.000Z",
+        },
+        created_at: "2026-06-24T00:00:00.000Z",
+        updated_at: "2026-06-24T00:00:00.000Z",
+        version: 2,
       };
 
       expect(EpicSchema.parse(epic)).toEqual(epic);
@@ -553,6 +639,50 @@ describe("Epic schema foundation", () => {
       const parsed = ChangeSchema.parse(change);
       expect(parsed.epic_membership).toBeDefined();
       expect(parsed.epic_membership?.epic_id).toBe("addAuthEpic");
+    });
+  });
+
+  describe("Epic signal payloads", () => {
+    test("parses audited scope update payload", () => {
+      const payload = {
+        epicScope: {
+          kind: "product",
+          owner_project_id: "project-web",
+          repos: [
+            {
+              repo_id: "pokeedge-web",
+              repo_project_id: "project-web",
+              role: "primary",
+              required: true,
+            },
+          ],
+        },
+        expectedVersion: 1,
+        updatedBy: "agent",
+        auditEvidence: "User approved scope expansion.",
+        idempotencyKey: "scope-update-1",
+        updatedAt: "2026-06-24T00:00:00.000Z",
+      };
+
+      expect(EpicScopeUpdatedSignalPayloadSchema.parse(payload)).toEqual(
+        payload,
+      );
+    });
+
+    test("parses merged source finalization payload", () => {
+      const payload = {
+        mergedInto: {
+          epic_id: "productAuthEpic",
+          merged_at: "2026-06-24T00:00:00.000Z",
+          merged_by: "agent",
+          evidence: "Duplicate active Epic merged after user approval.",
+          moved_entry_count: 2,
+        },
+        expectedVersion: 3,
+        idempotencyKey: "merge-source-1",
+      };
+
+      expect(EpicMergedSignalPayloadSchema.parse(payload)).toEqual(payload);
     });
   });
 });

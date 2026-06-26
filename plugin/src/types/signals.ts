@@ -8,8 +8,10 @@
 import { z } from "zod";
 import {
   EpicChangeRefSchema,
+  EpicMergedIntoSchema,
   EpicMembershipSchema,
   EpicMembershipStatusSchema,
+  EpicScopeSchema,
   EpicSchema,
 } from "./epics";
 import { ConformanceVerdictSchema } from "./conformance";
@@ -492,6 +494,22 @@ export type EpicUpdatedSignalPayload = z.infer<
 >;
 
 /**
+ * Replace Epic scope metadata with optimistic-concurrency version check.
+ * Local/product-spanning display is derived from scope repo count, not `kind`.
+ */
+export const EpicScopeUpdatedSignalPayloadSchema = z.object({
+  epicScope: EpicScopeSchema.optional(),
+  expectedVersion: z.number().int().min(0),
+  updatedBy: z.string().min(1),
+  auditEvidence: z.string().min(1),
+  idempotencyKey: z.string().min(1),
+  updatedAt: IsoTimestampSchema,
+});
+export type EpicScopeUpdatedSignalPayload = z.infer<
+  typeof EpicScopeUpdatedSignalPayloadSchema
+>;
+
+/**
  * Add a shell entry to the Epic roadmap. order is advisory; the workflow
  * assigns the next available order when omitted.
  */
@@ -623,6 +641,19 @@ export const EntryTerminalSummarySignalPayloadSchema = z.object({
 });
 export type EntryTerminalSummarySignalPayload = z.infer<
   typeof EntryTerminalSummarySignalPayloadSchema
+>;
+
+/**
+ * Mark a source Epic as merged into a survivor Epic. Merged sources remain
+ * queryable for audit/history and must not produce active next-work.
+ */
+export const EpicMergedSignalPayloadSchema = z.object({
+  mergedInto: EpicMergedIntoSchema,
+  expectedVersion: z.number().int().min(0),
+  idempotencyKey: z.string().min(1),
+});
+export type EpicMergedSignalPayload = z.infer<
+  typeof EpicMergedSignalPayloadSchema
 >;
 
 /**

@@ -315,6 +315,103 @@
       ]
     },
     {
+      "id": "rq-epicScopeDerivation01",
+      "title": "Epic Product Scope Is Derived from Typed Scope Breadth",
+      "body": "Every Epic MUST be product-capable through typed scope metadata. User-facing local/product-spanning classification MUST be derived from the Epic scope repo/project list: one scoped repo renders as local/repo-scoped, multiple scoped repos/projects render as product-spanning, and missing scope renders as legacy/unscoped. `epic_scope.kind` MAY be preserved for backward compatibility but MUST NOT be the correctness authority for classification.",
+      "priority": "must",
+      "tags": ["epics", "scope", "product", "compatibility"],
+      "scenarios": [
+        {
+          "id": "rq-epicScopeDerivation01.1",
+          "title": "Single-repo scope renders local",
+          "given": ["An Epic scope contains exactly one repo entry", "The legacy kind field says `product`"],
+          "when": "The Epic is rendered or classified",
+          "then": ["The derived scope label is local or repo-scoped", "The legacy kind field is not used as the classification authority"]
+        },
+        {
+          "id": "rq-epicScopeDerivation01.2",
+          "title": "Multi-repo scope renders product-spanning",
+          "given": ["An Epic scope contains two repo/project entries"],
+          "when": "The Epic is rendered or classified",
+          "then": ["The derived scope label is product-spanning", "Owner project and repo_project_id metadata are preserved"]
+        },
+        {
+          "id": "rq-epicScopeDerivation01.3",
+          "title": "Missing scope remains legacy-readable",
+          "given": ["A legacy Epic has no epic_scope"],
+          "when": "The Epic is parsed or shown",
+          "then": ["Validation succeeds", "The derived scope label is legacy/unscoped", "The Epic can be backfilled through typed scope mutation"]
+        }
+      ]
+    },
+    {
+      "id": "rq-epicMutableScope01",
+      "title": "Existing Active Epics Support Audited Scope Mutation",
+      "body": "An active Epic's typed scope metadata MUST be mutable after creation through a typed, audited, optimistic-concurrency mutation path. Scope mutation MUST require audit evidence and an expected version, MUST reject stale writes without changing scope, and MUST NOT silently orphan linked child-change entries when repos/projects are removed. Dry-run preview SHOULD report the derived scope label and removal impact before mutation.",
+      "priority": "must",
+      "tags": ["epics", "scope", "mutation", "audit", "concurrency"],
+      "scenarios": [
+        {
+          "id": "rq-epicMutableScope01.1",
+          "title": "Active Epic expands scope",
+          "given": ["An active Epic has one scoped repo", "The caller supplies a current expected version and audit evidence"],
+          "when": "A typed scope update adds a second repo/project entry",
+          "then": ["The Epic scope contains both repos", "The Epic version increments", "The derived scope label becomes product-spanning"]
+        },
+        {
+          "id": "rq-epicMutableScope01.2",
+          "title": "Stale scope update is rejected",
+          "given": ["An active Epic has version 3"],
+          "when": "A scope update is submitted with expected version 2",
+          "then": ["A typed stale-version conflict is returned", "The existing scope is unchanged"]
+        },
+        {
+          "id": "rq-epicMutableScope01.3",
+          "title": "Scope removal cannot orphan children silently",
+          "given": ["An Epic has a linked child entry for repo A"],
+          "when": "A scope update removes repo A",
+          "then": ["The update is rejected, requires explicit disposition, or surfaces typed repair status", "No child epic_membership projection is silently detached"]
+        }
+      ]
+    },
+    {
+      "id": "rq-epicMerge01",
+      "title": "Active Duplicate Epics Can Merge into One Survivor",
+      "body": "Active duplicate Epics MAY be merged into one survivor Epic through a typed, audited, plan-first mutation path. Merge planning MUST surface unique entries, conflicts, target-project confirmations, and terminal-source rejection before mutation. Execution MUST preserve the one-owning-Epic-per-change invariant, MUST update reachable child epic_membership projections to the survivor, MUST require explicit conflict disposition instead of heuristic dedupe, and MUST leave the source Epic readable with a survivor pointer and no active next-work. Completed, archived, or already-merged source Epics MUST NOT be merged into active survivors; they may be referenced as historical context only.",
+      "priority": "must",
+      "tags": ["epics", "merge", "membership", "audit", "cross-project"],
+      "scenarios": [
+        {
+          "id": "rq-epicMerge01.1",
+          "title": "Unique entries move to survivor",
+          "given": ["Two active Epics contain unique linked changes", "The caller supplies audit evidence and current versions"],
+          "when": "The source Epic is merged into the survivor",
+          "then": ["Unique entries appear on the survivor", "Reachable child epic_membership projections point to the survivor", "No child change has two owning Epic memberships"]
+        },
+        {
+          "id": "rq-epicMerge01.2",
+          "title": "Conflicting entries require disposition",
+          "given": ["The source and survivor Epics contain similar shell entries or duplicate child changes"],
+          "when": "A merge is executed without conflict resolution",
+          "then": ["The merge is rejected with typed conflict details", "No heuristic title-based dedupe is applied", "No source entries are silently dropped"]
+        },
+        {
+          "id": "rq-epicMerge01.3",
+          "title": "Merged source remains readable but inactive",
+          "given": ["A source Epic has been successfully merged into a survivor"],
+          "when": "The source Epic is shown or considered for next work",
+          "then": ["The source Epic exposes a merged_into survivor pointer with audit evidence", "The source Epic has no active next-work recommendation", "The source Epic remains queryable for history"]
+        },
+        {
+          "id": "rq-epicMerge01.4",
+          "title": "Terminal sources are historical references only",
+          "given": ["A source Epic is completed, archived, or already merged"],
+          "when": "A caller attempts to merge it into an active survivor",
+          "then": ["The merge mutation is rejected", "The source may be referenced as historical context only"]
+        }
+      ]
+    },
+    {
       "id": "rq-epicArchiveSync01",
       "title": "Archive Synchronizes Epic Child Terminal State",
       "body": "When an ADV change with `epic_membership` is archived, the archive/release flow MUST load the parent Epic, project the child change's terminal state onto the linked Epic entry after release proof, verify the terminal Epic entry/projection state, and surface Epic evidence in the archive report. Already-archived child changes whose Epic entries remain active MUST be repairable/backfillable from canonical child/archive state through typed Epic tools such as `adv_epic_repair_membership`; direct ADV state edits are forbidden. Changes without Epic membership MUST continue through the normal archive flow. Epic order MUST remain advisory and MUST NOT block archive solely because earlier entries are incomplete.",
