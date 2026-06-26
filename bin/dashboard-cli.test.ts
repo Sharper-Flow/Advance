@@ -95,4 +95,40 @@ describe("adv dashboard dispatcher", () => {
       occupied.stop(true);
     }
   });
+
+  test("supports PokeEdge dashboard install dry-run", async () => {
+    const { exitCode, stdout, stderr } = await runAdv([
+      "dashboard",
+      "install",
+      "--profile",
+      "pokeedge",
+      "--dry-run",
+      "--home",
+      "/home/example",
+    ]);
+
+    expect(exitCode).toBe(0);
+    expect(stderr).toBe("");
+    expect(stdout).toContain("adv-dashboard-pokeedge.service");
+    expect(stdout).toContain("/home/example/.config/advance/dashboard/pokeedge.json");
+    expect(stdout).toContain("systemctl --user enable --now adv-dashboard-pokeedge.service");
+  });
+
+  test("supports PokeEdge dashboard doctor dry-run", async () => {
+    const { exitCode, stdout, stderr } = await runAdv([
+      "dashboard",
+      "doctor",
+      "--profile",
+      "pokeedge",
+      "--dry-run",
+      "--home",
+      "/home/example",
+    ]);
+
+    expect(exitCode).toBe(0);
+    expect(stderr).toBe("");
+    expect(stdout).toContain("adv-dashboard-pokeedge.service");
+    expect(stdout).toContain("loginctl show-user");
+    expect(stdout).toContain("journalctl --user -u adv-dashboard-pokeedge.service");
+  });
 });
