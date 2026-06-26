@@ -225,6 +225,16 @@ async function loadChange(store: Store, changeId: string) {
   return result.data;
 }
 
+function terminalSummaryStatusForChange(
+  status: string,
+): "archived" | "closed" | null {
+  return status === "archived" || status === "closed" ? status : null;
+}
+
+function terminalSummaryCompletedAt(change: Awaited<ReturnType<typeof loadChange>>) {
+  return change?.updated_at ?? new Date().toISOString();
+}
+
 async function resolveChildStore(
   store: Store,
   args: {
@@ -1270,6 +1280,43 @@ export const epicTools = {
             code: "PROJECTION_MISMATCH",
             current_membership: change.epic_membership,
           });
+        }
+
+        const terminalStatus = terminalSummaryStatusForChange(change.status);
+        if (terminalStatus) {
+          const completedAt = terminalSummaryCompletedAt(change);
+          const terminalSummary = {
+            status: terminalStatus,
+            completed_at: completedAt,
+          };
+          if (dryRun) {
+            const output = formatToolOutput({
+              success: true,
+              dryRun: true,
+              entry_id: entry.entry_id,
+              change_id: finalChangeId,
+              action: "project_terminal_summary",
+              terminal_summary: terminalSummary,
+            });
+            return maybeAppendTargetContext(output, childStore.context);
+          }
+
+          const updatedEntry = requireChangeEntry(
+            await store.epics.setEntryTerminalSummary(epic_id, {
+              entryId: entry.entry_id,
+              status: terminalStatus,
+              completedAt,
+            }),
+          );
+          const output = formatToolOutput({
+            success: true,
+            repaired: true,
+            terminal_summary_projected: true,
+            entry: mapEpicEntry(updatedEntry),
+            terminal_summary: terminalSummary,
+            member_status: memberStatusForEntry(updatedEntry),
+          });
+          return maybeAppendTargetContext(output, childStore.context);
         }
 
         const membership = membershipFromChangeEntry(
