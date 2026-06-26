@@ -256,6 +256,98 @@ function maybeAppendTargetContext(
   return context ? appendTargetProjectContextOutput(output, context) : output;
 }
 
+async function clearMissingEpicProjection(
+  store: Store,
+  args: {
+    epic_id: string;
+    entry_id?: string;
+    change_id?: string;
+    target_path?: string;
+    target_confirmed?: true;
+    confirmationEvidence?: string;
+    dryRun?: boolean;
+  },
+) {
+  const missing = [
+    ["entry_id", args.entry_id],
+    ["change_id", args.change_id],
+  ]
+    .filter(([, value]) => !value)
+    .map(([field]) => field);
+  if (missing.length > 0) {
+    return formatToolOutput({
+      error:
+        "clear_stale_projection for a missing Epic requires entry_id and change_id to identify the child projection safely.",
+      code: "REPAIR_TARGET_REQUIRED",
+      fields: missing,
+    });
+  }
+
+  const childStore = await resolveChildStore(store, {
+    target_path: args.target_path,
+    target_confirmed: args.target_confirmed,
+    confirmationEvidence: args.confirmationEvidence,
+  });
+  const finalChangeId = args.change_id as string;
+  const entryId = args.entry_id as string;
+  const change = await loadChange(childStore.store, finalChangeId);
+  if (!change) {
+    return formatToolOutput({
+      error: `Change not found: ${finalChangeId}`,
+      code: "CHANGE_NOT_FOUND",
+    });
+  }
+
+  if (!change.epic_membership) {
+    const output = formatToolOutput({
+      success: true,
+      repaired: false,
+      entry_id: entryId,
+      change_id: finalChangeId,
+      member_status: {
+        status: "projection_missing" as const,
+        last_checked_at: new Date().toISOString(),
+        message: "Child projection already absent.",
+      },
+    });
+    return maybeAppendTargetContext(output, childStore.context);
+  }
+
+  if (
+    change.epic_membership.epic_id !== args.epic_id ||
+    change.epic_membership.entry_id !== entryId
+  ) {
+    return formatToolOutput({
+      error: `Change projection does not match Epic ${args.epic_id}`,
+      code: "PROJECTION_MISMATCH",
+      current_membership: change.epic_membership,
+    });
+  }
+
+  if (args.dryRun) {
+    const output = formatToolOutput({
+      success: true,
+      dryRun: true,
+      entry_id: entryId,
+      change_id: finalChangeId,
+      action: "clear_child_projection",
+    });
+    return maybeAppendTargetContext(output, childStore.context);
+  }
+
+  await childStore.store.changes.clearEpicMembership(finalChangeId, {
+    expected: { epic_id: args.epic_id, entry_id: entryId },
+  });
+  const output = formatToolOutput({
+    success: true,
+    repaired: true,
+    entry_id: entryId,
+    change_id: finalChangeId,
+    cleared: true,
+  });
+  return maybeAppendTargetContext(output, childStore.context);
+}
+
 function changeAlreadyInEpic(change: import("../types").Change) {
   return formatToolOutput({
     error: `Change already belongs to Epic ${change.epic_membership?.epic_id}`,
@@ -1045,7 +1137,20 @@ export const epicTools = {
     ) => {
       try {
         const epic = await loadEpic(store, epic_id);
-        if (!epic) return epicNotFound(epic_id);
+        if (!epic) {
+          if (mode === "clear_stale_projection") {
+            return clearMissingEpicProjection(store, {
+              epic_id,
+              entry_id,
+              change_id,
+              target_path,
+              target_confirmed,
+              confirmationEvidence,
+              dryRun,
+            });
+          }
+          return epicNotFound(epic_id);
+        }
         const entry = findChangeEntry(epic, {
           entryId: entry_id,
           changeId: change_id,

@@ -23,12 +23,7 @@ type RegressionMatrixCase = {
 type ExpectedFieldPolicy = {
   toolName: string;
   field: string;
-  policy:
-    | "blank"
-    | "sentinels"
-    | "emptyArray"
-    | "zero"
-    | "recordValuesBlank";
+  policy: "blank" | "sentinels" | "emptyArray" | "zero" | "recordValuesBlank";
   action: "reject" | "omit" | "allow";
 };
 

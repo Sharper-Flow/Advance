@@ -264,7 +264,9 @@ describe("Advance Epics ADR", () => {
 
   test("does not contradict product-scoped cross-project Epic support", () => {
     const adr = readRepoFile("docs/adr/0004-per-epic-workflow.md");
-    expect(adr).not.toMatch(/Cross-repo Epic membership is out of scope for v1/i);
+    expect(adr).not.toMatch(
+      /Cross-repo Epic membership is out of scope for v1/i,
+    );
     expect(adr).not.toMatch(/future cross-repo Epic design/i);
   });
 });

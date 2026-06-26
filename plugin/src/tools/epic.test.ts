@@ -828,6 +828,87 @@ describe("adv_epic_move_change", () => {
 });
 
 describe("adv_epic_repair_membership", () => {
+  test("dry-run clears matching child projection when owner Epic is missing", async () => {
+    const store = makeStore();
+    store.epics.get = vi.fn(async () => ({ success: false, data: null }));
+    store.changes.get = vi.fn(async () => ({
+      success: true,
+      data: {
+        id: "change-2",
+        title: "Linked Change",
+        status: "active",
+        gates: {},
+        tasks: [],
+        created_at: "2026-06-25T00:00:00.000Z",
+        updated_at: "2026-06-25T00:00:00.000Z",
+        epic_membership: {
+          epic_id: "missingEpic",
+          entry_id: "entry-2",
+          order: 0,
+          title: "Linked Change",
+          linked_at: "2026-06-25T00:00:00.000Z",
+        },
+      } as Change,
+    }));
+
+    const output = await epicTools.adv_epic_repair_membership.execute(
+      {
+        epic_id: "missingEpic",
+        entry_id: "entry-2",
+        change_id: "change-2",
+        mode: "clear_stale_projection",
+        evidence: "Operator verified owner Epic row is missing.",
+        dryRun: true,
+      },
+      store,
+    );
+    const parsed = parseToolOutput(output);
+
+    expect(parsed.success).toBe(true);
+    expect(parsed.dryRun).toBe(true);
+    expect(parsed.action).toBe("clear_child_projection");
+    expect(store.changes.clearEpicMembership).not.toHaveBeenCalled();
+  });
+
+  test("refuses missing-Epic clear when child projection mismatches expected membership", async () => {
+    const store = makeStore();
+    store.epics.get = vi.fn(async () => ({ success: false, data: null }));
+    store.changes.get = vi.fn(async () => ({
+      success: true,
+      data: {
+        id: "change-2",
+        title: "Linked Change",
+        status: "active",
+        gates: {},
+        tasks: [],
+        created_at: "2026-06-25T00:00:00.000Z",
+        updated_at: "2026-06-25T00:00:00.000Z",
+        epic_membership: {
+          epic_id: "otherEpic",
+          entry_id: "other-entry",
+          order: 0,
+          title: "Other",
+          linked_at: "2026-06-25T00:00:00.000Z",
+        },
+      } as Change,
+    }));
+
+    const output = await epicTools.adv_epic_repair_membership.execute(
+      {
+        epic_id: "missingEpic",
+        entry_id: "entry-2",
+        change_id: "change-2",
+        mode: "clear_stale_projection",
+        evidence: "Operator verified owner Epic row is missing.",
+      },
+      store,
+    );
+    const parsed = parseToolOutput(output);
+
+    expect(parsed.code).toBe("PROJECTION_MISMATCH");
+    expect(store.changes.clearEpicMembership).not.toHaveBeenCalled();
+  });
+
   test("sync_child_projection refreshes target change membership from Epic entry", async () => {
     const store = makeStore({
       entries: [
