@@ -53,4 +53,15 @@ describe("dashboard UI", () => {
     expect(html).not.toContain("<form");
     expect(html).not.toContain('method="post"');
   });
+
+  test("renders a safe inline GitHub setup card for auth-unavailable degraded state", () => {
+    const html = renderDashboardHtml();
+
+    expect(html).toContain("githubSetupHtml");
+    expect(html).toContain("Connect GitHub locally");
+    expect(html).toContain("gh auth login");
+    expect(html).toContain("GITHUB_TOKEN");
+    expect(html).not.toContain("stderr");
+    expect(html).not.toContain("ghp_secret123");
+  });
 });

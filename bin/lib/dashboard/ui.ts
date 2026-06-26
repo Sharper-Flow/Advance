@@ -37,6 +37,8 @@ export function renderDashboardHtml(): string {
     .lane-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: .7rem; }
     .lane-count { font-size: .72rem; color: var(--muted); }
     .item { margin: .55rem 0; padding: .6rem .7rem; border: 1px solid color-mix(in srgb, var(--border) 60%, transparent); border-left: 3px solid currentColor; border-radius: .65rem; background: color-mix(in srgb, Canvas 72%, CanvasText 5%); }
+    .setup-card { border-left-color: var(--warning); background: color-mix(in srgb, var(--warning) 10%, Canvas); }
+    .setup-card ul { margin: .45rem 0 0; padding-left: 1.1rem; }
     .adv-change { display: grid; gap: .45rem; border-left-color: var(--accent); }
     .change-title { font-weight: 650; line-height: 1.25; letter-spacing: -.01em; }
     .change-id { font-size: .76rem; color: var(--muted); }
@@ -93,8 +95,15 @@ export function renderDashboardHtml(): string {
       return '<article class="item adv-change"><div class="change-title">' + escapeHtml(item.title || item.changeId || 'ADV change') + '</div><div class="change-id"><code>' + escapeHtml(item.changeId || '') + '</code></div><div class="gate-row"><span class="gate-label">Next gate</span><strong class="gate-badge ' + gateClass(gate) + '">' + escapeHtml(gate) + '</strong></div></article>';
     }
     function degradedHtml(source) {
+      if (source && source.source === 'github' && source.code === 'GITHUB_AUTH_UNAVAILABLE') return githubSetupHtml(source);
       const lastSuccess = source.last_success_at ? '<div>Last successful refresh: ' + escapeHtml(source.last_success_at) + '</div>' : '';
       return '<article class="item degraded"><strong>Degraded</strong>: ' + escapeHtml(source.source || '') + ' <code>' + escapeHtml(source.code || '') + '</code><div>' + escapeHtml(source.message || '') + '</div>' + lastSuccess + '</article>';
+    }
+    function githubSetupHtml(source) {
+      const setup = source.setup || { title: 'Connect GitHub locally', message: 'Run GitHub CLI login or set GITHUB_TOKEN for pull request, Actions, and deployment data.', commands: ['gh auth login'], env_vars: ['GITHUB_TOKEN'] };
+      const commands = (setup.commands || []).map((command) => '<li><code>' + escapeHtml(command) + '</code></li>').join('');
+      const envVars = (setup.env_vars || []).map((name) => '<li><code>' + escapeHtml(name) + '</code></li>').join('');
+      return '<article class="item degraded setup-card"><strong>' + escapeHtml(setup.title || 'Connect GitHub locally') + '</strong><div>' + escapeHtml(setup.message || source.message || '') + '</div><ul>' + commands + envVars + '</ul></article>';
     }
     function renderLane(name, items) {
       return '<section class="lane" data-lane="' + name + '"><div class="lane-head"><h3>' + name + '</h3><span class="lane-count">' + items.length + '</span></div>' + (items.length ? items.map((item) => item.kind === 'degraded_source' ? degradedHtml(item) : itemHtml(item)).join('') : document.getElementById('empty-template').innerHTML) + '</section>';

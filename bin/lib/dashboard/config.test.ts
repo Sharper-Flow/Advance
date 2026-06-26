@@ -1,6 +1,8 @@
 import { describe, expect, test } from "bun:test";
 
 import {
+  createPokeEdgeDashboardConfig,
+  dashboardProfileConfigPath,
   parseDashboardConfig,
   sanitizeDashboardState,
 } from "./config";
@@ -116,5 +118,35 @@ describe("dashboard config parser", () => {
     expect(serialized).not.toContain("ghp_secret123");
     expect(serialized).not.toContain("token");
     expect(serialized).toContain("[REDACTED]");
+  });
+
+  test("builds the default PokeEdge dashboard profile config", () => {
+    const profile = createPokeEdgeDashboardConfig();
+
+    expect(profile).toEqual({
+      schema_version: 1,
+      refresh_seconds: 45,
+      projects: [
+        {
+          id: "pokeedge",
+          label: "PokeEdge",
+          path: "/home/jon/dev/pokeedge",
+          github: { owner: "Sharper-Flow", repo: "PokeEdge" },
+        },
+        {
+          id: "pokeedge-web",
+          label: "PokeEdge Web",
+          path: "/home/jon/dev/pokeedge-web",
+          github: { owner: "Sharper-Flow", repo: "PokeEdge-Web" },
+        },
+      ],
+    });
+    expect(parseDashboardConfig(profile).ok).toBe(true);
+  });
+
+  test("resolves the PokeEdge profile config path under user config", () => {
+    expect(dashboardProfileConfigPath("pokeedge", "/home/example")).toBe(
+      "/home/example/.config/advance/dashboard/pokeedge.json",
+    );
   });
 });
