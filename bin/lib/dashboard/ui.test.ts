@@ -79,4 +79,20 @@ describe("dashboard UI", () => {
     expect(html).toContain("Unmatched source item");
     expect(html).not.toContain("Unmatched GitHub auth");
   });
+
+  test("renders grouped lane items through safe read-only disclosures", () => {
+    const html = renderDashboardHtml();
+
+    expect(html).toContain("if (item.kind === 'group') return groupHtml(item)");
+    expect(html).toContain("<details class=\"group-card\"");
+    expect(html).toContain("<summary>");
+    expect(html).toContain("group.count");
+    expect(html).toContain("group.latestUpdatedAt");
+    expect(html).toContain("(group.items || []).slice(0, limit)");
+    expect(html).toContain("hiddenCount");
+    expect(html).toContain("safeUrl(item.url)");
+    expect(html).toContain("escapeHtml(group.title");
+    expect(html).not.toContain("'<summary><a");
+    expect(html).not.toContain("method=\"post\"");
+  });
 });
