@@ -166,4 +166,116 @@ describe("dashboard attention lanes", () => {
       ]),
     });
   });
+
+  test("groups duplicate source history and summarizes draft inventory", () => {
+    const lanes = buildAttentionLanes({
+      github: { owner: "Sharper-Flow", repo: "PokeEdge" },
+      changes: Array.from({ length: 7 }, (_, index) => ({
+        id: `draft${index}`,
+        title: `Draft ${index}`,
+        status: "draft",
+        gateProgressStr: "proposal ○ discovery ○ design ○ planning ○ execution ○ acceptance ○ release ○",
+        firstIncompleteGate: "proposal",
+        lastActivityAt: `2026-06-25T20:0${index}:00.000Z`,
+        correlation_keys: { branches: [`change/draft${index}`], head_shas: [] },
+      })),
+      linked: [],
+      unlinked: [
+        {
+          kind: "workflow_run",
+          reason: "no structural match",
+          status: "failure",
+          item: {
+            name: "PR Gate",
+            html_url: "https://github.com/Sharper-Flow/PokeEdge/actions/runs/1",
+            head_branch: "change/evaluatePrintingIdentityField",
+            conclusion: "failure",
+            updated_at: "2026-06-25T16:31:44Z",
+          },
+        },
+        {
+          kind: "workflow_run",
+          reason: "no structural match",
+          status: "failure",
+          item: {
+            name: "PR Gate",
+            html_url: "https://github.com/Sharper-Flow/PokeEdge/actions/runs/2",
+            head_branch: "change/evaluatePrintingIdentityField",
+            conclusion: "failure",
+            updated_at: "2026-06-25T17:22:39Z",
+          },
+        },
+        {
+          kind: "deployment",
+          reason: "no structural match",
+          status: "inactive",
+          item: {
+            environment: "production",
+            ref: "main",
+            updated_at: "2026-06-25T22:56:25Z",
+            source_states: { github_deployment: "inactive" },
+          },
+        },
+        {
+          kind: "deployment",
+          reason: "no structural match",
+          status: "inactive",
+          item: {
+            environment: "production",
+            ref: "main",
+            updated_at: "2026-06-26T01:06:22Z",
+            source_states: { github_deployment: "inactive" },
+          },
+        },
+        {
+          kind: "pull",
+          reason: "no structural match",
+          status: "open",
+          item: {
+            number: 567,
+            title: "Fan out image migration keys",
+            html_url: "https://github.com/Sharper-Flow/PokeEdge/pull/567",
+            head: { ref: "change/fanOutImageMigrationDuplicate" },
+            updated_at: "2026-06-19T15:45:19Z",
+          },
+        },
+      ],
+      degradedSources: [],
+    });
+
+    expect(lanes.attention).toHaveLength(1);
+    expect(lanes.attention[0]).toMatchObject({
+      kind: "group",
+      groupKind: "workflow_run",
+      title: "PR Gate",
+      status: "failure",
+      count: 2,
+      latestUpdatedAt: "2026-06-25T17:22:39Z",
+      metadata: expect.arrayContaining([
+        { label: "Branch", value: "change/evaluatePrintingIdentityField" },
+      ]),
+    });
+    expect(lanes.attention[0]).toHaveProperty("items");
+    expect((lanes.attention[0] as { items: unknown[] }).items).toHaveLength(2);
+
+    expect(lanes.unmatched.map((item) => item.kind)).toEqual(["pull", "group"]);
+    expect(lanes.unmatched[1]).toMatchObject({
+      kind: "group",
+      groupKind: "deployment",
+      title: "Deployment: production",
+      status: "inactive",
+      count: 2,
+      latestUpdatedAt: "2026-06-26T01:06:22Z",
+    });
+
+    expect(lanes.inventory).toHaveLength(1);
+    expect(lanes.inventory[0]).toMatchObject({
+      kind: "group",
+      groupKind: "inventory",
+      title: "7 draft ADV changes",
+      status: "draft",
+      count: 7,
+      collapsedByDefault: true,
+    });
+  });
 });

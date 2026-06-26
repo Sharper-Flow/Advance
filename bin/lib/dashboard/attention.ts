@@ -21,7 +21,8 @@ export type DashboardLaneItem =
   | ProjectedSourceLaneItem
   | AdvChangeLaneItem
   | DegradedLaneItem
-  | SummaryLaneItem;
+  | SummaryLaneItem
+  | GroupedLaneItem;
 
 export type ProjectedSourceLaneItem = (
   | LinkedDashboardItem
@@ -66,6 +67,19 @@ export interface SummaryLaneItem {
   title: string;
   status: string;
   count: number;
+}
+
+export interface GroupedLaneItem {
+  kind: "group";
+  groupKind: "workflow_run" | "deployment" | "inventory";
+  title: string;
+  status?: string;
+  count: number;
+  latestUpdatedAt?: string;
+  representative: ProjectedSourceLaneItem | AdvChangeLaneItem;
+  items: Array<ProjectedSourceLaneItem | AdvChangeLaneItem>;
+  collapsedByDefault: boolean;
+  metadata?: LaneCardMetadata[];
 }
 
 export function buildAttentionLanes(input: AttentionInput): AttentionLanes {
@@ -115,10 +129,10 @@ export function buildAttentionLanes(input: AttentionInput): AttentionLanes {
   }
 
   return {
-    attention,
-    active: active.sort(activeSort),
-    unmatched,
-    inventory,
+    attention: groupSourceItems(attention),
+    active: groupSourceItems(active.sort(activeSort)),
+    unmatched: sortUnmatched(groupSourceItems(unmatched)),
+    inventory: summarizeDraftInventory(groupSourceItems(inventory)),
   };
 }
 
@@ -277,6 +291,116 @@ function summaryKey(item: { kind: string; status?: string }): string {
 
 function increment(counts: Map<string, number>, key: string): void {
   counts.set(key, (counts.get(key) ?? 0) + 1);
+}
+
+function groupSourceItems(items: DashboardLaneItem[]): DashboardLaneItem[] {
+  const grouped = new Map<string, ProjectedSourceLaneItem[]>();
+  const result: DashboardLaneItem[] = [];
+
+  for (const item of items) {
+    if (!isGroupableSourceItem(item)) {
+      result.push(item);
+      continue;
+    }
+    const key = groupKey(item);
+    const existing = grouped.get(key);
+    if (existing) existing.push(item);
+    else {
+      grouped.set(key, [item]);
+      result.push(item);
+    }
+  }
+
+  return result.map((item) => {
+    if (!isGroupableSourceItem(item)) return item;
+    const members = grouped.get(groupKey(item)) ?? [item];
+    return members.length > 1 ? sourceGroup(members) : item;
+  });
+}
+
+function summarizeDraftInventory(items: DashboardLaneItem[]): DashboardLaneItem[] {
+  const drafts = items.filter(isDraftAdvChange);
+  if (drafts.length <= 5) return items;
+  const rest = items.filter((item) => !isDraftAdvChange(item));
+  return [
+    {
+      kind: "group",
+      groupKind: "inventory",
+      title: `${drafts.length} draft ADV changes`,
+      status: "draft",
+      count: drafts.length,
+      latestUpdatedAt: undefined,
+      representative: drafts[0]!,
+      items: drafts,
+      collapsedByDefault: true,
+      metadata: [{ label: "Preview", value: "5 shown on expand" }],
+    },
+    ...rest,
+  ];
+}
+
+function sourceGroup(items: ProjectedSourceLaneItem[]): GroupedLaneItem {
+  const representative = latestItem(items);
+  return {
+    kind: "group",
+    groupKind: representative.kind,
+    title: representative.title ?? representative.kind,
+    status: representative.status,
+    count: items.length,
+    latestUpdatedAt: representative.updated_at,
+    representative,
+    items,
+    collapsedByDefault: true,
+    metadata: representative.metadata,
+  };
+}
+
+function latestItem<T extends { updated_at?: string }>(items: T[]): T {
+  return items.reduce((latest, item) => {
+    if (!isIsoLikeTimestamp(item.updated_at)) return latest;
+    if (!isIsoLikeTimestamp(latest.updated_at)) return item;
+    return item.updated_at! > latest.updated_at! ? item : latest;
+  }, items[0]!);
+}
+
+function isGroupableSourceItem(
+  item: DashboardLaneItem,
+): item is ProjectedSourceLaneItem {
+  return item.kind === "workflow_run" || item.kind === "deployment";
+}
+
+function isDraftAdvChange(item: DashboardLaneItem): item is AdvChangeLaneItem {
+  return item.kind === "adv_change" && /^draft$/i.test(item.status);
+}
+
+function groupKey(item: ProjectedSourceLaneItem): string {
+  return [
+    item.kind,
+    item.status ?? "",
+    item.title ?? "",
+    metadataValue(item.metadata, "Branch") ?? metadataValue(item.metadata, "Ref") ?? "",
+  ].join("\u0000");
+}
+
+function metadataValue(
+  metadata: LaneCardMetadata[] | undefined,
+  label: string,
+): string | undefined {
+  return metadata?.find((entry) => entry.label === label)?.value;
+}
+
+function isIsoLikeTimestamp(value: string | undefined): boolean {
+  return /^\d{4}-\d{2}-\d{2}T/.test(value ?? "");
+}
+
+function sortUnmatched(items: DashboardLaneItem[]): DashboardLaneItem[] {
+  return [...items].sort((a, b) => unmatchedRank(a) - unmatchedRank(b));
+}
+
+function unmatchedRank(item: DashboardLaneItem): number {
+  if (item.kind === "pull" && /^open$/i.test(item.status ?? "")) return 0;
+  if (item.kind === "group" && item.groupKind === "deployment") return 2;
+  return 1;
 }
 
 function activeSort(a: DashboardLaneItem, b: DashboardLaneItem): number {
