@@ -1,0 +1,1757 @@
+{
+  "id": "updateEpicScope",
+  "title": "Update epic scope",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-06-26T20:46:01.523Z",
+  "tasks": [
+    {
+      "id": "tk-2d2db02bc7ca",
+      "title": "Spec/schema foundations for scoped and merged Epics",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-06-26T21:36:30.372Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC4",
+          "AC1",
+          "AC6",
+          "AC9"
+        ],
+        "verifies": [
+          "SC1",
+          "SC4",
+          "AC1",
+          "AC6",
+          "AC9"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C6",
+          "C7",
+          "OOS1",
+          "OOS2",
+          "OOS3",
+          "OOS4",
+          "OOS5",
+          "OOS6",
+          "OOS7",
+          "DONT1",
+          "DONT3",
+          "DONT5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-26T21:50:20.151Z",
+      "verification": "RED tr_mqvgv8sm_343f7808: pnpm exec vitest run src/types/epics.test.ts failed with 6 expected missing schema/helper failures. GREEN tr_mqvh0nys_65879d62: same test passed. VERIFY tr_mqvh1a9g_4d21f592: pnpm run schemas:check passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added Epic `merged` status, `merged_into` schema, derived scope label helper, audited scope-update and merge signal payload schemas, spec requirements and docs mirrors for scope derivation, mutable scope, and active-Epic merge. Added tests covering merged status/progress, merged pointer parsing, scope-label derivation independent of legacy kind, and new signal payload schemas.",
+      "filesTouched": [
+        ".adv/specs/advance-epics/spec.json",
+        "docs/specs/advance-epics.md",
+        "plugin/src/types/epics.test.ts",
+        "plugin/src/types/epics.ts",
+        "plugin/src/types/index.ts",
+        "plugin/src/types/signals.ts"
+      ],
+      "touched_files": [
+        ".adv/specs/advance-epics/spec.json",
+        "docs/specs/advance-epics.md",
+        "plugin/src/types/epics.test.ts",
+        "plugin/src/types/epics.ts",
+        "plugin/src/types/index.ts",
+        "plugin/src/types/signals.ts"
+      ],
+      "checkpointSha": "fd9f85c71504834582c8cc8d7b283932d5aeed4d",
+      "completedAt": "2026-06-26T21:57:09.704Z",
+      "completed_at": "2026-06-26T21:57:09.704Z",
+      "notes": "Completed schema/spec foundation. RED tr_mqvgv8sm_343f7808 failed as expected for missing merged status/scope label/signal payloads. GREEN tr_mqvh0nys_65879d62 passed. VERIFY tr_mqvh1a9g_4d21f592 schemas:check passed. Checkpoint fd9f85c71504834582c8cc8d7b283932d5aeed4d.",
+      "error_recovery": {
+        "last_error": "Initial RED test failed because merged status, derived scope label helper, merged_into schema, and Epic scope/merge signal payload schemas did not exist yet.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "Proceed to workflow/store/tool support for audited scope mutation.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "`pnpm exec vitest run src/types/epics.test.ts` failed with 6 expected failures for missing schema/helper/signal support.",
+            "diagnosis": "Schema layer lacked merged-source and derived-scope primitives required by agreement/design.",
+            "fix_tried": "Added Zod schemas/types/helpers, signal payload schemas, tests, and spec/doc requirements.",
+            "strategy_label": "add-typed-schema-foundation",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-26T21:56:25Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-26T21:57:33.357Z"
+    },
+    {
+      "id": "tk-103c24e0769e",
+      "title": "Workflow/store/tool support for audited Epic scope mutation",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-06-26T21:37:12.314Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-2d2db02bc7ca"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC2",
+          "AC2",
+          "AC3",
+          "AC8"
+        ],
+        "verifies": [
+          "SC2",
+          "AC2",
+          "AC3",
+          "AC8"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C5",
+          "C6",
+          "C7",
+          "OOS1",
+          "OOS2",
+          "OOS4",
+          "OOS5",
+          "OOS6",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-26T21:57:57.923Z",
+      "verification": "Reviewer hardening applied after READY re-review: stale adv_epic_update_scope versions now return typed stale_version before scope-removal guard. Reviewer verification passed: bin/oc-test targeted -- src/tools/epic.test.ts src/advance-epics-assets.test.ts (83 tests), pnpm run typecheck, and prettier check for src/tools/epic.ts src/tools/epic.test.ts.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Strengthened scope-removal guard for legacy linked entries and added reviewer hardening so stale `adv_epic_update_scope` versions return typed `stale_version` before scope-removal guard evaluation. Added regression coverage for both paths.",
+      "filesTouched": [
+        "plugin/src/tools/epic.test.ts",
+        "plugin/src/tools/epic.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/epic.test.ts",
+        "plugin/src/tools/epic.ts"
+      ],
+      "checkpointSha": "e94e8056ed96c46c86520c32f36d60fc04a1ad4c",
+      "completedAt": "2026-06-26T23:06:21.569Z",
+      "completed_at": "2026-06-26T23:06:21.569Z",
+      "notes": "Included reviewer hardening: stale scope-update version now returns typed stale_version before removal guard. Checkpoint e94e8056ed96c46c86520c32f36d60fc04a1ad4c.",
+      "error_recovery": {
+        "last_error": "Acceptance review found scope-removal and stale-version ordering hardening gaps.",
+        "retry_count": 2,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "Acceptance review rerun is READY; proceed to acceptance checkpoint.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "Acceptance blocker acceptance-2: scope-removal guard missed legacy linked entries without `change_ref.repo_id`.",
+            "diagnosis": "Removing/clearing scoped repos while legacy linked entries lack repo attribution is unsafe because the tool cannot prove those children are outside removed scope.",
+            "fix_tried": "Treat missing repo_id on non-unlinked change entries as blocking when current scope repos are removed; added regression test.",
+            "strategy_label": "fix-legacy-scope-removal-guard",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-26T18:51:37Z"
+          },
+          {
+            "attempt_number": 2,
+            "error": "Reviewer hardening: stale scope-clear with legacy linked entries should return typed stale_version before removal guard.",
+            "diagnosis": "Optimistic concurrency should fail before impact-specific guards to preserve stale-write semantics.",
+            "fix_tried": "Reviewer applied stale-version precheck and regression; reviewer verification passed.",
+            "strategy_label": "stale-version-before-removal-guard",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-26T18:58:40Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-26T23:06:46.248Z"
+    },
+    {
+      "id": "tk-b827b5e753be",
+      "title": "Merge planning and execution for active duplicate Epics",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-06-26T21:37:12.427Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-2d2db02bc7ca"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC3",
+          "SC5",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7",
+          "AC8"
+        ],
+        "verifies": [
+          "SC3",
+          "SC5",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7",
+          "AC8"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "C7",
+          "OOS1",
+          "OOS2",
+          "OOS4",
+          "OOS5",
+          "OOS6",
+          "OOS7",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT6"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-26T22:17:03.717Z",
+      "verification": "ACCEPTANCE RED tr_mqvj3mmv_d635a9cb failed because merge execution mutated survivor before later projection mismatch was detected. GREEN tr_mqvj4w70_2af8a54f passed preflight/merge regression tests. VERIFY tr_mqvj5kou_82c08c0b passed 140 tests across Epic tool/state/store/assets. VERIFY tr_mqvj5mul_6341c9cd typecheck passed. VERIFY tr_mqvj5jb9_c3034a18 prettier check passed for touched files.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Changed `adv_epic_merge` to preflight every unique change's child projection before mutating survivor, child membership, source unlink, or source finalization. Added regression test proving a later projection mismatch returns `PROJECTION_MISMATCH` with no survivor link, child membership update, source unlink, or markMerged calls.",
+      "filesTouched": [
+        "plugin/src/tools/epic.test.ts",
+        "plugin/src/tools/epic.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/epic.test.ts",
+        "plugin/src/tools/epic.ts"
+      ],
+      "checkpointSha": "9a835d2d578d81b7472a26305951d568432a37dc",
+      "completedAt": "2026-06-26T22:56:38.489Z",
+      "completed_at": "2026-06-26T22:56:38.489Z",
+      "notes": "Resolved acceptance blocker acceptance-1. Checkpoint 9a835d2d578d81b7472a26305951d568432a37dc.",
+      "error_recovery": {
+        "last_error": "Acceptance review blocker acceptance-1: merge execution could mutate survivor/child state before all failure-prone projection checks completed.",
+        "retry_count": 2,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "Rerun acceptance review.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "RED tr_mqvi4e0e_8c176ac8: adv_epic_merge tests failed with `Cannot read properties of undefined (reading 'execute')`.",
+            "diagnosis": "Merge planning/execution tool surface had not been implemented yet; state/store pieces were partial.",
+            "fix_tried": "Implemented merge state finalization, signal/store wiring, dry-run plan, conflict guard, source eligibility guard, local move/copy execution, and source finalization.",
+            "strategy_label": "implement-active-epic-merge",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-26T18:30:32Z"
+          },
+          {
+            "attempt_number": 2,
+            "error": "Acceptance blocker acceptance-1: adv_epic_merge mutated survivor before detecting a later projection mismatch.",
+            "diagnosis": "Merge execution validated and mutated inside the same per-entry loop, so partial mutation was possible if a later child projection failed.",
+            "fix_tried": "Staged and preflighted all child moves before any survivor/source mutation; added no-partial-mutation regression.",
+            "strategy_label": "preflight-merge-projections",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-26T18:55:41Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-26T22:57:10.861Z"
+    },
+    {
+      "id": "tk-5c66ac32499b",
+      "title": "Epic rendering, command guidance, and next-work integration",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-06-26T21:37:53.015Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-2d2db02bc7ca"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-b827b5e753be"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC3",
+          "SC4",
+          "AC1",
+          "AC4",
+          "AC6",
+          "AC9"
+        ],
+        "verifies": [
+          "SC1",
+          "SC3",
+          "SC4",
+          "AC1",
+          "AC4",
+          "AC6",
+          "AC9"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C6",
+          "C7",
+          "OOS1",
+          "OOS2",
+          "OOS3",
+          "OOS4",
+          "OOS5",
+          "OOS6",
+          "OOS7",
+          "DONT1",
+          "DONT3",
+          "DONT5",
+          "DONT6"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-26T22:33:22.735Z",
+      "verification": "RED tr_mqvie8h1_4e1a38bc failed as expected for missing scope_label/merged rendering and command guidance. GREEN tr_mqvifevq_a8c8ee8e passed focused rendering/guidance tests. VERIFY tr_mqviggwk_36414cfc passed 138 tests across tools/epic, advance-epics-assets, epic-state, and store-temporal/epics. VERIFY tr_mqvigiw7_4e727f47 typecheck passed. VERIFY tr_mqvihc0k_d63f7aff prettier check passed for touched files and adv-epic command.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Updated Epic rendering to include derived `scope_label` and `merged_into` in compact/full views, and to suppress `next_work` for merged sources structurally. Updated `/adv-epic` command guidance so overlap handling explicitly offers `adv_epic_update_scope` and dry-run-first `adv_epic_merge` before duplicate creation. Added tests for derived product-spanning labels from repo count, merged-source survivor pointer/no-next-work rendering, and command guidance anchors.",
+      "filesTouched": [
+        ".opencode/command/adv-epic.md",
+        "plugin/src/advance-epics-assets.test.ts",
+        "plugin/src/tools/epic.test.ts",
+        "plugin/src/tools/epic.ts"
+      ],
+      "touched_files": [
+        ".opencode/command/adv-epic.md",
+        "plugin/src/advance-epics-assets.test.ts",
+        "plugin/src/tools/epic.test.ts",
+        "plugin/src/tools/epic.ts"
+      ],
+      "checkpointSha": "c31f89ff5b6faff985846a6f61dd1ac61b8da449",
+      "completedAt": "2026-06-26T22:37:59.912Z",
+      "completed_at": "2026-06-26T22:37:59.912Z",
+      "notes": "Completed Epic rendering, guidance, and next-work integration. Checkpoint c31f89ff5b6faff985846a6f61dd1ac61b8da449.",
+      "error_recovery": {
+        "last_error": "Initial RED failed because rendered Epics did not expose scope_label/merged_into and command guidance did not mention scope update or merge tools.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "Proceed to post-rendering integration verification.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "RED tr_mqvie8h1_4e1a38bc: focused tests failed for missing `scope_label`, missing merged-source rendering, and absent `adv_epic_update_scope`/`adv_epic_merge` command guidance.",
+            "diagnosis": "Rendering/guidance consumers had not been updated after schema/workflow support landed.",
+            "fix_tried": "Added rendered scope labels and merged pointer, suppressed merged next_work, updated command guidance, and formatted command markdown.",
+            "strategy_label": "render-and-guide-merged-scope",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-26T18:35:53Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-26T22:38:23.447Z"
+    },
+    {
+      "id": "tk-ca8bfaef5f3a",
+      "title": "Final verification and ADV validation",
+      "type": "verification",
+      "section": "Verification",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-06-26T21:37:53.250Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-103c24e0769e"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-b827b5e753be"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [],
+        "verifies": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "SC4",
+          "SC5",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7",
+          "AC8",
+          "AC9",
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "C7",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "DONT6"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "C7",
+          "OOS1",
+          "OOS2",
+          "OOS3",
+          "OOS4",
+          "OOS5",
+          "OOS6",
+          "OOS7",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "DONT6"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-26T22:38:53.519Z",
+      "verification": "ADV validation passed with warnings only: NO_DELTAS. VERIFY tr_mqvikum0_987de5f8 passed 176 tests across epics types/state/store/tool/assets. VERIFY tr_mqviktpc_f81eee05 prettier check passed for touched files. Prior VERIFY tr_mqvigiw7_4e727f47 typecheck passed. Smoke tr_mqvik58s_0d21ba9a failed only on pre-existing unrelated format drift in src/cli-bridge-contract.test.ts and src/tools/change.ts; current diff is clean after task checkpoint and touched-file formatting passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Verified change state with `adv_change_validate`, targeted Epic test suite, typecheck evidence from prior rendering verification, schemas check evidence from prior merge verification, and touched-file formatting. `bin/oc-test smoke` ran through schemas/typecheck/lint and failed only at `format:check` for unrelated pre-existing files `src/cli-bridge-contract.test.ts` and `src/tools/change.ts`, which are not in the current diff and were already reported before this task's changes.",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "c31f89ff5b6faff985846a6f61dd1ac61b8da449",
+      "completedAt": "2026-06-26T22:40:24.912Z",
+      "completed_at": "2026-06-26T22:40:24.912Z",
+      "notes": "Completed final verification. Checkpoint clean at c31f89ff5b6faff985846a6f61dd1ac61b8da449. Smoke format failure classified unrelated/pre-existing; touched-file format and targeted tests passed.",
+      "error_recovery": {
+        "last_error": "`bin/oc-test smoke` failed at repo-wide format:check due unrelated pre-existing formatting drift in src/cli-bridge-contract.test.ts and src/tools/change.ts.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "ENVIRONMENTAL",
+        "next_strategy": "Proceed to post-rendering integration verification; do not mutate unrelated files.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "Smoke tr_mqvik58s_0d21ba9a failed: prettier --check src/ reported src/cli-bridge-contract.test.ts and src/tools/change.ts.",
+            "diagnosis": "Failure is outside touched scope and matches prior repo-wide format drift observed before this verification task; current task diff is clean and touched-file prettier check passed.",
+            "fix_tried": "Ran targeted Epic tests and touched-file formatting check; confirmed current diff has no files after checkpoint.",
+            "strategy_label": "classify-unrelated-format-drift",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-26T18:40:06Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-26T22:40:51.175Z"
+    },
+    {
+      "id": "tk-242cb8933399",
+      "title": "Post-rendering integration verification",
+      "type": "verification",
+      "section": "Verification",
+      "status": "done",
+      "priority": 5,
+      "created_at": "2026-06-26T21:38:22.759Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-5c66ac32499b"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [],
+        "verifies": [
+          "SC1",
+          "SC3",
+          "SC4",
+          "AC1",
+          "AC4",
+          "AC6",
+          "AC9"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C6",
+          "C7",
+          "OOS1",
+          "OOS2",
+          "OOS3",
+          "OOS4",
+          "OOS5",
+          "OOS6",
+          "OOS7",
+          "DONT1",
+          "DONT3",
+          "DONT5",
+          "DONT6"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-26T22:41:05.550Z",
+      "verification": "VERIFY tr_mqvimchq_d27d450e passed focused post-rendering integration checks for adv_epic_show/list and adv-epic command contract: 15 tests passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Ran focused post-rendering integration tests covering Epic show/list rendering and `/adv-epic` command contract. Verified scope-label, merged-source no-next-work, compact/full show, list behavior, and command overlap guidance remain integrated after rendering changes.",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "c31f89ff5b6faff985846a6f61dd1ac61b8da449",
+      "completedAt": "2026-06-26T22:41:28.079Z",
+      "completed_at": "2026-06-26T22:41:28.079Z",
+      "notes": "Completed post-rendering integration verification. Checkpoint clean at c31f89ff5b6faff985846a6f61dd1ac61b8da449.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "All planned execution tasks complete; proceed to execution gate completion review.",
+        "attempts": []
+      },
+      "updatedAt": "2026-06-26T22:41:44.976Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "updateEpicScope",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:discovery-opportunity-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Discovery opportunity scout: typed Epic scope mutation + merge/supersede + product-ness-as-derived",
+      "sources": [
+        {
+          "label": "advance-epics spec (rq-epicProductScope01, rq-epicOnePerChange01, rq-epicMembershipRepair01, rq-epicErrors01, rq-epicNoJiraClone01, rq-epicTemporalConstraints01)",
+          "locator": "adv_spec advance-epics v1.3.0",
+          "summary": "Spec already says product Epics must not require duplicate repo-local Epics and scope metadata must be structural/typed. Version field on EpicSchema enables CAS conflict detection. Membership repair is already audited/movable/repairable with typed statuses (projection_pending/projection_stale/target_unreachable)."
+        },
+        {
+          "label": "EpicScopeSchema + no behavioral reader of kind",
+          "locator": "plugin/src/types/epics.ts:65-76; grep 'epic_scope.kind===' / '=== product' across plugin/src returned ZERO behavioral readers",
+          "summary": "EpicScopeSchema.kind:'repo'|'product' is display/category-only — no code branches on it. Product-ness is already de facto derivable from repos[] breadth. Supports collapsing kind to a derived label."
+        },
+        {
+          "label": "Epic workflow pure-state mutation pattern",
+          "locator": "plugin/src/temporal/epic-state.ts:164-187 (applyEpicUpdatedToState) + EpicMutationFailure codes 32-54",
+          "summary": "All Epic mutations are pure functions returning typed EpicMutationResult with version/idempotency checks (checkVersion, checkIdempotency, bumpVersion). New scope/merge transitions slot into this exact pattern; conflict codes (stale_version, epic_archived) already exist."
+        },
+        {
+          "label": "Epic store signal-fire + rejection-readback pattern",
+          "locator": "plugin/src/storage/store-temporal/epics.ts:131-152 (fireEpicSignal), codeFromRejectionMessage 116-129",
+          "summary": "Every Epic mutation fires a signal then reads back rejections with typed code mapping. adv_epic_update path (268-297) is the direct template for a scope-update tool; new signals (epicScopeUpdated, epicMerged) follow identically."
+        },
+        {
+          "label": "Child re-projection primitive already exists",
+          "locator": "plugin/src/storage/store-temporal/changes.ts:460-491 setEpicMembership (CAS via expectedCurrent) + 492-514 clearEpicMembership",
+          "summary": "Merge re-pointing of child changes to surviving Epic is a composition of existing setEpicMembership (CAS) + clearEpicMembership. No new child-side signal needed; epicMembershipSet/Cleared signals already wired into change workflow (workflows.ts:383-388)."
+        },
+        {
+          "label": "Change supersede closure precedent",
+          "locator": "plugin/src/types/changes.ts:90-104 ChangeClosureSchema {reason:'superseded', superseded_by} ; signals.ts:456 supersededBy",
+          "summary": "ADV already models supersede as terminal status + superseded_by pointer with audit evidence. Epic merge/supersede should mirror this boring precedent rather than invent a new terminal model."
+        },
+        {
+          "label": "Temporal TS: adding new signal handlers is replay-safe",
+          "locator": "Context7 /temporalio/sdk-typescript — patched() docs; setHandler additive",
+          "summary": "New signal handlers (epicScopeUpdated, epicMergeInitiated) are additive and replay-safe. Only logic CHANGES inside existing handlers need patched(). Fits project's signal-only surface (AGENTS.md: no defineUpdate on workflow surface)."
+        },
+        {
+          "label": "EpicArchivedSignalPayload terminal pattern",
+          "locator": "plugin/src/temporal/epic-state.ts:544-554 applyEpicArchivedToState; signals.ts:631-637",
+          "summary": "Existing terminal transition sets status='archived' + progress.status. A 'superseded'/'merged_into' terminal mirrors this exactly with an added merged_into pointer."
+        }
+      ],
+      "architecture_assessment": "The reshape is overwhelmingly a structural extension of existing typed primitives, not new infrastructure. (1) Product-ness-as-derived is nearly free: EpicScopeSchema.kind has zero behavioral readers, so a derived isProduct = repos spanning >1 project/repo helper + display label collapses the premature category without breaking backcompat (kind stays optional/forward-compat via EpicSchema .passthrough()). (2) Typed scope mutation mirrors applyEpicUpdatedToState 1:1 — same version/idempotency CAS, new epicScopeUpdated signal + payload schema, new store method, extend adv_epic_update (currently title/narrative only) or add adv_epic_set_scope. (3) Merge/supersede is a COMPOSITION, not a primitive: move-many child re-projection already exists (setEpicMembership CAS + clearEpicMembership), entry copy uses existing changeLinked/shellAdded shapes, source-Epic terminal mirrors applyEpicArchivedToState + change supersede precedent (superseded_by pointer + audit evidence). (4) Legacy/unscoped backfill: Epics with no epic_scope already parse (optional field); a backfill derives a single-repo scope from owner_project_id. (5) Temporal constraint: new signal handlers are replay-safe and signal-only-surface-compliant. Main genuine design decisions: merge entry-conflict resolution (spec already says unresolved conflicts become explicit discovery/design decisions — do NOT auto-dedupe), and cross-project move-during-merge when target unreachable (reuse target_unreachable status + repair path, already specced in rq-epicMembershipRepair01.3).",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "No security/release/contract blocker. All proposal constraints are satisfiable with existing typed primitives. No Jira-like fields needed. One-owning-Epic invariant preserved because merge uses single-membership setEpicMembership CAS. Cross-project trust preserved via existing target_path rules. Risk is concentrated in merge entry-conflict UX and cross-project partial-failure recovery, both already anticipated by spec."
+      },
+      "recommendation": "Proceed to design. Adopt the 'derived product-ness' model (auto-adopt: zero behavioral readers of kind). Implement scope mutation as a CAS-guarded signal mirroring epicUpdated (auto-adopt pattern). Model merge as supersede: surviving Epic absorbs entries + child re-projection via existing setEpicMembership/clearEpicMembership; source Epic gets a terminal merged_into/superseded state mirroring archive + change-supersede precedent (auto-adopt pattern, surface naming to user). SURFACE TO USER: (a) display label for derived product-ness ('Product Epic' label vs 'scoped'), (b) merge entry-conflict policy (copy-all vs dedupe-by-title vs require-choice — spec leans require-choice / explicit decision), (c) whether archived/completed source Epics may be merged. DEFER: multi-membership, board/sprint fields (explicit out-of-scope).",
+      "follow_ups": [
+        "Design must specify EpicStatusSchema extension: add 'superseded'/'merged' OR represent merge via separate merged_into metadata pointer (open question in proposal Discovery Agenda) — recommend mirroring change supersede (terminal status + merged_into pointer).",
+        "Design must define merge entry-conflict resolution (recommend explicit user choice per spec failure-handling clause, NOT silent dedupe).",
+        "Confirm whether AdvEpicId Visibility search attribute on child changes needs re-index on merge (rq-epicTemporalConstraints01 single Keyword) — re-projection via setEpicMembership should already refresh it; verify in design.",
+        "Two active related agendas (Fix Epic cross-project guidance, Fix Epic tool warrant surface) may overlap merge UX — reconcile during design."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "updateEpicScope",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-leverage-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Leverage points and simplifications for Update Epic Scope design",
+      "sources": [
+        {
+          "label": "adv_epic_move_change implementation",
+          "locator": "plugin/src/tools/epic.ts:973-1102",
+          "summary": "Existing tool already does full per-entry cross-project move: loadEpic source/dest, findChangeEntry, resolveChildStore (target-path trust), linkChange dest, setEpicMembership with expectedCurrent CAS, then unlinkChange source. adv_epic_merge is structurally N iterations of this loop plus source terminalization."
+        },
+        {
+          "label": "applyEpicUpdatedToState pure helper",
+          "locator": "plugin/src/temporal/epic-state.ts:164-187",
+          "summary": "isArchived guard -> checkIdempotency -> checkVersion -> mutate -> bumpVersion -> recordIdempotency -> setLastSignalAt -> recomputeEpicProgress. Exact mirror template for applyEpicScopeUpdatedToState; design DDC2 (optimistic + idempotency) is satisfied by copying this 7-line shape."
+        },
+        {
+          "label": "EpicStatusSchema shared enum",
+          "locator": "plugin/src/types/epics.ts:25 + grep of progress.status / state.status",
+          "summary": "EpicStatusSchema = active|completed|archived is used by BOTH EpicProgressSummarySchema.status and workflow state.status across ~50 call sites (epic-state, workflows, store-temporal, tools). Adding merged to this single enum widens display-status type everywhere."
+        },
+        {
+          "label": "No epic_scope.kind correctness consumer",
+          "locator": "grep classifyScope|scope_label|epic_scope?.kind -> No files found",
+          "summary": "epic_scope.kind is currently only read for echo/display in formatEpic/formatEpicCompact (epic.ts:179,201) and create-time wiring (epic.ts:446-495). Nothing uses it as correctness authority today, so DDC1 derived classifier is purely additive with near-zero migration risk."
+        },
+        {
+          "label": "EpicMembershipStatusSchema typed statuses",
+          "locator": "plugin/src/types/epics.ts:164-171",
+          "summary": "Enum already contains linked, projection_pending, projection_stale, target_unreachable, unlinked, terminal. DDC6 cross-project typed unreachable/stale statuses need no new enum; merge reuses these via existing setEntryMembershipStatus / repair-membership pattern (epic.ts:1182-1210)."
+        },
+        {
+          "label": "setEntryTerminalSummary store method",
+          "locator": "plugin/src/tools/epic.ts:1305 + store.epics.setEntryTerminalSummary usage in change.ts:1347",
+          "summary": "Compact terminal-summary projection on entries already exists and is wired through archive flow. Merge moved-entry summaries and source-entry terminalization can reuse this rather than inventing a new entry-terminal mechanism."
+        }
+      ],
+      "architecture_assessment": "Draft design is sound and aligns with the established additive-signal / pure-helper / optimistic-concurrency Epic pattern. Two of its three new surfaces (scope update, merge) can be built almost entirely by mirroring existing code rather than new mechanism. The biggest avoidable cost is placing `merged` inside the shared EpicStatusSchema, which couples a terminal-lifecycle concept to the display progress-status enum consumed by ~50 sites. Scope classification as derived display (DDC1) is low-risk because no correctness path reads epic_scope.kind today.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "No contract, security, or release blockers. All candidates are additive and backcompat-preserving per the agreement avoidances. Candidate C2 (status placement) is a user-surface decision, not a blocker."
+      },
+      "recommendation": "Proceed with the design. Adopt C1, C3, C4, C5 directly (low-risk reuse). Surface C2 (merged status placement: separate merged_into pointer + status stays active/archived-derived, vs widening EpicStatusSchema) to the user/orchestrator before implementation, since it changes a shared enum's type surface.",
+      "follow_ups": [
+        "C1 AUTO-ADOPT: Implement adv_epic_merge as an orchestrator that iterates the proven adv_epic_move_change per-entry sequence (linkChange dest -> setEpicMembership CAS -> unlinkChange source) instead of bespoke merge logic. Plan-first dryRun computes the move set; execute runs the loop idempotently. Evidence: epic.ts:973-1102.",
+        "C2 USER-SURFACE: Decide whether `merged` joins shared EpicStatusSchema (active|completed|archived) or stays OFF the progress enum as a separate Epic-level field (merged_into + merged_at/by) with display deriving merged from presence of merged_into. Separate-field avoids widening ~50 consumers and keeps EpicProgressSummary.status semantically about progress, not lifecycle terminal. Evidence: epics.ts:25, grep of progress.status/state.status.",
+        "C3 AUTO-ADOPT: Build applyEpicScopeUpdatedToState by copying applyEpicUpdatedToState's exact 7-step shape (isArchived -> checkIdempotency -> checkVersion -> mutate epic_scope.repos -> bumpVersion -> recordIdempotency -> recompute). Satisfies DDC2 with no new concurrency primitive. Evidence: epic-state.ts:164-187.",
+        "C4 AUTO-ADOPT: Reuse existing EpicMembershipStatusSchema (target_unreachable/projection_stale/terminal/unlinked) and setEntryMembershipStatus for DDC6 cross-project typed statuses during merge; no new membership-status enum. Evidence: epics.ts:164-171, epic.ts:1182-1210.",
+        "C5 AUTO-ADOPT: Derived scope classifier (DDC1) is safe to add as pure display helper over epic_scope.repos length/projects; no correctness consumer of epic_scope.kind exists to migrate. Reuse for merge moved-entry/source terminal records via existing setEntryTerminalSummary instead of a new entry-terminal field. Evidence: grep classifyScope (none), epic.ts:1305 / change.ts:1347.",
+        "WARNING: Orchestrator packet omitted explicit DONE_WHEN candidate-cap framing as ScoutCandidate rows; reported as 5 follow_up candidates classified auto-adopt/user-surface inline per scout convention."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "updateEpicScope",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation: Update epic scope (scope mutation + merge/supersede)",
+      "sources": [
+        {
+          "label": "Spec advance-epics v1.4.0 (rq-epicProductScope01, rq-epicErrors01, rq-epicMembershipRepair01, rq-epicOnePerChange01, rq-epicArchiveSync01, rq-epicNoJiraClone01)",
+          "locator": "adv_spec show advance-epics",
+          "summary": "Product scope must carry owner_project_id + typed repo list; concurrent edits must yield typed stale/conflict; membership mutations audited/cross-project trust-gated; one optional epic_membership per change; terminal state from release proof; v1 must not clone PM workflows."
+        },
+        {
+          "label": "plugin/src/types/epics.ts:25,65-76,269-290",
+          "locator": "/home/jon/dev/advance/plugin/src/types/epics.ts",
+          "summary": "EpicStatusSchema=enum(active,completed,archived) — no 'merged'. EpicScopeSchema has kind+owner_project_id+repos. EpicSchema uses .passthrough() so a new structural merged_into field is forward/backward compatible."
+        },
+        {
+          "label": "plugin/src/temporal/epic-state.ts:164-187,598-637",
+          "locator": "/home/jon/dev/advance/plugin/src/temporal/epic-state.ts",
+          "summary": "applyEpicUpdatedToState is the exact archived-guard -> idempotency -> version-check -> mutate -> bumpVersion -> recordIdempotency -> recompute pattern the proposed applyEpicScopeUpdatedToState mirrors. recomputeEpicProgress derives progress.status only from active|completed|archived."
+        },
+        {
+          "label": "plugin/src/tools/epic.ts:175-209,840-1338 (link/move/setEpicMembership/target_confirmed)",
+          "locator": "/home/jon/dev/advance/plugin/src/tools/epic.ts",
+          "summary": "linkChange -> child setEpicMembership CAS -> unlinkChange move shape exists and is reused; target_confirmed+confirmationEvidence trust gating already pervasive; formatter reads epic.progress.status directly into output status."
+        },
+        {
+          "label": "plugin/src/types/signals.ts:456 supersededBy; plugin/src/types/changes.ts:309 merge_order",
+          "locator": "/home/jon/dev/advance/plugin/src/types/signals.ts",
+          "summary": "Existing supersededBy + merge_order precedent on change surface supports an analogous typed merged_into/supersede pointer for Epics."
+        }
+      ],
+      "architecture_assessment": "Design is well-grounded in existing source patterns. Scope mutation (EpicScopeUpdatedSignalPayloadSchema + applyEpicScopeUpdatedToState + adv_epic_update_scope) is a faithful clone of the proven applyEpicUpdatedToState concurrency/idempotency pattern. Merge reuses the real linkChange->CAS->unlinkChange per-entry move shape rather than bespoke projection logic, satisfying rq-epicMembershipRepair01 and the one-epic-per-change invariant (rq-epicOnePerChange01). Deriving display breadth (local vs product) from epic_scope.repos length while treating epic_scope.kind as compatibility-only input satisfies rq-epicProductScope01 and the agreement avoidance against one-way creation-time product scope. The decision NOT to widen EpicStatusSchema and instead expose 'merged' as a formatter-derived status keeps the core recomputeEpicProgress and EpicProgressSummary.status enum untouched, and EpicSchema.passthrough() makes the structural merged_into pointer additive — both backcompat-safe (AC1, rq-epicErrors01).",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "No spec-law conflicts and no AC contradictions found. Two cautions: (1) DERIVED-STATUS DIVERGENCE — a merged source keeps typed epic.progress.status='active' while the formatter shows status='merged' and empty next_work. Source evidence (epic.ts:181 reads epic.progress.status directly) confirms this requires a formatter-level override that diverges typed state from displayed state; recomputeEpicProgress will still count merged-source entries as active unless the formatter and any next-work selection (rq-epicNextWork01) both special-case merged_into. Design must ensure ADV next-work selection also honors the merged_into pointer, otherwise a merged source could still surface active next work, violating AC6 ('no active next work') at the selection layer even though the formatter hides it. (2) SCHEMA-WIDENING HEDGE — design says it 'avoids widening EpicStatusSchema unless implementation proves necessary'; this conditional is acceptable but should be resolved decisively in planning so EpicProgressSummary.status (which is persisted+typed) is not silently left inconsistent with the displayed merged status."
+      },
+      "recommendation": "Proceed (CAUTION). The design correctly solves all six objectives and contradicts no advance-epics spec requirement: scope-mutation and merge both reuse battle-tested concurrency/idempotency and move primitives, scope-breadth derivation matches rq-epicProductScope01, and additive merged_into + formatter-derived status are backcompat-safe under EpicSchema.passthrough(). The materially simpler-vs-correct tradeoff favors the chosen formatter-derived merged status over widening the core enum, so no simpler viable alternative was overlooked. Before planning closes, resolve the single real risk: ensure the merged_into pointer is honored not only by the show-formatter but also by ADV next-work selection (rq-epicNextWork01) and by recomputeEpicProgress/EpicProgressSummary.status, so a merged source produces NO active next work at every layer (AC6) rather than only being visually suppressed. Add explicit tests for (a) merged source excluded from next-work selection, and (b) merge conflict requiring explicit disposition with no heuristic dedupe (AC5).",
+      "follow_ups": [
+        "Confirm during planning whether EpicProgressSummary.status must also reflect merged (persisted/typed) or remain active with formatter-only override; pick one and test it.",
+        "Add test: merged source Epic is excluded from rq-epicNextWork01 next-work selection, not just hidden in formatter.",
+        "Add test: cross-project merge/scope-removal preserves target_confirmed + typed membership statuses (AC8)."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "updateEpicScope",
+      "attempt": 2,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation: Update epic scope (attempt-1 caution resolution)",
+      "sources": [
+        {
+          "label": "epic-state.ts recomputeEpicProgress",
+          "locator": "/home/jon/dev/advance/plugin/src/temporal/epic-state.ts:598-637",
+          "summary": "progress.status derives from state.status (archived branch) else active/completed; next_entry_id set null when state.status archived. Confirms revised design's merged branch + next_entry_id:null fits existing pattern structurally, not formatter-only."
+        },
+        {
+          "label": "tools/epic.ts next_work derivation",
+          "locator": "/home/jon/dev/advance/plugin/src/tools/epic.ts:136-190",
+          "summary": "next_work computed solely from epic.progress.next_entry_id. Setting next_entry_id:null for merged sources structurally empties next_work in both formatEpic and compact views — resolves attempt-1 merged-source-in-next-work caution at the data layer."
+        },
+        {
+          "label": "contracts.ts EpicWorkflowState.status union",
+          "locator": "/home/jon/dev/advance/plugin/src/temporal/contracts.ts:310-313",
+          "summary": "state.status typed 'active' | 'archived'. Adding 'merged' requires extending this workflow-bundle-safe union plus EpicStatusSchema (types/epics.ts:25)."
+        },
+        {
+          "label": "workflows.ts Epic completion / continue-as-new gate",
+          "locator": "/home/jon/dev/advance/plugin/src/temporal/workflows.ts:1861-1875",
+          "summary": "Epic workflow completion+CAN gate keys on state.status==='archived'. New 'merged' status must NOT be added here: agreement AC6/DONT require merged source to remain readable/queryable, not terminate. Design must distinguish workflow-terminal (archived) from merged (active workflow, excluded from next-work)."
+        },
+        {
+          "label": "applyEpicArchivedToState + isArchived guard",
+          "locator": "/home/jon/dev/advance/plugin/src/temporal/epic-state.ts:61-62,544-554",
+          "summary": "isArchived guard blocks mutations on archived Epics. applyEpicMergedToState must add an analogous merged-source rejection for further scope mutation while keeping reads/queries intact."
+        },
+        {
+          "label": "advance-epics spec rq-epicProductScope01 / rq-epicNextWork01 / rq-epicMembershipRepair01 / rq-epicOnePerChange01",
+          "locator": "adv_spec advance-epics v1.4.0",
+          "summary": "Spec laws: product scope structural+typed, next-work selection from Epics, one owning membership per child, audited movable/repairable membership with typed cross-project statuses. Revised design (derived labels, merge via move primitives, target confirmations) is consistent; no law forbids merged status or mutable scope."
+        }
+      ],
+      "architecture_assessment": "Revised design follows the established additive Epic pattern: typed signal payload schema → pure applyXToState helper (version+idempotency+bump+recompute) → store adapter via fireEpicSignal → typed MCP tool → tests. The attempt-1 caution (merged source progress/status divergence; merged sources surfacing as next work via formatter-only suppression) is genuinely resolved by making merged state structural: recomputeEpicProgress will set status 'merged', active_entries 0, next_entry_id null, and next_work derives purely from next_entry_id (tools/epic.ts:136), so suppression happens at the data layer not the renderer. Merge composing existing move primitives (linkChange→setEpicMembership→unlinkChange) preserves rq-epicOnePerChange01 and rq-epicMembershipRepair01 invariants. Plan-first dry-run + explicit conflict resolution honors AC5/DONT6 (no heuristic dedupe). One residual structural risk: workflows.ts:1861-1875 treats state.status==='archived' as the workflow-completion/continue-as-new gate; the new 'merged' status must be excluded from that terminal branch (and from the line-1867 completing branch) so the merged source workflow keeps running and remains queryable per AC6/DONT, while still being excluded from next-work. The design summary documents next-work exclusion and 'no terminal source merge' intent but does not explicitly name the workflows.ts completion-gate branch as a site that must distinguish merged from archived. Recommend the design/plan explicitly require: (a) state.status union extended to active|archived|merged, (b) line-1862/1867 completion gate stays archived-only, (c) merged-source mutation-rejection guard added alongside isArchived, (d) a test asserting a merged Epic workflow remains queryable and does not continue-as-new/complete.",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "Attempt-1 caution is resolved structurally (merged status + next_entry_id:null + data-layer next_work). No spec-law conflict introduced; design is consistent with rq-epicProductScope01, rq-epicNextWork01, rq-epicOnePerChange01, rq-epicMembershipRepair01. One new caution (not a conflict): the workflow completion / continue-as-new gate at workflows.ts:1861-1875 keys on state.status==='archived'; merged must be explicitly excluded there or the merged source will terminate and stop being queryable, violating AC6 (source remains readable) and DONT (no terminal source merge). Add an explicit design/plan note + test for this branch. Simplicity is sound — additive, reuses move primitives, no second planning model."
+      },
+      "recommendation": "VALIDATED WITH ONE CAUTION. The revised structural-merged-status design resolves the attempt-1 caution at the correct layer: recomputeEpicProgress sets merged status/active_entries:0/next_entry_id:null, and next_work derives solely from next_entry_id, so merged sources vanish from next-work without formatter-only hacks. No new spec-law conflict — the design composes existing move/projection primitives and preserves one-Epic-per-change and target-path trust. Before planning, the design or plan should explicitly require that the new 'merged' status NOT be added to the workflows.ts:1861-1875 archived completion / continue-as-new gate (so the merged source workflow stays alive and queryable per AC6/DONT), that EpicWorkflowState.status union (contracts.ts:313) and EpicStatusSchema both gain 'merged', that a merged-source mutation-rejection guard mirror isArchived, and that a test assert a merged Epic remains queryable and does not complete. With that one branch called out explicitly, proceed to planning.",
+      "follow_ups": [
+        "Design/plan must explicitly exclude 'merged' from the workflows.ts:1861-1875 archived completion/continue-as-new gate; add a test that a merged Epic workflow stays queryable and does not complete.",
+        "Extend EpicWorkflowState.status union (contracts.ts:313) AND EpicStatusSchema (types/epics.ts:25) to include 'merged'; ensure workflow-bundle-boundary stays green.",
+        "Add a merged-source mutation-rejection guard analogous to isArchived so scope/merge mutations on an already-merged source are typed-rejected while reads remain intact.",
+        "TASK_SCOPE/VERIFICATION anchors present; no packet-defect warning."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "updateEpicScope",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/updateEpicScope",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "BLOCKED",
+      "blocking_findings": [
+        {
+          "id": "acceptance-1",
+          "label": "blocker",
+          "file": "plugin/src/tools/epic.ts",
+          "line": 1507,
+          "what": "Merge execution mutates survivor Epic and child projections before all failure-prone child/projection checks are complete, with no typed partial-status recovery or rollback.",
+          "why": "AC4/AC8 and DDC4 require merge execution to preserve child membership projections, surface cross-project stale/unreachable statuses, and finalize source only after selected entries/projections are resolved. Current flow copies shells to survivor, links change entries into survivor, and only then validates/updates each child projection. If target resolution, child lookup, projection CAS, or unlink fails after a survivor mutation, the source remains active/unmerged while survivor already contains copied/linked entries; retry can become a duplicate-entry/duplicate-change conflict rather than a typed repair status.",
+          "fix": "Preflight all target stores, child changes, current memberships, and conflict/confirmation requirements before mutating survivor/source; execute idempotently with explicit typed partial statuses for unreachable/stale targets, or add compensating/repair-safe transaction staging before survivor mutations."
+        },
+        {
+          "id": "acceptance-2",
+          "label": "blocker",
+          "file": "plugin/src/tools/epic.ts",
+          "line": 254,
+          "what": "Scope-removal guard misses linked legacy change entries that do not carry change_ref.repo_id.",
+          "why": "AC3 and SC4 require scope mutation not to silently orphan linked child changes and require legacy/unscoped Epics to remain safely readable/backfillable. linkedEntriesForRemovedScopeRepos only blocks entries whose change_ref.repo_id matches a removed repo. Clearing/removing scope can therefore proceed while legacy change entries with change_id but no repo_id remain linked, leaving repo/project ownership ambiguous without rejection, repair status, or explicit disposition.",
+          "fix": "When scope repos are removed or scope is cleared, block any non-unlinked change entry that lacks repo attribution unless an explicit disposition/repair path is provided; include those entries in SCOPE_REMOVAL_HAS_LINKED_ENTRIES or a typed legacy-backfill-required status."
+        }
+      ],
+      "nonblocking_findings": [
+        {
+          "id": "acceptance-suggestion-1",
+          "label": "suggestion",
+          "file": "plugin/src/tools/epic.ts",
+          "line": 479,
+          "what": "Merge conflict skip resolutions make per-conflict evidence optional.",
+          "why": "Global merge evidence exists, but explicit conflict dispositions are more auditable when each skip/disposition carries rationale, especially because AC5 forbids heuristic dedupe and expects deliberate conflict handling.",
+          "fix": "Consider requiring evidence on each conflict_resolutions item or copying global evidence into persisted plan output for every skipped source entry."
+        }
+      ],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/types/epics.test.ts src/temporal/epic-state.test.ts src/tools/epic.test.ts src/storage/store-temporal/epics.test.ts src/advance-epics-assets.test.ts"
+        ],
+        "results": "pass",
+        "evidence": "Targeted Epic scope/merge/type/store/asset tests passed: 5 files, 176 tests. Also inspected agreement/design artifacts and changed implementation files. Initial wrapper invocation with repo-prefixed plugin/src paths found no tests; rerun with wrapper-relative src paths passed."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Review did not run full pnpm run check/build; only targeted Epic acceptance tests were executed.",
+        "Live ADV tool list in current OpenCode session may not reflect source changes until plugin build/deploy/restart, per project source-vs-dist reload gotcha."
+      ],
+      "required_main_agent_actions": [
+        "Fix merge execution to preflight or safely stage all child/projection operations before survivor/source mutations, with typed partial-status behavior for cross-project unreachable/stale cases.",
+        "Fix scope-removal validation to protect legacy linked entries lacking repo_id/change_ref before allowing scope removal or clearing.",
+        "After fixes, rerun targeted Epic tests plus broader check/build gate before acceptance."
+      ],
+      "required_follow_ups": [],
+      "consumer_warnings": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "updateEpicScope",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/updateEpicScope",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [
+        {
+          "id": "acceptance-praise-1",
+          "label": "praise",
+          "file": "plugin/src/tools/epic.ts",
+          "line": 1514,
+          "what": "Merge execution now preflights each unique child projection before survivor/source mutation.",
+          "why": "This closes prior acceptance-1 partial-mutation risk for missing child/projection-mismatch cases and is covered by regression test `preflights all child projections before mutating survivor`.",
+          "fix": "n/a"
+        },
+        {
+          "id": "acceptance-praise-2",
+          "label": "praise",
+          "file": "plugin/src/tools/epic.ts",
+          "line": 254,
+          "what": "Scope-removal guard treats linked change entries without repo attribution as blocked when scoped repos are removed/cleared.",
+          "why": "This closes prior acceptance-2 legacy-entry orphaning path and is covered by regression test `rejects clearing scope when legacy linked entries lack repo attribution`.",
+          "fix": "n/a"
+        }
+      ],
+      "changes_made": [
+        {
+          "file": "plugin/src/tools/epic.ts",
+          "summary": "Added explicit `adv_epic_update_scope` version preflight before scope-removal validation so stale requests return typed `stale_version` instead of another guard error.",
+          "verification": "`bin/oc-test targeted -- src/tools/epic.test.ts src/advance-epics-assets.test.ts` passed: 83 tests; `pnpm run typecheck` passed; `pnpm exec prettier --check src/tools/epic.ts src/tools/epic.test.ts` passed."
+        },
+        {
+          "file": "plugin/src/tools/epic.test.ts",
+          "summary": "Added regression proving stale scope-clear requests return `stale_version` before scope-removal guard, preserving AC2 stale-write semantics even when linked legacy entries exist.",
+          "verification": "`bin/oc-test targeted -- src/tools/epic.test.ts src/advance-epics-assets.test.ts` passed: 83 tests."
+        }
+      ],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- plugin/src/tools/epic.test.ts plugin/src/advance-epics-assets.test.ts (no tests found due wrapper expecting plugin-relative paths)",
+          "bin/oc-test targeted -- src/tools/epic.test.ts src/advance-epics-assets.test.ts",
+          "pnpm run typecheck",
+          "pnpm exec prettier --check src/tools/epic.ts src/tools/epic.test.ts"
+        ],
+        "results": "pass",
+        "evidence": "Corrected targeted test invocation passed with 2 files / 83 tests. TypeScript `tsc --noEmit` passed. Prettier check passed. Initial repo-prefixed oc-test invocation exited 1 with no files found; rerun used plugin-relative paths required by wrapper."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Merge execution preflights deterministic child-projection mismatches before mutation; like existing ADV tool flows, it is not a distributed transaction against concurrent child mutations after preflight.",
+        "Full `pnpm run check` / complete suite not run in this review; targeted Epic tests, asset tests, typecheck, and formatting were run."
+      ],
+      "required_main_agent_actions": [],
+      "required_follow_ups": [],
+      "consumer_warnings": []
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-vY_J5X",
+      "type": "gotcha",
+      "content": "Adding a required method to `Store.epics` also requires updating the disk-only fallback in `plugin/src/storage/store-disk.ts`; Temporal overrides it, but typecheck enforces the full Store shape.",
+      "source_task": "tk-103c24e0769e",
+      "recorded_at": "2026-06-26T22:16:37.612Z"
+    },
+    {
+      "id": "ws-75VjwW",
+      "type": "pattern",
+      "content": "For Epic merge execution, preflight source/survivor versions and conflicts before any mutation, then mutate survivor/child/source in that order and pass source finalization the initial source version plus source-unlink count.",
+      "source_task": "tk-b827b5e753be",
+      "recorded_at": "2026-06-26T22:33:00.733Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-06-26T20:49:21.356Z",
+      "completed_by": "adv-proposal",
+      "approval_evidence": "Proposal approved by command-as-approval: user invoked adv-discover workflow after proposal approval prompt for updateEpicScope.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "f1eb6a8203ad44a234485d2db04dc7111658d5e007192b0c04324c6b798eb4bc",
+        "non_whitespace_chars": 7159,
+        "checked_at": "2026-06-26T20:46:01.627Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-06-26T21:18:02.858Z",
+      "completed_by": "adv-discover",
+      "approval_evidence": "Discovery findings recorded, agreement persisted, criteria approved by user in chat: `approve`, ChangeContract minted with 34 items.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "2d1d835b8da56eaf44718676f1dd7fbcb07a78bc2823922c80b573796b14413d",
+        "non_whitespace_chars": 4989,
+        "checked_at": "2026-06-26T20:46:01.628Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-06-26T21:35:19.477Z",
+      "completed_by": "adv-design",
+      "approval_evidence": "Design recorded. Mandatory leverage scout completed. Independent validator ran twice: attempt 1 CAUTION resolved by structural merged status; attempt 2 CAUTION resolved by archived-only workflow completion requirement and queryability tests. No unresolved CONFLICT or contract-compromise risk.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "d3e2cbe310d23ea6fd1fcc052d432cde31b3dd0b646be96b1325a3118f4510ec",
+        "non_whitespace_chars": 12707,
+        "checked_at": "2026-06-26T20:46:01.629Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-06-26T21:48:11.016Z",
+      "completed_by": "adv-prep",
+      "approval_evidence": "User approved prep/task graph in chat: `approve`. Task graph has 6 tasks with contract refs and TDD intent."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-06-26T22:57:38.131Z",
+      "completed_by": "adv-apply",
+      "approval_evidence": "All tasks are complete after acceptance-blocker remediation. Additional checkpoints: 91ad540a8994ca5c65e35f093a635e80dc95c760 (scope guard) and 9a835d2d578d81b7472a26305951d568432a37dc (merge preflight). Verification: tr_mqviznj6_0bad76cf, tr_mqvj4w70_2af8a54f, tr_mqvj5kou_82c08c0b, tr_mqvj5mul_6341c9cd, tr_mqvj5jb9_c3034a18 passed."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-06-26T23:10:23.892Z",
+      "completed_by": "adv-review",
+      "approval_evidence": "User approved acceptance in chat: `approve`. Acceptance reviewer attempt 2 verdict READY. Contract review matrix set with 34 rows and 0 failures. Executive summary persisted.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "66b87aeaa1f7eea4cea924d6310d389fe7afea2caafd406044260cb920a0a999",
+        "non_whitespace_chars": 1349,
+        "checked_at": "2026-06-26T20:46:01.630Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [
+    {
+      "from_gate": "execution",
+      "reason": "Acceptance review BLOCKED on two implementation defects requiring code remediation before acceptance can pass.",
+      "scope_delta": "Fix merge execution preflight to avoid partial mutation before projection checks, and fix scope-removal guard for legacy linked entries without repo attribution.",
+      "reopened_by": "agent",
+      "reopened_at": "2026-06-26T22:50:07.747Z",
+      "gates_reset": [
+        "execution",
+        "acceptance",
+        "release"
+      ]
+    }
+  ],
+  "origin": {
+    "kind": "adhoc"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "2d1d835b8da56eaf44718676f1dd7fbcb07a78bc2823922c80b573796b14413d",
+      "approvedAt": "2026-06-26T21:17:55.780Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "Users can treat every Epic as product-capable: local vs product-spanning is derived from typed scope, not fixed at creation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "2d1d835b8da56eaf44718676f1dd7fbcb07a78bc2823922c80b573796b14413d",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "Users can expand an active local Epic into multi-repo/project scope with audit evidence and stale-write protection.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "2d1d835b8da56eaf44718676f1dd7fbcb07a78bc2823922c80b573796b14413d",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "Users can merge duplicate active Epics into one survivor without losing entries or creating multiple owning memberships.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "2d1d835b8da56eaf44718676f1dd7fbcb07a78bc2823922c80b573796b14413d",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC4",
+        "kind": "success_criterion",
+        "text": "Legacy/unscoped Epics remain readable and can be backfilled or referenced safely.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "2d1d835b8da56eaf44718676f1dd7fbcb07a78bc2823922c80b573796b14413d",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC5",
+        "kind": "success_criterion",
+        "text": "Cross-project trust, target-path confirmation, and projection repair semantics remain intact.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "2d1d835b8da56eaf44718676f1dd7fbcb07a78bc2823922c80b573796b14413d",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "Epic scope semantics derive local/product-spanning display from typed repo/project scope metadata, while preserving legacy/unscoped readability.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "2d1d835b8da56eaf44718676f1dd7fbcb07a78bc2823922c80b573796b14413d",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "spec:rq-epicEntity01",
+          "spec:rq-epicProductScope01"
+        ]
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Active Epics support audited scope mutation with optimistic concurrency; stale expected version returns typed conflict and does not overwrite scope.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "2d1d835b8da56eaf44718676f1dd7fbcb07a78bc2823922c80b573796b14413d",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Scope mutation cannot silently orphan linked child changes when repos/projects are removed; it must reject, require explicit disposition, or surface typed repair status.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "2d1d835b8da56eaf44718676f1dd7fbcb07a78bc2823922c80b573796b14413d",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Active duplicate Epics can merge into one survivor; unique entries move/copy to survivor and child `epic_membership` projections point to survivor.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "2d1d835b8da56eaf44718676f1dd7fbcb07a78bc2823922c80b573796b14413d",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "spec:rq-epicOnePerChange01",
+          "spec:rq-epicMembershipRepair01"
+        ]
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Merge conflicts require explicit disposition; implementation must not silently heuristic-dedupe conflicting shell/change entries.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "2d1d835b8da56eaf44718676f1dd7fbcb07a78bc2823922c80b573796b14413d",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Source Epic after merge remains readable with `merged_into`/survivor pointer and audit evidence; it must not appear as active next work.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "2d1d835b8da56eaf44718676f1dd7fbcb07a78bc2823922c80b573796b14413d",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "Completed/archived source Epics cannot be merged into active survivors; they may be referenced as historical context only.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "2d1d835b8da56eaf44718676f1dd7fbcb07a78bc2823922c80b573796b14413d",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC8",
+        "kind": "acceptance_criterion",
+        "text": "Cross-project merge/scope operations preserve target-path confirmation and typed statuses such as stale projection or target unreachable.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "2d1d835b8da56eaf44718676f1dd7fbcb07a78bc2823922c80b573796b14413d",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "spec:rq-epicMembershipRepair01"
+        ]
+      },
+      {
+        "id": "AC9",
+        "kind": "acceptance_criterion",
+        "text": "Specs/docs/command guidance/tests cover scope derivation, scope mutation, merge/supersede, legacy backfill, and conflict behavior.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "2d1d835b8da56eaf44718676f1dd7fbcb07a78bc2823922c80b573796b14413d",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Use typed ADV/Epic tools for mutations; do not edit ADV state files directly.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "2d1d835b8da56eaf44718676f1dd7fbcb07a78bc2823922c80b573796b14413d",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Preserve `epic_membership` as one optional owning membership object on a child change in v1.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "2d1d835b8da56eaf44718676f1dd7fbcb07a78bc2823922c80b573796b14413d",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Keep Epic membership optional; non-Epic changes remain valid.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "2d1d835b8da56eaf44718676f1dd7fbcb07a78bc2823922c80b573796b14413d",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Keep Epic order advisory; scope or merge state must not block gates/tasks solely due to order.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "2d1d835b8da56eaf44718676f1dd7fbcb07a78bc2823922c80b573796b14413d",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Preserve cross-project `target_path` confirmation and repair semantics.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "2d1d835b8da56eaf44718676f1dd7fbcb07a78bc2823922c80b573796b14413d",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C6",
+        "kind": "constraint",
+        "text": "Preserve backcompat for existing repo/product/legacy Epics.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "2d1d835b8da56eaf44718676f1dd7fbcb07a78bc2823922c80b573796b14413d",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C7",
+        "kind": "constraint",
+        "text": "Product/local classification must be structural, not narrative-only.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "2d1d835b8da56eaf44718676f1dd7fbcb07a78bc2823922c80b573796b14413d",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "Multiple owning Epic memberships for one change.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "2d1d835b8da56eaf44718676f1dd7fbcb07a78bc2823922c80b573796b14413d",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "Assignments, estimates, boards, sprints, or ownership workflow features.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "2d1d835b8da56eaf44718676f1dd7fbcb07a78bc2823922c80b573796b14413d",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "Replacing GitHub Projects or stakeholder intake.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "2d1d835b8da56eaf44718676f1dd7fbcb07a78bc2823922c80b573796b14413d",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS4",
+        "kind": "out_of_scope",
+        "text": "Making Epic membership mandatory for all changes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "2d1d835b8da56eaf44718676f1dd7fbcb07a78bc2823922c80b573796b14413d",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS5",
+        "kind": "out_of_scope",
+        "text": "Blocking work based only on Epic order.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "2d1d835b8da56eaf44718676f1dd7fbcb07a78bc2823922c80b573796b14413d",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS6",
+        "kind": "out_of_scope",
+        "text": "Broad redesign of ADV gates unrelated to Epic scope or merge behavior.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "2d1d835b8da56eaf44718676f1dd7fbcb07a78bc2823922c80b573796b14413d",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS7",
+        "kind": "out_of_scope",
+        "text": "Merging completed or archived source Epics into active survivor Epics; those may be referenced as history only.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "2d1d835b8da56eaf44718676f1dd7fbcb07a78bc2823922c80b573796b14413d",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not create duplicate repo-local Epics as the required way to share one initiative.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "2d1d835b8da56eaf44718676f1dd7fbcb07a78bc2823922c80b573796b14413d",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not bypass target-path trust rules for cross-project changes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "2d1d835b8da56eaf44718676f1dd7fbcb07a78bc2823922c80b573796b14413d",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not encode scope or merge state only in narrative text.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "2d1d835b8da56eaf44718676f1dd7fbcb07a78bc2823922c80b573796b14413d",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not silently detach child changes during merge.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "2d1d835b8da56eaf44718676f1dd7fbcb07a78bc2823922c80b573796b14413d",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "Do not make product scope a one-way creation-time decision.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "2d1d835b8da56eaf44718676f1dd7fbcb07a78bc2823922c80b573796b14413d",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT6",
+        "kind": "avoidance",
+        "text": "Do not silently auto-dedupe conflicting merge entries by heuristic title similarity.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "2d1d835b8da56eaf44718676f1dd7fbcb07a78bc2823922c80b573796b14413d",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-06-26T23:08:18.856Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "deriveEpicScopeLabel schema tests, adv_epic_show scope_label tests, and command guidance tests passed (tr_mqvikum0_987de5f8, tr_mqviggwk_36414cfc).",
+          "notes": ""
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "adv_epic_update_scope state/store/tool tests passed, including stale-version and scope-removal guard regressions (tr_mqvhmzr8_cdea0fc1, tr_mqviznj6_0bad76cf).",
+          "notes": ""
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "adv_epic_merge dry-run/execution/conflict/preflight tests passed; reviewer re-review READY (tr_mqvj5kou_82c08c0b; reviewer attempt 2).",
+          "notes": ""
+        },
+        {
+          "contractId": "SC4",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Legacy/unscoped schema/rendering preserved and scope_label legacy behavior covered by types/show tests.",
+          "notes": ""
+        },
+        {
+          "contractId": "SC5",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Target confirmation and projection repair/status paths preserved in merge/scope tests and existing Epic repair tests; typecheck passed.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Derived scope label uses repo count, not kind; compact/full rendering includes scope_label; tests passed.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Scope mutation uses expectedVersion/idempotent signal/store path; stale versions return typed stale_version.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Scope removal rejects linked entries with matching repo_id and legacy linked entries lacking repo attribution.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Merge moves unique changes through linkChange/setEpicMembership/unlinkChange and copies shells; source finalized after resolved entries.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Duplicate changes/entry IDs produce conflicts; unresolved conflicts block mutation; no heuristic title dedupe path added.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Merged source has merged_into pointer, progress.status merged, active_entries 0, next_work [].",
+          "notes": ""
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Completed/archived/merged source Epics rejected by merge state/tool guards.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC8",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Cross-project target confirmation preflight remains required for target_path entries; projection mismatch preflight avoids partial mutation.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC9",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Spec/docs/command/tests updated for scope derivation, mutable scope, merge, rendering, and guidance.",
+          "notes": ""
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "All mutations implemented through typed ADV/Epic tools and workflow signals; no direct ADV state file edits.",
+          "notes": ""
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Child change epic_membership remains one optional owning object; merge moves projection rather than adding multiple memberships.",
+          "notes": ""
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Epic membership remains optional; no mandatory enrollment added.",
+          "notes": ""
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Epic order remains advisory; no gate/task blocking based solely on order added.",
+          "notes": ""
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "target_path confirmation and repair semantics preserved in tool schemas and merge preflight paths.",
+          "notes": ""
+        },
+        {
+          "contractId": "C6",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Legacy/unscoped Epics remain parseable/renderable; scope field remains optional.",
+          "notes": ""
+        },
+        {
+          "contractId": "C7",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Product/local classification derives from EpicScope repos length via helper and rendering tests.",
+          "notes": ""
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No multiple owning Epic memberships added.",
+          "notes": ""
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No assignments/estimates/boards/sprints/ownership workflows added.",
+          "notes": ""
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No GitHub Projects or stakeholder intake replacement added.",
+          "notes": ""
+        },
+        {
+          "contractId": "OOS4",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No mandatory Epic membership behavior added.",
+          "notes": ""
+        },
+        {
+          "contractId": "OOS5",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No Epic-order gate/task blocking added.",
+          "notes": ""
+        },
+        {
+          "contractId": "OOS6",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Changes limited to Epic scope/merge/render/guidance surfaces.",
+          "notes": ""
+        },
+        {
+          "contractId": "OOS7",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Completed/archived source Epics rejected from active merge execution.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Command guidance prefers scope update/merge before duplicate creation.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "target_path confirmation preserved; no bypass added.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Scope/merge state represented structurally with schemas/signals/progress, not narrative text only.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Merge preflights child projections and updates memberships before source finalization; regression prevents partial mutation on projection mismatch.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Scope can be updated through adv_epic_update_scope after creation.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT6",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Merge conflict plan uses deterministic duplicate change/entry conflicts and explicit skip dispositions; no title-similarity dedupe.",
+          "notes": ""
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "Epic scope semantics derive local/product-spanning display from typed repo/project scope metadata, while preserving legacy/unscoped readability.",
+    "Active Epics support audited scope mutation with optimistic concurrency; stale expected version returns typed conflict and does not overwrite scope.",
+    "Scope mutation cannot silently orphan linked child changes when repos/projects are removed; it must reject, require explicit disposition, or surface typed repair status.",
+    "Active duplicate Epics can merge into one survivor; unique entries move/copy to survivor and child `epic_membership` projections point to survivor.",
+    "Merge conflicts require explicit disposition; implementation must not silently heuristic-dedupe conflicting shell/change entries.",
+    "Source Epic after merge remains readable with `merged_into`/survivor pointer and audit evidence; it must not appear as active next work.",
+    "Completed/archived source Epics cannot be merged into active survivors; they may be referenced as historical context only.",
+    "Cross-project merge/scope operations preserve target-path confirmation and typed statuses such as stale projection or target unreachable.",
+    "Specs/docs/command guidance/tests cover scope derivation, scope mutation, merge/supersede, legacy backfill, and conflict behavior."
+  ],
+  "documents": {
+    "proposal": "# Update Epic Scope\n\n## Why\n\nAdvance Epics currently distinguish repo/product scope too early and too rigidly. An Epic can be created as repo-scoped, product-scoped, or legacy/unscoped, but existing Epics cannot be expanded into product-spanning initiatives, and multiple repo/project Epics cannot be structurally merged into one authoritative cross-project Epic.\n\nDesired outcome: reshape Epic model so every Epic is a scoped, product-capable initiative container. Scope starts as one repo when local, expands to multiple repos/projects when needed, and product-ness is derived from scope breadth. Add safe, typed migration paths for scope expansion and Epic merge while preserving one owning Epic membership per change and cross-project trust boundaries.\n\n## What Changes\n\n- Treat Epics as scoped initiative containers whose local/product-spanning status is derived from typed scope metadata.\n- Add a typed scope mutation path so existing Epics can gain or change repo/project scope after creation.\n- Add a typed Epic merge/supersede path so duplicate repo/project Epics can converge into one authoritative scoped Epic.\n- Preserve the existing one-owning-Epic-per-change invariant.\n- Preserve optional Epic membership for changes.\n- Preserve legacy/unscoped Epic readability through migration/backfill behavior.\n\n## User Outcomes\n\n- User can start with a local Epic and later expand it when the initiative crosses repository or project boundaries.\n- User can merge duplicate active Epics into one shared initiative without manually recreating every entry.\n- User can see one authoritative Epic for cross-project initiative planning instead of multiple partial repo-local copies.\n- User can keep simple local initiatives lightweight while still having a direct path to product-spanning coordination.\n- User can understand whether an Epic is local or product-spanning from its scope, not from a fixed creation-time class.\n\n## Scope\n\n### In Scope\n\n- Reframe Epic scope semantics so all Epics are product-capable scoped initiatives.\n- Add or design typed scope mutation for existing Epics.\n- Add or design typed merge/supersede flow for duplicate active Epics.\n- Define migration/backfill behavior for legacy/unscoped Epics.\n- Define audit, version, conflict, projection-repair, and target-unreachable behavior for scope and merge mutations.\n- Update specs, docs, command contracts, schemas, storage/workflow paths, and tests needed to support the model.\n\n### Out of Scope\n\n- Multiple owning Epic memberships for one change.\n- Assignments, estimates, boards, sprints, or ownership workflow features.\n- Replacing GitHub Projects or stakeholder intake.\n- Making Epic membership mandatory for all changes.\n- Blocking work based only on Epic order.\n- Broad redesign of ADV gates unrelated to Epic scope or merge behavior.\n- Merging completed or archived source Epics into active survivor Epics; those may be referenced as history only.\n\n### Must Not\n\n- Must not create duplicate repo-local Epics as the required way to share one initiative.\n- Must not bypass target-path trust rules for cross-project changes.\n- Must not encode scope or merge state only in narrative text.\n- Must not silently detach child changes during merge.\n- Must not make product scope a one-way creation-time decision.\n- Must not silently auto-dedupe conflicting merge entries by heuristic title similarity.\n\n## Discovery Findings\n\n### Discovery Checklist\n\n| Step | Result | Reason |\n|---|---|---|\n| Skill Discovery | PASS | Considered `adv-agent-tool-contracts`, `adv-arch-detection`, `adv-user-intuit`; loaded all three. Pending-review scan found no actionable pending-review skill metadata, only an instructional mention. |\n| Prior Research Extension | PASS | Prior artifact `addEpicCommand` inspected; new finding: its command added creation-time scope, but no post-create scope mutation or merge. `docs/*-prep.md` exists but no prep pack directly targets Epics/scope merge. |\n| Conflict Scan | PASS with degradation | `adv_epic_list` returned no active Epics. Active changes include adjacent `updateEpicArchive`, but it targets archive terminal projection, not scope/merge. Agenda has related `Fix Epic cross-project guidance` and `Fix Epic tool warrant surface`. Archived scan via `adv_change_list includeArchived:true` timed out; direct `addEpicCommand` lookup succeeded. `adv_change_validate` passed earlier with expected pre-planning NO_TASKS/NO_DELTAS warnings; a later retry timed out. |\n| Edge Case Investigation | PASS | Scope mutation, merge, legacy, and cross-project failure edges recorded. |\n| Open Design Questions | PASS | Questions annotated with trust model, blast radius, alternatives; user-facing questions answered in mandatory clarification round. |\n| Draft Spec Deltas | PASS | Draft `rq-epicMutableScope01`, `rq-epicMerge01`, `rq-epicScopeDerivation01` shapes recorded. |\n| Related Pattern Scan | PASS | Existing Epic mutation patterns found: CAS/idempotency update, link/unlink/move/repair, terminal summary, archive. No existing scope-update or merge primitive found. |\n| LBP Check | PASS | Best path is additive typed mutations over current Epic workflow pattern; no external solution check needed because this is internal ADV model/workflow behavior. |\n| Completeness Verification | PASS | Problem is model/workflow rigidity, not only missing tool method. Solution scope covers schema, workflow, tools, command/docs/spec/tests, projection repair, and backcompat. |\n\n### Skills Considered\n\n- `adv-agent-tool-contracts`: matched because this change will add or alter agent-callable Epic tool contracts; loaded.\n- `adv-arch-detection`: matched because this change touches typed state architecture and command/spec/code drift; loaded.\n- `adv-user-intuit`: matched because merge/status/naming choices required user intuition; loaded.\n- No new skill created: domain is existing ADV Epic architecture, covered by current skills.\n\n### Extends\n\n- `addEpicCommand` archived change: established `/adv-epic` command, creation-time `scope kind`, typed tool mutation, overlap-aware creation, and no Jira-like fields.\n  - New finding: `adv_epic_update` only changes title/narrative; `adv_epic_create` is the only current scope-setting path.\n  - New finding: `EpicStatusSchema` lacks merged/superseded state; merge will need explicit source-terminal semantics.\n- `docs/*-prep.md`: found prep packs for non-coding rigor, slop scan, repo improve, and adv-run-test; none directly govern Epic scope/merge.\n\n### Conflict Scan\n\n- No active Epics from `adv_epic_list`.\n- Relevant active/agenda context:\n  - `updateEpicArchive`: related Epic terminal projection, not conflicting.\n  - `ag-y2ACRdkK` Fix Epic cross-project guidance: related; discovery should preserve cross-project trust rules.\n  - `ag-Adj91lPD` Fix Epic tool warrant surface: related; agreement avoids relying on nonexistent current Epic tool warrant tags.\n- Validation: earlier `adv_change_validate updateEpicScope` passed; NO_TASKS/NO_DELTAS warnings are expected before planning.\n- Tool degradation: archived broad list and one validation retry timed out despite Temporal health; direct relevant archived lookup succeeded.\n\n### Current State\n\n- `EpicScopeSchema` currently stores `kind: \"repo\" | \"product\"`, `owner_project_id`, optional `owner_repo_id`, and `repos`.\n- `EpicSchema` makes `epic_scope` optional for legacy compatibility and uses passthrough.\n- `adv_epic_create` accepts scope fields and writes `epic_scope` only at creation.\n- `adv_epic_update` supports only title/narrative with expected version.\n- Epic workflow already has pure-state mutation patterns with idempotency and optimistic concurrency for update, shell add/promote, link/unlink, reorder, projection status, terminal summary, and archive.\n- Cross-project membership primitives exist for link/move/unlink/repair using child `epic_membership` projection and target-path trust rules.\n- No current `adv_epic_update_scope`, `adv_epic_merge`, scope-update signal, merge signal, or source `merged_into` status exists.\n\n### Edge Cases\n\n- Scope mutation:\n  - Removing a repo that still has child change entries could orphan membership projections.\n  - Stale expected version could overwrite newer roadmap/scope edits unless rejected structurally.\n  - Legacy Epic with no scope needs backfill without forcing product config.\n- Merge:\n  - Source and target have shell entries with similar titles but different success hints; heuristic dedupe would risk data loss.\n  - Source has target-unreachable child changes; merge must preserve typed repair status.\n  - Same change appears in both Epics; one-owning-membership invariant must pick survivor entry and avoid duplicate rows.\n- Terminal/history:\n  - Archived/completed source Epics should not be merged into active survivor; user wants them referenceable as history only.\n  - Merged source Epic must remain auditable and readable with pointer to survivor.\n- Cross-project:\n  - Target path unavailable during merge must not silently detach child projection.\n  - Product-linked config absent or stale must not block local-scope backfill.\n\n### Open Design Questions\n\n1. Should `epic_scope.kind` be retained or derived?\n   - Trust model: agent technical decision with user-facing naming input.\n   - Blast radius: schema migration and display logic.\n   - Alternatives: remove as authority and derive from `repos.length`; retain for backcompat display only; keep as authoritative class.\n   - Discovery recommendation: derive local/product-spanning status from scope breadth; keep old `kind` as tolerated/backcompat input if needed.\n2. How should merge conflicts be resolved?\n   - Trust model: joint; user chose policy.\n   - Blast radius: duplicate/dropped entries.\n   - Alternatives: ask on conflicts, copy all, heuristic title dedupe.\n   - User decision: ask on conflicts; auto-move only unique entries.\n3. What happens to source Epic after merge?\n   - Trust model: joint; user chose policy.\n   - Blast radius: default Epic lists, audit trail, repair.\n   - Alternatives: merged pointer, archived source, hidden source.\n   - User decision: source shows merged pointer to survivor with audit evidence.\n4. Can terminal source Epics merge?\n   - Trust model: user-owned workflow policy.\n   - Blast radius: history semantics and surprise mutation of archived/completed initiatives.\n   - Alternatives: allow with evidence, active only, case-by-case.\n   - User decision: no; completed/archived Epics may be referenced for history only.\n\n### Draft Spec Deltas\n\n- `rq-epicScopeDerivation01` — Epic local/product-spanning status is derived from typed scope metadata.\n  - Given an Epic scope with one repo, when rendered, then it is local/repo-scoped without requiring a separate product class.\n  - Given an Epic scope with multiple repos/projects, when rendered, then it is product-spanning and preserves owner/project/repo metadata.\n- `rq-epicMutableScope01` — Existing Epics support audited, optimistic-concurrency scope mutation.\n  - Given an active Epic with one repo in scope, when a second repo is added with audit evidence and current version, then the Epic scope includes both repos and version increments.\n  - Given a stale expected version, when scope mutation is attempted, then a typed stale conflict is returned and no scope is overwritten.\n- `rq-epicMerge01` — Active duplicate Epics can merge into one survivor without duplicate owning memberships.\n  - Given two active Epics with unique change entries, when source merges into survivor, then entries move to survivor, child memberships point to survivor, and source records `merged_into` with audit evidence.\n  - Given conflicting shell/change entries, when merge is attempted, then the operation asks for explicit conflict disposition or returns a typed conflict; it does not silently heuristic-dedupe.\n  - Given an archived/completed source Epic, when merge is attempted, then mutation is rejected or limited to historical reference.\n\n### Related Pattern Scan\n\n- Similar mutation pattern: `applyEpicUpdatedToState` uses expected version + idempotency; scope mutation should mirror this pattern.\n- Similar entry movement pattern: existing link/unlink/move/repair tools update child `epic_membership`; merge should compose these mechanisms rather than bypass them.\n- Similar terminal pointer pattern: change closure supports superseding semantics; source Epic merge should use explicit `merged_into`/superseded pointer, not disappear.\n- No existing same-pattern scope-update or merge primitive found.\n\n### Completeness Verification\n\n- Problem completeness: high confidence. Discovery identifies full model issue: creation-time scope class, missing scope mutation, missing merge/supersede, missing source terminal semantics, and cross-project projection risk.\n- Solution-scope completeness: high confidence. Scope includes schema, workflow signal/store/tool surfaces, command/docs/spec/tests, backcompat, conflict policy, projection repair, and default rendering semantics.\n- Sole-entry claim: verified for current scope-setting path by code search: only `store-temporal/epics.ts` writes `options?.epicScope` during create; no scope-update primitive exists.\n- Secondary surfaces:\n  - `adv_epic_create`: in scope for derived display/backcompat and initial scope creation.\n  - `adv_epic_update`: in scope or superseded by scope-specific update tool.\n  - Link/move/unlink/repair: in scope for merge composition/projection safety.\n  - CLI `bin/adv epic list`: out of scope except read-only display compatibility.\n\n### LBP Check\n\nLikely best path: additive typed state transitions over current Epic workflow pattern.\n\n- Add a scope-update signal/store/tool using existing expected-version/idempotency pattern.\n- Model merge as composition of existing entry/link/membership projection primitives plus a small source-Epic terminal pointer.\n- Derive product-spanning display from scope breadth; do not keep `kind` as correctness authority.\n- Keep cross-project target-path confirmation and typed repair statuses.\n- External solution check skipped: no external library/service option is viable or relevant; this is internal ADV state/model design.\n\n### Discovery Opportunity Scout\n\n- Trigger: run — strategic architecture/model change.\n- Candidates considered: 5.\n- Auto-adopted:\n  - Product-ness-as-derived: collapse `kind` as authority; keep compatibility.\n  - Scope mutation mirrors `applyEpicUpdatedToState` with version + idempotency.\n  - Merge composes existing membership projection primitives instead of inventing broad new membership state.\n- Surfaced to user and resolved:\n  - Source Epic terminal semantics: merged pointer.\n  - Merge conflict policy: ask on conflicts.\n  - Terminal source eligibility: do not merge completed/archived sources; reference as history.\n- Inconclusive: none.\n\n### Recommended Objectives\n\n1. Make every Epic a scoped, product-capable initiative container.\n2. Derive local/product-spanning display from typed scope breadth rather than a fixed creation-time class.\n3. Provide audited, versioned scope mutation for existing active Epics.\n4. Provide audited merge/supersede for active duplicate Epics into one survivor.\n5. Preserve one owning Epic membership per child change and target-path trust rules.\n6. Preserve legacy/unscoped Epic readability and backfill/migration behavior.\n\n### AMBIGUITY ANALYSIS — no blocking ambiguity findings. Coverage: B:C F:C S:C M:C\n\nAdvisory: merge conflict disposition was user-facing and is now resolved as \"ask on conflicts\".\n\n## Discovery Agenda Resolution\n\n- Temporal Epic workflow surface: additive scope-update and merge/source-merged signals likely needed; design will validate exact signal split.\n- Scope mutation location: should follow existing pure workflow-state helpers and store-temporal signal adapter pattern.\n- Epic status: add or model `merged`/`merged_into` source terminal state; design should decide schema shape while honoring user choice.\n- Compact views: source merged Epics should be readable with survivor pointer and not appear as active next work.\n- Product config absent: local scope remains valid; product config enriches but must not be required for one-repo scope.\n",
+    "problemStatement": "## Problem\n\nAdvance Epics currently distinguish repo/product scope too early and too rigidly. Existing Epics cannot be expanded into product-spanning initiatives, and multiple repo/project Epics cannot be structurally merged into one authoritative cross-project Epic.\n\n## Desired Outcome\n\nEvery Epic should behave as a scoped, product-capable initiative container. Scope can start with one repo and expand to multiple repos/projects. Product-ness is derived from scope breadth. Users need safe typed paths for scope expansion and Epic merge while preserving one owning Epic membership per change and cross-project trust boundaries.\n\n## Expected Scope\n\nEpic spec/model semantics, typed scope mutation, merge/supersede workflow, command/tool UX, migration/backcompat behavior, and tests/docs.\n\n## Non-Goals\n\nDo not add Jira-like assignments, estimates, boards, sprints, ownership workflows, mandatory Epic membership, or multiple owning Epic memberships per change.\n",
+    "agreement": "# Agreement: Update Epic Scope\n\n## Objectives\n\n1. Make every Epic a scoped, product-capable initiative container.\n2. Derive local/product-spanning display from typed scope breadth rather than a fixed creation-time class.\n3. Provide audited, versioned scope mutation for existing active Epics.\n4. Provide audited merge/supersede for active duplicate Epics into one survivor.\n5. Preserve one owning Epic membership per child change and target-path trust rules.\n6. Preserve legacy/unscoped Epic readability and backfill/migration behavior.\n\n## Success Criteria\n\n- SC1. Users can treat every Epic as product-capable: local vs product-spanning is derived from typed scope, not fixed at creation.\n- SC2. Users can expand an active local Epic into multi-repo/project scope with audit evidence and stale-write protection.\n- SC3. Users can merge duplicate active Epics into one survivor without losing entries or creating multiple owning memberships.\n- SC4. Legacy/unscoped Epics remain readable and can be backfilled or referenced safely.\n- SC5. Cross-project trust, target-path confirmation, and projection repair semantics remain intact.\n\n## Acceptance Criteria\n\n- AC1. Epic scope semantics derive local/product-spanning display from typed repo/project scope metadata, while preserving legacy/unscoped readability. [warrant: spec:rq-epicEntity01, spec:rq-epicProductScope01]\n- AC2. Active Epics support audited scope mutation with optimistic concurrency; stale expected version returns typed conflict and does not overwrite scope.\n- AC3. Scope mutation cannot silently orphan linked child changes when repos/projects are removed; it must reject, require explicit disposition, or surface typed repair status.\n- AC4. Active duplicate Epics can merge into one survivor; unique entries move/copy to survivor and child `epic_membership` projections point to survivor. [warrant: spec:rq-epicOnePerChange01, spec:rq-epicMembershipRepair01]\n- AC5. Merge conflicts require explicit disposition; implementation must not silently heuristic-dedupe conflicting shell/change entries.\n- AC6. Source Epic after merge remains readable with `merged_into`/survivor pointer and audit evidence; it must not appear as active next work.\n- AC7. Completed/archived source Epics cannot be merged into active survivors; they may be referenced as historical context only.\n- AC8. Cross-project merge/scope operations preserve target-path confirmation and typed statuses such as stale projection or target unreachable. [warrant: spec:rq-epicMembershipRepair01]\n- AC9. Specs/docs/command guidance/tests cover scope derivation, scope mutation, merge/supersede, legacy backfill, and conflict behavior.\n\n## Constraints\n\n- C1. Use typed ADV/Epic tools for mutations; do not edit ADV state files directly.\n- C2. Preserve `epic_membership` as one optional owning membership object on a child change in v1.\n- C3. Keep Epic membership optional; non-Epic changes remain valid.\n- C4. Keep Epic order advisory; scope or merge state must not block gates/tasks solely due to order.\n- C5. Preserve cross-project `target_path` confirmation and repair semantics.\n- C6. Preserve backcompat for existing repo/product/legacy Epics.\n- C7. Product/local classification must be structural, not narrative-only.\n\n## Out of Scope\n\n- OOS1. Multiple owning Epic memberships for one change.\n- OOS2. Assignments, estimates, boards, sprints, or ownership workflow features.\n- OOS3. Replacing GitHub Projects or stakeholder intake.\n- OOS4. Making Epic membership mandatory for all changes.\n- OOS5. Blocking work based only on Epic order.\n- OOS6. Broad redesign of ADV gates unrelated to Epic scope or merge behavior.\n- OOS7. Merging completed or archived source Epics into active survivor Epics; those may be referenced as history only.\n\n## Avoidances\n\n- DONT1. Do not create duplicate repo-local Epics as the required way to share one initiative.\n- DONT2. Do not bypass target-path trust rules for cross-project changes.\n- DONT3. Do not encode scope or merge state only in narrative text.\n- DONT4. Do not silently detach child changes during merge.\n- DONT5. Do not make product scope a one-way creation-time decision.\n- DONT6. Do not silently auto-dedupe conflicting merge entries by heuristic title similarity.\n\n## Preview Applicability\n\nvisual_surface: false\n\nRationale: This change affects ADV tool/schema/workflow/docs behavior and terminal/status output, not browser-visible UI or visual layout.\n\n## Decisions\n\n### User Decisions\n\n- Labeling: use scope-derived labels. One repo renders as local/repo-scoped; multiple repos/projects renders as product-spanning.\n- Merge conflicts: ask on conflicts. Auto-move unique entries; require explicit disposition for duplicates/conflicts.\n- Source Epic after merge: source remains readable with merged pointer to survivor and audit evidence.\n- Terminal source eligibility: completed/archived source Epics are not eligible for merge into active survivors; they may be referenced for history.\n\n### Agent Decisions (LBP)\n\n- Use additive typed mutations following current Epic workflow patterns: pure state helper, signal payload schema, store adapter, typed MCP tool, and tests.\n- Treat product-ness as derived state from scope breadth; keep existing `kind` only as compatibility/display input if design finds it necessary.\n- Compose merge from existing link/move/repair projection primitives where possible instead of creating multiple owning memberships.\n- Keep external-solution check skipped because no external library/service alternative is relevant; this is internal ADV state-model design.\n- Avoid relying on current Epic tool warrant tags because related agenda `ag-Adj91lPD` tracks Epic tool warrant surface gap.\n\n## Deferred Questions\n\nNone.\n\n## Sign-Off\n\nAcceptance and success criteria approved by user in chat: `approve`.\n",
+    "design": "# Design: Update Epic Scope\n\n## Architecture Overview\n\nEpic state remains owned by Temporal Epic workflows. This change extends the current typed signal/query model with two additive mutation families:\n\n1. **Scope update** — changes `epic_scope` after creation with optimistic concurrency and audit evidence.\n2. **Merge finalization** — converges duplicate active Epics by moving/copying resolved entries into a survivor, updating child membership projections, then marking the source as merged with a survivor pointer.\n\nThe child-change `epic_membership` projection remains the fast child-side context and remains a single optional owning membership object. There is no multi-owning Epic model.\n\nScope classification becomes derived display, not state authority:\n\n- one scoped repo/project → local/repo-scoped display\n- multiple scoped repos/projects → product-spanning display\n- no scope → legacy/unscoped display, still readable and eligible for backfill\n\nMerged source state is structural, not visual-only: merged Epics must have no active next-work at schema/progress/rendering and next-work selection layers, while remaining queryable for audit/history.\n\n## Key Decisions\n\n1. **Derive product-ness from scope breadth.**\n   - Add a formatter/helper such as `deriveEpicScopeLabel(epic)`.\n   - Existing `epic_scope.kind` remains accepted as compatibility input, but no correctness path may treat it as authoritative.\n   - New or updated surfaces should prefer derived labels from `epic_scope.repos`.\n\n2. **Scope mutation mirrors existing Epic update.**\n   - Add `EpicScopeUpdatedSignalPayloadSchema` with `expectedVersion`, full replacement `epicScope`, audit evidence, actor, timestamp, and idempotency key.\n   - Add `applyEpicScopeUpdatedToState` following the same version/idempotency/bump/recompute pattern as `applyEpicUpdatedToState`.\n   - Add store and tool surfaces: `store.epics.updateScope(...)` and `adv_epic_update_scope`.\n\n3. **Merge is plan-first and composes existing move primitives.**\n   - `adv_epic_merge dryRun:true` computes a deterministic merge plan: unique changes, unique shells, duplicate changes, conflicting shells, target confirmations required, and terminal-source eligibility.\n   - Execute only after unresolved conflicts have explicit resolutions and required target confirmations are present.\n   - Per-change movement should reuse the existing `adv_epic_move_change` / `linkChange → setEpicMembership → unlinkChange` shape rather than bespoke child-projection code.\n\n4. **Source merged state uses `merged_into` plus a real `merged` lifecycle status.**\n   - Add an optional structural field such as `merged_into: { epic_id, merged_at, merged_by, evidence, moved_entry_count }` on the source Epic.\n   - Extend `EpicStatusSchema` / progress lifecycle status with `merged`.\n   - `recomputeEpicProgress` must set status `merged`, `active_entries: 0`, and `next_entry_id: null` when `merged_into` exists.\n   - Formatters and next-work selection must consume this structural state, not visual suppression only.\n   - Workflow completion / continue-as-new remains `archived`-only; `merged` source workflows must stay queryable.\n\n5. **Terminal source Epics are history-only.**\n   - `adv_epic_merge` rejects completed, archived, or already merged source Epics.\n   - Users may reference terminal Epics as historical context, but merge execution must not mutate them into active survivor Epics.\n\n## ADR Drafts\n\nNo ADR required. The design is important but follows existing ADV Epic workflow patterns: typed schemas, pure workflow state helpers, store adapter methods, and MCP tools. The user-facing policy decisions are captured in agreement and spec deltas.\n\n## Implementation Strategy\n\n### 1. Schema and type updates\n\n- `plugin/src/types/epics.ts`\n  - Keep `EpicScopeSchema` compatible with existing records.\n  - Add helper-level semantics for derived scope label; do not encode correctness in `epic_scope.kind`.\n  - Add optional `merged_into` schema on `Epic` with target Epic ID, timestamp, actor, evidence, and summary counts.\n  - Extend `EpicStatusSchema` to include `merged` and update tests/consumers accordingly.\n  - Preserve `EpicSchema.passthrough()` for forward/backward compatibility.\n\n- `plugin/src/types/signals.ts`\n  - Add `EpicScopeUpdatedSignalPayloadSchema`.\n  - Add `EpicMergedSignalPayloadSchema` for source finalization.\n\n- `plugin/src/temporal/contracts.ts`\n  - Extend `EpicWorkflowState.status` to include `merged` if it mirrors Epic lifecycle status.\n  - Ensure any terminal/completion handling distinguishes `merged` from `archived`.\n\n### 2. Workflow state helpers\n\n- `plugin/src/temporal/epic-state.ts`\n  - Add `applyEpicScopeUpdatedToState` mirroring `applyEpicUpdatedToState`:\n    1. reject archived or merged sources where mutation is not allowed\n    2. check idempotency\n    3. check expected version\n    4. write scope\n    5. bump version\n    6. record idempotency\n    7. recompute progress\n  - Add `applyEpicMergedToState`:\n    - source must be active and not completed/archived/merged\n    - expected version must match\n    - writes `merged_into`\n    - recomputes progress to `status: \"merged\"`, `active_entries: 0`, `next_entry_id: null`\n    - records idempotency and audit timestamp\n  - Add mutation guards so merged sources reject normal scope/entry mutation just like archived sources reject mutation, while still allowing read/query.\n\n### 3. Workflow wiring\n\n- `plugin/src/temporal/workflows.ts`\n  - Wire new scope-updated and merged signals.\n  - Keep workflow completion/continue-as-new branch `archived`-only. Do not terminate merged source workflows, because AC6 requires merged sources remain readable with survivor pointer.\n  - Add tests proving merged Epic remains queryable and has no active next work.\n\n### 4. Store adapter methods\n\n- `plugin/src/storage/store-types.ts`\n  - Add `epics.updateScope(epicId, input)`.\n  - Add `epics.markMerged(epicId, input)` or `epics.finalizeMergeSource(...)`.\n\n- `plugin/src/storage/store-temporal/epics.ts`\n  - Fire new signals using existing `fireEpicSignal` pattern.\n  - Use stable idempotency keys based on epic IDs, expected versions, entry IDs, and evidence hash.\n  - Query and return updated Epic state after mutation.\n\n### 5. Tool surfaces\n\n- `plugin/src/tools/epic.ts`\n  - Add `adv_epic_update_scope`:\n    - inputs: `epic_id`, full `scope_repos`/owner fields or full `epic_scope`, `expected_version`, `audit_evidence`, optional `dryRun`\n    - validates scope structurally before signal\n    - dry-run reports derived scope label and removal impact\n    - rejects removing a repo/project when linked entries still reference it unless design adds an explicit disposition path\n  - Add `adv_epic_merge`:\n    - inputs: source Epic, survivor Epic, expected versions, evidence/actor, conflict resolutions, target confirmations, dryRun\n    - dry-run returns merge plan without mutation\n    - execution rejects unresolved conflicts\n    - execution rejects completed/archived/merged source Epics\n    - execution reuses existing move/link/unlink/projection mechanisms for change entries\n    - finalizes source `merged_into` only after selected entries and child projections are resolved\n\n### 6. Merge execution sequence\n\n1. Load source and survivor Epics.\n2. Reject if source is completed, archived, already merged, or same as survivor.\n3. Check expected versions for both source and survivor.\n4. Build deterministic plan:\n   - unique change entries → move to survivor\n   - duplicate same change already in survivor → conflict or resolution required\n   - unique shell entries → copy to survivor\n   - similar/conflicting shells → conflict or resolution required\n   - terminal source candidate → history-only rejection\n   - cross-project child entries → target confirmation requirements\n5. If `dryRun`, return plan only.\n6. If conflicts unresolved, return typed `MERGE_CONFLICTS_UNRESOLVED` without mutation.\n7. Apply resolved entry moves/copies idempotently.\n8. Update child `epic_membership` projections through reachable target stores.\n9. On target unreachable or stale projection, return typed partial status and keep source unmerged unless explicit resolution says skip/reference-only.\n10. Finalize source with `merged_into` pointer and progress `status: \"merged\"` only after all selected entries are resolved.\n\n### 7. Rendering and commands\n\n- Update `formatEpic` / `formatEpicCompact` to include:\n  - derived `scope_label`\n  - `merged_into` when present\n  - status `merged` when present\n  - empty `next_work` for merged sources\n- Update any next-work recommendation path that considers Epics so `merged` Epics never produce candidates.\n- Update `/adv-epic` guidance so overlap flows prefer updating scope or merging existing Epics instead of creating duplicates.\n- Keep `bin/adv epic list --json` read-only; update JSON display shape only if schema consumers require it.\n\n### 8. Specs and tests\n\n- Add spec requirements:\n  - `rq-epicScopeDerivation01`\n  - `rq-epicMutableScope01`\n  - `rq-epicMerge01`\n- Mirror docs in `docs/specs/advance-epics.md`.\n- Add tests:\n  - type/schema tests for scope derivation/backcompat/merged_into/merged status\n  - pure workflow tests for scope update and source merge finalization\n  - workflow test that merged Epic remains queryable and workflow completion branch stays archived-only\n  - store adapter signal tests\n  - tool dry-run and execution tests\n  - merge conflict tests with no heuristic dedupe\n  - terminal source rejection tests\n  - cross-project target confirmation / target-unreachable tests\n  - merged source excluded from next-work selection tests\n  - asset tests for `/adv-epic` guidance and spec/doc anchors\n\n## LBP Analysis\n\nThis is the boring long-term design because it extends existing ADV Epic architecture instead of introducing a second planning model.\n\n- Existing Epic workflow already uses typed signals and pure state helpers; scope update and merge finalization fit that pattern.\n- Existing `adv_epic_move_change` already demonstrates safe per-change movement with child projection CAS and target-path routing; merge should compose that behavior.\n- Derived scope labels remove the creation-time category trap without requiring an immediate breaking schema migration.\n- Plan-first merge prevents hidden data loss and gives users explicit conflict disposition where heuristics would be unsafe.\n- A structural `merged` status plus `merged_into` pointer prevents merged sources from remaining active in downstream selection logic while preserving read access.\n\n## Affected Components\n\n- `.adv/specs/advance-epics/spec.json`\n- `docs/specs/advance-epics.md`\n- `.opencode/command/adv-epic.md`\n- `plugin/src/types/epics.ts`\n- `plugin/src/types/signals.ts`\n- `plugin/src/temporal/contracts.ts`\n- `plugin/src/temporal/epic-state.ts`\n- `plugin/src/temporal/messages.ts`\n- `plugin/src/temporal/workflows.ts`\n- `plugin/src/storage/store-types.ts`\n- `plugin/src/storage/store-temporal/epics.ts`\n- `plugin/src/tools/epic.ts`\n- `plugin/src/tools/epic.test.ts`\n- `plugin/src/types/epics.test.ts`\n- `plugin/src/temporal/workflows.epic.test.ts`\n- Epic asset/manifest/schema tests as needed\n\n## Design-Derived Criteria\n\n- DDC1. No correctness path may use `epic_scope.kind` as authoritative local/product classification.\n- DDC2. Scope update and source merge finalization use optimistic concurrency and idempotency ledgers.\n- DDC3. Merge dry-run must surface unresolved entry conflicts before mutation.\n- DDC4. Source Epic may be marked merged only after selected entries and child projections are resolved or explicitly skipped by user-provided conflict resolution.\n- DDC5. Completed, archived, and already-merged source Epics are rejected by merge execution.\n- DDC6. Cross-project child updates require target-path trust confirmation and typed unreachable/stale statuses.\n- DDC7. Merged source rendering and next-work selection must expose survivor pointer and must not emit active next-work recommendations.\n- DDC8. `EpicProgressSummary.status` includes `merged` so merged-source semantics are structural, not formatter-only.\n- DDC9. Merged source workflows remain queryable; workflow completion/continue-as-new stays archived-only.\n\n## Risks / Mitigations\n\n- **Risk: cross-project partial failure during merge.**\n  - Mitigation: dry-run plan, target confirmations, idempotent per-entry moves, typed partial statuses, and source finalization only after resolved entries are safe.\n\n- **Risk: heuristic shell dedupe loses intent.**\n  - Mitigation: require explicit conflict disposition; never auto-dedupe by title similarity.\n\n- **Risk: schema backcompat break from scope model shift.**\n  - Mitigation: accept existing `kind`, preserve unscoped records, add derived helper, and keep `EpicSchema.passthrough()`.\n\n- **Risk: widening `EpicStatusSchema` touches more consumers.**\n  - Mitigation: make `merged` explicit in schema/tests and update all progress/status consumers rather than hiding lifecycle state in formatters.\n\n- **Risk: merged source workflow terminates and becomes unreadable.**\n  - Mitigation: keep workflow completion archived-only; add test proving merged Epic remains queryable.\n\n- **Risk: scope removal or merge detaches children.**\n  - Mitigation: preflight linked-entry references before scope removal; merge updates child projections before source finalization.\n\n## Design Leverage Scout\n\n- Candidates considered: 5.\n- Auto-adopted: 4.\n  - Reuse existing `adv_epic_move_change` shape for merge entry movement.\n  - Copy `applyEpicUpdatedToState` version/idempotency pattern for scope update.\n  - Reuse existing `EpicMembershipStatusSchema` values for cross-project partial states.\n  - Derive scope classification because no current correctness consumer of `epic_scope.kind` exists.\n- Surfaced/resolved by orchestrator: 1.\n  - Initial scout suggested avoiding `EpicStatusSchema` widening; independent validation found structural merged status necessary to avoid active next-work divergence. Final design widens status to include `merged`.\n- Inconclusive/skipped: none.\n\n## Validator Result\n\nValidator attempt 1: CAUTION. Core flow validated, but validator found merged sources could still look active if `merged_into` was formatter-only while `EpicProgressSummary.status` remained `active`.\n\nResolution after attempt 1: design now makes `merged` structural in `EpicStatusSchema`/progress and requires next-work selection tests.\n\nValidator attempt 2: CAUTION. Attempt-1 caution was resolved, but validator found a completion-branch risk: if merged is treated like archived in workflow completion/continue-as-new, source would stop being queryable.\n\nResolution after attempt 2: design now explicitly requires workflow completion/continue-as-new to remain archived-only, mutation guards for merged sources, and tests proving merged source remains queryable while emitting no next work.\n",
+    "executiveSummary": "# Executive Summary: Update Epic Scope\n\nImplemented structural Epic scope and merge support.\n\n## What changed\n\n- Epics now render a derived `scope_label` from typed scope breadth:\n  - no scope: `legacy-unscoped`\n  - one repo/project: `local`\n  - multiple repos/projects: `product-spanning`\n- Added audited `adv_epic_update_scope` with optimistic concurrency, dry-run preview, stale-version protection, and linked-entry removal guards.\n- Added active duplicate Epic merge support through `adv_epic_merge`:\n  - dry-run merge plan\n  - duplicate/conflict reporting\n  - explicit conflict disposition support\n  - cross-project target confirmation checks\n  - child `epic_membership` projection movement\n  - source `merged_into` pointer after selected entries resolve\n- Merged source Epics now have structural `merged` status, remain queryable, and produce no active next-work recommendations.\n- Updated `/adv-epic` guidance to prefer scope update or merge before creating duplicate Epics.\n\n## Verification\n\n- Acceptance reviewer rerun verdict: READY.\n- Contract review matrix: 34/34 pass/respected.\n- Targeted Epic tests passed after remediation:\n  - 176-test Epic suite\n  - 140-test post-remediation Epic suite\n  - 83-test reviewer targeted suite\n- `pnpm run typecheck` passed.\n- `pnpm run schemas:check` passed.\n- Touched-file Prettier checks passed.\n\n## Known unrelated issue\n\nRepo-wide smoke reaches `format:check` and fails on pre-existing unrelated formatting drift in:\n\n- `src/cli-bridge-contract.test.ts`\n- `src/tools/change.ts`\n\nThose files are outside this change’s touched scope.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-06-26T23:08:18.856Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | Users can treat every Epic as product-capable: local vs product-spanning is derived from typed scope, not fixed at creation. | pass | deriveEpicScopeLabel schema tests, adv_epic_show scope_label tests, and command guidance tests passed (tr_mqvikum0_987de5f8, tr_mqviggwk_36414cfc). |\n| SC2 | success_criterion | Users can expand an active local Epic into multi-repo/project scope with audit evidence and stale-write protection. | pass | adv_epic_update_scope state/store/tool tests passed, including stale-version and scope-removal guard regressions (tr_mqvhmzr8_cdea0fc1, tr_mqviznj6_0bad76cf). |\n| SC3 | success_criterion | Users can merge duplicate active Epics into one survivor without losing entries or creating multiple owning memberships. | pass | adv_epic_merge dry-run/execution/conflict/preflight tests passed; reviewer re-review READY (tr_mqvj5kou_82c08c0b; reviewer attempt 2). |\n| SC4 | success_criterion | Legacy/unscoped Epics remain readable and can be backfilled or referenced safely. | pass | Legacy/unscoped schema/rendering preserved and scope_label legacy behavior covered by types/show tests. |\n| SC5 | success_criterion | Cross-project trust, target-path confirmation, and projection repair semantics remain intact. | pass | Target confirmation and projection repair/status paths preserved in merge/scope tests and existing Epic repair tests; typecheck passed. |\n| AC1 | acceptance_criterion | Epic scope semantics derive local/product-spanning display from typed repo/project scope metadata, while preserving legacy/unscoped readability. | pass | Derived scope label uses repo count, not kind; compact/full rendering includes scope_label; tests passed. |\n| AC2 | acceptance_criterion | Active Epics support audited scope mutation with optimistic concurrency; stale expected version returns typed conflict and does not overwrite scope. | pass | Scope mutation uses expectedVersion/idempotent signal/store path; stale versions return typed stale_version. |\n| AC3 | acceptance_criterion | Scope mutation cannot silently orphan linked child changes when repos/projects are removed; it must reject, require explicit disposition, or surface typed repair status. | pass | Scope removal rejects linked entries with matching repo_id and legacy linked entries lacking repo attribution. |\n| AC4 | acceptance_criterion | Active duplicate Epics can merge into one survivor; unique entries move/copy to survivor and child `epic_membership` projections point to survivor. | pass | Merge moves unique changes through linkChange/setEpicMembership/unlinkChange and copies shells; source finalized after resolved entries. |\n| AC5 | acceptance_criterion | Merge conflicts require explicit disposition; implementation must not silently heuristic-dedupe conflicting shell/change entries. | pass | Duplicate changes/entry IDs produce conflicts; unresolved conflicts block mutation; no heuristic title dedupe path added. |\n| AC6 | acceptance_criterion | Source Epic after merge remains readable with `merged_into`/survivor pointer and audit evidence; it must not appear as active next work. | pass | Merged source has merged_into pointer, progress.status merged, active_entries 0, next_work []. |\n| AC7 | acceptance_criterion | Completed/archived source Epics cannot be merged into active survivors; they may be referenced as historical context only. | pass | Completed/archived/merged source Epics rejected by merge state/tool guards. |\n| AC8 | acceptance_criterion | Cross-project merge/scope operations preserve target-path confirmation and typed statuses such as stale projection or target unreachable. | pass | Cross-project target confirmation preflight remains required for target_path entries; projection mismatch preflight avoids partial mutation. |\n| AC9 | acceptance_criterion | Specs/docs/command guidance/tests cover scope derivation, scope mutation, merge/supersede, legacy backfill, and conflict behavior. | pass | Spec/docs/command/tests updated for scope derivation, mutable scope, merge, rendering, and guidance. |\n| C1 | constraint | Use typed ADV/Epic tools for mutations; do not edit ADV state files directly. | respected | All mutations implemented through typed ADV/Epic tools and workflow signals; no direct ADV state file edits. |\n| C2 | constraint | Preserve `epic_membership` as one optional owning membership object on a child change in v1. | respected | Child change epic_membership remains one optional owning object; merge moves projection rather than adding multiple memberships. |\n| C3 | constraint | Keep Epic membership optional; non-Epic changes remain valid. | respected | Epic membership remains optional; no mandatory enrollment added. |\n| C4 | constraint | Keep Epic order advisory; scope or merge state must not block gates/tasks solely due to order. | respected | Epic order remains advisory; no gate/task blocking based solely on order added. |\n| C5 | constraint | Preserve cross-project `target_path` confirmation and repair semantics. | respected | target_path confirmation and repair semantics preserved in tool schemas and merge preflight paths. |\n| C6 | constraint | Preserve backcompat for existing repo/product/legacy Epics. | respected | Legacy/unscoped Epics remain parseable/renderable; scope field remains optional. |\n| C7 | constraint | Product/local classification must be structural, not narrative-only. | respected | Product/local classification derives from EpicScope repos length via helper and rendering tests. |\n| OOS1 | out_of_scope | Multiple owning Epic memberships for one change. | respected | No multiple owning Epic memberships added. |\n| OOS2 | out_of_scope | Assignments, estimates, boards, sprints, or ownership workflow features. | respected | No assignments/estimates/boards/sprints/ownership workflows added. |\n| OOS3 | out_of_scope | Replacing GitHub Projects or stakeholder intake. | respected | No GitHub Projects or stakeholder intake replacement added. |\n| OOS4 | out_of_scope | Making Epic membership mandatory for all changes. | respected | No mandatory Epic membership behavior added. |\n| OOS5 | out_of_scope | Blocking work based only on Epic order. | respected | No Epic-order gate/task blocking added. |\n| OOS6 | out_of_scope | Broad redesign of ADV gates unrelated to Epic scope or merge behavior. | respected | Changes limited to Epic scope/merge/render/guidance surfaces. |\n| OOS7 | out_of_scope | Merging completed or archived source Epics into active survivor Epics; those may be referenced as history only. | respected | Completed/archived source Epics rejected from active merge execution. |\n| DONT1 | avoidance | Do not create duplicate repo-local Epics as the required way to share one initiative. | respected | Command guidance prefers scope update/merge before duplicate creation. |\n| DONT2 | avoidance | Do not bypass target-path trust rules for cross-project changes. | respected | target_path confirmation preserved; no bypass added. |\n| DONT3 | avoidance | Do not encode scope or merge state only in narrative text. | respected | Scope/merge state represented structurally with schemas/signals/progress, not narrative text only. |\n| DONT4 | avoidance | Do not silently detach child changes during merge. | respected | Merge preflights child projections and updates memberships before source finalization; regression prevents partial mutation on projection mismatch. |\n| DONT5 | avoidance | Do not make product scope a one-way creation-time decision. | respected | Scope can be updated through adv_epic_update_scope after creation. |\n| DONT6 | avoidance | Do not silently auto-dedupe conflicting merge entries by heuristic title similarity. | respected | Merge conflict plan uses deterministic duplicate change/entry conflicts and explicit skip dispositions; no title-similarity dedupe. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-06-26T21:13:34.088Z",
+      "contentHash": "71685aed49e3d685c21b80f45968ca4b30bfff35d626d57b0237b57736e0eb41",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-06-26T20:46:01.689Z",
+      "contentHash": "aae437b36c6a1e54798cb436a8d505520601a67a5a7c63bceb519b8568f7f054",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-06-26T21:17:49.151Z",
+      "contentHash": "2d1d835b8da56eaf44718676f1dd7fbcb07a78bc2823922c80b573796b14413d",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-06-26T21:35:07.566Z",
+      "contentHash": "d3e2cbe310d23ea6fd1fcc052d432cde31b3dd0b646be96b1325a3118f4510ec",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-06-26T23:10:12.755Z",
+      "contentHash": "66b87aeaa1f7eea4cea924d6310d389fe7afea2caafd406044260cb920a0a999",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-06-26T23:10:23.892Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true
+}

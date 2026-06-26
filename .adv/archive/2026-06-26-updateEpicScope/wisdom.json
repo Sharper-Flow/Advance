@@ -1,0 +1,19 @@
+{
+  "entries": [
+    {
+      "id": "ws-vY_J5X",
+      "type": "gotcha",
+      "content": "Adding a required method to `Store.epics` also requires updating the disk-only fallback in `plugin/src/storage/store-disk.ts`; Temporal overrides it, but typecheck enforces the full Store shape.",
+      "source_task": "tk-103c24e0769e",
+      "recorded_at": "2026-06-26T22:16:37.612Z"
+    },
+    {
+      "id": "ws-75VjwW",
+      "type": "pattern",
+      "content": "For Epic merge execution, preflight source/survivor versions and conflicts before any mutation, then mutate survivor/child/source in that order and pass source finalization the initial source version plus source-unlink count.",
+      "source_task": "tk-b827b5e753be",
+      "recorded_at": "2026-06-26T22:33:00.733Z"
+    }
+  ],
+  "count": 2
+}
