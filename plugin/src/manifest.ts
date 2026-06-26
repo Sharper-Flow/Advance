@@ -161,6 +161,20 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
       gates: [],
     },
   },
+  "adv-epic": {
+    name: "adv-epic",
+    description: "Gather Epic goals before typed creation",
+    phase: "pre-implementation",
+    requiresChangeId: false,
+    prerequisites: [],
+    successors: ["adv-proposal"],
+    scope: {
+      creates: ["epic"],
+      reads: ["specs", "epics", "changes", "backlog"],
+      modifies: ["epic"],
+      gates: [],
+    },
+  },
   "adv-clarify": {
     name: "adv-clarify",
     description: "Ask clarifying questions to resolve ambiguous requirements",

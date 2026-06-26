@@ -3,7 +3,7 @@
   "name": "advance-epics",
   "title": "Advance Epics",
   "purpose": "Capability: Epic entity and workflow contracts for ADV initiative planning. Epics are durable containers that group related ADV changes and lightweight shell entries, replacing project-level ROADMAP.md as the primary ADV planning surface for initiative-level work while keeping Epic membership optional, order advisory, retrofit-capable, and product-scope aware.",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "updated_at": "2026-06-26T00:00:00.000Z",
   "requirements": [
     {
@@ -68,6 +68,47 @@
           "then": [
             "Validation requires title, membership_status, linked_at, linked_by, and link_evidence",
             "Validation preserves repo/project identity"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-epicCreateCommand01",
+      "title": "Epic Creation Command Is Goal-First and Overlap-Aware",
+      "body": "The `/adv-epic` command MUST guide users through creating or updating Epics with an explicit ultimate goal before mutation. Before creating a new Epic, the command MUST scan related open work through typed Epic/change/backlog reads and surface plausible overlap neutrally. If plausible overlap exists, the command MUST ask the user to choose update/clarify existing, create new, or stop before calling `adv_epic_create`. Initial shell or change entries MUST remain optional and any Epic mutation MUST use typed Epic tools rather than direct ADV state edits.",
+      "priority": "must",
+      "tags": ["epics", "command", "goal", "overlap"],
+      "scenarios": [
+        {
+          "id": "rq-epicCreateCommand01.1",
+          "title": "Command requires ultimate goal before creation",
+          "given": ["A user invokes `/adv-epic` to create a new Epic"],
+          "when": "The command prepares an Epic creation plan",
+          "then": [
+            "The plan includes an explicit ultimate goal",
+            "The command obtains final user confirmation before mutation",
+            "The Epic narrative preserves the confirmed goal"
+          ]
+        },
+        {
+          "id": "rq-epicCreateCommand01.2",
+          "title": "Overlap requires user choice before duplicate creation",
+          "given": ["The related-work scan finds one or more plausible overlapping open Epics"],
+          "when": "The command presents the overlap evidence",
+          "then": [
+            "The evidence is presented neutrally",
+            "The user is asked to choose update/clarify existing, create new, or stop",
+            "The command does not call `adv_epic_create` for a plausible duplicate until the user chooses create new"
+          ]
+        },
+        {
+          "id": "rq-epicCreateCommand01.3",
+          "title": "Initial entries remain optional",
+          "given": ["A user has confirmed an Epic title, ultimate goal, and narrative but has no initial child work"],
+          "when": "The command creates the Epic",
+          "then": [
+            "The Epic may be created with zero initial roadmap entries",
+            "Shell and linked-change additions remain available through typed Epic tools"
           ]
         }
       ]

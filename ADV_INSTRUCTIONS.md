@@ -32,6 +32,7 @@ Per-phase collaboration mode. Planning gate machine-enforced via `adv_gate_compl
 | --------------- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `/adv-idea`     | Collaborative                | Fully collaborative; ideation loop before a proposal exists                                                                                                                           |
 | `/adv-problem`  | Collaborative                | Fully collaborative; issue triage before deciding fix path                                                                                                                            |
+| `/adv-epic`     | Collaborative                | Fully collaborative; goal-first Epic creation with final confirmation before typed Epic mutation                                                                                       |
 | `/adv-proposal` | Collaborative                | Fully collaborative; approve at end                                                                                                                                                   |
 | `/adv-research` | Collaborative                | Fully collaborative; approve at end                                                                                                                                                   |
 | `/adv-prep`     | HITL hard gate               | Vision document → explicit user approval → `userApproved: true` on prep gate                                                                                                          |
@@ -120,6 +121,7 @@ Each workflow command has a defined phase goal. Canonical in `manifest.ts` (`pha
 | `/adv-problem`              | Triage issues before fixing or drafting a proposal                               |
 | `/adv-status`               | Show fast ADV status table                                                       |
 | `/adv-roadmap`              | Show fast ADV roadmap table                                                      |
+| `/adv-epic`                 | Gather Epic goals before typed creation                                          |
 | `/adv-proposal <summary>`   | Extract problem statement, user outcomes, and constraints without creating tasks |
 | `/adv-validate <change-id>` | Validate change compliance against specs; block archive on failure               |
 | `/adv-apply <change-id>`    | Implement change with TDD, retry on failure, and final verification              |
@@ -986,7 +988,7 @@ Worker skill-load availability is permissive: guard explicit `skill: false`, not
 
 | Class                                 | Commands                                                                                                                                                                                        | Load site                   |
 | ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- |
-| Command-only                          | `adv-idea`, `adv-problem`, `adv-proposal`, `adv-research`, `adv-task`, `adv-validate`, `adv-archive`, `adv-status`                                                                              | —                           |
+| Command-only                          | `adv-idea`, `adv-problem`, `adv-epic`, `adv-proposal`, `adv-research`, `adv-task`, `adv-validate`, `adv-archive`, `adv-status`                                                                 | —                           |
 | Dedicated skill                       | `adv-triage` → `adv-triage`; `adv-reflect` → `adv-reflect`; `adv-cleanup` → `adv-cleanup`; `adv-improve` → `adv-improve`; `adv-clarify` → `adv-clarify`; `adv-arch-scan` → `adv-arch-detection` | `orchestrator-only`         |
 | Dedicated skill with worker execution | `adv-audit` → `adv-audit`; `adv-refactor` → `adv-refactor`                                                                                                                                      | `split`                     |
 | Scout skill                           | `adv-discover`, `adv-design` → `adv-opportunity-scout`                                                                                                                                          | `split`                     |

@@ -1,0 +1,19 @@
+{
+  "entries": [
+    {
+      "id": "ws-u_S06j",
+      "type": "gotcha",
+      "content": "`advance-epics-assets.test.ts` command-boundary assertions should allow canonical bold command docs (`**Gate:** None`) rather than only plain `Gate: None`; command files commonly use bold labels in boundary sections.",
+      "source_task": "tk-88ef53afd9ee",
+      "recorded_at": "2026-06-26T18:22:03.446Z"
+    },
+    {
+      "id": "ws-c8NwO8",
+      "type": "gotcha",
+      "content": "Manifest voice-standard strong-verb allowlist does not include `Create`; new command descriptions must start with an allowed verb such as `Gather`, and exact wording must be propagated to command frontmatter and command tables to satisfy manifest-doc-drift tests.",
+      "source_task": "tk-9ab0dbdcd7b9",
+      "recorded_at": "2026-06-26T18:30:22.089Z"
+    }
+  ],
+  "count": 2
+}

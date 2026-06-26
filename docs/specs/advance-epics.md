@@ -1,6 +1,6 @@
 # Advance Epics
 
-> **Version:** 1.2.0
+> **Version:** 1.3.0
 > **Updated:** 2026-06-26
 
 ## Purpose
@@ -85,6 +85,53 @@ An Epic's ordered entries MUST support exactly two kinds: `change` entries that 
 **Then:**
 - Validation requires title, membership_status, linked_at, linked_by, and link_evidence
 - Validation preserves repo/project identity
+
+---
+
+### Epic Creation Command Is Goal-First and Overlap-Aware
+
+**ID:** `rq-epicCreateCommand01` | **Priority:** **[MUST]**
+
+The `/adv-epic` command MUST guide users through creating or updating Epics with an explicit ultimate goal before mutation. Before creating a new Epic, the command MUST scan related open work through typed Epic/change/backlog reads and surface plausible overlap neutrally. If plausible overlap exists, the command MUST ask the user to choose update/clarify existing, create new, or stop before calling `adv_epic_create`. Initial shell or change entries MUST remain optional and any Epic mutation MUST use typed Epic tools rather than direct ADV state edits.
+
+**Tags:** `epics`, `command`, `goal`, `overlap`
+
+#### Scenarios
+
+**Command requires ultimate goal before creation** (`rq-epicCreateCommand01.1`)
+
+**Given:**
+- A user invokes `/adv-epic` to create a new Epic
+
+**When:** The command prepares an Epic creation plan
+
+**Then:**
+- The plan includes an explicit ultimate goal
+- The command obtains final user confirmation before mutation
+- The Epic narrative preserves the confirmed goal
+
+**Overlap requires user choice before duplicate creation** (`rq-epicCreateCommand01.2`)
+
+**Given:**
+- The related-work scan finds one or more plausible overlapping open Epics
+
+**When:** The command presents the overlap evidence
+
+**Then:**
+- The evidence is presented neutrally
+- The user is asked to choose update/clarify existing, create new, or stop
+- The command does not call `adv_epic_create` for a plausible duplicate until the user chooses create new
+
+**Initial entries remain optional** (`rq-epicCreateCommand01.3`)
+
+**Given:**
+- A user has confirmed an Epic title, ultimate goal, and narrative but has no initial child work
+
+**When:** The command creates the Epic
+
+**Then:**
+- The Epic may be created with zero initial roadmap entries
+- Shell and linked-change additions remain available through typed Epic tools
 
 ---
 

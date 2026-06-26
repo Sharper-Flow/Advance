@@ -31,6 +31,7 @@ describe("Advance Epics spec documentation", () => {
     for (const reqId of [
       "rq-epicEntity01",
       "rq-epicEntries01",
+      "rq-epicCreateCommand01",
       "rq-epicPromotion01",
       "rq-epicOrderAdvisory01",
       "rq-epicNextWork01",
@@ -54,6 +55,58 @@ describe("Advance Epics spec documentation", () => {
         (r: { id: string }) => r.id === "rq-epicMembershipRepair01",
       ),
     ).toBe(true);
+    expect(
+      spec.requirements.some(
+        (r: { id: string }) => r.id === "rq-epicCreateCommand01",
+      ),
+    ).toBe(true);
+  });
+});
+
+describe("/adv-epic command contract", () => {
+  const commandPath = join(REPO_ROOT, ".opencode/command/adv-epic.md");
+
+  test("command file exists and declares no change-id gate", () => {
+    expect(existsSync(commandPath)).toBe(true);
+    const content = readRepoFile(".opencode/command/adv-epic.md");
+    const frontmatter = content.match(/^---\n([\s\S]*?)\n---/)?.[1] ?? "";
+
+    expect(frontmatter).toContain("name: adv-epic");
+    expect(frontmatter).toContain(
+      "description: Gather Epic goals before typed creation",
+    );
+    expect(frontmatter).toContain("requiresChangeId: false");
+    expect(content).toMatch(/\*\*Gate:\*\*\s*None|Gate:\s*None/i);
+  });
+
+  test("requires an ultimate goal before creating an Epic", () => {
+    const content = readRepoFile(".opencode/command/adv-epic.md");
+
+    expect(content).toContain("Ultimate Goal");
+    expect(content).toMatch(/ultimate goal[\s\S]{0,300}adv_epic_create/i);
+    expect(content).toMatch(/final confirmation[\s\S]{0,300}adv_epic_create/i);
+  });
+
+  test("requires evidence-backed neutral overlap handling", () => {
+    const content = readRepoFile(".opencode/command/adv-epic.md");
+
+    expect(content).toContain("adv_epic_list");
+    expect(content).toContain("adv_epic_show");
+    expect(content).toContain("adv_change_list");
+    expect(content).toContain("adv_backlog_state");
+    expect(content).toMatch(/neutral/i);
+    expect(content).toMatch(/update\/clarify existing/i);
+    expect(content).toMatch(/create new/i);
+  });
+
+  test("keeps initial entries optional and mutations typed", () => {
+    const content = readRepoFile(".opencode/command/adv-epic.md");
+
+    expect(content).toMatch(/initial (?:roadmap )?entries are optional/i);
+    expect(content).toContain("adv_epic_add_shell");
+    expect(content).toContain("adv_epic_link_change");
+    expect(content).toMatch(/typed Epic tools|typed tools/i);
+    expect(content).not.toMatch(/bin\/adv epic create/i);
   });
 });
 

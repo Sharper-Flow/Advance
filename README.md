@@ -398,6 +398,7 @@ This also enables model comparison: run the same change on two models and compar
 | `/adv-roadmap`   | Show fast ADV roadmap table                                                                          |
 | `/adv-idea`      | Explore rough ideas before drafting a proposal                                                       |
 | `/adv-problem`   | Triage issues before fixing or drafting a proposal                                                   |
+| `/adv-epic`      | Gather Epic goals before typed creation                                                             |
 | `/adv-proposal`  | Extract problem statement, user outcomes, and constraints without creating tasks                     |
 | `/adv-discover`  | Gather context, analyze current state, identify objectives, and obtain user agreement                |
 | `/adv-design`    | Validate architecture decisions, produce implementation strategy, and present design for user review |

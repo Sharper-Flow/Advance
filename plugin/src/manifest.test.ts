@@ -31,6 +31,7 @@ describe("Command Manifest", () => {
       "adv-roadmap",
       "adv-idea",
       "adv-problem",
+      "adv-epic",
       "adv-proposal",
       "adv-validate",
       "adv-apply",

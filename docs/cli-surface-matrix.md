@@ -34,6 +34,7 @@
 | `/adv-proposal` | `agent-workflow-only` | Gate workflow: proposal creation |
 | `/adv-idea` | `agent-workflow-only` | Pre-proposal ideation |
 | `/adv-problem` | `agent-workflow-only` | Pre-proposal triage |
+| `/adv-epic` | `agent-workflow-only` | Goal-first Epic creation; mutation remains typed-tool and HITL-scoped |
 | `/adv-clarify` | `agent-workflow-only` | Socratic requirements clarification |
 | `/adv-research` | `agent-workflow-only` | Research and plan validation |
 | `/adv-discover` | `agent-workflow-only` | Discovery gate workflow |
