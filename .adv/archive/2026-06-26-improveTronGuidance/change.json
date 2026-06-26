@@ -1,0 +1,845 @@
+{
+  "id": "improveTronGuidance",
+  "title": "Improve tron guidance",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-06-26T19:06:53.866Z",
+  "tasks": [
+    {
+      "id": "tk-c5aee02ca5f8",
+      "title": "Add Tron guidance contract asset tests",
+      "type": "code",
+      "section": "Contract tests",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-06-26T19:25:49.932Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC8"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7",
+          "AC8"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "OOS1",
+          "OOS2",
+          "OOS3",
+          "OOS4"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-26T19:31:21.048Z",
+      "verification": "RED: bin/oc-test targeted -- src/adv-tron-assets.test.ts failed with 3 asset-contract failures after adding tests. GREEN: same command passed with 7 tests after guidance updates.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Extended plugin/src/adv-tron-assets.test.ts with semantic asset assertions and helper utilities. Verified the test fails against old guidance and passes after guidance assets were updated. Checkpoint commit 78ed06770979b176eedc98a6d912472cbb79ecba recorded.",
+      "filesTouched": [
+        ".opencode/agents/adv-tron.md",
+        ".opencode/command/adv-tron.md",
+        "plugin/src/adv-tron-assets.test.ts",
+        "skills/adv-tron/SKILL.md"
+      ],
+      "touched_files": [
+        ".opencode/agents/adv-tron.md",
+        ".opencode/command/adv-tron.md",
+        "plugin/src/adv-tron-assets.test.ts",
+        "skills/adv-tron/SKILL.md"
+      ],
+      "checkpointSha": "78ed06770979b176eedc98a6d912472cbb79ecba",
+      "completedAt": "2026-06-26T19:36:37.652Z",
+      "completed_at": "2026-06-26T19:36:37.652Z",
+      "notes": "RED/GREEN asset-test task completed. Added contract assertions for baseline context, bounded scan sequence, routing, combo examples, degraded execution, evidence/mutation boundaries, and frontmatter denies. Green evidence: bin/oc-test targeted -- src/adv-tron-assets.test.ts passed (7 tests).",
+      "error_recovery": {
+        "last_error": "First RED command used repo-root path plugin/src/adv-tron-assets.test.ts while bin/oc-test runs from plugin/, producing 'No test files found'.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "ENVIRONMENTAL",
+        "next_strategy": "Use plugin-relative src/adv-tron-assets.test.ts for bin/oc-test targeted invocations.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "bin/oc-test targeted -- plugin/src/adv-tron-assets.test.ts returned No test files found because filter path was wrong for plugin workdir.",
+            "diagnosis": "Test wrapper delegates to Vitest from plugin/, so target path must be src/adv-tron-assets.test.ts.",
+            "fix_tried": "Reran RED with bin/oc-test targeted -- src/adv-tron-assets.test.ts.",
+            "strategy_label": "correct-test-filter-path",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-26T19:32:49Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-26T19:37:07.225Z"
+    },
+    {
+      "id": "tk-e17b5ace86e8",
+      "title": "Update Tron command, agent, and skill guidance",
+      "type": "docs",
+      "section": "Guidance assets",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-06-26T19:26:10.914Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-c5aee02ca5f8"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7"
+        ],
+        "verifies": [],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "OOS1",
+          "OOS2",
+          "OOS3",
+          "OOS4"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "static_check",
+      "assignedTo": "agent",
+      "started_at": "2026-06-26T19:37:28.790Z",
+      "verification": "Verified guidance assets through bin/oc-test targeted -- src/adv-tron-assets.test.ts (7 tests passed).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Updated .opencode/command/adv-tron.md, .opencode/agents/adv-tron.md, and skills/adv-tron/SKILL.md. Preserved TRON_REPORT transport and denied mutation boundaries; made optimizer/slop/arch routing primary and /adv-audit optional for explicit spec-vs-implementation drift. Verification: bin/oc-test targeted -- src/adv-tron-assets.test.ts passed. Checkpoint clean at 78ed06770979b176eedc98a6d912472cbb79ecba.",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "78ed06770979b176eedc98a6d912472cbb79ecba",
+      "completedAt": "2026-06-26T19:37:42.715Z",
+      "completed_at": "2026-06-26T19:37:42.715Z",
+      "notes": "Guidance assets updated and verified. Added startup sequence, broad/scoped scan guidance, degraded execution, routing matrix, combo examples, and recommendation-only mutation boundary across command, agent, and skill.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "updatedAt": "2026-06-26T19:38:03.475Z"
+    },
+    {
+      "id": "tk-2e1144b77b54",
+      "title": "Verify Tron guidance update",
+      "type": "verification",
+      "section": "Verification",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-06-26T19:26:29.953Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-e17b5ace86e8"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [],
+        "verifies": [
+          "AC8",
+          "AC9"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "OOS1",
+          "OOS2",
+          "OOS3",
+          "OOS4"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-26T19:38:23.013Z",
+      "verification": "Verification passed: bin/oc-test targeted -- src/adv-tron-assets.test.ts src/optimized-handoff-assets.test.ts src/skill-loading-policy-assets.test.ts (19 tests passed). Formatting passed: pnpm run format:check.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Ran final verification commands: bin/oc-test targeted -- src/adv-tron-assets.test.ts src/optimized-handoff-assets.test.ts src/skill-loading-policy-assets.test.ts (passed, 19 tests) and pnpm run format:check (passed). Checkpoint commit 8915a9e39339e6b7c74645d42e1d0ebae882281c recorded.",
+      "filesTouched": [
+        "plugin/src/adv-tron-assets.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/adv-tron-assets.test.ts"
+      ],
+      "checkpointSha": "8915a9e39339e6b7c74645d42e1d0ebae882281c",
+      "completedAt": "2026-06-26T19:39:50.946Z",
+      "completed_at": "2026-06-26T19:39:50.946Z",
+      "notes": "Final targeted verification and format check passed. Targeted suite: 3 files, 19 tests passed. Format check passed after formatting adv-tron asset test file.",
+      "error_recovery": {
+        "last_error": "pnpm run format:check initially failed on src/adv-tron-assets.test.ts after test edits.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "No further recovery needed; file formatted and checks rerun green.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "Prettier reported code style issues in src/adv-tron-assets.test.ts.",
+            "diagnosis": "New asset-test additions needed Prettier formatting.",
+            "fix_tried": "Ran pnpm exec prettier --write src/adv-tron-assets.test.ts, then reran format check and targeted tests.",
+            "strategy_label": "format-then-rerun",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-26T19:39:25Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-26T19:40:24.642Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "improveTronGuidance",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-leverage-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design leverage scout — Improve Tron Guidance",
+      "sources": [
+        {
+          "label": "Pinning test (current coverage)",
+          "locator": "plugin/src/adv-tron-assets.test.ts:18-41",
+          "summary": "Asset test pins only: file existence, lgrep index tool names, 'If the skill is unavailable' fallback string, and deploy-script skill sync. No assertion ties routing matrix, baseline-context startup, or mutation boundary to the contract files."
+        },
+        {
+          "label": "Command next-commands list",
+          "locator": ".opencode/command/adv-tron.md:70",
+          "summary": "Current suggested-next-commands names /adv-proposal, /adv-task, /adv-audit, /adv-tron — NOT the optimizer/slop/arch trio the design adds. Skill mirror at skills/adv-tron/SKILL.md:114-118 lists the same four (proposal/task/audit/tron)."
+        },
+        {
+          "label": "Routing targets exist",
+          "locator": ".opencode/command/ (adv-optimizer.md, adv-slop-scan.md, adv-arch-scan.md, adv-proposal.md, adv-task.md, adv-audit.md)",
+          "summary": "All follow-up command files the routing matrix points to exist on disk. /adv-arch-scan exists (design routes to it); /adv-audit also exists and is the currently-referenced drift command."
+        },
+        {
+          "label": "Triplicated protocol",
+          "locator": ".opencode/agents/adv-tron.md:71-156 vs skills/adv-tron/SKILL.md:24-138 vs .opencode/command/adv-tron.md:28-75",
+          "summary": "Search priority, broad/scoped scan steps, and constraints are duplicated across all three files. Adding baseline-context + routing matrix to all three widens an existing drift surface."
+        },
+        {
+          "label": "Mutation boundary already stated",
+          "locator": ".opencode/agents/adv-tron.md:32-47,151-156; skills/adv-tron/SKILL.md:123-138",
+          "summary": "Read-only + no-ADV-mutation + no-external-research are already enforced in agent frontmatter tool flags (write/edit/bash/task false; context7_*/exa_*/webfetch/searchcode_* false) and prose constraints."
+        }
+      ],
+      "architecture_assessment": "Design is a low-risk prose/contract update across 3 co-located files pinned by one asset test, with no runtime/scan-command code change. Boring and proven approach — correct. Primary leverage is in (a) making the routing matrix command names structurally verifiable rather than prose-only, since the command file currently advertises a DIFFERENT next-command set (/adv-audit) than the design's optimizer/slop/arch trio, and (b) avoiding deepening the existing triplication drift. The mutation/read-only boundary is already structurally enforced by agent frontmatter tool flags, so AC 'mutation boundary' is largely satisfied today and mostly needs a guard, not new prose.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "No blockers. Design is internally consistent and within stated constraints (no scan-impl change, no new mutation powers, no external research, no direct state reads, bounded output). Two non-blocking concerns: routing matrix is prose-only unless pinned, and command/skill 'next commands' lists must be reconciled with the new trio to avoid contradictory guidance."
+      },
+      "recommendation": "Adopt design as scoped. Strengthen with: (1) extend adv-tron-assets.test.ts to assert each routing-target command name (adv-optimizer, adv-slop-scan, adv-arch-scan, adv-proposal, adv-task) appears in the command/skill routing section AND that each referenced /adv-* command file exists on disk — converts the routing matrix from heuristic prose to a machine-checkable contract (P33). (2) Reconcile the existing /adv-audit next-command reference (command:70, skill:114-118) with the new trio so guidance is not self-contradictory. (3) Prefer adding the baseline-context + routing matrix to ONE canonical location (skill) and have command/agent reference it, OR pin the duplicated string in the test, to bound triplication drift. (4) Treat the mutation-boundary AC as 'add a frontmatter tool-flag assertion' rather than more prose — boundary is already structurally enforced.",
+      "follow_ups": [
+        "CANDIDATE id=route-pin summary='Pin routing-target command names + on-disk existence in adv-tron-assets.test.ts' evidence='plugin/src/adv-tron-assets.test.ts:18-41 (no routing assertion); .opencode/command/ targets all exist' payoff=high risk=low fate=adopt_now contract_tie=AC:tests+AC:routing notes='Converts prose routing matrix to machine-checkable contract; cheap, high drift-protection.'",
+        "CANDIDATE id=audit-reconcile summary='Reconcile current /adv-audit next-command reference with new optimizer/slop/arch trio' evidence='.opencode/command/adv-tron.md:70; skills/adv-tron/SKILL.md:114-118' payoff=medium risk=low fate=adopt_now contract_tie=AC:routing notes='Avoids contradictory guidance; /adv-audit still valid for drift, decide keep-vs-replace explicitly.'",
+        "CANDIDATE id=dedupe-protocol summary='Single canonical routing/baseline source + references, or pin duplicated string' evidence='agent:71-156 vs skill:24-138 vs command:28-75 triplicate scan protocol' payoff=medium risk=low fate=design_around contract_tie=constraint:bounded-output notes='Adding to all three widens drift surface; either centralize or add an equality assertion in the asset test.'",
+        "CANDIDATE id=mutation-flag-guard summary='Assert read-only boundary via frontmatter tool-flag test instead of new prose' evidence='.opencode/agents/adv-tron.md:32-47 (write/edit/bash/task/context7_*/exa_*/webfetch/searchcode_* all false)' payoff=medium risk=low fate=adopt_now contract_tie=AC:mutation-boundary+AC:evidence-boundary notes='Boundary already structurally enforced; a flag assertion is stronger and cheaper than restating prose.'",
+        "CANDIDATE id=combo-bound summary='Bound combination routing examples to avoid output bloat' evidence='agent:154 + skill:128 cap findings; design adds combination examples' payoff=low risk=low fate=defer contract_tie=constraint:bounded-output notes='Keep routing combos to a short table, not enumerated permutations; minor.'",
+        "WARNING: packet anchors present and used; no packet defect."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "improveTronGuidance",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation — Improve Tron Guidance",
+      "sources": [
+        {
+          "label": "delegation-defaults spec rq-delDefaults01.2",
+          "locator": "adv_spec show delegation-defaults v1.1.0",
+          "summary": "Utility commands incl. 'tron' are explicitly EXCLUDED from the delegation matrix and MUST define delegation rules in their own command files. Confirms design KD4 (no spec delta) is spec-compliant, not a gap."
+        },
+        {
+          "label": "delegation-defaults spec rq-delDefaults05.1",
+          "locator": "adv_spec show delegation-defaults v1.1.0",
+          "summary": "Spec already requires adv-tron optimized handoff to include 'SUGGESTED NEXT COMMANDS (next action)' plus Evidence file:line. Design's routing matrix + evidence boundary strengthen an existing spec requirement; no contradiction."
+        },
+        {
+          "label": "Current asset test (coverage gap)",
+          "locator": "plugin/src/adv-tron-assets.test.ts:18-41",
+          "summary": "Pins only file existence, lgrep index tool names, one fallback string, and deploy sync. NO assertion for routing matrix, baseline-context, combo routing, degraded execution, or mutation/tool-flag boundary. AC8 fills a real gap."
+        },
+        {
+          "label": "Command next-commands contradiction",
+          "locator": ".opencode/command/adv-tron.md:70",
+          "summary": "Current suggested-next-commands names /adv-proposal, /adv-task, /adv-audit, /adv-tron — NOT the optimizer/slop/arch trio the design adds. Confirms KD5 reconciliation is necessary and real, not speculative."
+        },
+        {
+          "label": "Mutation boundary already structural",
+          "locator": ".opencode/agents/adv-tron.md:30-47",
+          "summary": "Frontmatter already enforces read-only: write/edit/bash/morph_edit/task false; adv_change_create/adv_task_add/adv_gate_complete false; context7_*/exa_*/webfetch/searchcode_* false; only adv_subagent_report_submit:true. AC6 boundary is largely satisfied today; design KD3 correctly pins these flags (structural per P33) rather than adding prose."
+        },
+        {
+          "label": "Routing targets exist on disk",
+          "locator": ".opencode/command/ (adv-optimizer.md, adv-slop-scan.md, adv-arch-scan.md, adv-proposal.md, adv-task.md, adv-audit.md all present)",
+          "summary": "All AC3/AC4 routing-target command files exist. Scout route-pin recommendation (assert on-disk existence) is feasible and would convert prose routing to machine-checkable contract."
+        }
+      ],
+      "architecture_assessment": "Boring, proven, low-risk approach: prose/contract update across 3 co-located surfaces (command/agent/skill) pinned by one asset test, with zero runtime/scan-command code change. Correctly keeps Tron as read-only router (KD1) and respects all 5 constraints (no scan-impl change, no new mutation powers, no external research, no direct state reads, bounded output). Design is internally consistent with the agreement's 9 ACs and the delegation-defaults spec. The strongest part is choosing structural verification (asset tests pinning anchors + frontmatter tool flags) over heuristic prose. Primary residual risk is the existing triplication drift surface (scan protocol duplicated across agent/skill/command): adding baseline-context + routing matrix to all three widens it unless the asset test pins a stable shared anchor or KD3's anchor-not-prose discipline is enforced. Secondary: routing matrix and combo examples remain prose-only unless AC8 tests assert each command name AND on-disk existence — design intends this (KD3 lists 'follow-up routing command names') but the implementation must actually assert presence, not just substring a sentence.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "No CONFLICT with any spec. delegation-defaults explicitly scopes tron out of the matrix and already mandates next-command + evidence in tron reports, so the design refines rather than contradicts spec law. No simpler equivalent approach found — three-surface duplication is the established command+skill+agent pattern and is required because command needs embedded fallback (skill-load failure) and worker prompt is read independently. Two non-blocking CAUTIONs: (1) triplication drift surface widened by adding identical guidance to 3 files — mitigate via shared-anchor pinning in the asset test; (2) routing/combo/baseline guidance is only as strong as the AC8 assertions — tests must assert command NAMES + on-disk existence + frontmatter tool-flags, not merely that a routing sentence exists."
+      },
+      "recommendation": "VALIDATED. The design solves all 9 objectives, respects every constraint, and is spec-compliant (delegation-defaults scopes tron out of the matrix and already requires next-command routing + evidence in tron reports, so KD4's no-spec-delta is correct). Prefer this boring contract-update approach over any runtime change. Strengthen, do not rewrite: (1) AC8 tests should assert each routing-target command name appears in the routing section AND that each /adv-* file exists on disk (all six confirmed present) — converts prose routing to a machine-checkable contract per P33; (2) implement AC6 as a frontmatter tool-flag assertion (write/edit/bash/task/searchcode_*/context7_*/exa_* false; only adv_subagent_report_submit true) since the boundary is already structural — stronger and cheaper than restating prose; (3) bound the triplication drift by pinning a shared anchor string across command/agent/skill in the asset test rather than three independent substring checks; (4) execute KD5 explicitly — keep /adv-audit only for spec-vs-implementation drift and make optimizer/slop/arch the primary trio, removing the current contradictory command:70 next-command list.",
+      "follow_ups": [
+        "CAUTION non-blocking: triplication drift surface (scan protocol duplicated agent vs skill vs command) widened by adding baseline+routing to all three; mitigate via shared-anchor pin in adv-tron-assets.test.ts.",
+        "CAUTION non-blocking: AC3/AC4 routing+combo guidance is prose-only unless AC8 tests assert command names + on-disk existence; design intends this (KD3) but implementation must enforce it.",
+        "INFO: all six routing-target command files (optimizer/slop-scan/arch-scan/proposal/task/audit) confirmed present on disk — route-pin existence assertion is feasible."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "improveTronGuidance",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/improveTronGuidance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "scanner-bundle:review"
+      },
+      "agent": "adv-scanner-bundle",
+      "phase": "review",
+      "scanner_count": 1,
+      "dimensions": [
+        "contract-traceability",
+        "correctness-edge-cases",
+        "security",
+        "tests-tdd-evidence",
+        "scope-conformance",
+        "non-code-evidence-policy",
+        "style-format"
+      ],
+      "summary": "Inline acceptance review found no blockers or issues. Contract anchors are asserted in adv-tron asset tests; edited guidance is docs/config-only; targeted tests and format check passed; diff check clean.",
+      "findings": [],
+      "follow_ups": [],
+      "consumer_warnings": []
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-wzDHh0",
+      "type": "gotcha",
+      "content": "`bin/oc-test targeted -- ...` delegates to Vitest from `plugin/`, so test filters should be plugin-relative (`src/adv-tron-assets.test.ts`) rather than repo-root paths (`plugin/src/...`); repo-root filters produce `No test files found`.",
+      "source_task": "tk-2e1144b77b54",
+      "recorded_at": "2026-06-26T19:40:38.447Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-06-26T19:10:02.984Z",
+      "completed_by": "adv-proposal",
+      "approval_evidence": "User confirmed proposal via chat: \"confirm\".",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "f4f340e344760499d8a3804eddd03e3cd2231e721ef874de52bce77a62dc6064",
+        "non_whitespace_chars": 3670,
+        "checked_at": "2026-06-26T19:06:53.926Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "started_at": "2026-06-26T19:16:30.563Z",
+      "completed_at": "2026-06-26T19:16:52.157Z",
+      "completed_by": "adv-discover",
+      "approval_evidence": "User approved agreement via chat: \"approve\". Agreement persisted with objectives, AC, constraints, discovery checklist, no-spec-delta rationale, and typed contract minted.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "e01ba3b1f6260441bc2058b3d8244c439fb9901e0554fad8012acf9d93f285c4",
+        "non_whitespace_chars": 8596,
+        "checked_at": "2026-06-26T19:06:53.927Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-06-26T19:25:13.534Z",
+      "completed_by": "adv-design",
+      "approval_evidence": "Design persisted, leverage scout attempted/completed, independent validator returned VALIDATED with non-blocking simplicity caution addressed in DDC7.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "1502640b2697a1e75bce6d7543358b66a8967265adb38ff124a0a7dfc70d25b8",
+        "non_whitespace_chars": 7986,
+        "checked_at": "2026-06-26T19:06:53.928Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-06-26T19:30:44.316Z",
+      "completed_by": "adv-prep",
+      "approval_evidence": "User approved prep task graph via chat: \"approve\". Tasks cover contract tests, guidance asset updates, and targeted verification with contract refs."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-06-26T19:41:05.951Z",
+      "completed_by": "adv-apply",
+      "approval_evidence": "All 3 tasks completed. Verification: bin/oc-test targeted -- src/adv-tron-assets.test.ts src/optimized-handoff-assets.test.ts src/skill-loading-policy-assets.test.ts passed (19 tests); pnpm run format:check passed. Checkpoint commits: 78ed06770979b176eedc98a6d912472cbb79ecba, 8915a9e39339e6b7c74645d42e1d0ebae882281c."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-06-26T19:44:48.060Z",
+      "completed_by": "adv-review",
+      "approval_evidence": "User approved acceptance via chat: \"approve\". Review matrix has 18 rows, 0 failing; executive summary persisted; targeted verification and format checks passed.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "9a8407467c1a95ccecf82da626a21fd783d9e0f92237a404ee45146102bdc630",
+        "non_whitespace_chars": 1140,
+        "checked_at": "2026-06-26T19:06:53.929Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "adhoc"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "e01ba3b1f6260441bc2058b3d8244c439fb9901e0554fad8012acf9d93f285c4",
+      "approvedAt": "2026-06-26T19:16:38.617Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "AC1 — Baseline context: `adv-tron` command/agent/skill guidance names at least these startup inputs: working directory or repo root, project context, active ADV state, and repo tree/outline before deep reads.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e01ba3b1f6260441bc2058b3d8244c439fb9901e0554fad8012acf9d93f285c4",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "AC2 — Bounded scan sequence: broad mode guidance includes structure mapping, hotspot/risk scan, related pattern/convention scan, and coverage-gap reporting; scoped mode guidance includes target normalization, deep read, dependency/usage tracing, related/sibling code scan, and active-change/spec overlap check.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e01ba3b1f6260441bc2058b3d8244c439fb9901e0554fad8012acf9d93f285c4",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "AC3 — Follow-up routing: guidance contains explicit routing for `/adv-optimizer`, `/adv-slop-scan`, `/adv-arch-scan`, `/adv-proposal`, `/adv-task`, and deeper `/adv-tron`, each with observable trigger criteria.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e01ba3b1f6260441bc2058b3d8244c439fb9901e0554fad8012acf9d93f285c4",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "AC4 — Combination routing: guidance gives at least 2 combo examples where multiple follow-up commands are recommended together, with order and rationale.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e01ba3b1f6260441bc2058b3d8244c439fb9901e0554fad8012acf9d93f285c4",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "AC5 — Evidence boundary: guidance states that material findings require source evidence and that unsupported signals become coverage gaps/open questions, not findings.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e01ba3b1f6260441bc2058b3d8244c439fb9901e0554fad8012acf9d93f285c4",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "AC6 — Mutation boundary: guidance states that Tron may recommend but must not invoke adjacent `/adv-*` commands, create agenda/change/task state, or edit files.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e01ba3b1f6260441bc2058b3d8244c439fb9901e0554fad8012acf9d93f285c4",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "AC7 — Degraded execution: guidance states fallback behavior when lgrep/outline tools fail and requires degraded coverage to be reported.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e01ba3b1f6260441bc2058b3d8244c439fb9901e0554fad8012acf9d93f285c4",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC8",
+        "kind": "acceptance_criterion",
+        "text": "AC8 — Tests: targeted tests prove the `/adv-tron` assets include baseline context, bounded scan sequence, follow-up routing, combo routing, degraded execution, and preserve existing packet/report anchors.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e01ba3b1f6260441bc2058b3d8244c439fb9901e0554fad8012acf9d93f285c4",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC9",
+        "kind": "acceptance_criterion",
+        "text": "AC9 — Verification: targeted asset tests pass through `bin/oc-test targeted -- <test files>` or equivalent ADV test evidence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e01ba3b1f6260441bc2058b3d8244c439fb9901e0554fad8012acf9d93f285c4",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "No implementation changes to `/adv-optimizer`, `/adv-slop-scan`, or `/adv-arch-scan`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e01ba3b1f6260441bc2058b3d8244c439fb9901e0554fad8012acf9d93f285c4",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "No new mutation powers for `adv-tron`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e01ba3b1f6260441bc2058b3d8244c439fb9901e0554fad8012acf9d93f285c4",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "No external research behavior added to Tron.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e01ba3b1f6260441bc2058b3d8244c439fb9901e0554fad8012acf9d93f285c4",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "No direct ADV state file reads.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e01ba3b1f6260441bc2058b3d8244c439fb9901e0554fad8012acf9d93f285c4",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Keep output bounded; do not turn Tron into a full audit report.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e01ba3b1f6260441bc2058b3d8244c439fb9901e0554fad8012acf9d93f285c4",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "Creating an `/adv-tron` dedicated spec unless later design discovers existing spec-law drift.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e01ba3b1f6260441bc2058b3d8244c439fb9901e0554fad8012acf9d93f285c4",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "Changing CLI surfaces for scan commands.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e01ba3b1f6260441bc2058b3d8244c439fb9901e0554fad8012acf9d93f285c4",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "Creating agenda items automatically from Tron results.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e01ba3b1f6260441bc2058b3d8244c439fb9901e0554fad8012acf9d93f285c4",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS4",
+        "kind": "out_of_scope",
+        "text": "Running tests/linters from Tron.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e01ba3b1f6260441bc2058b3d8244c439fb9901e0554fad8012acf9d93f285c4",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-06-26T19:43:18.190Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "plugin/src/adv-tron-assets.test.ts asserts Analysis Startup Sequence, WORKING DIRECTORY, adv_project_context, active ADV state, repo tree/outline across command/agent/skill; targeted test passed.",
+          "notes": "Also present in command lines 34-42, agent lines 73-81, skill lines 26-34."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "plugin/src/adv-tron-assets.test.ts asserts Broad Scan, Scoped Scan, structure map, hotspot/risk scan, dependency/usage trace, active-change/spec overlap, coverage gaps; targeted test passed.",
+          "notes": "Broad/scoped guidance present in command lines 44-50, agent lines 106-122, skill lines 36-60."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "plugin/src/adv-tron-assets.test.ts asserts routing commands exist and appear across command/agent/skill: /adv-optimizer, /adv-slop-scan, /adv-arch-scan, /adv-proposal, /adv-task, /adv-tron; targeted test passed.",
+          "notes": "Routing matrix includes trigger criteria in command lines 56-68, agent lines 128-140, skill lines 89-101."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "plugin/src/adv-tron-assets.test.ts asserts combo examples /adv-slop-scan <target> then /adv-optimizer <target> and /adv-arch-scan <target> then /adv-slop-scan <target>; targeted test passed.",
+          "notes": "Examples include ordering and rationale."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "plugin/src/adv-tron-assets.test.ts asserts Unsupported signals and coverage gaps/open questions across command/agent/skill; targeted test passed.",
+          "notes": "Degraded execution sections require unsupported signals become gaps/open questions, not findings."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "plugin/src/adv-tron-assets.test.ts asserts no-invocation/no-state/no-edit prose and agent frontmatter denies write, edit, bash, task, adv_change_create, adv_task_add, adv_gate_complete, context7_*, exa_*, webfetch, searchcode_* while allowing adv_subagent_report_submit; targeted test passed.",
+          "notes": "Mutation boundary structurally pinned."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "plugin/src/adv-tron-assets.test.ts asserts Degraded Execution, lgrep, fallback, degraded coverage across command/agent/skill; targeted test passed.",
+          "notes": "Fallback behavior present in all three guidance surfaces."
+        },
+        {
+          "contractId": "AC8",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "bin/oc-test targeted -- src/adv-tron-assets.test.ts src/optimized-handoff-assets.test.ts src/skill-loading-policy-assets.test.ts passed: 3 test files, 19 tests.",
+          "notes": "Existing packet/report anchors preserved by optimized-handoff-assets test."
+        },
+        {
+          "contractId": "AC9",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Final verification passed through bin/oc-test targeted -- src/adv-tron-assets.test.ts src/optimized-handoff-assets.test.ts src/skill-loading-policy-assets.test.ts and pnpm run format:check.",
+          "notes": "Both targeted tests and formatting evidence recorded via adv_run_test."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "git diff --name-only trunk...HEAD changed only .opencode/agents/adv-tron.md, .opencode/command/adv-tron.md, plugin/src/adv-tron-assets.test.ts, skills/adv-tron/SKILL.md.",
+          "notes": "No implementation changes to optimizer/slop/arch commands."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "adv-tron agent frontmatter still denies mutation/edit/shell/delegation tools and tests assert this; only adv_subagent_report_submit remains allowed.",
+          "notes": "No new mutation powers added."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Frontmatter denies context7_*, exa_*, webfetch, searchcode_* and tests assert external research tools remain denied.",
+          "notes": "No external research behavior added to Tron."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Work used ADV tools for ADV state and read repo files only; no direct ADV state file reads were used.",
+          "notes": "ADV state access policy preserved."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Guidance caps findings at existing 10 broad / 15 scoped and adds compact matrices/examples rather than full audit workflow.",
+          "notes": "Tron remains bounded reconnaissance."
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No /adv-tron dedicated spec created or modified.",
+          "notes": "Out of scope respected."
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No CLI surfaces changed.",
+          "notes": "Out of scope respected."
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No agenda auto-creation behavior added; guidance remains suggestions only.",
+          "notes": "Out of scope respected."
+        },
+        {
+          "contractId": "OOS4",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No tests/linters are added to Tron runtime behavior; tests run only during implementation verification.",
+          "notes": "Out of scope respected."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "AC1 — Baseline context: `adv-tron` command/agent/skill guidance names at least these startup inputs: working directory or repo root, project context, active ADV state, and repo tree/outline before deep reads.",
+    "AC2 — Bounded scan sequence: broad mode guidance includes structure mapping, hotspot/risk scan, related pattern/convention scan, and coverage-gap reporting; scoped mode guidance includes target normalization, deep read, dependency/usage tracing, related/sibling code scan, and active-change/spec overlap check.",
+    "AC3 — Follow-up routing: guidance contains explicit routing for `/adv-optimizer`, `/adv-slop-scan`, `/adv-arch-scan`, `/adv-proposal`, `/adv-task`, and deeper `/adv-tron`, each with observable trigger criteria.",
+    "AC4 — Combination routing: guidance gives at least 2 combo examples where multiple follow-up commands are recommended together, with order and rationale.",
+    "AC5 — Evidence boundary: guidance states that material findings require source evidence and that unsupported signals become coverage gaps/open questions, not findings.",
+    "AC6 — Mutation boundary: guidance states that Tron may recommend but must not invoke adjacent `/adv-*` commands, create agenda/change/task state, or edit files.",
+    "AC7 — Degraded execution: guidance states fallback behavior when lgrep/outline tools fail and requires degraded coverage to be reported.",
+    "AC8 — Tests: targeted tests prove the `/adv-tron` assets include baseline context, bounded scan sequence, follow-up routing, combo routing, degraded execution, and preserve existing packet/report anchors.",
+    "AC9 — Verification: targeted asset tests pass through `bin/oc-test targeted -- <test files>` or equivalent ADV test evidence."
+  ],
+  "documents": {
+    "proposal": "# Improve Tron Guidance\n\n## Problem\n`/adv-tron` currently tells the agent to investigate codebase structure, hotspots, risks, and agenda candidates, but the workflow under-specifies the first analysis moves and the handoff criteria to adjacent scan commands. This can produce inconsistent reconnaissance: some runs may skip baseline context, start with ad hoc reads, or recommend generic follow-ups instead of routing evidence to `/adv-optimizer`, `/adv-slop-scan`, `/adv-arch-scan`, or a deliberate combination.\n\n## Proposed Direction\nUpdate the `/adv-tron` command, Tron sub-agent prompt, and `adv-tron` skill so Tron has a clear reconnaissance playbook:\n\n1. Start with baseline context:\n   - working directory / repository root\n   - `adv_project_context`\n   - active changes and relevant agenda/wisdom/spec context\n   - repo file tree / outline before deeper target reads\n2. Normalize broad vs scoped targets before scanning.\n3. Run bounded evidence-gathering passes before synthesis:\n   - structure map\n   - hotspot/risk scan\n   - related-code / dependency scan for scoped targets\n   - overlap check with active ADV work\n4. Emit source-backed findings only, with explicit coverage gaps when evidence is incomplete.\n5. Recommend the right next command based on finding category:\n   - `/adv-optimizer` for simplification/proposal synthesis opportunities\n   - `/adv-slop-scan` for slop, detector coverage, dead-code/deletion-safety, AI-code smell evidence\n   - `/adv-arch-scan` for architecture, stack-pack, structural-correctness, or heuristic-owned boundary concerns\n   - combinations when findings span multiple categories\n   - `/adv-proposal` or `/adv-task` only when the follow-up is already sufficiently bounded\n6. Preserve read-only boundaries: Tron suggests next steps; it does not create agenda/change/task state or invoke `/adv-*` commands internally.\n\n## Scope\nIn scope:\n- `.opencode/command/adv-tron.md`\n- `.opencode/agents/adv-tron.md`\n- `skills/adv-tron/SKILL.md`\n- nearby asset/manifest tests that validate command/agent/skill contracts\n- documentation/spec touch-ups only if discovery finds a durable command-contract requirement that must be updated\n\nOut of scope:\n- Implementing `/adv-optimizer`, `/adv-slop-scan`, or `/adv-arch-scan` behavior changes\n- Turning Tron into a mutation workflow\n- Adding automatic agenda/change creation\n- Running external research from Tron\n- Replacing deterministic scan commands with Tron judgment\n\n## General Smart Improvements To Consider\n- Add a decision matrix for follow-up command recommendations.\n- Add explicit combo examples, e.g. `/adv-slop-scan src/foo && /adv-optimizer src/foo` when both smell evidence and simplification proposal synthesis are needed.\n- Make evidence thresholds clear: no file/source evidence → no finding; uncertain signal → open question or low-confidence recommendation.\n- Clarify that adjacent scan commands are recommendations for the user/orchestrator, not commands a sub-agent may execute.\n- Improve report shape so \"Suggested next commands\" includes rationale and target path.\n\n## Failure / Degraded Handling\n- If `lgrep` or outline tools are unavailable, Tron should fall back to allowed read/search tools, mark coverage degraded, and keep findings bounded to evidence it could inspect.\n- If target resolution is ambiguous and choices would materially change scan scope, Tron should ask for clarification instead of guessing.\n- If no source evidence supports a finding, Tron should omit it or record it as an open question, not as a recommendation.\n- If adjacent command ownership is unclear, Tron should recommend the most conservative next command with rationale and avoid implying that it ran that command.\n\n## Risks\n- Over-prescribing Tron could make reconnaissance slower or too verbose.\n- Recommendation rules could blur boundaries between reconnaissance and scanner ownership.\n- Asset tests may need updates if they assert exact command text or scanner relationships.\n\n## Validation Plan\n- Add/update tests that assert `/adv-tron` assets mention baseline context, bounded scan sequence, degraded fallback handling, and next-command routing to `/adv-optimizer`, `/adv-slop-scan`, `/adv-arch-scan`.\n- Run targeted asset tests.\n- Run format/check subset as appropriate for docs/asset-only changes.",
+    "problemStatement": "`/adv-tron` needs stronger command and agent guidance so reconnaissance starts with baseline context and structural scanning, then routes evidence-backed findings to the right follow-up command: `/adv-optimizer`, `/adv-slop-scan`, `/adv-arch-scan`, a combination, or a tracked proposal/task. Today the intent exists, but the startup analysis sequence and command-recommendation criteria are too implicit.",
+    "agreement": "# Agreement — Improve Tron Guidance\n\n## Discovery Findings\n\n### Current State\n- `/adv-tron` command exists as a read-only reconnaissance workflow and spawns repo-local `adv-tron` with a structured packet.\n- The command currently loads `skill(\"adv-tron\")`, gathers project/change/agenda context, and asks Tron to synthesize findings, hotspots, risks, open questions, agenda suggestions, and next commands.\n- The agent and skill already enforce read-only behavior, local-code-only analysis, file:line evidence, bounded findings, and `adv_subagent_report_submit` for typed `TRON_REPORT` when a real change exists.\n- Suggested next commands currently name `/adv-proposal`, `/adv-task`, `/adv-audit`, and `/adv-tron`; they do not explicitly route optimizer/slop/architecture findings to `/adv-optimizer`, `/adv-slop-scan`, or `/adv-arch-scan`.\n\n### Skills Considered\n- `adv-tron`: direct match; owns reconnaissance protocol/search/report schema.\n- `adv-agent-tool-contracts`: direct match; applies because this touches sub-agent packet/report guidance and agent-callable report transport.\n- `customize-opencode`: relevant context; command/agent/skill files are OpenCode config-time surfaces and require restart/deploy after sync.\n\n### Prior Research Extension\n- Prior local assets show `/adv-optimizer`, `/adv-slop-scan`, and `/adv-arch-scan` already have distinct ownership:\n  - `/adv-optimizer`: simplification proposal synthesis, not detector coverage.\n  - `/adv-slop-scan`: slop/dead-code/deletion-safety/detector coverage.\n  - `/adv-arch-scan`: architecture stack packs, structural-correctness boundaries, heuristic fallback coverage.\n- No external research needed; this change adjusts ADV-owned command/agent guidance and uses repo-local command contracts/specs as source of truth.\n\n### Conflict Scan\n- Active WIP includes this change plus unrelated dashboard/decision/CI/worktree/prompt-slimming changes. No active change found specifically owning `/adv-tron` guidance.\n- `reduceAdvPromptSlop` may overlap broadly with instruction quality, but this change is narrower: `/adv-tron` command/agent/skill guidance and next-command routing.\n- `adv_change_validate` passed. Expected pre-planning warnings: no tasks, no deltas.\n- Agenda backlog is large; no blocking agenda conflict found from top visible pending items.\n\n### Related Pattern Scan\n- Similar guidance patterns exist in:\n  - `.opencode/command/adv-optimizer.md`: establishes stack baseline before recommendations and separates optimizer from slop-scan ownership.\n  - `.opencode/command/adv-slop-scan.md`: preserves detector coverage, actionability, and no nested delegation.\n  - `.opencode/command/adv-arch-scan.md`: uses explicit stack packs, structural-correctness boundary criteria, and coverage reporting.\n  - `plugin/src/adv-tron-assets.test.ts`: existing asset tests can be extended to pin new guidance.\n  - `plugin/src/optimized-handoff-assets.test.ts`: existing packet/typed-report tests must remain intact.\n\n### Edge Cases\n1. **Tool degradation:** if `lgrep`/outline tools fail, Tron must fall back to allowed read/search tools, mark coverage degraded, and avoid evidence-free findings.\n2. **Ambiguous target:** if multiple plausible interpretations materially change scope, Tron should clarify; otherwise pick closest concrete target and state assumption.\n3. **Multi-category finding:** if a target has slop and simplification opportunities, recommend a combo such as `/adv-slop-scan <target>` then `/adv-optimizer <target>` with rationale.\n4. **Architecture correctness concern:** if a finding suggests heuristic-owned correctness/state/spec boundaries, recommend `/adv-arch-scan <target>` and optionally `/adv-slop-scan <target>` only if code-quality smell criteria also apply.\n5. **No evidence:** no file/source evidence means no finding; record as open question or coverage gap.\n6. **Sub-agent boundary:** Tron may recommend adjacent commands but must not invoke `/adv-*` commands or mutate ADV state.\n\n### Open Design Questions\n- Exact wording and placement of the routing matrix belongs in design. Trust model: command/agent/skill prose + asset tests. Blast radius: command behavior only. Alternatives: command-only guidance vs duplicating in agent+skill; design should choose minimal duplication with enough fallback coverage.\n- Whether to update docs/README descriptions is design-dependent. Trust model: docs are user-facing discovery surfaces, but command behavior lives in command/agent/skill assets. Blast radius: documentation drift if omitted.\n\n### Draft Spec Deltas\nNo `.adv/specs` update required.\n\nRationale: existing `delegation-defaults` spec requires utility commands to define their own delegation rules in command files, and already requires `adv-tron` optimized handoff to include evidence, findings/hotspots/risks, open questions, suggested next commands, and source metadata. This change refines `/adv-tron`'s command/agent/skill guidance and pins it with asset tests rather than changing a broader capability law.\n\n### LBP Check\nLikely best direction: keep `/adv-tron` as reconnaissance and recommendation synthesis only; route deterministic or specialized work to the owning commands. This preserves structural correctness and command ownership:\n- `/adv-slop-scan` owns detector-backed slop/deletion-safety evidence.\n- `/adv-arch-scan` owns architecture/stack-pack/heuristic-boundary analysis.\n- `/adv-optimizer` owns simplification proposal synthesis.\n- `/adv-tron` owns initial map, triage, and routing recommendation.\n\n### Completeness Verification\n- Problem completeness: full problem is not only missing command names; it is missing the startup analysis sequence plus evidence-based handoff criteria.\n- Solution completeness: solution must update all three guidance surfaces (`command`, `agent`, `skill`) and tests, not just one prompt line.\n- Secondary surfaces: README/SETUP descriptions are out of scope unless tests or design reveal user-facing command list drift that would make docs misleading.\n\n## Objectives\n1. Make `/adv-tron` start with explicit baseline context before deep analysis.\n2. Make broad and scoped scans follow a bounded, evidence-first sequence.\n3. Add a follow-up routing matrix for `/adv-optimizer`, `/adv-slop-scan`, `/adv-arch-scan`, combinations, `/adv-proposal`, `/adv-task`, and deeper `/adv-tron`.\n4. Preserve Tron as read-only reconnaissance: no code edits, no ADV state mutation except its own report submit, no nested delegation, no internal slash-command invocation.\n5. Add asset-test coverage that pins the new guidance and protects existing typed report packet anchors.\n\n## Acceptance Criteria\n- AC1 — Baseline context: `adv-tron` command/agent/skill guidance names at least these startup inputs: working directory or repo root, project context, active ADV state, and repo tree/outline before deep reads.\n- AC2 — Bounded scan sequence: broad mode guidance includes structure mapping, hotspot/risk scan, related pattern/convention scan, and coverage-gap reporting; scoped mode guidance includes target normalization, deep read, dependency/usage tracing, related/sibling code scan, and active-change/spec overlap check.\n- AC3 — Follow-up routing: guidance contains explicit routing for `/adv-optimizer`, `/adv-slop-scan`, `/adv-arch-scan`, `/adv-proposal`, `/adv-task`, and deeper `/adv-tron`, each with observable trigger criteria.\n- AC4 — Combination routing: guidance gives at least 2 combo examples where multiple follow-up commands are recommended together, with order and rationale.\n- AC5 — Evidence boundary: guidance states that material findings require source evidence and that unsupported signals become coverage gaps/open questions, not findings.\n- AC6 — Mutation boundary: guidance states that Tron may recommend but must not invoke adjacent `/adv-*` commands, create agenda/change/task state, or edit files.\n- AC7 — Degraded execution: guidance states fallback behavior when lgrep/outline tools fail and requires degraded coverage to be reported.\n- AC8 — Tests: targeted tests prove the `/adv-tron` assets include baseline context, bounded scan sequence, follow-up routing, combo routing, degraded execution, and preserve existing packet/report anchors.\n- AC9 — Verification: targeted asset tests pass through `bin/oc-test targeted -- <test files>` or equivalent ADV test evidence.\n\n## Constraints\n- No implementation changes to `/adv-optimizer`, `/adv-slop-scan`, or `/adv-arch-scan`.\n- No new mutation powers for `adv-tron`.\n- No external research behavior added to Tron.\n- No direct ADV state file reads.\n- Keep output bounded; do not turn Tron into a full audit report.\n\n## Out of Scope\n- Creating an `/adv-tron` dedicated spec unless later design discovers existing spec-law drift.\n- Changing CLI surfaces for scan commands.\n- Creating agenda items automatically from Tron results.\n- Running tests/linters from Tron.\n\n## Discovery Checklist\n| Step | Status | Result |\n|---|---|---|\n| Skill Discovery | PASS | Loaded/reviewed relevant `adv-tron`, `adv-agent-tool-contracts`, `customize-opencode` guidance. |\n| Prior Research Extension | PASS | Compared adjacent command contracts for optimizer/slop/arch ownership. |\n| Conflict & Related-Work Scan | PASS | Validation passed; no blocking overlap found. |\n| Edge Case Investigation | PASS | Captured tool degradation, ambiguity, combo routing, no-evidence, and mutation-boundary cases. |\n| Design Question Depth | PASS | Remaining placement/duplication choices deferred to design. |\n| Draft Spec Delta Shapes | PASS | No spec delta required; rationale recorded. |\n| P25 Related-Pattern Scan | PASS | Found adjacent command patterns and asset tests to extend. |\n| LBP Check | PASS | Keep reconnaissance separate from deterministic scan/proposal synthesis owners. |\n| Completeness Verification | PASS | Scope covers startup sequence, routing criteria, all guidance surfaces, and tests. |",
+    "design": "# Design — Improve Tron Guidance\n\n## Architecture Overview\n\nThis is a command/agent/skill contract update. `/adv-tron` remains a read-only utility workflow. The design strengthens its guidance in three local surfaces and pins the behavior with asset tests:\n\n1. `.opencode/command/adv-tron.md` — orchestration contract and fallback protocol.\n2. `.opencode/agents/adv-tron.md` — sub-agent execution instructions and report schema expectations.\n3. `skills/adv-tron/SKILL.md` — reusable reconnaissance methodology.\n4. `plugin/src/adv-tron-assets.test.ts` — asset-level guardrails for command/agent/skill text and read-only tool grants.\n\nNo runtime TypeScript behavior or scan command implementation changes are required. Correctness comes from explicit command contracts plus deterministic asset tests, not from heuristic inference.\n\n## Key Decisions\n\n### KD1 — Keep Tron as router/recon, not scanner owner\n\nTron should map the codebase and recommend owning workflows, not run specialized scans internally.\n\nRationale:\n- `/adv-slop-scan` owns detector-backed slop, dead-code/deletion-safety, and scanner coverage.\n- `/adv-arch-scan` owns architecture stack packs, structural-correctness boundary checks, and heuristic fallback coverage.\n- `/adv-optimizer` owns simplification proposal synthesis.\n- `/adv-tron` owns initial reconnaissance, triage, and source-backed next-command routing.\n\n### KD2 — Put the full routing matrix in command + agent + skill, with concise duplication\n\nThe command needs embedded fallback when skill loading fails. The agent needs local instructions because worker prompts may be read independently. The skill needs reusable methodology for future command references.\n\nRationale: this follows the existing command+skill pattern and avoids a single prose surface becoming stale or unavailable. Duplication is acceptable because tests will pin stable anchors across all three surfaces.\n\n### KD3 — Asset tests pin observable guidance, not exact prose\n\nTests should assert stable contract anchors:\n- startup baseline inputs\n- broad/scoped scan sequence terms\n- follow-up routing command names and trigger categories\n- combo guidance\n- degraded coverage handling\n- mutation/no-invocation boundary and frontmatter tool flags\n- existing report packet anchors still present\n\nRationale: tests should prevent contract regression while allowing wording edits.\n\n### KD4 — No spec delta\n\nExisting `delegation-defaults` spec already requires utility commands to define their own delegation rules in command files and requires `adv-tron` reports to include suggested next commands. This change refines the command contract and pins it with asset tests; it does not add durable cross-capability law.\n\n### KD5 — Reconcile `/adv-audit` without making it the primary route\n\nExisting Tron guidance names `/adv-audit` in next-command suggestions. The new routing matrix should not leave `/adv-audit` as the only serious follow-up for drift. Instead:\n- route architecture/structural-correctness concerns to `/adv-arch-scan`;\n- route code-smell/deletion-safety/detector concerns to `/adv-slop-scan`;\n- route simplification proposal synthesis to `/adv-optimizer`;\n- optionally mention `/adv-audit` only for explicit spec-vs-implementation drift, if retained.\n\n## Implementation Strategy\n\n1. Extend `plugin/src/adv-tron-assets.test.ts` with RED tests for the new contract anchors:\n   - command/agent/skill all mention baseline context inputs\n   - broad/scoped scan sequence is present\n   - follow-up routing covers `/adv-optimizer`, `/adv-slop-scan`, `/adv-arch-scan`, `/adv-proposal`, `/adv-task`, `/adv-tron`\n   - combo examples are present\n   - degraded execution and evidence boundary are present\n   - mutation boundary remains present, including agent frontmatter denies for write/edit/bash/task and ADV mutation tools\n   - use shared anchor/assertion helpers where possible to limit triplication drift\n2. Update `.opencode/command/adv-tron.md`:\n   - Phase 3 context baseline: working directory/repo root, project context, active changes, agenda/wisdom/spec context, repo tree/outline\n   - Phase 3/4 worker packet: include explicit analysis start sequence and routing matrix expectation\n   - Phase 5 synthesis: next commands include command, target, trigger, and rationale\n3. Update `.opencode/agents/adv-tron.md`:\n   - Add `Analysis Startup Sequence`\n   - Expand broad/scoped scan steps with coverage-gap handling\n   - Add `Follow-up Routing Matrix`\n   - State combo ordering examples\n4. Update `skills/adv-tron/SKILL.md`:\n   - Mirror reusable methodology without bloating the command\n   - Add same ownership/routing boundaries\n5. Run targeted tests through `bin/oc-test targeted -- plugin/src/adv-tron-assets.test.ts plugin/src/optimized-handoff-assets.test.ts plugin/src/skill-loading-policy-assets.test.ts`.\n6. If formatting changes are made, run `pnpm run format:check` from `plugin/` or the repo's equivalent check path.\n\n## LBP Analysis\n\nThe preferred long-term approach is structural guidance plus tests:\n- keep specialized scan ownership in the owning commands;\n- make Tron recommendation criteria explicit;\n- avoid adding runtime coupling or command invocation from a read-only sub-agent;\n- use asset tests as the durable guard against prompt/skill drift.\n\nAlternative rejected: centralize all guidance in only the skill. This fails when the command must provide embedded fallback and when the sub-agent prompt is inspected independently.\n\nAlternative rejected: make Tron run `/adv-slop-scan` or `/adv-arch-scan`. That violates command boundary and sub-agent no-slash-command rules.\n\n## Affected Components\n\n- `.opencode/command/adv-tron.md`\n- `.opencode/agents/adv-tron.md`\n- `skills/adv-tron/SKILL.md`\n- `plugin/src/adv-tron-assets.test.ts`\n- Optional only if existing tests require: `plugin/src/optimized-handoff-assets.test.ts`, `plugin/src/skill-loading-policy-assets.test.ts`\n\n## Design-Derived Criteria\n\n- DDC1 — Tests must assert contract anchors semantically using `toContain` / regex fragments, not brittle full-section snapshots.\n- DDC2 — Guidance must preserve `adv_subagent_report_submit` as the only allowed ADV mutation for Tron reports.\n- DDC3 — Guidance must state adjacent commands are recommendations only; Tron must not invoke `/adv-*` slash commands.\n- DDC4 — Combo recommendations must specify ordering and rationale.\n- DDC5 — Degraded tooling must produce coverage gaps, not unsupported findings.\n- DDC6 — `/adv-audit` must not remain the only drift-style recommendation; optimizer/slop/arch routing must be explicit and primary for their domains.\n- DDC7 — Asset tests should pin a shared routing/baseline anchor across command, agent, and skill to reduce triplication drift.\n\n## Risks / Mitigations\n\n| Risk | Mitigation |\n|---|---|\n| Prompt bloat | Keep routing matrix compact and focused on ownership triggers. |\n| Drift across command/agent/skill | Add asset tests that read all three surfaces and prefer shared anchors. |\n| Boundary confusion | Repeat no-invocation/no-mutation rule near routing matrix and assert frontmatter denies. |\n| Over-specific tests | Assert stable anchors, not exact prose blocks. |\n| Missing deploy awareness | Final notes must remind that OpenCode restart/deploy is needed for live config-time asset changes. |\n\n## Design Leverage Scout\n\nScout: completed.\n\nAdopted candidates:\n- `route-pin` — pin routing target names and command existence/anchors in `adv-tron-assets.test.ts`.\n- `audit-reconcile` — reconcile current `/adv-audit` recommendation with the new optimizer/slop/arch trio so guidance is not self-contradictory.\n- `mutation-flag-guard` — assert read-only boundary via agent frontmatter tool flags and prose boundary.\n\nDesign-around:\n- `dedupe-protocol` — avoid a new central source for now; use concise duplication plus tests because command fallback, worker prompt, and skill reuse all need enough self-contained guidance. DDC7 mitigates drift with shared anchors where feasible.\n\nDeferred:\n- `combo-bound` — keep combo examples short and avoid permutations; this is a writing constraint for implementation rather than a separate task.\n\n## Validator Result\n\nValidator: VALIDATED.\n\nFindings:\n- Spec-law compliance: no conflict. `delegation-defaults` excludes utility commands like Tron from the workflow delegation matrix and expects utility commands to define delegation in command files; existing law already requires Tron reports to include suggested next commands and evidence.\n- Correctness: all 9 ACs addressed; KD5 targets the real current contradiction where command guidance advertises `/adv-audit` but not the optimizer/slop/arch trio.\n- Simplicity caution: approach is appropriately boring, but command+agent+skill triplication widens drift surface. Mitigation adopted: use shared anchors/asset tests instead of three unrelated substring checks.\n- Alternatives: no viable simpler alternative overlooked; frontmatter tool-flag assertions are the right structural guard for mutation boundary.\n\nRecommendation: proceed as scoped. Strengthen implementation by asserting routing command names plus on-disk command existence, implementing mutation boundary as frontmatter tool-flag checks, pinning shared anchors across three guidance surfaces, and executing KD5 explicitly.",
+    "executiveSummary": "# Executive Summary — Improve Tron Guidance\n\nImplemented `/adv-tron` guidance improvements across the command, repo-local agent, and reusable skill. Tron now has explicit startup instructions to gather working-directory/project/ADV context and repo tree/outline before deep reads; bounded broad/scoped scan flows; degraded-tool handling; and a follow-up routing matrix for `/adv-optimizer`, `/adv-slop-scan`, `/adv-arch-scan`, `/adv-proposal`, `/adv-task`, deeper `/adv-tron`, and optional `/adv-audit` for explicit spec-vs-implementation drift.\n\nAdded deterministic asset tests that pin the new guidance across all three surfaces, assert combo routing examples, require unsupported signals to become gaps/open questions, preserve existing TRON_REPORT handoff anchors, and structurally assert the Tron agent remains read-only except for `adv_subagent_report_submit`.\n\nVerification passed:\n- `bin/oc-test targeted -- src/adv-tron-assets.test.ts src/optimized-handoff-assets.test.ts src/skill-loading-policy-assets.test.ts` — 3 files, 19 tests passed.\n- `pnpm run format:check` — passed.\n- `git diff --check trunk...HEAD` — clean.\n\nNote: these are OpenCode command/agent/skill config-time assets; live use requires deploying/syncing assets and restarting OpenCode to pick up the changed prompts.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-06-26T19:43:18.190Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| AC1 | acceptance_criterion | AC1 — Baseline context: `adv-tron` command/agent/skill guidance names at least these startup inputs: working directory or repo root, project context, active ADV state, and repo tree/outline before deep reads. | pass | plugin/src/adv-tron-assets.test.ts asserts Analysis Startup Sequence, WORKING DIRECTORY, adv_project_context, active ADV state, repo tree/outline across command/agent/skill; targeted test passed. |\n| AC2 | acceptance_criterion | AC2 — Bounded scan sequence: broad mode guidance includes structure mapping, hotspot/risk scan, related pattern/convention scan, and coverage-gap reporting; scoped mode guidance includes target normalization, deep read, dependency/usage tracing, related/sibling code scan, and active-change/spec overlap check. | pass | plugin/src/adv-tron-assets.test.ts asserts Broad Scan, Scoped Scan, structure map, hotspot/risk scan, dependency/usage trace, active-change/spec overlap, coverage gaps; targeted test passed. |\n| AC3 | acceptance_criterion | AC3 — Follow-up routing: guidance contains explicit routing for `/adv-optimizer`, `/adv-slop-scan`, `/adv-arch-scan`, `/adv-proposal`, `/adv-task`, and deeper `/adv-tron`, each with observable trigger criteria. | pass | plugin/src/adv-tron-assets.test.ts asserts routing commands exist and appear across command/agent/skill: /adv-optimizer, /adv-slop-scan, /adv-arch-scan, /adv-proposal, /adv-task, /adv-tron; targeted test passed. |\n| AC4 | acceptance_criterion | AC4 — Combination routing: guidance gives at least 2 combo examples where multiple follow-up commands are recommended together, with order and rationale. | pass | plugin/src/adv-tron-assets.test.ts asserts combo examples /adv-slop-scan <target> then /adv-optimizer <target> and /adv-arch-scan <target> then /adv-slop-scan <target>; targeted test passed. |\n| AC5 | acceptance_criterion | AC5 — Evidence boundary: guidance states that material findings require source evidence and that unsupported signals become coverage gaps/open questions, not findings. | pass | plugin/src/adv-tron-assets.test.ts asserts Unsupported signals and coverage gaps/open questions across command/agent/skill; targeted test passed. |\n| AC6 | acceptance_criterion | AC6 — Mutation boundary: guidance states that Tron may recommend but must not invoke adjacent `/adv-*` commands, create agenda/change/task state, or edit files. | pass | plugin/src/adv-tron-assets.test.ts asserts no-invocation/no-state/no-edit prose and agent frontmatter denies write, edit, bash, task, adv_change_create, adv_task_add, adv_gate_complete, context7_*, exa_*, webfetch, searchcode_* while allowing adv_subagent_report_submit; targeted test passed. |\n| AC7 | acceptance_criterion | AC7 — Degraded execution: guidance states fallback behavior when lgrep/outline tools fail and requires degraded coverage to be reported. | pass | plugin/src/adv-tron-assets.test.ts asserts Degraded Execution, lgrep, fallback, degraded coverage across command/agent/skill; targeted test passed. |\n| AC8 | acceptance_criterion | AC8 — Tests: targeted tests prove the `/adv-tron` assets include baseline context, bounded scan sequence, follow-up routing, combo routing, degraded execution, and preserve existing packet/report anchors. | pass | bin/oc-test targeted -- src/adv-tron-assets.test.ts src/optimized-handoff-assets.test.ts src/skill-loading-policy-assets.test.ts passed: 3 test files, 19 tests. |\n| AC9 | acceptance_criterion | AC9 — Verification: targeted asset tests pass through `bin/oc-test targeted -- <test files>` or equivalent ADV test evidence. | pass | Final verification passed through bin/oc-test targeted -- src/adv-tron-assets.test.ts src/optimized-handoff-assets.test.ts src/skill-loading-policy-assets.test.ts and pnpm run format:check. |\n| C1 | constraint | No implementation changes to `/adv-optimizer`, `/adv-slop-scan`, or `/adv-arch-scan`. | respected | git diff --name-only trunk...HEAD changed only .opencode/agents/adv-tron.md, .opencode/command/adv-tron.md, plugin/src/adv-tron-assets.test.ts, skills/adv-tron/SKILL.md. |\n| C2 | constraint | No new mutation powers for `adv-tron`. | respected | adv-tron agent frontmatter still denies mutation/edit/shell/delegation tools and tests assert this; only adv_subagent_report_submit remains allowed. |\n| C3 | constraint | No external research behavior added to Tron. | respected | Frontmatter denies context7_*, exa_*, webfetch, searchcode_* and tests assert external research tools remain denied. |\n| C4 | constraint | No direct ADV state file reads. | respected | Work used ADV tools for ADV state and read repo files only; no direct ADV state file reads were used. |\n| C5 | constraint | Keep output bounded; do not turn Tron into a full audit report. | respected | Guidance caps findings at existing 10 broad / 15 scoped and adds compact matrices/examples rather than full audit workflow. |\n| OOS1 | out_of_scope | Creating an `/adv-tron` dedicated spec unless later design discovers existing spec-law drift. | not_applicable | No /adv-tron dedicated spec created or modified. |\n| OOS2 | out_of_scope | Changing CLI surfaces for scan commands. | not_applicable | No CLI surfaces changed. |\n| OOS3 | out_of_scope | Creating agenda items automatically from Tron results. | not_applicable | No agenda auto-creation behavior added; guidance remains suggestions only. |\n| OOS4 | out_of_scope | Running tests/linters from Tron. | not_applicable | No tests/linters are added to Tron runtime behavior; tests run only during implementation verification. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-06-26T19:07:37.813Z",
+      "contentHash": "f4f340e344760499d8a3804eddd03e3cd2231e721ef874de52bce77a62dc6064",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-06-26T19:06:53.972Z",
+      "contentHash": "59ae22d31ac08babcb42a9fe91b0a6dd3532facd7a25b87ce685eb9e5347027f",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-06-26T19:13:47.688Z",
+      "contentHash": "e01ba3b1f6260441bc2058b3d8244c439fb9901e0554fad8012acf9d93f285c4",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-06-26T19:25:02.588Z",
+      "contentHash": "1502640b2697a1e75bce6d7543358b66a8967265adb38ff124a0a7dfc70d25b8",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-06-26T19:43:40.816Z",
+      "contentHash": "9a8407467c1a95ccecf82da626a21fd783d9e0f92237a404ee45146102bdc630",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-06-26T19:44:48.060Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true
+}

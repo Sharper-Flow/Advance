@@ -1,0 +1,12 @@
+{
+  "entries": [
+    {
+      "id": "ws-wzDHh0",
+      "type": "gotcha",
+      "content": "`bin/oc-test targeted -- ...` delegates to Vitest from `plugin/`, so test filters should be plugin-relative (`src/adv-tron-assets.test.ts`) rather than repo-root paths (`plugin/src/...`); repo-root filters produce `No test files found`.",
+      "source_task": "tk-2e1144b77b54",
+      "recorded_at": "2026-06-26T19:40:38.447Z"
+    }
+  ],
+  "count": 1
+}
