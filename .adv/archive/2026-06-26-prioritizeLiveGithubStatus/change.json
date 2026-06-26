@@ -1,0 +1,362 @@
+{
+  "id": "prioritizeLiveGithubStatus",
+  "title": "Prioritize live GitHub status",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-06-26T21:18:40.237Z",
+  "tasks": [
+    {
+      "id": "tk-c4708422d144",
+      "title": "Prioritize current GitHub dashboard status and bound deployment status fan-out",
+      "type": "code",
+      "section": "GitHub enrichment",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-06-26T21:19:13.297Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline",
+        "frontend": "false"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-26T21:19:27.363Z",
+      "verification": "RED: bun test bin/lib/dashboard/github.test.ts failed because DEFAULT_DEPLOYMENT_STATUS_LIMIT was missing. GREEN: github.test.ts passed (7 tests) after bounding deployment status lookups to 6 and running status calls concurrently. VERIFY: bun test bin/lib/dashboard bin/lib/live-status.test.ts passed (71 tests).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "bin/lib/dashboard/github.test.ts",
+        "bin/lib/dashboard/github.ts"
+      ],
+      "touched_files": [
+        "bin/lib/dashboard/github.test.ts",
+        "bin/lib/dashboard/github.ts"
+      ],
+      "checkpointSha": "d9cd4aeec09253b4f3d357002366c7aada49ce2b",
+      "completedAt": "2026-06-26T21:22:54.188Z",
+      "completed_at": "2026-06-26T21:22:54.188Z"
+    }
+  ],
+  "subagent_reports": [],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-06-26T21:23:51.167Z",
+      "completed_by": "user",
+      "approval_evidence": "User clarified priority: `status of in progress merges, builds, and deployments is most important`. Scope: optimize GitHub enrichment for current status and avoid exhaustive deployment status fan-out.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "b1c8f17d1fc4e59a3b7b1e100abc7e2721efc2daf3202728e2a53ea68cbbb556",
+        "non_whitespace_chars": 939,
+        "checked_at": "2026-06-26T21:18:40.357Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-06-26T21:24:11.049Z",
+      "completed_by": "user",
+      "approval_evidence": "Contract minted. Evidence: measured prior GitHub read spent ~12.8s/repo because it fetched pulls, workflow runs, deployments, then 30 deployment statuses sequentially. User prioritized current in-progress merges/builds/deployments over exhaustive history.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "0b84e91e2847d0a5df7176827f59e0c112a3668d4f71c3cd190d47b2e97d11f4",
+        "non_whitespace_chars": 1214,
+        "checked_at": "2026-06-26T21:18:40.358Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-06-26T21:24:21.453Z",
+      "completed_by": "user",
+      "approval_evidence": "Design implemented: fetch top-level GitHub endpoints concurrently; cap deployment status enrichment to DEFAULT_DEPLOYMENT_STATUS_LIMIT=6 latest deployments; fetch bounded statuses concurrently. Keeps PRs, workflow runs, deployments, and current deployment statuses.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "b91ff889cca5cab3b0903b65182b75bf7ba173fa3043c600636a08cfd0973d41",
+        "non_whitespace_chars": 496,
+        "checked_at": "2026-06-26T21:18:40.359Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-06-26T21:24:32.843Z",
+      "completed_by": "user",
+      "approval_evidence": "User requested priority change; one implementation task created and completed with TDD evidence."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-06-26T21:24:44.814Z",
+      "completed_by": "agent",
+      "approval_evidence": "Task checkpointed at d9cd4aeec09253b4f3d357002366c7aada49ce2b. RED: github.test.ts failed missing DEFAULT_DEPLOYMENT_STATUS_LIMIT. GREEN: github.test.ts passed (7). VERIFY: dashboard/live-status suite passed (71). Trunk fast-forwarded and service restarted."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-06-26T21:25:38.324Z",
+      "completed_by": "user",
+      "approval_evidence": "Delivered requested priority: current in-progress merges/builds/deployments now load without GitHub timeout. Live /api/state 200; pokeedge and pokeedge-web degraded=[]; detail probes 200. Contract matrix 9/9 passing/respected.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "d64bc756476642a88bc88c7ea8580a57790af8d701d426c3eb0f58157f43a7c7",
+        "non_whitespace_chars": 926,
+        "checked_at": "2026-06-26T21:18:40.360Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "fast_follow_of": {
+    "parent_change_id": "fixDashboardTimeout",
+    "linked_at": "2026-06-26T21:18:40.176Z"
+  },
+  "origin": {
+    "kind": "discovery",
+    "source_artifact": "user-feedback:current-github-status-priority"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "minimal",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "0b84e91e2847d0a5df7176827f59e0c112a3668d4f71c3cd190d47b2e97d11f4",
+      "approvedAt": "2026-06-26T21:18:40.176Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "Given the GitHub reader fetches repository data, when deployments are present, then deployment status requests are bounded to a small current/latest subset and are not issued sequentially for all 30 deployments.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0b84e91e2847d0a5df7176827f59e0c112a3668d4f71c3cd190d47b2e97d11f4",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Given open PRs exist, when `/api/state` renders, then PR data is still available for merge-status lanes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0b84e91e2847d0a5df7176827f59e0c112a3668d4f71c3cd190d47b2e97d11f4",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Given workflow runs exist, when `/api/state` renders, then recent build data is still available for build-status lanes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0b84e91e2847d0a5df7176827f59e0c112a3668d4f71c3cd190d47b2e97d11f4",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Given current/latest deployments exist, when `/api/state` renders, then deployment status data is available for those bounded deployments.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0b84e91e2847d0a5df7176827f59e0c112a3668d4f71c3cd190d47b2e97d11f4",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Given live dashboard `/api/state` is checked after service restart, then it returns HTTP 200 within 8 seconds and does not show `GITHUB_READ_TIMEOUT` for normal measured GitHub response timings.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0b84e91e2847d0a5df7176827f59e0c112a3668d4f71c3cd190d47b2e97d11f4",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Read-only; no mutation controls.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0b84e91e2847d0a5df7176827f59e0c112a3668d4f71c3cd190d47b2e97d11f4",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "No secrets/raw state links.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0b84e91e2847d0a5df7176827f59e0c112a3668d4f71c3cd190d47b2e97d11f4",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Do not reintroduce ADV workflow query fan-out.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0b84e91e2847d0a5df7176827f59e0c112a3668d4f71c3cd190d47b2e97d11f4",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Prefer current status over exhaustive historical data.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0b84e91e2847d0a5df7176827f59e0c112a3668d4f71c3cd190d47b2e97d11f4",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-06-26T21:24:50.000Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "github.test.ts asserts 30 deployments produce only DEFAULT_DEPLOYMENT_STATUS_LIMIT=6 status calls, not 30 sequential calls.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "github.test.ts asserts pulls data remains present: [{ number: 7 }]. Live /api/state returned merge/PR lanes without GitHub degradation.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "github.test.ts asserts workflow_runs data remains present: [{ id: 8, status: \"in_progress\" }]. Dashboard suite passed.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "github.test.ts asserts bounded deployment_statuses for latest deployment IDs; concurrency test asserts max in-flight statuses > 1.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Live verification after restart: /api/state 200 within 8s; pokeedge degraded=[]; pokeedge-web degraded=[]; detail probes 200.",
+          "notes": ""
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Only GitHub read implementation/tests changed; no mutation controls.",
+          "notes": ""
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Existing GitHub token sanitization tests still pass; no raw state links added.",
+          "notes": ""
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No ADV reader changes; dashboard suite still passes worker-free tests.",
+          "notes": ""
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Implementation caps latest deployment statuses and prioritizes current endpoint data; exhaustive status fan-out removed.",
+          "notes": ""
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "Given the GitHub reader fetches repository data, when deployments are present, then deployment status requests are bounded to a small current/latest subset and are not issued sequentially for all 30 deployments.",
+    "Given open PRs exist, when `/api/state` renders, then PR data is still available for merge-status lanes.",
+    "Given workflow runs exist, when `/api/state` renders, then recent build data is still available for build-status lanes.",
+    "Given current/latest deployments exist, when `/api/state` renders, then deployment status data is available for those bounded deployments.",
+    "Given live dashboard `/api/state` is checked after service restart, then it returns HTTP 200 within 8 seconds and does not show `GITHUB_READ_TIMEOUT` for normal measured GitHub response timings."
+  ],
+  "documents": {
+    "proposal": "# Prioritize live GitHub status\n\n## Problem\n\nDashboard GitHub reads time out because deployment status enrichment performs many sequential status calls. User clarified the most important GitHub data is current/in-progress merges, builds, and deployments — not exhaustive deployment history.\n\n## Scope\n\n- Optimize dashboard GitHub reads for current status: open PRs, recent workflow runs, and latest/current deployments.\n- Bound or parallelize deployment status lookups so `/api/state` can return within the dashboard budget.\n- Preserve degraded-source behavior and read-only/local-only constraints.\n- Keep enough deployment status data to show active/failing current deployment signals.\n\n## Acceptance\n\n- GitHub read path no longer performs 30 sequential deployment status requests for routine dashboard refresh.\n- Open PR and workflow-run data remain present.\n- Deployment status enrichment is bounded and focused on current/latest deployments.\n- Dashboard tests pass.\n- Live `/api/state` no longer reports `GITHUB_READ_TIMEOUT` under normal GitHub response timings measured in this session.",
+    "agreement": "# Agreement\n\n## Objectives\n\n1. Make GitHub enrichment fit the dashboard source budget by prioritizing current status.\n2. Preserve visibility into in-progress merges, builds, and deployments.\n3. Avoid exhaustive sequential deployment-history status calls.\n4. Keep dashboard local-only, read-only, and degraded-source safe.\n\n## Acceptance Criteria\n\n1. Given the GitHub reader fetches repository data, when deployments are present, then deployment status requests are bounded to a small current/latest subset and are not issued sequentially for all 30 deployments.\n2. Given open PRs exist, when `/api/state` renders, then PR data is still available for merge-status lanes.\n3. Given workflow runs exist, when `/api/state` renders, then recent build data is still available for build-status lanes.\n4. Given current/latest deployments exist, when `/api/state` renders, then deployment status data is available for those bounded deployments.\n5. Given live dashboard `/api/state` is checked after service restart, then it returns HTTP 200 within 8 seconds and does not show `GITHUB_READ_TIMEOUT` for normal measured GitHub response timings.\n\n## Constraints\n\n- Read-only; no mutation controls.\n- No secrets/raw state links.\n- Do not reintroduce ADV workflow query fan-out.\n- Prefer current status over exhaustive historical data.\n\n## Sign-Off\n\nUser stated: `status of in progress merges, builds, and deployments is most important`.",
+    "design": "# Design\n\nChange the GitHub dashboard reader from exhaustive sequential deployment-status enrichment to current-status-first enrichment.\n\nPlan:\n- Keep pulls and workflow runs as first-class reads.\n- Fetch deployments, but only request statuses for a bounded latest subset.\n- Run bounded deployment-status requests concurrently so current deployment signals fit within the dashboard source timeout.\n- Keep existing degraded-source behavior for failures/timeouts.\n- Add tests proving deployment status fan-out is bounded/concurrent enough and PR/build data remains included.",
+    "executiveSummary": "# Executive Summary\n\nUpdated dashboard GitHub enrichment to prioritize current status for in-progress merges, builds, and deployments. The prior reader fetched deployment statuses for up to 30 deployments sequentially, which measured around 12.8s per repo and caused `GITHUB_READ_TIMEOUT` under the 5s source budget.\n\nImplemented fix:\n- Fetch top-level GitHub endpoints (`pulls`, `workflow_runs`, `deployments`) concurrently.\n- Keep open PR and workflow-run data intact.\n- Bound deployment status enrichment to `DEFAULT_DEPLOYMENT_STATUS_LIMIT = 6` latest deployments.\n- Fetch bounded deployment statuses concurrently.\n\nVerification:\n- `bun test bin/lib/dashboard/github.test.ts` — 7 pass.\n- `bun test bin/lib/dashboard bin/lib/live-status.test.ts` — 71 pass.\n- Trunk fast-forwarded to `d9cd4aeec09253b4f3d357002366c7aada49ce2b` and dashboard service restarted.\n- Live `/api/state` returned HTTP 200 within 8s with no GitHub degraded sources for `pokeedge` or `pokeedge-web`.\n- Detail probes for both projects returned HTTP 200.\n\nLive URL: http://127.0.0.1:8765/",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-06-26T21:24:50.000Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| AC1 | acceptance_criterion | Given the GitHub reader fetches repository data, when deployments are present, then deployment status requests are bounded to a small current/latest subset and are not issued sequentially for all 30 deployments. | pass | github.test.ts asserts 30 deployments produce only DEFAULT_DEPLOYMENT_STATUS_LIMIT=6 status calls, not 30 sequential calls. |\n| AC2 | acceptance_criterion | Given open PRs exist, when `/api/state` renders, then PR data is still available for merge-status lanes. | pass | github.test.ts asserts pulls data remains present: [{ number: 7 }]. Live /api/state returned merge/PR lanes without GitHub degradation. |\n| AC3 | acceptance_criterion | Given workflow runs exist, when `/api/state` renders, then recent build data is still available for build-status lanes. | pass | github.test.ts asserts workflow_runs data remains present: [{ id: 8, status: \"in_progress\" }]. Dashboard suite passed. |\n| AC4 | acceptance_criterion | Given current/latest deployments exist, when `/api/state` renders, then deployment status data is available for those bounded deployments. | pass | github.test.ts asserts bounded deployment_statuses for latest deployment IDs; concurrency test asserts max in-flight statuses > 1. |\n| AC5 | acceptance_criterion | Given live dashboard `/api/state` is checked after service restart, then it returns HTTP 200 within 8 seconds and does not show `GITHUB_READ_TIMEOUT` for normal measured GitHub response timings. | pass | Live verification after restart: /api/state 200 within 8s; pokeedge degraded=[]; pokeedge-web degraded=[]; detail probes 200. |\n| C1 | constraint | Read-only; no mutation controls. | respected | Only GitHub read implementation/tests changed; no mutation controls. |\n| C2 | constraint | No secrets/raw state links. | respected | Existing GitHub token sanitization tests still pass; no raw state links added. |\n| C3 | constraint | Do not reintroduce ADV workflow query fan-out. | respected | No ADV reader changes; dashboard suite still passes worker-free tests. |\n| C4 | constraint | Prefer current status over exhaustive historical data. | respected | Implementation caps latest deployment statuses and prioritizes current endpoint data; exhaustive status fan-out removed. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-06-26T21:18:40.441Z",
+      "contentHash": "b1c8f17d1fc4e59a3b7b1e100abc7e2721efc2daf3202728e2a53ea68cbbb556",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-06-26T21:18:40.441Z",
+      "contentHash": "0b84e91e2847d0a5df7176827f59e0c112a3668d4f71c3cd190d47b2e97d11f4",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-06-26T21:18:40.441Z",
+      "contentHash": "b91ff889cca5cab3b0903b65182b75bf7ba173fa3043c600636a08cfd0973d41",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-06-26T21:25:28.935Z",
+      "contentHash": "d64bc756476642a88bc88c7ea8580a57790af8d701d426c3eb0f58157f43a7c7",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-06-26T21:25:38.324Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true
+}
