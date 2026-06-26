@@ -331,7 +331,8 @@ When a change has `epic_membership`:
 2. Surface the Epic title, narrative, and the current entry's order/title when presenting the change or choosing next work.
 3. Respect Epic order as advisory: warn if earlier entries are incomplete, but never block gates, tasks, or promotion solely because of order.
 4. Include Epic context in sub-agent packets when it helps the worker understand why the current task matters.
-5. If no Epic membership is present, proceed with the normal pre-Epic flow.
+5. During archive/release, verify terminal projection evidence for the linked Epic entry after release proof, use typed repair/backfill when an already-archived child still appears active, and include the Epic verification/repair result in the archive report.
+6. If no Epic membership is present, proceed with the normal pre-Epic flow.
 
 × Do not add Jira-like assignments, estimates, sprints, boards, or ownership workflows.
 × Do not treat Epic membership as mandatory or auto-enroll every new change in an Epic.

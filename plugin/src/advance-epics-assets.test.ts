@@ -37,6 +37,7 @@ describe("Advance Epics spec documentation", () => {
       "rq-epicNextWork01",
       "rq-epicOptionalMembership01",
       "rq-epicMembershipRepair01",
+      "rq-epicArchiveSync01",
       "rq-epicProductScope01",
       "rq-epicNoJiraClone01",
       "rq-epicTemporalConstraints01",
@@ -58,6 +59,11 @@ describe("Advance Epics spec documentation", () => {
     expect(
       spec.requirements.some(
         (r: { id: string }) => r.id === "rq-epicCreateCommand01",
+      ),
+    ).toBe(true);
+    expect(
+      spec.requirements.some(
+        (r: { id: string }) => r.id === "rq-epicArchiveSync01",
       ),
     ).toBe(true);
   });
@@ -165,6 +171,13 @@ describe("ADV_INSTRUCTIONS.md Epic contract", () => {
       /adv_epic_link_change[\s\S]{0,300}target_path/i,
     );
   });
+
+  test("documents archive/release terminal repair backfill", () => {
+    expect(instructions).toMatch(/archive\/release/i);
+    expect(instructions).toMatch(/terminal projection/i);
+    expect(instructions).toMatch(/repair\/backfill/i);
+    expect(instructions).toMatch(/already-archived child/i);
+  });
 });
 
 describe("ADV agent Epic tool allowlist and context loading", () => {
@@ -180,6 +193,13 @@ describe("ADV agent Epic tool allowlist and context loading", () => {
     expect(agent).toContain("epic_membership");
     expect(agent).toContain("adv_epic_show epic_id:");
     expect(agent).toMatch(/Epic context/i);
+  });
+
+  test("instructs archive/release to verify Epic terminal projection", () => {
+    expect(agent).toMatch(/archive\/release|release\/archive/i);
+    expect(agent).toMatch(/terminal projection|terminal state/i);
+    expect(agent).toMatch(/repair\/backfill/i);
+    expect(agent).toMatch(/archive report/i);
   });
 
   test("reinforces optional membership, advisory order, and avoidances", () => {
@@ -267,6 +287,16 @@ describe("Command docs wire Epic context into workflow", () => {
     { file: "adv-apply.md", required: ["epic_membership", "EPIC CONTEXT"] },
     { file: "adv-review.md", required: ["epic_membership", "EPIC CONTEXT"] },
     { file: "adv-harden.md", required: ["epic_membership", "EPIC CONTEXT"] },
+    {
+      file: "adv-archive.md",
+      required: [
+        "epic_membership",
+        "adv_epic_show epic_id:",
+        "adv_epic_repair_membership",
+        "terminal_summary",
+        "Epic:",
+      ],
+    },
   ];
 
   test.each(commands)(
@@ -303,6 +333,13 @@ describe("Epic avoidances are documented and not contradicted", () => {
     expect(specDoc).toMatch(/MUST require audit evidence/i);
     expect(specDoc).toMatch(/fast_follow_of.*not created or changed/i);
     expect(specDoc).toMatch(/target_unreachable/i);
+  });
+
+  test("spec doc covers archive terminal sync and retroactive backfill", () => {
+    expect(specDoc).toContain("rq-epicArchiveSync01");
+    expect(specDoc).toMatch(/terminal summary/i);
+    expect(specDoc).toMatch(/repairable\/backfillable/i);
+    expect(specDoc).toMatch(/completed entries and next entry/i);
   });
 });
 

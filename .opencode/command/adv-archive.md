@@ -31,6 +31,8 @@ If empty → `adv_change_list` → auto-select the only plausible change; ask vi
 ## Phase 1: Pre-Archive Checks
 
 1. `adv_change_show changeId: {id} include: { executiveSummary: true }` → verify status "active", load executive summary for sign-off report
+   - If the returned change has `epic_membership`, load compact parent context with `adv_epic_show epic_id: {epic_id}` before archive execution. Record Epic ID, entry ID/title/order, and member status when available.
+   - Epic order remains advisory: earlier incomplete Epic entries MAY be warned about but MUST NOT block archive solely by order.
 2. `adv_task_list` → all tasks must be "done". If incomplete → ARCHIVE BLOCKED banner → stop
 3. `adv_change_validate strict: true` → if fails → show errors/warnings → stop and review the validation output before retrying
 4. `adv_status` → check for `[doctor]` entries: JSON/SQLite inconsistency or broken refs → block; pending WAL → warn only (advisory — benign when transient, escalate only if it persists after rerunning `/adv-status` or restarting OpenCode)
@@ -160,6 +162,14 @@ When archiving from a worktree, pass `worktreePath: <worktree-root>` so the in-r
 
 For each affected capability: `adv_spec action: "show"` → verify new requirements present. Verify archive directory exists with change.json and ARCHIVE_SUMMARY.md.
 
+Epic child archive verification:
+
+- If the change has no `epic_membership`, record `Epic: n/a` for the final report.
+- If the change has `epic_membership`, reload the parent Epic with `adv_epic_show epic_id: {epic_id}` after `adv_change_archive phase9: "run"` returns shipped/merged release proof.
+- Verify the linked entry by `entry_id` and/or `change_id` shows terminal child state through `terminal_summary`, compact history, or an equivalent typed Epic view field.
+- If the Epic entry/member projection is `projection_stale`, `projection_pending`, `target_unreachable`, or otherwise stale, run `adv_epic_repair_membership` (dry run first when choosing a repair mode) or the relevant typed Epic membership tool. For already-archived children whose entries still appear active, use the typed repair path to backfill `terminal_summary` from canonical child/archive evidence so Epic progress can recompute. Do not read or edit ADV state files directly.
+- Epic verification/repair evidence is additive. It never substitutes for Phase 9 release proof and it never allows "Shipped." when release proof is missing.
+
 ---
 
 ## Phase 8: Archive Report
@@ -197,6 +207,7 @@ What shipped, merged locally, waits on PR auto-merge, or blocked release complet
 - Release proof: {origin/{default-branch} reachable | PR {number} state MERGED | no_remote local proof | pending PR {number} | missing: <reason>}
 - PR: {n/a | <url> auto-merge armed | <url> manual merge required | unavailable: <reason>}
 - Local deploy: {ran | not available | not needed | failed: <reason>; nonblocking}
+- Epic: {n/a | {epic_id}/{entry_id} terminal state verified | terminal projection recorded | membership repaired via adv_epic_repair_membership mode=<mode> | warning: <reason>}
 - Reflection: {completed: <id/path/summary> | failed: <reason>; nonblocking}
 - Pre-push hooks: {hooksPath | githooks | husky | lefthook | standard | none}
 - Asset sync: {auto via hook | manual fix | not needed | n/a}
