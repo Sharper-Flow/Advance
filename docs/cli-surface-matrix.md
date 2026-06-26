@@ -28,6 +28,7 @@
 | `/adv-cleanup` | `agent-workflow-only` | Dry-run / approval-gated mutation; HITL-scoped |
 | `/adv-reflect` | `agent-workflow-only` | Post-archive synthesis; agent workflow only |
 | `/adv-tron` | `agent-workflow-only` | Codebase reconnaissance; agent interpretation required |
+| `/adv-optimizer` | `agent-workflow-only` | Simplification proposal synthesis; agent interpretation required |
 | `/adv-improve` | `agent-workflow-only` | Improvement discovery; agent judgment required |
 | `/adv-comp-scan` | `agent-workflow-only` | Competitive intelligence; agent synthesis required |
 | `/adv-proposal` | `agent-workflow-only` | Gate workflow: proposal creation |
