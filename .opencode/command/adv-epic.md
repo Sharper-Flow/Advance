@@ -45,12 +45,12 @@ Create or update an ADV Epic through a collaborative, goal-first workflow. Epics
 
 Use typed tools only:
 
-| Purpose | Tool |
-|---|---|
-| List active Epics | `adv_epic_list` |
-| Inspect plausible overlapping Epics | `adv_epic_show` |
-| Inspect active changes for related work | `adv_change_list` |
-| Inspect backlog/roadmap when relevant | `adv_backlog_state` |
+| Purpose                                 | Tool                |
+| --------------------------------------- | ------------------- |
+| List active Epics                       | `adv_epic_list`     |
+| Inspect plausible overlapping Epics     | `adv_epic_show`     |
+| Inspect active changes for related work | `adv_change_list`   |
+| Inspect backlog/roadmap when relevant   | `adv_backlog_state` |
 
 Rules:
 
@@ -64,11 +64,12 @@ If no plausible overlap exists, proceed to final confirmation.
 
 If plausible overlap exists, present the evidence and ask the user to choose exactly one:
 
-| Option | Meaning |
-|---|---|
-| update/clarify existing | Use `adv_epic_update`, `adv_epic_add_shell`, or `adv_epic_link_change` to refine the existing Epic |
-| create new | Create a distinct Epic because the ultimate goal or scope is different |
-| stop | Do not mutate Epic state |
+| Option                  | Meaning                                                                                                                      |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| update/clarify existing | Use `adv_epic_update`, `adv_epic_update_scope`, `adv_epic_add_shell`, or `adv_epic_link_change` to refine the existing Epic  |
+| merge duplicate         | Use `adv_epic_merge dryRun:true` to plan conflict-safe consolidation, then execute only after explicit conflict dispositions |
+| create new              | Create a distinct Epic because the ultimate goal or scope is different                                                       |
+| stop                    | Do not mutate Epic state                                                                                                     |
 
 × MUST NOT call `adv_epic_create` for a plausible duplicate until the user chooses `create new`.
 
@@ -92,10 +93,11 @@ Ask for explicit final confirmation. `adv_epic_create` may run only after the `#
 
 After confirmation:
 
-1. Create new Epic with `adv_epic_create`, or update existing Epic with `adv_epic_update`.
+1. Create new Epic with `adv_epic_create`, update existing Epic with `adv_epic_update`, or update scope with `adv_epic_update_scope`.
 2. Add user-approved future work with `adv_epic_add_shell`.
 3. Link user-approved existing changes with `adv_epic_link_change`.
-4. If follow-on shell/link operations fail after Epic creation, report the created Epic ID, failed operation, and safe retry/repair path.
+4. Merge approved duplicate active Epics with `adv_epic_merge` after dry-run plan review.
+5. If follow-on shell/link/merge operations fail after Epic creation, report the created Epic ID, failed operation, and safe retry/repair path.
 
 × MUST NOT directly edit ADV state files.
 

@@ -105,6 +105,15 @@ describe("/adv-epic command contract", () => {
     expect(content).toMatch(/create new/i);
   });
 
+  test("guides overlap resolution toward scope update or merge before duplicate creation", () => {
+    const content = readRepoFile(".opencode/command/adv-epic.md");
+
+    expect(content).toContain("adv_epic_update_scope");
+    expect(content).toContain("adv_epic_merge");
+    expect(content).toMatch(/scope update|update scope/i);
+    expect(content).toMatch(/merge/i);
+  });
+
   test("keeps initial entries optional and mutations typed", () => {
     const content = readRepoFile(".opencode/command/adv-epic.md");
 

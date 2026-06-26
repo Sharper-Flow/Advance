@@ -296,6 +296,79 @@ describe("adv_epic_show", () => {
     expect(parsed.epic.entries).toBeDefined();
   });
 
+  test("renders derived scope label in compact and full views", async () => {
+    const store = makeStore({
+      epic_scope: {
+        kind: "repo",
+        owner_project_id: "project-web",
+        repos: [
+          {
+            repo_id: "web",
+            repo_project_id: "project-web",
+            role: "primary",
+            required: true,
+          },
+          {
+            repo_id: "api",
+            repo_project_id: "project-api",
+            role: "secondary",
+            required: true,
+          },
+        ],
+      },
+    });
+
+    const compact = parseToolOutput(
+      await epicTools.adv_epic_show.execute({ epic_id: "addAuthEpic" }, store),
+    );
+    const full = parseToolOutput(
+      await epicTools.adv_epic_show.execute(
+        { epic_id: "addAuthEpic", view: "full" },
+        store,
+      ),
+    );
+
+    expect(compact.epic.scope_label).toBe("product-spanning");
+    expect(full.epic.scope_label).toBe("product-spanning");
+  });
+
+  test("merged source shows survivor pointer and no next work", async () => {
+    const store = makeStore({
+      merged_into: {
+        epic_id: "survivorEpic",
+        merged_at: "2026-06-25T00:00:00.000Z",
+        merged_by: "agent",
+        evidence: "Duplicate active Epic merged.",
+        moved_entry_count: 1,
+      },
+      progress: {
+        status: "merged",
+        total_entries: 1,
+        completed_entries: 0,
+        active_entries: 0,
+        next_entry_id: null,
+        updated_at: "2026-06-25T00:00:00.000Z",
+      },
+      entries: [
+        {
+          kind: "shell",
+          entry_id: "shell-1",
+          order: 0,
+          title: "Hidden future work",
+          success_hint: "No active recommendation after merge.",
+        },
+      ],
+    });
+
+    const parsed = parseToolOutput(
+      await epicTools.adv_epic_show.execute({ epic_id: "addAuthEpic" }, store),
+    );
+
+    expect(parsed.epic.status).toBe("merged");
+    expect(parsed.epic.merged_into).toMatchObject({ epic_id: "survivorEpic" });
+    expect(parsed.epic.next_work).toEqual([]);
+  });
+
   test("returns typed not-found error", async () => {
     const store = makeStore();
     store.epics.get = vi.fn(async () => ({ success: true, data: null }));

@@ -143,7 +143,7 @@ function formatEpicCompact(epic: import("../types").Epic) {
     }));
 
   let next_work: CompactNextWorkEntry[] = [];
-  if (epic.progress.next_entry_id) {
+  if (epic.progress.status !== "merged" && epic.progress.next_entry_id) {
     const startIndex = epic.entries.findIndex(
       (entry) => entry.entry_id === epic.progress.next_entry_id,
     );
@@ -186,6 +186,8 @@ function formatEpicCompact(epic: import("../types").Epic) {
     title: epic.title,
     narrative: epic.narrative,
     epic_scope: epic.epic_scope,
+    scope_label: deriveEpicScopeLabel(epic.epic_scope),
+    merged_into: epic.merged_into,
     version: epic.version,
     status: epic.progress.status,
     progress: {
@@ -208,6 +210,8 @@ function formatEpic(epic: import("../types").Epic) {
     title: epic.title,
     narrative: epic.narrative,
     epic_scope: epic.epic_scope,
+    scope_label: deriveEpicScopeLabel(epic.epic_scope),
+    merged_into: epic.merged_into,
     version: epic.version,
     status: epic.progress.status,
     progress: {
