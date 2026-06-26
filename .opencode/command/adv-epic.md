@@ -1,6 +1,6 @@
 ---
 name: adv-epic
-description: Create Epics with goal-first workflow
+description: Gather Epic goals before typed creation
 ---
 
 <!-- manifest: adv-epic · requiresChangeId: false · scope: reads[specs, epics, changes, backlog] · creates[epic] · modifies[epic] -->

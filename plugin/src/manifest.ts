@@ -163,7 +163,7 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
   },
   "adv-epic": {
     name: "adv-epic",
-    description: "Create Epics with goal-first workflow",
+    description: "Gather Epic goals before typed creation",
     phase: "pre-implementation",
     requiresChangeId: false,
     prerequisites: [],
