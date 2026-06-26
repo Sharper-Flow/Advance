@@ -8,7 +8,6 @@ const REPO_ROOT = resolve(__dirname, "../..");
 const DEPLOY_SCRIPT_PATH = join(REPO_ROOT, "scripts/deploy-local.sh");
 const PROVIDER_EVAL_PATH = join(REPO_ROOT, "scripts/provider-eval.ts");
 const ADV_AGENT_PATH = join(REPO_ROOT, ".opencode/agents/adv.md");
-const ADV_ATC_AGENT_PATH = join(REPO_ROOT, ".opencode/agents/adv-atc.md");
 const PROVIDER_ASSEMBLY_DOC_PATH = join(
   REPO_ROOT,
   "docs/provider-agent-assembly.md",
@@ -179,6 +178,17 @@ describe("deploy-local.sh", () => {
       expect(content).toContain("remove_stale_agent_if_needed");
     });
 
+    test("generic stale cleanup owns removed adv-atc command and agent cleanup", () => {
+      expect(content).toContain(
+        'for global_cmd in "$GLOBAL_COMMANDS"/adv-*.md; do',
+      );
+      expect(content).toContain(
+        'for global_agent in "$GLOBAL_AGENTS"/adv-*.md; do',
+      );
+      expect(content).not.toContain("REPO_AGENTS/adv-atc.md");
+      expect(content).not.toContain("adv-autopilot files replaced by adv-atc");
+    });
+
     test("legacy bare names remain for upgrade cleanup while adv-* names are handled by glob", () => {
       expect(content).toContain(
         'for legacy_name in "${LEGACY_STALE_AGENT_FILES[@]}"; do',
@@ -284,19 +294,13 @@ describe("deploy-local.sh", () => {
       expect(
         duplicateFrontmatterKeys(readFileSync(ADV_AGENT_PATH, "utf8")),
       ).toEqual([]);
-      expect(
-        duplicateFrontmatterKeys(readFileSync(ADV_ATC_AGENT_PATH, "utf8")),
-      ).toEqual([]);
     });
 
     test("tool drift validation permits report-submit on primary agents", () => {
       const advAgent = readFileSync(ADV_AGENT_PATH, "utf8");
-      const advAtcAgent = readFileSync(ADV_ATC_AGENT_PATH, "utf8");
 
       expect(advAgent).toContain("mode: primary");
-      expect(advAtcAgent).toContain("mode: primary");
       expect(advAgent).toContain("  adv_subagent_report_submit: true");
-      expect(advAtcAgent).toContain("  adv_subagent_report_submit: true");
 
       expect(content).toContain("LEAF_ONLY_TOOLS");
       expect(content).toContain('"adv_subagent_report_submit"');
@@ -790,7 +794,7 @@ describe("deploy-local.sh", () => {
       // Ceiling raised from 365 → 368 after adding compact adv-temporal-repair
       // routing markers and packet anchors.
       // Ceiling raised from 363 → 365 after adding adv_archive_repair and
-      // adv_change_status_repair to adv.md and adv-atc.md allowlists.
+      // adv_change_status_repair to the adv.md allowlist.
       // Ceiling raised from 362 → 363 after adding the release-stage
       // adv-reviewer phase mapping needed for typed worker packets.
       // Ceiling raised from 361 → 362 after adding explicit typed worker
