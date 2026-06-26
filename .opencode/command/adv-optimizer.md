@@ -17,8 +17,6 @@ $ARGUMENTS
 
 **Produces:** `OPTIMIZER PROPOSAL` with current-state evidence, ranked simplification opportunities, recommended long-term direction, risks, non-goals, and next ADV command.
 
-**ADV State Mutation:** none.
-
 ADV State Mutation: none.
 
 **Gate:** None.
