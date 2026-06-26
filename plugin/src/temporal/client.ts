@@ -2,6 +2,7 @@ import { Client, Connection } from "@temporalio/client";
 import {
   ADVANCE_TEMPORAL_TASK_QUEUE_PREFIX,
   CHANGE_WORKFLOW_PREFIX,
+  EPIC_WORKFLOW_PREFIX,
   DEFAULT_TEMPORAL_ADDRESS,
   DEFAULT_TEMPORAL_NAMESPACE,
 } from "./contracts";
@@ -63,7 +64,7 @@ export function buildChangeWorkflowId(
 }
 
 export function buildEpicWorkflowId(projectId: string, epicId: string): string {
-  return `adv/epic/${projectId}/${epicId}`;
+  return `${EPIC_WORKFLOW_PREFIX}${projectId}/${epicId}`;
 }
 
 export interface TemporalClientBundle {

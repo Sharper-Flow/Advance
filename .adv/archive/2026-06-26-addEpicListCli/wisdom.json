@@ -1,0 +1,12 @@
+{
+  "entries": [
+    {
+      "id": "ws-Oy87FS",
+      "type": "pattern",
+      "content": "When adding a nested read-only CLI namespace, pair dispatcher support with an explicit allowlist constant and a static cli-bridge-contract test that forbids mutation verbs and checks the helper uses Visibility/list APIs rather than workflow handle queries or file reads.",
+      "source_task": "tk-894a2a77bed0",
+      "recorded_at": "2026-06-26T04:04:29.438Z"
+    }
+  ],
+  "count": 1
+}

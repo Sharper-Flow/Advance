@@ -78,7 +78,8 @@ bin/oc-test full
 bin/adv status      # live active-changes table from Temporal (default subcommand)
 bin/adv roadmap     # prioritized backlog from .adv/roadmap-snapshot.json
 bin/adv slop-scan   # deterministic slop scanner
-bin/adv --json      # JSON output (status/roadmap/slop-scan)
+bin/adv epic list --json  # live Epic IDs from Temporal Visibility
+bin/adv --json      # JSON output (status/roadmap/slop-scan/epic list)
 ```
 
 **CI order** (`.github/workflows/ci.yml`, Node 24.x, pnpm 11): schemas:check → typecheck → lint → format:check → test → build. Within the test job, `build:worker` runs before `pnpm test`, Temporal CLI + Bun are installed, and `bun test bin/` runs as a separate surface; the `build` job (`pnpm run build`) runs only after tests pass. Auto-release (`auto-release.yml`) cuts a GitHub Release after CI succeeds on main/trunk using conventional commits.

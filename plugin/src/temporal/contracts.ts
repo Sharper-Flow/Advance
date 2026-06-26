@@ -28,6 +28,7 @@ export const CHANGE_WORKFLOW_PREFIX = "adv/change/";
 
 export const CHANGE_WORKFLOW_NAME = "changeWorkflow";
 export const EPIC_WORKFLOW_NAME = "epicWorkflow";
+export const EPIC_WORKFLOW_PREFIX = "adv/epic/";
 
 export const ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES = {
   projectId: "AdvProjectId",

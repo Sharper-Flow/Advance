@@ -1,7 +1,7 @@
 # Advance Epics
 
-> **Version:** 1.1.0
-> **Updated:** 2026-06-25
+> **Version:** 1.2.0
+> **Updated:** 2026-06-26
 
 ## Purpose
 
@@ -419,6 +419,66 @@ An Epic MAY be scoped to a single repo or to a product spanning multiple reposit
 
 **Then:**
 - Validation fails with a clear schema error
+
+---
+
+### Epic List CLI Is Read-Only, Worker-Free, and Fail-Closed
+
+**ID:** `rq-epicCliList01` | **Priority:** **[MUST]**
+
+The `adv epic list --json` CLI command MUST return live Temporal-backed Epic IDs for the current project as stable JSON. The command MUST use Temporal Visibility enumeration of `epicWorkflow` executions and project-scoped workflow ID prefix filtering, MUST NOT read ADV external state files, MUST NOT query or hydrate each Epic workflow, MUST NOT require a worker polling the project task queue, and MUST fail closed with structured JSON error metadata instead of silently returning stale disk data. The Epic CLI namespace MUST remain read-only and MUST NOT expose mutation subcommands.
+
+**Tags:** `epics`, `cli`, `visibility`, `read-only`
+
+#### Scenarios
+
+**Epic list returns live JSON IDs** (`rq-epicCliList01.1`)
+
+**Given:**
+- A git-backed project has Epic workflows visible to Temporal
+
+**When:** `adv epic list --json` runs from the project
+
+**Then:**
+- The command exits 0
+- The JSON payload includes `source: "temporal"`, `live: true`, `stale: false`, `generated_at`, `project_id`, and `epics`
+- Each Epic entry is an object containing at least `id`
+
+**Epic list filters by current project prefix** (`rq-epicCliList01.2`)
+
+**Given:**
+- Temporal Visibility returns Epic workflow IDs for multiple ADV projects
+
+**When:** The Epic list CLI builds its payload
+
+**Then:**
+- Only workflow IDs under `adv/epic/{projectId}/` appear in `epics`
+- Workflow IDs outside the current project prefix are excluded
+- Empty Epic ID suffixes are ignored
+
+**Epic list fails closed on unavailable live state** (`rq-epicCliList01.3`)
+
+**Given:**
+- Temporal connection or Visibility listing fails, or the command is run outside a git project
+
+**When:** `adv epic list --json` handles the failure
+
+**Then:**
+- The command exits non-zero
+- The JSON payload includes `source: "temporal"`, `live: false`, `stale: false`, `epics: []`, `error`, and `remediation`
+- No disk-projected Epic rows are returned as a fallback
+
+**Epic CLI namespace remains read-only** (`rq-epicCliList01.4`)
+
+**Given:**
+- A caller invokes the `adv epic` CLI namespace
+
+**When:** The CLI dispatches the nested command
+
+**Then:**
+- Only the read-only `list` operation is accepted
+- Mutation verbs such as `create`, `update`, `delete`, and `archive` are not dispatched
+- The list path does not query per-Epic workflow state
 
 ---
 

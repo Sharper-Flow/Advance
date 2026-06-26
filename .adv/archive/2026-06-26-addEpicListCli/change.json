@@ -1,0 +1,1108 @@
+{
+  "id": "addEpicListCli",
+  "title": "Add epic list CLI",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-06-26T03:18:57.239Z",
+  "tasks": [
+    {
+      "id": "tk-1c072b49d98e",
+      "title": "Add Epic CLI spec law and docs surface",
+      "type": "docs",
+      "section": "Spec and docs",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-06-26T03:42:44.773Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC4"
+        ],
+        "verifies": [],
+        "respects": [
+          "AC5",
+          "AC6",
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "artifact_reference",
+      "assignedTo": "agent",
+      "started_at": "2026-06-26T03:47:24.081Z",
+      "verification": "adv_run_test tr_mque7s53_8f10a475 passed: spec JSON parses; diff reviewed intended files only (.adv/specs/advance-epics/spec.json, docs/specs/advance-epics.md, AGENTS.md, SETUP.md).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added rq-epicCliList01 to advance-epics spec and mirror docs, bumped spec version/date, and documented `bin/adv epic list --json` in AGENTS.md/SETUP.md. Requirement pins read-only, worker-free, fail-closed Temporal Visibility Epic list JSON behavior and no-mutation namespace constraints.",
+      "filesTouched": [
+        ".adv/specs/advance-epics/spec.json",
+        "AGENTS.md",
+        "SETUP.md",
+        "docs/specs/advance-epics.md"
+      ],
+      "touched_files": [
+        ".adv/specs/advance-epics/spec.json",
+        "AGENTS.md",
+        "SETUP.md",
+        "docs/specs/advance-epics.md"
+      ],
+      "checkpointSha": "b54c22297f0c281297a7ed9a2230ce16f733118b",
+      "completedAt": "2026-06-26T03:50:39.939Z",
+      "completed_at": "2026-06-26T03:50:39.939Z",
+      "notes": "Completed spec/docs surface. Verification run tr_mque7s53_8f10a475 passed. Checkpoint commit b54c22297f0c281297a7ed9a2230ce16f733118b recorded.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "updatedAt": "2026-06-26T03:50:55.769Z"
+    },
+    {
+      "id": "tk-ae8c8f184a6e",
+      "title": "Implement Epic list CLI helper with unit tests",
+      "type": "code",
+      "section": "CLI helper",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-06-26T03:43:08.225Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC2",
+          "SC3",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC6"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC6"
+        ],
+        "respects": [
+          "C2",
+          "C3",
+          "DONT1",
+          "DONT3",
+          "DONT4"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-26T03:51:22.366Z",
+      "verification": "RED adv_run_test tr_mqueau56_d17895e8 failed because ./epic-list module was missing. GREEN adv_run_test tr_mquebxdp_390a2fbf passed: bun test bin/lib/epic-list.test.ts (4 pass).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added `bin/lib/epic-list.ts` with stable live/failure payload builders, `listEpicIdsFromVisibility`, and `loadLiveEpicIds` using `createTemporalClientBundle`, `listEpicWorkflowIds`, bounded timeout, and connection close in finally. Added Bun tests for payload shape, fail-closed metadata, project-prefix filtering, and Visibility-list failure behavior.",
+      "filesTouched": [
+        "bin/lib/epic-list.test.ts",
+        "bin/lib/epic-list.ts"
+      ],
+      "touched_files": [
+        "bin/lib/epic-list.test.ts",
+        "bin/lib/epic-list.ts"
+      ],
+      "checkpointSha": "f3c8d2d39f14f74aa03769e2cee1786b270cc9e6",
+      "completedAt": "2026-06-26T03:53:54.491Z",
+      "completed_at": "2026-06-26T03:53:54.491Z",
+      "notes": "Completed CLI helper with TDD. RED run tr_mqueau56_d17895e8 failed for missing module; GREEN run tr_mquebxdp_390a2fbf passed. Checkpoint commit f3c8d2d39f14f74aa03769e2cee1786b270cc9e6 recorded.",
+      "error_recovery": {
+        "last_error": "Missing ./epic-list module during RED test.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "bun test bin/lib/epic-list.test.ts failed because ./epic-list did not exist.",
+            "diagnosis": "Expected RED failure for missing implementation module after adding tests first.",
+            "fix_tried": "Implemented bin/lib/epic-list.ts with payload builders and Visibility listing helper.",
+            "strategy_label": "add missing helper implementation",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-26T03:53:00.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-26T03:54:17.781Z"
+    },
+    {
+      "id": "tk-968dd9ca2147",
+      "title": "Wire `adv epic list --json` dispatcher and help",
+      "type": "code",
+      "section": "CLI dispatcher",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-06-26T03:43:32.701Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-ae8c8f184a6e"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "AC1",
+          "AC3",
+          "AC4"
+        ],
+        "verifies": [
+          "AC1",
+          "AC3",
+          "AC4"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "DONT2",
+          "DONT4"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-26T03:54:59.311Z",
+      "verification": "RED adv_run_test tr_mquefhfj_0a6ee7fa failed because help lacked epic list. GREEN adv_run_test tr_mquegqff_82540b72 passed: bun test bin/adv.test.ts (16 pass).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Updated `bin/adv` to dispatch read-only nested `epic list --json`, require JSON mode, emit fail-closed JSON for non-git and Temporal/list failures, return live success payload through `bin/lib/epic-list`, and update help/exit-code text. Added Bun dispatcher tests for help, live JSON success, non-JSON usage, unknown nested commands, and non-git fail-closed JSON.",
+      "filesTouched": [
+        "bin/adv",
+        "bin/adv.test.ts"
+      ],
+      "touched_files": [
+        "bin/adv",
+        "bin/adv.test.ts"
+      ],
+      "checkpointSha": "1664a412474d96cfab3d12728a1265493bdedca3",
+      "completedAt": "2026-06-26T03:57:44.999Z",
+      "completed_at": "2026-06-26T03:57:44.999Z",
+      "notes": "Completed dispatcher/help wiring with TDD. RED run tr_mquefhfj_0a6ee7fa failed on missing help entry; GREEN run tr_mquegqff_82540b72 passed. Checkpoint commit 1664a412474d96cfab3d12728a1265493bdedca3 recorded.",
+      "error_recovery": {
+        "last_error": "Help/dispatcher tests failed because epic list command was not wired yet.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "bun test bin/adv.test.ts failed because --help output did not contain epic list.",
+            "diagnosis": "Expected RED failure after adding dispatcher tests before implementation.",
+            "fix_tried": "Added epic list dispatch, fail-closed handling, and help text updates.",
+            "strategy_label": "wire dispatcher and help",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-26T03:57:00.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-26T03:58:08.668Z"
+    },
+    {
+      "id": "tk-05ec7429bb8a",
+      "title": "Add structural read-only guard for Epic CLI namespace",
+      "type": "code",
+      "section": "Safety guards",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-06-26T03:43:53.088Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-968dd9ca2147"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC5"
+        ],
+        "verifies": [
+          "AC5",
+          "AC6"
+        ],
+        "respects": [
+          "C1",
+          "C3",
+          "DONT2",
+          "DONT3"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "static_check",
+      "assignedTo": "agent",
+      "started_at": "2026-06-26T03:58:37.414Z",
+      "verification": "RED adv_run_test tr_mquek4s1_1a5ad746 failed because EPIC_READ_ONLY_SUBCOMMANDS guard was missing. GREEN adv_run_test tr_mquekqzm_d737ab1b passed: bin/oc-test targeted -- src/cli-bridge-contract.test.ts (18 pass).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added an explicit `EPIC_READ_ONLY_SUBCOMMANDS` allowlist in `bin/adv` and expanded `plugin/src/cli-bridge-contract.test.ts` with a guard proving the Epic CLI namespace only allows read-only list dispatch, uses `listEpicWorkflowIds`, and avoids per-Epic `getHandle` queries or file reads.",
+      "filesTouched": [
+        "bin/adv",
+        "plugin/src/cli-bridge-contract.test.ts"
+      ],
+      "touched_files": [
+        "bin/adv",
+        "plugin/src/cli-bridge-contract.test.ts"
+      ],
+      "checkpointSha": "d009aa5257b69c2d261f331d1b1dbcfbaeb17d77",
+      "completedAt": "2026-06-26T04:00:46.409Z",
+      "completed_at": "2026-06-26T04:00:46.409Z",
+      "notes": "Completed structural read-only guard. RED run tr_mquek4s1_1a5ad746 failed on missing EPIC_READ_ONLY_SUBCOMMANDS guard; GREEN run tr_mquekqzm_d737ab1b passed. Checkpoint commit d009aa5257b69c2d261f331d1b1dbcfbaeb17d77 recorded.",
+      "error_recovery": {
+        "last_error": "CLI guard test failed because the explicit Epic read-only allowlist did not exist.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "bin/oc-test targeted -- src/cli-bridge-contract.test.ts failed at expected EPIC_READ_ONLY_SUBCOMMANDS marker.",
+            "diagnosis": "Expected RED failure after adding structural guard test before allowlist implementation.",
+            "fix_tried": "Added EPIC_READ_ONLY_SUBCOMMANDS allowlist and made runEpic dispatch only members of that set.",
+            "strategy_label": "add structural allowlist",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-26T04:01:00.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-26T04:01:07.536Z"
+    },
+    {
+      "id": "tk-894a2a77bed0",
+      "title": "Run integrated CLI Epic list verification",
+      "type": "verification",
+      "section": "Verification",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-06-26T03:44:17.231Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-1c072b49d98e"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-968dd9ca2147"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-05ec7429bb8a"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [],
+        "verifies": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-26T04:01:42.451Z",
+      "verification": "Harden remediation verification passed: tr_mqug68bh_9dc34a4b bun CLI/helper tests 20 pass; tr_mqug6i44_55df0b15 targeted temporal/spec-citation/cli-surface/cli-bridge tests 24 pass; tr_mqug75fi_a3aee0a6 pnpm run check pass. Fixed harden BLOCKER spec citation, HIGH cli-surface matrix conflict, MEDIUM canonical Epic workflow constants drift, and help/exit-code doc gaps.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "bin/adv",
+        "bin/adv.test.ts",
+        "docs/cli-surface-matrix.md",
+        "plugin/src/temporal/client.ts",
+        "plugin/src/temporal/contracts.ts",
+        "plugin/src/temporal/list-epic-workflows.test.ts",
+        "plugin/src/temporal/list-epic-workflows.ts"
+      ],
+      "touched_files": [
+        "bin/adv",
+        "bin/adv.test.ts",
+        "docs/cli-surface-matrix.md",
+        "plugin/src/temporal/client.ts",
+        "plugin/src/temporal/contracts.ts",
+        "plugin/src/temporal/list-epic-workflows.test.ts",
+        "plugin/src/temporal/list-epic-workflows.ts"
+      ],
+      "checkpointSha": "a4bcdf164c76f5c42e14a5d8a8b50d1d08d93da4",
+      "completedAt": "2026-06-26T04:46:15.677Z",
+      "completed_at": "2026-06-26T04:46:15.677Z",
+      "notes": "Integrated verification complete. Passed: tr_mquemu5t_f093c1c8 Bun CLI/helper tests; tr_mquen25j_343810b0 CLI contract targeted test; tr_mqueooby_3bd4841a pnpm run check. Checkpoint commit be7c78592b3f8b79bb6f200c8fbd33eabdc0162b recorded.",
+      "error_recovery": {
+        "last_error": "pnpm run check failed on Prettier formatting for src/cli-bridge-contract.test.ts.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "pnpm run check failed during format:check with Prettier warning for src/cli-bridge-contract.test.ts.",
+            "diagnosis": "Guard test edit needed standard Prettier wrapping.",
+            "fix_tried": "Ran pnpm run format in plugin and reran pnpm run check.",
+            "strategy_label": "format and rerun full check",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-26T04:04:00.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-26T04:04:17.469Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "addEpicListCli",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design leverage scout for Add epic list CLI design draft",
+      "sources": [
+        {
+          "label": "bin/lib/live-status.ts (canonical worker-free Visibility helper pattern)",
+          "locator": "/home/jon/dev/advance/bin/lib/live-status.ts:48-63,309-417",
+          "summary": "withTimeout helper, createTemporalClientBundle + bundle.connection.close() in finally, summariesFromVisibility/loadLiveSummaries shape. buildLiveStatusFailure carries source/live/stale/error/remediation. Design draft loadLiveEpicIds/buildLive*Payload directly mirror these — adoption is a copy of a proven path, not novel."
+        },
+        {
+          "label": "plugin/src/temporal/list-epic-workflows.ts (reuse target)",
+          "locator": "/home/jon/dev/advance/plugin/src/temporal/list-epic-workflows.ts:30-59",
+          "summary": "listEpicWorkflowIds already enumerates by WorkflowType=epicWorkflow, filters adv/epic/{projectId}/ prefix, supports limit. Satisfies AC2+AC6 with zero new enumeration code. Returns string[] (IDs), so {id} wrapping is a trivial map."
+        },
+        {
+          "label": "plugin/src/temporal/list-epic-workflows.test.ts (fake Visibility client pattern)",
+          "locator": "/home/jon/dev/advance/plugin/src/temporal/list-epic-workflows.test.ts:8-42",
+          "summary": "Existing async-generator vi.fn() fake client for Visibility list. epic-list.test.ts can reuse this exact pattern for success/failure/project-filtering — no new test harness needed."
+        },
+        {
+          "label": "bin/adv dispatch + cli-bridge-contract test (read-only guard surface)",
+          "locator": "/home/jon/dev/advance/bin/adv:632-667; /home/jon/dev/advance/plugin/src/cli-bridge-contract.test.ts:29-118",
+          "summary": "Subcommand dispatch is a flat if-chain on argv[0]. cli-bridge-contract test pins read-only CLI laws via spec ID + forbidden-token lists. AC5 mutation-guard belongs here as a static argv-grep guard, structural not heuristic (P33)."
+        },
+        {
+          "label": "Agreement contract C2/C3/AC6/DONT3 (fail-closed, no hydration, no worker)",
+          "locator": "adv_change_show addEpicListCli contract items C2,C3,AC6,DONT3",
+          "summary": "Constraints forbid disk fallback, full hydration, and worker dependency. listEpicWorkflowIds Visibility-only enumeration is the by-the-book satisfying path; per-Epic getState queries (which need a live worker) are explicitly out."
+        }
+      ],
+      "architecture_assessment": "Design draft is the boring, proven path: it clones the existing live-status.ts worker-free Visibility pattern (withTimeout, createTemporalClientBundle, close-in-finally, build*Payload/build*Failure) and reuses the existing listEpicWorkflowIds helper verbatim. No novel architecture. Leverage opportunities are mostly about NOT adding code: reuse the enumeration helper and the existing fake-client test harness, and place the AC5 mutation guard as a structural argv assertion rather than a prose claim. One simplification (shared withTimeout) is contract-untied and optional. The --json-required-for-now decision is sound for keeping the contract small but should be an explicit, testable usage-error path, not silent.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "No blockers. 3 of 5 candidates are auto-adoptable (contract-tied, low risk, adopt_now/design_around, no user-value tradeoff). Remaining 2 are follow_up/surface — neither blocks design completion."
+      },
+      "recommendation": "Proceed with the design draft as written. Auto-adopt C1, C2, C3 (below): (1) reuse listEpicWorkflowIds directly for enumeration+prefix filter (AC2/AC6); (2) reuse the existing async-generator fake Visibility client harness for epic-list.test.ts (AC1/AC2/AC3); (3) implement AC5 as a structural static argv/dispatch guard asserting epic dispatch reaches only 'list' and rejects create/update/delete tokens, co-located in cli-bridge-contract.test.ts. Surface C4 (shared withTimeout extraction) to user as optional refactor — untied, defer to avoid scope creep. Treat C5 (--json-required usage error) as a design note: make it an explicit testable non-zero usage error under AC4 help coverage, not silent.",
+      "follow_ups": [
+        "Optional: if withTimeout is duplicated into epic-list.ts, consider a later refactor to share it from a common bin/lib util — untied, do not block this change.",
+        "Confirm AC4 help-text test asserts both the new 'epic list' line AND that existing status/roadmap/slop-scan/dashboard lines remain (regression guard)."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addEpicListCli",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation for Add epic list CLI",
+      "sources": [
+        {
+          "label": "plugin/src/temporal/list-epic-workflows.ts (KD1 reuse target, verified)",
+          "locator": "/home/jon/dev/advance/plugin/src/temporal/list-epic-workflows.ts:30-59",
+          "summary": "listEpicWorkflowIds enumerates by WorkflowType=epicWorkflow, filters adv/epic/{projectId}/ prefix in-process, drops empty suffixes, returns string[]. Directly satisfies AC2 (id-only, prefix exclusion) and AC6 (Visibility enumeration, no per-Epic state query). KD1 reuse claim verified verbatim."
+        },
+        {
+          "label": "bin/lib/live-status.ts (mirrored worker-free pattern, verified)",
+          "locator": "/home/jon/dev/advance/bin/lib/live-status.ts:309-417",
+          "summary": "summariesFromVisibility/loadLiveSummaries use createTemporalClientBundle + bundle.connection.close() in finally + withTimeout, and build payloads with source:'temporal', live, stale, generated_at, project_id. The design's buildLiveEpicListPayload/loadLiveEpicIds/close-in-finally mirror this proven path exactly. AC1/AC3/DDC3 align with an existing template."
+        },
+        {
+          "label": "bin/lib/project.ts resolveProjectId (return contract, verified)",
+          "locator": "/home/jon/dev/advance/bin/lib/project.ts:10",
+          "summary": "resolveProjectId(cwd) returns Promise<string | null>; null means non-git-repo / unresolved. Design step 1 must treat null as a fail-closed structured error path (covered by AC3 'repo/Temporal/list failure'). Not handling null would be a logical gap, but AC3 already mandates it."
+        },
+        {
+          "label": "plugin/src/cli-bridge-contract.test.ts (AC5/KD4 guard surface, verified)",
+          "locator": "/home/jon/dev/advance/plugin/src/cli-bridge-contract.test.ts:42-118",
+          "summary": "Read-only CLI laws pinned via spec ID + FORBIDDEN_FANOUT_TOKENS static lists and verbatim-output assertions. Placing the AC5 no-mutation guard here as a structural argv/token assertion is consistent with P33 (structural-before-heuristic) and the established test pattern."
+        },
+        {
+          "label": "advance-epics spec (spec-law check, verified)",
+          "locator": "adv_spec show advance-epics v1.1.0 (rq-epicEntity01..rq-epicTemporalConstraints01)",
+          "summary": "14 requirements govern Epic entity/entries/promotion/membership/visibility. None defines or forbids a read-only CLI enumeration. rq-epicTemporalConstraints01 + rq-epicNoJiraClone01 (no PM clone) are consistent with an ID-only read CLI. Design's new rq-epicCliList01 in advance-epics is additive, not contradictory. No spec-law conflict."
+        }
+      ],
+      "architecture_assessment": "The design is the boring, proven path. Every load-bearing claim was verified against live code: listEpicWorkflowIds (KD1) exists and already does prefix filtering + id-only return satisfying AC2/AC6; the live-status.ts worker-free Visibility pattern (createTemporalClientBundle, close-in-finally, withTimeout, source/live/stale/generated_at/project_id payload) is a real template the new bin/lib/epic-list.ts mirrors 1:1; resolveProjectId and the cli-bridge-contract read-only test surface exist. No novel architecture, no new enumeration code, no mutation path. The advance-epics spec has no CLI requirement and nothing the design contradicts. Two minor notes: (1) resolveProjectId returns string|null, so the non-repo null branch must be an explicit fail-closed error (AC3 covers it but the design should name it); (2) withTimeout is currently defined inside live-status.ts, so reusing it from epic-list.ts implies either import or duplication — the scout already flagged this as an optional, untied follow-up.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "VALIDATED. Correctness: objectives met, only gap is the resolveProjectId null branch which AC3 already mandates. Simplicity: cannot be materially simpler — it reuses an existing helper and an existing CLI template; the only candidate simplification (shared withTimeout) is non-blocking. Spec-law: no conflict with advance-epics or the read-only CLI laws. Alternatives: no significant viable alternative overlooked (per-Epic hydration is explicitly out by C3/AC6; disk-read is forbidden by C2/DONT1)."
+      },
+      "recommendation": "Proceed to planning. Design is VALIDATED with one CAUTION-level note worth pinning in tasks, not a blocker: explicitly handle resolveProjectId returning null (non-git-repo) as a fail-closed AC3 JSON error with remediation, and add a RED test for it so the null path is not an implicit happy-path assumption. Keep the AC5 mutation guard structural in cli-bridge-contract.test.ts (argv/token assertion) per the established pattern. Treat shared-withTimeout extraction as an optional, untied follow-up — do not expand this change's scope for it.",
+      "follow_ups": [
+        "Add an explicit RED test + helper branch for resolveProjectId === null (non-git-repo) producing the AC3 fail-closed JSON shape, so the null contract is structural not assumed.",
+        "Optional/untied: if epic-list.ts needs withTimeout, prefer importing it from a shared bin/lib util over duplicating; defer extraction refactor to avoid scope creep.",
+        "Confirm AC4 help-text test asserts BOTH the new 'epic list' line and that existing status/roadmap/slop-scan/dashboard lines remain (regression guard)."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addEpicListCli",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addEpicListCli",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [
+        {
+          "id": "review-praise-1",
+          "label": "praise",
+          "file": "bin/lib/epic-list.ts",
+          "line": 82,
+          "what": "Epic list read path is narrow and worker-free: Temporal client bundle plus Visibility enumeration, no ADV state file read, no per-Epic workflow hydration.",
+          "why": "Satisfies SC1, SC3, AC6, C2, C3, DONT1, DONT3, and DONT4 with minimal surface area.",
+          "fix": "n/a"
+        },
+        {
+          "id": "review-praise-2",
+          "label": "praise",
+          "file": "plugin/src/cli-bridge-contract.test.ts",
+          "line": 243,
+          "what": "Read-only nested epic dispatch is covered by structural tests that forbid mutation verbs and per-Epic state reads.",
+          "why": "Satisfies AC5 and DONT2 while protecting future changes from accidentally broadening the CLI namespace.",
+          "fix": "n/a"
+        }
+      ],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "Path preflight: verified all listed changed files exist under workdir",
+          "bun test bin/lib/epic-list.test.ts bin/adv.test.ts",
+          "bin/oc-test targeted -- plugin/src/cli-bridge-contract.test.ts (exit 1: wrapper filter path was wrong, no tests found)",
+          "bin/oc-test targeted -- src/cli-bridge-contract.test.ts"
+        ],
+        "results": "pass",
+        "evidence": "Inspected bin/adv, bin/lib/epic-list.ts, bin/lib/epic-list.test.ts, bin/adv.test.ts, plugin/src/cli-bridge-contract.test.ts, plugin/src/temporal/list-epic-workflows.ts, .adv/specs/advance-epics/spec.json, docs/specs/advance-epics.md, AGENTS.md, and SETUP.md. Bun targeted suite passed: 20 tests, 0 fail. Vitest contract suite passed after corrected wrapper path: 18 tests, 0 fail. Initial oc-test invocation used repo-relative plugin/ prefix and failed before running tests; corrected command substantiates contract."
+      },
+      "scope_drift": null,
+      "risks": [],
+      "required_main_agent_actions": [],
+      "required_follow_ups": [],
+      "consumer_warnings": [
+        {
+          "kind": "consumer_failure",
+          "message": "Report packet requested scope_key acceptance-review, but durable report schema accepts review:acceptance for independent review summaries; submitted using schema-valid review:acceptance."
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addEpicListCli",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addEpicListCli",
+      "scope": {
+        "kind": "change",
+        "scope_key": "scanner-bundle:harden"
+      },
+      "agent": "adv-scanner-bundle",
+      "phase": "harden",
+      "scanner_count": 3,
+      "dimensions": [
+        "documentation-hygiene",
+        "production-readiness",
+        "deployment-readiness",
+        "test-coverage",
+        "residual-slop-maintainability",
+        "cleanup-readiness"
+      ],
+      "summary": "Harden scanners found one release blocker (missing rq-epicCliList01 external citation), one high documentation conflict (cli-surface matrix still keep-mcp-only), one medium canonical-constant drift, and minor help/doc gaps. All actionable blocker/high/medium findings were remediated and verified. Remaining low observation: optional Temporal-unreachable epic-list integration test can be added later; current contract failure branch remains covered by non-git fail-closed path and unit failure builder.",
+      "findings": [
+        {
+          "scanner": "documentation_hygiene",
+          "severity": "info",
+          "summary": "Fixed cli-surface matrix conflict by reclassifying adv_epic_list to mcp+cli-additive; fixed help text to mark epic list JSON-only and exit-code wording.",
+          "evidence": [
+            {
+              "label": "diff",
+              "locator": "docs/cli-surface-matrix.md:114",
+              "summary": "adv_epic_list row now documents reduced ID-only CLI plus rich MCP read."
+            },
+            {
+              "label": "diff",
+              "locator": "bin/adv:543",
+              "summary": "help marks epic list JSON-only and global --json required for epic list."
+            }
+          ]
+        },
+        {
+          "scanner": "production_deployment_readiness",
+          "severity": "info",
+          "summary": "Fixed missing rq-epicCliList01 citation and canonicalized Epic workflow type/prefix constants.",
+          "evidence": [
+            {
+              "label": "diff",
+              "locator": "plugin/src/temporal/list-epic-workflows.ts:7",
+              "summary": "rq-epicCliList01 citation added in plugin/src search root."
+            },
+            {
+              "label": "diff",
+              "locator": "plugin/src/temporal/contracts.ts:31",
+              "summary": "EPIC_WORKFLOW_PREFIX added beside EPIC_WORKFLOW_NAME; list and client code use canonical constants."
+            },
+            {
+              "label": "test",
+              "locator": "tr_mqug6i44_55df0b15",
+              "summary": "spec-citation invariant and temporal/CLI surface guards passed."
+            }
+          ]
+        },
+        {
+          "scanner": "test_slop_cleanup",
+          "severity": "info",
+          "summary": "No slop or cleanup candidates remained; coverage for changed implementation files stayed intact after remediation.",
+          "evidence": [
+            {
+              "label": "test",
+              "locator": "tr_mqug68bh_9dc34a4b",
+              "summary": "Bun CLI/helper tests passed, 20 tests."
+            },
+            {
+              "label": "test",
+              "locator": "tr_mqug75fi_a3aee0a6",
+              "summary": "pnpm run check passed."
+            }
+          ]
+        }
+      ],
+      "follow_ups": [
+        "Optional: add a dedicated Temporal-unreachable integration test for `adv epic list --json` mirroring the existing status failure test; current AC3 remains covered by non-git fail-closed path and helper failure-shape unit test."
+      ],
+      "consumer_warnings": []
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-Oy87FS",
+      "type": "pattern",
+      "content": "When adding a nested read-only CLI namespace, pair dispatcher support with an explicit allowlist constant and a static cli-bridge-contract test that forbids mutation verbs and checks the helper uses Visibility/list APIs rather than workflow handle queries or file reads.",
+      "source_task": "tk-894a2a77bed0",
+      "recorded_at": "2026-06-26T04:04:29.438Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-06-26T03:28:31.706Z",
+      "completed_by": "agent",
+      "approval_evidence": "Problem statement approved by user reply: approve. Proposal artifact updated with scope, outcomes, constraints, and discovery agenda. B/F/S scan found no critical findings.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "78beb93f44dde851ca1218df6236ac4bba11d3fc336ba357dfb858101a45811f",
+        "non_whitespace_chars": 3719,
+        "checked_at": "2026-06-26T03:18:57.303Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-06-26T03:33:31.698Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery agreement approved by user reply: approve. Agreement persisted, contract minted with SC1-SC3, AC1-AC6, C1-C4, DONT1-DONT4. Lineage from toolbox addEpicLauncherRows confirmed by user approval.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "f6630745b03334b99c7cb49630ff79dc96ebcad92a6ebfedf4fa8b06c74c5e97",
+        "non_whitespace_chars": 2332,
+        "checked_at": "2026-06-26T03:18:57.304Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-06-26T03:40:59.308Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design recorded. Mandatory leverage scout and independent adv-researcher validator ran. Validator verdict VALIDATED; design updated with non-git fail-closed JSON criterion from validator note. No unresolved conflict, user-value tradeoff, or contract-compromise risk.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "958eb9b0e0e2619030c41d3b6302472dcf9eeac57c93fe3dbf0a537e4a1ac849",
+        "non_whitespace_chars": 6636,
+        "checked_at": "2026-06-26T03:18:57.305Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-06-26T03:46:46.054Z",
+      "completed_by": "agent",
+      "approval_evidence": "Prep approved by user reply: approve. Task graph contains 5 tasks covering AC1-AC6, SC1-SC3, constraints, and avoidances. Worktree materialized at /home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addEpicListCli."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-06-26T04:05:02.568Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 5 tasks done with checkpoints. Verification passed: Bun CLI/helper tests 20 pass, cli-bridge-contract targeted test 18 pass, pnpm run check pass. Worktree clean. adv_change_validate strict passed with one non-blocking NO_DELTAS warning."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-06-26T04:32:39.684Z",
+      "completed_by": "agent",
+      "approval_evidence": "User accepted delivered work by reply: approve. Acceptance proof persisted before prompt: review matrix 17 required rows passed/respected, executive summary content hash a73de1b58fe5cdd97cc2e328274c75cea71c360c007678e19a92a7525a01ff8d, review verdict READY with no blockers/issues, live CLI verification tr_mquf0bhz_bf3c3595 passed.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "a73de1b58fe5cdd97cc2e328274c75cea71c360c007678e19a92a7525a01ff8d",
+        "non_whitespace_chars": 1573,
+        "checked_at": "2026-06-26T03:18:57.306Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "cross_project_origin": {
+    "source_project": "toolbox",
+    "source_path": "/home/jon/toolbox",
+    "source_change_id": "addEpicLauncherRows",
+    "linked_at": "2026-06-26T03:18:57.230Z"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "f6630745b03334b99c7cb49630ff79dc96ebcad92a6ebfedf4fa8b06c74c5e97",
+      "approvedAt": "2026-06-26T03:33:23.505Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "**SC1:** Toolbox can consume `adv epic list --json` without ADV state scraping.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f6630745b03334b99c7cb49630ff79dc96ebcad92a6ebfedf4fa8b06c74c5e97",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "**SC2:** CLI output distinguishes live success from fail-closed Temporal failure.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f6630745b03334b99c7cb49630ff79dc96ebcad92a6ebfedf4fa8b06c74c5e97",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "**SC3:** Command does not require an ADV worker polling the project task queue.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f6630745b03334b99c7cb49630ff79dc96ebcad92a6ebfedf4fa8b06c74c5e97",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "**AC1:** `bin/adv epic list --json` exits `0` in a git repo when Temporal Visibility list succeeds and outputs JSON with `source:\"temporal\"`, `live:true`, `stale:false`, `generated_at`, `project_id`, and `epics`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f6630745b03334b99c7cb49630ff79dc96ebcad92a6ebfedf4fa8b06c74c5e97",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "**AC2:** Success payload `epics` contains objects shaped `{ \"id\": string }` and excludes workflow IDs outside `adv/epic/{projectId}/`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f6630745b03334b99c7cb49630ff79dc96ebcad92a6ebfedf4fa8b06c74c5e97",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "**AC3:** Temporal/list failure exits non-zero and outputs JSON with `source:\"temporal\"`, `live:false`, `stale:false`, `epics:[]`, `error`, and `remediation`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f6630745b03334b99c7cb49630ff79dc96ebcad92a6ebfedf4fa8b06c74c5e97",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "**AC4:** CLI help lists `epic list`; existing `status`, `roadmap`, `slop-scan`, and `dashboard` behavior remains covered.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f6630745b03334b99c7cb49630ff79dc96ebcad92a6ebfedf4fa8b06c74c5e97",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "**AC5:** Tests prove no mutation subcommands are introduced through the new `epic` dispatch path.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f6630745b03334b99c7cb49630ff79dc96ebcad92a6ebfedf4fa8b06c74c5e97",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "**AC6:** Implementation uses Temporal Visibility enumeration, not ADV state file reads or per-Epic workflow state queries.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f6630745b03334b99c7cb49630ff79dc96ebcad92a6ebfedf4fa8b06c74c5e97",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "**C1:** CLI remains read-only.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f6630745b03334b99c7cb49630ff79dc96ebcad92a6ebfedf4fa8b06c74c5e97",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "**C2:** No disk fallback for active/live Epic rows.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f6630745b03334b99c7cb49630ff79dc96ebcad92a6ebfedf4fa8b06c74c5e97",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "**C3:** No full Epic hydration.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f6630745b03334b99c7cb49630ff79dc96ebcad92a6ebfedf4fa8b06c74c5e97",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "**C4:** Scope is current repo implementation only; toolbox consumer remains out of scope.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f6630745b03334b99c7cb49630ff79dc96ebcad92a6ebfedf4fa8b06c74c5e97",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "**DONT1:** Do not scrape ADV external state.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f6630745b03334b99c7cb49630ff79dc96ebcad92a6ebfedf4fa8b06c74c5e97",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "**DONT2:** Do not add `adv epic create`, `adv epic update`, or `adv epic delete`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f6630745b03334b99c7cb49630ff79dc96ebcad92a6ebfedf4fa8b06c74c5e97",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "**DONT3:** Do not require a running project worker.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f6630745b03334b99c7cb49630ff79dc96ebcad92a6ebfedf4fa8b06c74c5e97",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "**DONT4:** Do not silently return stale disk data.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f6630745b03334b99c7cb49630ff79dc96ebcad92a6ebfedf4fa8b06c74c5e97",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-06-26T04:12:05Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "adv-reviewer report addEpicListCli|change:review:acceptance|adv-reviewer|1 verdict READY; inspected CLI source/tests. Live run tr_mquf0bhz_bf3c3595 shows `bin/adv epic list --json` emits Temporal JSON for current project without ADV state scraping.",
+          "notes": "Toolbox consumer implementation remains out of scope."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Helper/dispatcher tests tr_mquemu5t_f093c1c8 passed 20 tests; failure-path coverage in bin/lib/epic-list.test.ts and bin/adv.test.ts verifies live success vs fail-closed Temporal failure fields.",
+          "notes": "Reviewer reported no issues."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Review report READY; implementation uses createTemporalClientBundle + listEpicWorkflowIds Visibility helper, not workflow task-queue polling. Static guard test tr_mquen25j_343810b0 passed.",
+          "notes": "Worker-free design preserved."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Live command verification tr_mquf0bhz_bf3c3595: exit 0 and JSON includes source:\"temporal\", live:true, stale:false, generated_at, project_id, epics. Bun tests tr_mquemu5t_f093c1c8 also passed.",
+          "notes": "Current project had no Epics, so epics:[] is valid."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Bun helper tests tr_mquemu5t_f093c1c8 passed; tests cover {id:string} object shape and filtering to adv/epic/{projectId}/ workflow IDs.",
+          "notes": "Reviewer inspected helper implementation."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Bun helper/dispatcher tests tr_mquemu5t_f093c1c8 passed; failure tests assert non-zero fail-closed JSON with source:\"temporal\", live:false, stale:false, epics:[], error, and remediation.",
+          "notes": "No stale fallback accepted."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Dispatcher tests tr_mquemu5t_f093c1c8 passed 20 tests; coverage includes help listing `epic list` and existing status/roadmap/slop-scan/dashboard behavior.",
+          "notes": "Docs updated in AGENTS.md and SETUP.md."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "Static cli-bridge guard test tr_mquen25j_343810b0 passed 18 tests; EPIC_READ_ONLY_SUBCOMMANDS allowlist only contains list and forbids mutation verbs.",
+          "notes": "Reviewer praised structural read-only guard."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "Static guard test tr_mquen25j_343810b0 passed; verifies use of listEpicWorkflowIds and rejects per-Epic getHandle queries/file reads. Reviewer inspected bin/lib/epic-list.ts.",
+          "notes": "Visibility enumeration path used."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "EPIC_READ_ONLY_SUBCOMMANDS allowlist and static test tr_mquen25j_343810b0 prove only read-only list dispatch exists in epic namespace.",
+          "notes": "No mutation CLI added."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Failure payload tests in tr_mquemu5t_f093c1c8 verify Temporal/list failures return fail-closed JSON instead of disk fallback.",
+          "notes": "No active/live disk fallback."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Static guard test tr_mquen25j_343810b0 and reviewer inspection confirm listEpicWorkflowIds is used without per-Epic workflow state hydration.",
+          "notes": "Output bounded to IDs."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Changed files are current Advance repo CLI/spec/docs/tests only; no toolbox consumer files touched. Reviewer report READY.",
+          "notes": "Cross-project consumer deferred."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Reviewer inspected implementation; static guard tr_mquen25j_343810b0 verifies no ADV state file reads in Epic list path.",
+          "notes": "No state scraping."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Static guard tr_mquen25j_343810b0 verifies EPIC_READ_ONLY_SUBCOMMANDS contains only list and excludes create/update/delete mutation verbs.",
+          "notes": "Mutation commands absent."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Implementation uses Temporal client Visibility helper listEpicWorkflowIds, not project worker task-queue polling; reviewer report READY.",
+          "notes": "No worker requirement added."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Failure behavior tests tr_mquemu5t_f093c1c8 and reviewer inspection confirm Temporal failure reports live:false/stale:false with error/remediation and no silent stale disk data.",
+          "notes": "Fail-closed semantics preserved."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "**AC1:** `bin/adv epic list --json` exits `0` in a git repo when Temporal Visibility list succeeds and outputs JSON with `source:\"temporal\"`, `live:true`, `stale:false`, `generated_at`, `project_id`, and `epics`.",
+    "**AC2:** Success payload `epics` contains objects shaped `{ \"id\": string }` and excludes workflow IDs outside `adv/epic/{projectId}/`.",
+    "**AC3:** Temporal/list failure exits non-zero and outputs JSON with `source:\"temporal\"`, `live:false`, `stale:false`, `epics:[]`, `error`, and `remediation`.",
+    "**AC4:** CLI help lists `epic list`; existing `status`, `roadmap`, `slop-scan`, and `dashboard` behavior remains covered.",
+    "**AC5:** Tests prove no mutation subcommands are introduced through the new `epic` dispatch path.",
+    "**AC6:** Implementation uses Temporal Visibility enumeration, not ADV state file reads or per-Epic workflow state queries."
+  ],
+  "documents": {
+    "proposal": "# Add epic list CLI\n\n## Why\n\nToolbox `warp-project-launcher` needs a shell-reachable live ADV Epic JSON source to render `[EPIC]` rows without scraping ADV state or hydrating every Epic workflow. Today, the Advance CLI exposes status, roadmap, slop-scan, and dashboard surfaces, but no Epic list surface. The repo already contains a worker-free Temporal Visibility helper that lists Epic workflow IDs by `WorkflowType = \"epicWorkflow\"` and filters the canonical `adv/epic/{projectId}/` workflow ID prefix.\n\nOrigin: blocks toolbox change `addEpicLauncherRows`, task `tk-d2e799620b08`.\n\n## What Changes\n\n- Add `adv epic list --json` to the read-only `bin/adv` CLI surface.\n- Return live Temporal-backed Epic IDs for the current project without reading ADV state files directly.\n- Use the existing `listEpicWorkflowIds` Visibility helper as the core enumeration path.\n- Preserve fail-closed behavior: Temporal/list failures return JSON error metadata instead of stale disk fallback.\n- Keep CLI mutation authority absent; this is read-only list output only.\n\n## User Outcomes\n\n- Toolbox can render `[EPIC]` launcher rows from a stable shell command.\n- Users can inspect current ADV Epics as JSON from a terminal without starting OpenCode.\n- Consumers get a clear live-vs-failed signal instead of ambiguous or stale data.\n- Advance keeps Epic state access structural and Temporal-backed.\n\n## Scope\n\n### In Scope\n\n- `bin/adv epic list --json` command parsing and output.\n- Shared CLI helper/module if needed for Epic list payload construction.\n- Tests covering dispatch, JSON success shape, fail-closed failure shape, and read-only command guard updates.\n- Documentation updates for the CLI surface where existing CLI docs enumerate subcommands.\n\n### Out of Scope\n\n- Human table rendering for `adv epic list` without `--json` unless needed for command ergonomics.\n- Epic detail hydration, child entry listing, progress summaries, or per-Epic workflow queries.\n- Mutation subcommands for Epics or changes.\n- Toolbox launcher implementation; this change only supplies the Advance CLI source.\n\n### Must Not\n\n- Must not scrape external ADV state files.\n- Must not query every Epic workflow for full state.\n- Must not add mutation authority to `bin/adv`.\n- Must not silently fall back to stale disk projections when Temporal is unavailable.\n- Must not depend on a live ADV worker polling a project task queue.\n\n## Affected Code\n\n- `bin/adv` — CLI dispatch and argument parsing.\n- `bin/lib/*` — likely new Epic list helper near existing live-status/roadmap modules.\n- `plugin/src/temporal/list-epic-workflows.ts` — existing worker-free enumeration helper to reuse or minimally extend.\n- `plugin/src/cli-bridge-contract.test.ts` and/or nearby CLI tests — safe dispatch/read-only guard updates.\n- `SETUP.md`, `AGENTS.md`, or CLI surface docs if command lists need refresh.\n\n## Related Repositories\n\n- Current repo: `advance` implements the CLI source.\n- Origin repo: `toolbox` consumes this output in `warp-project-launcher` after this change ships.\n\n## Constraints\n\n- Specs are law: `advance-epics` requires typed structural Epic state and optional Epic membership; `advance-meta` pins live Temporal-backed, fail-closed CLI behavior for analogous status surfaces.\n- CLI remains read-only.\n- Output must be stable JSON for shell consumers.\n- Runtime is Bun; tests run on Node/Vitest. Existing bin tests also use Bun where applicable.\n- Local implementation must use an ADV worktree before mutation.\n\n## Impact\n\n- Enables cross-project toolbox Epic launcher rows without unsafe state reads.\n- Adds one CLI read surface backed by existing Temporal Visibility data.\n- Keeps failure semantics explicit for automation.\n\n## Discovery Agenda\n\n- Confirm exact current CLI test pattern for `bin/adv` command execution and fixture stubbing.\n- Confirm whether non-JSON `adv epic list` should error with guidance or render a small table.\n- Confirm payload `epics[]` shape: likely array of objects with at least `{ id }`, unless consumer only needs strings.\n- Confirm whether docs/specs need a new explicit Epic CLI requirement or whether existing CLI/epic laws cover this additive read surface.\n\n## Ambiguity Scan\n\n- Boundaries: OK — In Scope, Out of Scope, and Must Not present.\n- Functional scope: OK — User Outcomes are implementation-free.\n- Completion signals: OK for proposal phase; testable AC deferred to discovery.",
+    "problemStatement": "Toolbox `warp-project-launcher` needs a shell-reachable live ADV Epic JSON source to render `[EPIC]` rows without scraping ADV state or hydrating every Epic workflow. Advance should provide a read-only, fail-closed `adv epic list --json` surface backed by Temporal Visibility for the current project.",
+    "agreement": "# Agreement\n\n## Objectives\n\n- Add a shell-readable live Epic list source for the current Advance project.\n- Keep output stable for toolbox launcher consumption.\n- Preserve read-only CLI authority.\n\n## Success Criteria\n\n- **SC1:** Toolbox can consume `adv epic list --json` without ADV state scraping.\n- **SC2:** CLI output distinguishes live success from fail-closed Temporal failure.\n- **SC3:** Command does not require an ADV worker polling the project task queue.\n\n## Acceptance Criteria\n\n- **AC1:** `bin/adv epic list --json` exits `0` in a git repo when Temporal Visibility list succeeds and outputs JSON with `source:\"temporal\"`, `live:true`, `stale:false`, `generated_at`, `project_id`, and `epics`.\n- **AC2:** Success payload `epics` contains objects shaped `{ \"id\": string }` and excludes workflow IDs outside `adv/epic/{projectId}/`.\n- **AC3:** Temporal/list failure exits non-zero and outputs JSON with `source:\"temporal\"`, `live:false`, `stale:false`, `epics:[]`, `error`, and `remediation`.\n- **AC4:** CLI help lists `epic list`; existing `status`, `roadmap`, `slop-scan`, and `dashboard` behavior remains covered.\n- **AC5:** Tests prove no mutation subcommands are introduced through the new `epic` dispatch path.\n- **AC6:** Implementation uses Temporal Visibility enumeration, not ADV state file reads or per-Epic workflow state queries.\n\n## Constraints\n\n- **C1:** CLI remains read-only.\n- **C2:** No disk fallback for active/live Epic rows.\n- **C3:** No full Epic hydration.\n- **C4:** Scope is current repo implementation only; toolbox consumer remains out of scope.\n\n## Avoidances\n\n- **DONT1:** Do not scrape ADV external state.\n- **DONT2:** Do not add `adv epic create`, `adv epic update`, or `adv epic delete`.\n- **DONT3:** Do not require a running project worker.\n- **DONT4:** Do not silently return stale disk data.\n\n## Preview Applicability\n\n- `visual_surface: false` — CLI JSON only; no UI/browser review needed.\n\n## Decisions\n\n### User Decisions\n\n- User approved the cross-project follow-up lineage from toolbox change `addEpicLauncherRows` and task `tk-d2e799620b08` by approving the discovery agreement.\n- User approved the JSON payload shape: `epics` is an array of objects with at least `{ \"id\": string }`.\n- User approved JSON as the required surface; human table rendering is not required for success.\n\n### Agent Decisions (LBP)\n\n- Use the existing worker-free Temporal Visibility helper (`listEpicWorkflowIds`) as the authoritative enumeration path.\n- Keep the command fail-closed, matching existing CLI status semantics.\n- Keep Epic list output bounded to IDs only; detail hydration stays out of scope.\n\n## Deferred Questions\n\n- None.\n\n## Sign-Off\n\nApproved by user reply: `approve` at discovery agreement checkpoint.",
+    "design": "# Design\n\n## Architecture Overview\n\nAdd a read-only nested CLI command, `adv epic list --json`, backed by Temporal Visibility.\n\nThe implementation mirrors the existing live status CLI pattern:\n\n1. Resolve the current git repo project ID with `resolveProjectId(process.cwd())`.\n2. Open a Temporal client with `createTemporalClientBundle()`.\n3. Enumerate Epic workflow IDs through the existing `listEpicWorkflowIds()` helper.\n4. Convert returned IDs into stable JSON objects: `epics: [{ id }]`.\n5. Close the Temporal connection in `finally`.\n6. Fail closed with structured JSON error metadata on repo/Temporal/list failure.\n\nNo ADV state files are read. No Epic workflow state is queried. No mutation command is added.\n\n## Key Decisions\n\n### KD1 — Reuse `listEpicWorkflowIds` verbatim\n\nUse `plugin/src/temporal/list-epic-workflows.ts` as the sole enumeration path. It already builds `WorkflowType = \"epicWorkflow\"`, filters the canonical `adv/epic/{projectId}/` workflow ID prefix in process, ignores empty suffixes, and returns IDs.\n\nRationale:\n\n- Satisfies AC2 and AC6 directly.\n- Avoids duplicate Visibility query construction.\n- Keeps project scoping structural through workflow ID prefix filtering.\n\n### KD2 — Add a small `bin/lib/epic-list.ts` helper\n\nCreate a CLI-local helper near `bin/lib/live-status.ts` with:\n\n- `EpicListPayload`\n- `EpicListEntry`\n- `buildLiveEpicListPayload(ids, { projectId, now })`\n- `buildLiveEpicListFailure(projectId, error, now)`\n- `loadLiveEpicIds(projectId, timeoutMs)`\n\nRationale:\n\n- Keeps payload/failure semantics testable without invoking the dispatcher.\n- Preserves locality with existing CLI read helpers.\n- Avoids touching plugin tool/state layers.\n\n### KD3 — Require `--json` for `epic list` in this slice\n\n`adv epic list --json` is the supported surface. `adv epic list` without `--json` returns a non-zero usage error with guidance.\n\nRationale:\n\n- Agreement requires shell-readable JSON for toolbox.\n- Human table rendering is out of scope.\n- A usage error is explicit and avoids accidental unstable text output.\n\n### KD4 — Make read-only safety structural in tests\n\nUpdate CLI dispatch/contract tests so `epic list` is allowed, but mutation verbs under `epic` (`create`, `update`, `delete`, `archive`, etc.) stay forbidden.\n\nRationale:\n\n- Satisfies AC5 and C1.\n- Proves read-only authority structurally, not by prose.\n\n## ADR Drafts\n\nNone. Decisions are low-risk, reversible CLI extension choices using existing architecture; no ADR threshold met.\n\n## Implementation Strategy\n\n1. **RED tests**\n   - Add `bin/lib/epic-list.test.ts` with fake async-generator Visibility client.\n   - Cover success payload, project-prefix exclusion through `listEpicWorkflowIds`, failure payload, and `resolveProjectId === null` dispatcher fail-closed JSON behavior.\n   - Add `bin/adv.test.ts` dispatcher coverage for help text, `epic list --json`, `epic list` usage error, and invalid nested commands.\n   - Update `plugin/src/cli-bridge-contract.test.ts` no-mutation guard for nested `epic` dispatch.\n\n2. **GREEN implementation**\n   - Add `bin/lib/epic-list.ts`.\n   - Import helper into `bin/adv`.\n   - Add `runEpic()` / `runEpicListCommand()` dispatcher branch.\n   - Update help text and exit-code docs.\n\n3. **Spec delta**\n   - Add `rq-epicCliList01` to `.adv/specs/advance-epics/spec.json`.\n   - Mirror generated/spec docs if this repo convention requires it for edited specs.\n\n4. **Docs**\n   - Update CLI command lists in `AGENTS.md` and/or `SETUP.md` where `bin/adv` subcommands are enumerated.\n\n5. **Verification**\n   - Targeted Bun tests for `bin/adv.test.ts` and `bin/lib/epic-list.test.ts`.\n   - Targeted Vitest for `plugin/src/cli-bridge-contract.test.ts` and relevant spec asset tests if spec docs change.\n   - Smoke/check through repo wrapper if planning requires broader proof.\n\n## LBP Analysis\n\nThis is the long-term best path because it reuses ADV's existing Temporal Visibility model instead of introducing another state source. The Temporal TypeScript SDK documents `WorkflowClient.list({ query })` as returning workflow executions matching a Visibility query, and Temporal List Filters support `WorkflowType = \"...\"`. Existing project code already uses this pattern for status and change enumeration.\n\nA disk-backed CLI would violate the agreement and repeat known stale-projection failure modes. A per-Epic workflow query would require worker availability and over-fetch detail the consumer does not need. A new MCP tool is unnecessary because the current gap is shell reachability for toolbox.\n\n## Affected Components\n\n- `bin/adv`\n  - Add nested `epic list` dispatch.\n  - Update help text and JSON flag description.\n\n- `bin/lib/epic-list.ts` (new)\n  - Own Epic list JSON payload construction and failure construction.\n  - Own Temporal connection/list orchestration for CLI.\n\n- `plugin/src/temporal/list-epic-workflows.ts`\n  - Reused as-is unless tests reveal a missing cap/error behavior.\n\n- `bin/adv.test.ts`\n  - Dispatcher and CLI JSON behavior coverage.\n\n- `bin/lib/epic-list.test.ts` (new)\n  - Unit coverage for helper behavior.\n\n- `plugin/src/cli-bridge-contract.test.ts`\n  - Read-only dispatch guard update.\n\n- `.adv/specs/advance-epics/spec.json`\n  - New requirement for read-only fail-closed Epic list CLI.\n\n- `AGENTS.md` / `SETUP.md`\n  - CLI surface docs if command lists are updated.\n\n## Design-Derived Criteria\n\n- **DDC1:** `adv epic list --json` must not call `client.workflow.getHandle(...).query(...)` or any ADV MCP/state-file read path.\n- **DDC2:** `epic list` non-JSON mode must return a non-zero usage error with guidance to use `--json`.\n- **DDC3:** Temporal connections opened by the CLI helper must close in `finally`.\n- **DDC4:** Tests must cover both helper-level payload construction and dispatcher-level argv parsing.\n- **DDC5:** Non-git repo behavior must be explicit fail-closed JSON for `--json`, not an uncaught null project ID assumption.\n\n## Risks / Mitigations\n\n- **Risk:** `adv_status`/`adv_change_list` performance and timeout issues indicate hot Temporal reads can be fragile.\n  - **Mitigation:** Keep Epic list helper minimal, worker-free, and no hydration. Use existing query helper and timeout pattern.\n\n- **Risk:** Nested `epic` dispatch could accidentally become a mutation namespace later.\n  - **Mitigation:** Add static no-mutation guard for nested `epic` verbs.\n\n- **Risk:** CLI docs drift from actual subcommands.\n  - **Mitigation:** Update help test and existing docs lists in same slice.\n\n- **Risk:** Spec docs mirror drift if spec JSON is edited.\n  - **Mitigation:** Run relevant schema/spec generation or update mirror docs if repository tests require it.\n\n## Design Leverage Scout\n\n- Scout attempted with `adv-researcher` in design mode.\n- Result: VALIDATED.\n- Candidates considered: 5.\n- Auto-adopted: 3.\n  - Reuse `listEpicWorkflowIds` verbatim.\n  - Reuse existing async-generator fake Visibility client harness.\n  - Prove AC5 with structural argv/dispatch guard.\n- Surfaced/considered but not scope-expanded:\n  - Non-JSON usage error retained as explicit small-contract behavior because JSON is the approved surface.\n  - Shared `withTimeout` extraction deferred as untied follow-up; no scope expansion.\n\n## Validator Result\n\n- Verdict: VALIDATED.\n- Findings:\n  - Correctness: solves objectives; validator noted `resolveProjectId === null` must be covered explicitly as fail-closed JSON.\n  - Simplicity: no materially simpler approach; reuses existing helper and CLI pattern.\n  - Spec-law compliance: no conflict with `advance-epics` or read-only CLI laws; new `rq-epicCliList01` is additive.\n  - Alternatives: no viable alternative overlooked; per-Epic hydration and disk reads are explicitly barred.\n- Design adjustment from validator: added DDC5 and RED test requirement for non-git repo fail-closed JSON behavior.",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\n\nAPPROVED review verdict for a read-only `adv epic list --json` CLI backed by Temporal Visibility. Delivered surface gives shell consumers live Epic IDs for the current project while preserving fail-closed, no-scrape, no-hydration constraints.\n\n## Verdict\n\nAPPROVED\n\n## What Was Built\n\n1. Added `rq-epicCliList01` to the advance-epics spec and mirrored CLI docs in `docs/specs/advance-epics.md`, `AGENTS.md`, and `SETUP.md`.\n2. Added `bin/lib/epic-list.ts` helper with live and failure payload builders, project-prefix filtering, Temporal Visibility enumeration, bounded timeout, and client cleanup.\n3. Wired `bin/adv epic list --json` dispatch, help text, non-JSON usage handling, non-git fail-closed JSON, and live success output.\n4. Added structural read-only guard coverage for the nested Epic CLI namespace with `EPIC_READ_ONLY_SUBCOMMANDS` and cli-bridge contract tests.\n5. Ran integrated verification and fixed the only issue, Prettier formatting in `plugin/src/cli-bridge-contract.test.ts`.\n\n## What Was Verified\n\n- Verdict: APPROVED / READY; adv-reviewer report `addEpicListCli|change:review:acceptance|adv-reviewer|1` found no blockers or issues.\n- Tests: pass — `tr_mquemu5t_f093c1c8` (`bun test bin/adv.test.ts bin/lib/epic-list.test.ts`, 20 pass), `tr_mquen25j_343810b0` (`bin/oc-test targeted -- src/cli-bridge-contract.test.ts`, 18 pass), `tr_mqueooby_3bd4841a` (`pnpm run check`, pass), and live command verification `tr_mquf0bhz_bf3c3595` (`bin/adv epic list --json`, exit 0, Temporal JSON).\n- Preview URL: not_applicable — CLI JSON only; agreement declares `visual_surface: false` and implementation has no browser/UI surface.\n- Contract matrix: 17 required rows passed/respected; 0 failed, violated, unknown, or missing.\n\n## Remaining Concerns\n\nNone.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-06-26T04:12:05Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | **SC1:** Toolbox can consume `adv epic list --json` without ADV state scraping. | pass | adv-reviewer report addEpicListCli|change:review:acceptance|adv-reviewer|1 verdict READY; inspected CLI source/tests. Live run tr_mquf0bhz_bf3c3595 shows `bin/adv epic list --json` emits Temporal JSON for current project without ADV state scraping. |\n| SC2 | success_criterion | **SC2:** CLI output distinguishes live success from fail-closed Temporal failure. | pass | Helper/dispatcher tests tr_mquemu5t_f093c1c8 passed 20 tests; failure-path coverage in bin/lib/epic-list.test.ts and bin/adv.test.ts verifies live success vs fail-closed Temporal failure fields. |\n| SC3 | success_criterion | **SC3:** Command does not require an ADV worker polling the project task queue. | pass | Review report READY; implementation uses createTemporalClientBundle + listEpicWorkflowIds Visibility helper, not workflow task-queue polling. Static guard test tr_mquen25j_343810b0 passed. |\n| AC1 | acceptance_criterion | **AC1:** `bin/adv epic list --json` exits `0` in a git repo when Temporal Visibility list succeeds and outputs JSON with `source:\"temporal\"`, `live:true`, `stale:false`, `generated_at`, `project_id`, and `epics`. | pass | Live command verification tr_mquf0bhz_bf3c3595: exit 0 and JSON includes source:\"temporal\", live:true, stale:false, generated_at, project_id, epics. Bun tests tr_mquemu5t_f093c1c8 also passed. |\n| AC2 | acceptance_criterion | **AC2:** Success payload `epics` contains objects shaped `{ \"id\": string }` and excludes workflow IDs outside `adv/epic/{projectId}/`. | pass | Bun helper tests tr_mquemu5t_f093c1c8 passed; tests cover {id:string} object shape and filtering to adv/epic/{projectId}/ workflow IDs. |\n| AC3 | acceptance_criterion | **AC3:** Temporal/list failure exits non-zero and outputs JSON with `source:\"temporal\"`, `live:false`, `stale:false`, `epics:[]`, `error`, and `remediation`. | pass | Bun helper/dispatcher tests tr_mquemu5t_f093c1c8 passed; failure tests assert non-zero fail-closed JSON with source:\"temporal\", live:false, stale:false, epics:[], error, and remediation. |\n| AC4 | acceptance_criterion | **AC4:** CLI help lists `epic list`; existing `status`, `roadmap`, `slop-scan`, and `dashboard` behavior remains covered. | pass | Dispatcher tests tr_mquemu5t_f093c1c8 passed 20 tests; coverage includes help listing `epic list` and existing status/roadmap/slop-scan/dashboard behavior. |\n| AC5 | acceptance_criterion | **AC5:** Tests prove no mutation subcommands are introduced through the new `epic` dispatch path. | pass | Static cli-bridge guard test tr_mquen25j_343810b0 passed 18 tests; EPIC_READ_ONLY_SUBCOMMANDS allowlist only contains list and forbids mutation verbs. |\n| AC6 | acceptance_criterion | **AC6:** Implementation uses Temporal Visibility enumeration, not ADV state file reads or per-Epic workflow state queries. | pass | Static guard test tr_mquen25j_343810b0 passed; verifies use of listEpicWorkflowIds and rejects per-Epic getHandle queries/file reads. Reviewer inspected bin/lib/epic-list.ts. |\n| C1 | constraint | **C1:** CLI remains read-only. | respected | EPIC_READ_ONLY_SUBCOMMANDS allowlist and static test tr_mquen25j_343810b0 prove only read-only list dispatch exists in epic namespace. |\n| C2 | constraint | **C2:** No disk fallback for active/live Epic rows. | respected | Failure payload tests in tr_mquemu5t_f093c1c8 verify Temporal/list failures return fail-closed JSON instead of disk fallback. |\n| C3 | constraint | **C3:** No full Epic hydration. | respected | Static guard test tr_mquen25j_343810b0 and reviewer inspection confirm listEpicWorkflowIds is used without per-Epic workflow state hydration. |\n| C4 | constraint | **C4:** Scope is current repo implementation only; toolbox consumer remains out of scope. | respected | Changed files are current Advance repo CLI/spec/docs/tests only; no toolbox consumer files touched. Reviewer report READY. |\n| DONT1 | avoidance | **DONT1:** Do not scrape ADV external state. | respected | Reviewer inspected implementation; static guard tr_mquen25j_343810b0 verifies no ADV state file reads in Epic list path. |\n| DONT2 | avoidance | **DONT2:** Do not add `adv epic create`, `adv epic update`, or `adv epic delete`. | respected | Static guard tr_mquen25j_343810b0 verifies EPIC_READ_ONLY_SUBCOMMANDS contains only list and excludes create/update/delete mutation verbs. |\n| DONT3 | avoidance | **DONT3:** Do not require a running project worker. | respected | Implementation uses Temporal client Visibility helper listEpicWorkflowIds, not project worker task-queue polling; reviewer report READY. |\n| DONT4 | avoidance | **DONT4:** Do not silently return stale disk data. | respected | Failure behavior tests tr_mquemu5t_f093c1c8 and reviewer inspection confirm Temporal failure reports live:false/stale:false with error/remediation and no silent stale disk data. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-06-26T03:28:23.062Z",
+      "contentHash": "78beb93f44dde851ca1218df6236ac4bba11d3fc336ba357dfb858101a45811f",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-06-26T03:28:23.062Z",
+      "contentHash": "3085796f93de1adf42c8059f3f16a7caccd39ef481dc2a39dd832b46e69b16e2",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-06-26T03:33:17.211Z",
+      "contentHash": "f6630745b03334b99c7cb49630ff79dc96ebcad92a6ebfedf4fa8b06c74c5e97",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-06-26T03:40:49.039Z",
+      "contentHash": "958eb9b0e0e2619030c41d3b6302472dcf9eeac57c93fe3dbf0a537e4a1ac849",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-06-26T04:13:48.272Z",
+      "contentHash": "a73de1b58fe5cdd97cc2e328274c75cea71c360c007678e19a92a7525a01ff8d",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-06-26T04:46:48.939Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "ops_followup": {
+    "kind": "other",
+    "source": {
+      "source_change_id": "addEpicLauncherRows",
+      "source_project_id": "3f9f88dbc6c65a2463945f1cfda1fc59794f411d",
+      "source_path": "/home/jon/toolbox",
+      "source_kind": "manual",
+      "source_contract_id": "AC1",
+      "source_task_id": "tk-d2e799620b08"
+    },
+    "relationship": "blocks",
+    "status": "not_started",
+    "created_at": "2026-06-26T03:18:57.435Z",
+    "evidence": []
+  }
+}
