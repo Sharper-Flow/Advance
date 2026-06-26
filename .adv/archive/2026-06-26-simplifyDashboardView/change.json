@@ -1,0 +1,1029 @@
+{
+  "id": "simplifyDashboardView",
+  "title": "Simplify dashboard view",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-06-26T04:50:24.877Z",
+  "tasks": [
+    {
+      "id": "tk-1b2f7d960ff3",
+      "title": "Implement typed dashboard grouping in lane builder",
+      "type": "code",
+      "section": "Grouping model",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-06-26T05:11:33.629Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required",
+        "frontend": "false"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "SC5",
+          "AC1",
+          "AC2",
+          "AC4",
+          "AC5"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC4",
+          "AC5"
+        ],
+        "respects": [
+          "C4",
+          "C5",
+          "C6",
+          "DONT4",
+          "DONT5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-26T05:21:49.244Z",
+      "verification": "RED tr_mquhjcqh_89b89cae failed because duplicate source history was not grouped and draft inventory was not summarized. GREEN tr_mquhlb89_a47812f5 passed `bun test bin/lib/dashboard/attention.test.ts` (3 tests, 17 expects).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Extended the typed dashboard lane item model with `GroupedLaneItem`. Added deterministic grouping for duplicate workflow_run/deployment items by kind, status, title, and branch/ref metadata. Added latest timestamp selection, open PR priority in unmatched, and draft ADV inventory summarization when draft count exceeds 5. Preserved lane keys: attention, active, unmatched, inventory.",
+      "filesTouched": [
+        "bin/lib/dashboard/attention.test.ts",
+        "bin/lib/dashboard/attention.ts"
+      ],
+      "touched_files": [
+        "bin/lib/dashboard/attention.test.ts",
+        "bin/lib/dashboard/attention.ts"
+      ],
+      "checkpointSha": "fa667df661539645371247e574edccb7568792ff",
+      "completedAt": "2026-06-26T05:25:06.780Z",
+      "completed_at": "2026-06-26T05:25:06.780Z",
+      "notes": "Completed. RED tr_mquhjcqh_89b89cae; GREEN tr_mquhlb89_a47812f5. Checkpoint fa667df6.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "RED test expected grouped duplicate source history and summarized draft inventory, but lane builder emitted raw duplicate cards and full draft inventory.",
+            "diagnosis": "Grouping/summary belonged in typed lane model but was not implemented yet.",
+            "fix_tried": "Added GroupedLaneItem, source grouping helpers, unmatched sorting, latest timestamp selection, and draft inventory summary.",
+            "strategy_label": "typed-lane-grouping",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-26T05:25:00.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-26T05:25:25.725Z"
+    },
+    {
+      "id": "tk-9b35ae665efb",
+      "title": "Render grouped and compact dashboard lanes safely",
+      "type": "code",
+      "section": "UI rendering",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-06-26T05:11:56.280Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-1b2f7d960ff3"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed",
+        "frontend": "true"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC3",
+          "SC4",
+          "AC2",
+          "AC3",
+          "AC6",
+          "AC7"
+        ],
+        "verifies": [
+          "AC2",
+          "AC3",
+          "AC6",
+          "AC7"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C5",
+          "DONT1",
+          "DONT2",
+          "DONT3"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-26T05:26:01.499Z",
+      "verification": "RED tr_mquhnmdd_54c17797 failed because UI did not render grouped lane items through read-only disclosures. GREEN tr_mquhp6ls_9991488b passed `bun test bin/lib/dashboard/ui.test.ts` (6 tests, 61 expects).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Updated dashboard UI to render typed grouped lane items as read-only `<details class=\"group-card\">` disclosures. Summaries show count/status/latest text without links; member cards render inside details through existing item renderers. Inventory groups preview at most 5 members and report hidden count. Existing `safeUrl`, `escapeHtml`, metadata, and no-mutation rendering paths remain in use.",
+      "filesTouched": [
+        "bin/lib/dashboard/ui.test.ts",
+        "bin/lib/dashboard/ui.ts"
+      ],
+      "touched_files": [
+        "bin/lib/dashboard/ui.test.ts",
+        "bin/lib/dashboard/ui.ts"
+      ],
+      "checkpointSha": "bd03e4b39fe4e9493ccaccaffba1f487dbac83a7",
+      "completedAt": "2026-06-26T05:28:06.860Z",
+      "completed_at": "2026-06-26T05:28:06.860Z",
+      "notes": "Completed. RED tr_mquhnmdd_54c17797; GREEN tr_mquhp6ls_9991488b. Checkpoint bd03e4b3.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "GREEN attempt tr_mquhopk0_da613a8f failed because UI test expected an exact preview expression that differed from safe implementation.",
+            "diagnosis": "Implementation was functionally correct but static test assertion was too brittle.",
+            "fix_tried": "Adjusted assertion to match the actual safe `(group.items || []).slice(0, limit)` expression.",
+            "strategy_label": "de-brittle-static-ui-test",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-26T05:29:00.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-26T05:28:27.377Z"
+    },
+    {
+      "id": "tk-003230313726",
+      "title": "Verify live-shape dashboard compactness end to end",
+      "type": "verification",
+      "section": "Integration verification",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-06-26T05:12:19.670Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-9b35ae665efb"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "inline_required",
+        "frontend": "false"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "SC4",
+          "SC5",
+          "AC8"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7",
+          "AC8"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-26T05:29:11.506Z",
+      "verification": "Acceptance reviewer READY and remediated successful-history grouping plus deployment status timestamp precedence. VERIFY tr_mqui3npy_d8267b13 passed dashboard attention/server/UI tests (18 tests, 117 expects). VERIFY tr_mqui3rvf_55641142 passed `bun test bin/` (163 tests, 489 expects).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "bin/lib/dashboard/attention.test.ts",
+        "bin/lib/dashboard/attention.ts",
+        "bin/lib/dashboard/server.test.ts",
+        "bin/lib/dashboard/server.ts"
+      ],
+      "touched_files": [
+        "bin/lib/dashboard/attention.test.ts",
+        "bin/lib/dashboard/attention.ts",
+        "bin/lib/dashboard/server.test.ts",
+        "bin/lib/dashboard/server.ts"
+      ],
+      "checkpointSha": "d542d25caf5bb1653c8c6372f19ba6d673d41518",
+      "completedAt": "2026-06-26T05:39:18.324Z",
+      "completed_at": "2026-06-26T05:39:18.324Z",
+      "notes": "Completed. Targeted verify tr_mquhu21i_d4da1863; full verify tr_mquhui7j_6ec29bdb. Checkpoint f6b9b560.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "Targeted integration run tr_mquhshlm_3225d1db failed because deployment status timestamps were not propagated to deployment items, so grouped deployment latestUpdatedAt was missing.",
+            "diagnosis": "withDeploymentSourceStates copied deployment status state into source_states but dropped status updated_at when the deployment object had no updated_at.",
+            "fix_tried": "Propagated deployment status updated_at into deployment updated_at when deployment updated_at is absent.",
+            "strategy_label": "propagate-deployment-status-time",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-26T05:32:00.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-26T05:32:39.764Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "simplifyDashboardView",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Validate dashboard compact/grouped presentation design",
+      "sources": [
+        {
+          "label": "MDN <details> element",
+          "locator": "https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/details",
+          "summary": "Native disclosure widget; closed by default, open via `open` attr; implicit ARIA role group. Built-in keyboard + state semantics. No server/JS required for toggle."
+        },
+        {
+          "label": "WebAIM Disclosures and Accordions",
+          "locator": "https://webaim.org/techniques/disclosures/",
+          "summary": "details/summary have built-in accessibility: summary functions as a button, expanded/collapsed state exposed to AT. Collapsed content must be fully hidden (display:none / hidden attr) so focusable children are not reachable while hidden."
+        },
+        {
+          "label": "NY State Design System — Accordion accessibility",
+          "locator": "https://designsystem.ny.gov/components/accordion/accessibility-build/",
+          "summary": "details is 'effectively unbreakable' for native disclosure with source-level control and no requirements beyond native HTML. Constraint: summary MUST NOT contain interactive child elements (nested-interactive WCAG failure)."
+        },
+        {
+          "label": "Scott O'Hara — details/summary quirks",
+          "locator": "https://www.scottohara.me/blog/2022/09/12/details-summary.html",
+          "summary": "Native details exposed inconsistently across AT; reader-mode respects open/hidden. Acceptable for an internal read-only ops board; relevant only if cross-AT polish becomes a requirement."
+        },
+        {
+          "label": "Nova AIOps — Alert Grouping & Deduplication guide",
+          "locator": "https://novaaiops.com/blog/alert-grouping-deduplication-guide",
+          "summary": "Industry consensus: group_by must include severity/status or it masks distinct failure modes; dropping the distinguishing label collapses two real problems into one. Validates including status in the group key."
+        },
+        {
+          "label": "Ceph mgr/dashboard 'Group similar alerts' PR #65312",
+          "locator": "https://github.com/ceph/ceph/pull/65312",
+          "summary": "Real-world grouped-alert dashboard: shows 'Total occurrences: N' + active-since on the group card, members in expandable detail. Reviewer guidance: do not repeat fields on inner rows that are constant across the group; avoid table-in-table nesting."
+        },
+        {
+          "label": "Grafana alerting triage improvements PR #119952",
+          "locator": "https://github.com/grafana/grafana/pull/119952",
+          "summary": "Production triage UI groups rows with card-style borders, per-group counts, collapse/expand. Confirms group-card-with-count + local expand is the boring, proven pattern for noisy ops lanes."
+        },
+        {
+          "label": "Local source — bin/lib/dashboard/ui.ts, attention.ts, server.ts, correlation.ts, ui.test.ts, attention.test.ts",
+          "locator": "/home/jon/dev/advance/bin/lib/dashboard/",
+          "summary": "Current arch: server.ts builds lanes via buildAttentionLanes (attention.ts) from correlated items, lanes flow into DashboardApiState.projects[].lanes; ui.ts renders client-side from /api/state via itemHtml/advChangeHtml/metadataHtml/safeUrl/escapeHtml. attention.ts already implements summary collapsing for successful history (lines 90-115) and a SummaryLaneItem kind (lines 64-69)."
+        }
+      ],
+      "architecture_assessment": "Design direction is sound and aligns with the by-the-book pattern for noisy ops dashboards (group-by-status card with count + latest timestamp, members behind native disclosure). Evidence: Grafana #119952 and Ceph #65312 ship exactly this; Nova AIOps confirms status/severity MUST be in the group key (the design's key `kind+status+title+branch/ref` satisfies this). Native <details>/<summary> for read-only local expansion is the simplest correct choice (MDN, WebAIM, NY State) — built-in keyboard + AT state, zero server prefs, zero JS toggle code, which directly satisfies the 'no mutation / no server prefs' contract.\n\nKEY ARCHITECTURE DECISION NOT RESOLVED IN DESIGN: WHERE grouping runs. ui.ts is currently a pure client-side renderer over the API shape; attention.ts already owns lane composition AND already does aggregation (success-history -> SummaryLaneItem, attention.ts:90-115, 108-115). The design proposes a NEW presentation-item shape inside ui.ts (the PresentationItem union in _design). That splits aggregation across two layers: server-side summary collapsing in attention.ts and client-side grouping in ui.ts. This is a locality-of-behavior concern (P04) and a testability concern — bin/ tests (attention.test.ts) assert on the typed lane arrays, but ui.test.ts only assert on rendered HTML string fragments, so client-only grouping logic would be tested by brittle string matching rather than typed unit assertions.\n\nSafety reuse is feasible but NOT automatic: the design says reuse itemHtml/safeUrl/escapeHtml. ui.ts:124 renderLane currently maps each item to itemHtml/degradedHtml. A group card wrapper must route every member AND the representative through the same escapeHtml/safeUrl paths; the representative's title/url/metadata must not be string-concatenated raw into the <summary>. NY State constraint applies: <summary> MUST NOT contain interactive children (no <a> Source link inside <summary>) — the representative link must live in the <details> body or the group card body, not in the summary, or it is a nested-interactive WCAG failure.",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "VERDICT: NEEDS_WORK (design is directionally VALIDATED; three adjustments needed before planning).\n\n1. DECIDE GROUPING LAYER (highest leverage). Prefer building groups in attention.ts (or a small typed adjacent module) as a typed lane item — extend the existing SummaryLaneItem/aggregation pattern (attention.ts:64-69, 90-115) rather than inventing a parallel PresentationItem union inside ui.ts. Rationale: attention.ts already aggregates; keeping grouping there preserves locality (P04), gives typed unit tests in attention.test.ts (which already assert lane arrays + group counts), and keeps ui.ts a thin renderer. AC #8 demands grouping/compactness/expansion be covered by tests — typed lane items are far more testable than HTML-string assertions. If grouping stays in ui.ts, AC#8 coverage will lean on brittle string matching like the existing ui.test.ts.\n\n2. ACCESSIBILITY: representative link placement. Do NOT put the safe <a> Source link inside <summary> (nested-interactive WCAG failure per NY State Design System). Put representative metadata text in <summary>, put links/member cards in the <details> body. Collapsed <details> natively hides content from AT (WebAIM) so no extra aria-hidden needed.\n\n3. SAFETY CONTRACT (AC#7): the group-card path must funnel representative title/branch/ref/url and every member through escapeHtml/safeUrl exactly like itemHtml (ui.ts:90-102). Add an explicit test that a malicious url/title inside a grouped member is escaped and a non-http(s) url is dropped — the existing safeUrl test (ui.test.ts:23-24) only covers the single-card path.\n\nLOWER-PRIORITY RISKS:\n- Group key uses rendered title (_design). Title is derived (e.g. workflowRunFields name fallback, attention.ts:183-187; deploymentFields `Deployment: {env}`, attention.ts:218). Two different runs can share a title; including status+branch/ref mitigates, but confirm the key is computed from the SAME normalized fields the card displays so the count never disagrees with visible members (Ceph #65312 hit exactly this 'inner table repeated/incorrect identifier' bug).\n- latestUpdatedAt: updated_at fields are ISO strings from GitHub (attention.ts:167,194,220). Sort lexicographically only if guaranteed ISO-8601 UTC; otherwise parse. Cite: source items carry `Z`-suffixed timestamps in tests (attention.test.ts:139,150) so lexical max is safe for current data but should be asserted.\n- The clarify finding CLARIFY_MISSING_ERROR_HANDLING is already addressed by the design's fallback-to-single-card error section; that is the correct boring fallback (degrade to less-compact, never block /api/state).\n- Inventory summarization: attention.ts:71-78 currently pushes ALL non-actionable adv_change into inventory as full cards. AC#5 requires a summary + bounded preview. This is a server-side (attention.ts) change, reinforcing recommendation #1 that grouping/summarization belongs in attention.ts, not ui.ts."
+      },
+      "recommendation": "Proceed to planning with the design direction VALIDATED, but make grouping/summarization a TYPED server-side concern in attention.ts (extend the existing SummaryLaneItem + history-aggregation pattern) instead of a new client-only PresentationItem union in ui.ts. This maximizes testability (AC#8), preserves locality (P04), and lets ui.ts stay a thin renderer that reuses itemHtml/metadataHtml/safeUrl/escapeHtml unchanged for members. Use native <details>/<summary> for expansion with the representative link in the details body (never in <summary>). Add explicit tests: (a) typed group item with count + latest timestamp in attention.test.ts, (b) malicious-url/title escaping inside a grouped member in ui.test.ts, (c) inventory renders summary not full draft wall, (d) attention/active remain expanded. Keep the design's fallback-to-single-card error handling.",
+      "follow_ups": [
+        "Confirm with planning whether group items become a new typed lane item kind (e.g. 'group') in attention.ts AttentionLanes, which would also require ui.ts itemHtml to add a groupHtml branch alongside the existing adv_change/degraded_source/summary branches (ui.ts:90-124).",
+        "Verify GitHub updated_at timestamps are always ISO-8601 Z before relying on lexical max for latestUpdatedAt; add a parse if any non-Z format can appear from github.ts.",
+        "Decide a bounded preview limit (N) for unmatched open-PR cards and inventory drafts; design says 'small preview' but does not pin N — pin it as a named constant for testability."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "simplifyDashboardView",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/simplifyDashboardView",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [
+        {
+          "file": "bin/lib/dashboard/attention.ts",
+          "summary": "Kept successful workflow/deployment history duplicates on the deterministic grouping path keyed by kind/status/title/branch-or-ref, while preserving single successful history items as compact summaries.",
+          "verification": "bun test bin/lib/dashboard/attention.test.ts bin/lib/dashboard/server.test.ts bin/lib/dashboard/ui.test.ts: 18 pass, 0 fail; bun test bin/: 163 pass, 0 fail."
+        },
+        {
+          "file": "bin/lib/dashboard/attention.test.ts",
+          "summary": "Added coverage that duplicate successful workflow history groups by title and branch with count/latest timestamp, while a different branch remains a summary instead of merging incorrectly.",
+          "verification": "bun test bin/lib/dashboard/attention.test.ts bin/lib/dashboard/server.test.ts bin/lib/dashboard/ui.test.ts: 18 pass, 0 fail; bun test bin/: 163 pass, 0 fail."
+        },
+        {
+          "file": "bin/lib/dashboard/server.ts",
+          "summary": "Let GitHub deployment status updated_at override deployment updated_at so grouped deployment latest time reflects latest status evidence.",
+          "verification": "bun test bin/lib/dashboard/attention.test.ts bin/lib/dashboard/server.test.ts bin/lib/dashboard/ui.test.ts: 18 pass, 0 fail; bun test bin/: 163 pass, 0 fail."
+        },
+        {
+          "file": "bin/lib/dashboard/server.test.ts",
+          "summary": "Pinned deployment-status updated_at behavior by giving deployments older timestamps and asserting grouped latestUpdatedAt comes from deployment_statuses.",
+          "verification": "bun test bin/lib/dashboard/attention.test.ts bin/lib/dashboard/server.test.ts bin/lib/dashboard/ui.test.ts: 18 pass, 0 fail; bun test bin/: 163 pass, 0 fail."
+        }
+      ],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "bun test bin/lib/dashboard/attention.test.ts bin/lib/dashboard/server.test.ts bin/lib/dashboard/ui.test.ts",
+          "bun test bin/"
+        ],
+        "results": "pass",
+        "evidence": "Targeted dashboard tests: 18 pass, 0 fail, 117 expects. Full bin suite: 163 pass, 0 fail, 489 expects. Initial task-scoped report/evidence attempts failed because acceptance-review is not an existing ADV task anchor; valid anchors are tk-1b2f7d960ff3, tk-9b35ae665efb, tk-003230313726. Persisted as change-scoped review:acceptance per tool guidance."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Context packet TASK value acceptance-review is not an existing ADV task anchor, so report is persisted as change-scoped review:acceptance rather than task-scoped."
+      ],
+      "required_main_agent_actions": [],
+      "required_follow_ups": [],
+      "consumer_warnings": [
+        {
+          "kind": "consumer_failure",
+          "message": "Task-scoped report submit failed with INVALID_TASK_ANCHOR for acceptance-review; persisted as change-scoped review:acceptance."
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "simplifyDashboardView",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/simplifyDashboardView",
+      "scope": {
+        "kind": "change",
+        "scope_key": "harden:release"
+      },
+      "agent": "adv-reviewer",
+      "phase": "harden",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- bin/lib/dashboard/attention.test.ts bin/lib/dashboard/server.test.ts bin/lib/dashboard/ui.test.ts",
+          "bun test bin/lib/dashboard/attention.test.ts bin/lib/dashboard/server.test.ts bin/lib/dashboard/ui.test.ts"
+        ],
+        "results": "pass",
+        "evidence": "Inspected diff against origin/trunk for bin/lib/dashboard/attention.ts, server.ts, ui.ts and companion tests. bin/oc-test targeted exited 1 because repo wrapper targets plugin Vitest include patterns and does not discover bin tests. Correct bin-surface verification passed: bun test bin/lib/dashboard/attention.test.ts bin/lib/dashboard/server.test.ts bin/lib/dashboard/ui.test.ts => 18 pass, 0 fail, 117 expect calls. Orchestrator-provided prior evidence: targeted dashboard verify tr_mqui3npy_d8267b13 passed 18 tests/117 expects; full bin verify tr_mqui3rvf_55641142 passed 163 tests/489 expects; acceptance reviewer READY; conformance status empty/no required specs."
+      },
+      "scope_drift": null,
+      "risks": [],
+      "required_main_agent_actions": [],
+      "required_follow_ups": [],
+      "consumer_warnings": []
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-_g-EAw",
+      "type": "pattern",
+      "content": "For dashboard compactness, compress duplicate source history in the typed lane-builder layer, not in UI heuristics. Group by structural display identity (kind + status + title + branch/ref), keep count/latest/member details in typed lane items, and leave the UI as a safe renderer.",
+      "source_task": "tk-1b2f7d960ff3",
+      "recorded_at": "2026-06-26T05:25:36.240Z"
+    },
+    {
+      "id": "ws-Qr_mKR",
+      "type": "gotcha",
+      "content": "Static HTML-template tests can become brittle when they assert exact JavaScript expressions. For dashboard UI behavior, assert durable rendering contracts (uses groupHtml/details/safeUrl/escapeHtml/no forms) but avoid overfitting to equivalent implementation expressions.",
+      "source_task": "tk-9b35ae665efb",
+      "recorded_at": "2026-06-26T05:28:38.587Z"
+    },
+    {
+      "id": "ws-yCtFja",
+      "type": "gotcha",
+      "content": "Deployment status objects can contain the useful status timestamp even when the deployment object itself lacks `updated_at`. When grouping deployment history, propagate status `updated_at` into the projected deployment item so group latest-time reflects the status event, not an empty deployment shell.",
+      "source_task": "tk-003230313726",
+      "recorded_at": "2026-06-26T05:32:51.484Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-06-26T05:03:42.987Z",
+      "completed_by": "agent",
+      "approval_evidence": "Proposal approved by explicit user reply `approve` after deeper live-data investigation. Scope revised from simple lane collapse to concise operations-board value target with deterministic grouping, open-PR prioritization, inactive deployment/history summaries, and inventory summary/preview.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "2d86c82adcac7062b3bf11dad039ea09b85979a7fb8367d8505aa817ceea5f0d",
+        "non_whitespace_chars": 3597,
+        "checked_at": "2026-06-26T04:50:24.909Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-06-26T05:07:36.820Z",
+      "completed_by": "agent",
+      "approval_evidence": "Agreement approved by explicit user reply `approve`. Discovery refined scope using live dashboard data: remaining clutter is duplicate source history and draft inventory, not just long lanes. Contract minted with 24 items.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "6136c0dc50eff5c3cee5be7dc62ec9f283fe3ba130d06f013cbb8586fe1854d1",
+        "non_whitespace_chars": 2683,
+        "checked_at": "2026-06-26T04:50:24.910Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-06-26T05:11:01.031Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design completed after independent validator review. Validator returned NEEDS_WORK for layer placement only; design updated to make grouping a typed lane-building concern in attention.ts, keep UI thin, avoid links inside summary, and pin count/latest/safe-render behavior by tests. No product tradeoff, conflict, or contract-compromise risk remains.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "8184342405757634c222c5b11861b47ed14ac17613405e55a52d6e8bd586ac47",
+        "non_whitespace_chars": 4517,
+        "checked_at": "2026-06-26T04:50:24.911Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-06-26T05:21:19.715Z",
+      "completed_by": "agent",
+      "approval_evidence": "Prep approved by explicit user reply `approve` after task graph presentation. Task graph has 3 tasks with TDD intent, dependencies, evidence policies, and contract refs. Validation passed with accepted NO_DELTAS warning because dashboard CLI/UI behavior is not a spec-law change."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-06-26T05:33:16.997Z",
+      "completed_by": "agent",
+      "approval_evidence": "Execution complete: 3/3 tasks done with checkpoints. Delivered typed source grouping, inventory summarization, grouped read-only UI disclosures, deployment status timestamp propagation, and live-shape integration coverage. Verification: tr_mquhu21i_d4da1863 targeted dashboard tests passed 17 tests/115 expects; tr_mquhui7j_6ec29bdb full `bun test bin/` passed 162 tests/487 expects."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-06-26T05:58:26.972Z",
+      "completed_by": "user:jon",
+      "approval_evidence": "User accepted delivered work by explicit reply `approve` after acceptance summary. Evidence: contract matrix 24/24 pass/respected; acceptance reviewer READY; targeted dashboard tests tr_mqui3npy_d8267b13 passed 18 tests/117 assertions; full bin suite tr_mqui3rvf_55641142 passed 163 tests/489 assertions.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "88a1dd39724dc51cbcb45fec9523c20d3db0ea9a063662755f724fe4a1c119d6",
+        "non_whitespace_chars": 1542,
+        "checked_at": "2026-06-26T04:50:24.912Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "fast_follow_of": {
+    "parent_change_id": "improveDashboardLanes",
+    "linked_at": "2026-06-26T04:50:24.862Z"
+  },
+  "origin": {
+    "kind": "discovery",
+    "source_artifact": "user-feedback:dashboard-still-cluttered-after-lanes"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "6136c0dc50eff5c3cee5be7dc62ec9f283fe3ba130d06f013cbb8586fe1854d1",
+      "approvedAt": "2026-06-26T05:07:27.837Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "PokeEdge-style repeated source history compresses into grouped cards instead of raw duplicate cards.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6136c0dc50eff5c3cee5be7dc62ec9f283fe3ba130d06f013cbb8586fe1854d1",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "Inactive deployment history no longer dominates `Unmatched source`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6136c0dc50eff5c3cee5be7dc62ec9f283fe3ba130d06f013cbb8586fe1854d1",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "Draft ADV changes no longer dominate `Inventory` by default.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6136c0dc50eff5c3cee5be7dc62ec9f283fe3ba130d06f013cbb8586fe1854d1",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC4",
+        "kind": "success_criterion",
+        "text": "Active/running work stays visible without user expansion.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6136c0dc50eff5c3cee5be7dc62ec9f283fe3ba130d06f013cbb8586fe1854d1",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC5",
+        "kind": "success_criterion",
+        "text": "Users can still expand groups/details locally to inspect hidden items.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6136c0dc50eff5c3cee5be7dc62ec9f283fe3ba130d06f013cbb8586fe1854d1",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "Given duplicate workflow/deployment source items exist, when the dashboard renders, then repeated items with the same kind/status/title/branch-or-ref are grouped into one visible card with a count and latest timestamp.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6136c0dc50eff5c3cee5be7dc62ec9f283fe3ba130d06f013cbb8586fe1854d1",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Given `Attention` has repeated failures, when the dashboard loads, then failures remain visible but duplicates are grouped so the lane shows signal groups rather than raw event spam.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6136c0dc50eff5c3cee5be7dc62ec9f283fe3ba130d06f013cbb8586fe1854d1",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Given `Active work` has running items, when the dashboard loads, then active items remain immediately visible without requiring expansion.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6136c0dc50eff5c3cee5be7dc62ec9f283fe3ba130d06f013cbb8586fe1854d1",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Given `Unmatched source` includes open PRs and inactive deployment history, when the dashboard loads, then open PRs are prioritized and inactive deployment history is summarized/collapsed by default.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6136c0dc50eff5c3cee5be7dc62ec9f283fe3ba130d06f013cbb8586fe1854d1",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Given `Inventory` contains many draft ADV changes, when the dashboard loads, then the lane shows an inventory summary and does not render a full draft card wall by default.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6136c0dc50eff5c3cee5be7dc62ec9f283fe3ba130d06f013cbb8586fe1854d1",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Given a grouped or collapsed card has hidden detail items, when the user expands it locally, then hidden items become visible without network mutation or server write.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6136c0dc50eff5c3cee5be7dc62ec9f283fe3ba130d06f013cbb8586fe1854d1",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "Given source cards include URLs and metadata, when grouped/compact rendering is used, then safe URL allowlisting, HTML escaping, and no-secret behavior remain intact.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6136c0dc50eff5c3cee5be7dc62ec9f283fe3ba130d06f013cbb8586fe1854d1",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC8",
+        "kind": "acceptance_criterion",
+        "text": "Given dashboard tests run, when `bun test bin/` completes, then grouping, default compactness, expansion behavior, and read-only constraints are covered by tests.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6136c0dc50eff5c3cee5be7dc62ec9f283fe3ba130d06f013cbb8586fe1854d1",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Local-only dashboard at `127.0.0.1`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6136c0dc50eff5c3cee5be7dc62ec9f283fe3ba130d06f013cbb8586fe1854d1",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Read-only UI only: no rerun/merge/approve/deploy/archive/cancel actions.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6136c0dc50eff5c3cee5be7dc62ec9f283fe3ba130d06f013cbb8586fe1854d1",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "No token or secret display.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6136c0dc50eff5c3cee5be7dc62ec9f283fe3ba130d06f013cbb8586fe1854d1",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Do not hide attention/failure groups behind a collapsed lane.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6136c0dc50eff5c3cee5be7dc62ec9f283fe3ba130d06f013cbb8586fe1854d1",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Keep existing lane keys: `attention`, `active`, `unmatched`, `inventory`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6136c0dc50eff5c3cee5be7dc62ec9f283fe3ba130d06f013cbb8586fe1854d1",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C6",
+        "kind": "constraint",
+        "text": "Prefer deterministic grouping over UI heuristics.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6136c0dc50eff5c3cee5be7dc62ec9f283fe3ba130d06f013cbb8586fe1854d1",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "No server-side preferences store.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6136c0dc50eff5c3cee5be7dc62ec9f283fe3ba130d06f013cbb8586fe1854d1",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "No analytics/trends dashboard.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6136c0dc50eff5c3cee5be7dc62ec9f283fe3ba130d06f013cbb8586fe1854d1",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "No GitHub or ADV mutation controls.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6136c0dc50eff5c3cee5be7dc62ec9f283fe3ba130d06f013cbb8586fe1854d1",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "No fuzzy linking changes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6136c0dc50eff5c3cee5be7dc62ec9f283fe3ba130d06f013cbb8586fe1854d1",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "No hiding failures entirely.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6136c0dc50eff5c3cee5be7dc62ec9f283fe3ba130d06f013cbb8586fe1854d1",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-06-26T05:40:22.912Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Typed grouping in `attention.ts` compresses repeated source history; tests tr_mqui3npy_d8267b13 passed 18 dashboard tests/117 expects.",
+          "notes": "Reviewer READY."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Inactive deployment history groups by kind/status/title/ref and renders as grouped cards; tr_mqui3npy_d8267b13 and tr_mqui3rvf_55641142 passed.",
+          "notes": ""
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Draft inventory summarizes into a group when count exceeds 5; attention/server tests verify inventory group count and collapsedByDefault.",
+          "notes": ""
+        },
+        {
+          "contractId": "SC4",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Active lane remains visible; UI rendering keeps active lane as ordinary lane and only group details use disclosures. tr_mqui3npy_d8267b13 passed.",
+          "notes": ""
+        },
+        {
+          "contractId": "SC5",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Group items expose member details and UI renders `<details class=\"group-card\">`; hidden items are available through local disclosure expansion. tr_mqui3npy_d8267b13 passed.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "attention.test verifies duplicate workflow/deployment grouping by kind/status/title/branch-or-ref with count and latest timestamp. tr_mqui3npy_d8267b13 passed.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "attention/server tests verify repeated failures group into one signal group rather than raw spam. tr_mqui3npy_d8267b13 passed.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "UI lane keys and active rendering preserved; grouped UI does not require active lane expansion. tr_mqui3npy_d8267b13 passed.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "server test verifies unmatched lane order `[pull, group]`, putting open PRs before inactive deployment groups. tr_mqui3npy_d8267b13 passed.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "attention/server tests verify many draft ADV changes become inventory group with count and collapsedByDefault rather than full draft wall. tr_mqui3npy_d8267b13 passed.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "UI test verifies group rendering through `<details>/<summary>` and hiddenCount/member previews. tr_mqui3npy_d8267b13 passed.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "UI tests cover safeUrl/escapeHtml in grouped path and no links inside summary; full bin suite passed tr_mqui3rvf_55641142.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC8",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Full `bun test bin/` passed in tr_mqui3rvf_55641142: 163 tests, 489 expects.",
+          "notes": ""
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No host/listener behavior changed; dashboard remains local-only. Full bin suite tr_mqui3rvf_55641142 passed.",
+          "notes": ""
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No forms or mutation controls added; UI no-mutation tests passed in tr_mqui3npy_d8267b13.",
+          "notes": ""
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No token/secret fields added; rendering still uses escape/sanitization paths and full suite passed.",
+          "notes": ""
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Lane keys unchanged and pinned by tests: attention, active, unmatched, inventory. tr_mqui3npy_d8267b13 passed.",
+          "notes": ""
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Grouping implemented in typed lane builder, not UI heuristics. Reviewer READY confirmed architecture.",
+          "notes": ""
+        },
+        {
+          "contractId": "C6",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No cache/coalescing provider changes except deployment timestamp projection; full bin suite passed tr_mqui3rvf_55641142.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No server-side preferences store added; expansion uses native local `<details>`.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No analytics/trends dashboard added.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No GitHub or ADV mutation controls added; no-mutation UI tests passed.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No fuzzy linking changes; grouping uses already-projected deterministic source identity only.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Failures are grouped but still visible in attention; not hidden entirely. attention/server tests passed.",
+          "notes": ""
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "Given duplicate workflow/deployment source items exist, when the dashboard renders, then repeated items with the same kind/status/title/branch-or-ref are grouped into one visible card with a count and latest timestamp.",
+    "Given `Attention` has repeated failures, when the dashboard loads, then failures remain visible but duplicates are grouped so the lane shows signal groups rather than raw event spam.",
+    "Given `Active work` has running items, when the dashboard loads, then active items remain immediately visible without requiring expansion.",
+    "Given `Unmatched source` includes open PRs and inactive deployment history, when the dashboard loads, then open PRs are prioritized and inactive deployment history is summarized/collapsed by default.",
+    "Given `Inventory` contains many draft ADV changes, when the dashboard loads, then the lane shows an inventory summary and does not render a full draft card wall by default.",
+    "Given a grouped or collapsed card has hidden detail items, when the user expands it locally, then hidden items become visible without network mutation or server write.",
+    "Given source cards include URLs and metadata, when grouped/compact rendering is used, then safe URL allowlisting, HTML escaping, and no-secret behavior remain intact.",
+    "Given dashboard tests run, when `bun test bin/` completes, then grouping, default compactness, expansion behavior, and read-only constraints are covered by tests."
+  ],
+  "documents": {
+    "proposal": "# Simplify dashboard view\n\n## Problem\nThe lane taxonomy is now understandable, but the dashboard still does not deliver the user value: a quick answer to “what needs my attention now?”\n\nLive evidence from `http://127.0.0.1:8765/api/state` after `improveDashboardLanes`:\n\n### PokeEdge\n- `attention`: 11 items, but only 7 repeated groups.\n  - examples: duplicate `Deployment: production/main` failures, duplicate `Sync OpenAPI to Frontend/main`, duplicate `Staging Deploy/staging`, duplicate `PR Gate/change/evaluatePrintingIdentityField`.\n- `active`: 2 items.\n  - one workflow run and one deployment for the same production deploy.\n- `unmatched`: 34 items, but only 9 groups.\n  - 26 are inactive production deployments on `main`.\n  - 8 are open PRs.\n- `inventory`: 71 items.\n  - 68 draft ADV changes plus 3 summary/history items.\n\n### PokeEdge Web\n- `attention`: 6 items, 5 groups.\n- `active`: 0 items.\n- `unmatched`: 29 items, only 2 groups.\n  - 28 inactive production deployments on `main`.\n  - 1 open PR.\n- `inventory`: 29 draft/history items.\n\n## Diagnosis\nThe remaining clutter is not just long lanes. It is repeated low-value source history and large draft inventory shown with the same visual weight as actionable work.\n\nA simple “collapse Unmatched and Inventory” helps, but is not enough. The dashboard should:\n1. Group repeated source events before rendering.\n2. Keep true attention/active items visible, but collapse duplicate runs/deployments into grouped cards.\n3. Treat open unmatched PRs as more useful than inactive deployment history.\n4. Treat draft ADV inventory as background inventory, not a card wall.\n\n## Value target\nDefault view should be a concise operations board:\n- First screen answers: what is broken, what is running, what open source work is untracked, and how much background inventory exists.\n- Duplicate history is summarized into grouped cards with counts and latest timestamp.\n- Full detail remains inspectable through read-only local expansion.\n\n## Scope\nMake dashboard concise by default through deterministic grouping and bounded rendering:\n- Keep lane keys unchanged: `attention`, `active`, `unmatched`, `inventory`.\n- Group repeated workflow/deployment cards by kind + status + title + branch/ref.\n- For grouped cards, show count, latest timestamp, representative metadata, and a read-only expandable detail list.\n- Keep `Attention` and `Active work` expanded by default, but grouped/deduped.\n- In `Unmatched source`, show open PRs first; summarize inactive deployments/history into grouped collapsed cards.\n- In `Inventory`, summarize draft ADV changes by default and show a bounded preview only on expansion.\n- Preserve source metadata, safe URL allowlisting, HTML escaping, sanitization, local-only behavior, and no mutation controls.\n\n## Acceptance criteria\n1. Given duplicate workflow/deployment source items exist, when the dashboard renders, then repeated items with the same kind/status/title/branch-or-ref are grouped into one visible card with a count and latest timestamp.\n2. Given `Attention` has repeated failures, when the dashboard loads, then failures remain visible but duplicates are grouped so the lane shows signal groups rather than raw event spam.\n3. Given `Active work` has running items, when the dashboard loads, then active items remain immediately visible without requiring expansion.\n4. Given `Unmatched source` includes open PRs and inactive deployment history, when the dashboard loads, then open PRs are prioritized and inactive deployment history is summarized/collapsed by default.\n5. Given `Inventory` contains many draft ADV changes, when the dashboard loads, then the lane shows an inventory summary and does not render a full draft card wall by default.\n6. Given a grouped or collapsed card has hidden detail items, when the user expands it locally, then hidden items become visible without network mutation or server write.\n7. Given source cards include URLs and metadata, when grouped/compact rendering is used, then safe URL allowlisting, HTML escaping, and no-secret behavior remain intact.\n8. Given dashboard tests run, when `bun test bin/` completes, then grouping, default compactness, expansion behavior, and read-only constraints are covered by tests.",
+    "problemStatement": "Dashboard lane taxonomy is clearer, but live data still produces a busy page because duplicate workflow/deployment history and draft ADV inventory render with too much visual weight. The user value is a concise operations board, not just collapsed columns.",
+    "agreement": "# Agreement: Simplify dashboard view\n\n## Problem\nThe current dashboard is understandable but still too busy for daily use. Live evidence shows repeated workflow/deployment history and draft ADV inventory are the dominant clutter sources.\n\n## Objectives\n1. Make the default view answer “what needs attention now?” within one scan.\n2. Keep true `Attention` and `Active work` visible.\n3. Reduce visual weight of duplicate source history through deterministic grouping.\n4. Prioritize open unmatched PRs over inactive deployment history.\n5. Turn draft ADV inventory into a summary/preview, not a full card wall.\n6. Preserve inspectability through read-only local expansion.\n7. Preserve existing dashboard safety: local-only, read-only, sanitized, safe URLs only.\n\n## Success criteria\n- PokeEdge-style repeated source history compresses into grouped cards instead of raw duplicate cards.\n- Inactive deployment history no longer dominates `Unmatched source`.\n- Draft ADV changes no longer dominate `Inventory` by default.\n- Active/running work stays visible without user expansion.\n- Users can still expand groups/details locally to inspect hidden items.\n\n## Acceptance criteria\n1. Given duplicate workflow/deployment source items exist, when the dashboard renders, then repeated items with the same kind/status/title/branch-or-ref are grouped into one visible card with a count and latest timestamp.\n2. Given `Attention` has repeated failures, when the dashboard loads, then failures remain visible but duplicates are grouped so the lane shows signal groups rather than raw event spam.\n3. Given `Active work` has running items, when the dashboard loads, then active items remain immediately visible without requiring expansion.\n4. Given `Unmatched source` includes open PRs and inactive deployment history, when the dashboard loads, then open PRs are prioritized and inactive deployment history is summarized/collapsed by default.\n5. Given `Inventory` contains many draft ADV changes, when the dashboard loads, then the lane shows an inventory summary and does not render a full draft card wall by default.\n6. Given a grouped or collapsed card has hidden detail items, when the user expands it locally, then hidden items become visible without network mutation or server write.\n7. Given source cards include URLs and metadata, when grouped/compact rendering is used, then safe URL allowlisting, HTML escaping, and no-secret behavior remain intact.\n8. Given dashboard tests run, when `bun test bin/` completes, then grouping, default compactness, expansion behavior, and read-only constraints are covered by tests.\n\n## Constraints\n- Local-only dashboard at `127.0.0.1`.\n- Read-only UI only: no rerun/merge/approve/deploy/archive/cancel actions.\n- No token or secret display.\n- Do not hide attention/failure groups behind a collapsed lane.\n- Keep existing lane keys: `attention`, `active`, `unmatched`, `inventory`.\n- Prefer deterministic grouping over UI heuristics.\n\n## Avoidances\n- No server-side preferences store.\n- No analytics/trends dashboard.\n- No GitHub or ADV mutation controls.\n- No fuzzy linking changes.\n- No hiding failures entirely.",
+    "design": "# Design: Simplify dashboard view\n\n## Strategy\nKeep the API lane taxonomy unchanged, but add deterministic typed grouping and compactness in the dashboard lane-building layer.\n\nValidator adjustment: grouping should live in `attention.ts` / lane model, not as an ad hoc client-only union in `ui.ts`. Existing architecture is:\n\n`server.ts` → `buildAttentionLanes` typed lanes → sanitized API state → `ui.ts` thin escaped renderer.\n\nThis change preserves that architecture by extending typed lane items before rendering. `ui.ts` remains a dumb formatter over typed lane items.\n\n## Why grouping is required\nLive clutter is dominated by duplicate source events:\n- PokeEdge `unmatched`: 26 inactive production deployments collapse to one group.\n- PokeEdge Web `unmatched`: 28 inactive production deployments collapse to one group.\n- PokeEdge `attention`: 11 raw failures collapse to 7 signal groups.\n\n## Typed lane item model\nExtend the existing lane item model with a grouped item. Keep or extend the existing `SummaryLaneItem` pattern rather than creating unrelated UI-only objects.\n\nSuggested shape:\n\n```ts\nexport interface GroupedLaneItem {\n  kind: \"group\";\n  groupKind: \"workflow_run\" | \"deployment\" | \"inventory\";\n  title: string;\n  status?: string;\n  count: number;\n  latestUpdatedAt?: string;\n  representative: DashboardLaneItem;\n  items: DashboardLaneItem[];\n  collapsedByDefault: boolean;\n  metadata?: LaneCardMetadata[];\n}\n```\n\n`DashboardLaneItem` should include grouped items. Tests pin this shape.\n\n## Grouping rules\nGroup source items when all are true:\n- kind is `workflow_run` or `deployment`\n- same status\n- same rendered title\n- same branch/ref metadata value, if present\n\nGroup key:\n`kind + status + title + (metadata.Branch || metadata.Ref || \"\")`\n\nDo not group:\n- active `adv_change` items.\n- `degraded_source` setup/error cards.\n- open PRs with different PR numbers/titles.\n\nStatus must remain in the group key so distinct failure modes are never merged.\n\n## Latest item / count correctness\n- `count` must equal `items.length`.\n- `latestUpdatedAt` uses lexical ISO timestamp comparison only for valid ISO-like strings already emitted by GitHub; if missing/invalid, omit latest rather than guessing.\n- `representative` should be the newest valid-timestamp item, falling back to the first item.\n\n## Lane-specific behavior\n### `attention`\n- Expanded by default.\n- Group duplicate workflow/deployment failures.\n- Each group card shows count, title, status, branch/ref, latest updated time, and representative link if safe.\n- Details expand to member cards.\n- Do not hide attention/failure groups behind a collapsed lane.\n\n### `active`\n- Expanded by default.\n- No hiding active/running work.\n- Group only exact duplicate source items if they represent the same live operation.\n\n### `unmatched`\n- Expanded enough to show useful untracked work.\n- Sort open PRs before inactive deployment/history groups.\n- Open PR cards remain visible up to a bounded preview limit of 5.\n- Inactive deployments/history render as grouped collapsed cards.\n- Overflow uses read-only `<details>`.\n\n### `inventory`\n- Compact by default.\n- Draft ADV changes become an inventory group/summary with count.\n- Show at most 5 draft previews inside expansion by default, with hidden count.\n- Do not render all draft ADV changes in the default view.\n\n## Expansion and accessibility\nUse native `<details>` / `<summary>` for group details and overflow detail. This preserves read-only local behavior and needs no server storage.\n\nAccessibility guardrails:\n- Do not place interactive children such as `<a>` inside `<summary>`.\n- Put source links in the expanded details body or in normal card body outside summary.\n- Keep summaries text-only plus counts/status text.\n\n## Safety\n- Continue using existing `itemHtml`, `advChangeHtml`, `metadataHtml`, `safeUrl`, and `escapeHtml` rendering paths.\n- Group cards and group members must not bypass URL allowlisting or escaping.\n- Add a malicious-title/malicious-URL test for grouped rendering.\n- No forms, POSTs, mutation labels, or write endpoints.\n\n## Error handling\nIf grouping encounters missing fields, it falls back to conservative single-card rendering or a less-specific group key. Since this is presentation-only over already loaded API state, failure mode is a readable but less compact dashboard; it must not block `/api/state`, mutate data, or display secrets.\n\n## Tests\n- `attention.test.ts`: grouping by kind/status/title/branch-ref, count correctness, latest timestamp selection, open PR prioritization, inactive deployment grouping, draft inventory summary.\n- `ui.test.ts`: group rendering uses `<details>`/`<summary>`, no interactive children in summary, attention/active remain visible, inventory does not render all drafts by default, grouped path uses safe URL and HTML escaping.\n- Existing read-only/no-mutation/safe URL tests remain.\n- Full `bun test bin/` verifies no dashboard regressions.\n\n## Validator outcome\nIndependent validator returned NEEDS_WORK for layer placement, not product direction. Adjustments applied:\n- grouping moved to typed lane-building layer (`attention.ts`) rather than UI-only union.\n- source links must not be inside `<summary>`.\n- count/latest/group-key behavior must be pinned by tests.\n- grouped rendering gets malicious URL/title tests.",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\n\nImplemented concise dashboard presentation for the local ADV dashboard. The dashboard now compresses repeated workflow/deployment history into typed groups, prioritizes open unmatched PRs, and summarizes large draft ADV inventory instead of rendering raw duplicate event spam and full draft card walls.\n\n## Verdict\n\nAPPROVED\n\n## What Was Built\n\n1. Added typed grouped lane items in the dashboard lane builder.\n2. Grouped duplicate workflow/deployment items by kind, status, title, and branch/ref.\n3. Preserved lane keys: `attention`, `active`, `unmatched`, `inventory`.\n4. Kept `Attention` and `Active work` visible while grouping repeated source events.\n5. Sorted unmatched source items so open PRs appear before inactive deployment/history groups.\n6. Summarized large draft ADV inventories into a count/preview group.\n7. Rendered grouped items with read-only `<details>/<summary>` disclosures.\n8. Kept source links outside summaries and behind existing `safeUrl` allowlist.\n9. Kept HTML escaping, no-secret behavior, and no mutation controls.\n10. Propagated deployment status timestamps so grouped deployment cards show the latest status event time.\n\n## What Was Verified\n\n- Contract matrix: 24/24 rows pass/respected.\n- Acceptance reviewer: `simplifyDashboardView|change:review:acceptance|adv-reviewer|1` returned READY.\n- Targeted dashboard tests after reviewer remediation: `tr_mqui3npy_d8267b13` passed 18 tests, 117 assertions.\n- Full bin suite after reviewer remediation: `tr_mqui3rvf_55641142` passed `bun test bin/` with 163 tests, 489 assertions.\n\n## Remaining Concerns\n\nNone for the accepted contract. The installed dashboard service still runs the previous release until this change is archived/merged and the service is restarted from trunk.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-06-26T05:40:22.912Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | PokeEdge-style repeated source history compresses into grouped cards instead of raw duplicate cards. | pass | Typed grouping in `attention.ts` compresses repeated source history; tests tr_mqui3npy_d8267b13 passed 18 dashboard tests/117 expects. |\n| SC2 | success_criterion | Inactive deployment history no longer dominates `Unmatched source`. | pass | Inactive deployment history groups by kind/status/title/ref and renders as grouped cards; tr_mqui3npy_d8267b13 and tr_mqui3rvf_55641142 passed. |\n| SC3 | success_criterion | Draft ADV changes no longer dominate `Inventory` by default. | pass | Draft inventory summarizes into a group when count exceeds 5; attention/server tests verify inventory group count and collapsedByDefault. |\n| SC4 | success_criterion | Active/running work stays visible without user expansion. | pass | Active lane remains visible; UI rendering keeps active lane as ordinary lane and only group details use disclosures. tr_mqui3npy_d8267b13 passed. |\n| SC5 | success_criterion | Users can still expand groups/details locally to inspect hidden items. | pass | Group items expose member details and UI renders `<details class=\"group-card\">`; hidden items are available through local disclosure expansion. tr_mqui3npy_d8267b13 passed. |\n| AC1 | acceptance_criterion | Given duplicate workflow/deployment source items exist, when the dashboard renders, then repeated items with the same kind/status/title/branch-or-ref are grouped into one visible card with a count and latest timestamp. | pass | attention.test verifies duplicate workflow/deployment grouping by kind/status/title/branch-or-ref with count and latest timestamp. tr_mqui3npy_d8267b13 passed. |\n| AC2 | acceptance_criterion | Given `Attention` has repeated failures, when the dashboard loads, then failures remain visible but duplicates are grouped so the lane shows signal groups rather than raw event spam. | pass | attention/server tests verify repeated failures group into one signal group rather than raw spam. tr_mqui3npy_d8267b13 passed. |\n| AC3 | acceptance_criterion | Given `Active work` has running items, when the dashboard loads, then active items remain immediately visible without requiring expansion. | pass | UI lane keys and active rendering preserved; grouped UI does not require active lane expansion. tr_mqui3npy_d8267b13 passed. |\n| AC4 | acceptance_criterion | Given `Unmatched source` includes open PRs and inactive deployment history, when the dashboard loads, then open PRs are prioritized and inactive deployment history is summarized/collapsed by default. | pass | server test verifies unmatched lane order `[pull, group]`, putting open PRs before inactive deployment groups. tr_mqui3npy_d8267b13 passed. |\n| AC5 | acceptance_criterion | Given `Inventory` contains many draft ADV changes, when the dashboard loads, then the lane shows an inventory summary and does not render a full draft card wall by default. | pass | attention/server tests verify many draft ADV changes become inventory group with count and collapsedByDefault rather than full draft wall. tr_mqui3npy_d8267b13 passed. |\n| AC6 | acceptance_criterion | Given a grouped or collapsed card has hidden detail items, when the user expands it locally, then hidden items become visible without network mutation or server write. | pass | UI test verifies group rendering through `<details>/<summary>` and hiddenCount/member previews. tr_mqui3npy_d8267b13 passed. |\n| AC7 | acceptance_criterion | Given source cards include URLs and metadata, when grouped/compact rendering is used, then safe URL allowlisting, HTML escaping, and no-secret behavior remain intact. | pass | UI tests cover safeUrl/escapeHtml in grouped path and no links inside summary; full bin suite passed tr_mqui3rvf_55641142. |\n| AC8 | acceptance_criterion | Given dashboard tests run, when `bun test bin/` completes, then grouping, default compactness, expansion behavior, and read-only constraints are covered by tests. | pass | Full `bun test bin/` passed in tr_mqui3rvf_55641142: 163 tests, 489 expects. |\n| C1 | constraint | Local-only dashboard at `127.0.0.1`. | respected | No host/listener behavior changed; dashboard remains local-only. Full bin suite tr_mqui3rvf_55641142 passed. |\n| C2 | constraint | Read-only UI only: no rerun/merge/approve/deploy/archive/cancel actions. | respected | No forms or mutation controls added; UI no-mutation tests passed in tr_mqui3npy_d8267b13. |\n| C3 | constraint | No token or secret display. | respected | No token/secret fields added; rendering still uses escape/sanitization paths and full suite passed. |\n| C4 | constraint | Do not hide attention/failure groups behind a collapsed lane. | respected | Lane keys unchanged and pinned by tests: attention, active, unmatched, inventory. tr_mqui3npy_d8267b13 passed. |\n| C5 | constraint | Keep existing lane keys: `attention`, `active`, `unmatched`, `inventory`. | respected | Grouping implemented in typed lane builder, not UI heuristics. Reviewer READY confirmed architecture. |\n| C6 | constraint | Prefer deterministic grouping over UI heuristics. | respected | No cache/coalescing provider changes except deployment timestamp projection; full bin suite passed tr_mqui3rvf_55641142. |\n| DONT1 | avoidance | No server-side preferences store. | respected | No server-side preferences store added; expansion uses native local `<details>`. |\n| DONT2 | avoidance | No analytics/trends dashboard. | respected | No analytics/trends dashboard added. |\n| DONT3 | avoidance | No GitHub or ADV mutation controls. | respected | No GitHub or ADV mutation controls added; no-mutation UI tests passed. |\n| DONT4 | avoidance | No fuzzy linking changes. | respected | No fuzzy linking changes; grouping uses already-projected deterministic source identity only. |\n| DONT5 | avoidance | No hiding failures entirely. | respected | Failures are grouped but still visible in attention; not hidden entirely. attention/server tests passed. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-06-26T04:58:20.701Z",
+      "contentHash": "2d86c82adcac7062b3bf11dad039ea09b85979a7fb8367d8505aa817ceea5f0d",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-06-26T04:58:20.701Z",
+      "contentHash": "d1f13f3fd74cdedd8823a1d31c34e1d6f577ae307f3f4e2efbe0bc7492ff5a31",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-06-26T04:58:20.701Z",
+      "contentHash": "6136c0dc50eff5c3cee5be7dc62ec9f283fe3ba130d06f013cbb8586fe1854d1",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-06-26T05:10:51.181Z",
+      "contentHash": "8184342405757634c222c5b11861b47ed14ac17613405e55a52d6e8bd586ac47",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-06-26T05:40:47.556Z",
+      "contentHash": "88a1dd39724dc51cbcb45fec9523c20d3db0ea9a063662755f724fe4a1c119d6",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-06-26T06:03:59.702Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_MISSING_ERROR_HANDLING",
+      "severity": "warning",
+      "message": "Proposal describes behavior that could fail but doesn't mention error handling or rollback. What happens when things go wrong?",
+      "recorded_at": "2026-06-26T04:54:42.252Z"
+    }
+  ],
+  "worktree_auto_managed": true
+}

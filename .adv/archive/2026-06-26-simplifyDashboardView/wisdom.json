@@ -1,0 +1,26 @@
+{
+  "entries": [
+    {
+      "id": "ws-_g-EAw",
+      "type": "pattern",
+      "content": "For dashboard compactness, compress duplicate source history in the typed lane-builder layer, not in UI heuristics. Group by structural display identity (kind + status + title + branch/ref), keep count/latest/member details in typed lane items, and leave the UI as a safe renderer.",
+      "source_task": "tk-1b2f7d960ff3",
+      "recorded_at": "2026-06-26T05:25:36.240Z"
+    },
+    {
+      "id": "ws-Qr_mKR",
+      "type": "gotcha",
+      "content": "Static HTML-template tests can become brittle when they assert exact JavaScript expressions. For dashboard UI behavior, assert durable rendering contracts (uses groupHtml/details/safeUrl/escapeHtml/no forms) but avoid overfitting to equivalent implementation expressions.",
+      "source_task": "tk-9b35ae665efb",
+      "recorded_at": "2026-06-26T05:28:38.587Z"
+    },
+    {
+      "id": "ws-yCtFja",
+      "type": "gotcha",
+      "content": "Deployment status objects can contain the useful status timestamp even when the deployment object itself lacks `updated_at`. When grouping deployment history, propagate status `updated_at` into the projected deployment item so group latest-time reflects the status event, not an empty deployment shell.",
+      "source_task": "tk-003230313726",
+      "recorded_at": "2026-06-26T05:32:51.484Z"
+    }
+  ],
+  "count": 3
+}
