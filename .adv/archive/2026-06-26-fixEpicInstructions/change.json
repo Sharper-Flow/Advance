@@ -1,0 +1,588 @@
+{
+  "id": "fixEpicInstructions",
+  "title": "Fix Epic instructions",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-06-26T03:50:10.857Z",
+  "tasks": [
+    {
+      "id": "tk-6dfa52f0d695",
+      "title": "Add cross-project Epic guidance regression tests",
+      "type": "code",
+      "section": "Testing",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-06-26T03:57:37.798Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "DONT1",
+          "DONT2"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-26T04:33:01.509Z",
+      "verification": "RED: bin/oc-test targeted -- src/advance-epics-assets.test.ts src/tools/epic.test.ts failed on stale same-project/current-repo/ADR assertions. GREEN: same command passed (59 tests) after guidance/tool/ADR alignment.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added asset tests that reject current-repo-only Epic guidance, require product-scoped target_path membership workflow documentation, validate target_path-aware Epic tool descriptions, and prevent ADR-0004 from contradicting cross-project Epic support. The green checkpoint also contains the small surface updates needed to satisfy the new tests.",
+      "filesTouched": [
+        ".opencode/agents/adv.md",
+        "ADV_INSTRUCTIONS.md",
+        "docs/adr/0004-per-epic-workflow.md",
+        "plugin/src/advance-epics-assets.test.ts",
+        "plugin/src/tools/epic.ts"
+      ],
+      "touched_files": [
+        ".opencode/agents/adv.md",
+        "ADV_INSTRUCTIONS.md",
+        "docs/adr/0004-per-epic-workflow.md",
+        "plugin/src/advance-epics-assets.test.ts",
+        "plugin/src/tools/epic.ts"
+      ],
+      "checkpointSha": "59e020dc716967249ceb09d3e0a60fa2f3d1b963",
+      "completedAt": "2026-06-26T04:36:30.760Z",
+      "completed_at": "2026-06-26T04:36:30.760Z",
+      "notes": "Added regression tests and completed RED/GREEN cycle. Checkpoint 59e020dc716967249ceb09d3e0a60fa2f3d1b963 recorded.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "updatedAt": "2026-06-26T04:36:43.747Z"
+    },
+    {
+      "id": "tk-109109bcb840",
+      "title": "Align Epic cross-project instruction and tool surfaces",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-06-26T03:57:57.954Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-6dfa52f0d695"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "DONT1",
+          "DONT2"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-26T04:37:12.938Z",
+      "verification": "VERIFY: bin/oc-test targeted -- src/advance-epics-assets.test.ts src/tools/epic.test.ts passed (59 tests). Implementation checkpoint already captured in tk-6dfa52f0d695 due test-first red/green commit bundling tests with the minimal surface updates.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Updated ADV runtime guidance to describe product-scoped cross-project Epic membership through target_path; documented target-project change -> adv_epic_link_change target_path workflow for cross-project shell-shaped work; updated ADV_INSTRUCTIONS.md and ADR-0004; corrected Epic link/unlink/move tool descriptions to remove same-project-only wording. Verified with targeted asset/unit tests.",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "59e020dc716967249ceb09d3e0a60fa2f3d1b963",
+      "completedAt": "2026-06-26T04:37:35.207Z",
+      "completed_at": "2026-06-26T04:37:35.207Z",
+      "notes": "Aligned Epic instruction/tool/ADR surfaces and verified targeted tests pass. No additional dirty files after implementation checkpoint.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "updatedAt": "2026-06-26T04:37:50.384Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "fixEpicInstructions",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation: Fix Epic instructions surface-alignment",
+      "sources": [
+        {
+          "label": "advance-epics spec v1.1.0 (rq-epicProductScope01, rq-epicMembershipRepair01)",
+          "locator": "adv_spec show advance-epics",
+          "summary": "Spec is source of truth: Epics MAY be product/multi-repo scoped; link/unlink/move/repair MUST follow target-path trust rules. Confirms design decision 1 (spec = law) and the cross-project membership claim."
+        },
+        {
+          "label": "plugin/src/tools/epic.ts:660,788,873 vs :679,801,887",
+          "locator": "/home/jon/dev/advance/plugin/src/tools/epic.ts",
+          "summary": "adv_epic_link_change/unlink/move descriptions say 'same-project' yet each accepts target_path (targetPathSchema). Confirms the stale-wording defect design decision 4 targets."
+        },
+        {
+          "label": "plugin/src/tools/epic.ts:572-590 adv_epic_promote_shell",
+          "locator": "/home/jon/dev/advance/plugin/src/tools/epic.ts",
+          "summary": "promote_shell args = epic_id, entry_id, change_id, promoted_by. No target_path. Confirms design decision 3 boundary-preservation claim is accurate; avoidance honored."
+        },
+        {
+          "label": ".opencode/agents/adv.md:338",
+          "locator": "/home/jon/dev/advance/.opencode/agents/adv.md",
+          "summary": "'Epics stay scoped to the current repo in v1' — the stale contradiction vs spec rq-epicProductScope01. This is the agent-prose defect; tested via the `agent` variable in the assets test."
+        },
+        {
+          "label": "ADV_INSTRUCTIONS.md:535 (Epic Context)",
+          "locator": "/home/jon/dev/advance/ADV_INSTRUCTIONS.md",
+          "summary": "Already states 'Product Epics may span multiple ADV-enabled repos' but does NOT mention typed target_path cross-project membership explicitly. This file is the `instructions` source read at advance-epics-assets.test.ts:60 — design omits it from edit targets."
+        },
+        {
+          "label": "plugin/src/advance-epics-assets.test.ts:60,105,113",
+          "locator": "/home/jon/dev/advance/plugin/src/advance-epics-assets.test.ts",
+          "summary": "`instructions` var = ADV_INSTRUCTIONS.md (line 60); `agent` var = adv.md (line 113). Existing line-105 test only asserts tool NAMES present in instructions, not target_path wording and not rejection of current-repo-only prose. Design's strengthening is non-redundant."
+        },
+        {
+          "label": "docs/adr/0004-per-epic-workflow.md:3,17",
+          "locator": "/home/jon/dev/advance/docs/adr/0004-per-epic-workflow.md",
+          "summary": "ADR-0004 states 'Cross-repo Epic membership is out of scope for v1' — predates spec v1.1.0 product-scope addition (updated_at 2026-06-25). Latent doc-drift the design does not reconcile."
+        }
+      ],
+      "architecture_assessment": "Surface-alignment fix is correct and well-scoped. Source evidence confirms every concrete defect the design names: epic.ts link/unlink/move descriptions are stale-'same-project' while exposing target_path (epic.ts:660/788/873 vs 679/801/887); adv.md:338 carries the current-repo-only contradiction vs spec rq-epicProductScope01; and promote_shell genuinely lacks target_path (decision 3 / avoidance honored). Simplicity is appropriate — no schema or invariant change is needed; spec v1.1.0 already encodes product/cross-project membership. Two gaps: (1) The design's Implementation Strategy lists adv.md + epic.ts + the test, but the test's `instructions` variable reads ADV_INSTRUCTIONS.md (assets test line 60), and ADV_INSTRUCTIONS.md:535 does not explicitly state typed target_path cross-project membership. If AC1/AC2 require instruction prose to describe target_path-based cross-project membership (objectives say 'when using typed target_path membership tools'), adv.md alone may not satisfy a test asserted against ADV_INSTRUCTIONS.md — verify which file the strengthened assertions target. (2) ADR-0004 still says cross-repo Epic membership is out of scope for v1; it predates spec v1.1.0 and is now contradicted. The design leaves this ADR stale. Neither gap is a correctness blocker for the change's core objective, but both are documentation-drift risks the design should acknowledge.",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "Design is VALIDATED with CAUTION. Cautions: (1) Confirm the strengthened test asserts against the correct file(s): current-repo-only rejection belongs to adv.md (tested via `agent` var), while target_path cross-project wording is asserted against ADV_INSTRUCTIONS.md (tested via `instructions` var, line 60). If AC1/AC2 expect target_path membership prose, ADV_INSTRUCTIONS.md:535 may need a small additive edit (currently says 'span multiple repos' but not 'via typed target_path tools') — add it to Implementation Strategy or explicitly state adv.md satisfies the AC. (2) Reconcile or note ADR-0004 ('Cross-repo Epic membership is out of scope for v1'), now contradicted by spec v1.1.0 product-scope; design treats spec as law (correct) but leaves ADR stale. No spec-law conflict and no security/release blocker found."
+      },
+      "recommendation": "Proceed with the design. Before planning, (a) confirm the strengthened assets-test assertions map to the correct files — adv.md for current-repo-only rejection, ADV_INSTRUCTIONS.md for target_path cross-project membership wording — and add an additive ADV_INSTRUCTIONS.md:535 edit IF AC1/AC2 require explicit target_path-tool membership prose there; (b) add a one-line note or follow-up to reconcile ADR-0004 with spec v1.1.0 product-scope so the cross-repo out-of-scope statement does not re-introduce drift. Keep the promote_shell boundary exactly as designed.",
+      "follow_ups": [
+        "Verify exact AC1-AC5 text to confirm whether ADV_INSTRUCTIONS.md needs an additive target_path cross-project membership edit (the test's `instructions` source is ADV_INSTRUCTIONS.md, not adv.md).",
+        "Reconcile docs/adr/0004-per-epic-workflow.md ('Cross-repo Epic membership is out of scope for v1') against advance-epics spec v1.1.0 product-scope, or note it as accepted superseded-by-spec drift."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixEpicInstructions",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixEpicInstructions",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/advance-epics-assets.test.ts src/tools/epic.test.ts"
+        ],
+        "results": "pass",
+        "evidence": "Path preflight OK for all in-scope files. Reviewed trunk...HEAD diff and relevant source. Targeted verification passed: src/tools/epic.test.ts 22 tests passed; src/advance-epics-assets.test.ts 37 tests passed; total 59 passed in 1.71s."
+      },
+      "scope_drift": null,
+      "risks": [],
+      "required_main_agent_actions": [],
+      "required_follow_ups": [],
+      "consumer_warnings": []
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-06-26T03:50:36.828Z",
+      "completed_by": "agent",
+      "approval_evidence": "Proposal approved by user instruction to create proposal and execute; recreated after user approved closing malformed draft.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "c6f53a8f31d52e71af8ba8947698bcb2185e67fed2702e5d58a6bc04d3abb08a",
+        "non_whitespace_chars": 3044,
+        "checked_at": "2026-06-26T03:50:10.889Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "started_at": "2026-06-26T03:52:45.800Z",
+      "completed_at": "2026-06-26T03:53:01.043Z",
+      "completed_by": "agent",
+      "approval_evidence": "Agreement approved by user reply: \"approve\". Discovery findings and typed contract persisted.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "efcafc7e1a3816c94b07d123e5099ef749557faf1cdec31335a26dc849697689",
+        "non_whitespace_chars": 2568,
+        "checked_at": "2026-06-26T03:50:10.890Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-06-26T03:57:09.199Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design validated by adv-researcher; cautions adopted into design for ADV_INSTRUCTIONS and ADR-0004 reconciliation.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "36356163e42e077b84ff39dec7327a484e376b548b8d21b381fc7cfa1bb71650",
+        "non_whitespace_chars": 3630,
+        "checked_at": "2026-06-26T03:50:10.891Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-06-26T04:32:41.525Z",
+      "completed_by": "agent",
+      "approval_evidence": "Prep approved by user reply: \"approve\". Task graph covers AC1-AC5 with TDD and targeted verification."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-06-26T04:38:10.108Z",
+      "completed_by": "agent",
+      "approval_evidence": "All tasks complete. RED/GREEN and verify evidence recorded; targeted tests passed 59/59."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-06-26T04:42:55.717Z",
+      "completed_by": "user:jon",
+      "approval_evidence": "User accepted delivered work with reply: \"approve\". Reviewer READY, no findings; contract review matrix all pass/respected; executive summary persisted.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "9d7d222f0298d95e8099d8fd0267fef4dbe97e263083b0d2d4c5cbd788152117",
+        "non_whitespace_chars": 757,
+        "checked_at": "2026-06-26T03:50:10.892Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "triage",
+    "source_artifact": "ag-y2ACRdkK"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "efcafc7e1a3816c94b07d123e5099ef749557faf1cdec31335a26dc849697689",
+      "approvedAt": "2026-06-26T03:52:53.828Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "Searching `.opencode/agents/adv.md` for Epic guidance shows no statement that Epics are current-repo-only in v1.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "efcafc7e1a3816c94b07d123e5099ef749557faf1cdec31335a26dc849697689",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "`plugin/src/tools/epic.ts` descriptions for link, unlink, move, and repair reflect target-project/cross-project membership where their args support `target_path`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "efcafc7e1a3816c94b07d123e5099ef749557faf1cdec31335a26dc849697689",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "`plugin/src/advance-epics-assets.test.ts` or adjacent tests assert cross-project Epic guidance and tool descriptions include `target_path`-aware membership language.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "efcafc7e1a3816c94b07d123e5099ef749557faf1cdec31335a26dc849697689",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Guidance states the operational workflow for cross-project shell-shaped work: create or use the target-project ADV change, then link it into the owner Epic with `adv_epic_link_change target_path` unless direct shell promotion gains target support.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "efcafc7e1a3816c94b07d123e5099ef749557faf1cdec31335a26dc849697689",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Targeted verification passes with `bin/oc-test targeted -- src/advance-epics-assets.test.ts src/tools/epic.test.ts` or equivalent scoped test evidence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "efcafc7e1a3816c94b07d123e5099ef749557faf1cdec31335a26dc849697689",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Existing `advance-epics` spec remains source of truth.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "efcafc7e1a3816c94b07d123e5099ef749557faf1cdec31335a26dc849697689",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "No new Jira-like planning constructs.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "efcafc7e1a3816c94b07d123e5099ef749557faf1cdec31335a26dc849697689",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "No changes to one-Epic-per-change membership invariant.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "efcafc7e1a3816c94b07d123e5099ef749557faf1cdec31335a26dc849697689",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "No direct ADV state file edits.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "efcafc7e1a3816c94b07d123e5099ef749557faf1cdec31335a26dc849697689",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not claim `adv_epic_promote_shell` supports cross-project creation unless implemented and tested.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "efcafc7e1a3816c94b07d123e5099ef749557faf1cdec31335a26dc849697689",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not use prose-only correctness where tests can pin the expected agent/tool surface.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "efcafc7e1a3816c94b07d123e5099ef749557faf1cdec31335a26dc849697689",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-06-26T04:41:59.534Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "adv-reviewer READY report: AC1 satisfied; .opencode/agents/adv.md no longer says Epics are current-repo-only in v1.",
+          "notes": "Reviewed trunk...HEAD diff and source."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "adv-reviewer READY report: AC2 satisfied; plugin/src/tools/epic.ts descriptions for link/unlink/move are target_path-aware and repair already documents target routing.",
+          "notes": "No findings."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "bin/oc-test targeted -- src/advance-epics-assets.test.ts src/tools/epic.test.ts passed: 2 files, 59 tests.",
+          "notes": "Regression asset tests added."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "adv-reviewer READY report: guidance documents create/use target-project ADV change then adv_epic_link_change target_path for cross-project shell-shaped work.",
+          "notes": "Direct promote_shell target support is not claimed."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "adv_run_test and adv-reviewer verification: bin/oc-test targeted -- src/advance-epics-assets.test.ts src/tools/epic.test.ts passed, 59 tests.",
+          "notes": "Targeted verification passed."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Change aligns instructions/tool descriptions/ADR with existing advance-epics spec; no spec rewrite or invariant change.",
+          "notes": "Spec remains source of truth."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No Jira-like planning constructs added; reviewer reported no findings/scope drift.",
+          "notes": ""
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No one-Epic-per-change schema or membership invariant changes made.",
+          "notes": ""
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "All changes were source files in worktree; no ADV state files edited directly.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Guidance explicitly says not to claim adv_epic_promote_shell creates cross-project changes directly unless target support is added.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Regression tests structurally pin agent/tool/ADR surfaces instead of prose-only expectations.",
+          "notes": ""
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "Searching `.opencode/agents/adv.md` for Epic guidance shows no statement that Epics are current-repo-only in v1.",
+    "`plugin/src/tools/epic.ts` descriptions for link, unlink, move, and repair reflect target-project/cross-project membership where their args support `target_path`.",
+    "`plugin/src/advance-epics-assets.test.ts` or adjacent tests assert cross-project Epic guidance and tool descriptions include `target_path`-aware membership language.",
+    "Guidance states the operational workflow for cross-project shell-shaped work: create or use the target-project ADV change, then link it into the owner Epic with `adv_epic_link_change target_path` unless direct shell promotion gains target support.",
+    "Targeted verification passes with `bin/oc-test targeted -- src/advance-epics-assets.test.ts src/tools/epic.test.ts` or equivalent scoped test evidence."
+  ],
+  "documents": {
+    "proposal": "# Fix Epic Cross-Project Instructions\n\n## Why\n\nADV's Epic spec and tooling require product-scoped Epics to support cross-project membership through typed `target_path` mutations. Current agent-facing guidance still contains stale same-project/current-repo language, causing agents to create shell-only placeholders or claim cross-project linking is unavailable.\n\n## What Changes\n\n- Align runtime ADV Epic guidance with `advance-epics` spec v1.1.0.\n- Correct stale prompt/tool-description wording that says Epic membership is same-project or current-repo scoped.\n- Document the current shell-promotion boundary precisely: cross-project existing changes can be linked with `target_path`; direct shell promotion is same-project unless `adv_epic_promote_shell` gains `target_path` support.\n- Add or update tests so future guidance/tool-surface drift is caught.\n\n## User Outcomes\n\n- Agents correctly recognize product-scoped Epics as cross-project capable.\n- Agents link existing cross-project ADV changes into owner Epics using `target_path` instead of creating unnecessary shell-only substitutes.\n- Agents surface the exact remaining limitation for shell promotion rather than overstating Epic limitations.\n\n## Scope\n\n### In Scope\n\n- ADV runtime prompt Epic guidance.\n- Tool descriptions for Epic membership mutation surfaces.\n- Instruction/asset tests that enforce cross-project Epic guidance.\n- Documentation or guidance for the create-target-change-then-link workflow if direct cross-project shell promotion remains out of scope.\n\n### Out of Scope\n\n- Implementing new product planning workflows beyond existing Epic membership.\n- Changing the one-Epic-per-change invariant.\n- Adding Jira-like assignments, estimates, boards, or sprints.\n- Reworking GitHub Projects or roadmap scoring.\n\n### Must Not\n\n- Reintroduce text that says Epics are current-repo-only in v1.\n- Claim direct cross-project shell promotion exists unless the tool actually supports it structurally.\n- Use heuristic/prose-only correctness where schema/tool/tests can enforce the boundary.\n\n## Affected Code\n\n- `.opencode/agents/adv.md`\n- `ADV_INSTRUCTIONS.md`\n- `plugin/src/tools/epic.ts`\n- `plugin/src/advance-epics-assets.test.ts`\n- Related tests if tool descriptions or docs assertions need stronger coverage.\n\n## Related Repositories\n\nCurrent repo only. The change clarifies product/cross-project Epic behavior but mutates ADV plugin source and bundled instructions in this repository.\n\n## Constraints\n\n- Spec `advance-epics` remains source of truth.\n- Existing `target_path` trust rules must remain intact.\n- Avoid expanding into unrelated Epic feature work unless required by contract.\n\n## Impact\n\nReduces false agent guidance and prevents duplicate shell placeholders for cross-project Epic initiatives.\n\n## Context\n\nObserved agent statement: \"created as shells because current Epic tooling can create product-scoped Epics here but does not yet link cross-project PokeEdge Web changes into a backend-owned Epic.\" Evidence shows existing cross-project changes can be linked with `adv_epic_link_change` plus `target_path`, while direct `adv_epic_promote_shell` lacks `target_path`.\n\n## Discovery Agenda\n\n- Verify all agent-facing Epic guidance surfaces for stale current-repo/same-project wording.\n- Verify whether `adv_epic_move_change`, `adv_epic_unlink_change`, and repair descriptions need the same correction.\n- Decide whether to implement `target_path` on `adv_epic_promote_shell` now or explicitly document current two-step workflow.",
+    "problemStatement": "## Problem\n\nAgents are receiving contradictory Epic guidance: the spec and tools support product-scoped, cross-project Epic membership through `target_path`, but prompt/tool wording still implies same-project or current-repo-only behavior.\n\n## Desired Outcome\n\nAgents should accurately link existing cross-project ADV changes into product-scoped Epics and only treat direct cross-project shell promotion as unavailable if that specific tool lacks structural `target_path` support.",
+    "agreement": "# Agreement\n\n## Objectives\n\n1. Correct ADV runtime Epic guidance so product-scoped Epics are described as cross-project capable when using typed `target_path` membership tools.\n2. Correct Epic tool descriptions and instruction tests so `adv_epic_link_change`, `adv_epic_unlink_change`, `adv_epic_move_change`, and `adv_epic_repair_membership` are not described as same-project-only where they support `target_path`.\n3. Preserve the precise shell-promotion boundary: existing cross-project changes can be linked into owner Epics; direct `adv_epic_promote_shell` cross-project creation/linking must not be claimed unless structurally implemented.\n4. Add regression coverage that fails if stale current-repo-only Epic guidance returns.\n\n## Acceptance Criteria\n\n- AC1: Searching `.opencode/agents/adv.md` for Epic guidance shows no statement that Epics are current-repo-only in v1.\n- AC2: `plugin/src/tools/epic.ts` descriptions for link, unlink, move, and repair reflect target-project/cross-project membership where their args support `target_path`.\n- AC3: `plugin/src/advance-epics-assets.test.ts` or adjacent tests assert cross-project Epic guidance and tool descriptions include `target_path`-aware membership language.\n- AC4: Guidance states the operational workflow for cross-project shell-shaped work: create or use the target-project ADV change, then link it into the owner Epic with `adv_epic_link_change target_path` unless direct shell promotion gains target support.\n- AC5: Targeted verification passes with `bin/oc-test targeted -- src/advance-epics-assets.test.ts src/tools/epic.test.ts` or equivalent scoped test evidence.\n\n## Constraints\n\n- Existing `advance-epics` spec remains source of truth.\n- No new Jira-like planning constructs.\n- No changes to one-Epic-per-change membership invariant.\n- No direct ADV state file edits.\n\n## Avoidances\n\n- Do not claim `adv_epic_promote_shell` supports cross-project creation unless implemented and tested.\n- Do not use prose-only correctness where tests can pin the expected agent/tool surface.\n\n## Discovery Findings\n\n- Spec evidence: `advance-epics` requires product Epics to span repos/projects and requires cross-project membership mutations to follow target-path trust rules.\n- Code evidence: `resolveChildStore` and `adv_epic_link_change` already route child projections through `target_path`; tests cover owner-local Epic plus target-project child projection.\n- Drift evidence: `.opencode/agents/adv.md` contains stale current-repo-only Epic wording; `plugin/src/tools/epic.ts` descriptions for link/unlink/move still say same-project.\n- Boundary evidence: `adv_epic_promote_shell` currently lacks `target_path` args, so direct cross-project shell promotion is not structurally supported by that tool.\n- Related agenda: `ag-y2ACRdkK` tracks this guidance bug; `ag-dSoVtqhI` tracks separate strict-mode create-time Epic placeholder bug discovered during this flow.",
+    "design": "# Design\n\n## Architecture Overview\n\nThis is a surface-alignment fix. The canonical `advance-epics` spec already requires product-scoped Epics and target-path cross-project membership. Implementation updates the agent/tool/doc surfaces that currently contradict that spec, then pins those surfaces with tests.\n\n## Key Decisions\n\n1. Treat `advance-epics` spec v1.1.0 as source of truth. No schema or membership invariant changes are needed.\n2. Update runtime guidance to say Epics may be repo-scoped or product-scoped; product Epics can link target-project changes through typed `target_path` operations.\n3. Preserve the shell-promotion limitation precisely. Since `adv_epic_promote_shell` has no `target_path` argument, guidance must recommend create/use target-project change then `adv_epic_link_change target_path` for cross-project shell-shaped work.\n4. Correct tool descriptions for the mutation tools that already expose `target_path`, avoiding stale same-project-only wording.\n5. Reconcile stale ADR-0004 wording that says cross-repo Epic membership is out of scope for v1, because spec v1.1.0 supersedes that statement.\n\n## ADR Drafts\n\nNo new ADR. Existing `docs/adr/0004-per-epic-workflow.md` must be updated to match current spec status.\n\n## Implementation Strategy\n\n1. Update `.opencode/agents/adv.md` Epic context section:\n   - Remove current-repo-only sentence.\n   - Add product-scoped/cross-project membership wording.\n   - Add explicit cross-project shell workflow boundary.\n2. Update `ADV_INSTRUCTIONS.md` Epic section if needed to include explicit typed `target_path` membership wording and shell workflow boundary.\n3. Update `docs/adr/0004-per-epic-workflow.md` to remove/supersede stale \"cross-repo out of scope\" wording.\n4. Update `plugin/src/tools/epic.ts` descriptions for link/unlink/move/repair to mention target project/cross-project support where applicable.\n5. Strengthen `plugin/src/advance-epics-assets.test.ts` so it rejects current-repo-only wording and asserts target-path-aware Epic membership/tool descriptions.\n6. Run targeted tests through `bin/oc-test targeted -- src/advance-epics-assets.test.ts src/tools/epic.test.ts`.\n\n## LBP Analysis\n\nBest long-term practice is to keep correctness structural: spec defines the behavior; tools expose typed `target_path`; tests pin the agent/tool/ADR surfaces. This avoids relying on agents to infer cross-project capability from implementation details.\n\n## Affected Components\n\n- `.opencode/agents/adv.md`\n- `ADV_INSTRUCTIONS.md`\n- `docs/adr/0004-per-epic-workflow.md`\n- `plugin/src/tools/epic.ts`\n- `plugin/src/advance-epics-assets.test.ts`\n\n## Design-Derived Criteria\n\n- DDC1: Tests must fail if ADV agent Epic guidance again says Epics are current-repo-only.\n- DDC2: Tests must assert that cross-project Epic membership guidance includes `target_path` and `adv_epic_link_change`.\n- DDC3: Tool descriptions must remain honest about `adv_epic_promote_shell` lacking direct cross-project creation semantics unless implemented later.\n- DDC4: ADR-0004 must no longer contradict the v1.1.0 product/cross-project Epic spec.\n\n## Risks / Mitigations\n\n- Risk: Overstating shell promotion capability. Mitigation: explicitly document two-step workflow and do not add `target_path` claims to `adv_epic_promote_shell` without implementation.\n- Risk: Runtime deployed global agent remains stale until sync. Mitigation: source change is verified by tests; deploy/sync remains normal release process.\n- Risk: Current change has accidental placeholder Epic membership from separate strict-mode bug. Mitigation: tracked as `ag-dSoVtqhI`; not part of this source-surface fix.\n\n## Design Leverage Scout\n\nScout: skipped — narrow spec-surface alignment; no independent architecture alternatives beyond whether to implement cross-project shell promotion now. Agreement intentionally preserves shell-promotion boundary rather than expanding feature scope.\n\n## Validator Result\n\nValidator: VALIDATED with cautions. Cautions adopted into design: include `ADV_INSTRUCTIONS.md` if test/AC mapping requires explicit `target_path` wording; reconcile stale ADR-0004 cross-repo-out-of-scope statement.",
+    "executiveSummary": "# Executive Summary\n\nFixed Epic cross-project guidance drift. ADV runtime instructions now state product-scoped Epics may span ADV-enabled repos/projects through typed `target_path` membership tools. The guidance documents the correct cross-project shell-shaped workflow: create or use the target-project ADV change, then link it into the owner Epic with `adv_epic_link_change target_path`; it does not claim direct cross-project `adv_epic_promote_shell` support.\n\nUpdated tool descriptions for Epic link/unlink/move to remove same-project-only wording, reconciled ADR-0004 with the current `advance-epics` spec, and added regression tests covering the instruction/tool/ADR surfaces.\n\nVerification passed: `bin/oc-test targeted -- src/advance-epics-assets.test.ts src/tools/epic.test.ts` — 59 tests passed. Acceptance reviewer verdict: READY with no findings.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-06-26T04:41:59.534Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| AC1 | acceptance_criterion | Searching `.opencode/agents/adv.md` for Epic guidance shows no statement that Epics are current-repo-only in v1. | pass | adv-reviewer READY report: AC1 satisfied; .opencode/agents/adv.md no longer says Epics are current-repo-only in v1. |\n| AC2 | acceptance_criterion | `plugin/src/tools/epic.ts` descriptions for link, unlink, move, and repair reflect target-project/cross-project membership where their args support `target_path`. | pass | adv-reviewer READY report: AC2 satisfied; plugin/src/tools/epic.ts descriptions for link/unlink/move are target_path-aware and repair already documents target routing. |\n| AC3 | acceptance_criterion | `plugin/src/advance-epics-assets.test.ts` or adjacent tests assert cross-project Epic guidance and tool descriptions include `target_path`-aware membership language. | pass | bin/oc-test targeted -- src/advance-epics-assets.test.ts src/tools/epic.test.ts passed: 2 files, 59 tests. |\n| AC4 | acceptance_criterion | Guidance states the operational workflow for cross-project shell-shaped work: create or use the target-project ADV change, then link it into the owner Epic with `adv_epic_link_change target_path` unless direct shell promotion gains target support. | pass | adv-reviewer READY report: guidance documents create/use target-project ADV change then adv_epic_link_change target_path for cross-project shell-shaped work. |\n| AC5 | acceptance_criterion | Targeted verification passes with `bin/oc-test targeted -- src/advance-epics-assets.test.ts src/tools/epic.test.ts` or equivalent scoped test evidence. | pass | adv_run_test and adv-reviewer verification: bin/oc-test targeted -- src/advance-epics-assets.test.ts src/tools/epic.test.ts passed, 59 tests. |\n| C1 | constraint | Existing `advance-epics` spec remains source of truth. | respected | Change aligns instructions/tool descriptions/ADR with existing advance-epics spec; no spec rewrite or invariant change. |\n| C2 | constraint | No new Jira-like planning constructs. | respected | No Jira-like planning constructs added; reviewer reported no findings/scope drift. |\n| C3 | constraint | No changes to one-Epic-per-change membership invariant. | respected | No one-Epic-per-change schema or membership invariant changes made. |\n| C4 | constraint | No direct ADV state file edits. | respected | All changes were source files in worktree; no ADV state files edited directly. |\n| DONT1 | avoidance | Do not claim `adv_epic_promote_shell` supports cross-project creation unless implemented and tested. | respected | Guidance explicitly says not to claim adv_epic_promote_shell creates cross-project changes directly unless target support is added. |\n| DONT2 | avoidance | Do not use prose-only correctness where tests can pin the expected agent/tool surface. | respected | Regression tests structurally pin agent/tool/ADR surfaces instead of prose-only expectations. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-06-26T03:50:10.893Z",
+      "contentHash": "c6f53a8f31d52e71af8ba8947698bcb2185e67fed2702e5d58a6bc04d3abb08a",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-06-26T03:50:10.893Z",
+      "contentHash": "65006c93c02ae302145904e6fb711a365c79be9439744600a5dab9cd4eae75aa",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-06-26T03:51:44.106Z",
+      "contentHash": "efcafc7e1a3816c94b07d123e5099ef749557faf1cdec31335a26dc849697689",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-06-26T03:57:01.777Z",
+      "contentHash": "36356163e42e077b84ff39dec7327a484e376b548b8d21b381fc7cfa1bb71650",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-06-26T04:42:22.401Z",
+      "contentHash": "9d7d222f0298d95e8099d8fd0267fef4dbe97e263083b0d2d4c5cbd788152117",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-06-26T04:42:55.717Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "epic_membership": {
+    "epic_id": "toolArgWorkaround",
+    "entry_id": "fixEpicInstructions",
+    "order": 0,
+    "title": "Tool Arg Workaround",
+    "linked_at": "2026-06-26T03:50:10.849Z"
+  },
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_MISSING_ERROR_HANDLING",
+      "severity": "warning",
+      "message": "Proposal describes behavior that could fail but doesn't mention error handling or rollback. What happens when things go wrong?",
+      "recorded_at": "2026-06-26T03:52:37.850Z"
+    }
+  ],
+  "worktree_auto_managed": true
+}
