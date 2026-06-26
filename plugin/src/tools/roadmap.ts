@@ -798,7 +798,7 @@ export const roadmapTools = {
         activeByIssue.size === 0
       ) {
         warnings.push(
-          "Snapshot lists bugs but no in-flight changes; recent ATC/archive closures may have made this bug list stale.",
+          "Snapshot lists bugs but no in-flight changes; recent archive closures may have made this bug list stale.",
         );
       }
 

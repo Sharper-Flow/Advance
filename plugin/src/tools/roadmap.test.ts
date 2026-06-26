@@ -217,7 +217,7 @@ describe("Roadmap Tool", () => {
         expect.stringContaining("run /adv-roadmap --live"),
       );
       expect(parsed.warnings).toContainEqual(
-        expect.stringContaining("recent ATC/archive closures"),
+        expect.stringContaining("recent archive closures"),
       );
     });
 
