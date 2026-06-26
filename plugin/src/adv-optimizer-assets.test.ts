@@ -36,6 +36,37 @@ describe("adv-optimizer command assets", () => {
     );
   });
 
+  test("requires early tech stack baseline before scanner fan-out", () => {
+    const content = readFileSync(COMMAND_PATH, "utf8");
+
+    const baselineIndex = content.indexOf("Tech Stack Baseline");
+    const scannerIndex = content.indexOf(
+      "## Phase 2: First-Level Scanner Fan-out",
+    );
+
+    expect(baselineIndex).toBeGreaterThan(-1);
+    expect(scannerIndex).toBeGreaterThan(-1);
+    expect(baselineIndex).toBeLessThan(scannerIndex);
+
+    for (const anchor of [
+      "language(s)",
+      "framework(s)",
+      "runtime(s)",
+      "package manager(s)",
+      "test/build tooling",
+      "major architectural surfaces",
+    ]) {
+      expect(content).toContain(anchor);
+    }
+
+    expect(content).toMatch(/confirm(?:ation)?\/correction/i);
+    expect(content).toContain(
+      "when stack uncertainty would materially affect recommendations",
+    );
+    expect(content).toContain("TECH STACK: {confirmed-or-assumed-stack}");
+    expect(content).toContain("Tech Stack: {confirmed-or-assumed-stack}");
+  });
+
   test("requires source-backed findings and separates actionability", () => {
     const content = readFileSync(COMMAND_PATH, "utf8");
 

@@ -45,15 +45,21 @@ Resolve in order:
 4. Concept → semantic search, then closest matching files/modules.
 5. Unresolved target → clarify; do not fabricate scope.
 
-## Phase 1: Context and Deterministic Evidence
+## Phase 1: Tech Stack Baseline, Context, and Deterministic Evidence
 
 1. Capture `WORKING DIRECTORY`.
-2. Load project context and relevant specs when available.
-3. Inspect local structure for the target.
-4. Gather deterministic signals where practical: file/module boundaries, duplication cues, complexity/nesting hotspots, test adjacency, command/manifest ownership, and existing docs.
-5. Preserve coverage notes: searched paths, unavailable tools, skipped dimensions.
+2. Establish the `Tech Stack Baseline` before scanner fan-out or best-practice recommendations:
+   - Identify language(s), framework(s), runtime(s), package manager(s), test/build tooling, and major architectural surfaces.
+   - Use project context, relevant specs, repo manifests, source layout, and target-local evidence.
+   - Present the inferred stack and ask for confirmation/correction when stack uncertainty would materially affect recommendations.
+   - If the stack is clear and low-risk, state the inferred stack and proceed without prompting.
+3. Load project context and relevant specs when available.
+4. Inspect local structure for the target.
+5. Gather deterministic signals where practical: file/module boundaries, duplication cues, complexity/nesting hotspots, test adjacency, command/manifest ownership, and existing docs.
+6. Preserve coverage notes: searched paths, unavailable tools, skipped dimensions.
 
 Heuristics may discover or rank opportunities, but must not own correctness, safety, deletion, persistence, gate completion, or spec compliance.
+Do not rely on generic industry advice before the target stack is established.
 
 ## Phase 2: First-Level Scanner Fan-out
 
@@ -73,6 +79,7 @@ Inject this packet into every scanner prompt:
 ```text
 WORKING DIRECTORY: {workdir}
 TARGET: {resolved-target}
+TECH STACK: {confirmed-or-assumed-stack}
 SCOPE: {files/modules/concept in scope}
 DEPTH: {light|standard|deep}
 IN_SCOPE:
@@ -124,6 +131,7 @@ OPTIMIZER PROPOSAL
 
 Target: {target}
 Depth: {depth}
+Tech Stack: {confirmed-or-assumed-stack}
 Coverage: {deterministic checks + scanners run/skipped/failed}
 
 ## Current State
