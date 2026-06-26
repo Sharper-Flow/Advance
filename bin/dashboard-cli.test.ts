@@ -82,14 +82,20 @@ describe("adv dashboard dispatcher", () => {
     );
     const occupied = Bun.serve({
       hostname: "127.0.0.1",
-      port: 8765,
+      port: 0,
       fetch: () => new Response("occupied"),
     });
     try {
-      const { exitCode, stderr } = await runAdv(["dashboard", "--config", configPath]);
+      const { exitCode, stderr } = await runAdv([
+        "dashboard",
+        "--config",
+        configPath,
+        "--port",
+        String(occupied.port),
+      ]);
 
       expect(exitCode).toBe(75);
-      expect(stderr).toContain("port 8765 is already in use");
+      expect(stderr).toContain(`port ${occupied.port} is already in use`);
       expect(stderr).not.toContain("ghp_");
     } finally {
       occupied.stop(true);
