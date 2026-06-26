@@ -1307,6 +1307,52 @@ describe("adv_epic_update_scope", () => {
     expect(store.epics.updateScope).not.toHaveBeenCalled();
   });
 
+  test("rejects clearing scope when legacy linked entries lack repo attribution", async () => {
+    const store = makeStore({
+      version: 2,
+      epic_scope: {
+        kind: "repo",
+        owner_project_id: "project-web",
+        repos: [
+          {
+            repo_id: "web",
+            repo_project_id: "project-web",
+            role: "primary",
+            required: true,
+          },
+        ],
+      },
+      entries: [
+        makeChangeEntry({
+          change_ref: {
+            change_id: "legacy-change",
+            project_id: "project-web",
+          },
+          title: "Legacy Linked Change",
+          membership_status: "linked",
+          linked_at: "2026-06-25T00:00:00.000Z",
+          linked_by: "agent",
+          link_evidence: "legacy link",
+        }),
+      ],
+    });
+
+    const output = await epicTools.adv_epic_update_scope.execute(
+      {
+        epic_id: "addAuthEpic",
+        expected_version: 2,
+        audit_evidence: "Clear scope.",
+        owner_project_id: "project-web",
+        scope_repos: [],
+      },
+      store,
+    );
+
+    const parsed = parseToolOutput(output);
+    expect(parsed.code).toBe("SCOPE_REMOVAL_HAS_LINKED_ENTRIES");
+    expect(store.epics.updateScope).not.toHaveBeenCalled();
+  });
+
   test("updates scope through store with audit evidence", async () => {
     const store = makeStore({ version: 2 });
     const output = await epicTools.adv_epic_update_scope.execute(

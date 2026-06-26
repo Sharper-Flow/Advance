@@ -265,11 +265,14 @@ function linkedEntriesForRemovedScopeRepos(
   );
   if (removedRepoIds.size === 0) return [];
   return epic.entries.filter(
-    (entry) =>
-      entry.kind === "change" &&
-      entry.change_ref?.repo_id &&
-      removedRepoIds.has(entry.change_ref.repo_id) &&
-      entry.membership_status !== "unlinked",
+    (entry) => {
+      if (entry.kind !== "change" || entry.membership_status === "unlinked") {
+        return false;
+      }
+      const repoId = entry.change_ref?.repo_id;
+      if (!repoId) return true;
+      return removedRepoIds.has(repoId);
+    },
   );
 }
 
