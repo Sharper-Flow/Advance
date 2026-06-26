@@ -221,10 +221,12 @@ function stringField(
 }
 
 function statusOf(item: unknown): string | undefined {
+  const states = sourceStatesOf(item);
   return (
     stringField(record(item), "conclusion") ??
     stringField(record(item), "status") ??
-    stringField(record(item), "state")
+    stringField(record(item), "state") ??
+    stringField(states, "github_deployment")
   );
 }
 

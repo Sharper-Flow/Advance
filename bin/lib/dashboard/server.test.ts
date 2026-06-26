@@ -208,10 +208,12 @@ describe("dashboard server state", () => {
       }),
     });
 
-    const linked = state.projects[0]?.lanes.linked ?? [];
-    const advChange = linked.find((item) => item.kind === "adv_change");
-    const deployment = linked.find((item) => item.kind === "deployment");
-    const ops = linked.find((item) => item.kind === "ops");
+    const active = state.projects[0]?.lanes.active ?? [];
+    const attention = state.projects[0]?.lanes.attention ?? [];
+    const inventory = state.projects[0]?.lanes.inventory ?? [];
+    const advChange = active.find((item) => item.kind === "adv_change");
+    const deployment = attention.find((item) => item.kind === "deployment");
+    const ops = inventory.find((item) => item.kind === "ops");
 
     expect(advChange).toMatchObject({
       changeId: "addLocalDashboard",
@@ -219,6 +221,14 @@ describe("dashboard server state", () => {
       evidence: "adv.change: addLocalDashboard",
     });
     expect(deployment?.source_states).toEqual({ github_deployment: "failure" });
+    expect(deployment).toMatchObject({
+      title: "Deployment",
+      metadata: expect.arrayContaining([
+        { label: "Repo", value: "Sharper-Flow/Advance" },
+        { label: "Ref", value: "change/addLocalDashboard" },
+        { label: "Deployment", value: "failure" },
+      ]),
+    });
     expect(ops?.status).toBe("success");
     expect(deployment?.evidence).toBe(
       "deployment.ref: change/addLocalDashboard",
