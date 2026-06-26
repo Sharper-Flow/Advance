@@ -447,3 +447,121 @@ describe("dashboard server state", () => {
     ).toBe("0.0.0.0");
   });
 });
+
+describe("dashboard detail routes", () => {
+  function detailState() {
+    return {
+      schema_version: 1 as const,
+      generated_at: "2026-06-26T05:00:00.000Z",
+      refresh_seconds: 45,
+      projects: [
+        {
+          id: "advance",
+          label: "Advance",
+          path: "/repo/advance",
+          project_id: "project123",
+          generated_at: "2026-06-26T05:00:00.000Z",
+          changes: [
+            {
+              id: "addLocalDashboard",
+              title: "Add local dashboard",
+              status: "active",
+              gateProgressStr: "✓ ✓ ✓ ✓ ○ ○ ○",
+              firstIncompleteGate: "execution",
+              lastActivityAt: "2026-06-26T05:00:00.000Z",
+              correlation_keys: {
+                branches: ["change/addLocalDashboard"],
+                paths: ["/tmp/wt/addLocalDashboard"],
+                head_shas: [],
+              },
+            },
+          ],
+          lanes: {
+            needs_attention: [],
+            running: [],
+            ready_landed: [],
+            backlog: [],
+            unmatched_source: [],
+          },
+          degradedSources: [],
+        },
+      ],
+    };
+  }
+
+  test("serves compact read-only detail JSON from local read model", async () => {
+    const handler = createDashboardHandler({
+      config: config(),
+      stateBuilder: async () => detailState(),
+    });
+
+    const response = await handler(
+      new Request("http://127.0.0.1:8765/api/change/advance/addLocalDashboard"),
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body).toMatchObject({
+      schema_version: 1,
+      project: { id: "advance", project_id: "project123" },
+      change: {
+        id: "addLocalDashboard",
+        title: "Add local dashboard",
+        firstIncompleteGate: "execution",
+      },
+      command: 'adv_change_show(changeId: "addLocalDashboard")',
+      deeper: null,
+    });
+    expect(body.change.correlation_keys.paths).toEqual(["/tmp/wt/addLocalDashboard"]);
+    expect(JSON.stringify(body)).not.toContain("change.json");
+    expect(JSON.stringify(body)).not.toContain("token");
+  });
+
+  test("detail deeper read is one-change scoped, bounded, and degrades independently", async () => {
+    const calls: Array<{ projectId: string; changeId: string }> = [];
+    const handler = createDashboardHandler({
+      config: config(),
+      stateBuilder: async () => detailState(),
+      detailReadTimeoutMs: 1,
+      detailReader: async (project, change) => {
+        calls.push({ projectId: project.id, changeId: change.id });
+        return new Promise(() => {});
+      },
+    });
+
+    const response = await handler(
+      new Request("http://127.0.0.1:8765/api/change/advance/addLocalDashboard"),
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(calls).toEqual([{ projectId: "advance", changeId: "addLocalDashboard" }]);
+    expect(body.deeper).toBeNull();
+    expect(body.degradedSources.map((source) => source.code)).toEqual([
+      "ADV_DETAIL_READ_TIMEOUT",
+    ]);
+  });
+
+  test("serves local detail HTML shell and rejects non-GET detail mutation attempts", async () => {
+    const handler = createDashboardHandler({
+      config: config(),
+      stateBuilder: async () => detailState(),
+      html: "<html>dashboard</html>",
+    });
+
+    const page = await handler(
+      new Request("http://127.0.0.1:8765/change/advance/addLocalDashboard"),
+    );
+    const post = await handler(
+      new Request("http://127.0.0.1:8765/api/change/advance/addLocalDashboard", {
+        method: "POST",
+      }),
+    );
+
+    expect(page.status).toBe(200);
+    expect(page.headers.get("content-type")).toContain("text/html");
+    expect(await page.text()).toContain("dashboard");
+    expect(post.status).toBe(405);
+    expect(post.headers.get("allow")).toBe("GET");
+  });
+});
