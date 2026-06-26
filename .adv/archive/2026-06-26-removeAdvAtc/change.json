@@ -1,0 +1,1062 @@
+{
+  "id": "removeAdvAtc",
+  "title": "Remove ADV ATC",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-06-26T00:42:03.609Z",
+  "tasks": [
+    {
+      "id": "tk-7fb47f76ea5a",
+      "title": "Remove ATC runtime assets and manifest wiring",
+      "type": "code",
+      "section": "Runtime surfaces",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-06-26T01:13:15.704Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC6",
+          "C1",
+          "C2"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC6"
+        ],
+        "respects": [
+          "DONT2",
+          "DONT3",
+          "DONT4"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-26T01:24:55.341Z",
+      "verification": "RED failed as expected before removal: bin/oc-test targeted -- src/manifest.test.ts src/delegation-matrix.test.ts src/phantom-subagent-roster.test.ts. GREEN passed after removal: same command, 148 tests passed. git diff --check passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Removed supported adv-atc runtime entry points: `.opencode/agents/adv-atc.md`, `.opencode/command/adv-atc.md`, `COMMAND_MANIFEST['adv-atc']`, and existence-only ATC asset tests. Updated manifest tests to assert ATC absence, command count 26, and absent source assets. Updated delegation and phantom roster tests to preserve primary-agent subagent bans for the remaining primaries (`adv`, `plan`, `build`) without keeping ATC as a supported primary.",
+      "filesTouched": [
+        ".opencode/agents/adv-atc.md",
+        ".opencode/command/adv-atc.md",
+        "plugin/src/__tests__/atc-assets.test.ts",
+        "plugin/src/delegation-matrix.test.ts",
+        "plugin/src/manifest.test.ts",
+        "plugin/src/manifest.ts",
+        "plugin/src/phantom-subagent-roster.test.ts"
+      ],
+      "touched_files": [
+        ".opencode/agents/adv-atc.md",
+        ".opencode/command/adv-atc.md",
+        "plugin/src/__tests__/atc-assets.test.ts",
+        "plugin/src/delegation-matrix.test.ts",
+        "plugin/src/manifest.test.ts",
+        "plugin/src/manifest.ts",
+        "plugin/src/phantom-subagent-roster.test.ts"
+      ],
+      "checkpointSha": "596245cd417325b5abceb06392e059f5ee130671",
+      "completedAt": "2026-06-26T01:27:38.828Z",
+      "completed_at": "2026-06-26T01:27:38.828Z",
+      "notes": "Clean runtime/manifest removal complete. Deleted ATC agent/command assets and ATC-only asset test, removed manifest entry, reduced command count 27→26, and shrank primary-agent spawn-ban rosters to adv/plan/build while preserving safety checks. Checkpoint 596245cd417325b5abceb06392e059f5ee130671.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "updatedAt": "2026-06-26T01:27:57.303Z"
+    },
+    {
+      "id": "tk-4bf5c5b13315",
+      "title": "Remove current-support ATC docs and specs",
+      "type": "docs",
+      "section": "Docs and specs",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-06-26T01:13:33.673Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC5",
+          "C6"
+        ],
+        "verifies": [
+          "AC1",
+          "AC5"
+        ],
+        "respects": [
+          "DONT2",
+          "DONT3"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "static_check",
+      "assignedTo": "agent",
+      "started_at": "2026-06-26T01:28:21.710Z",
+      "verification": "RED failed as expected: bin/oc-test targeted -- src/adv-instructions-assets.test.ts src/orchestrator-ops-delegation-assets.test.ts src/workflow-noise-reduction-assets.test.ts. GREEN passed after docs/spec cleanup: targeted docs/delegation/manifest suite, 194 tests passed. Exact search remaining `adv-atc` hits are historical changelog, absence assertions, or deploy-local cleanup surfaces for next task. git diff --check passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Removed `adv-atc` current-support documentation and specs while preserving historical changelog references. Retired the ATC workflow requirement (`rq-atc01`) from advance-workflow spec/doc mirror; removed the vacuous `rq-orchestratorOpsDelegation01.6` ATC out-of-scope clause; updated delegation-defaults primary-agent references to `adv`, `plan`, and `build`; updated asset tests to assert ATC absence and retained delegation safety checks.",
+      "filesTouched": [
+        ".adv/specs/advance-meta/spec.json",
+        ".adv/specs/advance-workflow/spec.json",
+        ".adv/specs/delegation-defaults/spec.json",
+        ".opencode/agents/adv.md",
+        "ADV_INSTRUCTIONS.md",
+        "AGENTS.md",
+        "README.md",
+        "docs/cli-surface-matrix.md",
+        "docs/specs/advance-meta.md",
+        "docs/specs/advance-workflow.md",
+        "plugin/src/adv-instructions-assets.test.ts",
+        "plugin/src/orchestrator-ops-delegation-assets.test.ts",
+        "plugin/src/workflow-noise-reduction-assets.test.ts"
+      ],
+      "touched_files": [
+        ".adv/specs/advance-meta/spec.json",
+        ".adv/specs/advance-workflow/spec.json",
+        ".adv/specs/delegation-defaults/spec.json",
+        ".opencode/agents/adv.md",
+        "ADV_INSTRUCTIONS.md",
+        "AGENTS.md",
+        "README.md",
+        "docs/cli-surface-matrix.md",
+        "docs/specs/advance-meta.md",
+        "docs/specs/advance-workflow.md",
+        "plugin/src/adv-instructions-assets.test.ts",
+        "plugin/src/orchestrator-ops-delegation-assets.test.ts",
+        "plugin/src/workflow-noise-reduction-assets.test.ts"
+      ],
+      "checkpointSha": "051afa81ae56ccf12546f683a69e0277177daab6",
+      "completedAt": "2026-06-26T01:35:42.929Z",
+      "completed_at": "2026-06-26T01:35:42.929Z",
+      "notes": "Current-support ATC docs/spec cleanup complete. Removed ATC from ADV_INSTRUCTIONS, README, AGENTS quick reference, adv.md primary-agent roster, CLI surface matrix, advance-workflow rq-atc01, advance-meta dangling ATC clause, and delegation-defaults primary lists. Checkpoint 051afa81ae56ccf12546f683a69e0277177daab6.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "updatedAt": "2026-06-26T01:35:58.278Z"
+    },
+    {
+      "id": "tk-4ab35e05139e",
+      "title": "Update deploy-local stale cleanup and backup path",
+      "type": "ops",
+      "section": "Deploy and backup",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-06-26T01:13:50.222Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC3",
+          "AC4",
+          "AC8",
+          "C4",
+          "C5"
+        ],
+        "verifies": [
+          "AC3",
+          "AC4",
+          "AC8"
+        ],
+        "respects": [
+          "DONT1",
+          "DONT5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-26T01:36:24.978Z",
+      "verification": "RED failed as expected: bin/oc-test targeted -- src/deploy-local.test.ts failed on explicit REPO_AGENTS/adv-atc.md guard. GREEN passed after deploy-local cleanup changes: src/deploy-local.test.ts, 67 tests passed. Exact `adv-atc` search now shows only historical changelog and absence assertions. git diff --check passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Updated deploy-local source and tests for clean ATC removal. Removed the now-vacuous `REPO_AGENTS/adv-atc.md` frontmatter/tool-drift check and the obsolete `adv-autopilot files replaced by adv-atc` cleanup block. Added deploy-local test coverage that generic stale `adv-*.md` command and agent loops own removed ATC cleanup and that no ATC-specific guard remains.",
+      "filesTouched": [
+        "plugin/src/deploy-local.test.ts",
+        "scripts/deploy-local.sh"
+      ],
+      "touched_files": [
+        "plugin/src/deploy-local.test.ts",
+        "scripts/deploy-local.sh"
+      ],
+      "checkpointSha": "c3293ed04c7cc9470025284d477c81df39125f9c",
+      "completedAt": "2026-06-26T01:39:00.848Z",
+      "completed_at": "2026-06-26T01:39:00.848Z",
+      "notes": "Deploy-local cleanup updated. Removed explicit ATC agent drift guard and obsolete adv-autopilot→ATC cleanup block; generic stale adv-*.md command/agent loops now own stale ATC removal. Checkpoint c3293ed04c7cc9470025284d477c81df39125f9c.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "updatedAt": "2026-06-26T01:39:17.681Z"
+    },
+    {
+      "id": "tk-295fe8813541",
+      "title": "Run final ATC-removal verification sweep",
+      "type": "verification",
+      "section": "Verification",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-06-26T01:14:18.823Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-7fb47f76ea5a"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-4bf5c5b13315"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-4ab35e05139e"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "contract_refs": {
+        "implements": [],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7",
+          "AC8"
+        ],
+        "respects": [
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5"
+        ],
+        "not_applicable_reason": "Verification/hardening task; no primary implementation contract ownership."
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-26T01:39:52.486Z",
+      "verification": "Hardening remediation verified: removed stale live roadmap warning wording `recent ATC/archive closures`; targeted roadmap/manifest/deploy/ADV-instructions suite passed (165 tests); git diff --check passed; exact adv-atc search now shows only historical changelog and absence assertions.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Final verification plus release-hardening remediation completed. Reviewer fixed the final stale current-support spec mention; harden scanners found one safe adjacent stale runtime warning string, which was reworded and verified. Final source state has no supported/current `adv-atc` runtime, docs, manifest, spec, deploy, or roadmap wording; exact search retains only historical changelog and structural absence assertions. Current checkpoint 294a1508d2f8.",
+      "filesTouched": [
+        "plugin/src/tools/roadmap.test.ts",
+        "plugin/src/tools/roadmap.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/roadmap.test.ts",
+        "plugin/src/tools/roadmap.ts"
+      ],
+      "checkpointSha": "294a1508d2f83fce34ddebaa328b4353aa700a9b",
+      "completedAt": "2026-06-26T02:35:26.401Z",
+      "completed_at": "2026-06-26T02:35:26.401Z",
+      "notes": "Release hardening remediation complete. Harden scanners READY. Removed stale live roadmap warning wording `recent ATC/archive closures` -> `recent archive closures`; checkpoint 294a1508d2f83fce34ddebaa328b4353aa700a9b. Targeted roadmap/manifest/deploy/ADV-instructions suite passed (165 tests); exact `adv-atc` search now shows only historical changelog and absence assertions. Remaining harden observations are non-blocking/rejected with evidence: do not add adv-atc to phantom rosters because this change intentionally removes ATC wholesale rather than retaining a retired/delegation surface; deployed user config `agent.adv-atc` is inert user-owned config, not repo-owned release blocker.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "updatedAt": "2026-06-26T02:35:46.417Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "removeAdvAtc",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/removeAdvAtc",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design leverage scout for ATC removal",
+      "sources": [
+        {
+          "label": "deploy-local.sh generic stale-agent cleanup (lines 1356-1378)",
+          "locator": "scripts/deploy-local.sh:1372",
+          "summary": "Generic `for global_agent in $GLOBAL_AGENTS/adv-*.md` loop + remove_stale_agent_if_needed already removes any global adv-*.md whose source file is gone. Deleting source adv-atc.md auto-removes the global copy — AC3 agent-side mechanism is real, not aspirational."
+        },
+        {
+          "label": "deploy-local.sh generic stale-command cleanup (lines 1184-1201)",
+          "locator": "scripts/deploy-local.sh:1188",
+          "summary": "Generic `for global_cmd in $GLOBAL_COMMANDS/adv-*.md` loop removes stale commands whose source is absent. Covers /adv-atc command removal automatically."
+        },
+        {
+          "label": "deploy-local.sh adv-autopilot special-case block (lines 1238-1256)",
+          "locator": "scripts/deploy-local.sh:1238",
+          "summary": "Hardcoded autopilot cleanup with comment 'Remove stale adv-autopilot files replaced by adv-atc'. Tied to ATC narrative; orphaned dead code after ATC removal."
+        },
+        {
+          "label": "deploy-local.sh ATC tool-drift guard (lines 723-726)",
+          "locator": "scripts/deploy-local.sh:723",
+          "summary": "Explicit `if [ -f $REPO_AGENTS/adv-atc.md ]` block runs check_agent_frontmatter + check_tool_drift on adv-atc.md. Not covered by generic loops; must be removed manually or it becomes a permanent no-op."
+        },
+        {
+          "label": "manifest.ts adv-atc def (lines 300-323) + reverse-link scan",
+          "locator": "plugin/src/manifest.ts:300",
+          "summary": "adv-atc has only outbound successors:['adv-archive']; no other command lists adv-atc as a prerequisite/successor. Removal needs no reverse-link patching in sibling command defs."
+        },
+        {
+          "label": "Active ATC-asserting tests vs pure-delete tests",
+          "locator": "plugin/src/adv-instructions-assets.test.ts:109",
+          "summary": "adv-instructions-assets.test.ts:109, orchestrator-ops-delegation-assets.test.ts:141, docs/specs advance-meta rq-orchestratorOpsDelegation01.6 actively assert ATC presence/out-of-scope and must flip to absence. atc-assets.test.ts is pure-delete. manifest.test.ts has 5 ATC sites (48/315/368/393/487) needing structural edit not blind delete."
+        }
+      ],
+      "architecture_assessment": "Draft design's affected-components list is accurate and the central LBP claim (source deletion as single removal mechanism) is structurally backed by two generic stale-cleanup loops in deploy-local.sh. The design under-specifies four concrete leverage/cleanup points: (1) the orphaned adv-autopilot special-case block whose entire reason-for-existence was 'replaced by adv-atc'; (2) the explicit ATC tool-drift guard at lines 723-726 that generic loops do NOT cover; (3) the manifest having zero inbound dependency edges, making removal cleaner than the design implies (no successor/prerequisite repair); (4) the test taxonomy split between flip-to-absence tests and pure-delete tests, which the design lists flatly. No safety weakening risk found: phantom-subagent-roster and delegation-matrix PRIMARIES arrays just shrink ['adv','plan','build','adv-atc']→['adv','plan','build'], preserving spawn bans for the survivors.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "Design is sound and shippable. Scout surfaces 4 leverage/cleanup refinements; none block design-gate completion. All are adopt-now or design-around clarifications."
+      },
+      "recommendation": "Augment design Affected Components + DDCs with: (a) adopt-now — remove the orphaned adv-autopilot special-case block (deploy-local.sh:1238-1256) and the explicit ATC tool-drift guard (deploy-local.sh:723-726) as part of ATC removal, since generic loops cover deletion-sync but not these ATC-narrative artifacts; (b) design-around — add a DDC asserting generic adv-*.md stale-cleanup loops remain intact (they ARE the AC3 mechanism), preventing a regression that silently breaks self-cleaning; (c) clarify test fate per-file: atc-assets.test.ts delete; manifest.test.ts/adv-instructions-assets.test.ts/orchestrator-ops-delegation-assets.test.ts edit-to-absence; phantom-subagent-roster.test.ts/delegation-matrix.test.ts shrink PRIMARIES array preserving bans; (d) note manifest removal needs no sibling reverse-link patching. Proceed to design-gate completion after folding these in.",
+      "follow_ups": [
+        "Consider whether the deploy-local generic adv-*.md cleanup loops deserve a deterministic test asserting they remove an arbitrary stale adv-X.md (stronger than ATC-specific), satisfying DDC2 durably.",
+        "advance-meta spec rq-orchestratorOpsDelegation01.6 ('adv-atc.md is not modified') becomes vacuous after ATC removal — retire or convert to historical note, not just leave dangling."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "removeAdvAtc",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/removeAdvAtc",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation for ADV ATC removal",
+      "sources": [
+        {
+          "label": "Exact source scan adv-atc (lgrep_search_text, 60 hits)",
+          "locator": "plugin/src/manifest.ts:300, plugin/src/manifest.test.ts:48/58/315/368/393/487, docs/specs/advance-workflow.md:2125, .adv/specs/advance-workflow/spec.json:2084",
+          "summary": "Confirms ATC surface across agent/command source, manifest, 6 test files, README/ADV_INSTRUCTIONS/cli-surface-matrix docs, and advance-workflow + advance-meta specs. Matches design's affected-components list."
+        },
+        {
+          "label": "rq-atc01 spec-law requirement",
+          "locator": "docs/specs/advance-workflow.md:2125 / .adv/specs/advance-workflow/spec.json:2084",
+          "summary": "rq-atc01 is a [MUST] requirement with sub-reqs .1-.5 describing the autonomous HITL-defer pipeline. This is the central spec-law surface to remove/retire; design Key Decision 4 + AC5 cover it. No other spec requirement depends on rq-atc01."
+        },
+        {
+          "label": "manifest.test.ts command-count + scope-gate asserts",
+          "locator": "plugin/src/manifest.test.ts:58/367",
+          "summary": "toHaveLength(27) must become 26; dedicated 'adv-atc scope gates' test must be deleted; expectedCommands/WORKFLOW_COMMANDS/allowlist-map entries removed. Five structural edit sites, not blind delete."
+        },
+        {
+          "label": "Primary-roster safety tests",
+          "locator": "plugin/src/phantom-subagent-roster.test.ts:41/291, plugin/src/delegation-matrix.test.ts:58",
+          "summary": "PRIMARIES/PRIMARY_AGENTS arrays = ['adv','plan','build','adv-atc']. Shrinking to 3 preserves spawn-bans for survivors; AC6/DONT3 not weakened. phantom-subagent-roster.test.ts:291 hardcodes the 4-element array and must be edited in lockstep."
+        },
+        {
+          "label": "Undocumented ATC references (benign no-ops)",
+          "locator": "plugin/src/workflow-noise-reduction-assets.test.ts:166, plugin/src/deploy-local.test.ts:793",
+          "summary": "workflow-noise-reduction-assets.test.ts lists adv-atc.md inside an existsSync-guarded loop (continue if missing) → deleting source makes it a silent no-op, no failure. deploy-local.test.ts:793 is a code comment only. Neither blocks; design did not name them."
+        },
+        {
+          "label": "deploy-local generic stale-cleanup + ATC-specific artifacts (scout-confirmed)",
+          "locator": "scripts/deploy-local.sh:1372/1188 (generic), :723 (ATC drift guard), :1238 (adv-autopilot block)",
+          "summary": "Generic adv-*.md command+agent stale loops auto-remove global adv-atc.md after source deletion (AC3 mechanism real). ATC-specific tool-drift guard (723-726) and adv-autopilot 'replaced by adv-atc' block (1238-1256) are NOT covered by generic loops and need explicit removal — design Key Decision 5 covers them."
+        }
+      ],
+      "architecture_assessment": "Design is correct, simple, and spec-compliant. CORRECTNESS: deletion-from-source-of-truth is the right single mechanism; all 6 objectives map to concrete actions, no logical gaps. Affected-components list matches the independent 60-hit exact scan. The autonomous pipeline spec-law (rq-atc01 [MUST] + .1-.5) is the one heavyweight surface and is explicitly addressed by Key Decision 4 / AC5. SIMPLICITY: source deletion plus existing generic deploy stale-cleanup is the minimal viable approach; no replacement async pipeline (C3 honored), no runtime-hiding half-state. Could not find a simpler approach achieving the same removal. SPEC-LAW: no spec requirement depends on rq-atc01; advance-meta rq-orchestratorOpsDelegation01.6 ('adv-atc.md is not modified / out of scope') becomes vacuous after removal and must be retired/converted to historical — already flagged by scout follow-up and covered by AC5. No contradiction with surviving specs. ALTERNATIVES: tool-hiding/deprecation-shim alternatives are inferior (leave callable stale surface, violate DONT1); correctly rejected. Two surfaces the design under-named are both benign: workflow-noise-reduction-assets.test.ts:166 (existsSync-guarded, becomes no-op) and deploy-local.test.ts:793 (comment only).",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "VALIDATED. Independent exact scan + spec read confirm the scout's prior pass. No correctness gap, no simpler alternative, no spec-law conflict, no overlooked viable alternative. Two minor under-named surfaces are benign; fold into planning scope to keep AC1 search-budget exhaustive."
+      },
+      "recommendation": "Proceed to design-gate completion. Design is sound and shippable. Fold three planning-scope clarifications: (1) add workflow-noise-reduction-assets.test.ts:166 and deploy-local.test.ts:793 to the AC1 current-support scan list so the removal sweep is exhaustive (both benign — existsSync-guarded no-op and a code comment — so they need no flip, just confirmation); (2) explicitly retire advance-meta rq-orchestratorOpsDelegation01.6's 'adv-atc out of scope' clause as historical rather than leaving it dangling (AC5); (3) update manifest.test.ts command-count assertion 27→26 alongside removing the dedicated 'adv-atc scope gates' test and the five other ATC sites. The deploy-local ATC-specific tool-drift guard (723-726) and orphaned adv-autopilot block (1238-1256) must be removed explicitly since generic stale loops do not cover them — already captured in Key Decision 5.",
+      "follow_ups": [
+        "Planning: add deterministic test asserting generic deploy-local adv-*.md stale-cleanup removes an arbitrary source-absent adv-X.md (durable AC3 proof stronger than ATC-specific).",
+        "Planning: retire/convert advance-meta rq-orchestratorOpsDelegation01.6 ATC clause to historical note.",
+        "Planning: include workflow-noise-reduction-assets.test.ts:166 in removal sweep to avoid a lingering (benign) adv-atc.md path string."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "removeAdvAtc",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/removeAdvAtc",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [
+        {
+          "id": "review-praise-1",
+          "label": "praise",
+          "file": "scripts/deploy-local.sh",
+          "line": 1183,
+          "what": "Generic stale cleanup removes removed ADV commands and agents without ATC-specific shims.",
+          "why": "Supports AC3/DONT1 by making removed adv-* assets disappear through source-of-truth comparison instead of maintaining legacy ATC-specific code.",
+          "fix": "n/a"
+        },
+        {
+          "id": "review-praise-2",
+          "label": "praise",
+          "file": "plugin/src/delegation-matrix.test.ts",
+          "line": 546,
+          "what": "Delegation matrix tests preserve sub-agent safety and primary-agent spawn bans.",
+          "why": "Supports AC6/DONT3/DONT4 by asserting referenced sub-agents exist, are subagent-mode, and exclude primary agents adv/plan/build.",
+          "fix": "n/a"
+        }
+      ],
+      "changes_made": [
+        {
+          "file": ".adv/specs/delegation-defaults/spec.json",
+          "summary": "Removed stale current-support `atc` mention from utility-command matrix scenario and clarified the row applies only to supported utility commands with command files.",
+          "verification": "`grep` over .adv/specs for `adv-atc|ADV ATC|\\batc\\b` returned no matches; targeted tests passed: 4 files, 158 tests; `pnpm --dir plugin run check` passed."
+        },
+        {
+          "file": "local runtime/global config",
+          "summary": "Re-ran source-of-truth deployment via `./scripts/deploy-local.sh --fix` after discovering stale global `adv-atc.md` command and agent files had reappeared; script removed one stale command and one stale agent through generic cleanup.",
+          "verification": "`./scripts/deploy-local.sh --check` passed; explicit absence check reports ABSENT for ~/.config/opencode/agents/adv-atc.md, ~/.config/opencode/command/adv-atc.md, ~/.config/opencode/commands/adv-atc.md, and backups/dotfiles/opencode/agents/adv-atc.md."
+        }
+      ],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "ATC removal review must check both source and installed global OpenCode assets; stale ~/.config/opencode/agents/adv-atc.md and command/adv-atc.md can reappear even when source and backup files are absent, and deploy-local --fix is the source-of-truth remediation."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "Path preflight for referenced source/test/deploy files",
+          "lgrep_search_text adv-atc",
+          "grep adv-atc|ADV ATC|\\batc\\b over .opencode, docs, skills, scripts, plugin/src, .adv/specs",
+          "bin/oc-test targeted -- src/delegation-matrix.test.ts src/manifest.test.ts src/deploy-local.test.ts src/adv-instructions-assets.test.ts",
+          "pnpm --dir plugin run check",
+          "./scripts/deploy-local.sh --fix",
+          "./scripts/deploy-local.sh --check",
+          "explicit global/backups absence check for adv-atc.md"
+        ],
+        "results": "pass",
+        "evidence": "Preflight OK for referenced files. Active source/current-support searches now find no ATC references in .opencode, docs, skills, scripts, or .adv/specs; plugin/src hits are absence assertions only; repo-wide remaining hits are historical .adv/archive/CHANGELOG or test assertions. Targeted tests: 4 files passed, 158 tests. check: schemas:check, typecheck, test-isolation, lockfile policy, lint, format:check passed. deploy-local --fix removed stale global command and agent; deploy-local --check passed with 26 commands, 10 agents, 23 skills and tool drift clean."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Worktree now has one intentional source fix: .adv/specs/delegation-defaults/spec.json. Orchestrator should include it before acceptance/archive.",
+        "OpenCode sessions need restart to pick up the refreshed deployed runtime/agent assets, as deploy-local output states.",
+        "Full suite and build were known green before review; after the spec-only cleanup, targeted removal tests and pnpm check were rerun and passed."
+      ],
+      "required_main_agent_actions": [
+        "Review and keep the .adv/specs/delegation-defaults/spec.json cleanup in the final change.",
+        "Restart OpenCode sessions before relying on live runtime prompt/command surface, per deploy-local output."
+      ],
+      "required_follow_ups": [],
+      "consumer_warnings": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "removeAdvAtc",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/removeAdvAtc",
+      "scope": {
+        "kind": "change",
+        "scope_key": "scanner-bundle:harden"
+      },
+      "agent": "adv-scanner-bundle",
+      "phase": "harden",
+      "scanner_count": 3,
+      "dimensions": [
+        "documentation_hygiene",
+        "deployment_cleanup",
+        "slop_production_tests",
+        "merge_compatibility",
+        "contract_proof",
+        "review_findings_audit"
+      ],
+      "summary": "Release hardening READY. Merge compatibility passed, contract proof complete (19/19 pass/respected), no unresolved actionable review findings. One safe adjacent stale runtime warning was fixed and verified. Remaining observations are non-blocking/rejected with evidence.",
+      "findings": [
+        {
+          "scanner": "documentation_hygiene",
+          "severity": "info",
+          "summary": "No current-support adv-atc docs/spec/manifest references remain. Scanner suggested adding adv-atc to phantom rosters as defense-in-depth; rejected with evidence because this change intentionally removes ATC wholesale rather than retaining a retired/delegation surface, while existing absence assertions and exact search structurally guard current support.",
+          "evidence": [
+            {
+              "label": "source search",
+              "locator": "lgrep_search_text adv-atc",
+              "summary": "Only historical CHANGELOG and absence assertions remain."
+            },
+            {
+              "label": "tests",
+              "locator": "plugin/src/manifest.test.ts / adv-instructions-assets.test.ts / deploy-local.test.ts",
+              "summary": "Tests assert no manifest command, no source assets, no phase-goal support, and generic stale cleanup ownership."
+            }
+          ]
+        },
+        {
+          "scanner": "deployment_cleanup",
+          "severity": "info",
+          "summary": "Stale roadmap warning wording `recent ATC/archive closures` was fixed to `recent archive closures` and verified. Deployed user config may contain inert user-owned `agent.adv-atc`; out of repo scope and non-blocking because agent/command files are removed and deploy-local check passes.",
+          "evidence": [
+            {
+              "label": "fix",
+              "locator": "plugin/src/tools/roadmap.ts:801, plugin/src/tools/roadmap.test.ts:220",
+              "summary": "Runtime warning and pinned test no longer mention ATC."
+            },
+            {
+              "label": "verification",
+              "locator": "bin/oc-test targeted -- src/tools/roadmap.test.ts src/manifest.test.ts src/deploy-local.test.ts src/adv-instructions-assets.test.ts",
+              "summary": "165 tests passed."
+            }
+          ]
+        },
+        {
+          "scanner": "slop_production_tests",
+          "severity": "info",
+          "summary": "No release-blocking slop, production-readiness, test-coverage, or runtime reliability issues found. Non-test runtime refs to adv-atc are absent.",
+          "evidence": [
+            {
+              "label": "scanner evidence",
+              "locator": "plugin/src/manifest.ts, scripts/deploy-local.sh, tests",
+              "summary": "Manifest/deploy/test guard seams are structurally covered and no debug/temp/type-erosion issues were reported."
+            }
+          ]
+        }
+      ],
+      "follow_ups": [],
+      "consumer_warnings": []
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-G6hVoO",
+      "type": "pattern",
+      "content": "Clean command/agent retirement should delete source assets and remove manifest registration, then shrink primary-agent spawn-ban rosters rather than disabling/hiding the command. RED should assert absence before deleting so removal is structurally proven.",
+      "source_task": "tk-7fb47f76ea5a",
+      "recorded_at": "2026-06-26T01:28:09.728Z"
+    },
+    {
+      "id": "ws-Y6ylxH",
+      "type": "gotcha",
+      "content": "Removing a current-support command can require spec-law cleanup in both JSON and rendered docs. Search results should classify remaining hits: historical changelog/archive is OK, but current specs/docs/tests must either assert absence or remove support text.",
+      "source_task": "tk-4bf5c5b13315",
+      "recorded_at": "2026-06-26T01:36:10.364Z"
+    },
+    {
+      "id": "ws-YI6AfH",
+      "type": "success",
+      "content": "For clean removal of deployed command/agent assets, source deletion can rely on generic deploy-local stale `adv-*.md` cleanup loops. Remove product-specific drift guards and obsolete migration comments so stale code does not survive as disabled legacy logic.",
+      "source_task": "tk-4ab35e05139e",
+      "recorded_at": "2026-06-26T01:39:26.732Z"
+    },
+    {
+      "id": "ws-IYPBKk",
+      "type": "success",
+      "content": "Final removal verification should include a source search classification plus deployed/global absence checks. In this change, `adv-atc` remained only in historical changelog and absence-assertion tests; global and backup `adv-atc.md` files were explicitly absent after deploy-local fix.",
+      "source_task": "tk-295fe8813541",
+      "recorded_at": "2026-06-26T01:45:54.220Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-06-26T00:44:02.653Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved proposal via inline Tier A reply: \"approve\".",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "3462ac7aab2ed490520403b129c911747e22273959984b7f60e9a1b57a230deb",
+        "non_whitespace_chars": 3181,
+        "checked_at": "2026-06-26T00:42:03.649Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-06-26T01:03:03.231Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved agreement via inline Tier A reply: \"approve\". Agreement persisted with objectives, 8 acceptance criteria, 6 constraints, 5 avoidances, discovery findings, and contract minted with 19 items.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "4b5e95a2ec363407224866e241b58b34636ac1a1327d1e14d779bca66f4ae57a",
+        "non_whitespace_chars": 4929,
+        "checked_at": "2026-06-26T00:42:03.650Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-06-26T01:12:42.017Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design completed with mandatory leverage scout and independent validator. Scout verdict VALIDATED with adopted refinements. Validator verdict VALIDATED with cautions folded into design: sweep workflow-noise/deploy-local comment surfaces and retire advance-meta rq-orchestratorOpsDelegation01.6 dangling ATC clause. No validator CONFLICT, contract compromise, or user-value tradeoff surfaced.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "18fb566fd6390593753abc038e0cb16d595beed5f0d1e758c389bc5c8fe9c5f5",
+        "non_whitespace_chars": 8787,
+        "checked_at": "2026-06-26T00:42:03.651Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-06-26T01:23:48.062Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved prep/task graph via inline Tier A reply: \"approve\". Four-task plan covers runtime/manifest removal, docs/spec cleanup, deploy-local stale cleanup/backups, and final verification sweep."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-06-26T01:46:31.229Z",
+      "completed_by": "agent",
+      "approval_evidence": "Execution complete: all 4 tasks done. Clean removal implemented: no disable/shim. Source worktree clean at c3293ed04c7cc9470025284d477c81df39125f9c. Verification passed: targeted manifest/assets/deploy/delegation/spec suite (263 tests), exact adv-atc search classified only historical changelog + absence assertions, pnpm run check, bin/oc-test full, pnpm run build, deploy-local --fix, deploy-local --check, and global/backup adv-atc absence checks. Backup repo has expected non-secret sync changes (adv.md update, adv-atc.md deletion)."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-06-26T02:23:28.257Z",
+      "completed_by": "agent",
+      "approval_evidence": "User accepted delivered work via inline Tier A reply: \"approve\". Acceptance proof was persisted before prompt: executive summary content hash 8b1374ec21f16118dafa0a2fd4755fd62960312fac346c8a6615e747cced21b2; contract review matrix 19/19 rows pass/respected, 0 failing/unknown; reviewer verdict READY/APPROVED; all tasks done and final verification passed.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "8b1374ec21f16118dafa0a2fd4755fd62960312fac346c8a6615e747cced21b2",
+        "non_whitespace_chars": 1872,
+        "checked_at": "2026-06-26T00:42:03.652Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "adhoc"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "4b5e95a2ec363407224866e241b58b34636ac1a1327d1e14d779bca66f4ae57a",
+      "approvedAt": "2026-06-26T01:02:54.710Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "**AC1 — No supported ATC command or agent assets.** `lgrep_search_text` or equivalent exact search for active source references shows no `.opencode/agents/adv-atc.md`, `.opencode/command/adv-atc.md`, manifest entry, or README/ADV_INSTRUCTIONS command listing advertising `adv-atc` as supported. Historical changelog/archive references may remain only if not deployed or user-facing as current support.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4b5e95a2ec363407224866e241b58b34636ac1a1327d1e14d779bca66f4ae57a",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "**AC2 — Manifest and command registry clean.** `plugin/src/manifest.ts` and manifest tests no longer register or expect `adv-atc`; command count/rosters are updated intentionally.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4b5e95a2ec363407224866e241b58b34636ac1a1327d1e14d779bca66f4ae57a",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "**AC3 — Deployment removes stale ATC.** `./scripts/deploy-local.sh --fix` removes any installed global `adv-atc.md` agent/command asset, and `./scripts/deploy-local.sh --check` reports all ADV entries present with no ATC drift.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4b5e95a2ec363407224866e241b58b34636ac1a1327d1e14d779bca66f4ae57a",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "**AC4 — Remaining agents/tools clean.** `deploy-local --check` reports `adv.md` and any remaining managed agents have tool allowlists matching the plugin registry.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4b5e95a2ec363407224866e241b58b34636ac1a1327d1e14d779bca66f4ae57a",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "**AC5 — Runtime docs/specs aligned.** Current docs/specs stop describing `/adv-atc` as supported; any spec references to ATC are removed, retired, or converted to explicit historical/non-supported notes with deterministic tests.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4b5e95a2ec363407224866e241b58b34636ac1a1327d1e14d779bca66f4ae57a",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "**AC6 — Sub-agent safety preserved.** Tests still prevent primary agents (`adv`, `plan`, `build`) from appearing as spawnable sub-agents; removing `adv-atc` does not weaken delegation safety checks.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4b5e95a2ec363407224866e241b58b34636ac1a1327d1e14d779bca66f4ae57a",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "**AC7 — Verification green.** At minimum, targeted tests covering manifest/assets/deploy/delegation pass, `pnpm run check` passes, and a full suite or agreed release-equivalent suite passes before acceptance.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4b5e95a2ec363407224866e241b58b34636ac1a1327d1e14d779bca66f4ae57a",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC8",
+        "kind": "acceptance_criterion",
+        "text": "**AC8 — Local runtime updated.** `pnpm run build`, `./scripts/deploy-local.sh --fix`, and dotfile backup sync for changed OpenCode surfaces complete successfully.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4b5e95a2ec363407224866e241b58b34636ac1a1327d1e14d779bca66f4ae57a",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "**C1 — Keep `adv` interactive lifecycle intact.** No removal or behavior change to the main `adv` orchestrator gates/checkpoints beyond deleting ATC references.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4b5e95a2ec363407224866e241b58b34636ac1a1327d1e14d779bca66f4ae57a",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "**C2 — Keep ADV sub-agents.** Do not remove `adv-engineer`, `adv-reviewer`, `adv-designer`, `adv-researcher`, `adv-temporal-repair`, `adv-tron`, `explore`, or `general`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4b5e95a2ec363407224866e241b58b34636ac1a1327d1e14d779bca66f4ae57a",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "**C3 — No replacement async pipeline.** Do not add a new autonomous mode, alias, wrapper, or hidden ATC successor in this change.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4b5e95a2ec363407224866e241b58b34636ac1a1327d1e14d779bca66f4ae57a",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "**C4 — Source-of-truth deploy path.** Modify source repo assets and deploy through `scripts/deploy-local.sh`; do not hand-edit deployed `~/.config/opencode` or runtime plugin files as source of truth.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4b5e95a2ec363407224866e241b58b34636ac1a1327d1e14d779bca66f4ae57a",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "**C5 — Backup policy.** After deploy/config surface changes, sync non-secret current state into `backups/dotfiles/` before completion.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4b5e95a2ec363407224866e241b58b34636ac1a1327d1e14d779bca66f4ae57a",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C6",
+        "kind": "constraint",
+        "text": "**C6 — Historical records allowed.** Changelog/archive text may remain if clearly historical and not part of current runtime/docs/spec support.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4b5e95a2ec363407224866e241b58b34636ac1a1327d1e14d779bca66f4ae57a",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "**DONT1 — Do not leave a stale callable `adv-atc` installed globally.**",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4b5e95a2ec363407224866e241b58b34636ac1a1327d1e14d779bca66f4ae57a",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "**DONT2 — Do not keep ATC in the command manifest or command matrix as a supported command.**",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4b5e95a2ec363407224866e241b58b34636ac1a1327d1e14d779bca66f4ae57a",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "**DONT3 — Do not remove or weaken main ADV safety checkpoints.**",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4b5e95a2ec363407224866e241b58b34636ac1a1327d1e14d779bca66f4ae57a",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "**DONT4 — Do not route any workflow step to a primary agent as a sub-agent.**",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4b5e95a2ec363407224866e241b58b34636ac1a1327d1e14d779bca66f4ae57a",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "**DONT5 — Do not claim local deployment complete until `deploy-local --check` is clean after `--fix`.**",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4b5e95a2ec363407224866e241b58b34636ac1a1327d1e14d779bca66f4ae57a",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-06-26T01:59:45.000Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Exact `adv-atc` source search after implementation shows only historical CHANGELOG and absence assertions in tests; source assets `.opencode/agents/adv-atc.md` and `.opencode/command/adv-atc.md` deleted; manifest/docs current support removed. Reviewer READY after fixing final spec mention.",
+          "notes": "No supported ATC surface remains."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`plugin/src/manifest.ts` no longer contains `adv-atc`; `src/manifest.test.ts` asserts 26 commands, no `adv-atc` property, and absent source assets. Targeted manifest suite passed.",
+          "notes": "Registry clean."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`./scripts/deploy-local.sh --fix` passed and removed stale global ATC command/agent files; explicit absence check passed for `~/.config/opencode/agents/adv-atc.md`, command/commands variants, and backup adv-atc path.",
+          "notes": "Stale installed ATC removed."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`./scripts/deploy-local.sh --check` passed after fix: config all ADV entries present; `adv.md` allowlist matches plugin registry (70 tools).",
+          "notes": "Remaining managed agent tool drift clean."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Removed current ATC docs/spec requirements from ADV_INSTRUCTIONS, README, CLI surface matrix, advance-workflow spec/docs, advance-meta ATC clause, and delegation-defaults current primary lists. Targeted docs/spec/delegation tests passed; reviewer fixed final delegation-defaults utility-command mention.",
+          "notes": "Runtime docs/specs aligned."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`delegation-matrix.test.ts` and `phantom-subagent-roster.test.ts` now pin remaining primary agents (`adv`, `plan`, `build`) and continue forbidding primary-agent subagent routing. Targeted and full suites passed.",
+          "notes": "Safety preserved."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Targeted final suite passed (263 tests), post-review targeted suite passed (158 tests), `pnpm run check` passed, and `bin/oc-test full` passed after review fix.",
+          "notes": "Verification green."
+        },
+        {
+          "contractId": "AC8",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`pnpm run build`, `./scripts/deploy-local.sh --fix`, `./scripts/deploy-local.sh --check`, and dotfile backup sync completed. Toolbox backup repo shows expected `adv.md` update and `adv-atc.md` deletion; explicit backup absence check passed.",
+          "notes": "Local runtime updated; OpenCode restart still required to reload current session."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Changes removed ATC references only; `adv` agent remains present and deploy-local check validates `adv.md` frontmatter/tool drift. No gate/checkpoint behavior changed.",
+          "notes": "Interactive ADV preserved."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No ADV sub-agent files were removed; deletion limited to `.opencode/agents/adv-atc.md`, the primary ATC agent. Deploy output shows remaining agents synced; tests passed.",
+          "notes": "Sub-agents kept."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No alias, shim, wrapper, hidden successor, or replacement async pipeline was added. Reviewer checked clean removal/no stale legacy code and verdict READY.",
+          "notes": "No replacement pipeline."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Implementation edited source worktree and used `scripts/deploy-local.sh --fix`; no deployed file was used as source of truth. Backup sync was copied from deployed current state after deploy.",
+          "notes": "Source-of-truth deploy path honored."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Non-secret dotfile backup sync done: `/home/jon/toolbox/backups/dotfiles/opencode/agents/adv.md` updated and `adv-atc.md` removed. Backup absence check passed.",
+          "notes": "Backup policy followed."
+        },
+        {
+          "contractId": "C6",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "source_citation",
+          "evidence": "Remaining `adv-atc` source hit in `CHANGELOG.md` is historical; current runtime/docs/spec/manifest references removed or converted to absence assertions.",
+          "notes": "Historical record allowed only."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Explicit absence check passed for global `adv-atc.md` agent and command paths after deploy-local fix.",
+          "notes": "No stale callable ATC globally."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Manifest test asserts `COMMAND_MANIFEST` lacks `adv-atc`; CLI surface matrix row removed and targeted tests passed.",
+          "notes": "No supported command/matrix entry."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Main ADV gate/checkpoint instructions remain; removals are ATC-only. Reviewer found no safety checkpoint weakening.",
+          "notes": "Safety checkpoints kept."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Primary-agent routing prevention tests pass and pin remaining primaries (`adv`, `plan`, `build`) as forbidden sub-agent targets.",
+          "notes": "No primary-agent subagent routing."
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "`./scripts/deploy-local.sh --check` passed after `--fix`; local deployment not claimed until check was clean.",
+          "notes": "Deploy check clean."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "**AC1 — No supported ATC command or agent assets.** `lgrep_search_text` or equivalent exact search for active source references shows no `.opencode/agents/adv-atc.md`, `.opencode/command/adv-atc.md`, manifest entry, or README/ADV_INSTRUCTIONS command listing advertising `adv-atc` as supported. Historical changelog/archive references may remain only if not deployed or user-facing as current support.",
+    "**AC2 — Manifest and command registry clean.** `plugin/src/manifest.ts` and manifest tests no longer register or expect `adv-atc`; command count/rosters are updated intentionally.",
+    "**AC3 — Deployment removes stale ATC.** `./scripts/deploy-local.sh --fix` removes any installed global `adv-atc.md` agent/command asset, and `./scripts/deploy-local.sh --check` reports all ADV entries present with no ATC drift.",
+    "**AC4 — Remaining agents/tools clean.** `deploy-local --check` reports `adv.md` and any remaining managed agents have tool allowlists matching the plugin registry.",
+    "**AC5 — Runtime docs/specs aligned.** Current docs/specs stop describing `/adv-atc` as supported; any spec references to ATC are removed, retired, or converted to explicit historical/non-supported notes with deterministic tests.",
+    "**AC6 — Sub-agent safety preserved.** Tests still prevent primary agents (`adv`, `plan`, `build`) from appearing as spawnable sub-agents; removing `adv-atc` does not weaken delegation safety checks.",
+    "**AC7 — Verification green.** At minimum, targeted tests covering manifest/assets/deploy/delegation pass, `pnpm run check` passes, and a full suite or agreed release-equivalent suite passes before acceptance.",
+    "**AC8 — Local runtime updated.** `pnpm run build`, `./scripts/deploy-local.sh --fix`, and dotfile backup sync for changed OpenCode surfaces complete successfully."
+  ],
+  "documents": {
+    "proposal": "# Remove ADV ATC\n\n## Problem\n\n`adv-atc` is an autonomous primary agent and slash command that duplicates the main ADV lifecycle with GitHub-deferred HITL. It increases agent surface area, deployment/tool-allowlist maintenance, tests, docs, and user-facing command complexity. The current product direction is to remove it fully instead of maintaining the async ATC mode.\n\n## Evidence\n\nCurrent repo references show `adv-atc` is wired across runtime, docs, specs, manifests, deploy tests, and asset tests:\n\n- `.opencode/agents/adv-atc.md` — primary agent surface.\n- `.opencode/command/adv-atc.md` — slash command surface.\n- `plugin/src/manifest.ts` and `plugin/src/manifest.test.ts` — command manifest wiring.\n- `plugin/src/__tests__/atc-assets.test.ts` — ATC command/agent asset tests.\n- `plugin/src/delegation-matrix.test.ts`, `plugin/src/phantom-subagent-roster.test.ts` — primary-agent roster assumptions.\n- `ADV_INSTRUCTIONS.md`, `README.md`, `docs/cli-surface-matrix.md`, `docs/specs/advance-workflow.md` — user/runtime/spec documentation.\n- `scripts/deploy-local.sh` / deploy tests indirectly manage agent sync and stale cleanup behavior.\n\n## Scope\n\nIn scope:\n\n1. Remove ATC source assets: `.opencode/agents/adv-atc.md`, `.opencode/command/adv-atc.md`.\n2. Remove ATC from command manifest and any agent/command rosters.\n3. Delete or rewrite ATC-specific asset tests and expectations.\n4. Update docs/specs/runtime guidance so `adv-atc` is no longer advertised as supported.\n5. Update deploy-local stale cleanup so installed/global `adv-atc.md` is removed after deploy.\n6. Verify `adv.md` and remaining agents have clean tool allowlists.\n7. After implementation, rebuild/deploy locally and sync non-secret dotfile backups for changed OpenCode config surfaces.\n\nOut of scope:\n\n- Removing the interactive `adv` orchestrator.\n- Removing ADV sub-agents (`adv-engineer`, `adv-reviewer`, `adv-designer`, `adv-researcher`, `adv-temporal-repair`, `adv-tron`).\n- Removing GitHub issue linking, normal ADV archive/release workflows, or ROADMAP/backlog tools.\n- Introducing any replacement async pipeline.\n\n## Proposed Direction\n\nFully remove `adv-atc` as a supported ADV surface:\n\n1. Delete the ATC agent file and command file.\n2. Remove manifest registration and command/agent routing references.\n3. Remove or rewrite ATC-specific tests and primary-agent roster expectations.\n4. Update docs/specs to stop advertising ATC and remove ATC-only requirements.\n5. Update deploy/stale-cleanup behavior so any global `adv-atc.md` gets removed on deploy.\n6. Verify tool-drift checks remain green for remaining agents.\n7. Build, deploy-local check/fix, and sync non-secret dotfile backups after config/tool-surface changes.\n\n## Failure Handling / Rollback\n\n- If deploy-local check finds stale `adv-atc` still installed, tighten stale-cleanup assertions before release.\n- If manifest/docs/spec references remain, targeted grep and asset tests must fail until removed or intentionally documented as historical changelog-only references.\n- If removal breaks command registry or tool-drift checks, keep the branch unreleased and restore only the minimal removed registration needed to make the failure explicit in tests.\n- Rollback path is standard git revert before archive; no data migration or runtime state migration is expected.\n\n## Non-Goals\n\n- Do not remove the interactive `adv` orchestrator.\n- Do not remove sub-agents (`adv-engineer`, `adv-reviewer`, `adv-designer`, `adv-researcher`, `adv-temporal-repair`, `adv-tron`).\n- Do not remove GitHub issue linking or normal ADV archive/release workflows.\n- Do not introduce a replacement async pipeline in this change.",
+    "problemStatement": "`adv-atc` should be fully removed from Advance because it duplicates ADV lifecycle orchestration as a separate primary agent/command and adds maintenance overhead across tool allowlists, docs, specs, tests, deployment sync, and user-facing command surface. Keeping it partially wired risks stale global agents, tool-drift failures, and confusing users about whether interactive `adv` or async ATC owns lifecycle execution.",
+    "agreement": "# Agreement\n\n## Objectives\n\n- **O1 — Remove supported ATC surfaces.** Delete or retire the `adv-atc` primary agent, `/adv-atc` command, manifest registration, runtime docs, and user-facing command listings so ATC is no longer a supported Advance entry point.\n- **O2 — Preserve interactive ADV lifecycle.** Keep the `adv` orchestrator and all supported ADV sub-agents/tools working normally.\n- **O3 — Make stale ATC installs self-cleaning.** Ensure local deployment removes previously installed global `adv-atc` agent/command assets instead of leaving a callable stale surface.\n- **O4 — Remove ATC-only requirements and tests.** Delete or rewrite tests/specs/docs that assert ATC exists, while preserving tests that protect against invalid primary-agent delegation.\n- **O5 — Verify config/tool drift.** After implementation, `deploy-local --check` must pass and remaining agent allowlists must match the plugin registry.\n- **O6 — Deploy local runtime.** Because this changes OpenCode/ADV runtime surfaces, build, deploy locally, and sync non-secret dotfile backups before claiming complete.\n\n## Acceptance Criteria\n\n- **AC1 — No supported ATC command or agent assets.** `lgrep_search_text` or equivalent exact search for active source references shows no `.opencode/agents/adv-atc.md`, `.opencode/command/adv-atc.md`, manifest entry, or README/ADV_INSTRUCTIONS command listing advertising `adv-atc` as supported. Historical changelog/archive references may remain only if not deployed or user-facing as current support.\n- **AC2 — Manifest and command registry clean.** `plugin/src/manifest.ts` and manifest tests no longer register or expect `adv-atc`; command count/rosters are updated intentionally.\n- **AC3 — Deployment removes stale ATC.** `./scripts/deploy-local.sh --fix` removes any installed global `adv-atc.md` agent/command asset, and `./scripts/deploy-local.sh --check` reports all ADV entries present with no ATC drift.\n- **AC4 — Remaining agents/tools clean.** `deploy-local --check` reports `adv.md` and any remaining managed agents have tool allowlists matching the plugin registry.\n- **AC5 — Runtime docs/specs aligned.** Current docs/specs stop describing `/adv-atc` as supported; any spec references to ATC are removed, retired, or converted to explicit historical/non-supported notes with deterministic tests.\n- **AC6 — Sub-agent safety preserved.** Tests still prevent primary agents (`adv`, `plan`, `build`) from appearing as spawnable sub-agents; removing `adv-atc` does not weaken delegation safety checks.\n- **AC7 — Verification green.** At minimum, targeted tests covering manifest/assets/deploy/delegation pass, `pnpm run check` passes, and a full suite or agreed release-equivalent suite passes before acceptance.\n- **AC8 — Local runtime updated.** `pnpm run build`, `./scripts/deploy-local.sh --fix`, and dotfile backup sync for changed OpenCode surfaces complete successfully.\n\n## Constraints\n\n- **C1 — Keep `adv` interactive lifecycle intact.** No removal or behavior change to the main `adv` orchestrator gates/checkpoints beyond deleting ATC references.\n- **C2 — Keep ADV sub-agents.** Do not remove `adv-engineer`, `adv-reviewer`, `adv-designer`, `adv-researcher`, `adv-temporal-repair`, `adv-tron`, `explore`, or `general`.\n- **C3 — No replacement async pipeline.** Do not add a new autonomous mode, alias, wrapper, or hidden ATC successor in this change.\n- **C4 — Source-of-truth deploy path.** Modify source repo assets and deploy through `scripts/deploy-local.sh`; do not hand-edit deployed `~/.config/opencode` or runtime plugin files as source of truth.\n- **C5 — Backup policy.** After deploy/config surface changes, sync non-secret current state into `backups/dotfiles/` before completion.\n- **C6 — Historical records allowed.** Changelog/archive text may remain if clearly historical and not part of current runtime/docs/spec support.\n\n## Avoidances\n\n- **DONT1 — Do not leave a stale callable `adv-atc` installed globally.**\n- **DONT2 — Do not keep ATC in the command manifest or command matrix as a supported command.**\n- **DONT3 — Do not remove or weaken main ADV safety checkpoints.**\n- **DONT4 — Do not route any workflow step to a primary agent as a sub-agent.**\n- **DONT5 — Do not claim local deployment complete until `deploy-local --check` is clean after `--fix`.**\n\n## Discovery Findings\n\n- Skills considered: no specialized removal skill required; this is repo-owned ADV runtime/config removal.\n- Conflict scan: `adv_change_validate` passed with only expected pre-planning warnings (`NO_TASKS`, `NO_DELTAS`). `adv_wip_state` shows no active overlapping ATC-removal change. `adv_change_list includeArchived` timed out; non-blocking because exact source scan found current ATC surfaces and no active duplicate change appeared in WIP state.\n- Related pattern scan: exact source scan found ATC references across current runtime assets, manifest/tests, docs/specs, deploy script, and primary-agent roster tests. Removal must be broad, not only deleting the agent file.\n- Edge cases: stale global deployed ATC after source deletion; docs/spec generated mirrors drifting from spec JSON; primary-agent delegation tests accidentally weakened; historical changelog references falsely treated as current support.\n- Draft spec delta shape: advance-workflow spec should remove/retire the current ATC autonomous pipeline requirement; delegation-defaults/advance-meta references should no longer list ATC as primary except as historical if needed.\n- Completeness verification: problem is full supported-surface removal, not a single broken allowlist. Solution scope covers source assets, registry, tests, docs/specs, deploy cleanup, build/deploy, and backup sync.",
+    "design": "# Design\n\n## Architecture Overview\n\nRemove `adv-atc` by deleting the supported runtime entry points and converting every current-support reference into either removal or historical-only text. The remaining ADV architecture keeps one interactive primary orchestrator (`adv`) plus existing sub-agents. Deployment remains source-driven through `scripts/deploy-local.sh`; stale global ATC assets are removed by the existing stale command/agent cleanup path after the repo source files disappear.\n\nThis is a surface-removal change, not a workflow-state migration. Existing archived changes or changelog entries may mention ATC historically, but no current command, agent, manifest entry, spec requirement, or docs page should advertise ATC as callable/supported.\n\n## Key Decisions\n\n1. **Delete source assets instead of hiding tools.** Remove `.opencode/agents/adv-atc.md` and `.opencode/command/adv-atc.md` so deploy-local naturally stops copying them and stale cleanup removes installed copies.\n2. **Remove manifest registration.** Delete `adv-atc` from `COMMAND_MANIFEST`; no reverse-link patching is expected because the scan found no inbound manifest successors depending on ATC.\n3. **Rewrite safety tests, do not drop them.** Tests that only prove ATC exists should be deleted. Tests that protect primary-agent/non-subagent boundaries should continue with the remaining primary roster: `adv`, `plan`, `build`.\n4. **Retire current-support docs/spec entries.** Remove `/adv-atc` rows from README, ADV_INSTRUCTIONS, CLI matrix, and current workflow specs. Changelog/archive references may remain because they are historical, not current runtime support.\n5. **Keep generic stale cleanup and remove ATC-specific deploy drift.** Source deletion plus generic `adv-*.md` stale command/agent cleanup should remove global `adv-atc.md`; remove now-vacuous `adv-atc.md` tool-drift preflight and obsolete `adv-autopilot replaced by adv-atc` cleanup block if tests confirm no current target needs it.\n6. **Post-implementation deploy and backup.** Because OpenCode config/runtime surfaces change, implementation must build, run deploy-local fix/check, and sync non-secret dotfile backups for changed agent/command surfaces.\n\n## ADR Drafts\n\nNone. The decision is direct product-surface removal, not a hard-to-reverse architecture tradeoff requiring a standalone ADR.\n\n## Implementation Strategy\n\n1. **RED asset/manifest tests**\n   - Update or add tests that expect ATC source assets absent, command count reduced, manifest excludes `adv-atc`, and current docs no longer advertise `/adv-atc`.\n   - Update delegation/phantom roster tests to keep primary-agent spawn bans for `adv`, `plan`, and `build`.\n   - Add/adjust deploy-local tests to prove generic stale global `adv-atc.md` command/agent removal.\n\n2. **Remove source/runtime surfaces**\n   - Delete `.opencode/agents/adv-atc.md`.\n   - Delete `.opencode/command/adv-atc.md`.\n   - Remove `adv-atc` from `plugin/src/manifest.ts` and any direct command matrix/roster expectations.\n\n3. **Docs/spec cleanup**\n   - Remove current support rows from `ADV_INSTRUCTIONS.md`, `README.md`, and `docs/cli-surface-matrix.md`.\n   - Remove or retire ATC current requirement text from `.adv/specs/advance-workflow/spec.json` and generated/spec mirror docs.\n   - Update delegation/defaults and advance-meta spec text that lists ATC as a primary or says ATC remains out of scope.\n   - Preserve historical `CHANGELOG.md` and archived bundle mentions unless they become current guidance.\n\n4. **Deploy cleanup and verification**\n   - Remove `scripts/deploy-local.sh` explicit `adv-atc.md` tool-drift check after source file deletion.\n   - Remove or generalize the obsolete `adv-autopilot` cleanup block that describes replacement by ATC, if no test or current migration path requires keeping it.\n   - Run targeted tests covering manifest/assets/deploy/delegation/spec mirrors.\n   - Run `pnpm run check`.\n   - Run `bin/oc-test full` or release-equivalent full suite.\n   - Run `pnpm run build`.\n   - Run `./scripts/deploy-local.sh --fix` then `./scripts/deploy-local.sh --check`.\n   - Sync non-secret changed deployed OpenCode surfaces into `backups/dotfiles/`.\n\n## Test Fate Taxonomy\n\n- **Delete:** ATC-only existence asset tests (`plugin/src/__tests__/atc-assets.test.ts`) if they have no non-ATC safety value.\n- **Flip to absence/current-support assertions:** manifest tests, ADV instruction assets, README/CLI matrix/spec asset tests.\n- **Shrink primary roster while preserving bans:** `delegation-matrix.test.ts`, `phantom-subagent-roster.test.ts`, and any tests that forbid primary agents as sub-agents.\n- **Deploy tests:** assert generic stale cleanup removes source-absent `adv-atc.md` from global command and agent locations.\n\n## LBP Analysis\n\nThe best long-term design is deletion from source of truth rather than runtime hiding. Source deletion gives one removal mechanism for command files, agent files, manifest metadata, tests, and deploy cleanup. It avoids a half-supported state where docs say ATC is gone but deployed global files remain callable. It also reduces tool-allowlist drift and token load by eliminating a full primary agent prompt.\n\nNo replacement async pipeline is introduced. If async GitHub-deferred orchestration becomes valuable later, it should be proposed as a fresh design with current requirements, not preserved as stale ATC surface.\n\n## Affected Components\n\n- `.opencode/agents/adv-atc.md` — delete.\n- `.opencode/command/adv-atc.md` — delete.\n- `.opencode/agents/adv.md` / `ADV_INSTRUCTIONS.md` — remove ATC from primary-agent/current command references.\n- `plugin/src/manifest.ts` and `plugin/src/manifest.test.ts` — remove command registration and expectations, including count `27 → 26`.\n- `plugin/src/__tests__/atc-assets.test.ts` — delete or replace with absence/stale-cleanup coverage.\n- `plugin/src/delegation-matrix.test.ts`, `plugin/src/phantom-subagent-roster.test.ts`, `plugin/src/workflow-noise-reduction-assets.test.ts`, `plugin/src/orchestrator-ops-delegation-assets.test.ts`, `plugin/src/adv-instructions-assets.test.ts`, `plugin/src/deploy-local.test.ts` — update expectations. Note: validator found `workflow-noise-reduction-assets.test.ts` existsSync guard may become no-op and `deploy-local.test.ts` has a comment-only ATC reference; include both in sweep.\n- `README.md`, `docs/cli-surface-matrix.md`, `docs/specs/*`, `.adv/specs/*` — remove current-support ATC references.\n- `scripts/deploy-local.sh` — remove ATC-specific preflight/obsolete cleanup text and keep generic stale command/agent cleanup structural.\n- `backups/dotfiles/opencode/...` — sync after deploy.\n\n## Design-Derived Criteria\n\n- **DDC1 — Current-support search budget:** after implementation, exact text search for `adv-atc` must classify every remaining hit as historical-only or fail acceptance.\n- **DDC2 — Deployment cleanup proof:** tests must prove stale global `adv-atc.md` agent/command files are removed when source files are absent.\n- **DDC3 — Primary-agent safety retained:** forbidden-spawn tests must still include all remaining primary agents and must not become a weaker string-delete.\n- **DDC4 — No direct deployed edits:** implementation edits source and deploys; deployed files/backups are sync outputs.\n- **DDC5 — Generic stale cleanup retained:** source deletion relies on deploy-local's generic `adv-*.md` stale loops; tests should make those loops visible enough that cleanup cannot regress silently.\n\n## Risks / Mitigations\n\n- **Risk: stale deployed ATC remains callable.** Mitigation: deploy-local fix/check plus tests for stale command/agent removal.\n- **Risk: docs/spec mirror drift.** Mitigation: update `.adv/specs` JSON and `docs/specs` markdown together; run schema/spec asset tests.\n- **Risk: deleting ATC tests weakens safety coverage.** Mitigation: replace ATC-existence tests with absence/current-support tests and preserve primary-agent spawn-ban tests.\n- **Risk: historical references cause false failures.** Mitigation: acceptance search classifies `CHANGELOG.md` and archive bundles as historical; current docs/spec/runtime refs must be removed.\n- **Risk: local runtime and source diverge.** Mitigation: build/deploy/check and dotfile backup sync required before completion.\n\n## Design Leverage Scout\n\nScout attempted via `adv-researcher`; verdict VALIDATED with refinements adopted.\n\nAuto-adopted/design-integrated candidates:\n\n- Generic stale-cleanup loops already back AC3: command cleanup at `scripts/deploy-local.sh` around line 1188 and agent cleanup around line 1372 remove source-absent `adv-*.md` files.\n- Remove or generalize orphaned `adv-autopilot replaced by adv-atc` cleanup block because ATC removal makes that rationale stale.\n- Remove explicit `adv-atc.md` tool-drift guard around deploy-local lines 723-726; it becomes a permanent no-op after source deletion.\n- Manifest removal is simpler than expected: ATC has no known inbound manifest edges requiring sibling patching.\n- Use per-test fate taxonomy to preserve safety checks while deleting existence-only tests.\n\nNo user-value tradeoff surfaced.\n\n## Independent Validation\n\nValidator: VALIDATED.\n\nFindings:\n\n- Correctness info: source-deletion mechanism solves all objectives and affected-components list matches source scan.\n- Correctness caution: include two benign missed surfaces in the implementation sweep — `workflow-noise-reduction-assets.test.ts` existsSync guard and `deploy-local.test.ts` comment-only reference.\n- Simplicity info: source deletion plus existing generic deploy stale cleanup is minimal; no replacement pipeline introduced.\n- Spec-law info: `rq-atc01` is the heavyweight spec surface and is covered by current-support spec cleanup.\n- Spec-law caution: retire or historical-convert `advance-meta` `rq-orchestratorOpsDelegation01.6` so it does not remain dangling after ATC removal.\n- Alternatives info: tool-hiding/deprecation-shim alternatives are inferior because they leave callable stale surfaces and violate DONT1.\n\nRecommendation: proceed to planning. No conflict, no contract compromise, and no user-value tradeoff.",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\n\n`adv-atc` has been fully removed as a supported Advance entry point. The interactive `adv` lifecycle, remaining primary-agent safety checks, ADV sub-agents, deploy-local sync, roadmap wording, and non-secret dotfile backup path remain intact.\n\n## Verdict\n\nREADY\n\n## What Was Built\n\n1. Removed ATC runtime surfaces: deleted `.opencode/agents/adv-atc.md`, `.opencode/command/adv-atc.md`, removed `COMMAND_MANIFEST['adv-atc']`, deleted ATC-only asset tests, and updated manifest/delegation tests to assert ATC absence while preserving primary-agent spawn bans for `adv`, `plan`, and `build`.\n2. Removed current-support ATC docs/specs: cleaned ADV instructions, README, AGENTS quick reference, CLI surface matrix, advance-workflow, advance-meta, and delegation-defaults specs/docs while preserving only historical changelog references and absence assertions.\n3. Updated deploy-local stale cleanup: removed ATC-specific drift/legacy cleanup code and test coverage now proves generic stale `adv-*.md` command/agent cleanup removes retired ATC assets.\n4. Completed review and release hardening remediation: reviewer fixed one remaining current-support spec mention in `.adv/specs/delegation-defaults/spec.json`; harden fixed stale live roadmap warning wording from `recent ATC/archive closures` to `recent archive closures`. Final checkpoint `294a1508d2f83fce34ddebaa328b4353aa700a9b` is clean.\n\n## What Was Verified\n\n- Verdict: READY with no release-blocking findings.\n- Tests: targeted runtime/docs/deploy/delegation/spec suites passed; post-review targeted suite passed (158 tests); harden remediation targeted suite passed (165 tests); `pnpm run check` passed; `bin/oc-test full` passed; `pnpm run build` passed.\n- Deployment: `./scripts/deploy-local.sh --fix` passed; `./scripts/deploy-local.sh --check` passed; global and backup `adv-atc.md` absence checks passed.\n- Merge compatibility: dry-run merge with `origin/trunk` passed.\n- Preview URL: not_applicable — no front-end, browser-visible, or visual-output work; this is source/runtime/docs/deploy cleanup only.\n- Contract matrix: 19/19 required rows passed/respected; 0 failed, violated, unknown, or missing.\n\n## Remaining Concerns\n\nNone for release. OpenCode sessions must be restarted before relying on refreshed runtime assets loaded from the deployed plugin copy.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-06-26T01:59:45.000Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| AC1 | acceptance_criterion | **AC1 — No supported ATC command or agent assets.** `lgrep_search_text` or equivalent exact search for active source references shows no `.opencode/agents/adv-atc.md`, `.opencode/command/adv-atc.md`, manifest entry, or README/ADV_INSTRUCTIONS command listing advertising `adv-atc` as supported. Historical changelog/archive references may remain only if not deployed or user-facing as current support. | pass | Exact `adv-atc` source search after implementation shows only historical CHANGELOG and absence assertions in tests; source assets `.opencode/agents/adv-atc.md` and `.opencode/command/adv-atc.md` deleted; manifest/docs current support removed. Reviewer READY after fixing final spec mention. |\n| AC2 | acceptance_criterion | **AC2 — Manifest and command registry clean.** `plugin/src/manifest.ts` and manifest tests no longer register or expect `adv-atc`; command count/rosters are updated intentionally. | pass | `plugin/src/manifest.ts` no longer contains `adv-atc`; `src/manifest.test.ts` asserts 26 commands, no `adv-atc` property, and absent source assets. Targeted manifest suite passed. |\n| AC3 | acceptance_criterion | **AC3 — Deployment removes stale ATC.** `./scripts/deploy-local.sh --fix` removes any installed global `adv-atc.md` agent/command asset, and `./scripts/deploy-local.sh --check` reports all ADV entries present with no ATC drift. | pass | `./scripts/deploy-local.sh --fix` passed and removed stale global ATC command/agent files; explicit absence check passed for `~/.config/opencode/agents/adv-atc.md`, command/commands variants, and backup adv-atc path. |\n| AC4 | acceptance_criterion | **AC4 — Remaining agents/tools clean.** `deploy-local --check` reports `adv.md` and any remaining managed agents have tool allowlists matching the plugin registry. | pass | `./scripts/deploy-local.sh --check` passed after fix: config all ADV entries present; `adv.md` allowlist matches plugin registry (70 tools). |\n| AC5 | acceptance_criterion | **AC5 — Runtime docs/specs aligned.** Current docs/specs stop describing `/adv-atc` as supported; any spec references to ATC are removed, retired, or converted to explicit historical/non-supported notes with deterministic tests. | pass | Removed current ATC docs/spec requirements from ADV_INSTRUCTIONS, README, CLI surface matrix, advance-workflow spec/docs, advance-meta ATC clause, and delegation-defaults current primary lists. Targeted docs/spec/delegation tests passed; reviewer fixed final delegation-defaults utility-command mention. |\n| AC6 | acceptance_criterion | **AC6 — Sub-agent safety preserved.** Tests still prevent primary agents (`adv`, `plan`, `build`) from appearing as spawnable sub-agents; removing `adv-atc` does not weaken delegation safety checks. | pass | `delegation-matrix.test.ts` and `phantom-subagent-roster.test.ts` now pin remaining primary agents (`adv`, `plan`, `build`) and continue forbidding primary-agent subagent routing. Targeted and full suites passed. |\n| AC7 | acceptance_criterion | **AC7 — Verification green.** At minimum, targeted tests covering manifest/assets/deploy/delegation pass, `pnpm run check` passes, and a full suite or agreed release-equivalent suite passes before acceptance. | pass | Targeted final suite passed (263 tests), post-review targeted suite passed (158 tests), `pnpm run check` passed, and `bin/oc-test full` passed after review fix. |\n| AC8 | acceptance_criterion | **AC8 — Local runtime updated.** `pnpm run build`, `./scripts/deploy-local.sh --fix`, and dotfile backup sync for changed OpenCode surfaces complete successfully. | pass | `pnpm run build`, `./scripts/deploy-local.sh --fix`, `./scripts/deploy-local.sh --check`, and dotfile backup sync completed. Toolbox backup repo shows expected `adv.md` update and `adv-atc.md` deletion; explicit backup absence check passed. |\n| C1 | constraint | **C1 — Keep `adv` interactive lifecycle intact.** No removal or behavior change to the main `adv` orchestrator gates/checkpoints beyond deleting ATC references. | respected | Changes removed ATC references only; `adv` agent remains present and deploy-local check validates `adv.md` frontmatter/tool drift. No gate/checkpoint behavior changed. |\n| C2 | constraint | **C2 — Keep ADV sub-agents.** Do not remove `adv-engineer`, `adv-reviewer`, `adv-designer`, `adv-researcher`, `adv-temporal-repair`, `adv-tron`, `explore`, or `general`. | respected | No ADV sub-agent files were removed; deletion limited to `.opencode/agents/adv-atc.md`, the primary ATC agent. Deploy output shows remaining agents synced; tests passed. |\n| C3 | constraint | **C3 — No replacement async pipeline.** Do not add a new autonomous mode, alias, wrapper, or hidden ATC successor in this change. | respected | No alias, shim, wrapper, hidden successor, or replacement async pipeline was added. Reviewer checked clean removal/no stale legacy code and verdict READY. |\n| C4 | constraint | **C4 — Source-of-truth deploy path.** Modify source repo assets and deploy through `scripts/deploy-local.sh`; do not hand-edit deployed `~/.config/opencode` or runtime plugin files as source of truth. | respected | Implementation edited source worktree and used `scripts/deploy-local.sh --fix`; no deployed file was used as source of truth. Backup sync was copied from deployed current state after deploy. |\n| C5 | constraint | **C5 — Backup policy.** After deploy/config surface changes, sync non-secret current state into `backups/dotfiles/` before completion. | respected | Non-secret dotfile backup sync done: `/home/jon/toolbox/backups/dotfiles/opencode/agents/adv.md` updated and `adv-atc.md` removed. Backup absence check passed. |\n| C6 | constraint | **C6 — Historical records allowed.** Changelog/archive text may remain if clearly historical and not part of current runtime/docs/spec support. | respected | Remaining `adv-atc` source hit in `CHANGELOG.md` is historical; current runtime/docs/spec/manifest references removed or converted to absence assertions. |\n| DONT1 | avoidance | **DONT1 — Do not leave a stale callable `adv-atc` installed globally.** | respected | Explicit absence check passed for global `adv-atc.md` agent and command paths after deploy-local fix. |\n| DONT2 | avoidance | **DONT2 — Do not keep ATC in the command manifest or command matrix as a supported command.** | respected | Manifest test asserts `COMMAND_MANIFEST` lacks `adv-atc`; CLI surface matrix row removed and targeted tests passed. |\n| DONT3 | avoidance | **DONT3 — Do not remove or weaken main ADV safety checkpoints.** | respected | Main ADV gate/checkpoint instructions remain; removals are ATC-only. Reviewer found no safety checkpoint weakening. |\n| DONT4 | avoidance | **DONT4 — Do not route any workflow step to a primary agent as a sub-agent.** | respected | Primary-agent routing prevention tests pass and pin remaining primaries (`adv`, `plan`, `build`) as forbidden sub-agent targets. |\n| DONT5 | avoidance | **DONT5 — Do not claim local deployment complete until `deploy-local --check` is clean after `--fix`.** | respected | `./scripts/deploy-local.sh --check` passed after `--fix`; local deployment not claimed until check was clean. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-06-26T00:42:46.207Z",
+      "contentHash": "3462ac7aab2ed490520403b129c911747e22273959984b7f60e9a1b57a230deb",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-06-26T00:42:03.679Z",
+      "contentHash": "852d865dd19abbe90e9a90795f18af87ae7195a5688da604bd3435ddfc10dc64",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-06-26T00:45:47.647Z",
+      "contentHash": "4b5e95a2ec363407224866e241b58b34636ac1a1327d1e14d779bca66f4ae57a",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-06-26T01:12:28.554Z",
+      "contentHash": "18fb566fd6390593753abc038e0cb16d595beed5f0d1e758c389bc5c8fe9c5f5",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-06-26T02:36:55.350Z",
+      "contentHash": "53fe05102dd50d942cb259e5cbf75eb1e7d014e41a4dc8f9b7eca5ae85259d97",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-06-26T02:36:55.350Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true
+}

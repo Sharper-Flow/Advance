@@ -1,0 +1,33 @@
+{
+  "entries": [
+    {
+      "id": "ws-G6hVoO",
+      "type": "pattern",
+      "content": "Clean command/agent retirement should delete source assets and remove manifest registration, then shrink primary-agent spawn-ban rosters rather than disabling/hiding the command. RED should assert absence before deleting so removal is structurally proven.",
+      "source_task": "tk-7fb47f76ea5a",
+      "recorded_at": "2026-06-26T01:28:09.728Z"
+    },
+    {
+      "id": "ws-Y6ylxH",
+      "type": "gotcha",
+      "content": "Removing a current-support command can require spec-law cleanup in both JSON and rendered docs. Search results should classify remaining hits: historical changelog/archive is OK, but current specs/docs/tests must either assert absence or remove support text.",
+      "source_task": "tk-4bf5c5b13315",
+      "recorded_at": "2026-06-26T01:36:10.364Z"
+    },
+    {
+      "id": "ws-YI6AfH",
+      "type": "success",
+      "content": "For clean removal of deployed command/agent assets, source deletion can rely on generic deploy-local stale `adv-*.md` cleanup loops. Remove product-specific drift guards and obsolete migration comments so stale code does not survive as disabled legacy logic.",
+      "source_task": "tk-4ab35e05139e",
+      "recorded_at": "2026-06-26T01:39:26.732Z"
+    },
+    {
+      "id": "ws-IYPBKk",
+      "type": "success",
+      "content": "Final removal verification should include a source search classification plus deployed/global absence checks. In this change, `adv-atc` remained only in historical changelog and absence-assertion tests; global and backup `adv-atc.md` files were explicitly absent after deploy-local fix.",
+      "source_task": "tk-295fe8813541",
+      "recorded_at": "2026-06-26T01:45:54.220Z"
+    }
+  ],
+  "count": 4
+}
