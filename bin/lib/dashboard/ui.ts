@@ -91,7 +91,8 @@ export function renderDashboardHtml(): string {
       if (item.kind === 'adv_change') return advChangeHtml(item);
       const title = '<div class="item-title">' + escapeHtml(item.title || item.kind || 'Item') + '</div>';
       const subtitle = item.subtitle ? '<div class="item-subtitle">' + escapeHtml(item.subtitle) + '</div>' : '';
-      const url = item.url ? '<a class="item-link" href="' + escapeHtml(item.url) + '" target="_blank" rel="noreferrer noopener">Source</a>' : '';
+      const safeItemUrl = safeUrl(item.url);
+      const url = safeItemUrl ? '<a class="item-link" href="' + escapeHtml(safeItemUrl) + '" target="_blank" rel="noreferrer noopener">Source</a>' : '';
       const updated = item.updated_at ? '<div><strong>Updated</strong>: <code>' + escapeHtml(item.updated_at) + '</code></div>' : '';
       const evidence = item.evidence ? '<div><strong>Evidence</strong>: <code>' + escapeHtml(item.evidence) + '</code></div>' : '';
       const reason = item.reason ? '<div><strong>Unmatched source item</strong>: ' + escapeHtml(item.reason) + '</div>' : '';
@@ -150,6 +151,16 @@ export function renderDashboardHtml(): string {
     }
     function escapeHtml(value) {
       return text(value).replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
+    }
+    function safeUrl(value) {
+      const candidate = text(value).trim();
+      if (!candidate) return '';
+      try {
+        const url = new URL(candidate);
+        return url.protocol === 'https:' || url.protocol === 'http:' ? url.href : '';
+      } catch (_error) {
+        return '';
+      }
     }
     async function refresh() {
       try {

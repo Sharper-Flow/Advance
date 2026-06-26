@@ -20,6 +20,8 @@ describe("dashboard UI", () => {
     expect(html).toContain("Status");
     expect(html).toContain("metadataHtml(item.metadata)");
     expect(html).toContain("item.url");
+    expect(html).toContain("safeUrl(item.url)");
+    expect(html).toContain("url.protocol === 'https:' || url.protocol === 'http:'");
     expect(html).toContain("item.updated_at");
     expect(html).toContain("Source states");
     expect(html).toContain("Degraded");
