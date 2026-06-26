@@ -4,8 +4,13 @@ import type { Store } from "../storage/store-types";
 
 const mocks = vi.hoisted(() => {
   const fireSignalAndRefresh = vi.fn(async () => undefined);
+  const saveRecoveredDesignConcernDisposition = vi.fn(async () => undefined);
   const workflowHandle = { signal: vi.fn(), query: vi.fn() };
-  return { fireSignalAndRefresh, workflowHandle };
+  return {
+    fireSignalAndRefresh,
+    saveRecoveredDesignConcernDisposition,
+    workflowHandle,
+  };
 });
 
 vi.mock("./_adapters", async (importOriginal) => ({
@@ -20,6 +25,11 @@ vi.mock("../temporal/service", () => ({
 
 vi.mock("../utils/project-id", () => ({
   getProjectId: async () => "project-1",
+}));
+
+vi.mock("./_recovery-writers", () => ({
+  saveRecoveredDesignConcernDisposition:
+    mocks.saveRecoveredDesignConcernDisposition,
 }));
 
 import { designConcernTools } from "./design-concern";
@@ -72,6 +82,8 @@ const validArgs = {
 describe("adv_design_concern_disposition", () => {
   beforeEach(() => {
     mocks.fireSignalAndRefresh.mockClear();
+    mocks.fireSignalAndRefresh.mockImplementation(async () => undefined);
+    mocks.saveRecoveredDesignConcernDisposition.mockClear();
   });
 
   test("fires designConcernDispositionedSignal with the typed disposition", async () => {
@@ -147,6 +159,88 @@ describe("adv_design_concern_disposition", () => {
 
     expect(output.success).toBe(true);
     expect(output.dryRun).toBe(true);
+    expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+  });
+
+  test("recovers through disk projection when completed workflow evidence is explicit", async () => {
+    const store = storeFor(change());
+    const completedError = new Error("workflow execution already completed");
+    completedError.name = "WorkflowNotFoundError";
+    mocks.fireSignalAndRefresh.mockRejectedValueOnce(completedError);
+
+    const output = parse(
+      await designConcernTools.adv_design_concern_disposition.execute(
+        {
+          ...validArgs,
+          disposition: "fixed",
+          evidence: "fixed in frontend commit abc123",
+          recoveryMode: "poisoned_history",
+          recoveryEvidence:
+            "WorkflowNotFoundError: workflow execution already completed",
+          recoveryReason:
+            "Completed workflow cannot accept designConcernDispositionedSignal; acceptance evidence proves fix.",
+        },
+        store,
+      ),
+    );
+
+    expect(output.success).toBe(true);
+    expect(output._recoveryMutation).toBe(true);
+    expect(mocks.saveRecoveredDesignConcernDisposition).toHaveBeenCalledWith({
+      store,
+      change: expect.objectContaining({ id: "change-1" }),
+      authorization: {
+        reason:
+          "Completed workflow cannot accept designConcernDispositionedSignal; acceptance evidence proves fix.",
+        evidence: "WorkflowNotFoundError: workflow execution already completed",
+      },
+      disposition: expect.objectContaining({
+        taskId: "tk-1",
+        concernKey: "dimension:site_design_consistency",
+        disposition: "fixed",
+        evidence: "fixed in frontend commit abc123",
+      }),
+    });
+  });
+
+  test("does not recover generic signal failures", async () => {
+    const store = storeFor(change());
+    mocks.fireSignalAndRefresh.mockRejectedValueOnce(
+      new Error("task queue unavailable"),
+    );
+
+    const output = parse(
+      await designConcernTools.adv_design_concern_disposition.execute(
+        {
+          ...validArgs,
+          recoveryMode: "poisoned_history",
+          recoveryEvidence:
+            "WorkflowNotFoundError: workflow execution already completed",
+          recoveryReason: "completed workflow recovery",
+        },
+        store,
+      ),
+    );
+
+    expect(output.error).toContain("task queue unavailable");
+    expect(mocks.saveRecoveredDesignConcernDisposition).not.toHaveBeenCalled();
+  });
+
+  test("requires precise recovery evidence and reason before recovery", async () => {
+    const store = storeFor(change());
+    const output = parse(
+      await designConcernTools.adv_design_concern_disposition.execute(
+        {
+          ...validArgs,
+          recoveryMode: "poisoned_history",
+          recoveryEvidence: "it failed",
+          recoveryReason: "completed workflow recovery",
+        },
+        store,
+      ),
+    );
+
+    expect(output.error).toContain("precise poisoned-history");
     expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
   });
 });
