@@ -30,6 +30,47 @@ Empty args → broad. Non-empty → scoped. Emit: `[ADV:WORK] Tron reconnaissanc
 ## Phase 3: Gather Context
 1. `adv_project_context` + `adv_change_list` + `adv_agenda_list`
 2. Broad: `lgrep_get_file_tree` for structure. Scoped: resolve target to concrete files/symbols → if unresolved after semantic/symbol/text search, fall back to the closest concrete target or broad reconnaissance and state that choice. Ask via `question` only if multiple plausible interpretations would lead to materially different investigations.
+
+### Analysis Startup Sequence
+
+Before deep reads, establish baseline context in this order:
+
+1. **WORKING DIRECTORY / repo root** — record the actual workdir and resolved target path.
+2. **Project context** — load `adv_project_context`.
+3. **active ADV state** — inspect active changes plus relevant agenda/wisdom/spec context using ADV read tools.
+4. **repo tree/outline** — inspect repo tree/outline before target-local reads.
+5. **coverage gaps** — record unavailable tools, skipped dimensions, and unexamined areas.
+
+### Broad Scan
+
+Run a bounded broad scan with: structure map, hotspot/risk scan, related pattern/convention scan, active-change/spec overlap check, and coverage gaps. Cap findings at 10.
+
+### Scoped Scan
+
+Run a bounded scoped scan with: target normalization, deep read, dependency/usage trace, related/sibling code scan, active-change/spec overlap check, and coverage gaps. Cap findings at 15.
+
+### Degraded Execution
+
+If `lgrep` or outline tools fail, fallback to allowed read/search tools, report degraded coverage, and only emit findings backed by inspected source. Unsupported signals become coverage gaps/open questions, not findings.
+
+### Follow-up Routing Matrix
+
+Use these trigger criteria for suggested next commands. Tron recommends only; it must not invoke `/adv-*`, must not create agenda/change/task state, and must not edit files.
+
+| Trigger criteria | Recommend |
+| --- | --- |
+| Simplification, bloat, duplicated flow, verbose code, or long-term maintainability proposal needed | `/adv-optimizer <target>` |
+| Slop smell, dead-code/deletion-safety, detector coverage, defensive overkill, AI-code quality issue | `/adv-slop-scan <target>` |
+| Architecture boundary, stack-pack, structural-correctness, heuristic-owned state/spec/security/persistence concern | `/adv-arch-scan <target>` |
+| Explicit spec-vs-implementation drift | `/adv-audit <capability>` |
+| Follow-up already bounded and implementation-ready | `/adv-task` |
+| Durable change needs proposal/agreement/design | `/adv-proposal <summary>` |
+| More local reconnaissance needed before choosing owner | `/adv-tron <deeper-target>` |
+
+Combination routing examples:
+
+- `/adv-slop-scan <target> then /adv-optimizer <target>` — first classify slop/deletion-safety evidence, then synthesize simplification proposal.
+- `/adv-arch-scan <target> then /adv-slop-scan <target>` — first validate architecture/structural boundary, then scan quality smells if source evidence also suggests code-level slop.
 ## Phase 4: Spawn Tron Sub-Agent
 Spawn `adv-tron` agent via Task tool. System prompt has behavioral instructions. Pass this packet plus mode-specific context:
 
@@ -67,9 +108,10 @@ Validate findings (require file references, remove evidence-free, deduplicate). 
 - Risks (with file references)
 - Open questions
 - Possible agenda items (title, rationale, priority — suggestions only, not auto-created)
-- Suggested next commands (`/adv-proposal`, `/adv-task`, `/adv-audit`, `/adv-tron`)
+- Suggested next commands (command, target, trigger, rationale): `/adv-optimizer`, `/adv-slop-scan`, `/adv-arch-scan`, `/adv-proposal`, `/adv-task`, `/adv-tron`, and optional `/adv-audit` only for explicit spec-vs-implementation drift
 ## Constraints
 - Read-only — × never writes files or mutates ADV state
+- Adjacent commands are recommendations only — must not invoke `/adv-*`, must not create agenda/change/task state, must not edit files
 - × No agenda creation — suggestions in human-readable form only
 - × No change creation — user decides follow-up
 - Bounded: 10 findings (broad), 15 (scoped)

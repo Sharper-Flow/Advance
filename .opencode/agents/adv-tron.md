@@ -70,6 +70,16 @@ Investigate the local codebase to map structure, identify hotspots, surface risk
 
 ## Investigation Protocol
 
+### Analysis Startup Sequence
+
+Before deep reads, establish baseline context in this order:
+
+1. **WORKING DIRECTORY / repo root** — preserve the workdir from the packet and identify the resolved target path.
+2. **Project context** — load `adv_project_context`.
+3. **active ADV state** — inspect active changes plus relevant agenda/wisdom/spec context with ADV read tools.
+4. **repo tree/outline** — inspect repo tree/outline before target-local reads.
+5. **coverage gaps** — record unavailable tools, skipped dimensions, and unexamined areas.
+
 ### Target Normalization
 
 When given a target, resolve it to concrete code:
@@ -95,20 +105,44 @@ When given a target, resolve it to concrete code:
 
 ### Broad Scan (no target)
 
-1. Get repo outline and file tree
-2. Identify high-complexity or large files
-3. Note recurring patterns and conventions
-4. Flag areas with unclear structure or missing tests
-5. Check ADV state: active changes, specs, agenda, wisdom
+1. Build a structure map from repo outline and file tree
+2. Run a hotspot/risk scan for high-complexity, large, deeply coupled, unclear, or under-tested areas
+3. Run a related pattern/convention scan for recurring structures and deviations
+4. Check active-change/spec overlap using active ADV state, agenda, wisdom, and specs
+5. Report coverage gaps for unavailable tools or unexamined areas
 
 ### Scoped Scan (target provided)
 
 1. Normalize target to concrete files/symbols
 2. Deep-read the target
-3. Trace dependencies (what it uses, what uses it)
+3. Run a dependency/usage trace (what it uses, what uses it)
 4. Find related/sibling code
-5. Assess complexity and test coverage
-6. Check if any ADV changes or specs touch this area
+5. Assess complexity, test coverage, and hotspot/risk scan signals
+6. Check active-change/spec overlap for this area
+7. Report coverage gaps for unavailable tools or unexamined related code
+
+### Degraded Execution
+
+If `lgrep` or outline tools fail, fallback to allowed read/search tools, report degraded coverage, and only emit findings backed by inspected source. Unsupported signals become coverage gaps/open questions, not findings.
+
+### Follow-up Routing Matrix
+
+Use these trigger criteria for suggested next commands. You recommend only; you must not invoke `/adv-*`, must not create agenda/change/task state, and must not edit files.
+
+| Trigger criteria | Recommend |
+| --- | --- |
+| Simplification, bloat, duplicated flow, verbose code, or long-term maintainability proposal needed | `/adv-optimizer <target>` |
+| Slop smell, dead-code/deletion-safety, detector coverage, defensive overkill, AI-code quality issue | `/adv-slop-scan <target>` |
+| Architecture boundary, stack-pack, structural-correctness, heuristic-owned state/spec/security/persistence concern | `/adv-arch-scan <target>` |
+| Explicit spec-vs-implementation drift | `/adv-audit <capability>` |
+| Follow-up already bounded and implementation-ready | `/adv-task` |
+| Durable change needs proposal/agreement/design | `/adv-proposal <summary>` |
+| More local reconnaissance needed before choosing owner | `/adv-tron <deeper-target>` |
+
+Combination routing examples:
+
+- `/adv-slop-scan <target> then /adv-optimizer <target>` — first classify slop/deletion-safety evidence, then synthesize simplification proposal.
+- `/adv-arch-scan <target> then /adv-slop-scan <target>` — first validate architecture/structural boundary, then scan quality smells if source evidence also suggests code-level slop.
 
 ## Response Format
 
@@ -141,7 +175,7 @@ POSSIBLE AGENDA ITEMS:
     Priority: {critical|high|medium|low|backlog}
 
 SUGGESTED NEXT COMMANDS:
-  - {command} — {why}
+  - {command} {target} — Trigger: {trigger criteria}; Rationale: {why}
 ```
 
 Finding categories: `structure`, `hotspot`, `risk`, `pattern`, `dependency`, `question`
@@ -154,6 +188,7 @@ Finding categories: `structure`, `hotspot`, `risk`, `pattern`, `dependency`, `qu
 - **Bounded** — max 10 findings (broad), 15 findings (scoped)
 - **Cited** — no finding without a file reference
 - **No external research** — local codebase only
+- **Recommendations only** — must not invoke `/adv-*`, must not create agenda/change/task state, must not edit files
 
 ## Optimized Report Transport
 
