@@ -157,10 +157,13 @@ function withDeploymentSourceStates(
   return deployments.map((deployment) => {
     const item = record(deployment);
     if (!item || item.id === undefined) return deployment;
-    const status = deploymentStatusValue(deploymentStatuses[String(item.id)]);
+    const deploymentStatus = record(deploymentStatuses[String(item.id)]);
+    const status = deploymentStatusValue(deploymentStatus);
     if (!status) return deployment;
     return {
       ...item,
+      updated_at:
+        stringField(item, "updated_at") ?? stringField(deploymentStatus, "updated_at"),
       source_states: {
         ...record(item.source_states),
         github_deployment: status,
@@ -174,6 +177,16 @@ function deploymentStatusValue(status: unknown): string | undefined {
   const value = item?.state ?? item?.status;
   return typeof value === "string" && value.trim().length > 0
     ? value.trim()
+    : undefined;
+}
+
+function stringField(
+  value: Record<string, unknown> | undefined,
+  key: string,
+): string | undefined {
+  const field = value?.[key];
+  return typeof field === "string" && field.trim().length > 0
+    ? field.trim()
     : undefined;
 }
 

@@ -238,6 +238,124 @@ describe("dashboard server state", () => {
     );
   });
 
+  test("compacts live-shaped dashboard clutter into grouped lanes", async () => {
+    const state = await buildDashboardState(config(), {
+      now: () => new Date("2026-06-26T05:00:00.000Z"),
+      advReader: async (project) => ({
+        ok: true,
+        project: { id: project.id, label: project.label, path: project.path },
+        project_id: `${project.id}-pid`,
+        generated_at: "2026-06-26T05:00:00.000Z",
+        changes:
+          project.id === "advance"
+            ? Array.from({ length: 8 }, (_, index) => ({
+                id: `draft${index}`,
+                title: `Draft ${index}`,
+                status: "draft",
+                gateProgressStr: "proposal ○ discovery ○ design ○ planning ○ execution ○ acceptance ○ release ○",
+                firstIncompleteGate: "proposal",
+                lastActivityAt: `2026-06-25T20:0${index}:00.000Z`,
+                correlation_keys: {
+                  branches: [`change/draft${index}`],
+                  head_shas: [],
+                },
+              }))
+            : [],
+        degradedSources: [],
+      }),
+      githubReader: async (project) => ({
+        ok: true,
+        data: {
+          pulls:
+            project.id === "advance"
+              ? [
+                  {
+                    number: 567,
+                    title: "Fan out image migration keys",
+                    html_url: "https://github.com/Sharper-Flow/Advance/pull/567",
+                    state: "open",
+                    updated_at: "2026-06-19T15:45:19Z",
+                    head: {
+                      ref: "change/fanOutImageMigrationDuplicate",
+                      sha: "f0aae45e5fe2",
+                    },
+                  },
+                ]
+              : [],
+          workflow_runs:
+            project.id === "advance"
+              ? [
+                  {
+                    id: 1,
+                    name: "PR Gate",
+                    status: "completed",
+                    conclusion: "failure",
+                    html_url: "https://github.com/Sharper-Flow/Advance/actions/runs/1",
+                    head_branch: "change/evaluatePrintingIdentityField",
+                    head_sha: "111111111111",
+                    updated_at: "2026-06-25T16:31:44Z",
+                  },
+                  {
+                    id: 2,
+                    name: "PR Gate",
+                    status: "completed",
+                    conclusion: "failure",
+                    html_url: "https://github.com/Sharper-Flow/Advance/actions/runs/2",
+                    head_branch: "change/evaluatePrintingIdentityField",
+                    head_sha: "222222222222",
+                    updated_at: "2026-06-25T17:22:39Z",
+                  },
+                ]
+              : [],
+          deployments:
+            project.id === "advance"
+              ? [
+                  { id: 10, environment: "production", ref: "main" },
+                  { id: 11, environment: "production", ref: "main" },
+                ]
+              : [],
+          deployment_statuses:
+            project.id === "advance"
+              ? {
+                  "10": { state: "inactive", updated_at: "2026-06-25T22:56:25Z" },
+                  "11": { state: "inactive", updated_at: "2026-06-26T01:06:22Z" },
+                }
+              : {},
+        },
+        fetched_at: "2026-06-26T05:00:00.000Z",
+      }),
+    });
+
+    const lanes = state.projects[0]?.lanes;
+    expect(lanes?.attention).toHaveLength(1);
+    expect(lanes?.attention[0]).toMatchObject({
+      kind: "group",
+      groupKind: "workflow_run",
+      count: 2,
+      latestUpdatedAt: "2026-06-25T17:22:39Z",
+    });
+    expect(lanes?.unmatched.map((item) => item.kind)).toEqual(["pull", "group"]);
+    expect(lanes?.unmatched[1]).toMatchObject({
+      kind: "group",
+      groupKind: "deployment",
+      count: 2,
+      latestUpdatedAt: "2026-06-26T01:06:22Z",
+    });
+    expect(lanes?.inventory).toHaveLength(1);
+    expect(lanes?.inventory[0]).toMatchObject({
+      kind: "group",
+      groupKind: "inventory",
+      count: 8,
+      collapsedByDefault: true,
+    });
+    expect(Object.keys(lanes ?? {})).toEqual([
+      "attention",
+      "active",
+      "unmatched",
+      "inventory",
+    ]);
+  });
+
   test("serves GET routes and rejects mutation methods", async () => {
     const handler = createDashboardHandler({
       config: config(),
