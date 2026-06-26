@@ -1,0 +1,514 @@
+{
+  "id": "updateOptimizerStackCheck",
+  "title": "Update optimizer stack check",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-06-26T18:22:48.923Z",
+  "tasks": [
+    {
+      "id": "tk-76568165c118",
+      "title": "Add Tech Stack Baseline anchors to /adv-optimizer and asset tests",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-06-26T18:31:16.963Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_preferred"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "SC4",
+          "SC5",
+          "SC6"
+        ],
+        "verifies": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "SC4",
+          "SC5",
+          "SC6"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "DONT1",
+          "DONT2",
+          "DONT3"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-26T18:33:43.787Z",
+      "verification": "RED: pnpm exec vitest run src/adv-optimizer-assets.test.ts failed because Tech Stack Baseline anchor was missing. GREEN/verify: pnpm exec vitest run src/adv-optimizer-assets.test.ts src/manifest-doc-drift.test.ts passed (25 tests). Static optimizer stack check passed. Prettier check passed for src/adv-optimizer-assets.test.ts.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Updated `.opencode/command/adv-optimizer.md` so Phase 1 establishes a `Tech Stack Baseline` before scanner fan-out or best-practice recommendations. The command now identifies language(s), framework(s), runtime(s), package manager(s), test/build tooling, and major architectural surfaces; asks for confirmation/correction only when stack uncertainty materially affects recommendations; passes `TECH STACK: {confirmed-or-assumed-stack}` to scanner packets; and includes `Tech Stack: {confirmed-or-assumed-stack}` in output. Updated `plugin/src/adv-optimizer-assets.test.ts` with structural assertions for those anchors.",
+      "filesTouched": [
+        ".opencode/command/adv-optimizer.md",
+        "plugin/src/adv-optimizer-assets.test.ts"
+      ],
+      "touched_files": [
+        ".opencode/command/adv-optimizer.md",
+        "plugin/src/adv-optimizer-assets.test.ts"
+      ],
+      "checkpointSha": "887834a2601455427fa09fca1b87c24d3945a3f1",
+      "completedAt": "2026-06-26T18:36:32.184Z",
+      "completed_at": "2026-06-26T18:36:32.184Z",
+      "notes": "Added Tech Stack Baseline to /adv-optimizer Phase 1 and asset tests. RED/GREEN/static/format verification passed. Checkpoint commit 887834a2601455427fa09fca1b87c24d3945a3f1.",
+      "error_recovery": {
+        "last_error": "Prettier check initially failed for the updated asset test.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "Proceed to execution completion and acceptance review.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "`pnpm exec prettier --check src/adv-optimizer-assets.test.ts` reported formatting issues after adding the new test.",
+            "diagnosis": "New multiline `indexOf` assertion needed Prettier formatting.",
+            "fix_tried": "Ran `pnpm exec prettier --write src/adv-optimizer-assets.test.ts`; reran targeted tests and Prettier check successfully.",
+            "strategy_label": "format-test-file",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-26T18:35:59.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-26T18:36:55.106Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "updateOptimizerStackCheck",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation: tech-stack baseline for /adv-optimizer",
+      "sources": [
+        {
+          "label": "adv-optimizer command contract",
+          "locator": ".opencode/command/adv-optimizer.md:36,38-58,73-92",
+          "summary": "Existing Target Resolution -> Phase 1 Context/Deterministic Evidence -> Phase 2 Scanner Fan-out ordering; Phase 1 already loads project context + inspects manifests (the SC2 inputs); conditional-question pattern at L36; Scanner Packet at L73 is reusable for SC4."
+        },
+        {
+          "label": "adv-optimizer asset test",
+          "locator": "plugin/src/adv-optimizer-assets.test.ts:39-79",
+          "summary": "7 toContain/toMatch anchor tests over command doc. SC6 extension matches the existing anchor mechanism exactly; not-contains guards (L76-78) confirm no mutation tools must appear."
+        },
+        {
+          "label": "ADV conditional-question convention",
+          "locator": ".opencode/command/adv-improve.md:40, adv-audit.md:104, adv-discover.md:101",
+          "summary": "'Ask via question only when ... materially differ' and 'user must confirm or correct' are established cross-command ADV patterns. SC3 reuses this; not a novel mechanism."
+        }
+      ],
+      "architecture_assessment": "Design is command-doc + asset-test only, no runtime/CLI/agent — honors C1/C2. Read-only boundary preserved (C3). SC2 stack-detection inputs (project context, manifests, source) are exactly what Phase 1 already gathers (L52-53), so baseline reuses existing context-load. SC3 confirmation reuses the established conditional-question + confirm/correct conventions. SC4 reuses the existing Scanner Packet injection slot. SC6 reuses the toContain anchor-test mechanism. Boring-correct, in-contract, minimal blast radius. One ordering nuance: agreement SC1 requires baseline 'before scanner fan-out' (Phase 2), but design narrative says 'before deterministic evidence' (before Phase 1). Both satisfy SC1, but placing the baseline as the head of / inside Phase 1 (rather than a separate pre-Phase-1 step) better reuses Phase 1's context-load and avoids a redundant second context read.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "No spec-law conflict, no contract compromise, no user-value tradeoff. Existing 7 asset tests unaffected. Avoidances honored via reused conditional-question discipline (no over-prompting) and no unrelated redesign."
+      },
+      "recommendation": "Proceed to planning. VALIDATED with one CAUTION: reconcile placement wording — anchor the baseline at the head of Phase 1 (or rename Phase 1 to include the baseline) rather than a discrete pre-Phase-1 step, so SC1 'before scanner fan-out' is met while reusing Phase 1 context-load. Add the SC6 anchor as a literal stable token (e.g. 'Tech Stack Baseline') so the asset test uses the same toContain mechanism as L42-48. Keep SC3 prompt strictly conditional ('only when uncertainty materially affects recommendations') to honor the no-over-prompt avoidance.",
+      "follow_ups": [
+        "Confirm the chosen SC6 anchor string is unique and stable in the command doc before writing the asset assertion.",
+        "Ensure SC5 output anchor lands in the existing Coverage/Current State section (L127-130) rather than introducing a new top-level report section, to avoid disturbing the proposal-shape asset test (L50-60)."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "updateOptimizerStackCheck",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/updateOptimizerStackCheck",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "test -e '.opencode/command/adv-optimizer.md' && test -e 'plugin/src/adv-optimizer-assets.test.ts'",
+          "bin/oc-test targeted -- src/adv-optimizer-assets.test.ts src/manifest-doc-drift.test.ts",
+          "test ! -e '.opencode/agents/adv-optimizer.md' && test ! -e 'bin/adv-optimizer' && test ! -e 'plugin/src/tools/optimizer.ts'"
+        ],
+        "results": "pass",
+        "evidence": "Path preflight passed. Initial verifier command with plugin/src filters failed because bin/oc-test runs from plugin/; reran with src/... filters and got 2 files / 25 tests passed. Static boundary check found no optimizer agent, CLI, or runtime tool files. Review mapped agreement anchors to command/test lines: SC1 .opencode/command/adv-optimizer.md:48-64; SC2 lines 51-53; SC3 lines 54-55; SC4 lines 75-83; SC5 lines 132-135; SC6 plugin/src/adv-optimizer-assets.test.ts:39-68; C3/DONT mutation/read-only anchors lines 20,24,61-62,163-172."
+      },
+      "scope_drift": null,
+      "risks": [],
+      "required_main_agent_actions": [],
+      "required_follow_ups": [],
+      "consumer_warnings": []
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-06-26T18:23:48.957Z",
+      "completed_by": "adv-proposal",
+      "approval_evidence": "User approved fast-follow proposal in chat: \"approve\". Scope: add required early tech-stack baseline/confirmation step to /adv-optimizer and asset tests.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "dce592cae4af216b2d6fa84740335629c19e9cc903ad3e8766d81a1a880339c0",
+        "non_whitespace_chars": 900,
+        "checked_at": "2026-06-26T18:22:48.990Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "started_at": "2026-06-26T18:27:47.640Z",
+      "completed_at": "2026-06-26T18:28:07.438Z",
+      "completed_by": "adv-discover",
+      "approval_evidence": "User approved agreement in chat: \"approve\". Agreement captures SC1-SC6, constraints C1-C3, and avoidances DONT1-DONT3. Contract minted with 12 items. Discovery was fast-follow from archived addOptimizerCommand; validation passed with expected pre-planning warnings NO_TASKS/NO_DELTAS.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "cb528cd2bd08069432dda07861a8e828c85b7b6028683c21e294ee9757b4d071",
+        "non_whitespace_chars": 1196,
+        "checked_at": "2026-06-26T18:22:48.991Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-06-26T18:30:40.747Z",
+      "completed_by": "adv-design",
+      "approval_evidence": "Design persisted and independently validated. Validator verdict VALIDATED with one caution about baseline placement; design revised to anchor Tech Stack Baseline at head of Phase 1 to reuse context/manifests and avoid redundant reads. No conflict, contract compromise, or user-value tradeoff.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "3946544d011a76c33250a5709431c321293e429b25441af824dda5394005a945",
+        "non_whitespace_chars": 1927,
+        "checked_at": "2026-06-26T18:22:48.992Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-06-26T18:33:09.110Z",
+      "completed_by": "adv-prep",
+      "approval_evidence": "User approved prep in chat: \"approve\". Task graph has one implementation task with inline TDD covering SC1-SC6, C1-C3, DONT1-DONT3. Strict validation passed with intentional NO_DELTAS warning only."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-06-26T18:37:19.451Z",
+      "completed_by": "adv-apply",
+      "approval_evidence": "All tasks done. Verification passed: RED optimizer asset test failed before command update; GREEN/verify optimizer asset + manifest-doc drift tests passed (25 tests); static optimizer stack check passed; Prettier check passed for touched TS test. Strict validation passed with intentional NO_DELTAS warning only."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-06-26T18:53:29.920Z",
+      "completed_by": "adv-review",
+      "approval_evidence": "User approved acceptance in chat: \"approve\". Independent reviewer verdict READY; contract review matrix has 12/12 pass/respected rows; executive summary persisted.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "17656eec4362bc2b8ac93c08135140b37b57d6ef5e898ef5cad5fb6349805882",
+        "non_whitespace_chars": 958,
+        "checked_at": "2026-06-26T18:22:48.993Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "fast_follow_of": {
+    "parent_change_id": "addOptimizerCommand",
+    "linked_at": "2026-06-26T18:22:48.449Z"
+  },
+  "origin": {
+    "kind": "discovery",
+    "source_artifact": "user follow-up after addOptimizerCommand archive: tech stack confirmation should be an early optimizer step"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "cb528cd2bd08069432dda07861a8e828c85b7b6028683c21e294ee9757b4d071",
+      "approvedAt": "2026-06-26T18:27:56.367Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "`/adv-optimizer` includes a required early `Tech Stack Baseline` or equivalent step before scanner fan-out.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cb528cd2bd08069432dda07861a8e828c85b7b6028683c21e294ee9757b4d071",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "The step identifies language(s), framework(s), runtime(s), package manager(s), test/build tooling, and major architectural surfaces from project context and manifests.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cb528cd2bd08069432dda07861a8e828c85b7b6028683c21e294ee9757b4d071",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "The command requires user confirmation/correction when tech-stack uncertainty would materially affect optimizer recommendations.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cb528cd2bd08069432dda07861a8e828c85b7b6028683c21e294ee9757b4d071",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC4",
+        "kind": "success_criterion",
+        "text": "Scanner packets include the confirmed or assumed tech stack.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cb528cd2bd08069432dda07861a8e828c85b7b6028683c21e294ee9757b4d071",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC5",
+        "kind": "success_criterion",
+        "text": "Optimizer output includes the confirmed/assumed tech stack in coverage/current-state context.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cb528cd2bd08069432dda07861a8e828c85b7b6028683c21e294ee9757b4d071",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC6",
+        "kind": "success_criterion",
+        "text": "Asset tests fail if the tech-stack baseline/confirmation/output anchors are removed.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cb528cd2bd08069432dda07861a8e828c85b7b6028683c21e294ee9757b4d071",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Keep change limited to `/adv-optimizer` command contract and local asset tests unless a drift test requires a small update.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cb528cd2bd08069432dda07861a8e828c85b7b6028683c21e294ee9757b4d071",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Do not add a CLI runner, new agent, or runtime tool.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cb528cd2bd08069432dda07861a8e828c85b7b6028683c21e294ee9757b4d071",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Keep the command read-only and no-mutation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cb528cd2bd08069432dda07861a8e828c85b7b6028683c21e294ee9757b4d071",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not rely on generic industry advice before stack is established.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cb528cd2bd08069432dda07861a8e828c85b7b6028683c21e294ee9757b4d071",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not force a prompt when stack is clear and low-risk; state the inferred stack and proceed.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cb528cd2bd08069432dda07861a8e828c85b7b6028683c21e294ee9757b4d071",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not expand into unrelated optimizer redesign.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cb528cd2bd08069432dda07861a8e828c85b7b6028683c21e294ee9757b4d071",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-06-26T18:40:25.182Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "`.opencode/command/adv-optimizer.md` Phase 1 now includes `Tech Stack Baseline` before `## Phase 2: First-Level Scanner Fan-out`; optimizer asset test verifies ordering.",
+          "notes": "Baseline occurs before scanner fan-out."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Command lists language(s), framework(s), runtime(s), package manager(s), test/build tooling, and major architectural surfaces; asset test checks all anchors.",
+          "notes": "Stack dimensions covered."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Command requires inferred-stack confirmation/correction when stack uncertainty would materially affect recommendations; if clear/low-risk, state inferred stack and proceed.",
+          "notes": "Conditional prompt preserves DONT2."
+        },
+        {
+          "contractId": "SC4",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Scanner packet includes `TECH STACK: {confirmed-or-assumed-stack}`; asset/static checks passed.",
+          "notes": "Scanner workers receive stack context."
+        },
+        {
+          "contractId": "SC5",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Report output includes `Tech Stack: {confirmed-or-assumed-stack}` near target/depth/coverage; asset/static checks passed.",
+          "notes": "Output captures assumed/confirmed stack."
+        },
+        {
+          "contractId": "SC6",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "RED asset test failed before command update; GREEN `pnpm exec vitest run src/adv-optimizer-assets.test.ts src/manifest-doc-drift.test.ts` passed 25 tests.",
+          "notes": "Structural tests protect anchors."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Touched files limited to `.opencode/command/adv-optimizer.md` and `plugin/src/adv-optimizer-assets.test.ts`.",
+          "notes": "No drift-test file needed beyond existing passing test."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Static optimizer stack check passed: no `.opencode/agents/adv-optimizer.md`, no `bin/adv optimizer`, no runtime tool addition.",
+          "notes": "No new CLI/agent/runtime."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Existing read-only/no-mutation boundary retained; mutation tool names absent from command contract in static check.",
+          "notes": "Read-only preserved."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Command states `Do not rely on generic industry advice before the target stack is established.`",
+          "notes": "Stack-first recommendation boundary added."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Command says if stack is clear and low-risk, state inferred stack and proceed without prompting.",
+          "notes": "No forced prompt for clear stack."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Only targeted Phase 1, scanner packet, output, and asset-test anchors changed; reviewer found no scope drift.",
+          "notes": "No unrelated redesign."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [],
+  "documents": {
+    "proposal": "# Update optimizer stack check\n\n## Problem\n`/adv-optimizer` loads project context and inspects local structure, but it does not explicitly require an early tech-stack detection and confirmation step. Optimizer recommendations can be wrong or generic if the command does not first establish the repo's language/framework/runtime/package-manager stack and ask the user to confirm or correct it.\n\n## Scope\n- Update `.opencode/command/adv-optimizer.md` so early context gathering includes a required \"Tech Stack Baseline\" step.\n- The step should identify language(s), framework(s), runtime(s), package manager(s), test/build tooling, and major architectural surfaces from project context and manifests.\n- The command should present the inferred stack and ask for confirmation/correction before scanner fan-out when stack uncertainty would materially affect recommendations.\n- Add/update structural asset tests so this behavior is preserved.\n\n## Out of Scope\n- New CLI runner.\n- New optimizer agent.\n- Runtime tool changes.\n- Broad optimizer redesign.",
+    "problemStatement": "`/adv-optimizer` should explicitly get and confirm the target codebase's tech stack before proposing simplification. Current command text mentions project context and local structure but does not make tech-stack confirmation a required early step.",
+    "agreement": "# Agreement: Update optimizer stack check\n\n## Objective\nMake `/adv-optimizer` establish and confirm the codebase tech stack before scanner fan-out or simplification proposal synthesis.\n\n## Success Criteria\n- SC1: `/adv-optimizer` includes a required early `Tech Stack Baseline` or equivalent step before scanner fan-out.\n- SC2: The step identifies language(s), framework(s), runtime(s), package manager(s), test/build tooling, and major architectural surfaces from project context and manifests.\n- SC3: The command requires user confirmation/correction when tech-stack uncertainty would materially affect optimizer recommendations.\n- SC4: Scanner packets include the confirmed or assumed tech stack.\n- SC5: Optimizer output includes the confirmed/assumed tech stack in coverage/current-state context.\n- SC6: Asset tests fail if the tech-stack baseline/confirmation/output anchors are removed.\n\n## Constraints\n- C1: Keep change limited to `/adv-optimizer` command contract and local asset tests unless a drift test requires a small update.\n- C2: Do not add a CLI runner, new agent, or runtime tool.\n- C3: Keep the command read-only and no-mutation.\n\n## Avoidances\n- DONT1: Do not rely on generic industry advice before stack is established.\n- DONT2: Do not force a prompt when stack is clear and low-risk; state the inferred stack and proceed.\n- DONT3: Do not expand into unrelated optimizer redesign.",
+    "design": "# Design\n\n## Architecture Overview\nAdd a command-contract-only tech-stack baseline to `/adv-optimizer`, anchored at the head of existing Phase 1 so the command establishes stack context before scanner fan-out without adding runtime scope.\n\nThe baseline reuses existing project context and manifest/source inspection, then carries the confirmed/assumed stack into scanner packets and report output.\n\n## Key Decisions\n- Use existing project context and manifest/source inspection; no new tool or agent.\n- Anchor `Tech Stack Baseline` at the head of Phase 1 rather than a new pre-phase, so SC2 inputs are gathered once.\n- Ask for confirmation only when uncertainty materially affects recommendation correctness; if stack is clear and low-risk, state inferred stack and proceed.\n- Pass confirmed/assumed stack into scanner packet and report output.\n- Preserve read-only/no-mutation boundaries.\n\n## Implementation Strategy\n1. Update `.opencode/command/adv-optimizer.md`:\n   - Rename or expand Phase 1 to include `Tech Stack Baseline`.\n   - List required stack dimensions: language(s), framework(s), runtime(s), package manager(s), test/build tooling, major architectural surfaces.\n   - Add conditional confirmation/correction rule.\n   - Add `TECH STACK:` to scanner packet.\n   - Add `Tech Stack:` near existing Coverage/Current State output anchors.\n2. Update `plugin/src/adv-optimizer-assets.test.ts` with structural assertions for stack baseline, confirmation, scanner packet, and output.\n3. Run targeted optimizer asset/manifest-doc tests.\n\n## Risks / Mitigations\n- Risk: adds unnecessary user pause.\n  - Mitigation: prompt only when stack uncertainty materially affects recommendations; otherwise state inferred stack and proceed.\n- Risk: duplicates existing context reads.\n  - Mitigation: anchor baseline inside Phase 1 where project context/manifests are already read.\n\n## Validator Result\nIndependent design validator verdict: `VALIDATED` with one caution.\n\nCaution resolved in this design revision:\n- Validator recommended anchoring the baseline at the head of Phase 1 instead of adding a discrete pre-Phase-1 step, to reuse existing context/manifests and avoid redundant reads.\n\nNo conflict, contract compromise, or user-value tradeoff identified.",
+    "executiveSummary": "# Executive Summary: Update optimizer stack check\n\nUpdated `/adv-optimizer` so codebase tech stack is established before scanner fan-out or best-practice recommendations.\n\n## What Changed\n- Phase 1 now includes `Tech Stack Baseline`.\n- Baseline requires language(s), framework(s), runtime(s), package manager(s), test/build tooling, and major architectural surfaces.\n- Command asks for confirmation/correction only when stack uncertainty would materially affect recommendations.\n- Scanner packet now includes `TECH STACK: {confirmed-or-assumed-stack}`.\n- Report output now includes `Tech Stack: {confirmed-or-assumed-stack}`.\n- Optimizer asset tests now protect stack baseline, confirmation, scanner packet, and output anchors.\n\n## Verified Outcomes\n- RED asset test failed before stack baseline existed.\n- GREEN/final targeted tests passed: 25 tests across optimizer assets and manifest-doc drift.\n- Static check passed: no optimizer agent/CLI/runtime tool, required stack anchors present, mutation tools absent.\n- Independent reviewer verdict: READY.\n- Contract review matrix: 12/12 pass/respected.\n",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-06-26T18:40:25.182Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | `/adv-optimizer` includes a required early `Tech Stack Baseline` or equivalent step before scanner fan-out. | pass | `.opencode/command/adv-optimizer.md` Phase 1 now includes `Tech Stack Baseline` before `## Phase 2: First-Level Scanner Fan-out`; optimizer asset test verifies ordering. |\n| SC2 | success_criterion | The step identifies language(s), framework(s), runtime(s), package manager(s), test/build tooling, and major architectural surfaces from project context and manifests. | pass | Command lists language(s), framework(s), runtime(s), package manager(s), test/build tooling, and major architectural surfaces; asset test checks all anchors. |\n| SC3 | success_criterion | The command requires user confirmation/correction when tech-stack uncertainty would materially affect optimizer recommendations. | pass | Command requires inferred-stack confirmation/correction when stack uncertainty would materially affect recommendations; if clear/low-risk, state inferred stack and proceed. |\n| SC4 | success_criterion | Scanner packets include the confirmed or assumed tech stack. | pass | Scanner packet includes `TECH STACK: {confirmed-or-assumed-stack}`; asset/static checks passed. |\n| SC5 | success_criterion | Optimizer output includes the confirmed/assumed tech stack in coverage/current-state context. | pass | Report output includes `Tech Stack: {confirmed-or-assumed-stack}` near target/depth/coverage; asset/static checks passed. |\n| SC6 | success_criterion | Asset tests fail if the tech-stack baseline/confirmation/output anchors are removed. | pass | RED asset test failed before command update; GREEN `pnpm exec vitest run src/adv-optimizer-assets.test.ts src/manifest-doc-drift.test.ts` passed 25 tests. |\n| C1 | constraint | Keep change limited to `/adv-optimizer` command contract and local asset tests unless a drift test requires a small update. | respected | Touched files limited to `.opencode/command/adv-optimizer.md` and `plugin/src/adv-optimizer-assets.test.ts`. |\n| C2 | constraint | Do not add a CLI runner, new agent, or runtime tool. | respected | Static optimizer stack check passed: no `.opencode/agents/adv-optimizer.md`, no `bin/adv optimizer`, no runtime tool addition. |\n| C3 | constraint | Keep the command read-only and no-mutation. | respected | Existing read-only/no-mutation boundary retained; mutation tool names absent from command contract in static check. |\n| DONT1 | avoidance | Do not rely on generic industry advice before stack is established. | respected | Command states `Do not rely on generic industry advice before the target stack is established.` |\n| DONT2 | avoidance | Do not force a prompt when stack is clear and low-risk; state the inferred stack and proceed. | respected | Command says if stack is clear and low-risk, state inferred stack and proceed without prompting. |\n| DONT3 | avoidance | Do not expand into unrelated optimizer redesign. | respected | Only targeted Phase 1, scanner packet, output, and asset-test anchors changed; reviewer found no scope drift. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-06-26T18:22:49.088Z",
+      "contentHash": "dce592cae4af216b2d6fa84740335629c19e9cc903ad3e8766d81a1a880339c0",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-06-26T18:22:49.088Z",
+      "contentHash": "b2e54437cb2204420b5569725bd87c274913b238c3eed68574f8fe7ac19700d4",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-06-26T18:22:49.088Z",
+      "contentHash": "cb528cd2bd08069432dda07861a8e828c85b7b6028683c21e294ee9757b4d071",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-06-26T18:30:25.673Z",
+      "contentHash": "3946544d011a76c33250a5709431c321293e429b25441af824dda5394005a945",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-06-26T18:40:41.517Z",
+      "contentHash": "17656eec4362bc2b8ac93c08135140b37b57d6ef5e898ef5cad5fb6349805882",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-06-26T18:53:29.920Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true
+}
