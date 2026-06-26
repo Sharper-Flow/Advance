@@ -73,20 +73,22 @@ export function renderDashboardHtml(): string {
   </header>
   <main id="app" aria-live="polite"></main>
   <template id="lane-template">
-    <section class="lane" data-lane="attention"></section>
-    <section class="lane" data-lane="active"></section>
-    <section class="lane" data-lane="unmatched"></section>
-    <section class="lane" data-lane="inventory"></section>
+    <section class="lane" data-lane="needs_attention"></section>
+    <section class="lane" data-lane="running"></section>
+    <section class="lane" data-lane="ready_landed"></section>
+    <section class="lane" data-lane="backlog"></section>
+    <section class="lane" data-lane="unmatched_source"></section>
   </template>
   <template id="empty-template"><p class="muted">No items.</p></template>
   <script>
     const app = document.getElementById('app');
     const freshness = document.getElementById('freshness');
     const laneDefinitions = [
-      { name: 'attention', label: 'Attention' },
-      { name: 'active', label: 'Active work' },
-      { name: 'unmatched', label: 'Unmatched source' },
-      { name: 'inventory', label: 'Inventory' },
+      { name: 'needs_attention', label: 'Needs attention' },
+      { name: 'running', label: 'Running' },
+      { name: 'ready_landed', label: 'Ready / landed' },
+      { name: 'backlog', label: 'Backlog / inventory' },
+      { name: 'unmatched_source', label: 'Unmatched source' },
     ];
     const laneNames = laneDefinitions.map((lane) => lane.name);
     let lastSuccessfulRefreshAt = '';
@@ -94,6 +96,7 @@ export function renderDashboardHtml(): string {
     function text(value) { return value == null ? '' : String(value); }
     function itemHtml(item) {
       if (item.kind === 'group') return groupHtml(item);
+      if (item.kind === 'adv_change_status') return changeStatusHtml(item);
       if (item.kind === 'adv_change') return advChangeHtml(item);
       const title = '<div class="item-title">' + escapeHtml(item.title || item.kind || 'Item') + '</div>';
       const subtitle = item.subtitle ? '<div class="item-subtitle">' + escapeHtml(item.subtitle) + '</div>' : '';
@@ -110,6 +113,31 @@ export function renderDashboardHtml(): string {
       const gate = item.source_states && item.source_states.gate ? item.source_states.gate : 'unknown';
       const status = item.status ? '<div><strong>Status</strong>: <code>' + escapeHtml(item.status) + '</code></div>' : '';
       return '<article class="item adv-change"><div class="change-title">' + escapeHtml(item.title || item.changeId || 'ADV change') + '</div><div class="change-id"><code>' + escapeHtml(item.changeId || '') + '</code></div>' + status + '<div class="gate-row"><span class="gate-label">Next gate</span><strong class="gate-badge ' + gateClass(gate) + '">' + escapeHtml(gate) + '</strong></div></article>';
+    }
+    function changeStatusHtml(item) {
+      const gate = item.gate || 'unknown';
+      const status = item.status ? '<div><strong>Status</strong>: <code>' + escapeHtml(item.status) + '</code></div>' : '';
+      const latest = item.latest || {};
+      const summaries = [
+        sourceSummaryHtml('Latest PR', latest.pr),
+        sourceSummaryHtml('Latest CI', latest.ci),
+        sourceSummaryHtml('Latest deployment', latest.deployment),
+      ].join('');
+      const details = sourceDetailsHtml(item.sources || {});
+      return '<article class="item adv-change status-card"><div class="change-title">' + escapeHtml(item.title || item.changeId || 'ADV change') + '</div><div class="change-id"><code>' + escapeHtml(item.changeId || '') + '</code></div>' + status + '<div class="gate-row"><span class="gate-label">Next gate</span><strong class="gate-badge ' + gateClass(gate) + '">' + escapeHtml(gate) + '</strong></div><div><strong>Overall</strong>: <code>' + escapeHtml(latest.overall || 'unknown') + '</code></div>' + summaries + details + '</article>';
+    }
+    function sourceSummaryHtml(label, summary) {
+      if (!summary) return '';
+      const safeItemUrl = safeUrl(summary.url);
+      const url = safeItemUrl ? ' <a class="item-link" href="' + escapeHtml(safeItemUrl) + '" target="_blank" rel="noreferrer noopener">Source</a>' : '';
+      const updated = summary.updated_at ? ' <span class="muted">' + escapeHtml(summary.updated_at) + '</span>' : '';
+      const status = summary.status ? ' <code>' + escapeHtml(summary.status) + '</code>' : '';
+      return '<div class="source-summary"><strong>' + escapeHtml(label) + '</strong>: ' + escapeHtml(summary.title || summary.kind || 'source') + status + updated + url + metadataHtml(summary.metadata) + '</div>';
+    }
+    function sourceDetailsHtml(sources) {
+      const members = [ ...(sources.prs || []), ...(sources.workflow_runs || []), ...(sources.deployments || []) ];
+      if (!members.length) return '';
+      return '<details class="source-details"><summary>Source details <span class="muted">×' + escapeHtml(members.length) + '</span></summary>' + members.map((member) => itemHtml(member)).join('') + '</details>';
     }
     function groupHtml(group) {
       const limit = groupPreviewLimit(group);
@@ -154,7 +182,7 @@ export function renderDashboardHtml(): string {
       }).join('') || '<p class="muted">No configured projects.</p>';
     }
     function projectHeader(project, lanesByName) {
-      return '<div class="project-head"><div><h2>' + escapeHtml(project.label || project.id) + '</h2><p class="project-path">' + escapeHtml(project.path || '') + '</p></div><div class="project-stats">' + statHtml('Attention', laneCount(lanesByName, 'attention')) + statHtml('Active work', laneCount(lanesByName, 'active')) + statHtml('Unmatched source', laneCount(lanesByName, 'unmatched')) + statHtml('Inventory', laneCount(lanesByName, 'inventory')) + '</div></div>';
+      return '<div class="project-head"><div><h2>' + escapeHtml(project.label || project.id) + '</h2><p class="project-path">' + escapeHtml(project.path || '') + '</p></div><div class="project-stats">' + statHtml('Needs attention', laneCount(lanesByName, 'needs_attention')) + statHtml('Running', laneCount(lanesByName, 'running')) + statHtml('Ready / landed', laneCount(lanesByName, 'ready_landed')) + statHtml('Backlog / inventory', laneCount(lanesByName, 'backlog')) + statHtml('Unmatched source', laneCount(lanesByName, 'unmatched_source')) + '</div></div>';
     }
     function laneLabel(name) {
       const found = laneDefinitions.find((lane) => lane.name === name);

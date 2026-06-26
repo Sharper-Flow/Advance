@@ -3,19 +3,22 @@ import { describe, expect, test } from "bun:test";
 import { renderDashboardHtml } from "./ui";
 
 describe("dashboard UI", () => {
-  test("renders read-only dashboard shell with actionability lanes, metadata, and polling", () => {
+  test("renders read-only dashboard shell with ADV-centered status lanes", () => {
     const html = renderDashboardHtml();
 
     expect(html).toContain("ADV Local Dashboard");
     expect(html).toContain("project-stats");
     expect(html).toContain("lane-head");
-    expect(html).toContain('data-lane="attention"');
-    expect(html).toContain('data-lane="active"');
-    expect(html).toContain('data-lane="unmatched"');
-    expect(html).toContain('data-lane="inventory"');
-    expect(html).toContain("Active work");
+    expect(html).toContain('data-lane="needs_attention"');
+    expect(html).toContain('data-lane="running"');
+    expect(html).toContain('data-lane="ready_landed"');
+    expect(html).toContain('data-lane="backlog"');
+    expect(html).toContain('data-lane="unmatched_source"');
+    expect(html).toContain("Needs attention");
+    expect(html).toContain("Running");
+    expect(html).toContain("Ready / landed");
+    expect(html).toContain("Backlog / inventory");
     expect(html).toContain("Unmatched source");
-    expect(html).toContain("Inventory");
     expect(html).toContain("Evidence");
     expect(html).toContain("Status");
     expect(html).toContain("metadataHtml(item.metadata)");
@@ -30,16 +33,20 @@ describe("dashboard UI", () => {
     expect(html).toContain("refresh_seconds");
   });
 
-  test("keeps ADV change cards compact and degraded sources single-lane", () => {
+  test("renders ADV change status cards with latest source summaries", () => {
     const html = renderDashboardHtml();
 
     expect(html).toContain(
-      "if (item.kind === 'adv_change') return advChangeHtml(item)",
+      "if (item.kind === 'adv_change_status') return changeStatusHtml(item)",
     );
     expect(html).toContain("Next gate");
+    expect(html).toContain("Latest CI");
+    expect(html).toContain("Latest deployment");
+    expect(html).toContain("Latest PR");
+    expect(html).toContain("sourceSummaryHtml");
+    expect(html).toContain("Source details");
     expect(html).toContain("gate-badge");
     expect(html).toContain("gateClass(gate)");
-    expect(html).not.toContain("status <code>' + escapeHtml(item.status");
     expect(html).not.toContain(
       "(project.degradedSources || []).map(degradedHtml)",
     );
