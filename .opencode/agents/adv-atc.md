@@ -87,6 +87,18 @@ tools:
   # Ops follow-ups
   adv_followup_promote: true
   adv_ops_evidence_add: true
+  # Epics
+  adv_epic_create: true
+  adv_epic_show: true
+  adv_epic_list: true
+  adv_epic_update: true
+  adv_epic_add_shell: true
+  adv_epic_promote_shell: true
+  adv_epic_link_change: true
+  adv_epic_unlink_change: true
+  adv_epic_move_change: true
+  adv_epic_repair_membership: true
+  adv_epic_reorder: true
   # Temporal / workflow ops
   adv_temporal_diagnose: true
   adv_temporal_reconnect: true
