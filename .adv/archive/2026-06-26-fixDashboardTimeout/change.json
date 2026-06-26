@@ -1,0 +1,359 @@
+{
+  "id": "fixDashboardTimeout",
+  "title": "Fix dashboard timeout",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-06-26T20:49:28.588Z",
+  "tasks": [
+    {
+      "id": "tk-7bfdeda1a854",
+      "title": "Diagnose and fix live dashboard `/api/state` timeout",
+      "type": "code",
+      "section": "Bugfix",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-06-26T20:50:04.773Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC2",
+          "AC5"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-26T20:50:18.306Z",
+      "verification": "RED: bun test bin/lib/dashboard/server.test.ts failed because DEFAULT_DASHBOARD_READER_TIMEOUT_MS was missing. GREEN: server.test.ts passed (12 tests) after exporting 5s default. VERIFY: bun test bin/lib/dashboard bin/lib/live-status.test.ts passed (69 tests).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "bin/lib/dashboard/server.test.ts",
+        "bin/lib/dashboard/server.ts"
+      ],
+      "touched_files": [
+        "bin/lib/dashboard/server.test.ts",
+        "bin/lib/dashboard/server.ts"
+      ],
+      "checkpointSha": "4d6a787b5b5cd1d7d00cc381acd7080b864971e4",
+      "completedAt": "2026-06-26T20:52:45.579Z",
+      "completed_at": "2026-06-26T20:52:45.579Z"
+    }
+  ],
+  "subagent_reports": [],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-06-26T20:53:54.363Z",
+      "completed_by": "user",
+      "approval_evidence": "User explicitly requested `fix issues, give me live url` after live `/api/state` timeout was discovered. Scope: restore live dashboard data API health while preserving local/read-only/worker-free behavior.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "27737125f590ed50513fa7dd69f8295fe86be14d618464f277a7420197ab0cd1",
+        "non_whitespace_chars": 769,
+        "checked_at": "2026-06-26T20:49:28.620Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "started_at": "2026-06-26T20:54:06.754Z",
+      "completed_at": "2026-06-26T20:54:29.127Z",
+      "completed_by": "user",
+      "approval_evidence": "Contract minted (9 items). Root cause confirmed: live health checker used an 8s request budget, while dashboard default source-reader timeout was 10s. Slow source reads could outlive caller budget. Fix direction: default interactive reader budget <=5s and degrade slow source(s).",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "be8158ca7aa5361ced7706f62898d75051ee4c5732eada5ea581aae6bcb6faea",
+        "non_whitespace_chars": 991,
+        "checked_at": "2026-06-26T20:49:28.621Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-06-26T20:54:39.918Z",
+      "completed_by": "user",
+      "approval_evidence": "Design implemented: export DEFAULT_DASHBOARD_READER_TIMEOUT_MS=5000 and use it as buildDashboardState default, preserving caller override and existing per-source withTimeout degradation. No auth/read model/mutation changes.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "dfee7608db1915a9ce09bc352aa0d660232e6e1b0f6c29799669943c4a66e152",
+        "non_whitespace_chars": 525,
+        "checked_at": "2026-06-26T20:49:28.622Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-06-26T20:54:51.026Z",
+      "completed_by": "user",
+      "approval_evidence": "User requested immediate fix/live URL. One task created and completed: diagnose/fix live dashboard /api/state timeout with TDD evidence."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-06-26T20:55:04.831Z",
+      "completed_by": "agent",
+      "approval_evidence": "Task completed and checkpointed at 4d6a787b5b5cd1d7d00cc381acd7080b864971e4. RED: server test failed on missing timeout constant. GREEN: server test passed (12). VERIFY: dashboard/live-status suite passed (69). Trunk fast-forwarded to checkpoint for live service."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-06-26T20:56:05.993Z",
+      "completed_by": "user",
+      "approval_evidence": "User requested `fix issues, give me live url`; delivered and live-verified. / returned 200; /api/state returned 200 bytes=69383 within 8s; /api/change/pokeedge/fixDeployDependency returned 200. Contract matrix 9/9 passing/respected.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "151d7167351afdfabc1fbb1b1d008b109d977fc9c6e03bb93c7206c438319fff",
+        "non_whitespace_chars": 878,
+        "checked_at": "2026-06-26T20:49:28.623Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "fast_follow_of": {
+    "parent_change_id": "hardenDashboardReads",
+    "linked_at": "2026-06-26T20:49:28.581Z"
+  },
+  "origin": {
+    "kind": "triage",
+    "source_artifact": "ag-BLJ5f3NZ"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "minimal",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "be8158ca7aa5361ced7706f62898d75051ee4c5732eada5ea581aae6bcb6faea",
+      "approvedAt": "2026-06-26T20:49:28.581Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "Given the dashboard service is running, when `GET /` is requested, then it returns HTTP 200.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "be8158ca7aa5361ced7706f62898d75051ee4c5732eada5ea581aae6bcb6faea",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Given the dashboard service is running, when `GET /api/state` is requested, then it returns HTTP 200 within 8 seconds.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "be8158ca7aa5361ced7706f62898d75051ee4c5732eada5ea581aae6bcb6faea",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Given `/api/state` returns at least one visible change, when `GET /api/change/{projectId}/{changeId}` is requested for one visible change, then it returns HTTP 200 within 8 seconds.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "be8158ca7aa5361ced7706f62898d75051ee4c5732eada5ea581aae6bcb6faea",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Given targeted dashboard tests run, when they complete, then the timeout regression is covered and tests pass.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "be8158ca7aa5361ced7706f62898d75051ee4c5732eada5ea581aae6bcb6faea",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Given the fix is applied, when source reads are slow/unavailable, then affected source(s) degrade rather than blocking the whole `/api/state` response.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "be8158ca7aa5361ced7706f62898d75051ee4c5732eada5ea581aae6bcb6faea",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Local-only dashboard.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "be8158ca7aa5361ced7706f62898d75051ee4c5732eada5ea581aae6bcb6faea",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Read-only; no mutation controls.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "be8158ca7aa5361ced7706f62898d75051ee4c5732eada5ea581aae6bcb6faea",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "No secrets or raw ADV state-file links.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "be8158ca7aa5361ced7706f62898d75051ee4c5732eada5ea581aae6bcb6faea",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Do not reintroduce routine per-change workflow query fan-out.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "be8158ca7aa5361ced7706f62898d75051ee4c5732eada5ea581aae6bcb6faea",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-06-26T20:55:10.000Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Live verification after service restart: GET / returned status=200 bytes=24285.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Live verification after service restart: GET /api/state returned status=200 bytes=69383 within urllib timeout=8s.",
+          "notes": "Fix lowered default source reader timeout from 10s to 5s."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Live verification: /api/change/pokeedge/fixDeployDependency returned status=200 bytes=820 command='adv_change_show(changeId: \"fixDeployDependency\")'.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "RED/GREEN server regression and dashboard suite: bun test bin/lib/dashboard/server.test.ts passed 12; bun test bin/lib/dashboard bin/lib/live-status.test.ts passed 69.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Existing source timeout tests plus new default budget test verify slow readers degrade within budget; live /api/state returned instead of timing out.",
+          "notes": ""
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No host/config change; service remains loopback at http://127.0.0.1:8765/.",
+          "notes": ""
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Changed only reader timeout constant and tests; no mutation controls/routes added.",
+          "notes": ""
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No secret display changes; existing sanitization tests in dashboard suite passed.",
+          "notes": ""
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No change to ADV reader fan-out; dashboard suite still passes worker-free tests from prior change.",
+          "notes": ""
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "Given the dashboard service is running, when `GET /` is requested, then it returns HTTP 200.",
+    "Given the dashboard service is running, when `GET /api/state` is requested, then it returns HTTP 200 within 8 seconds.",
+    "Given `/api/state` returns at least one visible change, when `GET /api/change/{projectId}/{changeId}` is requested for one visible change, then it returns HTTP 200 within 8 seconds.",
+    "Given targeted dashboard tests run, when they complete, then the timeout regression is covered and tests pass.",
+    "Given the fix is applied, when source reads are slow/unavailable, then affected source(s) degrade rather than blocking the whole `/api/state` response."
+  ],
+  "documents": {
+    "proposal": "# Fix dashboard timeout\n\n## Problem\n\nAfter `hardenDashboardReads` shipped, the live local dashboard service restarted and served `/` successfully, but `/api/state` timed out after 8 seconds. This means the shipped UI is loaded, but the data API is not live/healthy.\n\n## Scope\n\n- Diagnose the `/api/state` stall in the live dashboard service.\n- Make `/api/state` bounded and responsive for the configured dashboard projects.\n- Preserve local-only, read-only behavior.\n- Preserve the worker-free routine ADV read intent from `rq-dashboardWorkerFree01`.\n- Return the live dashboard URL after verification.\n\n## Acceptance\n\n- `/` returns HTTP 200.\n- `/api/state` returns HTTP 200 within 8 seconds.\n- At least one `/api/change/{projectId}/{changeId}` detail probe returns HTTP 200 when a visible change exists.\n- Targeted tests cover the timeout fix.\n- No mutation controls or ADV state-file links are introduced.",
+    "agreement": "# Agreement\n\n## Objectives\n\n1. Restore live dashboard data API health.\n2. Keep dashboard reads bounded, local-only, and read-only.\n3. Preserve worker-free routine ADV summary behavior.\n4. Provide the live URL once verified.\n\n## Acceptance Criteria\n\n1. Given the dashboard service is running, when `GET /` is requested, then it returns HTTP 200.\n2. Given the dashboard service is running, when `GET /api/state` is requested, then it returns HTTP 200 within 8 seconds.\n3. Given `/api/state` returns at least one visible change, when `GET /api/change/{projectId}/{changeId}` is requested for one visible change, then it returns HTTP 200 within 8 seconds.\n4. Given targeted dashboard tests run, when they complete, then the timeout regression is covered and tests pass.\n5. Given the fix is applied, when source reads are slow/unavailable, then affected source(s) degrade rather than blocking the whole `/api/state` response.\n\n## Constraints\n\n- Local-only dashboard.\n- Read-only; no mutation controls.\n- No secrets or raw ADV state-file links.\n- Do not reintroduce routine per-change workflow query fan-out.\n\n## Sign-Off\n\nUser explicitly requested: `fix issues, give me live url`.",
+    "design": "# Design\n\nUse direct diagnosis first. The likely failure is a source reader not honoring the dashboard timeout boundary, causing `buildDashboardState` or a reader call to hang beyond the HTTP request budget. Keep the fix structural: ensure each configured source read is bounded and converted to degraded source output rather than allowing `/api/state` to stall.\n\nImplementation will inspect the current dashboard state builder and source readers, add a failing regression if an existing path is unbounded, then fix the bounded/degraded behavior. Verification includes tests plus live service restart and HTTP checks.",
+    "executiveSummary": "# Executive Summary\n\nFixed the live local dashboard `/api/state` timeout discovered after `hardenDashboardReads` shipped. The dashboard default source-reader timeout was 10 seconds, while the live health check and user-visible expectation used an 8-second budget. Slow source reads could therefore make `/api/state` appear hung.\n\nImplemented fix:\n- Added `DEFAULT_DASHBOARD_READER_TIMEOUT_MS = 5_000`.\n- Changed `buildDashboardState` to use the 5s default while preserving explicit overrides.\n- Added a regression test that the default timeout fits the interactive `/api/state` health budget.\n\nVerification:\n- `bun test bin/lib/dashboard/server.test.ts` — 12 pass.\n- `bun test bin/lib/dashboard bin/lib/live-status.test.ts` — 69 pass.\n- Fast-forwarded trunk to commit `4d6a787b5b5cd1d7d00cc381acd7080b864971e4`.\n- Restarted `adv-dashboard-pokeedge.service`.\n- Live checks passed: `/` 200, `/api/state` 200 within 8s, `/api/change/pokeedge/fixDeployDependency` 200.\n\nLive URL: http://127.0.0.1:8765/",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-06-26T20:55:10.000Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| AC1 | acceptance_criterion | Given the dashboard service is running, when `GET /` is requested, then it returns HTTP 200. | pass | Live verification after service restart: GET / returned status=200 bytes=24285. |\n| AC2 | acceptance_criterion | Given the dashboard service is running, when `GET /api/state` is requested, then it returns HTTP 200 within 8 seconds. | pass | Live verification after service restart: GET /api/state returned status=200 bytes=69383 within urllib timeout=8s. |\n| AC3 | acceptance_criterion | Given `/api/state` returns at least one visible change, when `GET /api/change/{projectId}/{changeId}` is requested for one visible change, then it returns HTTP 200 within 8 seconds. | pass | Live verification: /api/change/pokeedge/fixDeployDependency returned status=200 bytes=820 command='adv_change_show(changeId: \"fixDeployDependency\")'. |\n| AC4 | acceptance_criterion | Given targeted dashboard tests run, when they complete, then the timeout regression is covered and tests pass. | pass | RED/GREEN server regression and dashboard suite: bun test bin/lib/dashboard/server.test.ts passed 12; bun test bin/lib/dashboard bin/lib/live-status.test.ts passed 69. |\n| AC5 | acceptance_criterion | Given the fix is applied, when source reads are slow/unavailable, then affected source(s) degrade rather than blocking the whole `/api/state` response. | pass | Existing source timeout tests plus new default budget test verify slow readers degrade within budget; live /api/state returned instead of timing out. |\n| C1 | constraint | Local-only dashboard. | respected | No host/config change; service remains loopback at http://127.0.0.1:8765/. |\n| C2 | constraint | Read-only; no mutation controls. | respected | Changed only reader timeout constant and tests; no mutation controls/routes added. |\n| C3 | constraint | No secrets or raw ADV state-file links. | respected | No secret display changes; existing sanitization tests in dashboard suite passed. |\n| C4 | constraint | Do not reintroduce routine per-change workflow query fan-out. | respected | No change to ADV reader fan-out; dashboard suite still passes worker-free tests from prior change. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-06-26T20:49:28.686Z",
+      "contentHash": "27737125f590ed50513fa7dd69f8295fe86be14d618464f277a7420197ab0cd1",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-06-26T20:49:28.686Z",
+      "contentHash": "be8158ca7aa5361ced7706f62898d75051ee4c5732eada5ea581aae6bcb6faea",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-06-26T20:49:28.686Z",
+      "contentHash": "dfee7608db1915a9ce09bc352aa0d660232e6e1b0f6c29799669943c4a66e152",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-06-26T20:55:54.918Z",
+      "contentHash": "151d7167351afdfabc1fbb1b1d008b109d977fc9c6e03bb93c7206c438319fff",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-06-26T20:56:05.993Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true
+}
