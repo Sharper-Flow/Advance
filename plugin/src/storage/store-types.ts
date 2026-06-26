@@ -383,6 +383,14 @@ export interface Store {
         evidence: string;
       },
     ) => Promise<EpicEntry>;
+    setEntryTerminalSummary: (
+      epicId: string,
+      input: {
+        entryId: string;
+        status: "archived" | "closed";
+        completedAt: string;
+      },
+    ) => Promise<EpicEntry>;
     reorder: (
       epicId: string,
       entryIds: string[],

@@ -175,6 +175,7 @@ function createMockStore(
     phase9_status?: Change["phase9_status"];
     durableReleasePending?: boolean;
     ops_followup_links?: OpsFollowupLink[];
+    epicMembership?: NonNullable<Change["epic_membership"]>;
   } = {},
 ): Store {
   const gates: Gates = {
@@ -205,6 +206,7 @@ function createMockStore(
     gates,
     phase9_status: options.phase9_status,
     ops_followup_links: options.ops_followup_links,
+    epic_membership: options.epicMembership,
   };
 
   mocks.workflow.gates = gates;
@@ -247,6 +249,23 @@ function createMockStore(
           : {}),
       })),
     } as unknown as Store["gates"],
+    epics: {
+      setEntryTerminalSummary: vi.fn(async () => ({
+        kind: "change",
+        entry_id: options.epicMembership?.entry_id ?? "entry-1",
+        change_id: change.id,
+        title: change.title,
+        order: options.epicMembership?.order ?? 0,
+        membership_status: "terminal",
+        linked_at: "2026-01-01T00:00:00Z",
+        linked_by: "agent",
+        link_evidence: "test fixture",
+        terminal_summary: {
+          status: "archived",
+          completed_at: "2026-01-01T00:00:00Z",
+        },
+      })),
+    } as unknown as Store["epics"],
     status: vi.fn(),
   } as unknown as Store;
 }
@@ -334,6 +353,38 @@ describe("adv_change_archive Phase 9 behavior", () => {
       completed_by: "adv-archive",
     });
     expect(parsed.continueFrom).toEqual({ path: "/tmp/main", branch: "trunk" });
+  });
+
+  test("projects terminal summary to parent Epic after durable archive proof", async () => {
+    const store = createMockStore({
+      epicMembership: {
+        epic_id: "shipInitiative",
+        entry_id: "entry-archive",
+        order: 2,
+        title: "Archive-aware child",
+        linked_at: "2026-01-01T00:00:00Z",
+      },
+    });
+
+    const result = await changeTools.adv_change_archive.execute(
+      { changeId: "example", worktreePath: "/tmp/worktree" },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(true);
+    expect(store.epics.setEntryTerminalSummary).toHaveBeenCalledWith(
+      "shipInitiative",
+      expect.objectContaining({
+        entryId: "entry-archive",
+        status: "archived",
+      }),
+    );
+
+    const saveOrder = vi.mocked(store.changes.save).mock.invocationCallOrder[0];
+    const epicOrder = vi.mocked(store.epics.setEntryTerminalSummary).mock
+      .invocationCallOrder[0];
+    expect(epicOrder).toBeGreaterThan(saveOrder);
   });
 
   test("surfaces open ops follow-up obligations in archive output", async () => {

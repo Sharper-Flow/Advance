@@ -10,6 +10,7 @@ import {
   changeProjectionStatusUpdatedSignal,
   changeUnlinkedSignal,
   entriesReorderedSignal,
+  entryTerminalSummarySignal,
   getEpicStateQuery,
 } from "../../temporal/messages";
 import { runTemporal, runTemporalQuery, type StoreDeps } from "./shared";
@@ -468,6 +469,42 @@ export function createEpicOps(deps: StoreDeps): Store["epics"] {
       if (!entry) {
         throw new Error(
           `Change entry not found after status update: ${entryId}`,
+        );
+      }
+      return entry;
+    },
+
+    setEntryTerminalSummary: async (
+      epicId,
+      { entryId, status, completedAt },
+    ) => {
+      await assertEpicExists(epicId);
+      const handle = getEpicHandle(epicId);
+      const payload = {
+        entryId,
+        status,
+        completedAt,
+        idempotencyKey: idempotencyKey(
+          "terminal-summary",
+          epicId,
+          entryId,
+          status,
+        ),
+      };
+
+      await fireEpicSignal(
+        handle,
+        "entryTerminalSummary",
+        completedAt,
+        entryTerminalSummarySignal,
+        payload,
+      );
+
+      const epic = await queryEpic(epicId);
+      const entry = epic?.entries.find((e) => e.entry_id === entryId);
+      if (!entry) {
+        throw new Error(
+          `Change entry not found after terminal summary update: ${entryId}`,
         );
       }
       return entry;
