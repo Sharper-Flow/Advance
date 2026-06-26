@@ -1,0 +1,681 @@
+{
+  "id": "fixEpicPlaceholders",
+  "title": "Fix Epic placeholders",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-06-26T04:50:58.911Z",
+  "tasks": [
+    {
+      "id": "tk-b12b54de8730",
+      "title": "Pin adv_change_create Epic placeholder preflight behavior",
+      "type": "code",
+      "section": "Testing",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-06-26T05:00:20.560Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "DONT1",
+          "DONT3"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-26T05:03:32.293Z",
+      "verification": "RED: bin/oc-test targeted -- src/utils/tool-arg-preflight.test.ts failed on missing adv_change_create Epic FIELD_POLICIES and blank Epic field normalization. GREEN: same command passed (96 tests) after adding policies and preflight validator coverage.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added adv_change_create FIELD_POLICIES for epic_id, entry_id, epic_title, and epic_order; added cross-field validation requiring complete real create-time Epic membership; added regression matrix coverage for blank Epic fields, omission sentinels, partial membership rejection, and valid complete membership preservation.",
+      "filesTouched": [
+        "plugin/src/utils/tool-arg-preflight.test.ts",
+        "plugin/src/utils/tool-arg-preflight.ts"
+      ],
+      "touched_files": [
+        "plugin/src/utils/tool-arg-preflight.test.ts",
+        "plugin/src/utils/tool-arg-preflight.ts"
+      ],
+      "checkpointSha": "3b098940e70f32eb22de162f997bc4857a4b609b",
+      "completedAt": "2026-06-26T05:07:06.533Z",
+      "completed_at": "2026-06-26T05:07:06.533Z",
+      "notes": "Added and passed preflight regression tests for create-time Epic placeholder handling. Checkpoint 3b098940e70f32eb22de162f997bc4857a4b609b recorded.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "updatedAt": "2026-06-26T05:07:19.855Z"
+    },
+    {
+      "id": "tk-c43418053a93",
+      "title": "Implement adv_change_create Epic membership normalization",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-06-26T05:00:36.119Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-b12b54de8730"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC5"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC5"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "DONT1",
+          "DONT3"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-26T05:07:43.823Z",
+      "verification": "RED: bin/oc-test targeted -- src/tools/change.test.ts failed on partial create-time Epic membership before create. GREEN: bin/oc-test targeted -- src/utils/tool-arg-preflight.test.ts src/tools/change.test.ts passed (167 tests).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Changed adv_change_create to seed epic_membership only when complete epic_id, entry_id, and epic_title are present; partial direct handler calls return typed INVALID_EPIC_MEMBERSHIP_SEED before create. Verified with preflight and change tests.",
+      "filesTouched": [
+        "plugin/src/tools/change.test.ts",
+        "plugin/src/tools/change.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/change.test.ts",
+        "plugin/src/tools/change.ts"
+      ],
+      "checkpointSha": "6368676a90e2101bf2b86afb8cd4d379c3d6d297",
+      "completedAt": "2026-06-26T05:09:25.781Z",
+      "completed_at": "2026-06-26T05:09:25.781Z",
+      "notes": "Implemented change-create Epic membership normalization and verified targeted tests. Checkpoint 6368676a90e2101bf2b86afb8cd4d379c3d6d297 recorded.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "updatedAt": "2026-06-26T05:09:39.235Z"
+    },
+    {
+      "id": "tk-f6a4c9daa602",
+      "title": "Implement missing-Epic stale projection repair fallback",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-06-26T05:00:52.054Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-b12b54de8730"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC4",
+          "AC5"
+        ],
+        "verifies": [
+          "AC4",
+          "AC5"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "DONT2"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-26T05:10:36.963Z",
+      "verification": "RED: bin/oc-test targeted -- src/tools/epic.test.ts failed with EPIC_NOT_FOUND for missing-owner clear_stale_projection. GREEN: epic.test passed (24 tests). VERIFY: combined targeted tests passed (191 tests), pnpm run typecheck passed, pnpm run format:check passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added a clearMissingEpicProjection fallback for adv_epic_repair_membership mode clear_stale_projection when the owner Epic row is missing. The fallback requires entry_id and change_id, loads the child through the existing target_path trust path, dry-runs safely, clears only exact matching epic_id+entry_id projections, and returns typed PROJECTION_MISMATCH on mismatch. Added repair tests and fixed formatting drift surfaced by format:check.",
+      "filesTouched": [
+        "plugin/src/advance-epics-assets.test.ts",
+        "plugin/src/tools/epic.test.ts",
+        "plugin/src/tools/epic.ts",
+        "plugin/src/utils/tool-arg-preflight.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/advance-epics-assets.test.ts",
+        "plugin/src/tools/epic.test.ts",
+        "plugin/src/tools/epic.ts",
+        "plugin/src/utils/tool-arg-preflight.test.ts"
+      ],
+      "checkpointSha": "29bf3dd9dcbae470fe1515e1670da0184cacb9f1",
+      "completedAt": "2026-06-26T05:17:19.579Z",
+      "completed_at": "2026-06-26T05:17:19.579Z",
+      "notes": "Implemented missing-Epic stale projection repair fallback and verified combined tests, typecheck, and format. Checkpoint 29bf3dd9dcbae470fe1515e1670da0184cacb9f1 recorded.",
+      "error_recovery": {
+        "last_error": "pnpm run format:check initially failed due Prettier drift in src/utils/tool-arg-preflight.test.ts and pre-existing src/advance-epics-assets.test.ts formatting.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "No further action; formatted affected files and reran verification successfully.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "pnpm run format:check failed with Prettier warnings for src/utils/tool-arg-preflight.test.ts and src/advance-epics-assets.test.ts.",
+            "diagnosis": "Formatting drift after edits plus prior merged test formatting drift.",
+            "fix_tried": "Ran pnpm exec prettier --write src/utils/tool-arg-preflight.test.ts src/advance-epics-assets.test.ts, then reran format:check.",
+            "strategy_label": "format-and-rerun",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-26T05:16:00.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-26T05:17:43.103Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "fixEpicPlaceholders",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation for fixEpicPlaceholders",
+      "sources": [
+        {
+          "label": "change.ts adv_change_create membership seeding",
+          "locator": "plugin/src/tools/change.ts:2939-2947",
+          "summary": "Confirms the bug: `if (epic_id)` seeds epic_membership whenever epic_id is truthy, using `entry_id ?? \"\"` and `title: epic_title ?? summary`. A placeholder epic_id alone creates bogus membership with empty entry_id. Design's helper-before-assignment fix targets exactly this locus."
+        },
+        {
+          "label": "FIELD_POLICIES + applyFieldPolicies",
+          "locator": "plugin/src/utils/tool-arg-preflight.ts:56-78,330-402",
+          "summary": "adv_change_create policy block exists; supports blank/sentinels/zero/emptyArray actions. Epic fields (epic_id/entry_id/epic_title/epic_order) currently have NO entries, so strict-mode blanks pass through. Design adds blank:omit for these + zero:omit for epic_order. Infra already present — additive, low-risk per C4."
+        },
+        {
+          "label": "adv_change_create CROSS_FIELD_VALIDATORS",
+          "locator": "plugin/src/utils/tool-arg-preflight.ts:423-499",
+          "summary": "Existing cross-field validator for adv_change_create enforces origin matrix structurally. This is the canonical home for a partial-membership completeness guard (real epic_id but missing entry_id/epic_title), more consistent with the agent-tool-contract pattern than a change.ts helper."
+        },
+        {
+          "label": "agent-tool-contracts SKILL checklist #2",
+          "locator": "~/.config/opencode/skills/adv-agent-tool-contracts/SKILL.md:26",
+          "summary": "Canonical rule: 'classify placeholder-sensitive args in FIELD_POLICIES; malformed calls must fail as INVALID_TOOL_ARGS before handlers, signals, or writes.' Validates the design's FIELD_POLICIES locus choice as by-the-book."
+        },
+        {
+          "label": "epic.ts adv_epic_repair_membership clear_stale_projection path",
+          "locator": "plugin/src/tools/epic.ts:1046-1156",
+          "summary": "Confirms AC4 root cause: line 1048 returns epicNotFound BEFORE the clear_stale_projection branch (1110), and findChangeEntry (1049) needs the Epic to resolve the entry. When owner Epic missing, both block cleanup. Fallback must bypass loadEpic/epicNotFound/findChangeEntry and use the supplied change_id+entry_id+epic_id directly."
+        },
+        {
+          "label": "clearEpicMembership store method (disk + temporal)",
+          "locator": "plugin/src/storage/store-disk.ts:539-555; store-temporal/changes.ts:492",
+          "summary": "Linchpin proof: clearEpicMembership operates purely on the child change projection with expected:{epic_id,entry_id} matching and throws on mismatch. It does NOT require the owner Epic row. This makes the AC4 fallback structurally feasible and the store-level expected-match already enforces DONT2 (no clear without exact id match)."
+        },
+        {
+          "label": "spec advance-epics rq-epicMembershipRepair01 + rq-epicErrors01 + rq-epicOptionalMembership01",
+          "locator": ".adv/specs advance-epics v1.2.0",
+          "summary": "Spec requires: optional membership (non-Epic changes stay valid), one-Epic-per-change, typed deterministic repair states (projection_stale/target_unreachable), and audited repair with dry-run before mutation. Design honors all four; no spec conflict."
+        }
+      ],
+      "architecture_assessment": "Design is structurally sound and aligns with canonical ADV agent-tool-contract guidance. Two-locus fix is correct: (1) placeholder normalization belongs in FIELD_POLICIES/preflight (skill checklist #2), and the supporting infra (blank/sentinels/zero policy actions, CROSS_FIELD_VALIDATORS) already exists — the change is purely additive, satisfying C4 (no broad preflight rewrite). (2) The AC4 missing-Epic fallback is feasible because clearEpicMembership is Epic-row-independent and already enforces exact epic_id+entry_id matching at the store layer, structurally satisfying DONT2. Current bug confirmed at change.ts:2939 (truthy epic_id seeds membership) and epic.ts:1048 (epicNotFound early-return blocks stale cleanup). Design's risk register correctly flags the epic_order:0 real-vs-placeholder ambiguity and resolves it by making identity fields (not order) the membership-intent signal — matches existing origin_issue_number zero:omit precedent.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "VALIDATED with one CAUTION (non-blocking): The partial-membership completeness guard (real epic_id present but entry_id/epic_title missing, AC2 reject path) is proposed as a helper inside change.ts. A more contract-consistent locus is the existing CROSS_FIELD_VALIDATORS[adv_change_create] block (tool-arg-preflight.ts:427), which already structurally enforces the origin matrix and returns INVALID_TOOL_ARGS before persistence. Placing the completeness check there keeps all create-time structural validation in one preflight surface per the agent-tool-contract skill and avoids a parallel validation path in the handler. Either locus satisfies the ACs; the cross-field-validator locus is preferred for consistency. EDGE CASES TO PIN IN TESTS: (a) epic_id supplied as a KNOWN_OMISSION_SENTINEL string — confirm it normalizes to omitted (needs sentinels:omit on epic_id, not just blank:omit) so AC2 sentinel path is covered, not only blank; (b) AC4 dry-run with owner Epic missing must still preview the clear without mutation (current dry-run at epic.ts:1135 sits AFTER loadEpic, so the fallback must replicate dry-run handling); (c) AC4 mismatch refusal when owner Epic missing — ensure the fallback still returns PROJECTION_MISMATCH (the store throws, so the tool must catch and map to typed output rather than leaking the raw Error)."
+      },
+      "recommendation": "Proceed to planning. VALIDATED — no spec conflict, ACs satisfiable, infra present. Two refinements for the plan: (1) Prefer adding the partial-membership completeness/reject guard to CROSS_FIELD_VALIDATORS[adv_change_create] rather than a new change.ts helper, for single-surface preflight consistency. (2) Add sentinels:omit (not just blank:omit) to the epic_id/entry_id/epic_title FIELD_POLICIES so AC2's sentinel path is structurally covered. Ensure planned epic.test.ts cases pin: missing-Epic dry-run preview, missing-Epic mismatch→PROJECTION_MISMATCH typed mapping (catch store throw), and missing change_id/entry_id→typed failure. Ensure change.test.ts pins: blank epic fields→no membership (AC1), sentinel epic_id→no membership (AC2), partial epic_id-only→INVALID_TOOL_ARGS (AC2 reject), complete valid context→membership seeded (AC3).",
+      "follow_ups": [
+        "CAUTION: consider relocating create-time partial-membership guard from change.ts helper to CROSS_FIELD_VALIDATORS[adv_change_create] for preflight-surface consistency",
+        "Add sentinels:omit to epic_id/entry_id/epic_title policies so AC2 sentinel normalization is covered, not only blank",
+        "Pin AC4 missing-Epic dry-run preview + PROJECTION_MISMATCH typed mapping (catch clearEpicMembership store throw) in epic.test.ts"
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixEpicPlaceholders",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixEpicPlaceholders",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/utils/tool-arg-preflight.test.ts src/tools/change.test.ts src/tools/epic.test.ts",
+          "pnpm run typecheck && pnpm run format:check"
+        ],
+        "results": "pass",
+        "evidence": "Path preflight OK for all in-scope files. Diff/source inspection verified AC1-AC5: adv_change_create optional Epic fields normalize blank/sentinel to omitted; partial Epic membership is rejected before persistence; complete Epic membership still seeds compact epic_membership; missing-owner clear_stale_projection requires entry_id/change_id/evidence and exact child projection match before clear; no target-path trust or one-Epic-per-change regression observed. Targeted tests passed: 3 files, 191 tests. Typecheck passed. Prettier format check passed."
+      },
+      "scope_drift": null,
+      "risks": [],
+      "required_main_agent_actions": [],
+      "required_follow_ups": [],
+      "consumer_warnings": []
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-06-26T04:54:40.576Z",
+      "completed_by": "agent",
+      "approval_evidence": "Proposal approved by user request to fix bug and reply: \"approve\".",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "237d709d35888013ced0fcd940cefbd91df48ebf119f5489f37ec8794a1f8360",
+        "non_whitespace_chars": 1215,
+        "checked_at": "2026-06-26T04:50:58.938Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-06-26T04:54:57.960Z",
+      "completed_by": "agent",
+      "approval_evidence": "Agreement approved by user reply: \"approve\". Discovery findings and typed contract persisted.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "4d08bdd4cefbbd9edb1590ad87b699f1e715845e89bd7ad8d8a3aedcd7bfdf96",
+        "non_whitespace_chars": 2127,
+        "checked_at": "2026-06-26T04:50:58.939Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-06-26T04:59:57.683Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design validated by adv-researcher; cautions adopted into design for CROSS_FIELD_VALIDATORS, sentinel handling, dry-run and typed mismatch repair tests.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "4b0fb08c0dc322fb1edb14d0e0a30ea2bfeb7ea8cc6839483fd6864a32ebcdd0",
+        "non_whitespace_chars": 3878,
+        "checked_at": "2026-06-26T04:50:58.940Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-06-26T05:03:15.433Z",
+      "completed_by": "agent",
+      "approval_evidence": "Prep approved by user reply: \"approve\". Task graph covers AC1-AC5 with TDD and targeted verification."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-06-26T05:18:06.642Z",
+      "completed_by": "agent",
+      "approval_evidence": "All tasks complete. RED/GREEN evidence recorded. Combined targeted tests passed 191/191; typecheck and format:check passed."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-06-26T05:31:05.266Z",
+      "completed_by": "user:jon",
+      "approval_evidence": "User accepted delivered work with reply: \"approve\". Reviewer READY, no findings; contract review matrix all pass/respected; executive summary persisted.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "abc00ac790dbed501aa2b44a40f12f6c1806862730f4d49c7aa707c03d0097fa",
+        "non_whitespace_chars": 900,
+        "checked_at": "2026-06-26T04:50:58.941Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "triage",
+    "source_artifact": "ag-dSoVtqhI"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "4d08bdd4cefbbd9edb1590ad87b699f1e715845e89bd7ad8d8a3aedcd7bfdf96",
+      "approvedAt": "2026-06-26T04:54:48.242Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "`adv_change_create` with blank optional `epic_id`, `entry_id`, and `epic_title` succeeds and creates a change with no `epic_membership`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4d08bdd4cefbbd9edb1590ad87b699f1e715845e89bd7ad8d8a3aedcd7bfdf96",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "`adv_change_create` with known placeholder/sentinel Epic values does not create unintended `epic_membership`; it either normalizes them as omitted or rejects them with a typed `INVALID_TOOL_ARGS` response before persistence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4d08bdd4cefbbd9edb1590ad87b699f1e715845e89bd7ad8d8a3aedcd7bfdf96",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "`adv_change_create` with complete, valid Epic create-time context still creates the intended compact `epic_membership` projection.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4d08bdd4cefbbd9edb1590ad87b699f1e715845e89bd7ad8d8a3aedcd7bfdf96",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "`adv_epic_repair_membership mode: clear_stale_projection` can clear a matching child projection even when the owner Epic row is missing, requires audit evidence, and refuses mismatched projections.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4d08bdd4cefbbd9edb1590ad87b699f1e715845e89bd7ad8d8a3aedcd7bfdf96",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Targeted tests pass for the changed surfaces, including change-create and Epic repair tests.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4d08bdd4cefbbd9edb1590ad87b699f1e715845e89bd7ad8d8a3aedcd7bfdf96",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Existing one-Epic-per-change invariant remains unchanged.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4d08bdd4cefbbd9edb1590ad87b699f1e715845e89bd7ad8d8a3aedcd7bfdf96",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Cross-project target-path trust rules remain intact.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4d08bdd4cefbbd9edb1590ad87b699f1e715845e89bd7ad8d8a3aedcd7bfdf96",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "No direct ADV state file reads or writes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4d08bdd4cefbbd9edb1590ad87b699f1e715845e89bd7ad8d8a3aedcd7bfdf96",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "No broad rewrite of tool preflight beyond what is needed for this bug.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4d08bdd4cefbbd9edb1590ad87b699f1e715845e89bd7ad8d8a3aedcd7bfdf96",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not silently create membership from blank, placeholder, or sentinel values.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4d08bdd4cefbbd9edb1590ad87b699f1e715845e89bd7ad8d8a3aedcd7bfdf96",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not clear stale projections without exact expected `epic_id` and `entry_id` evidence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4d08bdd4cefbbd9edb1590ad87b699f1e715845e89bd7ad8d8a3aedcd7bfdf96",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not break valid create-time Epic membership.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4d08bdd4cefbbd9edb1590ad87b699f1e715845e89bd7ad8d8a3aedcd7bfdf96",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-06-26T05:22:38.302Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "tool-arg preflight regression matrix: blank create-time Epic fields normalize to omitted; combined targeted tests passed 191/191.",
+          "notes": "Reviewer READY."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "tool-arg preflight regression matrix: sentinel create-time Epic fields normalize to omitted and partial real Epic membership is rejected before persistence; tests passed.",
+          "notes": "No unintended membership from blanks/sentinels."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Existing and preflight tests cover complete valid Epic create-time context and preserve compact epic_membership; tests passed.",
+          "notes": "Valid membership preserved."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "epic.test covers missing owner Epic dry-run clear and typed PROJECTION_MISMATCH refusal; combined targeted tests passed.",
+          "notes": "Exact expected membership enforced."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "bin/oc-test targeted -- src/utils/tool-arg-preflight.test.ts src/tools/change.test.ts src/tools/epic.test.ts passed: 191 tests. pnpm run typecheck passed. pnpm run format:check passed.",
+          "notes": "Targeted verification passed."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Change preserves single optional epic_membership object; no schema/model expansion to multi-Epic membership.",
+          "notes": ""
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Missing-Epic repair fallback uses existing resolveChildStore target_path trust path; no target trust bypass added.",
+          "notes": ""
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "All changes are source/test files in worktree; no ADV state files read or written directly.",
+          "notes": ""
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Preflight changes are limited to adv_change_create Epic fields and a cross-field validator; no broad preflight rewrite.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Blank/sentinel Epic fields normalize out before Zod/handler persistence; tests pass.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Missing-Epic clear refuses mismatched child projection with PROJECTION_MISMATCH; tests pass.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Valid complete create-time Epic membership test remains passing; no regression to intended membership.",
+          "notes": ""
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "`adv_change_create` with blank optional `epic_id`, `entry_id`, and `epic_title` succeeds and creates a change with no `epic_membership`.",
+    "`adv_change_create` with known placeholder/sentinel Epic values does not create unintended `epic_membership`; it either normalizes them as omitted or rejects them with a typed `INVALID_TOOL_ARGS` response before persistence.",
+    "`adv_change_create` with complete, valid Epic create-time context still creates the intended compact `epic_membership` projection.",
+    "`adv_epic_repair_membership mode: clear_stale_projection` can clear a matching child projection even when the owner Epic row is missing, requires audit evidence, and refuses mismatched projections.",
+    "Targeted tests pass for the changed surfaces, including change-create and Epic repair tests."
+  ],
+  "documents": {
+    "proposal": "# Fix Create-Time Epic Placeholder Handling\n\n## Why\n\n`adv_change_create` can receive placeholder or unintended Epic membership fields from strict tool-call schemas. During the prior Epic guidance fix, blank Epic fields were rejected, and placeholder values created unintended `epic_membership` for a non-Epic change. This makes change creation unsafe and can leave stale membership that repair tools cannot clear when the referenced Epic does not exist.\n\n## What Changes\n\n- Normalize create-time Epic membership inputs so strict-mode placeholder blanks are treated as omitted.\n- Require create-time Epic membership to be intentional and structurally complete before setting `epic_membership`.\n- Reject or ignore known placeholder/sentinel values rather than creating unintended membership.\n- Allow the intended repair path to clear stale child projections even when the referenced Epic row is missing, if the target change projection matches the requested stale membership.\n- Add regression tests covering blank optional Epic fields, placeholder/sentinel values, valid create-time Epic membership, and stale-projection repair.\n\n## Acceptance Boundary\n\nFix is complete when normal `adv_change_create` calls with blank or placeholder Epic optional fields create a non-Epic change, real complete Epic membership still works, stale accidental projection repair is possible with audit evidence, and targeted tests pass.",
+    "problemStatement": "## Problem\n\nStrict-mode tool-call behavior can populate optional Epic membership fields during `adv_change_create`, and current handling can reject blank placeholders or create unintended bogus `epic_membership` projections. Repair is also blocked when the referenced Epic is missing.\n\n## Desired Outcome\n\nChange creation should only attach Epic membership when the caller intentionally supplies complete, valid Epic context. Placeholder inputs should be normalized or rejected safely, and stale accidental projections should have an audited repair path.",
+    "agreement": "# Agreement\n\n## Objectives\n\n1. Make `adv_change_create` resilient to strict-mode optional Epic placeholder fields so ordinary non-Epic changes are not rejected or assigned bogus `epic_membership`.\n2. Preserve intentional create-time Epic membership when complete, valid Epic context is supplied.\n3. Provide a safe audited recovery path for stale child `epic_membership` projections when the referenced Epic row is missing.\n4. Add regression tests so blank optional fields, placeholder/sentinel values, valid membership, and stale projection repair remain structurally covered.\n\n## Acceptance Criteria\n\n- AC1: `adv_change_create` with blank optional `epic_id`, `entry_id`, and `epic_title` succeeds and creates a change with no `epic_membership`.\n- AC2: `adv_change_create` with known placeholder/sentinel Epic values does not create unintended `epic_membership`; it either normalizes them as omitted or rejects them with a typed `INVALID_TOOL_ARGS` response before persistence.\n- AC3: `adv_change_create` with complete, valid Epic create-time context still creates the intended compact `epic_membership` projection.\n- AC4: `adv_epic_repair_membership mode: clear_stale_projection` can clear a matching child projection even when the owner Epic row is missing, requires audit evidence, and refuses mismatched projections.\n- AC5: Targeted tests pass for the changed surfaces, including change-create and Epic repair tests.\n\n## Constraints\n\n- Existing one-Epic-per-change invariant remains unchanged.\n- Cross-project target-path trust rules remain intact.\n- No direct ADV state file reads or writes.\n- No broad rewrite of tool preflight beyond what is needed for this bug.\n\n## Avoidances\n\n- Do not silently create membership from blank, placeholder, or sentinel values.\n- Do not clear stale projections without exact expected `epic_id` and `entry_id` evidence.\n- Do not break valid create-time Epic membership.\n\n## Discovery Findings\n\n- Live reproduction: `adv_change_create` rejected blank optional Epic fields as too small.\n- Live reproduction: non-empty placeholder values created unintended `epic_membership` for `fixEpicGuidance`, `fixEpicInstructions`, and this workaround change.\n- Repair finding: stale projection repair currently depends on loading the owner Epic first, so a missing bogus Epic blocks cleanup.\n- Spec evidence: `advance-epics` requires optional membership, one Epic per change, typed target-path mutations, and deterministic repair states.",
+    "design": "# Design\n\n## Architecture Overview\n\nFix this at the structural tool boundary and the Epic repair tool path. `adv_change_create` optional Epic membership arguments are agent-callable tool args, so strict-mode placeholder handling belongs in centralized `FIELD_POLICIES` and `CROSS_FIELD_VALIDATORS`, not ad hoc caller behavior. Repair for missing owner Epic needs a bounded, audited fallback for `clear_stale_projection` only.\n\n## Key Decisions\n\n1. Add explicit `adv_change_create` field policies for `epic_id`, `entry_id`, `epic_title`, and `epic_order`.\n   - blank strings normalize to omitted.\n   - omission sentinels normalize to omitted before Zod/handler persistence.\n   - `epic_order: 0` may be omitted when no real Epic membership is being created; valid real membership can still default order to `0`.\n2. Add create-time Epic membership completeness validation in `CROSS_FIELD_VALIDATORS[adv_change_create]`.\n   - If no Epic identity fields survive preflight: omit membership.\n   - If any real Epic identity field is provided: require complete `epic_id`, `entry_id`, and `epic_title` before persistence.\n   - Never infer membership from placeholder-only fields.\n3. Keep valid create-time membership behavior intact: complete valid Epic context still seeds compact `epic_membership` with `linked_at` and order.\n4. Add a narrow missing-Epic repair fallback only for `adv_epic_repair_membership mode: clear_stale_projection`.\n   - Requires `change_id`, `entry_id`, `epic_id`, and audit evidence.\n   - Loads target child change through the normal target_path trust path.\n   - Clears only when child `epic_membership.epic_id` and `.entry_id` exactly match requested expected values.\n   - Dry-run returns intended clear action without mutation.\n   - Mismatch returns typed `PROJECTION_MISMATCH`, not raw error leakage.\n   - Other modes still require owner Epic row.\n\n## Implementation Strategy\n\n1. Update `plugin/src/utils/tool-arg-preflight.ts` policies and tests:\n   - blanks for Epic fields omit before Zod.\n   - sentinels for Epic fields omit before Zod.\n   - partial real Epic membership produces `INVALID_TOOL_ARGS` before persistence.\n   - ensure policy drift guards cover the new live fields.\n2. Update `plugin/src/tools/change.ts`:\n   - rely on preflight-normalized and cross-field-validated args.\n   - assign `initialMetadata.epic_membership` only when complete `epic_id`, `entry_id`, and `epic_title` are present.\n3. Update `plugin/src/tools/change.test.ts`:\n   - blank Epic optional fields succeed with no membership.\n   - sentinel values do not create membership.\n   - partial real Epic membership is rejected before persistence.\n   - complete valid Epic membership still works.\n4. Update `plugin/src/tools/epic.ts`:\n   - for missing Epic + mode `clear_stale_projection`, call narrow fallback using supplied `change_id` and `entry_id`.\n   - preserve existing behavior for `mark_target_unreachable`, `sync_child_projection`, and mismatches.\n5. Update `plugin/src/tools/epic.test.ts`:\n   - missing Epic + matching child projection clears/dry-runs safely.\n   - mismatched projection returns typed `PROJECTION_MISMATCH`.\n   - missing `change_id` or `entry_id` remains typed failure.\n6. Verify with targeted tests through `bin/oc-test targeted -- src/utils/tool-arg-preflight.test.ts src/tools/change.test.ts src/tools/epic.test.ts`.\n\n## Contract Mapping\n\n- AC1/AC2: preflight + change-create tests.\n- AC3: valid create-time membership regression test.\n- AC4: Epic repair fallback tests.\n- AC5: targeted test run.\n\n## Risks / Mitigations\n\n- Risk: treating real `epic_order: 0` as placeholder. Mitigation: order is optional and defaults to 0; only membership identity fields determine whether membership is intentional.\n- Risk: clearing unrelated projection when owner Epic missing. Mitigation: exact `epic_id` + `entry_id` match required before clear.\n- Risk: broad preflight changes regress other tools. Mitigation: limit policies to `adv_change_create` Epic fields and run tool-arg preflight tests.\n\n## Validator Result\n\nValidator: VALIDATED. Cautions adopted: completeness guard lives in `CROSS_FIELD_VALIDATORS`; Epic fields use `sentinels: omit`; missing-Epic repair tests include dry-run and typed mismatch behavior.\n\n## Design Validation Notes\n\nThis design follows agent-tool contract guidance: placeholder-sensitive args are classified in `FIELD_POLICIES`; malformed partial real membership fails in preflight before handlers; handlers receive normalized args; tests pin malformed-call behavior before persistence.",
+    "executiveSummary": "# Executive Summary\n\nFixed create-time Epic placeholder handling. `adv_change_create` now has structural preflight policies for optional Epic fields, normalizing blank/sentinel strict-mode placeholders before Zod and persistence. Partial real Epic membership is rejected with typed `INVALID_EPIC_MEMBERSHIP_SEED`, while complete valid `epic_id` + `entry_id` + `epic_title` still seeds compact `epic_membership`.\n\nAdded a narrow audited repair fallback for `adv_epic_repair_membership mode: clear_stale_projection` when the owner Epic row is missing. The fallback requires `entry_id` and `change_id`, uses the normal target_path trust path, supports dry-run, clears only exact matching child projections, and returns typed `PROJECTION_MISMATCH` on mismatch.\n\nVerification passed: `bin/oc-test targeted -- src/utils/tool-arg-preflight.test.ts src/tools/change.test.ts src/tools/epic.test.ts` — 191 tests passed. `pnpm run typecheck` and `pnpm run format:check` passed. Acceptance reviewer verdict: READY with no findings.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-06-26T05:22:38.302Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| AC1 | acceptance_criterion | `adv_change_create` with blank optional `epic_id`, `entry_id`, and `epic_title` succeeds and creates a change with no `epic_membership`. | pass | tool-arg preflight regression matrix: blank create-time Epic fields normalize to omitted; combined targeted tests passed 191/191. |\n| AC2 | acceptance_criterion | `adv_change_create` with known placeholder/sentinel Epic values does not create unintended `epic_membership`; it either normalizes them as omitted or rejects them with a typed `INVALID_TOOL_ARGS` response before persistence. | pass | tool-arg preflight regression matrix: sentinel create-time Epic fields normalize to omitted and partial real Epic membership is rejected before persistence; tests passed. |\n| AC3 | acceptance_criterion | `adv_change_create` with complete, valid Epic create-time context still creates the intended compact `epic_membership` projection. | pass | Existing and preflight tests cover complete valid Epic create-time context and preserve compact epic_membership; tests passed. |\n| AC4 | acceptance_criterion | `adv_epic_repair_membership mode: clear_stale_projection` can clear a matching child projection even when the owner Epic row is missing, requires audit evidence, and refuses mismatched projections. | pass | epic.test covers missing owner Epic dry-run clear and typed PROJECTION_MISMATCH refusal; combined targeted tests passed. |\n| AC5 | acceptance_criterion | Targeted tests pass for the changed surfaces, including change-create and Epic repair tests. | pass | bin/oc-test targeted -- src/utils/tool-arg-preflight.test.ts src/tools/change.test.ts src/tools/epic.test.ts passed: 191 tests. pnpm run typecheck passed. pnpm run format:check passed. |\n| C1 | constraint | Existing one-Epic-per-change invariant remains unchanged. | respected | Change preserves single optional epic_membership object; no schema/model expansion to multi-Epic membership. |\n| C2 | constraint | Cross-project target-path trust rules remain intact. | respected | Missing-Epic repair fallback uses existing resolveChildStore target_path trust path; no target trust bypass added. |\n| C3 | constraint | No direct ADV state file reads or writes. | respected | All changes are source/test files in worktree; no ADV state files read or written directly. |\n| C4 | constraint | No broad rewrite of tool preflight beyond what is needed for this bug. | respected | Preflight changes are limited to adv_change_create Epic fields and a cross-field validator; no broad preflight rewrite. |\n| DONT1 | avoidance | Do not silently create membership from blank, placeholder, or sentinel values. | respected | Blank/sentinel Epic fields normalize out before Zod/handler persistence; tests pass. |\n| DONT2 | avoidance | Do not clear stale projections without exact expected `epic_id` and `entry_id` evidence. | respected | Missing-Epic clear refuses mismatched child projection with PROJECTION_MISMATCH; tests pass. |\n| DONT3 | avoidance | Do not break valid create-time Epic membership. | respected | Valid complete create-time Epic membership test remains passing; no regression to intended membership. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-06-26T04:50:58.944Z",
+      "contentHash": "237d709d35888013ced0fcd940cefbd91df48ebf119f5489f37ec8794a1f8360",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-06-26T04:50:58.944Z",
+      "contentHash": "a3be0af4126524261ed1b8f5c73c3e9d180f2bc745c34b6aba8a430e20dea584",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-06-26T04:51:43.045Z",
+      "contentHash": "4d08bdd4cefbbd9edb1590ad87b699f1e715845e89bd7ad8d8a3aedcd7bfdf96",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-06-26T04:59:46.722Z",
+      "contentHash": "4b0fb08c0dc322fb1edb14d0e0a30ea2bfeb7ea8cc6839483fd6864a32ebcdd0",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-06-26T05:22:55.860Z",
+      "contentHash": "abc00ac790dbed501aa2b44a40f12f6c1806862730f4d49c7aa707c03d0097fa",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-06-26T05:31:05.266Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "epic_membership": {
+    "epic_id": "toolArgWorkaround",
+    "entry_id": "fixEpicPlaceholders",
+    "order": 0,
+    "title": "Tool Arg Workaround",
+    "linked_at": "2026-06-26T04:50:58.887Z"
+  },
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_MISSING_ERROR_HANDLING",
+      "severity": "warning",
+      "message": "Proposal describes behavior that could fail but doesn't mention error handling or rollback. What happens when things go wrong?",
+      "recorded_at": "2026-06-26T04:54:31.706Z"
+    }
+  ],
+  "worktree_auto_managed": true
+}
