@@ -306,7 +306,7 @@ Sub-agent nesting depth and parallelism are agent-self-enforced (no runtime guar
 | Max nesting depth | 1 (agent-self-enforced; no runtime guard) |
 | Max parallel spawn | 3 (agent-self-enforced; no runtime guard). Batch: spawn 3, wait, spawn next 3. |
 | Default for ADV code-writing | `adv-engineer` (preferred); `general` for verify-only |
-| Primary agents (not spawnable) | `adv`, `build`, `plan`, `adv-atc` (user-selectable top-level agents) |
+| Primary agents (not spawnable) | `adv`, `build`, `plan` (user-selectable top-level agents) |
 
 **Skill alternatives:** load `skill("prioritizer")` inline instead of spawning `prioritizer` for simple multi-approach decisions; load `skill("adv-user-intuit")` for 2+ concrete-candidate comparisons (see `docs/user-intuit-protocol.md`).
 

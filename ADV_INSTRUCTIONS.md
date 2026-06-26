@@ -39,7 +39,6 @@ Per-phase collaboration mode. Planning gate machine-enforced via `adv_gate_compl
 | `/adv-review`   | Autonomous + drift detection | Auto-fix within scope; stop on drift                                                                                                                                                  |
 | `/adv-harden`   | Autonomous + drift detection | Auto-fix scoped issues; stop on drift                                                                                                                                                 |
 | `/adv-archive`  | Autonomous                   | Apply spec deltas, capture wisdom, finalize git                                                                                                                                       |
-| `/adv-atc`      | Autonomous with HITL-defer   | Defers all HITL moments to linked GitHub issues via structured comments. Never prompts inline. Auto-transitions gates when no HITL needed. Stops on system interrupts (defers to GH). |
 
 ### Drift Detection Rule
 
@@ -109,7 +108,6 @@ Each workflow command has a defined phase goal. Canonical in `manifest.ts` (`pha
 | `/adv-review`   | Verify implementation matches the approved plan. Auto-fix within scope. Stop on drift.                                        |
 | `/adv-harden`   | Verify production-readiness. Auto-fix scoped issues. Stop on drift.                                                           |
 | `/adv-archive`  | Promote the change from contract to law: apply spec deltas, capture wisdom, clean up.                                         |
-| `/adv-atc`      | Execute a full change pipeline autonomously, deferring HITL moments to GitHub issues while preserving all safety boundaries.  |
 | `/adv-reflect`  | Synthesize post-completion learnings into a durable reflection artifact for process improvement.                              |
 
 ## Commands
@@ -154,7 +152,6 @@ Each workflow command has a defined phase goal. Canonical in `manifest.ts` (`pha
 | Command                     | Purpose                                                                                              |
 | --------------------------- | ---------------------------------------------------------------------------------------------------- |
 | `/adv-task`                 | Fast-track small changes: assess spec-law impact, prep, and hand off                                 |
-| `/adv-atc [target]`         | Execute autonomous ROADMAP pipeline, deferring HITL to GitHub issues, stop only on safety boundaries |
 | `/adv-refactor [change-id]` | Refresh a stale proposal or batch-refresh the oldest 30% of active changes                           |
 | `/adv-cleanup`              | Triage stale, abandoned, duplicate, and ready-to-archive active changes                              |
 | `/adv-triage`               | Triage all backlog sources, score features with WSJF, regenerate ROADMAP.md                          |
@@ -871,7 +868,7 @@ After each phase, `adv_change_update` records compact summaries. Do not duplicat
 
 ### Agent Tiers
 
-Primary agents: `adv`, `plan`, `build`, `adv-atc` (not spawnable). Spawnable: global `explore`, `general`; bundled global `adv-researcher`, `adv-engineer`, `adv-reviewer`, `adv-designer`, `adv-temporal-repair`; repo-local `adv-tron`. Skill/inline only: `prioritizer` via `skill("prioritizer")`. Only `mode: subagent` agents spawn via Task.
+Primary agents: `adv`, `plan`, `build` (not spawnable). Spawnable: global `explore`, `general`; bundled global `adv-researcher`, `adv-engineer`, `adv-reviewer`, `adv-designer`, `adv-temporal-repair`; repo-local `adv-tron`. Skill/inline only: `prioritizer` via `skill("prioritizer")`. Only `mode: subagent` agents spawn via Task.
 
 ### Agent Roster
 

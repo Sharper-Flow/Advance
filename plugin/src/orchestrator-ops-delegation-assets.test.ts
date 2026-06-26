@@ -6,7 +6,6 @@ import { describe, expect, test } from "vitest";
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 
 const ADV_AGENT_PATH = join(REPO_ROOT, ".opencode", "agents", "adv.md");
-const ATC_AGENT_PATH = join(REPO_ROOT, ".opencode", "agents", "adv-atc.md");
 const APPLY_COMMAND_PATH = join(
   REPO_ROOT,
   ".opencode",
@@ -133,15 +132,7 @@ describe("orchestrator operational delegation assets", () => {
         "rq-orchestratorOpsDelegation01.3",
         "rq-orchestratorOpsDelegation01.4",
         "rq-orchestratorOpsDelegation01.5",
-        "rq-orchestratorOpsDelegation01.6",
       ]),
     );
-  });
-
-  test("adv-atc remains out of scope for this change", () => {
-    const content = readRepoFile(ATC_AGENT_PATH);
-
-    expect(content).not.toContain("Orchestrator-Session Operational Routing");
-    expect(content).not.toContain("operational delegation");
   });
 });

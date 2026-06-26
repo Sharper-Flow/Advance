@@ -163,7 +163,6 @@ describe("investment report removal", () => {
     "plugin/src/tools/investment.ts",
     "plugin/src/tools/investment.test.ts",
     ".opencode/agents/adv.md",
-    ".opencode/agents/adv-atc.md",
     ".opencode/agents/adv-reviewer.md",
     ".opencode/agents/adv-designer.md",
     ".opencode/agents/adv-engineer.md",

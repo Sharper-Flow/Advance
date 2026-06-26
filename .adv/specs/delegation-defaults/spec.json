@@ -244,7 +244,7 @@
     {
       "id": "rq-delDefaults03",
       "title": "Agent and Boundary Specification Per Step",
-      "body": "Each workflow step MUST name its allowed sub-agents and its inline-only safety boundaries. For inline_required steps, allowed sub-agents is empty and the boundary is 'full' (all work inline). For hybrid steps, the spec enumerates delegated sub-steps and the sub-agents allowed for each. Repo-local or bundled ADV agents MUST exist as .opencode/agents/*.md files and have mode: subagent; known OpenCode global workers (explore, general) are allowed even though they are not repo-local agent files. Primary agents (adv, plan, build, adv-atc) and phantom agents (librarian, mechanic, prioritizer) MUST NOT appear in any allowed sub-agents list.",
+      "body": "Each workflow step MUST name its allowed sub-agents and its inline-only safety boundaries. For inline_required steps, allowed sub-agents is empty and the boundary is 'full' (all work inline). For hybrid steps, the spec enumerates delegated sub-steps and the sub-agents allowed for each. Repo-local or bundled ADV agents MUST exist as .opencode/agents/*.md files and have mode: subagent; known OpenCode global workers (explore, general) are allowed even though they are not repo-local agent files. Primary agents (adv, plan, build) and phantom agents (librarian, mechanic, prioritizer) MUST NOT appear in any allowed sub-agents list.",
       "priority": "must",
       "tags": ["delegation", "agents", "boundaries"],
       "scenarios": [
@@ -279,7 +279,7 @@
           "when": "Sub-agent names are validated",
           "then": [
             "Phantom agents (librarian, mechanic, prioritizer) do not appear in allowed_subagents",
-            "Primary agents (adv, plan, build, adv-atc) do not appear in allowed_subagents",
+            "Primary agents (adv, plan, build) do not appear in allowed_subagents",
             "Only spawnable sub-agents (explore, general, adv-researcher, adv-engineer, adv-reviewer, adv-designer, adv-tron) may appear"
           ]
         },
@@ -382,7 +382,7 @@
     {
       "id": "rq-delDefaults06",
       "title": "Test Coverage for Matrix and Agent Routing",
-      "body": "Tests MUST validate: (1) all 9 matrix steps are present with valid modes and gate affinities, (2) sub-agent references exist as agent files or known global workers, (3) no phantom or primary agents appear in sub-agent routing, (4) matrix classifications are consistent with command contracts, (5) wide-scan delegated sub-steps are structurally represented, and (6) structured report field coverage is represented. The phantom-subagent-roster test MUST also detect forbidden routing to primary agents (adv, plan, build, adv-atc) in addition to phantom agents (librarian, mechanic, prioritizer).",
+      "body": "Tests MUST validate: (1) all 9 matrix steps are present with valid modes and gate affinities, (2) sub-agent references exist as agent files or known global workers, (3) no phantom or primary agents appear in sub-agent routing, (4) matrix classifications are consistent with command contracts, (5) wide-scan delegated sub-steps are structurally represented, and (6) structured report field coverage is represented. The phantom-subagent-roster test MUST also detect forbidden routing to primary agents (adv, plan, build) in addition to phantom agents (librarian, mechanic, prioritizer).",
       "priority": "must",
       "tags": ["delegation", "tests", "coverage"],
       "scenarios": [
@@ -405,7 +405,7 @@
           "when": "Tests run",
           "then": [
             "No active guidance surface routes to librarian, mechanic, or prioritizer",
-            "No active guidance surface routes to adv, plan, build, or adv-atc as sub-agents",
+            "No active guidance surface routes to adv, plan, or build as sub-agents",
             "The PRIMARIES list is pinned to prevent silent weakening"
           ]
         },

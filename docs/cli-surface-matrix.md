@@ -40,7 +40,6 @@
 | `/adv-prep` | `agent-workflow-only` | Planning gate workflow |
 | `/adv-apply` | `agent-workflow-only` | Execution gate workflow |
 | `/adv-task` | `agent-workflow-only` | Fast-track change creation |
-| `/adv-atc` | `agent-workflow-only` | Autonomous through-change pipeline |
 | `/adv-review` | `agent-workflow-only` | Acceptance gate workflow |
 | `/adv-harden` | `agent-workflow-only` | Production-readiness verification |
 | `/adv-archive` | `agent-workflow-only` | Release gate workflow |
