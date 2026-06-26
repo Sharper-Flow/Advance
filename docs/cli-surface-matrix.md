@@ -111,7 +111,7 @@
 | `adv_agenda_prioritize` | `no-cli-dangerous` | Agenda mutation |
 | `adv_epic_create` | `no-cli-dangerous` | Epic mutation |
 | `adv_epic_show` | `keep-mcp-only` | Agent-workflow read |
-| `adv_epic_list` | `keep-mcp-only` | Agent-workflow read |
+| `adv_epic_list` | `mcp+cli-additive` | MCP remains the rich agent-workflow read; `bin/adv epic list --json` exposes reduced live ID-only Visibility enumeration |
 | `adv_epic_update` | `no-cli-dangerous` | Epic mutation |
 | `adv_epic_add_shell` | `no-cli-dangerous` | Epic mutation |
 | `adv_epic_promote_shell` | `no-cli-dangerous` | Epic mutation |

@@ -540,13 +540,13 @@ SUBCOMMANDS:
   dashboard doctor      Check dashboard user service health
   roadmap              Show prioritized backlog from file snapshot
   slop-scan            Run deterministic slop scanner
-  epic list            Show live Epic IDs from Temporal Visibility
+  epic list            Show live Epic IDs from Temporal Visibility (JSON-only)
 
 FLAGS (global):
   -h, --help              Show this help
   -v, --version           Print version
       --no-color          Disable ANSI colors (also: NO_COLOR=1)
-      --json              Output JSON for status, roadmap, slop-scan, or epic list
+      --json              Output JSON for status, roadmap, slop-scan; required for epic list
 
 FLAGS (roadmap only):
       --kind {bug|feature|all}
@@ -570,7 +570,7 @@ EXIT CODES:
   1  Not in a git repo, git failure, or unknown command
   2  Live Temporal status unavailable (status)
      Roadmap snapshot missing (roadmap)
-     Epic list unavailable (epic list)
+     Epic list unavailable or JSON flag missing (epic list)
      Dashboard config/server error (dashboard)
 
 DOCS:

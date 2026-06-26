@@ -5,7 +5,10 @@
  * Epic workflows do not use custom search attributes; the workflow ID carries
  * project scope, so we enumerate by workflow type and filter the canonical
  * `adv/epic/{projectId}/` prefix in-process.
+ * rq-epicCliList01
  */
+
+import { EPIC_WORKFLOW_NAME, EPIC_WORKFLOW_PREFIX } from "./contracts";
 
 export interface ListEpicWorkflowIdsOptions {
   projectId: string;
@@ -28,10 +31,8 @@ export interface ListEpicClient {
  * Build the visibility-API query string for epic-workflow enumeration.
  */
 export function buildEpicVisibilityQuery(_projectId: string): string {
-  return `WorkflowType = "epicWorkflow"`;
+  return `WorkflowType = "${EPIC_WORKFLOW_NAME}"`;
 }
-
-const EPIC_WORKFLOW_PREFIX = "adv/epic/";
 
 /**
  * Return the Epic IDs for all epic-workflows belonging to a project,

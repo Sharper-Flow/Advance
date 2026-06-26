@@ -4,6 +4,7 @@ import {
   buildEpicVisibilityQuery,
   listEpicWorkflowIds,
 } from "./list-epic-workflows";
+import { EPIC_WORKFLOW_NAME } from "./contracts";
 
 function makeClient(results: Array<{ workflowId: string }>): {
   workflow: {
@@ -31,13 +32,13 @@ describe("listEpicWorkflowIds", () => {
 
     expect(ids).toEqual(["cardIdentity", "simplifiedChineseCardData"]);
     expect(client.workflow.list).toHaveBeenCalledWith({
-      query: 'WorkflowType = "epicWorkflow"',
+      query: `WorkflowType = "${EPIC_WORKFLOW_NAME}"`,
     });
   });
 
   it("does not use WorkflowId LIKE in visibility query", () => {
     expect(buildEpicVisibilityQuery("pid-abc")).toBe(
-      'WorkflowType = "epicWorkflow"',
+      `WorkflowType = "${EPIC_WORKFLOW_NAME}"`,
     );
   });
 });
