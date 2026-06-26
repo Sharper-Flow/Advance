@@ -1,0 +1,12 @@
+{
+  "entries": [
+    {
+      "id": "ws-UpN0GJ",
+      "type": "gotcha",
+      "content": "A failed reproduction attempt is NOT a requirement. In discovery, classify every reproduction-sourced finding as broken_capability | unwarranted_operation | unverified before it can seed an acceptance criterion; unwarranted_operation/unverified findings must never seed a \"must-work\" criterion. Never harden a hedged/unverified observation into a firm AC. Capability-presuming criteria (those asserting a tool/arg/spec surface exists or must work) must declare a `[warrant: tool:<name>#<arg> | spec:<rq-id>]` tag, verified structurally against the live tool surface at contract mint (CONTRACT_UNRESOLVED_WARRANT fail-fast). Behavioral criteria need no warrant (proportionality). Real defect that motivated this: fixStaleCloseVisibility AC6 asserted adv_change_archive target_path routing — archive has no target_path and shouldn't (phase9 git finalization is repo-local). Caught only by the late design validator; the guard moves the catch to discovery + mint. Source-of-truth for \"does this surface exist\": tool-registry getToolSurface() injected via runtime dynamic import to keep the pure validator cycle-free.",
+      "source_task": "tk-ab385375bda3",
+      "recorded_at": "2026-06-25T14:38:23.615Z"
+    }
+  ],
+  "count": 1
+}

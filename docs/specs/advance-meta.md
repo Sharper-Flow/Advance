@@ -1,6 +1,6 @@
 # Advance Meta
 
-> **Version:** 1.18.0
+> **Version:** 1.19.0
 > **Updated:** 2026-06-25
 
 ## Purpose
@@ -2233,5 +2233,40 @@ The session active-change pointer (state.activeChange.id in plugin/src/index.ts 
 - The caller's state.activeChange.id remains X (NOT mutated)
 - No reachability check is performed against the caller's project for the target-project changeId
 - The terminal-clear hooks likewise do not clear the caller's pointer for target-project close/archive operations
+
+---
+
+### Durable Agenda Parsing And Compaction
+
+**ID:** `rq-agendaDurableParse01` | **Priority:** **[MUST]**
+
+Agenda JSONL persistence must preserve durability when a line cannot be parsed. When the agenda is loaded, any malformed or schema-invalid line must be logged via the debug-log diagnostic channel (mirroring project-wisdom and reflection loaders) rather than dropped silently. Automatic compaction, which rewrites the agenda from successfully parsed entries only, must not permanently discard unparsed content without surfacing it: when a load skipped one or more malformed lines, auto-compaction must be skipped (with a warning) so the corrupt content survives for manual inspection. This preserves the append-only durability guarantee.
+
+**Tags:** `agenda`, `storage`, `durability`, `observability`
+
+#### Scenarios
+
+**Malformed agenda line is logged on load** (`rq-agendaDurableParse01.1`)
+
+**Given:**
+- An agenda JSONL file contains a malformed or schema-invalid line
+
+**When:** The agenda is loaded
+
+**Then:**
+- The malformed line is skipped from the in-memory result
+- A diagnostic is logged identifying that a malformed line was skipped
+
+**Auto-compaction does not destroy unparsed content** (`rq-agendaDurableParse01.2`)
+
+**Given:**
+- An agenda load skipped one or more malformed lines
+- The agenda would otherwise be eligible for automatic compaction
+
+**When:** Automatic compaction is evaluated
+
+**Then:**
+- Compaction is skipped and a warning is surfaced
+- The malformed content is not permanently discarded
 
 ---

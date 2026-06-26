@@ -31,6 +31,7 @@ import {
   type WorktreeStateAccess,
 } from "../worktree/state";
 import type { SessionRecord } from "../../temporal/contracts";
+import { isProcessAlive } from "../../utils/process-liveness";
 
 // =============================================================================
 // PID liveness
@@ -39,22 +40,11 @@ import type { SessionRecord } from "../../temporal/contracts";
 /**
  * Returns true when the PID corresponds to a running process.
  *
- * - alive (signal 0 succeeds) → true
- * - ESRCH (no such process) → false
- * - EPERM (process exists but not ours) → true (treat as alive)
- * - any other error → true (conservative: avoid filtering live peers)
+ * Re-exported from the shared `process-liveness` helper so session listing,
+ * worktree leases, and worker-lock reclaim share one fail-safe contract
+ * (ESRCH → dead; EPERM/other → alive). See rq-worktreeLeaseLiveness01.
  */
-export function isPidAlive(pid: number): boolean {
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch (err) {
-    const code = (err as NodeJS.ErrnoException).code;
-    if (code === "ESRCH") return false;
-    if (code === "EPERM") return true;
-    return true;
-  }
-}
+export const isPidAlive = isProcessAlive;
 
 // =============================================================================
 // Public types

@@ -16,6 +16,16 @@ export const ADVANCE_TEMPORAL_TASK_QUEUE_PREFIX = "advance";
 export const DEFAULT_TEMPORAL_ADDRESS = "127.0.0.1:7233";
 export const DEFAULT_TEMPORAL_NAMESPACE = "default";
 
+/**
+ * Single source of truth for the change branch and change-workflow-id prefixes
+ * (STRUCT-004). Previously these literals were redefined independently across
+ * worktree/state.ts, visibility-claim-queries.ts, and list-change-workflows.ts.
+ * `CHANGE_BRANCH_PREFIX` names the git branch (`change/<id>`);
+ * `CHANGE_WORKFLOW_PREFIX` names the Temporal workflow id (`adv/change/<projectId>/<id>`).
+ */
+export const CHANGE_BRANCH_PREFIX = "change/";
+export const CHANGE_WORKFLOW_PREFIX = "adv/change/";
+
 export const CHANGE_WORKFLOW_NAME = "changeWorkflow";
 export const EPIC_WORKFLOW_NAME = "epicWorkflow";
 
@@ -68,6 +78,7 @@ export const CHANGE_WORKFLOW_SIGNAL_NAMES = {
   subagentReportSubmitted: "adv.change.subagentReportSubmitted",
   taskBlocked: "adv.change.taskBlocked",
   taskCancelled: "adv.change.taskCancelled",
+  designConcernDispositioned: "adv.change.designConcernDispositioned",
   gateInProgress: "adv.change.gateInProgress",
   gateAwaitingApproval: "adv.change.gateAwaitingApproval",
   gateStuck: "adv.change.gateStuck",
@@ -252,6 +263,7 @@ export interface ChangeWorkflowInput {
       | "target_worktree_path"
       | "scope_worktrees"
       | "seenReportIds"
+      | "design_concern_dispositions"
       | "signal_rejections"
       | "signal_rejections_total"
       | "ops_followup"
@@ -356,6 +368,13 @@ export interface ChangeWorkflowState extends ChangeWorkflowInput {
   createdAt: string;
   tasks: import("../types").Task[];
   subagent_reports?: ScopedSubagentReport[];
+  /**
+   * Typed dispositions of design-quality concerns raised by adv-designer
+   * reports. Read by the gate-readiness evaluator to clear an otherwise-
+   * blocking concern. Additive optional field — Temporal replay-safe; histories
+   * predating this extension replay cleanly with it undefined.
+   */
+  design_concern_dispositions?: import("../types").DesignConcernDisposition[];
   deltas: import("../types").Change["deltas"];
   wisdom: import("../types").WisdomEntry[];
   gates: Gates;

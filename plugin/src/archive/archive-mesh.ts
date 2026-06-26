@@ -70,6 +70,12 @@ export async function createMeshIssuesForArchive(
 
       if (result.htmlUrl) {
         issueUrls.push(result.htmlUrl);
+      } else if (result.parseFailed) {
+        // gh exited 0 but its JSON output could not be parsed — this is a
+        // failure, not a silent success-without-URL (QUAL-005).
+        errors.push(
+          `Mesh issue creation for ${targetRepo.gh_repo} returned an unparseable gh response (parse failure); no issue URL recorded.`,
+        );
       } else if (result.exitCode !== 0 && !result.ghNotFound) {
         errors.push(
           `Mesh issue creation failed for ${targetRepo.gh_repo}: ${result.stderr}`,

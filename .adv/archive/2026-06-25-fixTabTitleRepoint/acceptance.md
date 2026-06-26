@@ -1,0 +1,22 @@
+# Acceptance
+
+Reviewed at: 2026-06-25T20:05:00.000Z
+
+## Contract Review Matrix
+
+| ID | Kind | Requirement | Status | Evidence |
+|---|---|---|---|---|
+| SC1 | success_criterion | Checking another change’s status does not rename the current Warp tab; observable signal: `getStatus().activeChangeId` remains unchanged after read-only `tool.execute.before` calls. | pass | Independent adv-reviewer report fixTabTitleRepoint|change:review:acceptance|adv-reviewer|1 READY; scanner bundle report fixTabTitleRepoint|change:scanner-bundle:review|adv-scanner-bundle|1 found read-only pointer criteria traced and no findings. |
+| SC2 | success_criterion | Actual work on a change still sets the active pointer/title; observable signal: `getStatus().activeChangeId` becomes a reachable target change for an allowed work mutator. | pass | Independent adv-reviewer report READY confirmed actual work mutator behavior; scanner bundle found mutator criteria traced. Task tk-67ade76a71f7 verification records GREEN tr_mqtx3i3e_b66794ba. |
+| AC1 | acceptance_criterion | Given no active pointer, when `tool.execute.before` runs for `adv_change_show` with a reachable `changeId`, then `getStatus().activeChangeId` remains `null`. | pass | GREEN run tr_mqtx3i3e_b66794ba: `pnpm test -- src/__tests__/active-change-pointer.test.ts` exit 0 after RED tr_mqtwwiwi_288d7aa7 failed on read-only re-point behavior. |
+| AC2 | acceptance_criterion | Given active pointer `activeA`, when `tool.execute.before` runs for `adv_gate_status` with reachable `changeId` `otherB`, then `getStatus().activeChangeId` remains `activeA`. | pass | GREEN run tr_mqtx3i3e_b66794ba: targeted active-change pointer test file passed. |
+| AC3 | acceptance_criterion | Given active pointer `activeA`, when `tool.execute.before` runs for `adv_task_list` with reachable `changeId` `otherB`, then `getStatus().activeChangeId` remains `activeA`. | pass | GREEN run tr_mqtx3i3e_b66794ba: targeted active-change pointer test file passed. |
+| AC4 | acceptance_criterion | Given no active pointer, when `tool.execute.before` runs for `adv_task_update` with reachable `changeId`, then `getStatus().activeChangeId` becomes that `changeId`. | pass | GREEN run tr_mqtx3i3e_b66794ba: targeted active-change pointer test file passed. |
+| AC5 | acceptance_criterion | Given `target_path` is present, when an allowed work mutator runs with `changeId`, then pointer remains unchanged. | pass | GREEN run tr_mqtx3i3e_b66794ba: targeted active-change pointer test file passed. |
+| AC6 | acceptance_criterion | The targeted active-change-pointer Vitest file exits with code 0. | pass | GREEN run tr_mqtx3i3e_b66794ba: `pnpm test -- src/__tests__/active-change-pointer.test.ts` exit 0. Additional verification: tr_mqtx5ha4 `pnpm run check`, tr_mqtx8ufh `bin/oc-test full`, tr_mqtx9cql `pnpm run build` all exit 0. |
+| C1 | constraint | Pointer correctness must use an explicit allow-list of active-work tool names, not suffix/name heuristics. | respected | Static review of plugin/src/index.ts lines 573-600 shows explicit `activeChangeRepointTools` Set and `shouldRepointActiveChange`; no suffix/name heuristic owns correctness. adv-reviewer report confirmed explicit allow-list. |
+| C2 | constraint | Existing `adv_change_forget` mismatch validation and bypass behavior must remain unchanged. | respected | Static review of plugin/src/index.ts lines 612-627 shows `adv_change_forget` early return and mismatch validation unchanged before allow-list gate; targeted tests still pass. |
+| C3 | constraint | Existing reachable-change gate must remain in the allowed re-point path. | respected | Static review of plugin/src/index.ts lines 629-654 shows allowed re-point path still checks `target_path`, same-pointer no-op, then `isChangeReachable` before mutating pointer. Tests cover reachable, unreachable, and disk snapshot fallback. |
+| DONT1 | avoidance | Do not change terminal title format in `terminal.ts` unless required by tests. | respected | Git diff touches plugin/src/index.ts and tests only; no changes to plugin/src/events/terminal.ts. adv-reviewer report found no terminal formatting change. |
+| DONT2 | avoidance | Do not re-point for read-only/status tools such as `adv_change_show`, `adv_gate_status`, or `adv_task_list`. | respected | Read-only tools `adv_change_show`, `adv_gate_status`, and `adv_task_list` are absent from `activeChangeRepointTools`; AC1-AC3 tests pass. adv-reviewer report confirmed exclusion. |
+

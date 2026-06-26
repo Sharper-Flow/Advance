@@ -1,6 +1,6 @@
 # Worktree Lifecycle — Branch-Aware Registry, Setup Readiness, Git-First Reconciliation
 
-> **Version:** 1.5.0
+> **Version:** 1.6.0
 > **Updated:** 2026-06-25
 
 ## Purpose
@@ -612,5 +612,41 @@ Worktree cleanup mutation tools that support target-project operation MUST route
 **Then:**
 - The recommendation includes target_path context or equivalent target-aware remediation
 - The recommendation does not imply that a bare current-project adv_worktree_delete call will repair target-project drift
+
+---
+
+### Worktree Lease Liveness Is Fail-Safe
+
+**ID:** `rq-worktreeLeaseLiveness01` | **Priority:** **[MUST]**
+
+Worktree lease reclamation must treat an owning PID as alive unless the liveness probe definitively proves it dead. A process-existence probe (signal 0) that fails with ESRCH means the process is gone (dead); a failure with EPERM (process exists but is not signalable by this user) or any other error must be treated as alive. Lease reclamation must not reclaim or overwrite a lease whose owning PID is treated as alive, preserving the exclusive-worktree-ownership invariant on multi-user hosts. All worktree-lease liveness checks must use the shared liveness helper rather than divergent local implementations.
+
+**Tags:** `worktree`, `lease`, `concurrency`, `liveness`
+
+#### Scenarios
+
+**EPERM liveness probe does not reclaim a live peer lease** (`rq-worktreeLeaseLiveness01.1`)
+
+**Given:**
+- A worktree lease is held by another PID
+- A signal-0 probe against that PID throws EPERM or a non-ESRCH error
+
+**When:** Lease reclamation evaluates whether the existing lease may be taken over
+
+**Then:**
+- The owning PID is treated as alive
+- The existing lease is not reclaimed or overwritten
+
+**ESRCH liveness probe allows reclaim of a dead-owner lease** (`rq-worktreeLeaseLiveness01.2`)
+
+**Given:**
+- A worktree lease is held by a PID that no longer exists
+- A signal-0 probe against that PID throws ESRCH
+
+**When:** Lease reclamation evaluates the stale lease
+
+**Then:**
+- The owning PID is treated as dead
+- The lease may be reclaimed per the normal stale-reclaim rules
 
 ---

@@ -1,0 +1,577 @@
+{
+  "id": "fixTabTitleRepoint",
+  "title": "Fix tab title repoint",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-06-25T19:19:36.613Z",
+  "tasks": [
+    {
+      "id": "tk-67ade76a71f7",
+      "title": "Implement active-work pointer allow-list with regression tests",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-06-25T19:38:24.960Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required",
+        "frontend": "false",
+        "frontend_rationale": "Backend/plugin session-pointer hook only; no UI/component/frontend scope."
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC2",
+          "AC4"
+        ],
+        "verifies": [
+          "SC1",
+          "SC2",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "DONT1",
+          "DONT2"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-25T19:41:59.674Z",
+      "verification": "RED tr_mqtwwiwi_288d7aa7: targeted active-change pointer test failed for read-only adv_change_show/adv_gate_status/adv_task_list repointing. GREEN tr_mqtx3i3e_b66794ba: `pnpm test -- src/__tests__/active-change-pointer.test.ts` passed. VERIFY tr_mqtx5ha4_8c8617ba: `pnpm run check` passed after formatting retry; includes schemas:check, typecheck, isolation, lockfile policy, lint, and format:check. Static diff confirms explicit active-work tool allow-list in plugin/src/index.ts, read-only tools excluded, reachable gate/target_path/forget behavior preserved, terminal title formatting untouched.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/__tests__/active-change-pointer.test.ts",
+        "plugin/src/__tests__/compaction.test.ts",
+        "plugin/src/index.ts",
+        "plugin/src/integration.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/__tests__/active-change-pointer.test.ts",
+        "plugin/src/__tests__/compaction.test.ts",
+        "plugin/src/index.ts",
+        "plugin/src/integration.test.ts"
+      ],
+      "checkpointSha": "170e4ed9003f1876d508a90eb2931bd3b677d9f2",
+      "completedAt": "2026-06-25T19:53:11.807Z",
+      "completed_at": "2026-06-25T19:53:11.807Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "fixTabTitleRepoint",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixTabTitleRepoint",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "test -e 'plugin/src/index.ts' && test -e 'plugin/src/__tests__/active-change-pointer.test.ts' && test -e 'plugin/src/__tests__/compaction.test.ts' && test -e 'plugin/src/integration.test.ts' && printf OK || printf MISSING",
+          "bin/oc-test targeted -- plugin/src/__tests__/active-change-pointer.test.ts",
+          "bin/oc-test targeted -- src/__tests__/active-change-pointer.test.ts"
+        ],
+        "results": "pass",
+        "evidence": "Path preflight returned OK for all affected files. First targeted command used repo-root-prefixed test path and exited 1 with Vitest 'No test files found' because bin/oc-test runs from plugin/. Rerun with plugin-relative path passed: src/__tests__/active-change-pointer.test.ts, 17 tests passed, exit 0. Implementation inspection confirmed explicit allow-list, read-only tools excluded, target_path skip, adv_change_forget early return/mismatch path preserved, and reachability gate remains in allowed re-point path."
+      },
+      "scope_drift": null,
+      "risks": [
+        "activeChangeRepointTools is local to index.ts and behavior-covered by tests, not exported for a direct static allow-list assertion; future additions should add behavior tests for each read/write class.",
+        "Some listed active-work tools derive change ownership from taskId or report payload rather than a top-level changeId; current hook only re-points when args.changeId is present, so future SC2 expansions should include schema-realistic mutator coverage before relying on those tools for pointer setup."
+      ],
+      "required_main_agent_actions": [],
+      "required_follow_ups": [],
+      "consumer_warnings": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixTabTitleRepoint",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixTabTitleRepoint",
+      "scope": {
+        "kind": "change",
+        "scope_key": "scanner-bundle:review"
+      },
+      "agent": "adv-scanner-bundle",
+      "phase": "review",
+      "scanner_count": 1,
+      "dimensions": [
+        "contract-traceability",
+        "correctness-edge-cases",
+        "security",
+        "tests-tdd-evidence",
+        "scope-conformance",
+        "architecture-quality"
+      ],
+      "summary": "Inline scanner synthesis plus independent adv-reviewer report: contract AC1-AC6 traced to tests/task evidence, explicit allow-list implements C1, reachability/target_path/forget behavior preserved, no security or scope concerns found.",
+      "findings": [],
+      "follow_ups": [],
+      "consumer_warnings": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixTabTitleRepoint",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixTabTitleRepoint",
+      "scope": {
+        "kind": "change",
+        "scope_key": "harden:release"
+      },
+      "agent": "adv-reviewer",
+      "phase": "harden",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "test -e 'plugin/src/index.ts' && test -e 'plugin/src/__tests__/active-change-pointer.test.ts' && test -e 'plugin/src/__tests__/compaction.test.ts' && test -e 'plugin/src/integration.test.ts' && printf OK || printf MISSING",
+          "bin/oc-test targeted -- plugin/src/__tests__/active-change-pointer.test.ts plugin/src/__tests__/compaction.test.ts plugin/src/integration.test.ts",
+          "bin/oc-test targeted -- src/__tests__/active-change-pointer.test.ts src/__tests__/compaction.test.ts src/integration.test.ts",
+          "git diff origin/trunk...HEAD -- plugin/src/index.ts plugin/src/__tests__/active-change-pointer.test.ts plugin/src/__tests__/compaction.test.ts plugin/src/integration.test.ts"
+        ],
+        "results": "pass",
+        "evidence": "Path preflight OK. Initial targeted test invocation used repo-root-prefixed paths while bin/oc-test runs from plugin/ and found no tests; corrected invocation passed: active-change-pointer.test.ts 17/17, compaction.test.ts 4/4, integration.test.ts 30/30 (51 total). Diff review confirmed scoped allow-list plus regression/setup test changes only."
+      },
+      "scope_drift": null,
+      "risks": [],
+      "required_main_agent_actions": [
+        "Proceed with release/archive when orchestrator release checklist is otherwise satisfied."
+      ],
+      "required_follow_ups": [],
+      "consumer_warnings": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixTabTitleRepoint",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixTabTitleRepoint",
+      "scope": {
+        "kind": "change",
+        "scope_key": "scanner-bundle:harden"
+      },
+      "agent": "adv-scanner-bundle",
+      "phase": "harden",
+      "scanner_count": 2,
+      "dimensions": [
+        "test-coverage",
+        "residual-slop-maintainability",
+        "documentation-hygiene",
+        "cleanup-readiness",
+        "production-readiness",
+        "deployment-readiness"
+      ],
+      "summary": "Harden synthesis: acceptance gate complete; contract matrix 13/13 pass/respected; no unresolved review findings; no cancelled tasks; merge dry-run into origin/trunk clean; independent harden reviewer READY with no findings; slop-scan found 0 findings; git clean preview empty; no deployment/doc changes required.",
+      "findings": [],
+      "follow_ups": [],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "Slop-scan detector coverage had unavailable/timed-out optional detectors (eslint timed_out in slop-scan, ast-grep/jscpd unavailable, knip failed); release evidence is covered by prior `pnpm run check`, `bin/oc-test full`, and independent harden review."
+        }
+      ]
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-06-25T19:21:07.385Z",
+      "completed_by": "agent",
+      "approval_evidence": "User reported Warp tab title is overwritten by inspected ADV change IDs. Proposal persisted with problem, affected files, constraints, and validation plan.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "6bd37c5088c8d28fb4e3176df0163fed1bf1a606fb68c9c432af7eedce49b454",
+        "non_whitespace_chars": 1729,
+        "checked_at": "2026-06-25T19:19:36.742Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "started_at": "2026-06-25T19:21:26.111Z",
+      "completed_at": "2026-06-25T19:23:24.151Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery evidence: broad `args.changeId` hook in `plugin/src/index.ts`; title propagation through `events/status.ts`; existing test expected read tool `adv_task_list` to re-point; project wisdom confirms Warp/OpenCode title identity is title-update owned. Contract minted from agreement with AC/SC/C/DONT items.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "980a7bdc3b0c7f96582ab2ba7e3895762f88a3218b9ac42bb6c32236166e1fd9",
+        "non_whitespace_chars": 1610,
+        "checked_at": "2026-06-25T19:19:36.743Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-06-25T19:26:59.432Z",
+      "completed_by": "agent",
+      "approval_evidence": "Independent validator assessed explicit allow-list as safer than broad `args.changeId` and aligned with structural correctness. Validator report persistence hit `WorkflowNotFoundError` from subagent context, but returned inline evidence. Design choice: explicit active-work mutator allow-list before reachability; read-only tools including `adv_change_show`, `adv_gate_status`, and `adv_task_list` do not re-point per user symptom/AC. Existing create/close/archive/forget dedicated hooks remain unchanged.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "0d4499d6509dee127a573a28294976351fda39c0c29277ddf7060106edffaffc",
+        "non_whitespace_chars": 574,
+        "checked_at": "2026-06-25T19:19:36.744Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-06-25T19:40:56.688Z",
+      "completed_by": "agent",
+      "approval_evidence": "Planning approved by command-as-approval: user invoked /adv-apply for fixTabTitleRepoint after prep vision with one ready task covering AC1–AC6 and strict validation pass."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-06-25T19:56:11.821Z",
+      "completed_by": "agent",
+      "approval_evidence": "Execution complete: 1/1 task done. Implemented explicit active-work re-point allow-list in plugin/src/index.ts; updated active-change pointer regression tests and same-pattern compaction/integration tests. Verification passed: targeted active-change pointer test (tr_mqtx3i3e_b66794ba), pnpm run check (tr_mqtx5ha4_8c8617ba), bin/oc-test full (tr_mqtx8ufh_fd8859eb), pnpm run build (tr_mqtx9cql_f78b3b20), adv_change_validate strict pass with only no-deltas warning."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-06-25T21:43:05.646Z",
+      "completed_by": "agent",
+      "approval_evidence": "User accepted delivered work after APPROVED review. Acceptance proof persisted before prompt: contract review matrix 13/13 pass/respected, executive summary workflow-visible, preview URL not_applicable, review findings empty. User reply: approve.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "522f80ced7919a60594ddc2e9e97c0d5f95c52d4a13b76b364e6195001df1e73",
+        "non_whitespace_chars": 1640,
+        "checked_at": "2026-06-25T19:19:36.745Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "cross_project_origin": {
+    "source_project": "toolbox",
+    "source_path": "/home/jon/toolbox",
+    "linked_at": "2026-06-25T19:19:35.015Z"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "980a7bdc3b0c7f96582ab2ba7e3895762f88a3218b9ac42bb6c32236166e1fd9",
+      "approvedAt": "2026-06-25T19:23:14.196Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "Checking another change’s status does not rename the current Warp tab; observable signal: `getStatus().activeChangeId` remains unchanged after read-only `tool.execute.before` calls.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "980a7bdc3b0c7f96582ab2ba7e3895762f88a3218b9ac42bb6c32236166e1fd9",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "Actual work on a change still sets the active pointer/title; observable signal: `getStatus().activeChangeId` becomes a reachable target change for an allowed work mutator.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "980a7bdc3b0c7f96582ab2ba7e3895762f88a3218b9ac42bb6c32236166e1fd9",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "Given no active pointer, when `tool.execute.before` runs for `adv_change_show` with a reachable `changeId`, then `getStatus().activeChangeId` remains `null`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "980a7bdc3b0c7f96582ab2ba7e3895762f88a3218b9ac42bb6c32236166e1fd9",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Given active pointer `activeA`, when `tool.execute.before` runs for `adv_gate_status` with reachable `changeId` `otherB`, then `getStatus().activeChangeId` remains `activeA`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "980a7bdc3b0c7f96582ab2ba7e3895762f88a3218b9ac42bb6c32236166e1fd9",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Given active pointer `activeA`, when `tool.execute.before` runs for `adv_task_list` with reachable `changeId` `otherB`, then `getStatus().activeChangeId` remains `activeA`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "980a7bdc3b0c7f96582ab2ba7e3895762f88a3218b9ac42bb6c32236166e1fd9",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Given no active pointer, when `tool.execute.before` runs for `adv_task_update` with reachable `changeId`, then `getStatus().activeChangeId` becomes that `changeId`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "980a7bdc3b0c7f96582ab2ba7e3895762f88a3218b9ac42bb6c32236166e1fd9",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Given `target_path` is present, when an allowed work mutator runs with `changeId`, then pointer remains unchanged.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "980a7bdc3b0c7f96582ab2ba7e3895762f88a3218b9ac42bb6c32236166e1fd9",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "The targeted active-change-pointer Vitest file exits with code 0.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "980a7bdc3b0c7f96582ab2ba7e3895762f88a3218b9ac42bb6c32236166e1fd9",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Pointer correctness must use an explicit allow-list of active-work tool names, not suffix/name heuristics.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "980a7bdc3b0c7f96582ab2ba7e3895762f88a3218b9ac42bb6c32236166e1fd9",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Existing `adv_change_forget` mismatch validation and bypass behavior must remain unchanged.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "980a7bdc3b0c7f96582ab2ba7e3895762f88a3218b9ac42bb6c32236166e1fd9",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Existing reachable-change gate must remain in the allowed re-point path.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "980a7bdc3b0c7f96582ab2ba7e3895762f88a3218b9ac42bb6c32236166e1fd9",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not change terminal title format in `terminal.ts` unless required by tests.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "980a7bdc3b0c7f96582ab2ba7e3895762f88a3218b9ac42bb6c32236166e1fd9",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not re-point for read-only/status tools such as `adv_change_show`, `adv_gate_status`, or `adv_task_list`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "980a7bdc3b0c7f96582ab2ba7e3895762f88a3218b9ac42bb6c32236166e1fd9",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-06-25T20:05:00.000Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Independent adv-reviewer report fixTabTitleRepoint|change:review:acceptance|adv-reviewer|1 READY; scanner bundle report fixTabTitleRepoint|change:scanner-bundle:review|adv-scanner-bundle|1 found read-only pointer criteria traced and no findings.",
+          "notes": "Read-only hook calls preserve active pointer per AC1-AC3 tests."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Independent adv-reviewer report READY confirmed actual work mutator behavior; scanner bundle found mutator criteria traced. Task tk-67ade76a71f7 verification records GREEN tr_mqtx3i3e_b66794ba.",
+          "notes": "Allowed active-work mutator `adv_task_update` still re-points after reachability gate."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "GREEN run tr_mqtx3i3e_b66794ba: `pnpm test -- src/__tests__/active-change-pointer.test.ts` exit 0 after RED tr_mqtwwiwi_288d7aa7 failed on read-only re-point behavior.",
+          "notes": "Test added for `adv_change_show` with reachable changeId leaving pointer null."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "GREEN run tr_mqtx3i3e_b66794ba: targeted active-change pointer test file passed.",
+          "notes": "Test added for `adv_gate_status` preserving active pointer `activeA` when inspecting `otherB`."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "GREEN run tr_mqtx3i3e_b66794ba: targeted active-change pointer test file passed.",
+          "notes": "Test added for `adv_task_list` preserving active pointer `activeA` when inspecting `otherB`."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "GREEN run tr_mqtx3i3e_b66794ba: targeted active-change pointer test file passed.",
+          "notes": "Test updated to verify allowed active-work mutator `adv_task_update` re-points to reachable changeId."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "GREEN run tr_mqtx3i3e_b66794ba: targeted active-change pointer test file passed.",
+          "notes": "Cross-project `target_path` test updated to use allowed mutator and confirms caller pointer remains unchanged."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "GREEN run tr_mqtx3i3e_b66794ba: `pnpm test -- src/__tests__/active-change-pointer.test.ts` exit 0. Additional verification: tr_mqtx5ha4 `pnpm run check`, tr_mqtx8ufh `bin/oc-test full`, tr_mqtx9cql `pnpm run build` all exit 0.",
+          "notes": "Targeted test and broader project validation passed."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Static review of plugin/src/index.ts lines 573-600 shows explicit `activeChangeRepointTools` Set and `shouldRepointActiveChange`; no suffix/name heuristic owns correctness. adv-reviewer report confirmed explicit allow-list.",
+          "notes": "Correctness structural via allow-list."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Static review of plugin/src/index.ts lines 612-627 shows `adv_change_forget` early return and mismatch validation unchanged before allow-list gate; targeted tests still pass.",
+          "notes": "Forget bypass/mismatch semantics preserved."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Static review of plugin/src/index.ts lines 629-654 shows allowed re-point path still checks `target_path`, same-pointer no-op, then `isChangeReachable` before mutating pointer. Tests cover reachable, unreachable, and disk snapshot fallback.",
+          "notes": "Reachability remains required inside allowed path."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Git diff touches plugin/src/index.ts and tests only; no changes to plugin/src/events/terminal.ts. adv-reviewer report found no terminal formatting change.",
+          "notes": "Terminal title format unchanged."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Read-only tools `adv_change_show`, `adv_gate_status`, and `adv_task_list` are absent from `activeChangeRepointTools`; AC1-AC3 tests pass. adv-reviewer report confirmed exclusion.",
+          "notes": "Read-only/status tools do not re-point."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "Given no active pointer, when `tool.execute.before` runs for `adv_change_show` with a reachable `changeId`, then `getStatus().activeChangeId` remains `null`.",
+    "Given active pointer `activeA`, when `tool.execute.before` runs for `adv_gate_status` with reachable `changeId` `otherB`, then `getStatus().activeChangeId` remains `activeA`.",
+    "Given active pointer `activeA`, when `tool.execute.before` runs for `adv_task_list` with reachable `changeId` `otherB`, then `getStatus().activeChangeId` remains `activeA`.",
+    "Given no active pointer, when `tool.execute.before` runs for `adv_task_update` with reachable `changeId`, then `getStatus().activeChangeId` becomes that `changeId`.",
+    "Given `target_path` is present, when an allowed work mutator runs with `changeId`, then pointer remains unchanged.",
+    "The targeted active-change-pointer Vitest file exits with code 0."
+  ],
+  "documents": {
+    "proposal": "# Fix tab title repoint\n\n## Why\n\nADV currently updates the Warp/terminal tab title to any reachable `changeId` passed to an ADV tool. That is correct when the agent is actively working on that change, but wrong for status/read/cleanup workflows that merely inspect another change. Those reads overwrite the tab title with an unrelated change ID and erase the user’s existing project/emoji context.\n\n## What Changes\n\n- Narrow session active-change pointer re-pointing in `plugin/src/index.ts` from “any tool with `args.changeId`” to an explicit active-work allow-list.\n- Keep read-only/status/cleanup tools from mutating the session pointer/title.\n- Preserve existing protections:\n  - `target_path` cross-project calls do not touch caller pointer.\n  - `adv_change_forget` keeps mismatch validation and bypass behavior.\n  - reachable-change gate still protects allowed repoints.\n\n## User Outcomes\n\n- [ ] Checking another change’s status does not rename the current Warp tab.\n- [ ] Cleanup/review workflows that inspect many changes do not churn the tab title.\n- [ ] Actual work on a change still sets the tab title to that change ID.\n\n## Affected Code\n\n- `plugin/src/index.ts` — active-change pointer re-point predicate.\n- `plugin/src/__tests__/active-change-pointer.test.ts` — regression coverage for read-only calls and mutator calls.\n\n## Constraints\n\n- Use structural allow-list, not heuristic parsing of tool names.\n- Do not weaken phantom pointer reachability checks.\n- Do not change terminal title formatting in `terminal.ts` unless tests prove necessary.\n\n## Impact\n\nNo external API change. Runtime behavior changes only for ADV plugin session pointer/title updates.\n\n## Risks\n\n- Missing an active-work tool in the allow-list could keep title on previous/no change during real work.\n- Adding a read-only tool to the allow-list would preserve the current bug.\n\n## Validation Plan\n\n- Add failing tests for read-only tools not re-pointing.\n- Add/keep passing test for allowed mutator re-point.\n- Run targeted Vitest for active-change pointer tests.",
+    "problemStatement": "ADV terminal/Warp tab title should represent the change currently being worked, not whichever change was most recently inspected. Read-only/status/cleanup ADV tools currently carry `changeId` and trigger the same active pointer update path as work tools, causing tab title churn and overwriting project emoji/title context.",
+    "agreement": "# Agreement\n\n## Success Criteria\n\n- SC1: Checking another change’s status does not rename the current Warp tab; observable signal: `getStatus().activeChangeId` remains unchanged after read-only `tool.execute.before` calls.\n- SC2: Actual work on a change still sets the active pointer/title; observable signal: `getStatus().activeChangeId` becomes a reachable target change for an allowed work mutator.\n\n## Acceptance Criteria\n\n- AC1: Given no active pointer, when `tool.execute.before` runs for `adv_change_show` with a reachable `changeId`, then `getStatus().activeChangeId` remains `null`.\n- AC2: Given active pointer `activeA`, when `tool.execute.before` runs for `adv_gate_status` with reachable `changeId` `otherB`, then `getStatus().activeChangeId` remains `activeA`.\n- AC3: Given active pointer `activeA`, when `tool.execute.before` runs for `adv_task_list` with reachable `changeId` `otherB`, then `getStatus().activeChangeId` remains `activeA`.\n- AC4: Given no active pointer, when `tool.execute.before` runs for `adv_task_update` with reachable `changeId`, then `getStatus().activeChangeId` becomes that `changeId`.\n- AC5: Given `target_path` is present, when an allowed work mutator runs with `changeId`, then pointer remains unchanged.\n- AC6: The targeted active-change-pointer Vitest file exits with code 0.\n\n## Constraints\n\n- C1: Pointer correctness must use an explicit allow-list of active-work tool names, not suffix/name heuristics.\n- C2: Existing `adv_change_forget` mismatch validation and bypass behavior must remain unchanged.\n- C3: Existing reachable-change gate must remain in the allowed re-point path.\n\n## Avoidances\n\n- DONT1: Do not change terminal title format in `terminal.ts` unless required by tests.\n- DONT2: Do not re-point for read-only/status tools such as `adv_change_show`, `adv_gate_status`, or `adv_task_list`.",
+    "design": "Implementation approach:\n- Replace the broad `if (args.changeId)` repoint gate in `plugin/src/index.ts` with a structural allow-list predicate for active-work ADV tools.\n- Keep `adv_change_forget` early-return before the predicate.\n- Keep `target_path`, same-pointer no-op, reachability gate, and debug logging behavior inside the allowed path.\n- Update `plugin/src/__tests__/active-change-pointer.test.ts` to assert read-only tools (`adv_change_show`, `adv_gate_status`, `adv_task_list`) never re-point, while a representative mutator still does.\n- Avoid heuristic inference from tool names like `*_show`; correctness owned by explicit allow-list.",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\nADV now keeps the terminal/Warp tab title tied to active work instead of read-only inspections. The delivered fix narrows pointer re-pointing to an explicit active-work tool allow-list while preserving reachability, cross-project, and forget protections.\n\n## Verdict\nAPPROVED\n\n## What Was Built\n1. Added `activeChangeRepointTools` and `shouldRepointActiveChange` in `plugin/src/index.ts` so only active-work mutators can re-point the session active-change pointer.\n2. Added regression coverage proving `adv_change_show`, `adv_gate_status`, and `adv_task_list` do not re-point on reachable inspected changes.\n3. Updated mutator/reachability tests to use `adv_task_update` as the representative allowed work tool, including unreachable, disk fallback, and `target_path` cases.\n4. Updated compaction/integration test setup that intentionally establishes active work to use the active-work mutator path.\n\n## What Was Verified\n- Verdict: APPROVED with 0 findings (0 blockers, 0 issues, 0 suggestions, 0 nits).\n- Tests: RED tr_mqtwwiwi_288d7aa7 failed on the old read-only re-point bug; GREEN tr_mqtx3i3e_b66794ba passed targeted active-change pointer tests; VERIFY tr_mqtx5ha4 passed `pnpm run check`; tr_mqtx8ufh passed `bin/oc-test full`; tr_mqtx9cql passed `pnpm run build`.\n- Review: independent adv-reviewer report `fixTabTitleRepoint|change:review:acceptance|adv-reviewer|1` returned READY with no findings; scanner bundle `fixTabTitleRepoint|change:scanner-bundle:review|adv-scanner-bundle|1` found no issues.\n- Preview URL: not_applicable — backend/plugin hook and test-only change; no frontend, browser-visible, or visual-output surface. Task metadata `frontend=false` with backend/plugin rationale.\n- Contract matrix: 13/13 required rows passed/respected; 0 failed, violated, unknown, or missing rows.\n\n## Remaining Concerns\nNone.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-06-25T20:05:00.000Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | Checking another change’s status does not rename the current Warp tab; observable signal: `getStatus().activeChangeId` remains unchanged after read-only `tool.execute.before` calls. | pass | Independent adv-reviewer report fixTabTitleRepoint|change:review:acceptance|adv-reviewer|1 READY; scanner bundle report fixTabTitleRepoint|change:scanner-bundle:review|adv-scanner-bundle|1 found read-only pointer criteria traced and no findings. |\n| SC2 | success_criterion | Actual work on a change still sets the active pointer/title; observable signal: `getStatus().activeChangeId` becomes a reachable target change for an allowed work mutator. | pass | Independent adv-reviewer report READY confirmed actual work mutator behavior; scanner bundle found mutator criteria traced. Task tk-67ade76a71f7 verification records GREEN tr_mqtx3i3e_b66794ba. |\n| AC1 | acceptance_criterion | Given no active pointer, when `tool.execute.before` runs for `adv_change_show` with a reachable `changeId`, then `getStatus().activeChangeId` remains `null`. | pass | GREEN run tr_mqtx3i3e_b66794ba: `pnpm test -- src/__tests__/active-change-pointer.test.ts` exit 0 after RED tr_mqtwwiwi_288d7aa7 failed on read-only re-point behavior. |\n| AC2 | acceptance_criterion | Given active pointer `activeA`, when `tool.execute.before` runs for `adv_gate_status` with reachable `changeId` `otherB`, then `getStatus().activeChangeId` remains `activeA`. | pass | GREEN run tr_mqtx3i3e_b66794ba: targeted active-change pointer test file passed. |\n| AC3 | acceptance_criterion | Given active pointer `activeA`, when `tool.execute.before` runs for `adv_task_list` with reachable `changeId` `otherB`, then `getStatus().activeChangeId` remains `activeA`. | pass | GREEN run tr_mqtx3i3e_b66794ba: targeted active-change pointer test file passed. |\n| AC4 | acceptance_criterion | Given no active pointer, when `tool.execute.before` runs for `adv_task_update` with reachable `changeId`, then `getStatus().activeChangeId` becomes that `changeId`. | pass | GREEN run tr_mqtx3i3e_b66794ba: targeted active-change pointer test file passed. |\n| AC5 | acceptance_criterion | Given `target_path` is present, when an allowed work mutator runs with `changeId`, then pointer remains unchanged. | pass | GREEN run tr_mqtx3i3e_b66794ba: targeted active-change pointer test file passed. |\n| AC6 | acceptance_criterion | The targeted active-change-pointer Vitest file exits with code 0. | pass | GREEN run tr_mqtx3i3e_b66794ba: `pnpm test -- src/__tests__/active-change-pointer.test.ts` exit 0. Additional verification: tr_mqtx5ha4 `pnpm run check`, tr_mqtx8ufh `bin/oc-test full`, tr_mqtx9cql `pnpm run build` all exit 0. |\n| C1 | constraint | Pointer correctness must use an explicit allow-list of active-work tool names, not suffix/name heuristics. | respected | Static review of plugin/src/index.ts lines 573-600 shows explicit `activeChangeRepointTools` Set and `shouldRepointActiveChange`; no suffix/name heuristic owns correctness. adv-reviewer report confirmed explicit allow-list. |\n| C2 | constraint | Existing `adv_change_forget` mismatch validation and bypass behavior must remain unchanged. | respected | Static review of plugin/src/index.ts lines 612-627 shows `adv_change_forget` early return and mismatch validation unchanged before allow-list gate; targeted tests still pass. |\n| C3 | constraint | Existing reachable-change gate must remain in the allowed re-point path. | respected | Static review of plugin/src/index.ts lines 629-654 shows allowed re-point path still checks `target_path`, same-pointer no-op, then `isChangeReachable` before mutating pointer. Tests cover reachable, unreachable, and disk snapshot fallback. |\n| DONT1 | avoidance | Do not change terminal title format in `terminal.ts` unless required by tests. | respected | Git diff touches plugin/src/index.ts and tests only; no changes to plugin/src/events/terminal.ts. adv-reviewer report found no terminal formatting change. |\n| DONT2 | avoidance | Do not re-point for read-only/status tools such as `adv_change_show`, `adv_gate_status`, or `adv_task_list`. | respected | Read-only tools `adv_change_show`, `adv_gate_status`, and `adv_task_list` are absent from `activeChangeRepointTools`; AC1-AC3 tests pass. adv-reviewer report confirmed exclusion. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-06-25T19:20:30.825Z",
+      "contentHash": "6bd37c5088c8d28fb4e3176df0163fed1bf1a606fb68c9c432af7eedce49b454",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-06-25T19:20:30.825Z",
+      "contentHash": "b9db2c39951ca737646e4ad41718f063d2a0b95ac1a7edea8062c2630f6d4d8a",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-06-25T19:22:55.635Z",
+      "contentHash": "980a7bdc3b0c7f96582ab2ba7e3895762f88a3218b9ac42bb6c32236166e1fd9",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-06-25T19:20:30.825Z",
+      "contentHash": "0d4499d6509dee127a573a28294976351fda39c0c29277ddf7060106edffaffc",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-06-25T20:04:34.651Z",
+      "contentHash": "522f80ced7919a60594ddc2e9e97c0d5f95c52d4a13b76b364e6195001df1e73",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-06-25T21:48:48.973Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_MISSING_ERROR_HANDLING",
+      "severity": "warning",
+      "message": "Proposal describes behavior that could fail but doesn't mention error handling or rollback. What happens when things go wrong?",
+      "recorded_at": "2026-06-25T19:34:26.870Z"
+    }
+  ]
+}

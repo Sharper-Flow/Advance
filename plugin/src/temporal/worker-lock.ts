@@ -1,6 +1,7 @@
 import { open, readFile, rm } from "fs/promises";
 import { randomUUID } from "crypto";
 import { join } from "path";
+import { isProcessAlive } from "../utils/process-liveness";
 
 export const WORKER_LOCK_FILENAME = "worker.lock";
 export const STALE_HEARTBEAT_GRACE_MS = 60_000;
@@ -181,13 +182,9 @@ function isLockOwnerAlive(
   pid: number,
   isPidAlive: ((pid: number) => boolean) | undefined,
 ): boolean {
-  if (isPidAlive) return isPidAlive(pid);
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch (error) {
-    return (error as NodeJS.ErrnoException).code !== "ESRCH";
-  }
+  // Delegate to the shared fail-safe probe (ESRCH → dead; EPERM/other →
+  // alive) while preserving the injectable seam for tests.
+  return (isPidAlive ?? isProcessAlive)(pid);
 }
 
 function isHeartbeatStale(

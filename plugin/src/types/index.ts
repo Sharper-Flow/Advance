@@ -119,6 +119,8 @@ export {
   SubagentConsumerWarningSchema,
   RequiredFollowUpSchema,
   type RequiredFollowUp,
+  DesignConcernDispositionSchema,
+  type DesignConcernDisposition,
   EngineerSubagentReportSchema,
   DesignerDesignDimensionSchema,
   DesignerDesignDimensionsSchema,

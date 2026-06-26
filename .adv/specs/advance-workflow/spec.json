@@ -3,7 +3,7 @@
   "name": "advance-workflow",
   "title": "Advance Workflow",
   "purpose": "Capability: Workflow contract layer for ADV \u2014 gate model, autonomy boundaries, design validation, scope management, releases, approvals, handoff voice, review remediation, and touched-scope quality. Split from `advance` capability.",
-  "version": "1.22.0",
+  "version": "1.23.0",
   "updated_at": "2026-06-25T00:00:00.000Z",
   "requirements": [
     {
@@ -1065,6 +1065,67 @@
           "then": [
             "The stale review matrix is cleared or invalidated",
             "Fresh proof is required before acceptance/archive can proceed"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-acWarrant01",
+      "title": "Capability-Warrant Validation and Reproduction-Finding Classification",
+      "body": "Acceptance and success criteria that presume a capability surface exists (a tool, a tool argument, or a spec requirement) MUST declare a typed warrant tag `[warrant: <ref>]` in the approved agreement, where ref is `tool:<name>`, `tool:<name>#<arg>`, or `spec:<rq-id>`. At contract mint, every declared warrant is verified against the live tool surface and known spec ids; an unresolved warrant fails the mint with CONTRACT_UNRESOLVED_WARRANT. Verification authority is structural — declared warrants are checked against the assembled tool registry and specs, never inferred heuristically from prose. During discovery, every reproduction-sourced finding MUST be classified as broken_capability, unwarranted_operation, or unverified; findings classified unwarranted_operation or unverified MUST NOT seed a criterion asserting the capability must work. Behavioral criteria that presume no capability surface require no warrant (proportionality). This moves the catch for unwarranted criteria from the late design validator to an early structural gate.",
+      "priority": "must",
+      "tags": ["workflow", "contract", "discovery", "warrant", "correctness"],
+      "scenarios": [
+        {
+          "id": "rq-acWarrant01.1",
+          "title": "Mint fails on a warrant naming a nonexistent surface",
+          "given": [
+            "An approved agreement declares a criterion with [warrant: tool:adv_change_archive#target_path]",
+            "adv_change_archive has no target_path argument in the live tool surface"
+          ],
+          "when": "adv_contract_mint mints the contract",
+          "then": [
+            "The mint fails fast with CONTRACT_UNRESOLVED_WARRANT naming the unresolved ref",
+            "No contract is persisted"
+          ]
+        },
+        {
+          "id": "rq-acWarrant01.2",
+          "title": "Mint succeeds and records a warrant that resolves",
+          "given": [
+            "An approved agreement declares a criterion with [warrant: tool:adv_change_status_repair#target_path]",
+            "adv_change_status_repair exposes a target_path argument"
+          ],
+          "when": "adv_contract_mint mints the contract",
+          "then": [
+            "The mint succeeds",
+            "The contract item records the declared warrant ref",
+            "The persisted item text has the [warrant: ...] tag stripped"
+          ]
+        },
+        {
+          "id": "rq-acWarrant01.3",
+          "title": "Behavioral criteria need no warrant",
+          "given": [
+            "An approved agreement contains only behavioral criteria with no [warrant: ...] tags"
+          ],
+          "when": "adv_contract_mint mints the contract",
+          "then": [
+            "The mint succeeds unchanged",
+            "No warrant ceremony is imposed on the behavioral criteria"
+          ]
+        },
+        {
+          "id": "rq-acWarrant01.4",
+          "title": "Discovery classifies reproduction findings and blocks unwarranted seeding",
+          "given": [
+            "Discovery surfaces a reproduction-sourced finding that the user attempted an operation which is not architecturally warranted"
+          ],
+          "when": "The finding is processed during discovery",
+          "then": [
+            "The finding is classified as unwarranted_operation or unverified",
+            "It MUST NOT seed an acceptance criterion asserting the capability must work",
+            "It is downgraded to an out-of-scope note or recorded rationale instead"
           ]
         }
       ]
@@ -3699,6 +3760,43 @@
             "/adv-improve does not create changes, tasks, gates, spec deltas, or agenda items",
             "The pack does not replace tracked acceptance evidence for the resulting deliverable"
           ]
+        }
+      ]
+    },
+    {
+      "id": "rq-designQualityEvidence01",
+      "title": "Structural Design-Quality Enforcement at Acceptance and Release",
+      "body": "Design-quality concerns raised by adv-designer reports MUST be enforced structurally, not by reviewer prose. A sandbox-safe gate-readiness evaluator MUST read persisted adv-designer reports from change state and block the acceptance and release gates while the latest designer report for any task carries an undispositioned design_dimensions concern or neighboring_recommendation. A concern clears only when (a) a later all-pass designer report supersedes it, or (b) a typed disposition (fixed, rejected_with_evidence, split, or fast_follow) is recorded via the designConcernDispositioned signal path (adv_design_concern_disposition). On report submission, each concern and neighboring recommendation MUST also be promoted to a durable required-obligation agenda item with an attempt-stable dedupe key; this agenda promotion is ADVISORY routing only and MUST NOT be the gate authority. No accepted_debt terminal state exists anywhere in specs, contract, commands, or agents. Review and harden ownership remains with adv-reviewer, and adv-designer remains apply-phase only.",
+      "priority": "must",
+      "tags": ["workflow", "review", "acceptance", "release", "frontend", "design-proof", "adv-designer", "structural"],
+      "scenarios": [
+        {
+          "id": "rq-designQualityEvidence01.1",
+          "title": "Unresolved designer concern structurally blocks acceptance and release",
+          "given": ["A task's latest adv-designer report contains a design_dimensions concern", "No typed disposition exists for that concern"],
+          "when": "Gate readiness is evaluated for acceptance or release",
+          "then": ["The gate-readiness evaluator emits a DESIGN_CONCERN_UNRESOLVED blocker", "The gate is blocked by code, not by reviewer judgment", "The evaluator reads only change state (sandbox-safe; no agenda or storage access)"]
+        },
+        {
+          "id": "rq-designQualityEvidence01.2",
+          "title": "Concerns and neighboring recommendations are advisably promoted, never silently dropped",
+          "given": ["An adv-designer report includes a design_dimensions concern or a neighboring_recommendation"],
+          "when": "The report is submitted",
+          "then": ["Each concern/recommendation is promoted to a required-obligation agenda item with an attempt-stable dedupe key", "Re-submission at a higher attempt does not duplicate the agenda item", "The agenda promotion is advisory and is not the gate authority"]
+        },
+        {
+          "id": "rq-designQualityEvidence01.3",
+          "title": "Typed disposition clears the block; no accepted_debt state",
+          "given": ["An unresolved design concern blocks acceptance"],
+          "when": "A disposition is recorded via adv_design_concern_disposition (fixed, rejected_with_evidence, split, or fast_follow), or a later all-pass designer report supersedes the concern",
+          "then": ["The DESIGN_CONCERN_UNRESOLVED blocker is cleared", "No accepted_debt terminal state is used", "The disposition carries non-blank typed evidence"]
+        },
+        {
+          "id": "rq-designQualityEvidence01.4",
+          "title": "Runnable visual surface evidence is bounded",
+          "given": ["A frontend change has a runnable visual surface or preview"],
+          "when": "/adv-review evaluates design-quality proof",
+          "then": ["Browser/design evidence includes viewport context", "A missing runnable surface records an explicit fallback rationale", "Advance does not add Storybook as a plugin dependency to satisfy proof"]
         }
       ]
     }

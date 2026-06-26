@@ -3,15 +3,19 @@
   "name": "worktree-lifecycle",
   "title": "Worktree Lifecycle — Branch-Aware Registry, Setup Readiness, Git-First Reconciliation",
   "purpose": "Capability: Branch-aware worktree registry with strict setup readiness, git-first workspace reconciliation, resume/materialization tool, main-checkout safety guard, cleanup eligibility tracking, and bounded cleanup.",
-  "version": "1.5.0",
-  "updated_at": "2026-06-25T00:00:00.000Z",
+  "version": "1.6.0",
+  "updated_at": "2026-06-25",
   "requirements": [
     {
       "id": "rq-wl-branchRegistry01",
       "title": "Branch-Aware Worktree Registry",
       "body": "The worktree registry (per-change workflow state, with cross-change visibility via AdvWorktreeBranches/AdvWorktreePaths Temporal search attributes) must store per-entry: branch, path, materialized flag, changeId, status, setupReady, setupFailureReason, baseRef, headSha, source, cleanupEligible, cleanupBlockedBy. Legacy MaterializedWorktreeRecord consumers must continue to work through a materialized-only compatibility view.",
       "priority": "must",
-      "tags": ["worktree", "registry", "temporal"],
+      "tags": [
+        "worktree",
+        "registry",
+        "temporal"
+      ],
       "scenarios": [
         {
           "id": "rq-wl-branchRegistry01.1",
@@ -20,14 +24,20 @@
             "A worktree is deleted via git but the registry entry retains branch"
           ],
           "when": "The registry is queried",
-          "then": ["The entry exists with materialized=false and path=''"]
+          "then": [
+            "The entry exists with materialized=false and path=''"
+          ]
         },
         {
           "id": "rq-wl-branchRegistry01.2",
           "title": "Materialized-only view omits branch-only records",
-          "given": ["Registry has both materialized and branch-only entries"],
+          "given": [
+            "Registry has both materialized and branch-only entries"
+          ],
           "when": "A legacy consumer requests materialized worktrees",
-          "then": ["Only entries with materialized=true are returned"]
+          "then": [
+            "Only entries with materialized=true are returned"
+          ]
         }
       ]
     },
@@ -36,7 +46,12 @@
       "title": "Cross-change worktree reads isolate poisoned workflow queries",
       "body": "Cross-change worktree visibility MUST query each owning change workflow independently. Worktree branch-owner and active-worktree discovery queries MUST filter owners by AdvLifecycleState = \"open\" plus ExecutionStatus = \"Running\" and MUST NOT use AdvChangeStatus as open-owner authority. A failed per-change getWorktreesQuery MUST NOT abort the whole listWorktreesAcrossChanges result. The result MUST include healthy records from other workflows plus structured warnings and poisonedWorkflows metadata when describe/error evidence identifies poisoned history. When the Temporal visibility source itself is unavailable, the result MUST be marked unavailable rather than throwing to the WIP aggregator.",
       "priority": "must",
-      "tags": ["worktree", "temporal", "poisoned-history", "visibility"],
+      "tags": [
+        "worktree",
+        "temporal",
+        "poisoned-history",
+        "visibility"
+      ],
       "scenarios": [
         {
           "id": "rq-worktreePoisonVisibility01.0",
@@ -98,7 +113,11 @@
       "title": "Strict Setup Readiness",
       "body": "advWorktreeCreate must record materializing state before git worktree add, then transition to active/idle only after postCreate hooks succeed. Hook failure writes setup_failed status with setupReady=false and the failure reason. Active session registration must be blocked on setup_failed records.",
       "priority": "must",
-      "tags": ["worktree", "safety", "hooks"],
+      "tags": [
+        "worktree",
+        "safety",
+        "hooks"
+      ],
       "scenarios": [
         {
           "id": "rq-wl-setupReadiness01.1",
@@ -117,7 +136,9 @@
         {
           "id": "rq-wl-setupReadiness01.2",
           "title": "Successful setup transitions to active",
-          "given": ["advWorktreeCreate is called and postCreate hooks succeed"],
+          "given": [
+            "advWorktreeCreate is called and postCreate hooks succeed"
+          ],
           "when": "The create flow completes",
           "then": [
             "Registry entry has status=active or idle",
@@ -132,12 +153,18 @@
       "title": "Git-First Workspace Reconciliation",
       "body": "A git-first scanner (scanGitWorkspaceFacts) must enumerate actual git worktrees and classify their relationship to registry entries. A pure reconciler (reconcileWorktreeRegistry) must produce classification actions without IO side effects, separating git IO from deterministic state transitions.",
       "priority": "must",
-      "tags": ["worktree", "reconciliation", "git"],
+      "tags": [
+        "worktree",
+        "reconciliation",
+        "git"
+      ],
       "scenarios": [
         {
           "id": "rq-wl-gitFirstReconcile01.1",
           "title": "Orphan git worktree detected",
-          "given": ["A git worktree exists on disk but has no registry entry"],
+          "given": [
+            "A git worktree exists on disk but has no registry entry"
+          ],
           "when": "scanGitWorkspaceFacts + reconcileWorktreeRegistry run",
           "then": [
             "The reconciler produces an 'untracked' classification for that worktree"
@@ -161,7 +188,11 @@
       "title": "Worktree Resume / Materialization Tool",
       "body": "advWorktreeResume must resolve a changeId or branch to an existing worktree record. It must block on setup_failed records (return SETUP_FAILED), reuse setup-ready materialized worktrees, and materialize branch-only records through the strict create path. It must return a concrete workdir path on success.",
       "priority": "must",
-      "tags": ["worktree", "resume", "tool"],
+      "tags": [
+        "worktree",
+        "resume",
+        "tool"
+      ],
       "scenarios": [
         {
           "id": "rq-wl-resumeTool01.1",
@@ -181,7 +212,9 @@
             "A worktree record with status=setup_failed exists for the change"
           ],
           "when": "advWorktreeResume is called with the changeId",
-          "then": ["Returns SETUP_FAILED result with branch, path, and reason"]
+          "then": [
+            "Returns SETUP_FAILED result with branch, path, and reason"
+          ]
         },
         {
           "id": "rq-wl-resumeTool01.3",
@@ -202,7 +235,10 @@
       "title": "Cleanup Eligibility Tracking",
       "body": "Registry entries must track cleanupEligible and cleanupBlockedBy fields. Entries with status=merged and no active sessions should be cleanup-eligible. Entries with setup_failed or active sessions should not be cleanup-eligible, with cleanupBlockedBy documenting the reason.",
       "priority": "should",
-      "tags": ["worktree", "cleanup"],
+      "tags": [
+        "worktree",
+        "cleanup"
+      ],
       "scenarios": [
         {
           "id": "rq-wl-cleanupEligibility01.1",
@@ -212,12 +248,17 @@
             "No active sessions reference this worktree"
           ],
           "when": "Cleanup eligibility is evaluated",
-          "then": ["cleanupEligible=true", "cleanupBlockedBy is empty"]
+          "then": [
+            "cleanupEligible=true",
+            "cleanupBlockedBy is empty"
+          ]
         },
         {
           "id": "rq-wl-cleanupEligibility01.2",
           "title": "Active session blocks cleanup",
-          "given": ["A worktree entry has an active session"],
+          "given": [
+            "A worktree entry has an active session"
+          ],
           "when": "Cleanup eligibility is evaluated",
           "then": [
             "cleanupEligible=false",
@@ -231,7 +272,12 @@
       "title": "Terminal Worktree Cleanup Reaper",
       "body": "ADV must provide one shared terminal cleanup reaper for terminal ADV worktrees. The reaper must be reachable from archive, manual cleanup, status/triage discovery, bounded startup pending-delete drain, and best-effort session.deleted. Startup behavior must drain already-known pending deletes only; full terminal discovery must not run during plugin startup. All deletion attempts must delegate to advWorktreeDelete.",
       "priority": "must",
-      "tags": ["worktree", "cleanup", "terminal", "reaper"],
+      "tags": [
+        "worktree",
+        "cleanup",
+        "terminal",
+        "reaper"
+      ],
       "scenarios": [
         {
           "id": "rq-terminalCleanupReaper01.1",
@@ -248,7 +294,9 @@
         {
           "id": "rq-terminalCleanupReaper01.2",
           "title": "Startup remains bounded",
-          "given": ["Plugin startup begins with pending deletes recorded"],
+          "given": [
+            "Plugin startup begins with pending deletes recorded"
+          ],
           "when": "Startup cleanup runs",
           "then": [
             "Only already-known pending deletes are drained",
@@ -262,7 +310,11 @@
       "title": "Terminal Cleanup Safety Gate",
       "body": "Terminal cleanup candidates MUST NOT run git worktree remove directly. advWorktreeDelete is the sole deletion authority and must verify durable ADV state, terminal owning change status (archived or closed), branch integration, clean worktree state, and no live process CWD before removal. census.cleanupEligible is advisory discovery/visibility data only and must not be used as sufficient deletion authority.",
       "priority": "must",
-      "tags": ["worktree", "cleanup", "safety"],
+      "tags": [
+        "worktree",
+        "cleanup",
+        "safety"
+      ],
       "scenarios": [
         {
           "id": "rq-terminalCleanupSafety01.1",
@@ -279,7 +331,9 @@
         {
           "id": "rq-terminalCleanupSafety01.2",
           "title": "Census eligibility is not authority",
-          "given": ["census.cleanupEligible is true for a worktree"],
+          "given": [
+            "census.cleanupEligible is true for a worktree"
+          ],
           "when": "The reaper attempts cleanup",
           "then": [
             "advWorktreeDelete still verifies durable ADV state before deletion"
@@ -292,12 +346,19 @@
       "title": "Terminal Cleanup Visibility",
       "body": "Retained terminal cleanup blockers must be visible without requiring manual git inspection. adv_status must surface aggregate retained-terminal-worktree counts/classes only. adv_worktree_triage must surface exact branches, paths, and blockers for retained terminal cleanup candidates.",
       "priority": "must",
-      "tags": ["worktree", "cleanup", "status", "triage"],
+      "tags": [
+        "worktree",
+        "cleanup",
+        "status",
+        "triage"
+      ],
       "scenarios": [
         {
           "id": "rq-terminalCleanupVisibility01.1",
           "title": "Status shows aggregates",
-          "given": ["Retained terminal cleanup blockers exist"],
+          "given": [
+            "Retained terminal cleanup blockers exist"
+          ],
           "when": "adv_status runs",
           "then": [
             "The output includes retained cleanup counts/classes",
@@ -307,9 +368,13 @@
         {
           "id": "rq-terminalCleanupVisibility01.2",
           "title": "Triage shows exact blockers",
-          "given": ["Retained terminal cleanup blockers exist"],
+          "given": [
+            "Retained terminal cleanup blockers exist"
+          ],
           "when": "adv_worktree_triage runs",
-          "then": ["Exact branches, paths, and blockers are returned"]
+          "then": [
+            "Exact branches, paths, and blockers are returned"
+          ]
         }
       ]
     },
@@ -318,12 +383,19 @@
       "title": "Single Terminal Cleanup Lifecycle Path",
       "body": "Terminal cleanup processing must route through one shared cleanup path instead of duplicate lifecycle loops. Concurrent cleanup triggers must be serialized or idempotent, and retained in-use worktrees must stay queued or preserved for retry. Manual cleanup must be able to retry safe terminal pending deletes even when prior automatic attempts reached an attempt cap.",
       "priority": "must",
-      "tags": ["worktree", "cleanup", "lifecycle", "concurrency"],
+      "tags": [
+        "worktree",
+        "cleanup",
+        "lifecycle",
+        "concurrency"
+      ],
       "scenarios": [
         {
           "id": "rq-terminalCleanupLifecycle01.1",
           "title": "Concurrent triggers are idempotent",
-          "given": ["Two cleanup triggers process the same pending delete"],
+          "given": [
+            "Two cleanup triggers process the same pending delete"
+          ],
           "when": "Both triggers run concurrently or sequentially",
           "then": [
             "Processing is serialized or idempotent",
@@ -337,7 +409,9 @@
             "A safe terminal pending delete has exhausted automatic attempts"
           ],
           "when": "Manual cleanup runs",
-          "then": ["The safe pending delete is retried through the shared path"]
+          "then": [
+            "The safe pending delete is retried through the shared path"
+          ]
         }
       ]
     },
@@ -346,7 +420,11 @@
       "title": "Machine-Enforced ADV Worktree Mutation Guard",
       "body": "ADV mutating tools that advance working-tree-impacting gates or change task execution state must structurally block execution from the main checkout when feature_flags.worktree_guard_enforce is true (default per rq-autoManageAdvWorktrees AC2) OR when the per-change `worktree_auto_managed` marker is true (regardless of global flag). Mutations from an ADV worktree remain allowed. Gate completion isolation is classified by working-tree impact: the proposal gate, discovery gate, and design gate are metadata-only gate completions and remain allowed from the main checkout; planning, execution, acceptance, and release are worktree-mutation gates and remain guarded. EXISTING-WORKTREE EXCEPTION: when a setup-ready ADV worktree already exists for the change, guarded gate/task state-transition mutations from the main checkout are ALLOWED (the signal proceeds, no BLOCK), regardless of the per-change `worktree_auto_managed` marker (true, false, or undefined). Existing-worktree detection is the structural authority — read from the durable change-workflow `worktrees` map, never from heuristic/string-matched filesystem paths — and the marker is a fast-path hint only. A worktree counts as setup-ready ONLY when its record satisfies all of: status is neither `deleted` nor `setup_failed`, `setupReady === true`, and `path` is present; a `setup_failed` or `setupReady:false` record does NOT qualify. The BLOCK applies only when NO setup-ready worktree exists. This exception is scoped strictly to durable Temporal state-transition mutations that do not depend on `process.cwd()`; file-write isolation (task checkpoint and file edits) is unchanged and still requires an explicit worktree workdir. On probe error or Temporal-unavailable, the guard MUST NOT ALLOW on unknown existence — it falls back to the marker-based behavior. For auto-managed changes with no existing setup-ready worktree, guarded gate/task mutations MUST attempt to materialize the worktree via `advWorktreeResume` before BLOCKing, and surface the resulting path via `expectedWorktreePath` so the agent can re-run from the correct workdir. The guard must return WorktreeIsolationViolation with main checkout path and remediation instead of relying on agent-only instructions. Explicit `worktree_guard_enforce: false` preserves legacy permissive behavior for non-auto-managed changes.",
       "priority": "must",
-      "tags": ["worktree", "safety", "mutation-guard"],
+      "tags": [
+        "worktree",
+        "safety",
+        "mutation-guard"
+      ],
       "scenarios": [
         {
           "id": "rq-worktreeMutationGuard01.1",
@@ -430,7 +508,12 @@
       "title": "Bounded Worktree Cleanup",
       "body": "Worktree cleanup operations must be bounded to prevent runaway deletion. After each worktree deletion, a post-delete notification must be emitted within the default 10s timeout. Per-item cleanup must proceed sequentially with bounded retries; batch or parallel unbounded cleanup is prohibited. The cleanup tool must classify worktrees into drift groups (safe, blocked, dirty/in-use, needs-investigation) and remain report-only for worktree drift even under `--execute`. Actual worktree deletion remains owned by `adv_worktree_delete` and `adv_worktree_cleanup`.",
       "priority": "must",
-      "tags": ["worktree", "cleanup", "bounded", "safety"],
+      "tags": [
+        "worktree",
+        "cleanup",
+        "bounded",
+        "safety"
+      ],
       "scenarios": [
         {
           "id": "rq-worktreeBoundedCleanup01.1",
@@ -448,7 +531,9 @@
         {
           "id": "rq-worktreeBoundedCleanup01.2",
           "title": "Per-item sequential cleanup with bounded retries",
-          "given": ["Multiple worktrees are eligible for cleanup"],
+          "given": [
+            "Multiple worktrees are eligible for cleanup"
+          ],
           "when": "adv_worktree_cleanup processes the queue",
           "then": [
             "Worktrees are processed sequentially, one at a time",
@@ -463,19 +548,31 @@
       "title": "Tool-Facing Timeout Safety Budget",
       "body": "Worktree tool wrappers (adv_worktree_delete, adv_worktree_cleanup) must enforce a safe timeout budget strictly below the SDK's 10s tool-execution ceiling. The safe budget is 8s (WORKTREE_TOOL_SAFE_TIMEOUT_MS). Caller-supplied timeoutMs values exceeding the safe budget are clamped automatically. On timeout, the tool must return a typed timeout response (no late background mutation). Internal operations (git remove, workspace fetch/delete, workflow signal) must each be bounded below the tool budget. The effective timeout must be reported in the response as effectiveTimeoutMs.",
       "priority": "must",
-      "tags": ["worktree", "timeout", "safety", "bounded", "tool-wrapper"],
+      "tags": [
+        "worktree",
+        "timeout",
+        "safety",
+        "bounded",
+        "tool-wrapper"
+      ],
       "scenarios": [
         {
           "id": "rq-worktreeBoundedCleanup02.1",
           "title": "Safe budget constant is 8s",
-          "given": ["The worktree tool wrappers are loaded"],
+          "given": [
+            "The worktree tool wrappers are loaded"
+          ],
           "when": "WORKTREE_TOOL_SAFE_TIMEOUT_MS is queried",
-          "then": ["The value is 8000ms"]
+          "then": [
+            "The value is 8000ms"
+          ]
         },
         {
           "id": "rq-worktreeBoundedCleanup02.2",
           "title": "Oversize timeout is clamped with effectiveTimeoutMs",
-          "given": ["adv_worktree_cleanup is called with timeoutMs > 8000"],
+          "given": [
+            "adv_worktree_cleanup is called with timeoutMs > 8000"
+          ],
           "when": "The tool processes the request",
           "then": [
             "The effective timeout is clamped to 8000ms",
@@ -499,7 +596,9 @@
         {
           "id": "rq-worktreeBoundedCleanup02.4",
           "title": "Git remove is bounded",
-          "given": ["A worktree deletion calls git worktree remove"],
+          "given": [
+            "A worktree deletion calls git worktree remove"
+          ],
           "when": "The git operation hangs",
           "then": [
             "The operation is killed after the git remove timeout (5s)",
@@ -526,7 +625,12 @@
       "title": "Target-Project Worktree Cleanup Routing",
       "body": "Worktree cleanup mutation tools that support target-project operation MUST route target_path calls through the target project's store and Temporal queue, require explicit confirmation for untrusted target mutation, and preserve existing delete/cleanup safety gates. Worktree triage recommendations for a target project MUST be actionable from the current session by including target-aware remediation instead of bare current-project cleanup commands.",
       "priority": "must",
-      "tags": ["worktree", "cleanup", "target-path", "cross-project"],
+      "tags": [
+        "worktree",
+        "cleanup",
+        "target-path",
+        "cross-project"
+      ],
       "scenarios": [
         {
           "id": "rq-worktreeTargetCleanup01.1",
@@ -563,6 +667,46 @@
           "then": [
             "The recommendation includes target_path context or equivalent target-aware remediation",
             "The recommendation does not imply that a bare current-project adv_worktree_delete call will repair target-project drift"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-worktreeLeaseLiveness01",
+      "title": "Worktree Lease Liveness Is Fail-Safe",
+      "body": "Worktree lease reclamation must treat an owning PID as alive unless the liveness probe definitively proves it dead. A process-existence probe (signal 0) that fails with ESRCH means the process is gone (dead); a failure with EPERM (process exists but is not signalable by this user) or any other error must be treated as alive. Lease reclamation must not reclaim or overwrite a lease whose owning PID is treated as alive, preserving the exclusive-worktree-ownership invariant on multi-user hosts. All worktree-lease liveness checks must use the shared liveness helper rather than divergent local implementations.",
+      "priority": "must",
+      "tags": [
+        "worktree",
+        "lease",
+        "concurrency",
+        "liveness"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-worktreeLeaseLiveness01.1",
+          "title": "EPERM liveness probe does not reclaim a live peer lease",
+          "given": [
+            "A worktree lease is held by another PID",
+            "A signal-0 probe against that PID throws EPERM or a non-ESRCH error"
+          ],
+          "when": "Lease reclamation evaluates whether the existing lease may be taken over",
+          "then": [
+            "The owning PID is treated as alive",
+            "The existing lease is not reclaimed or overwritten"
+          ]
+        },
+        {
+          "id": "rq-worktreeLeaseLiveness01.2",
+          "title": "ESRCH liveness probe allows reclaim of a dead-owner lease",
+          "given": [
+            "A worktree lease is held by a PID that no longer exists",
+            "A signal-0 probe against that PID throws ESRCH"
+          ],
+          "when": "Lease reclamation evaluates the stale lease",
+          "then": [
+            "The owning PID is treated as dead",
+            "The lease may be reclaimed per the normal stale-reclaim rules"
           ]
         }
       ]

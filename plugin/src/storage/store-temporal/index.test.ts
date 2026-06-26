@@ -503,7 +503,7 @@ describe("createTemporalStoreBackend change projection fallback", () => {
       expect.objectContaining({ changeId: "activeDiskOnlyList" }),
     ]);
     expect(queryCount("archivedDiskOnlyList")).toBe(1);
-    expect(queryCount("closedDiskOnlyList")).toBe(1);
+    expect(queryCount("closedDiskOnlyList")).toBe(0);
   });
 
   it("seeds contract proof fields when recovering a poisoned non-terminal change", async () => {
@@ -922,6 +922,69 @@ describe("listResolvedChanges memo fast path", () => {
     expect(listed).toBeDefined();
     expect(listed!.taskCount).toBe(2);
     expect(listed!.completedTasks).toBe(1);
+  });
+
+  it("lets closed disk projection dominate stale active Temporal state", async () => {
+    tempDir = await createTempDir();
+    const legacy = await createDiskStore(tempDir);
+
+    await legacy.changes.save(closedChange("staleClosedChange"));
+
+    const temporal = {
+      client: {
+        workflow: {
+          getHandle: () => ({
+            query: async () => ({
+              id: "staleClosedChange",
+              changeId: "staleClosedChange",
+              title: "Stale active staleClosedChange",
+              status: "active",
+              createdAt: "2026-05-07T00:00:00.000Z",
+              initializedAt: "2026-05-07T00:00:00.000Z",
+              projectId: "project-1",
+              tasks: [],
+              deltas: {},
+              wisdom: [],
+              gates: createDefaultGates(),
+              reentry_history: [],
+              artifacts: {},
+              documents: {},
+              reflections: [],
+              worktrees: {},
+              conformance: { lockedSpecs: [], overrides: [] },
+            }),
+          }),
+          list: async function* () {
+            yield {
+              workflowId: "adv/change/project-1/staleClosedChange",
+            };
+          },
+          start: async () => {
+            throw new Error("start should not be called");
+          },
+        },
+      },
+    };
+
+    const store = createTemporalStoreBackend({
+      legacy,
+      temporal,
+      projectId: "project-1",
+    });
+
+    const getResult = await store.changes.get("staleClosedChange");
+    expect(getResult.success).toBe(true);
+    expect(getResult.data?.status).toBe("closed");
+
+    const activeList = await store.changes.list();
+    expect(activeList.changes.map((change) => change.id)).not.toContain(
+      "staleClosedChange",
+    );
+
+    const closedList = await store.changes.list({ status: "closed" });
+    expect(closedList.changes.map((change) => change.id)).toContain(
+      "staleClosedChange",
+    );
   });
 });
 

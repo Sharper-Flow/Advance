@@ -232,6 +232,23 @@ Any secondary surfaces found during completeness verification (parallel code pat
 
 Secondary surfaces MUST NOT be silently deferred as "future work" without explicit scope rationale.
 
+### Reproduction Finding Classification (rq-acWarrant01)
+
+Every reproduction-sourced finding (a symptom observed from a bug report, issue, or user-attempted operation) MUST be classified before it can seed an acceptance or success criterion:
+
+| Classification | Meaning | May seed a "must-work" criterion? |
+| --- | --- | --- |
+| `broken_capability` | A capability that should work but is defective | Yes |
+| `unwarranted_operation` | The user attempted an operation that does not exist or is not architecturally warranted | **No** |
+| `unverified` | The finding is hedged/unconfirmed; the capability premise has not been verified against tool surface, spec, or code | **No** (until verified → reclassify) |
+
+Rules:
+
+- A failed reproduction attempt is **not** automatically a requirement. Classify it first.
+- Findings classified `unwarranted_operation` or `unverified` MUST NOT seed a criterion asserting the capability must work. Downgrade them to an out-of-scope note or recorded rationale, or verify and reclassify as `broken_capability`.
+- × Never harden a hedged/`unverified` observation into a firm criterion. This is the exact failure class `rq-acWarrant01` exists to prevent.
+- Record each finding's classification in the discovery output.
+
 ### Target-operation surface scan evidence shape
 
 When a surface scan runs, record: searched terms/symbols, found surfaces (file:line), excluded surfaces with rationale, and the final scope disposition. This evidence is carried forward so design and review can audit completeness.
@@ -552,6 +569,12 @@ Visual comparison blocks are supplementary context, not a replacement for the `q
    - If a criterion encodes a mechanism/component/library/data structure, emit an advisory finding with the exact phrase.
    - Mark it preliminary or likely design-derived; recommend revision or design review.
    - × Do NOT hard-block discovery solely because this advisory guard fired.
+2b. Run the **Capability-Warrant Declaration** step (rq-acWarrant01) over each draft criterion:
+   - A **capability-presuming** criterion — one asserting that a specific tool, tool argument, or spec requirement exists or must work — MUST carry a typed warrant tag appended to its text: `[warrant: <ref>]`, where ref is `tool:<name>`, `tool:<name>#<arg>`, or `spec:<rq-id>`. Comma-separate multiple refs.
+   - Example: `AC2: Cross-project repair routes through the target namespace. [warrant: tool:adv_change_status_repair#target_path]`
+   - At contract mint, each declared warrant is verified against the live tool surface / spec ids; an unresolved warrant fails the mint with `CONTRACT_UNRESOLVED_WARRANT`. Declaring a warrant for a surface that does not exist (the unwarranted-criterion failure class) is therefore caught structurally.
+   - **Behavioral criteria** that presume no capability surface (e.g. "returns an error when input is invalid") require **no** warrant tag — do not add ceremony (proportionality, DONT4).
+   - If a criterion would presume a capability that a Phase 1.8 finding classified `unwarranted_operation`/`unverified`, do not write the criterion — resolve the classification first.
 3. Emit the **Inline Approval prompt (Tier A with `/adv-clarify` literal detection)** per `docs/command-voice-standard.md` § Inline Approval Voice:
 
    ```

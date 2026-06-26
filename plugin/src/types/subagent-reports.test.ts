@@ -3,6 +3,7 @@ import type { z } from "zod";
 
 import {
   ChangeReportScopeKeySchema,
+  DesignConcernDispositionSchema,
   DesignerSubagentReportSchema,
   EngineerSubagentReportSchema,
   getSubagentReportPacketAnchors,
@@ -17,6 +18,7 @@ import {
   SUBAGENT_REPORT_PACKET_ANCHORS,
   SUBAGENT_WARN_FIRST_PACKET_ANCHORS,
   SubagentAgentSchema,
+  SubagentConsumerWarningSchema,
   TronSubagentReportSchema,
 } from "./subagent-reports";
 
@@ -390,6 +392,67 @@ describe("Subagent report schemas", () => {
     ).toThrow();
   });
 
+  it("requires designer dimension notes when any dimension is concern", () => {
+    expect(() =>
+      DesignerSubagentReportSchema.parse({
+        ...designerReport,
+        design_dimensions: {
+          ...designerReport.design_dimensions,
+          visual_polish: "concern",
+          notes: undefined,
+        },
+      }),
+    ).toThrow();
+
+    expect(() =>
+      DesignerSubagentReportSchema.parse({
+        ...designerReport,
+        design_dimensions: {
+          ...designerReport.design_dimensions,
+          visual_polish: "concern",
+          notes: "Spacing mismatch reported for orchestrator review.",
+        },
+      }),
+    ).not.toThrow();
+  });
+
+  it("requires designer dimension notes when any dimension is n/a", () => {
+    expect(() =>
+      DesignerSubagentReportSchema.parse({
+        ...designerReport,
+        design_dimensions: {
+          ...designerReport.design_dimensions,
+          responsive_behavior: "n/a",
+          notes: undefined,
+        },
+      }),
+    ).toThrow();
+
+    expect(() =>
+      DesignerSubagentReportSchema.parse({
+        ...designerReport,
+        design_dimensions: {
+          ...designerReport.design_dimensions,
+          responsive_behavior: "n/a",
+          notes:
+            "Static icon-only change; no responsive layout behavior affected.",
+        },
+      }),
+    ).not.toThrow();
+  });
+
+  it("allows compact all-pass designer dimensions without notes", () => {
+    const { notes: _notes, ...allPassDimensions } =
+      designerReport.design_dimensions;
+
+    expect(() =>
+      DesignerSubagentReportSchema.parse({
+        ...designerReport,
+        design_dimensions: allPassDimensions,
+      }),
+    ).not.toThrow();
+  });
+
   it("keeps optimized handoff agent literals in the supported surface", () => {
     expect(SubagentAgentSchema.options).toEqual([
       "adv-engineer",
@@ -474,6 +537,76 @@ describe("Subagent report schemas", () => {
 
     expect(parsedEngineer.required_follow_ups).toBeUndefined();
     expect(parsedReviewer.required_follow_ups).toBeUndefined();
+  });
+
+  describe("design-quality enforcement schema additions", () => {
+    it("parses designer report with required_follow_ups", () => {
+      const parsed = DesignerSubagentReportSchema.parse({
+        ...designerReport,
+        required_follow_ups: [
+          {
+            text: "Resolve site_design_consistency concern before acceptance",
+            obligation_class: "required_standard",
+            severity: "high",
+          },
+        ],
+      });
+
+      expect(parsed.required_follow_ups).toHaveLength(1);
+      expect(parsed.required_follow_ups![0].obligation_class).toBe(
+        "required_standard",
+      );
+    });
+
+    it("preserves designer backward compat without required_follow_ups", () => {
+      const parsed = DesignerSubagentReportSchema.parse(designerReport);
+      expect(parsed.required_follow_ups).toBeUndefined();
+    });
+
+    it("accepts design_concern_promoted consumer warning kind", () => {
+      const parsed = SubagentConsumerWarningSchema.parse({
+        kind: "design_concern_promoted",
+        message:
+          "Promoted site_design_consistency concern to a durable obligation",
+      });
+      expect(parsed.kind).toBe("design_concern_promoted");
+    });
+
+    it("parses a valid design-concern disposition", () => {
+      const parsed = DesignConcernDispositionSchema.parse({
+        taskId: "tk-design123",
+        concernKey: "dimension:site_design_consistency",
+        disposition: "rejected_with_evidence",
+        evidence: "Out-of-scope legacy page; tracked in fast-follow #123.",
+        dispositionedAt: "2026-06-25T14:00:00.000Z",
+      });
+      expect(parsed.disposition).toBe("rejected_with_evidence");
+      expect(parsed.concernKey).toBe("dimension:site_design_consistency");
+    });
+
+    it("rejects a design-concern disposition with empty evidence", () => {
+      expect(() =>
+        DesignConcernDispositionSchema.parse({
+          taskId: "tk-design123",
+          concernKey: "dimension:site_design_consistency",
+          disposition: "fixed",
+          evidence: "",
+          dispositionedAt: "2026-06-25T14:00:00.000Z",
+        }),
+      ).toThrow();
+    });
+
+    it("rejects an unknown disposition verb (no accepted_debt)", () => {
+      expect(() =>
+        DesignConcernDispositionSchema.parse({
+          taskId: "tk-design123",
+          concernKey: "dimension:site_design_consistency",
+          disposition: "accepted_debt",
+          evidence: "should not be allowed",
+          dispositionedAt: "2026-06-25T14:00:00.000Z",
+        }),
+      ).toThrow();
+    });
   });
 
   describe("context packet anchor contract", () => {

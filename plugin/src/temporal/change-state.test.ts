@@ -7,6 +7,7 @@ import {
   applyEpicMembershipSetToState,
   applySubagentReportSubmittedToState,
   applyContractAmendedToState,
+  applyDesignConcernDispositionedToState,
   applyGateReenteredToState,
   applyProposalUpdatedToState,
   applyTaskAddedToState,
@@ -128,6 +129,32 @@ describe("change-state pure mutation helpers", () => {
     const seed = changeSeedStateFromChange(change);
 
     expect(seed.lifecycleState).toBe("archived");
+  });
+
+  it("carries design-concern dispositions during workflow re-seed", () => {
+    const change = {
+      id: "design-disposition-change",
+      title: "Design disposition change",
+      status: "active",
+      created_at: "2026-06-25T00:00:00.000Z",
+      tasks: [],
+      deltas: {},
+      design_concern_dispositions: [
+        {
+          taskId: "tk-design123",
+          concernKey: "dimension:site_design_consistency",
+          disposition: "rejected_with_evidence",
+          evidence: "Legacy page explicitly out of scope.",
+          dispositionedAt: "2026-06-25T14:00:00.000Z",
+        },
+      ],
+    } satisfies Change;
+
+    const seed = changeSeedStateFromChange(change);
+
+    expect(seed.design_concern_dispositions).toEqual(
+      change.design_concern_dispositions,
+    );
   });
 
   it("keeps workflow and I/O imports out of the mutation module", () => {
@@ -1098,5 +1125,70 @@ describe("applyTestRunRecordedToState and rq-TDD009seq ordering enforcement", ()
         lastGreenRunId: "tr_green_first",
       }),
     ).toThrow(/TASK_ORDERING_VIOLATION/);
+  });
+});
+
+describe("applyDesignConcernDispositionedToState", () => {
+  function baseState() {
+    return createChangeWorkflowState({
+      changeId: "addDesignQualityGates",
+      title: "Add design quality gates",
+      createdAt: "2026-06-25T00:00:00.000Z",
+    });
+  }
+
+  const disposition = {
+    taskId: "tk-design123",
+    concernKey: "dimension:site_design_consistency",
+    disposition: "rejected_with_evidence" as const,
+    evidence: "Legacy page out of scope; fast-follow #123.",
+    dispositionedAt: "2026-06-25T14:00:00.000Z",
+  };
+
+  it("appends a design-concern disposition to state", () => {
+    const state = applyDesignConcernDispositionedToState(
+      baseState(),
+      disposition,
+    );
+    expect(state.design_concern_dispositions).toHaveLength(1);
+    expect(state.design_concern_dispositions![0].concernKey).toBe(
+      "dimension:site_design_consistency",
+    );
+    expect(state.design_concern_dispositions![0].disposition).toBe(
+      "rejected_with_evidence",
+    );
+  });
+
+  it("latest-wins on the same (taskId, concernKey)", () => {
+    let state = applyDesignConcernDispositionedToState(
+      baseState(),
+      disposition,
+    );
+    state = applyDesignConcernDispositionedToState(state, {
+      ...disposition,
+      disposition: "fixed",
+      evidence: "Reworked to match site family.",
+      dispositionedAt: "2026-06-25T15:00:00.000Z",
+    });
+
+    expect(state.design_concern_dispositions).toHaveLength(1);
+    expect(state.design_concern_dispositions![0].disposition).toBe("fixed");
+    expect(state.design_concern_dispositions![0].dispositionedAt).toBe(
+      "2026-06-25T15:00:00.000Z",
+    );
+  });
+
+  it("keeps distinct (taskId, concernKey) dispositions separate", () => {
+    let state = applyDesignConcernDispositionedToState(
+      baseState(),
+      disposition,
+    );
+    state = applyDesignConcernDispositionedToState(state, {
+      ...disposition,
+      concernKey: "neighbor:0",
+      disposition: "split",
+    });
+
+    expect(state.design_concern_dispositions).toHaveLength(2);
   });
 });

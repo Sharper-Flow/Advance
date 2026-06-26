@@ -52,6 +52,7 @@ tools:
   adv_change_update_issues: true
   adv_change_reenter: true
   adv_change_forget: true
+  adv_design_concern_disposition: true
   adv_archive_repair: true
   adv_change_status_repair: true
   # Tasks

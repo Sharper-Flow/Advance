@@ -357,6 +357,7 @@ import {
   fireSignalAndRefresh,
   getChangeHandle,
   querySignal,
+  waitForGateCompletion,
 } from "./_adapters";
 import {
   changeCancelledSignal,
@@ -1226,34 +1227,10 @@ function getArchiveGatePreflightError(
 }
 
 // rq-releaseFinalization01: release gate confirmation must be durable.
-// Temporal signal processing + projection can take several seconds under load.
-// 60 attempts × 500ms = 30s total gives adequate headroom for CI and local dev.
-const ARCHIVE_RELEASE_GATE_POLL_ATTEMPTS = 60;
-const ARCHIVE_RELEASE_GATE_POLL_DELAY_MS = 500;
-
-const archiveDelay = (ms: number): Promise<void> =>
-  new Promise((resolve) => setTimeout(resolve, ms));
-
 async function waitForArchiveReleaseGateCompletion(
   handle: ReturnType<typeof getChangeHandle>,
 ): Promise<GateCompletion | undefined> {
-  let latest: GateCompletion | undefined;
-  for (
-    let attempt = 0;
-    attempt < ARCHIVE_RELEASE_GATE_POLL_ATTEMPTS;
-    attempt++
-  ) {
-    latest = await querySignal<GateCompletion>(
-      handle,
-      getGateStatusQuery,
-      "release",
-    );
-    if (latest?.status === "done" || latest?.status === "stuck") {
-      return latest;
-    }
-    await archiveDelay(ARCHIVE_RELEASE_GATE_POLL_DELAY_MS);
-  }
-  return latest;
+  return waitForGateCompletion(handle, "release");
 }
 
 function buildReleaseCompletionEvidence(
@@ -1511,6 +1488,29 @@ async function recoverReleaseGateViaDiskProjection(input: {
   };
 }
 
+/**
+ * Single source of truth for the completed-workflow recovery dance used by the
+ * archive release-gate completion path (STRUCT-002). Classifies the error; on a
+ * completed/poisoned workflow it recovers the release gate via disk projection,
+ * otherwise it rethrows. Replaces three byte-identical inline catch blocks.
+ */
+async function recoverReleaseGateIfWorkflowCompleted(
+  error: unknown,
+  ctx: { store: Store; change: Change; evidence: string },
+): Promise<Extract<ArchiveReleaseGateResult, { ok: true }>> {
+  const { isWorkflowCompletedError } =
+    await import("../temporal/recovery-classification");
+  if (isWorkflowCompletedError(error)) {
+    return recoverReleaseGateViaDiskProjection({
+      store: ctx.store,
+      change: ctx.change,
+      evidence: ctx.evidence,
+      recoveryEvidence: collectErrorText(error),
+    });
+  }
+  throw error;
+}
+
 type DurableReleaseGateProofResult =
   | { ok: true; gate: GateCompletion }
   | {
@@ -1616,17 +1616,11 @@ async function completeReleaseGateAfterFinalization(input: {
       "release",
     );
   } catch (error) {
-    const { isWorkflowCompletedError } =
-      await import("../temporal/recovery-classification");
-    if (isWorkflowCompletedError(error)) {
-      return recoverReleaseGateViaDiskProjection({
-        store: input.store,
-        change: input.change,
-        evidence,
-        recoveryEvidence: collectErrorText(error),
-      });
-    }
-    throw error;
+    return recoverReleaseGateIfWorkflowCompleted(error, {
+      store: input.store,
+      change: input.change,
+      evidence,
+    });
   }
   if (currentGate?.status === "done") {
     return { ok: true, gate: currentGate, alreadyDone: true };
@@ -1646,34 +1640,22 @@ async function completeReleaseGateAfterFinalization(input: {
       },
     );
   } catch (error) {
-    const { isWorkflowCompletedError } =
-      await import("../temporal/recovery-classification");
-    if (isWorkflowCompletedError(error)) {
-      return recoverReleaseGateViaDiskProjection({
-        store: input.store,
-        change: input.change,
-        evidence,
-        recoveryEvidence: collectErrorText(error),
-      });
-    }
-    throw error;
+    return recoverReleaseGateIfWorkflowCompleted(error, {
+      store: input.store,
+      change: input.change,
+      evidence,
+    });
   }
 
   let postSignalGate: GateCompletion | undefined;
   try {
     postSignalGate = await waitForArchiveReleaseGateCompletion(handle);
   } catch (error) {
-    const { isWorkflowCompletedError } =
-      await import("../temporal/recovery-classification");
-    if (isWorkflowCompletedError(error)) {
-      return recoverReleaseGateViaDiskProjection({
-        store: input.store,
-        change: input.change,
-        evidence,
-        recoveryEvidence: collectErrorText(error),
-      });
-    }
-    throw error;
+    return recoverReleaseGateIfWorkflowCompleted(error, {
+      store: input.store,
+      change: input.change,
+      evidence,
+    });
   }
   if (postSignalGate?.status === "done") {
     return { ok: true, gate: postSignalGate, alreadyDone: false };
@@ -3530,22 +3512,13 @@ export const changeTools = {
           signalError: error,
         });
         if (recovery.recovered) {
-          let cleanupWarning: string | undefined;
-          if (store.paths?.changes) {
-            try {
-              await removeChangeDir(store.paths.changes, changeId);
-            } catch (err) {
-              cleanupWarning = `Source cleanup warning: failed to remove changes/${changeId}: ${err instanceof Error ? err.message : String(err)}`;
-            }
-          }
           return formatToolOutput({
             success: true,
             _recoveryMutation: true,
+            diskProjectionRetained: true,
             changeId,
             reason,
-            message: cleanupWarning
-              ? `Closed change ${changeId} as ${reason} via completed-workflow recovery. ${cleanupWarning}`
-              : `Closed change ${changeId} as ${reason} via completed-workflow recovery.`,
+            message: `Closed change ${changeId} as ${reason} via completed-workflow recovery. Retained closed disk projection for stale-visibility reconciliation.`,
           });
         }
         const contextMismatch = extractContextMismatch(error);
@@ -3753,7 +3726,7 @@ export const changeTools = {
         let diskRemoved: string[] = [];
         let diskFailed: Array<{ id: string; error: string }> = [];
         const successfulIds = results
-          .filter((r) => r.success)
+          .filter((r) => r.success && !r.recovered)
           .map((r) => r.changeId);
         if (successfulIds.length > 0 && store.paths?.changes) {
           const sweep = await sweepClosedChangesFromDisk(
@@ -4282,11 +4255,15 @@ export const changeTools = {
               currentChange.status = "archived";
               await store.changes.save(currentChange);
 
-              // Cleanup
+              // Cleanup. Failures here are non-fatal (the change is already
+              // durably archived) but MUST be observable so leaked dirs,
+              // worktrees, and branches do not accumulate silently (QUAL-004).
               try {
                 await removeChangeDir(store.paths.changes, currentChange.id);
-              } catch {
-                // warning-only
+              } catch (err) {
+                logger.warn(
+                  `archive cleanup: failed to remove change dir for ${currentChange.id}: ${err instanceof Error ? err.message : String(err)}`,
+                );
               }
 
               try {
@@ -4297,8 +4274,10 @@ export const changeTools = {
                   store,
                   forceAttempts: false,
                 });
-              } catch {
-                // warning-only
+              } catch (err) {
+                logger.warn(
+                  `archive cleanup: worktree cleanup failed for ${currentChange.id}: ${err instanceof Error ? err.message : String(err)}`,
+                );
               }
 
               if (
@@ -4312,8 +4291,10 @@ export const changeTools = {
                     currentFinalization.mainCheckout,
                     currentChange.id,
                   );
-                } catch {
-                  // warning-only
+                } catch (err) {
+                  logger.warn(
+                    `archive cleanup: failed to delete change branch for ${currentChange.id}: ${err instanceof Error ? err.message : String(err)}`,
+                  );
                 }
               }
 

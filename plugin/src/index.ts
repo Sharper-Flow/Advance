@@ -570,6 +570,35 @@ const advancePluginImpl: Plugin = async (input) => {
     });
   };
 
+  // rq-activeChangePointer01 / fixTabTitleRepoint:
+  // Only active-work mutators may re-point the session active-change/title.
+  // Read-only/status tools often carry args.changeId for inspection and must
+  // not steal the caller's current tab title. Correctness is structural: this
+  // explicit allow-list owns the decision, not tool-name suffix heuristics.
+  const activeChangeRepointTools = new Set<string>([
+    "adv_task_add",
+    "adv_task_update",
+    "adv_task_cancel",
+    "adv_task_reclassify_tdd",
+    "adv_task_checkpoint",
+    "adv_run_test",
+    "adv_wisdom_add",
+    "adv_gate_complete",
+    "adv_change_reenter",
+    "adv_change_update",
+    "adv_change_update_issues",
+    "adv_contract_mint",
+    "adv_contract_review_matrix_set",
+    "adv_subagent_report_submit",
+    "adv_ops_evidence_add",
+  ]);
+
+  const shouldRepointActiveChange = (
+    toolName: string,
+    args: Record<string, unknown>,
+  ): boolean =>
+    Boolean(args.changeId) && activeChangeRepointTools.has(toolName);
+
   // rq-activeChangePointer01: session active-change pointer hygiene.
   // Related hooks: recordCreatedChange (set on create), recordTerminalChange
   // (clear on close/archive), recordForgetChange (clear on forget).
@@ -597,7 +626,7 @@ const advancePluginImpl: Plugin = async (input) => {
       return; // Skip reachability check (forget intentionally clears)
     }
 
-    if (args.changeId) {
+    if (shouldRepointActiveChange(toolName, args)) {
       // Skip cross-project calls (C5) — target_path changeId refers to
       // a different project; don't touch caller's pointer
       if (args.target_path) {

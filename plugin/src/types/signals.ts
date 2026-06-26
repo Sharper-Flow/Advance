@@ -22,7 +22,10 @@ import {
 import { WisdomEntrySchema } from "./wisdom";
 import { AttemptSchema, TaskSchema } from "./tasks";
 import { TaskStructuredOutputSchema } from "./task-output";
-import { ScopedSubagentReportSchema } from "./subagent-reports";
+import {
+  DesignConcernDispositionSchema,
+  ScopedSubagentReportSchema,
+} from "./subagent-reports";
 import {
   ChangeContractSchema,
   ContractAmendmentSchema,
@@ -203,6 +206,15 @@ export const SubagentReportSubmittedSignalPayloadSchema = z.object({
 });
 export type SubagentReportSubmittedSignalPayload = z.infer<
   typeof SubagentReportSubmittedSignalPayloadSchema
+>;
+
+// Records a typed disposition for a single design-quality concern so the
+// gate-readiness evaluator can clear an otherwise-blocking concern. The payload
+// is the disposition record itself.
+export const DesignConcernDispositionedSignalPayloadSchema =
+  DesignConcernDispositionSchema;
+export type DesignConcernDispositionedSignalPayload = z.infer<
+  typeof DesignConcernDispositionedSignalPayloadSchema
 >;
 
 export const TaskBlockedSignalPayloadSchema = z.object({

@@ -1,3 +1,8 @@
+// NON-BEHAVIORAL where noted: tests that read `.opencode/*.md` and assert
+// keyword/anchor presence prove only that the prompt text exists — NOT that
+// behavior improves outcomes. Behavioral guarantees for design-quality live in
+// gate-readiness.test.ts, subagent-report.test.ts, design-concern.test.ts, and
+// the DesignerSubagentReportSchema parse tests below. See AC11 / DONT8.
 import { describe, expect, test } from "vitest";
 import { existsSync, readFileSync } from "fs";
 import { join, resolve } from "path";
@@ -203,6 +208,15 @@ describe("adv-designer assets", () => {
         `missing DESIGNER_REPORT field: ${field}`,
       ).toContain(field);
     }
+  });
+
+  test("DESIGNER_REPORT rules require notes for concern or n/a dimensions", () => {
+    const content = readFileSync(AGENT_PATH, "utf8");
+    const reportSection = content.split("## DESIGNER_REPORT Payload")[1] ?? "";
+
+    expect(reportSection).toMatch(/concern[\s\S]{0,160}notes/i);
+    expect(reportSection).toMatch(/n\/a[\s\S]{0,160}notes/i);
+    expect(reportSection).toMatch(/all-pass[\s\S]{0,160}notes/i);
   });
 
   test("deploy script installs adv-designer.md globally", () => {
@@ -426,5 +440,37 @@ describe("adv-designer assets", () => {
     expect(packet).toContain("BACKEND BOUNDARY:");
     expect(packet).toContain("DESIGNER_REPORT");
     expect(packet).toContain("adv-designer");
+  });
+
+  test("adv-apply.md Designer Apply Context Packet includes VISUAL_CONTEXT anchors", () => {
+    const content = readFileSync(APPLY_COMMAND_PATH, "utf8");
+    const packet = firstFencedBlock(
+      sectionAfterHeading(content, "Designer Apply Context Packet"),
+    );
+
+    expect(packet).toContain("VISUAL_CONTEXT:");
+    for (const anchor of [
+      "surface_type",
+      "existing_patterns",
+      "tokens_and_style_rules",
+      "viewport_targets",
+      "forbidden_patterns",
+      "evidence_expectation",
+    ]) {
+      expect(packet, `missing ${anchor}`).toContain(anchor);
+    }
+    expect(packet).toMatch(/unavailable/i);
+    expect(packet).toMatch(/viewport/i);
+  });
+
+  test("adv-designer.md instructs workers to consume VISUAL_CONTEXT without fabricating style context", () => {
+    const content = readFileSync(AGENT_PATH, "utf8");
+
+    expect(content).toContain("VISUAL_CONTEXT");
+    expect(content).toContain("surface_type");
+    expect(content).toContain("viewport_targets");
+    expect(content).toContain("evidence_expectation");
+    expect(content).toMatch(/must not fabricate/i);
+    expect(content).toMatch(/unavailable/i);
   });
 });

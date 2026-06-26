@@ -72,3 +72,31 @@ describe("adv-review non-code evidence policy surface", () => {
     );
   });
 });
+
+// NON-BEHAVIORAL (asset presence only): these tests assert that the command
+// markdown points operators at the STRUCTURAL enforcement rail. They prove the
+// guidance text exists — NOT that enforcement works. The behavioral guarantees
+// (concerns block acceptance/release; dispositions clear them; advisory agenda
+// promotion) are covered by gate-readiness.test.ts (checkUnresolvedDesignConcerns),
+// subagent-report.test.ts (consumeDesignerDesignConcerns), and
+// design-concern.test.ts (adv_design_concern_disposition). See AC11 / DONT8.
+describe("adv-review designer-concern prose points at the structural rail (non-behavioral)", () => {
+  const command = readFileSync(REVIEW_PATH, "utf8");
+
+  test("prose references the structural evaluator, not reviewer goodwill", () => {
+    expect(command).toContain("Designer Concern Enforcement");
+    expect(command).toContain("checkUnresolvedDesignConcerns");
+    expect(command).toContain("DESIGN_CONCERN_UNRESOLVED");
+    expect(command).toContain("adv_design_concern_disposition");
+    expect(command).toMatch(/STRUCTURAL, not reviewer-prose/i);
+  });
+
+  test("prose preserves design-proof vocabulary and advisory-only agenda framing", () => {
+    expect(command).toContain("design_dimensions");
+    expect(command).toContain("neighboring_recommendation");
+    expect(command).toContain("design_proof");
+    expect(command).toContain("rubric_review");
+    expect(command).toMatch(/Advisory only/i);
+    expect(command).toMatch(/no debt-acceptance disposition/i);
+  });
+});

@@ -1,3 +1,9 @@
+// NON-BEHAVIORAL (asset presence only): these tests read `.opencode/*.md` and
+// `ADV_INSTRUCTIONS.md` and assert keyword presence/absence. They prove the
+// prompt text exists — NOT that enforcement works. The design-quality behavioral
+// guarantees are covered by gate-readiness.test.ts (checkUnresolvedDesignConcerns),
+// subagent-report.test.ts (consumeDesignerDesignConcerns), and
+// design-concern.test.ts (adv_design_concern_disposition). See AC11 / DONT8.
 import { describe, expect, test } from "vitest";
 import { readFileSync } from "fs";
 import { join, resolve } from "path";
@@ -77,6 +83,15 @@ describe("Validated in-scope remediation policy", () => {
     const content = readAsset(join(COMMAND_DIR, "adv-review.md"));
     expect(content).toMatch(/no future-work deferral/i);
     expect(content).not.toMatch(/accepted_debt/);
+    expect(content).not.toMatch(/accepted-debt/i);
+    expect(content).not.toMatch(/accepted debt/i);
+    expect(content).toMatch(/rejected_with_evidence/);
+  });
+
+  test("adv-reviewer.md avoids accepted-debt disposition vocabulary", () => {
+    const content = readAsset(join(AGENT_DIR, "adv-reviewer.md"));
+    expect(content).not.toMatch(/accepted-debt/i);
+    expect(content).not.toMatch(/accepted debt/i);
     expect(content).toMatch(/rejected_with_evidence/);
   });
 });

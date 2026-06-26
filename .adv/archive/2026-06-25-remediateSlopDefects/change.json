@@ -1,0 +1,1292 @@
+{
+  "id": "remediateSlopDefects",
+  "title": "Remediate slop defects",
+  "status": "archived",
+  "created_at": "2026-06-25T14:23:17.785Z",
+  "tasks": [
+    {
+      "id": "tk-361607ec80f6",
+      "title": "Add spec requirements for the two corrected correctness invariants (AC8)",
+      "type": "docs",
+      "section": "Spec law",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-06-25T14:48:10.371Z",
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC8"
+        ],
+        "respects": [
+          "C4"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "review",
+      "assignedTo": "agent",
+      "started_at": "2026-06-25T14:51:58.506Z",
+      "verification": "Added rq-worktreeLeaseLiveness01 to .adv/specs/worktree-lifecycle/spec.json (v1.5.0→1.6.0, 14→15 reqs) + doc mirror; added rq-agendaDurableParse01 to .adv/specs/advance-meta/spec.json (v1.18.0→1.19.0, 46→47 reqs) + doc mirror. Both JSON files validated round-trip. Each rq has 2 Given/When/Then scenarios. evidence_policy=review (docs/spec task, not_applicable TDD).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".adv/specs/advance-meta/spec.json",
+        ".adv/specs/worktree-lifecycle/spec.json",
+        "docs/specs/advance-meta.md",
+        "docs/specs/worktree-lifecycle.md"
+      ],
+      "touched_files": [
+        ".adv/specs/advance-meta/spec.json",
+        ".adv/specs/worktree-lifecycle/spec.json",
+        "docs/specs/advance-meta.md",
+        "docs/specs/worktree-lifecycle.md"
+      ],
+      "checkpointSha": "d860ead65fc023a98d994ee18e12904ced0a092a",
+      "completedAt": "2026-06-25T14:54:02.298Z",
+      "completed_at": "2026-06-25T14:54:02.298Z"
+    },
+    {
+      "id": "tk-6a5415f4ba5a",
+      "title": "QUAL-002: shared process-liveness helper + converge 3 implementations (AC1, SC1)",
+      "type": "code",
+      "section": "Workstream A — process liveness",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-06-25T14:48:25.608Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-361607ec80f6"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "AC1"
+        ],
+        "verifies": [
+          "AC1",
+          "AC8"
+        ],
+        "respects": [
+          "DONT2",
+          "C2",
+          "C3",
+          "C5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "verification": "QUAL-002 fixed. New utils/process-liveness.ts (isProcessAlive: ESRCH→dead, EPERM/other→alive). Converged 3 sites: worktree-lease.ts uses it at reclaim path; session/index.ts re-exports as isPidAlive; worker-lock.ts isLockOwnerAlive delegates. RED: process-liveness.test.ts failed (module missing, runId tr_mqtmj9zx exit1). GREEN: 36 tests pass incl new EPERM-no-reclaim AC1 test (runId tr_mqtmm1vw exit0). Workflow-bundle boundary intact (4/4, runId tr_mqtmmdx8). Respects DONT2/C2/C3/C5; verifies AC1 + rq-worktreeLeaseLiveness01 conformance (AC8).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/temporal/worker-lock.ts",
+        "plugin/src/tools/session/index.ts",
+        "plugin/src/utils/process-liveness.test.ts",
+        "plugin/src/utils/process-liveness.ts",
+        "plugin/src/utils/worktree-lease.test.ts",
+        "plugin/src/utils/worktree-lease.ts"
+      ],
+      "touched_files": [
+        "plugin/src/temporal/worker-lock.ts",
+        "plugin/src/tools/session/index.ts",
+        "plugin/src/utils/process-liveness.test.ts",
+        "plugin/src/utils/process-liveness.ts",
+        "plugin/src/utils/worktree-lease.test.ts",
+        "plugin/src/utils/worktree-lease.ts"
+      ],
+      "checkpointSha": "ce71dda8d28a7c272032f3496fa8c54faf3ab75f",
+      "completedAt": "2026-06-25T14:58:08.887Z",
+      "completed_at": "2026-06-25T14:58:08.887Z"
+    },
+    {
+      "id": "tk-1e91b4227a85",
+      "title": "QUAL-003: agenda durability — log malformed lines + guard compaction (AC2, SC2)",
+      "type": "code",
+      "section": "Workstream B — durable I/O",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-06-25T14:48:32.154Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-361607ec80f6"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC2",
+          "AC2"
+        ],
+        "verifies": [
+          "AC2",
+          "AC8"
+        ],
+        "respects": [
+          "DONT3",
+          "C3",
+          "C5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "verification": "QUAL-003 fixed. agenda.ts: parseLine now returns a tagged ParseLineResult distinguishing skip/malformed/meta/item; loadAgenda logs malformed lines via appendDebugLog(\"agenda\",…), counts them, returns skippedMalformed (additive field, all callers destructure subsets); compactAgenda skips rewrite + warns when skippedMalformed>0 so malformed content is never destroyed. RED: 3 failed incl malformed-line-destroyed (runId tr_mqtmq5vj exit1). GREEN: 4/4 pass (runId tr_mqtmro5b exit0). Respects DONT3/C3/C5; verifies AC2 + rq-agendaDurableParse01 conformance (AC8).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/storage/agenda.test.ts",
+        "plugin/src/storage/agenda.ts"
+      ],
+      "touched_files": [
+        "plugin/src/storage/agenda.test.ts",
+        "plugin/src/storage/agenda.ts"
+      ],
+      "checkpointSha": "5fd84b9f5dab2ae1576844134c9d9af193bd3e82",
+      "completedAt": "2026-06-25T15:02:09.929Z",
+      "completed_at": "2026-06-25T15:02:09.929Z"
+    },
+    {
+      "id": "tk-0ba8e833e732",
+      "title": "QUAL-005: mesh-issue parse-failure signal (AC4, SC3)",
+      "type": "code",
+      "section": "Workstream B — durable I/O",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-06-25T14:48:38.190Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC3",
+          "AC4"
+        ],
+        "verifies": [
+          "AC4"
+        ],
+        "respects": [
+          "DONT3",
+          "C5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "verification": "QUAL-005 fixed. Added parseFailed?:boolean to MeshIssueResult + ListMeshIssuesResult + getGhIssue return; set parseFailed:true in all 3 JSON.parse catches (createMeshIssue/listMeshIssues/getGhIssue). archive-mesh.ts consumer now treats result.parseFailed as an error instead of silent exit-0 success. RED: 2 failed (runId tr_mqtmuric exit1). GREEN: 24/24 pass (runId tr_mqtmw722 exit0). Respects DONT3/C5; verifies AC4.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/archive/archive-mesh.test.ts",
+        "plugin/src/archive/archive-mesh.ts",
+        "plugin/src/integrations/mesh-issues.test.ts",
+        "plugin/src/integrations/mesh-issues.ts"
+      ],
+      "touched_files": [
+        "plugin/src/archive/archive-mesh.test.ts",
+        "plugin/src/archive/archive-mesh.ts",
+        "plugin/src/integrations/mesh-issues.test.ts",
+        "plugin/src/integrations/mesh-issues.ts"
+      ],
+      "checkpointSha": "fced114cd1a08e4cd69470cbdcbdefdbd82652f9",
+      "completedAt": "2026-06-25T15:05:33.228Z",
+      "completed_at": "2026-06-25T15:05:33.228Z"
+    },
+    {
+      "id": "tk-694324956834",
+      "title": "STRUCT-002: centralize completed-workflow recovery glue (AC5, SC4)",
+      "type": "code",
+      "section": "Workstream C — SSOT dedup",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-06-25T14:48:43.396Z",
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC4",
+          "AC5"
+        ],
+        "verifies": [
+          "AC5"
+        ],
+        "respects": [
+          "C2",
+          "C5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "verification": "STRUCT-002 fixed. Added single helper recoverReleaseGateIfWorkflowCompleted(error, ctx) in change.ts; replaced the 3 byte-identical catch blocks (1619/1649/1666) and their duplicated dynamic imports with one call each. Behavior-preserving. Verify: recovery-probe, _recovery-writers, change.archive-phase9, change.status-repair, change.archive-repair, gate suites — 97/97 pass (runId tr_mqtmywu3 exit0). Respects C2/C5; verifies AC5.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/change.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/change.ts"
+      ],
+      "checkpointSha": "48400e62f6fae5fb043da4e25cdc68036a697e79",
+      "completedAt": "2026-06-25T15:07:47.082Z",
+      "completed_at": "2026-06-25T15:07:47.082Z"
+    },
+    {
+      "id": "tk-84944765a6b2",
+      "title": "STRUCT-004: single source of truth for change/workflow prefixes (AC7, SC4)",
+      "type": "code",
+      "section": "Workstream C — SSOT dedup",
+      "status": "done",
+      "priority": 5,
+      "created_at": "2026-06-25T14:48:50.083Z",
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC4",
+          "AC7"
+        ],
+        "verifies": [
+          "AC7"
+        ],
+        "respects": [
+          "C2",
+          "C5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "verification": "STRUCT-004 fixed. Added CHANGE_BRANCH_PREFIX + CHANGE_WORKFLOW_PREFIX to temporal/contracts.ts (SSOT). Removed 3 duplicate const defs (worktree/state.ts, visibility-claim-queries.ts, list-change-workflows.ts) → imports. Converted all campsite raw literals: client.ts buildChangeWorkflowId, activities.ts branch builder, census.ts/triage.ts(x3)/index.ts(x2)/git-finalize.ts(x2) startsWith guards. Verify: workflow-bundle-boundary (4), client (4), visibility-claim-queries (12), list-change-workflows (11), git-finalize (81), census (5), triage (13) + earlier worktree/ index suite all pass (runId tr_mqtndvqf + tr_mqtnb1g8 exit0). Respects C2/C5; verifies AC7.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/temporal/activities.ts",
+        "plugin/src/temporal/client.ts",
+        "plugin/src/temporal/contracts.ts",
+        "plugin/src/temporal/list-change-workflows.ts",
+        "plugin/src/temporal/visibility-claim-queries.ts",
+        "plugin/src/tools/archive-helpers/git-finalize.ts",
+        "plugin/src/tools/worktree/census.ts",
+        "plugin/src/tools/worktree/index.ts",
+        "plugin/src/tools/worktree/state.ts",
+        "plugin/src/tools/worktree/triage.ts"
+      ],
+      "touched_files": [
+        "plugin/src/temporal/activities.ts",
+        "plugin/src/temporal/client.ts",
+        "plugin/src/temporal/contracts.ts",
+        "plugin/src/temporal/list-change-workflows.ts",
+        "plugin/src/temporal/visibility-claim-queries.ts",
+        "plugin/src/tools/archive-helpers/git-finalize.ts",
+        "plugin/src/tools/worktree/census.ts",
+        "plugin/src/tools/worktree/index.ts",
+        "plugin/src/tools/worktree/state.ts",
+        "plugin/src/tools/worktree/triage.ts"
+      ],
+      "checkpointSha": "9f1d4dbaa5a7dfeac314dcdc1da4ab9468ebe499",
+      "completedAt": "2026-06-25T15:19:24.129Z",
+      "completed_at": "2026-06-25T15:19:24.129Z"
+    },
+    {
+      "id": "tk-e2f6f499ef7a",
+      "title": "QUAL-001 disposition: docstring cite (AC9, SC5)",
+      "type": "docs",
+      "section": "Workstream D — dispositions",
+      "status": "done",
+      "priority": 6,
+      "created_at": "2026-06-25T14:48:54.754Z",
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC5",
+          "AC9"
+        ],
+        "verifies": [
+          "AC9"
+        ],
+        "respects": [
+          "DONT1",
+          "DONT4"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "review",
+      "verification": "QUAL-001 dispositioned as accepted residual risk. Added a docstring to classifyDestructiveBash in trunk-write-firewall.ts citing the advance-meta spec (rq-twf01.7) and ADV_INSTRUCTIONS.md:467 residual-risk note (shell indirection / script-internal writes are accepted, not a defect). No firewall behavior change. Verify: trunk-write-firewall.test + regression.test pass (runId tr_mqtnf7te exit0). Respects DONT1/DONT4; verifies AC9.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/trunk-write-firewall.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/trunk-write-firewall.ts"
+      ],
+      "checkpointSha": "a56ddd5c390922b158c47b4ca02f280dbc76e918",
+      "completedAt": "2026-06-25T15:20:26.584Z",
+      "completed_at": "2026-06-25T15:20:26.584Z"
+    },
+    {
+      "id": "tk-7d7a1b5b6191",
+      "title": "STRUCT-001 disposition: record deferral to ROADMAP #82 (AC10, SC5)",
+      "type": "docs",
+      "section": "Workstream D — dispositions",
+      "status": "done",
+      "priority": 7,
+      "created_at": "2026-06-25T14:48:58.607Z",
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC5",
+          "AC10"
+        ],
+        "verifies": [
+          "AC10"
+        ],
+        "respects": [
+          "DONT5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "artifact_reference",
+      "verification": "STRUCT-001 dispositioned: deferred to ROADMAP #82, no change.ts decomposition (DONT5 respected). Confirmed ROADMAP.md:54 #82 \"Reduce ESLint complexity violations across plugin/src\" actively tracks the plugin/src complexity reduction that covers the change.ts god-object. No code change in this task; deferral will be recorded in the executive summary at acceptance. evidence_policy=artifact_reference; verifies AC10.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "a56ddd5c390922b158c47b4ca02f280dbc76e918",
+      "completedAt": "2026-06-25T15:20:53.243Z",
+      "completed_at": "2026-06-25T15:20:53.243Z"
+    },
+    {
+      "id": "tk-d648ec6f8130",
+      "title": "STRUCT-003: shared gate-completion polling helper (AC6, SC4)",
+      "type": "code",
+      "section": "Workstream C — SSOT dedup",
+      "status": "done",
+      "priority": 8,
+      "created_at": "2026-06-25T14:49:15.801Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-694324956834"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC4",
+          "AC6"
+        ],
+        "verifies": [
+          "AC6"
+        ],
+        "respects": [
+          "C2"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "verification": "STRUCT-003 fixed. Added shared waitForGateCompletion(handle, gateId, opts) to _adapters.ts (single SSOT, exported constants 60/500). gate.ts waitForGateCompletionResult and change.ts waitForArchiveReleaseGateCompletion now delegate to it; removed both local poll loops + delay wrappers + duplicate constants. Added 3 direct unit tests for the shared helper + updated gate.test mock factory to mirror it. Verify: gate.test (28), change.archive-phase9 (27), _adapters (30 incl new) all pass (runId tr_mqtn5liz + tr_mqtn6sni, exit0). Respects C2; verifies AC6.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/_adapters.test.ts",
+        "plugin/src/tools/_adapters.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/gate.test.ts",
+        "plugin/src/tools/gate.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/_adapters.test.ts",
+        "plugin/src/tools/_adapters.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/gate.test.ts",
+        "plugin/src/tools/gate.ts"
+      ],
+      "checkpointSha": "0c34bac632dc8560451898c6838fa0a22ad63ab8",
+      "completedAt": "2026-06-25T15:13:48.121Z",
+      "completed_at": "2026-06-25T15:13:48.121Z"
+    },
+    {
+      "id": "tk-5cc315776738",
+      "title": "QUAL-004: observable archive-cleanup warnings (AC3, SC3)",
+      "type": "code",
+      "section": "Workstream B — durable I/O",
+      "status": "done",
+      "priority": 9,
+      "created_at": "2026-06-25T14:49:26.013Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-d648ec6f8130"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC3",
+          "AC3"
+        ],
+        "verifies": [
+          "AC3"
+        ],
+        "respects": [
+          "DONT3"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "review",
+      "verification": "QUAL-004 fixed. Replaced the 3 empty `// warning-only` catches in change.ts archive-cleanup block (removeChangeDir, advWorktreeCleanup, deleteChangeBranch) with contextual logger.warn calls including change id + op + error text. Confirmed the other 2 cleanup catches (4596/4598 region) already push to archiveResult.errors (not defects). Verify: change.archive-phase9 (27) + change.archive-repair (11) pass (runId tr_mqtn8rbr exit0). evidence_policy=review (observability change). Respects DONT3.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/change.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/change.ts"
+      ],
+      "checkpointSha": "e13762dbb3fd0c3773d145446cc8c2da6b0351c9",
+      "completedAt": "2026-06-25T15:15:19.418Z",
+      "completed_at": "2026-06-25T15:15:19.418Z"
+    },
+    {
+      "id": "tk-123206b439b0",
+      "title": "Final verification + touched-scope follow-up scan (AC11, SC5)",
+      "type": "verification",
+      "section": "Verification",
+      "status": "done",
+      "priority": 10,
+      "created_at": "2026-06-25T14:49:42.484Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-6a5415f4ba5a"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-1e91b4227a85"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-0ba8e833e732"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-694324956834"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-84944765a6b2"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-e2f6f499ef7a"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-7d7a1b5b6191"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-d648ec6f8130"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-5cc315776738"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC5"
+        ],
+        "verifies": [
+          "AC11",
+          "SC5"
+        ],
+        "respects": [
+          "C1"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-25T15:21:10.489Z",
+      "verification": "Final verification complete (AC11, SC5). `pnpm run check` PASS (schemas:check, typecheck, test-isolation, lockfile, lint, format:check — runId tr_mqtnqoyr exit0). Full `pnpm test`: 277 files / 3933 tests pass; 47 failures triaged — 5 (gate.release-enforcement) were caused by the STRUCT-003 _adapters mock boundary and are now FIXED (added waitForGateCompletion to that test's mock; 38/38 gate tests pass runId tr_mqtnp899). Remaining 42 are pre-existing on trunk, proven non-causal via `git diff --name-only 2b5dbe40 HEAD` (none of the failing subsystems touched): 32 STSL/service 5s timeouts (need live Temporal, absent in env), 5 observability AdvLifecycleState SA mismatch (contracts.ts diff is only 2 string consts; AdvLifecycleState not added by me), 3 stale spec-version assertions (advance-workflow 1.22.0 / backlog-coordination 1.4.0 already on trunk), 1 deploy-local prompt length, 1 unrelated rq-changeLifecycleState01 citation. Touched-scope scan: 1 CHANGE_WORKFLOW_PREFIX def (contracts.ts), 0 empty archive-cleanup catches, agenda logs malformed lines, lease uses shared isProcessAlive. Every finding fixed or dispositioned; none silently dropped. Respects C1.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/integrations/mesh-issues.ts",
+        "plugin/src/temporal/list-change-workflows.ts",
+        "plugin/src/tools/_adapters.test.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/gate.release-enforcement.test.ts",
+        "plugin/src/utils/process-liveness.test.ts",
+        "plugin/src/utils/worktree-lease.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/integrations/mesh-issues.ts",
+        "plugin/src/temporal/list-change-workflows.ts",
+        "plugin/src/tools/_adapters.test.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/gate.release-enforcement.test.ts",
+        "plugin/src/utils/process-liveness.test.ts",
+        "plugin/src/utils/worktree-lease.test.ts"
+      ],
+      "checkpointSha": "fbfa20a8c5e180894b90ad2b59a508bd718622aa",
+      "completedAt": "2026-06-25T15:29:35.211Z",
+      "completed_at": "2026-06-25T15:29:35.211Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "remediateSlopDefects",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation for remediateSlopDefects (KD1-KD9 + 2 spec laws)",
+      "sources": [
+        {
+          "label": "worktree-lease.ts isPidAlive (buggy)",
+          "locator": "plugin/src/utils/worktree-lease.ts:122-131",
+          "summary": "Current isPidAlive has bare catch{return false} — EPERM wrongly classified dead, enabling reclaim of a live peer. KD1 target."
+        },
+        {
+          "label": "session/index.ts isPidAlive (already correct)",
+          "locator": "plugin/src/tools/session/index.ts:40-57",
+          "summary": "Existing exported isPidAlive ALREADY implements the KD1 target semantics: ESRCH->false, EPERM->true, other->true. Re-export from new helper preserves session/index.test.ts:18 import; logic is duplicated, not novel."
+        },
+        {
+          "label": "worker-lock.ts injectable seam",
+          "locator": "plugin/src/temporal/worker-lock.ts:180-189",
+          "summary": "isLockOwnerAlive(pid, isPidAlive?) already injectable; default branch uses code !== 'ESRCH' (EPERM-tolerant). KD1 delegating default to helper preserves seam + tests (worker-lock.test.ts:90/117/140)."
+        },
+        {
+          "label": "agenda.ts silent parse + compaction destroy path",
+          "locator": "plugin/src/storage/agenda.ts:113-126,141-142,170-181,450",
+          "summary": "parseLine catch{return null} silently drops malformed lines; loadAgenda skips them; compactAgenda rewrites file from parseable items only -> malformed lines permanently destroyed. KD2 data-loss claim is REAL; block-compaction-when-skipped correctly prevents it."
+        },
+        {
+          "label": "project-wisdom.ts mirror",
+          "locator": "plugin/src/storage/project-wisdom.ts:195-205",
+          "summary": "Mirror logs malformed JSON via appendDebugLog('wisdom',...) but has NO compaction destroy-path, so the agenda case legitimately needs the EXTRA compaction-skip guard beyond the logging mirror."
+        },
+        {
+          "label": "advance-meta spec residual-risk text",
+          "locator": ".adv/specs/advance-meta/spec.json:1791,1900-1907",
+          "summary": "rq-twf01 body states 'Shell indirection and script-internal writes are accepted residual risk documented in ADV instructions'; scenario explicitly says documented in ADV_INSTRUCTIONS.md. KD8 docstring claim is accurate but spec points doc locus at ADV_INSTRUCTIONS.md, not the source docstring."
+        },
+        {
+          "label": "workflow-bundle reachability of contracts.ts",
+          "locator": "plugin/src/temporal/workflows.ts:25 (} from './contracts'); workflow-bundle-boundary.test.ts:45-54",
+          "summary": "contracts.ts IS workflow-bundle-reachable. Boundary test bans node:*/storage/tools imports and defineUpdate only. KD7 adds string-only consts with no new imports -> boundary-safe (existing consts at contracts.ts:14-18 set precedent)."
+        },
+        {
+          "label": "existing duplicate prefix defs",
+          "locator": "plugin/src/temporal/visibility-claim-queries.ts:25; plugin/src/temporal/list-change-workflows.ts:124; plugin/src/temporal/client.ts:61",
+          "summary": "CHANGE_WORKFLOW_PREFIX='adv/change/' duplicated (2 const defs + client.ts template literal). KD7 SSOT consolidation confirmed; design's 3rd site (worktree/state.ts:220) path appears stale — no storage/worktree/state.ts found; verify exact file before edit."
+        },
+        {
+          "label": "worktree-lifecycle spec requirements (no collision)",
+          "locator": ".adv/specs/worktree-lifecycle/spec.json (14 reqs, full list inspected)",
+          "summary": "No rq-worktreeLeaseLiveness01 present; ID does not collide. Lease-liveness invariant fits the cleanup/safety theme of the capability."
+        }
+      ],
+      "architecture_assessment": "Design is sound, behavior-preserving, and boring/proven across all four dimensions. CORRECTNESS: EPERM->alive is the correct SAFE direction for lease reclaim (avoids reclaiming a live but non-signalable peer process owned by another uid; false-alive is fail-safe vs false-dead which is data-unsafe). The target semantics already exist verbatim in session/index.ts:47-57, so KD1 is consolidation of a proven implementation, not invention. KD7 does NOT risk the workflow-bundle import boundary: contracts.ts is reachable from workflows.ts but the boundary walker only forbids node:*/storage/tools imports and defineUpdate; two plain string consts add no imports and match existing precedent. KD2's data-loss path is genuine (parseLine swallow -> compaction rewrite destroys malformed lines) and the block-compaction-when-skipped guard closes it without introducing a new silent-failure (DONT3 respected) — it warns + skips. SIMPLICITY: no materially simpler approach; each item is the minimal in-place fix. One simplification note: KD1 could re-export session/index.ts's isPidAlive directly rather than creating a third process-liveness.ts module, but the design's dedicated helper centralizes 3 call sites (lease, session, worker-lock) which justifies the module. SPEC-LAW: residual-risk claim is REAL and verbatim in spec; KD8 docstring is additive and accurate, though spec designates ADV_INSTRUCTIONS.md as the canonical doc locus — recommend KD8 docstring CITE that file rather than restate. New rq IDs do not collide. SEAMS: KD1 re-export + worker-lock injectable seam both verified intact against existing tests.",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "VALIDATED with two minor cautions, no conflicts. (C1) KD1 partially duplicates already-correct session/index.ts:40-57 logic — ensure the new helper and session re-export converge on ONE implementation to avoid a third divergent copy; tests session/index.test.ts:18 + worker-lock.test.ts must stay green. (C2) KD7 3rd duplicate-prefix site cited as worktree/state.ts:219-220 could not be located at that path (no plugin/src/storage/worktree/state.ts); confirm the exact file/line for the CHANGE_BRANCH_PREFIX + 3rd CHANGE_WORKFLOW_PREFIX def before editing, else the SSOT consolidation (AC7) is incomplete. (C3) KD8: spec scenario rq-twf01.7 names ADV_INSTRUCTIONS.md as the documentation locus — KD8 docstring should reference that file to stay spec-consistent (AC9). No data-loss, no boundary, no security/release blockers found."
+      },
+      "recommendation": "Proceed to planning. The design is VALIDATED with simplicity bias satisfied — every workstream is a boring in-place fix with behavior preservation. Before execution: (1) resolve the KD7 3rd-prefix-site path discrepancy (worktree/state.ts:219-220 not found at that path) so AC7 SSOT consolidation is complete and not partial; (2) make KD1's process-liveness.ts the single canonical implementation that session/index.ts re-exports (it already has the exact correct semantics) to avoid a third divergent isPidAlive; (3) point the KD8 classifyDestructiveBash docstring at ADV_INSTRUCTIONS.md per rq-twf01.7 rather than restating the residual-risk prose. The EPERM->alive direction (AC1) is confirmed the correct fail-safe choice; KD2 compaction-skip (AC2) genuinely closes a real data-destruction path with no new silent-failure; KD7 (AC7) is workflow-bundle-boundary-safe. New spec IDs do not collide.",
+      "follow_ups": [
+        "Confirm exact file:line for KD7 3rd CHANGE_WORKFLOW_PREFIX def + CHANGE_BRANCH_PREFIX def (design cites worktree/state.ts:219-220 but no plugin/src/storage/worktree/state.ts exists at that path).",
+        "Ensure KD1 converges session/index.ts isPidAlive (already correct) and new process-liveness.ts on one implementation; keep session/index.test.ts:18 + worker-lock.test.ts green.",
+        "KD8 docstring should reference ADV_INSTRUCTIONS.md per rq-twf01.7 spec scenario, not restate residual-risk prose."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "remediateSlopDefects",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/remediateSlopDefects",
+      "scope": {
+        "kind": "change",
+        "scope_key": "scanner-bundle:harden"
+      },
+      "agent": "adv-scanner-bundle",
+      "phase": "harden",
+      "scanner_count": 1,
+      "dimensions": [
+        "release-deploy-readiness",
+        "production-readiness",
+        "documentation-hygiene",
+        "cleanup-readiness",
+        "residual-slop-maintainability"
+      ],
+      "summary": "Inline harden assessment (low-risk internal remediation; one orchestrator synthesis pass, no dedicated scanner fan-out). All release-owned dimensions checked: Test coverage strong (every fix has RED→GREEN or behavior-preserving tests; 2 symmetric parseFailed tests added during harden). AI-slop: change REMOVES slop (tagged unions, typed parseFailed flag, shared liveness/poll/recovery helpers, SSOT prefixes) — no new placeholders/type-erosion. Doc hygiene: spec doc mirrors + docstrings updated, match code, no stale refs or conflicts. Cleanup: no temp/debug/dead artifacts (only os.tmpdir() in tests). Production readiness: improves reliability (lease safety, agenda durability, observable failures); no secrets/perf/complexity regressions; change.ts net-shrank via dedup. Deployment readiness: N/A — no env vars, migrations, external services, CI/CD, or infra changes. Merge compatibility: clean dry-run into origin/trunk. Contract proof: 26/26 rows pass/respected. pnpm run check green (runId tr_mqtq60j6).",
+      "findings": [
+        {
+          "scanner": "residual-slop-maintainability",
+          "severity": "info",
+          "summary": "Construction-site raw change/${id} literals remain in git-finalize.ts (~13 sites) and change.ts prBranch, alongside the migrated guard/builder sites. AC7 (duplicate definitions removed) is satisfied; this is a non-blocking consistency nit accepted with rationale to avoid expanding the diff across 15+ unrelated sites for zero behavior change.",
+          "evidence": [
+            {
+              "label": "git-finalize construction literals",
+              "locator": "plugin/src/tools/archive-helpers/git-finalize.ts",
+              "summary": "raw change/ construction literals not migrated to CHANGE_BRANCH_PREFIX"
+            }
+          ]
+        }
+      ],
+      "follow_ups": [
+        "Optional future campsite: migrate remaining change/${id} construction literals in git-finalize.ts and change.ts to CHANGE_BRANCH_PREFIX for full SSOT consistency (non-blocking nit)."
+      ]
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-06-25T14:25:38.009Z",
+      "completed_by": "agent",
+      "approval_evidence": "Proposal approved via Tier A command-as-approval: user invoked /adv-discover remediateSlopDefects while proposal checkpoint pending. Problem statement validated against source; Scope (In/Out/Must Not) populated; B/F/S scan clean (no CRITICAL).",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "dd6bface9239d626f452ba33357e7006cc562a67bda0354e88f85c41fc27f5c7",
+        "non_whitespace_chars": 4961,
+        "checked_at": "2026-06-25T14:23:18.022Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-06-25T14:39:47.275Z",
+      "completed_by": "agent",
+      "approval_evidence": "Criteria approved via Tier A inline reply 'approve'. Agreement persisted; ChangeContract minted (26 items: SC1-5, AC1-11, C1-5, DONT1-5). User decisions: STRUCT-001 deferred to ROADMAP #82, QUAL-001 documented residual risk, spec-law capture for lease-liveness + agenda-durability.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "a53137878a404480025c8283e4629e5f27eeadb4ecf0fe5511fbbb354e821522",
+        "non_whitespace_chars": 4799,
+        "checked_at": "2026-06-25T14:23:18.023Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-06-25T14:46:32.889Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design persisted (9 KDs, 4 workstreams, 2 DDCs). Leverage scout skipped (bounded prescribed remediation, ~zero opportunity surface). Independent validator (adv-researcher) verdict CAUTION → VALIDATED with 2 minor cautions, no conflicts; all 3 cautions resolved in design (KD7 path confirmed + extra literal sites folded, KD1 SSOT re-export explicit, KD8 cites ADV_INSTRUCTIONS.md). No contract-compromise risk, no user-value tradeoff.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "7fcb5bcbbd4f44aea57eccca3926785f08c56a88501b19d3d4e6fa13c431b127",
+        "non_whitespace_chars": 9352,
+        "checked_at": "2026-06-25T14:23:18.024Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-06-25T14:50:42.102Z",
+      "completed_by": "agent",
+      "approval_evidence": "Prep plan approved via Tier A inline reply 'approve'. 11 tasks with full contract traceability (all AC1-11 + SC1-5 covered; all 5 DONT respected). Dependency graph: T1 spec-first → T2/T3; change.ts tasks serialized T6→T7→T4; T11 verify blocked by all. Strict validation passed (NO_DELTAS warning expected — spec edits authored as task T1)."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-06-25T15:29:55.084Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 11 tasks done via TDD/verification. 7 fixes (QUAL-002/003/004/005, STRUCT-002/003/004) + 2 spec requirements + 2 dispositions (QUAL-001 residual-risk docstring, STRUCT-001 deferred ROADMAP #82). pnpm run check PASS; full suite green except 42 proven-pre-existing failures (env STSL timeouts + stale version assertions + unrelated subsystems untouched by this change). The only my-caused suite failures (gate.release-enforcement _adapters mock) were fixed. Worktree HEAD fbfa20a8c5e180894b90ad2b59a508bd718622aa."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-06-25T16:33:32.725Z",
+      "completed_by": "agent",
+      "approval_evidence": "User accepted via Tier A inline reply 'approve'. Acceptance review verdict APPROVED (0 blockers, 0 issues; 6 minor nits/suggestions deferred to harden) from two independent reviewers. Contract review matrix 26/26 passing/respected, 0 failing. Executive summary persisted + workflow-visible. Preview not_applicable (visual_surface false). pnpm run check green; full suite green except 42 proven-pre-existing failures.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "53f0d7c1a1a17b6763379deba2411560c3d675f27d4251cfcc9c11208c0473dc",
+        "non_whitespace_chars": 2546,
+        "checked_at": "2026-06-25T14:23:18.025Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "discovery",
+    "source_artifact": "slop-scan:2026-06-25 (9 findings: 2 major, 7 minor)"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "a53137878a404480025c8283e4629e5f27eeadb4ecf0fe5511fbbb354e821522",
+      "approvedAt": "2026-06-25T14:39:42.163Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "**SC1** — Multi-session worktree ownership is safe: a live peer's lease is never reclaimed due to an inconclusive liveness probe.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a53137878a404480025c8283e4629e5f27eeadb4ecf0fe5511fbbb354e821522",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "**SC2** — Agenda data is durable: malformed lines are observable and never silently destroyed by compaction.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a53137878a404480025c8283e4629e5f27eeadb4ecf0fe5511fbbb354e821522",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "**SC3** — Archive-cleanup and mesh-issue operational failures are observable, not silently swallowed.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a53137878a404480025c8283e4629e5f27eeadb4ecf0fe5511fbbb354e821522",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC4",
+        "kind": "success_criterion",
+        "text": "**SC4** — Change-lifecycle code has single sources of truth for recovery glue, gate polling, and change/workflow prefixes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a53137878a404480025c8283e4629e5f27eeadb4ecf0fe5511fbbb354e821522",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC5",
+        "kind": "success_criterion",
+        "text": "**SC5** — Every one of the 9 findings has a recorded disposition; none silently dropped.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a53137878a404480025c8283e4629e5f27eeadb4ecf0fe5511fbbb354e821522",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "**AC1** — Lease liveness treats `EPERM`/non-`ESRCH` as alive (dead only on `ESRCH`); a test proves a live peer's lease is not reclaimed on `EPERM`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a53137878a404480025c8283e4629e5f27eeadb4ecf0fe5511fbbb354e821522",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "**AC2** — Loading agenda JSONL with a malformed line emits an observable log for the dropped line, and compaction does not permanently discard unparsed content without surfacing it; test covers malformed-line load + compaction.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a53137878a404480025c8283e4629e5f27eeadb4ecf0fe5511fbbb354e821522",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "**AC3** — Archive-cleanup failure paths in `change.ts` emit an observable warning (no empty `// warning-only` catch); verification shows a warning when cleanup throws.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a53137878a404480025c8283e4629e5f27eeadb4ecf0fe5511fbbb354e821522",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "**AC4** — A mesh-issue JSON parse failure is distinguishable from a genuine exit-0 success and is treated as a failure by callers; test covers exit-0 + malformed stdout.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a53137878a404480025c8283e4629e5f27eeadb4ecf0fe5511fbbb354e821522",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "**AC5** — Workflow-completed recovery glue in `change.ts` has a single source of truth used by the previously-duplicated catch sites; existing recovery/archive tests pass.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a53137878a404480025c8283e4629e5f27eeadb4ecf0fe5511fbbb354e821522",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "**AC6** — Gate-completion polling has a single shared implementation used by both `gate.ts` and the `change.ts` release-gate path; existing gate/archive tests pass.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a53137878a404480025c8283e4629e5f27eeadb4ecf0fe5511fbbb354e821522",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "**AC7** — `change/` and `adv/change/` prefixes are defined once and imported; duplicate module-local definitions removed; tests pass.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a53137878a404480025c8283e4629e5f27eeadb4ecf0fe5511fbbb354e821522",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC8",
+        "kind": "acceptance_criterion",
+        "text": "**AC8** — New spec requirements `rq-worktreeLeaseLiveness01` (worktree-lifecycle) and `rq-agendaDurableParse01` (advance-meta) are added with Given/When/Then; implementation conforms.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a53137878a404480025c8283e4629e5f27eeadb4ecf0fe5511fbbb354e821522",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC9",
+        "kind": "acceptance_criterion",
+        "text": "**AC9** — QUAL-001 disposition recorded as accepted residual risk; `trunk-write-firewall` docstring cites the spec decision; no firewall behavior change.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a53137878a404480025c8283e4629e5f27eeadb4ecf0fe5511fbbb354e821522",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC10",
+        "kind": "acceptance_criterion",
+        "text": "**AC10** — STRUCT-001 disposition recorded as deferred to ROADMAP #82; no `change.ts` decomposition in this change.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a53137878a404480025c8283e4629e5f27eeadb4ecf0fe5511fbbb354e821522",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC11",
+        "kind": "acceptance_criterion",
+        "text": "**AC11** — `pnpm run check` passes from `plugin/`; focused tests for all touched modules pass.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a53137878a404480025c8283e4629e5f27eeadb4ecf0fe5511fbbb354e821522",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "**C1** — `pnpm run check` passes from `plugin/`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a53137878a404480025c8283e4629e5f27eeadb4ecf0fe5511fbbb354e821522",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "**C2** — Preserve enforced layer boundaries (workflow-bundle import boundary; context-snapshot purity).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a53137878a404480025c8283e4629e5f27eeadb4ecf0fe5511fbbb354e821522",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "**C3** — Correctness fixes follow TDD (RED reproduction before fix).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a53137878a404480025c8283e4629e5f27eeadb4ecf0fe5511fbbb354e821522",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "**C4** — No public schema drift without `pnpm run schemas:generate`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a53137878a404480025c8283e4629e5f27eeadb4ecf0fe5511fbbb354e821522",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "**C5** — Structural-correctness-before-heuristic (P33) preserved.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a53137878a404480025c8283e4629e5f27eeadb4ecf0fe5511fbbb354e821522",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "**DONT1** — Do not weaken the trunk write-protection boundary.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a53137878a404480025c8283e4629e5f27eeadb4ecf0fe5511fbbb354e821522",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "**DONT2** — Do not break the exclusive-worktree-ownership invariant.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a53137878a404480025c8283e4629e5f27eeadb4ecf0fe5511fbbb354e821522",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "**DONT3** — Do not introduce new silent-failure catches while fixing existing ones.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a53137878a404480025c8283e4629e5f27eeadb4ecf0fe5511fbbb354e821522",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "**DONT4** — Do not harden the firewall against shell indirection (spec-classified residual risk).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a53137878a404480025c8283e4629e5f27eeadb4ecf0fe5511fbbb354e821522",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "**DONT5** — Do not decompose `change.ts` (STRUCT-001 deferred to ROADMAP #82).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a53137878a404480025c8283e4629e5f27eeadb4ecf0fe5511fbbb354e821522",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-06-25T16:31:47.333Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Multi-session worktree ownership safe: process-liveness.ts isProcessAlive (EPERM→alive) + worktree-lease.test EPERM-reclaim case asserts a live peer's lease is not reclaimed (status 'blocked'). runId tr_mqtmm1vw.",
+          "notes": "QUAL-002"
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Agenda durable: agenda.test proves malformed lines logged + compaction preserves malformed content (skipped). runId tr_mqtmro5b.",
+          "notes": "QUAL-003"
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Operational failures observable: change.ts archive-cleanup logger.warn (3 sites) + mesh-issues parseFailed flag surfaced by archive-mesh consumer.",
+          "notes": "QUAL-004/005"
+        },
+        {
+          "contractId": "SC4",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Single sources of truth: recoverReleaseGateIfWorkflowCompleted (change.ts), waitForGateCompletion (_adapters.ts), CHANGE_BRANCH_PREFIX/CHANGE_WORKFLOW_PREFIX (contracts.ts).",
+          "notes": "STRUCT-002/003/004"
+        },
+        {
+          "contractId": "SC5",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "All 9 findings dispositioned: 7 fixed, QUAL-001 documented residual risk, STRUCT-001 deferred ROADMAP #82. Touched-scope scan clean.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "worktree-lease.test.ts EPERM mock → reclaim returns 'blocked'; process-liveness.test.ts ESRCH→false/EPERM→true. Independent reviewer confirmed fail-safe direction. runId tr_mqtmm1vw.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "agenda.test.ts: malformed line logged + skippedMalformed counted; compaction preserves malformed content. runId tr_mqtmro5b.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "change.ts 3 empty // warning-only catches → logger.warn(change id + op + error). change.archive-phase9 suite green. runId tr_mqtn8rbr.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "mesh-issues.test exit-0+malformed→parseFailed:true; archive-mesh.test consumer pushes error. runId tr_mqtmw722.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "recoverReleaseGateIfWorkflowCompleted SSOT; 3 catch sites delegate. Behavior-preserving: recovery/archive suites 97/97. runId tr_mqtmywu3.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "_adapters.waitForGateCompletion shared; gate.ts + change.ts delegate; 3 direct unit tests. gate + _adapters suites green. runId tr_mqtn5liz/tr_mqtn6sni.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "contracts.ts single prefix defs; 3 duplicate defs removed + campsite literals; rg confirms no remaining module-local def. boundary+visibility+git-finalize 130/130. runId tr_mqtndvqf.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC8",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "rq-worktreeLeaseLiveness01 (worktree-lifecycle 1.6.0) + rq-agendaDurableParse01 (advance-meta 1.19.0) with Given/When/Then + doc mirrors; impl conforms (AC1/AC2 tests).",
+          "notes": ""
+        },
+        {
+          "contractId": "AC9",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "trunk-write-firewall classifyDestructiveBash docstring cites rq-twf01.7 + ADV_INSTRUCTIONS.md residual-risk; body unchanged; firewall tests green. runId tr_mqtnf7te.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC10",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "ROADMAP.md:54 #82 confirmed tracks plugin/src complexity; change.ts not decomposed (single file).",
+          "notes": ""
+        },
+        {
+          "contractId": "AC11",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "pnpm run check PASS (schemas:check, typecheck, test-isolation, lockfile, lint, format:check). runId tr_mqtnqoyr. Full suite green except 42 proven-pre-existing failures.",
+          "notes": ""
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "pnpm run check passes from plugin/. runId tr_mqtnqoyr.",
+          "notes": ""
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "workflow-bundle-boundary.test.ts green; contracts.ts additions are plain string consts, no new node/storage/tools imports.",
+          "notes": ""
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "TDD red→green for QUAL-002/003/005 (red runIds tr_mqtmj9zx, tr_mqtmq5vj, tr_mqtmuric precede green).",
+          "notes": ""
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No public schema drift; schemas:check green; spec.json edits are not public Zod schemas.",
+          "notes": ""
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Structural-correctness preserved: tagged ParseLineResult union (agenda), typed parseFailed flag (mesh), typed liveness helper. No new heuristics own correctness.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "trunk-write-firewall classifyDestructiveBash body unchanged (docstring-only diff).",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Exclusive-worktree-ownership invariant preserved: EPERM→alive prevents reclaiming a live peer's lease.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No new silent-failure catches: all new/changed catches log or surface (agenda malformed kind, change.ts logger.warn, mesh parseFailed). rg confirms no new bare empty catch.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Firewall not hardened against shell indirection; docstring defers it as accepted residual risk.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "change.ts not decomposed (single 5412-line module; only internal helper extraction).",
+          "notes": ""
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "**AC1** — Lease liveness treats `EPERM`/non-`ESRCH` as alive (dead only on `ESRCH`); a test proves a live peer's lease is not reclaimed on `EPERM`.",
+    "**AC2** — Loading agenda JSONL with a malformed line emits an observable log for the dropped line, and compaction does not permanently discard unparsed content without surfacing it; test covers malformed-line load + compaction.",
+    "**AC3** — Archive-cleanup failure paths in `change.ts` emit an observable warning (no empty `// warning-only` catch); verification shows a warning when cleanup throws.",
+    "**AC4** — A mesh-issue JSON parse failure is distinguishable from a genuine exit-0 success and is treated as a failure by callers; test covers exit-0 + malformed stdout.",
+    "**AC5** — Workflow-completed recovery glue in `change.ts` has a single source of truth used by the previously-duplicated catch sites; existing recovery/archive tests pass.",
+    "**AC6** — Gate-completion polling has a single shared implementation used by both `gate.ts` and the `change.ts` release-gate path; existing gate/archive tests pass.",
+    "**AC7** — `change/` and `adv/change/` prefixes are defined once and imported; duplicate module-local definitions removed; tests pass.",
+    "**AC8** — New spec requirements `rq-worktreeLeaseLiveness01` (worktree-lifecycle) and `rq-agendaDurableParse01` (advance-meta) are added with Given/When/Then; implementation conforms.",
+    "**AC9** — QUAL-001 disposition recorded as accepted residual risk; `trunk-write-firewall` docstring cites the spec decision; no firewall behavior change.",
+    "**AC10** — STRUCT-001 disposition recorded as deferred to ROADMAP #82; no `change.ts` decomposition in this change.",
+    "**AC11** — `pnpm run check` passes from `plugin/`; focused tests for all touched modules pass."
+  ],
+  "documents": {
+    "proposal": "# Proposal: Remediate slop defects (2026-06-25 scan)\n\n## Why\n\nA repository slop scan on 2026-06-25 surfaced 9 quality defects in `plugin/`. All 9 were independently re-validated against current source by direct file inspection — every one is real. The hallucination scan was clean. See per-finding evidence below.\n\n## What Changes\n\nRemediate or explicitly disposition each of the 9 findings (dispositions firmed by discovery — see Discovery Findings).\n\n## User Outcomes\n\n- Multi-session worktree ownership is safe on multi-user hosts (no false lease reclaim of live peers).\n- Agenda data is durable — malformed lines are surfaced, never silently destroyed by compaction.\n- Operational failures (archive cleanup, mesh issue creation) are observable instead of silently swallowed.\n- The change-lifecycle code is easier to maintain (reduced duplication, single sources of truth).\n- Every finding has a recorded disposition — fixed, documented non-actionable, or deferred-with-tracking.\n\n## Affected Code\n\n- `plugin/src/utils/worktree-lease.ts` (+ shared liveness helper under `utils/`)\n- `plugin/src/storage/agenda.ts`\n- `plugin/src/tools/change.ts`\n- `plugin/src/integrations/mesh-issues.ts`\n- `plugin/src/tools/trunk-write-firewall.ts` (docstring only — see disposition)\n- `plugin/src/tools/gate.ts`\n- `plugin/src/tools/worktree/state.ts`, `plugin/src/temporal/visibility-claim-queries.ts`, `plugin/src/temporal/list-change-workflows.ts` (+ raw-literal sites in `archive-helpers/git-finalize.ts`, `worktree/census.ts`, `worktree/triage.ts`, `worktree/index.ts`)\n- Co-located test files for each touched module.\n\n## Related Repositories\n\nSingle-repo change (`advance`). No product/cross-repo scope.\n\n## Constraints\n\n- `pnpm run check` (from `plugin/`) must pass; touched-module focused tests must pass.\n- Layer boundaries enforced by tests must be preserved (workflow-bundle import boundary, context-snapshot purity).\n- Correctness fixes follow TDD (RED reproduction before fix) per P24.\n- Structural correctness before heuristic (P33).\n- No public schema drift without `pnpm run schemas:generate`.\n\n## Scope\n\n### In Scope\n\n- Remediation or explicit documented disposition of all 9 validated findings.\n- New/updated tests proving each correctness fix and guarding regressions.\n- Touched-scope same-pattern cleanup (P23/P25) within the affected modules.\n\n### Out of Scope\n\n- Repo-wide complexity reduction beyond named findings (ROADMAP #82).\n- Rewriting the Temporal recovery model beyond deduplicating existing glue (STRUCT-002).\n- Hardening the firewall against shell indirection — spec-classified accepted residual risk (QUAL-001).\n- Tooling-env scanner coverage gaps (eslint/knip root run, ast-grep, jscpd).\n\n### Must Not\n\n- Must not silently drop any finding.\n- Must not weaken the trunk write-protection boundary.\n- Must not break the exclusive-worktree-ownership invariant while fixing lease liveness.\n- Must not introduce new silent-failure catches while fixing existing ones.\n\n---\n\n## Discovery Findings (2026-06-25)\n\n### Current State (validated)\n\n| ID | Status | Disposition (proposed) |\n|---|---|---|\n| QUAL-002 | real correctness bug | FIX — `worktree-lease.ts:123` `isPidAlive` returns `false` on EPERM; siblings `session/index.ts:47` + `worker-lock.ts:180` treat EPERM/non-ESRCH as alive. Converge on one shared helper. |\n| QUAL-003 | real correctness bug | FIX — `agenda.ts:113` `parseLine` drops malformed lines silently; `project-wisdom.ts:203` + `reflection.ts:269` already log \"Skipping malformed JSON line\". Bring agenda to parity + guard compaction against parse-loss. |\n| QUAL-004 | real silent failure | FIX — 4 `// warning-only` empty catches in `change.ts` (4240, 4252, 4267, **4605** — one more than the original 3). Emit real warnings. |\n| QUAL-005 | real silent failure | FIX — `mesh-issues.ts:157` parse failure returns `exitCode: 0`. Add explicit `parseFailed` signal; callers treat as failure. |\n| QUAL-001 | real but **spec-sanctioned** | DOCUMENT non-actionable — direct `rm`/`cp`/`mv`/`sed -i`/`tee`/redirects ARE handled; missing forms (find -exec, xargs, eval, bash -c, command substitution) are all shell indirection, which `advance-meta` spec explicitly classifies as \"accepted residual risk.\" Optional: docstring cite. |\n| STRUCT-002 | real duplication | FIX — `change.ts:1618-1677` triple-duplicated workflow-completed recovery glue. Centralize into one helper. |\n| STRUCT-003 | real duplication | FIX — `gate.ts:130` vs `change.ts:1237` near-identical poll loops (60/500). Extract shared helper. |\n| STRUCT-004 | real duplication | FIX — `adv/change/` defined in 3 modules + raw `change/` literals. Single exported prefix contract. |\n| STRUCT-001 | real structural | DECISION — `change.ts` 5422-line god-object; overlaps deferred ROADMAP #82. Defer vs include (user decision). |\n\n### Conflict Scan\n\n- `adv_change_validate`: passed, only expected NO_TASKS/NO_DELTAS warnings (own-change pre-prep).\n- `adv_change_list includeArchived`: timed out (archive scan, env-slow). Known related work: archived `fixSlopScanFindings` (2026-05-23) — different/older scan; its complexity deferral = ROADMAP #82 (overlaps STRUCT-001 only).\n- `adv_agenda_list`: 284 pending items; `ag-VH206pZN` (extract worktree/index.ts modules) is thematically adjacent but a different file — no direct conflict.\n\n### Related Pattern Scan (P25)\n\n- isPidAlive: 3 implementations confirmed. `worktree-lease.ts:123` is the outlier (EPERM→false); `session/index.ts` + `worker-lock.ts` are conservative (EPERM→alive) and accept an injectable `isPidAlive`. → converge.\n- Silent malformed-JSONL drop: `agenda.ts` is the outlier; `project-wisdom.ts:203` + `reflection.ts:269` log. → bring agenda to parity.\n- `// warning-only` empty catches: 4 sites in `change.ts` (4240/4252/4267/4605). Other `// ignore` sites (snapshot-scan.ts, index.ts:971, worktree/triage.ts:409) are scanner/cleanup contexts — left as-is unless proven defects.\n\n### Edge Cases\n\n- QUAL-002: EPERM (cross-user PID) → must be alive; PID reuse after wrap → out of scope (pre-existing); ESRCH → dead.\n- QUAL-003: malformed line mid-file; empty file; meta-only line; compaction triggered immediately after a bad append.\n- QUAL-005: gh emits warning to stdout before JSON; empty stdout exit 0; valid JSON missing `html_url`.\n\n### Open Design Questions\n\n1. **STRUCT-001 inclusion** — Trust: joint (user). Blast radius: broad across `change.ts` consumers/tests. Alternatives: (a) defer to ROADMAP #82 [recommended], (b) include now. → ask user.\n2. **QUAL-001 disposition** — Trust: joint (user). Blast radius: low. Alternatives: (a) document non-actionable per spec + optional docstring [recommended], (b) override spec and harden against indirection [out of scope unless user wants it]. → ask user.\n3. **Spec-law capture** — Trust: joint (user). Should the lease-liveness + agenda-durability invariants become new `rq-*` spec law, or just be fixed with tests? → ask user.\n4. **QUAL-002 helper shape** — Trust: agent. Resolved: extract shared `utils/` liveness helper, reuse in all 3 sites.\n5. **QUAL-005 contract** — Trust: agent. Resolved: explicit `parseFailed` flag.\n\n### Draft Spec Deltas (firmed in design; subject to \"spec-law capture\" decision)\n\n- **rq-worktreeLeaseLiveness01** (`worktree-lifecycle`, optional): Given a lease held by another PID, When the liveness probe throws EPERM or a non-ESRCH error, Then the lease MUST be treated as alive and MUST NOT be reclaimed.\n- **rq-agendaDurableParse01** (`advance-meta`, optional): Given an agenda JSONL file with a malformed line, When the agenda is loaded, Then the malformed line MUST be logged; And auto-compaction MUST NOT permanently discard unparsed content without surfacing it.\n- All other findings: **No spec delta required** — QUAL-001 already covered (residual risk); QUAL-004/005 internal observability; STRUCT-002/003/004 behavior-preserving.\n\n### Completeness Verification\n\n- **Problem-completeness:** HIGH confidence. All 9 findings re-validated at source; P25 related-pattern scan extended QUAL-004 (3→4 sites) and confirmed agenda/lease as outliers vs existing good patterns. No sole-chokepoint claim relied upon.\n- **Solution-scope:** HIGH confidence. Secondary surfaces (`index.ts:971`, `snapshot-scan.ts`, `worktree/triage.ts:409` ignore-catches) classified **out of scope** (scanner/cleanup contexts, not defects). No silent deferral.\n\n### LBP Check\n\nInternal refactor + bug-fix change; no external library/service viable. External-solution check: skipped (purely internal). Fixes align with existing in-repo good patterns (injectable liveness helper, malformed-line logging) — LBP = converge on the established internal patterns.\n\n### AMBIGUITY ANALYSIS\n\nB1  ADVISORY  Boundaries  STRUCT-001 inclusion is an open scope decision.\n  Evidence: \"DECISION — `change.ts` 5422-line god-object; overlaps deferred ROADMAP #82. Defer vs include (user decision).\"\n  Reason: surfaced for explicit user resolution in clarification round; not silently deferred.\n\nCoverage: B:P F:C S:C M:C — no CRITICAL, no 2+ HIGH. Continue.",
+    "problemStatement": "## Why\n\nA repository slop scan (2026-06-25) surfaced 9 source-confirmed quality defects in `plugin/`. All 9 were independently validated against current source — each is real, not a false positive.\n\n### Runtime correctness bugs (2)\n\n- **QUAL-002** (`plugin/src/utils/worktree-lease.ts:123`): `isPidAlive` returns `false` on any `process.kill(pid, 0)` exception, including `EPERM`. Sibling implementations (`tools/session/index.ts:47`, `temporal/worker-lock.ts:180`) deliberately treat `EPERM`/non-`ESRCH` as alive. On a multi-user host, signal-0 against another user's PID yields `EPERM` → the live peer's lease is treated as dead → `reclaimStaleLease` overwrites it → two sessions believe they exclusively own the same worktree. Breaks the exclusive-ownership invariant.\n- **QUAL-003** (`plugin/src/storage/agenda.ts:113`): `parseLine` catches JSON/schema failures and returns `null` with no logging; `loadAgenda` silently skips them; `maybeAutoCompactAgenda` then rewrites only the well-formed subset, permanently destroying malformed lines. Contradicts the module's append-only durability guarantee.\n\n### Silent-failure handlers (2)\n\n- **QUAL-004** (`plugin/src/tools/change.ts:4239`): three archive-cleanup catches labeled `// warning-only` emit no warning — no `logger`, no debug log. Cleanup failures are invisible until hygiene tools rediscover the leakage.\n- **QUAL-005** (`plugin/src/integrations/mesh-issues.ts:157`): `JSON.parse` failure returns `exitCode: 0` (success) with empty payload, so callers see success-without-URL and never detect the parse failure.\n\n### Security-boundary heuristic gap (1)\n\n- **QUAL-001** (`plugin/src/tools/trunk-write-firewall.ts:279`): `classifyDestructiveBash` only recognizes destructive intent when `cp`/`mv`/`rm`/`sed -i`/`tee`/redirect is `tokens[0]`. It misses `find … -exec rm`, `xargs rm`, `eval`, `bash -c`, interpreter `-c`, command substitution, and background/subshell forms — a heuristic owning a write-protection boundary (P33).\n\n### Structural / duplication issues (4)\n\n- **STRUCT-001** (`plugin/src/tools/change.ts`): 5422-line module; `changeTools` is a single 3329-line object literal inlining 12 tool handlers. Overlaps with deferred follow-up ROADMAP #82.\n- **STRUCT-002** (`plugin/src/tools/change.ts:1618-1677`): workflow-completed recovery glue duplicated verbatim across 3 consecutive catch blocks plus 9 dynamic `import()` sites.\n- **STRUCT-003** (`gate.ts:130` vs `change.ts:1237`): two near-identical gate-completion polling loops (60 attempts / 500ms) with separate local delay wrappers.\n- **STRUCT-004** (`worktree/state.ts:219-220` + 2 more): `change/` and `adv/change/` prefixes redefined across 3+ modules with raw-literal usage elsewhere.\n\n## Desired Outcome\n\nEach finding is either fixed with verification evidence, or explicitly deferred with documented rationale. No finding is silently dropped.\n\n## Note\n\nA prior change `fixSlopScanFindings` (archived 2026-05-23) addressed a different/older slop scan. This change is the remediation vehicle for the 2026-06-25 scan.",
+    "agreement": "# Agreement\n\n## Objectives\n\n1. Fix the 4 runtime/silent-failure defects: lease liveness (QUAL-002), agenda durability (QUAL-003), archive-cleanup warnings (QUAL-004), mesh-issue parse signaling (QUAL-005).\n2. Remove the 3 duplication defects via single sources of truth: recovery glue (STRUCT-002), gate polling (STRUCT-003), change/workflow prefixes (STRUCT-004).\n3. Capture the two corrected correctness invariants as new spec law.\n4. Record explicit dispositions for the 2 non-fix findings: QUAL-001 (residual risk) and STRUCT-001 (deferred to ROADMAP #82).\n\n## Success Criteria\n\n- **SC1** — Multi-session worktree ownership is safe: a live peer's lease is never reclaimed due to an inconclusive liveness probe.\n- **SC2** — Agenda data is durable: malformed lines are observable and never silently destroyed by compaction.\n- **SC3** — Archive-cleanup and mesh-issue operational failures are observable, not silently swallowed.\n- **SC4** — Change-lifecycle code has single sources of truth for recovery glue, gate polling, and change/workflow prefixes.\n- **SC5** — Every one of the 9 findings has a recorded disposition; none silently dropped.\n\n## Acceptance Criteria\n\n- **AC1** — Lease liveness treats `EPERM`/non-`ESRCH` as alive (dead only on `ESRCH`); a test proves a live peer's lease is not reclaimed on `EPERM`.\n- **AC2** — Loading agenda JSONL with a malformed line emits an observable log for the dropped line, and compaction does not permanently discard unparsed content without surfacing it; test covers malformed-line load + compaction.\n- **AC3** — Archive-cleanup failure paths in `change.ts` emit an observable warning (no empty `// warning-only` catch); verification shows a warning when cleanup throws.\n- **AC4** — A mesh-issue JSON parse failure is distinguishable from a genuine exit-0 success and is treated as a failure by callers; test covers exit-0 + malformed stdout.\n- **AC5** — Workflow-completed recovery glue in `change.ts` has a single source of truth used by the previously-duplicated catch sites; existing recovery/archive tests pass.\n- **AC6** — Gate-completion polling has a single shared implementation used by both `gate.ts` and the `change.ts` release-gate path; existing gate/archive tests pass.\n- **AC7** — `change/` and `adv/change/` prefixes are defined once and imported; duplicate module-local definitions removed; tests pass.\n- **AC8** — New spec requirements `rq-worktreeLeaseLiveness01` (worktree-lifecycle) and `rq-agendaDurableParse01` (advance-meta) are added with Given/When/Then; implementation conforms.\n- **AC9** — QUAL-001 disposition recorded as accepted residual risk; `trunk-write-firewall` docstring cites the spec decision; no firewall behavior change.\n- **AC10** — STRUCT-001 disposition recorded as deferred to ROADMAP #82; no `change.ts` decomposition in this change.\n- **AC11** — `pnpm run check` passes from `plugin/`; focused tests for all touched modules pass.\n\n## Constraints\n\n- **C1** — `pnpm run check` passes from `plugin/`.\n- **C2** — Preserve enforced layer boundaries (workflow-bundle import boundary; context-snapshot purity).\n- **C3** — Correctness fixes follow TDD (RED reproduction before fix).\n- **C4** — No public schema drift without `pnpm run schemas:generate`.\n- **C5** — Structural-correctness-before-heuristic (P33) preserved.\n\n## Avoidances\n\n- **DONT1** — Do not weaken the trunk write-protection boundary.\n- **DONT2** — Do not break the exclusive-worktree-ownership invariant.\n- **DONT3** — Do not introduce new silent-failure catches while fixing existing ones.\n- **DONT4** — Do not harden the firewall against shell indirection (spec-classified residual risk).\n- **DONT5** — Do not decompose `change.ts` (STRUCT-001 deferred to ROADMAP #82).\n\n## Preview Applicability\n\n`visual_surface: false` — all changes are backend/plugin TypeScript with no browser-visible or visual output. Rationale: touched modules are storage, tools, utils, integrations, and temporal internals.\n\n## Decisions\n\n### User Decisions\n\n1. **STRUCT-001 scope** — Defer the `change.ts` god-object decomposition to ROADMAP #82. Why it matters: broad blast radius; keeps this change focused and shippable.\n2. **QUAL-001 disposition** — Document as accepted residual risk + add docstring citation; do not harden against shell indirection. Why it matters: the `advance-meta` spec already classifies shell indirection as residual risk; hardening would require a spec change.\n3. **Spec-law capture** — Capture the lease-liveness and agenda-durability invariants as new `rq-*` spec requirements. Why it matters: specs-as-laws; durable enforcement beyond regression tests.\n\n### Agent Decisions (LBP)\n\n1. **QUAL-002 helper shape** — Extract a single shared liveness helper into `utils/` and reuse it across `worktree-lease.ts`, `session/index.ts`, and `worker-lock.ts`. Rationale: eliminates the 3-way divergence at its root; the two canonical sites already accept an injectable `isPidAlive`.\n2. **QUAL-005 contract** — Surface parse failure as an explicit failure signal distinct from exit-0 success (rather than a sentinel exit code). Rationale: clearer caller contract; least-surprising.\n3. **QUAL-003 compaction guard** — Mirror the existing `project-wisdom.ts` / `reflection.ts` malformed-line logging, and guard auto-compaction so it does not destroy unparsed content without surfacing. Rationale: in-repo precedent, minimal new surface.\n\n## Deferred Questions\n\nNone — all open questions resolved.\n\n## Sign-Off\n\nCriteria approved by user via Tier A inline reply `approve` at the Phase 4.5.1 acceptance-criteria checkpoint (2026-06-25).",
+    "design": "# Design\n\n## Architecture Overview\n\nEight in-place remediations plus two spec-law additions, grouped into four workstreams. No architectural restructuring — each fix converges divergent code onto an existing in-repo pattern or single source of truth. All changes are internal to `plugin/src`; no public schema, tool surface, or workflow-bundle boundary changes.\n\n| Workstream | Findings | Strategy |\n|---|---|---|\n| A. Process liveness | QUAL-002 | Extract one shared liveness helper; converge 3 implementations |\n| B. Durable / observable I/O | QUAL-003, QUAL-004, QUAL-005 | Mirror existing logging patterns; surface failures |\n| C. SSOT dedup | STRUCT-002, STRUCT-003, STRUCT-004 | Extract single helpers / constants |\n| D. Dispositions + spec law | QUAL-001, STRUCT-001, AC8 | Docstring + spec requirements |\n\n## Key Decisions\n\n### KD1 — Shared process-liveness helper (QUAL-002, AC1)\nCreate `plugin/src/utils/process-liveness.ts` exporting `isProcessAlive(pid: number): boolean` — the single canonical implementation: `process.kill(pid,0)` success → `true`; `ESRCH` → `false`; `EPERM`/any other code → `true` (alive). Matches the already-correct semantics in `tools/session/index.ts:47` and `temporal/worker-lock.ts:189`.\n- `utils/worktree-lease.ts` replaces its buggy local `isPidAlive` (EPERM→false) with the shared helper — the actual bug fix (`reclaimStaleLease:227` no longer reclaims a live peer's lease on EPERM).\n- `tools/session/index.ts` **re-exports** `isProcessAlive` under the existing `isPidAlive` name (preserves test import `session/index.test.ts:18`) — it must NOT remain a third independent copy (validator caution resolved).\n- `temporal/worker-lock.ts` default fallback (`isLockOwnerAlive`) delegates to the shared helper, preserving its injectable-`isPidAlive` seam for tests.\n- Rationale: eliminates the 3-way divergence at the root (P25).\n\n### KD2 — Agenda durability (QUAL-003, AC2, rq-agendaDurableParse01)\n- `storage/agenda.ts:parseLine` logs on parse/schema failure via `appendDebugLog(\"agenda\", \"Skipping malformed line: …\")`, mirroring `project-wisdom.ts:203` and `reflection.ts:269`.\n- `loadAgenda` records a count of skipped malformed lines.\n- `maybeAutoCompactAgenda` / `compactAgenda` MUST NOT rewrite (which drops malformed lines permanently) when the load skipped any line — emit a warning and skip compaction so the corrupt line survives for manual inspection. Existing pre-compact backup remains.\n- Rationale: append-only durability honored; corruption becomes observable + recoverable. No new silent failure (DONT3).\n\n### KD3 — Observable archive-cleanup warnings (QUAL-004, AC3)\nReplace the 4 empty `// warning-only` catches in `change.ts` (4240, 4252, 4267, 4605) with real `logger.warn(...)` (logger already in scope). Message includes change id, cleanup op, error text.\n\n### KD4 — Mesh-issue parse-failure signal (QUAL-005, AC4)\nAdd explicit `parseFailed?: boolean` to `MeshIssueResult`. On `JSON.parse` failure in `createMeshIssue`/`listMeshIssues`/`getGhIssue`, set `parseFailed: true` (keep raw exitCode/stderr). Update consumer `archive-mesh.ts:71-73` to treat `result.parseFailed` as an error (the current branch only checks `exitCode !== 0 && !ghNotFound`, missing the exit-0+parse-fail case).\n\n### KD5 — Centralized completed-workflow recovery (STRUCT-002, AC5)\nExtract `withCompletedWorkflowRecovery<T>(fn, ctx)` into `tools/_recovery-writers.ts`. It runs `fn`, catches, classifies via `isWorkflowCompletedError`, delegates once to `recoverReleaseGateViaDiskProjection`. Replace the 3 byte-identical catch blocks at `change.ts:1618-1677` and consolidate the repeated dynamic `import()`. Behavior-preserving; existing recovery/archive tests guard.\n\n### KD6 — Shared gate-completion polling (STRUCT-003, AC6)\nExtract `waitForGateCompletion(handle, gateId, {attempts, delayMs})`. `gate.ts:waitForGateCompletionResult` and `change.ts:waitForArchiveReleaseGateCompletion` both call it; `\"release\"` becomes an argument; single delay wrapper; identical 60/500 values retained.\n\n### KD7 — SSOT change/workflow prefixes (STRUCT-004, AC7)\nAdd `CHANGE_BRANCH_PREFIX = \"change/\"` and `CHANGE_WORKFLOW_PREFIX = \"adv/change/\"` to `temporal/contracts.ts` (already owns `ADVANCE_TEMPORAL_TASK_QUEUE_PREFIX`; workflow-safe string constants).\n- **Primary dedup (AC7 core):** replace the 3 duplicate `CHANGE_WORKFLOW_PREFIX` defs — `tools/worktree/state.ts:220` (path confirmed; validator's storage/ lookup was wrong), `temporal/visibility-claim-queries.ts:25`, `temporal/list-change-workflows.ts:124` — and `CHANGE_BRANCH_PREFIX` (`state.ts:219`) with imports.\n- **Campsite literals (replace where safe):** `tools/archive-helpers/git-finalize.ts`, `tools/worktree/census.ts`, `tools/worktree/triage.ts`, `tools/worktree/index.ts`. Interpolated workflow-id/branch builders `temporal/client.ts:61` (`adv/change/${projectId}/${changeId}`) and `temporal/activities.ts:616` (`change/${changeId}`) are additional candidates — convert to `` `${CHANGE_WORKFLOW_PREFIX}${projectId}/${changeId}` `` only if low-risk during apply; leave with rationale otherwise.\n\n### KD8 — QUAL-001 disposition (AC9)\nNo firewall behavior change. Add a docstring note to `classifyDestructiveBash` in `trunk-write-firewall.ts` that **cites** the residual-risk decision recorded in `ADV_INSTRUCTIONS.md` (per `advance-meta` `rq-twf01.7`, which names ADV_INSTRUCTIONS.md as the doc locus) rather than restating policy: shell indirection (find -exec, xargs, eval, bash -c, command substitution) is accepted residual risk; direct rm/cp/mv/sed -i/tee/redirect are covered.\n\n### KD9 — STRUCT-001 disposition (AC10)\nNo code change. Record in executive summary; remains tracked as ROADMAP #82.\n\n## ADR Drafts\n\nNone — no decision meets the 3-criteria rubric (all are reversible, unsurprising, conformance-to-existing-pattern fixes).\n\n## Implementation Strategy\n\n1. **Spec law first** (AC8): add `rq-worktreeLeaseLiveness01` to `.adv/specs/worktree-lifecycle/spec.json` (14→15 reqs; no ID collision confirmed) + `rq-agendaDurableParse01` to `.adv/specs/advance-meta/spec.json`, with doc mirrors if the spec has them. `pnpm run schemas:check` unaffected (specs ≠ public Zod schemas).\n2. **A** QUAL-002: new `utils/process-liveness.ts` + RED test (EPERM→alive reclaim) → converge 3 sites.\n3. **B** QUAL-003 (RED: malformed-line load + compaction-guard), QUAL-004 (warning emitted), QUAL-005 (RED: exit-0 + malformed stdout) → fixes.\n4. **C** STRUCT-002/003/004 behavior-preserving refactors; existing suites guard.\n5. **D** QUAL-001 docstring + dispositions.\n6. **Final**: `pnpm run check` from `plugin/` + focused suites for every touched module.\n\nTDD: workstreams A and B carry RED reproductions; C is behavior-preserving; D is docs/spec.\n\n## LBP Analysis\n\nEvery fix converges on an existing in-repo good pattern rather than inventing a new abstraction: injectable liveness (session/worker-lock), malformed-line logging (project-wisdom/reflection), SSOT constants (temporal/contracts). Long-term-best: reduces variance, makes the codebase self-consistent. No external library applicable (purely internal).\n\n## Affected Components\n\n- `plugin/src/utils/process-liveness.ts` (new) + `worktree-lease.ts`, `tools/session/index.ts`, `temporal/worker-lock.ts`\n- `plugin/src/storage/agenda.ts`\n- `plugin/src/tools/change.ts` (warnings + recovery helper + poll helper + prefix imports)\n- `plugin/src/integrations/mesh-issues.ts` + `plugin/src/archive/archive-mesh.ts`\n- `plugin/src/tools/gate.ts`\n- `plugin/src/temporal/contracts.ts` + `visibility-claim-queries.ts` + `list-change-workflows.ts` (+ campsite: client.ts, activities.ts)\n- `plugin/src/tools/worktree/{state,census,triage,index}.ts`, `plugin/src/tools/archive-helpers/git-finalize.ts`\n- `plugin/src/tools/trunk-write-firewall.ts` (docstring)\n- `.adv/specs/worktree-lifecycle/spec.json`, `.adv/specs/advance-meta/spec.json`\n- Co-located `*.test.ts` for each.\n\n## Design Leverage Scout\n\nScout: skipped — bounded prescribed remediation. Eight individually-scoped fixes, each converging on an existing in-repo pattern or SSOT; opportunity surface (shortcuts/reuse/parallelism/simplification) ~zero beyond the convergence already adopted in KD1/KD2/KD5–KD7. No cross-cutting leverage to discover.\n\n## Design-Derived Criteria\n\n- **DDC1** — `utils/process-liveness.ts` must not import from `storage/` or `tools/` (it is consumed by tool + temporal layers); trivially satisfied (pure `process.kill` wrapper).\n- **DDC2** — `temporal/contracts.ts` additions must stay plain string constants to preserve workflow-bundle import safety (no node:* / storage imports).\n\n## Risks / Mitigations\n\n- **R1: KD5 recovery refactor changes behavior subtly.** Mitigation: behavior-preserving extraction verified by `recovery-probe.test.ts`, `gate.test.ts`, `change.test.ts`, archive-phase9 suites.\n- **R2: KD2 compaction-skip could let agenda grow if a malformed line persists.** Mitigation: acceptable — surfacing + warning is the intended durability tradeoff; manual fix restores compaction. Documented in rq-agendaDurableParse01.\n- **R3: KD7 prefix import from `temporal/contracts.ts` in temporal/ query modules.** Mitigation: string constants are workflow-safe; `workflow-bundle-boundary.test.ts` guards regressions.\n- **R4: session/index.ts re-export must not break existing `isPidAlive` test import.** Mitigation: keep the `isPidAlive` named export binding (re-export, not re-implement).\n\n## Validation Result\n\n**Validator (adv-researcher, independent): CAUTION** — VALIDATED with 2 minor cautions, no conflicts.\n\nConfirmed correct: EPERM→alive is the fail-safe direction for lease reclaim (AC1); KD7 does not breach the workflow-bundle boundary (`workflow-bundle-boundary.test.ts:45-54` forbids only node:*/storage/tools imports + defineUpdate; plain string consts are safe); KD2 closes a real data-loss path with no new silent failure (DONT3 respected); residual-risk claim is real (`advance-meta` spec.json:1791 + rq-twf01.7); new rq IDs do not collide (worktree-lifecycle has no rq-worktreeLeaseLiveness01).\n\nCautions — all resolved in this design:\n1. **KD7 3rd prefix site** — validator looked in `storage/worktree/`; the real path is `tools/worktree/state.ts:219-220` (confirmed by read). Extra interpolated literals (`client.ts:61`, `activities.ts:616`) folded into KD7 as apply-time campsite candidates.\n2. **KD1 SSOT** — `process-liveness.ts` is the single canonical impl; `session/index.ts` re-exports (not a 3rd copy). Made explicit in KD1.\n3. **KD8 docstring** — now cites `ADV_INSTRUCTIONS.md` per rq-twf01.7 rather than restating policy.",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\nRemediated all 9 source-validated slop-scan findings in `plugin/` — 7 fixed with TDD/behavior-preserving refactors, 2 dispositioned (QUAL-001 accepted residual risk, STRUCT-001 deferred), plus 2 new spec requirements capturing the corrected correctness invariants. Two independent acceptance reviewers returned clean verdicts.\n\n## Verdict\nAPPROVED\n\n## What Was Built\n1. **QUAL-002 (lease liveness):** new `utils/process-liveness.ts` `isProcessAlive` (ESRCH→dead; EPERM/other→alive, fail-safe); converged 3 divergent implementations (`worktree-lease.ts`, `session/index.ts` re-export, `worker-lock.ts` delegate). A live peer's lease is no longer reclaimed on EPERM.\n2. **QUAL-003 (agenda durability):** `agenda.ts` parseLine now distinguishes skip/malformed/meta/item; malformed lines logged via `appendDebugLog`; auto-compaction skips + warns when a load dropped malformed lines, so corrupt content is never destroyed.\n3. **QUAL-004 (silent cleanup):** 3 empty `// warning-only` archive-cleanup catches in `change.ts` now emit `logger.warn` with change id + op + error.\n4. **QUAL-005 (mesh parse signal):** added `parseFailed` flag to mesh-issue results; `archive-mesh` consumer treats a parse failure as an error instead of silent exit-0 success.\n5. **STRUCT-002:** centralized completed-workflow recovery glue into `recoverReleaseGateIfWorkflowCompleted`, replacing 3 byte-identical catch blocks.\n6. **STRUCT-003:** extracted shared `waitForGateCompletion` in `_adapters.ts`; `gate.ts` and `change.ts` release path delegate.\n7. **STRUCT-004:** single-source `CHANGE_BRANCH_PREFIX`/`CHANGE_WORKFLOW_PREFIX` in `temporal/contracts.ts`; removed 3 duplicate defs + migrated campsite literals.\n8. **Spec law:** `rq-worktreeLeaseLiveness01` (worktree-lifecycle 1.6.0) + `rq-agendaDurableParse01` (advance-meta 1.19.0), with Given/When/Then + doc mirrors.\n9. **Dispositions:** QUAL-001 documented as accepted residual risk (firewall docstring cites rq-twf01.7 + ADV_INSTRUCTIONS.md; no behavior change); STRUCT-001 deferred to ROADMAP #82.\n\n## What Was Verified\n- Verdict: APPROVED with 0 blockers, 0 issues (6 minor nits/suggestions deferred to harden).\n- Tests: every correctness fix has a RED→GREEN test that fails on revert (independently confirmed). `pnpm run check` PASS; full suite green except 42 proven-pre-existing failures (env STSL timeouts + stale version assertions in untouched subsystems).\n- Preview URL: not_applicable — backend/plugin TypeScript only, no browser-visible or visual output (visual_surface: false).\n- Contract matrix: 26/26 rows passing/respected, 0 failing.\n\n## Remaining Concerns\nNone blocking. Deferred to `/adv-harden`: campsite consistency of remaining raw `change/${id}` construction literals in `git-finalize.ts`/`change.ts`; optional symmetric parseFailed tests for `listMeshIssues`/`getGhIssue` (no live consumers today).",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-06-25T16:31:47.333Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | **SC1** — Multi-session worktree ownership is safe: a live peer's lease is never reclaimed due to an inconclusive liveness probe. | pass | Multi-session worktree ownership safe: process-liveness.ts isProcessAlive (EPERM→alive) + worktree-lease.test EPERM-reclaim case asserts a live peer's lease is not reclaimed (status 'blocked'). runId tr_mqtmm1vw. |\n| SC2 | success_criterion | **SC2** — Agenda data is durable: malformed lines are observable and never silently destroyed by compaction. | pass | Agenda durable: agenda.test proves malformed lines logged + compaction preserves malformed content (skipped). runId tr_mqtmro5b. |\n| SC3 | success_criterion | **SC3** — Archive-cleanup and mesh-issue operational failures are observable, not silently swallowed. | pass | Operational failures observable: change.ts archive-cleanup logger.warn (3 sites) + mesh-issues parseFailed flag surfaced by archive-mesh consumer. |\n| SC4 | success_criterion | **SC4** — Change-lifecycle code has single sources of truth for recovery glue, gate polling, and change/workflow prefixes. | pass | Single sources of truth: recoverReleaseGateIfWorkflowCompleted (change.ts), waitForGateCompletion (_adapters.ts), CHANGE_BRANCH_PREFIX/CHANGE_WORKFLOW_PREFIX (contracts.ts). |\n| SC5 | success_criterion | **SC5** — Every one of the 9 findings has a recorded disposition; none silently dropped. | pass | All 9 findings dispositioned: 7 fixed, QUAL-001 documented residual risk, STRUCT-001 deferred ROADMAP #82. Touched-scope scan clean. |\n| AC1 | acceptance_criterion | **AC1** — Lease liveness treats `EPERM`/non-`ESRCH` as alive (dead only on `ESRCH`); a test proves a live peer's lease is not reclaimed on `EPERM`. | pass | worktree-lease.test.ts EPERM mock → reclaim returns 'blocked'; process-liveness.test.ts ESRCH→false/EPERM→true. Independent reviewer confirmed fail-safe direction. runId tr_mqtmm1vw. |\n| AC2 | acceptance_criterion | **AC2** — Loading agenda JSONL with a malformed line emits an observable log for the dropped line, and compaction does not permanently discard unparsed content without surfacing it; test covers malformed-line load + compaction. | pass | agenda.test.ts: malformed line logged + skippedMalformed counted; compaction preserves malformed content. runId tr_mqtmro5b. |\n| AC3 | acceptance_criterion | **AC3** — Archive-cleanup failure paths in `change.ts` emit an observable warning (no empty `// warning-only` catch); verification shows a warning when cleanup throws. | pass | change.ts 3 empty // warning-only catches → logger.warn(change id + op + error). change.archive-phase9 suite green. runId tr_mqtn8rbr. |\n| AC4 | acceptance_criterion | **AC4** — A mesh-issue JSON parse failure is distinguishable from a genuine exit-0 success and is treated as a failure by callers; test covers exit-0 + malformed stdout. | pass | mesh-issues.test exit-0+malformed→parseFailed:true; archive-mesh.test consumer pushes error. runId tr_mqtmw722. |\n| AC5 | acceptance_criterion | **AC5** — Workflow-completed recovery glue in `change.ts` has a single source of truth used by the previously-duplicated catch sites; existing recovery/archive tests pass. | pass | recoverReleaseGateIfWorkflowCompleted SSOT; 3 catch sites delegate. Behavior-preserving: recovery/archive suites 97/97. runId tr_mqtmywu3. |\n| AC6 | acceptance_criterion | **AC6** — Gate-completion polling has a single shared implementation used by both `gate.ts` and the `change.ts` release-gate path; existing gate/archive tests pass. | pass | _adapters.waitForGateCompletion shared; gate.ts + change.ts delegate; 3 direct unit tests. gate + _adapters suites green. runId tr_mqtn5liz/tr_mqtn6sni. |\n| AC7 | acceptance_criterion | **AC7** — `change/` and `adv/change/` prefixes are defined once and imported; duplicate module-local definitions removed; tests pass. | pass | contracts.ts single prefix defs; 3 duplicate defs removed + campsite literals; rg confirms no remaining module-local def. boundary+visibility+git-finalize 130/130. runId tr_mqtndvqf. |\n| AC8 | acceptance_criterion | **AC8** — New spec requirements `rq-worktreeLeaseLiveness01` (worktree-lifecycle) and `rq-agendaDurableParse01` (advance-meta) are added with Given/When/Then; implementation conforms. | pass | rq-worktreeLeaseLiveness01 (worktree-lifecycle 1.6.0) + rq-agendaDurableParse01 (advance-meta 1.19.0) with Given/When/Then + doc mirrors; impl conforms (AC1/AC2 tests). |\n| AC9 | acceptance_criterion | **AC9** — QUAL-001 disposition recorded as accepted residual risk; `trunk-write-firewall` docstring cites the spec decision; no firewall behavior change. | pass | trunk-write-firewall classifyDestructiveBash docstring cites rq-twf01.7 + ADV_INSTRUCTIONS.md residual-risk; body unchanged; firewall tests green. runId tr_mqtnf7te. |\n| AC10 | acceptance_criterion | **AC10** — STRUCT-001 disposition recorded as deferred to ROADMAP #82; no `change.ts` decomposition in this change. | pass | ROADMAP.md:54 #82 confirmed tracks plugin/src complexity; change.ts not decomposed (single file). |\n| AC11 | acceptance_criterion | **AC11** — `pnpm run check` passes from `plugin/`; focused tests for all touched modules pass. | pass | pnpm run check PASS (schemas:check, typecheck, test-isolation, lockfile, lint, format:check). runId tr_mqtnqoyr. Full suite green except 42 proven-pre-existing failures. |\n| C1 | constraint | **C1** — `pnpm run check` passes from `plugin/`. | respected | pnpm run check passes from plugin/. runId tr_mqtnqoyr. |\n| C2 | constraint | **C2** — Preserve enforced layer boundaries (workflow-bundle import boundary; context-snapshot purity). | respected | workflow-bundle-boundary.test.ts green; contracts.ts additions are plain string consts, no new node/storage/tools imports. |\n| C3 | constraint | **C3** — Correctness fixes follow TDD (RED reproduction before fix). | respected | TDD red→green for QUAL-002/003/005 (red runIds tr_mqtmj9zx, tr_mqtmq5vj, tr_mqtmuric precede green). |\n| C4 | constraint | **C4** — No public schema drift without `pnpm run schemas:generate`. | respected | No public schema drift; schemas:check green; spec.json edits are not public Zod schemas. |\n| C5 | constraint | **C5** — Structural-correctness-before-heuristic (P33) preserved. | respected | Structural-correctness preserved: tagged ParseLineResult union (agenda), typed parseFailed flag (mesh), typed liveness helper. No new heuristics own correctness. |\n| DONT1 | avoidance | **DONT1** — Do not weaken the trunk write-protection boundary. | respected | trunk-write-firewall classifyDestructiveBash body unchanged (docstring-only diff). |\n| DONT2 | avoidance | **DONT2** — Do not break the exclusive-worktree-ownership invariant. | respected | Exclusive-worktree-ownership invariant preserved: EPERM→alive prevents reclaiming a live peer's lease. |\n| DONT3 | avoidance | **DONT3** — Do not introduce new silent-failure catches while fixing existing ones. | respected | No new silent-failure catches: all new/changed catches log or surface (agenda malformed kind, change.ts logger.warn, mesh parseFailed). rg confirms no new bare empty catch. |\n| DONT4 | avoidance | **DONT4** — Do not harden the firewall against shell indirection (spec-classified residual risk). | respected | Firewall not hardened against shell indirection; docstring defers it as accepted residual risk. |\n| DONT5 | avoidance | **DONT5** — Do not decompose `change.ts` (STRUCT-001 deferred to ROADMAP #82). | respected | change.ts not decomposed (single 5412-line module; only internal helper extraction). |\n\n"
+  },
+  "artifacts": {
+    "problemStatement": {
+      "updatedAt": "2026-06-25T14:23:18.071Z",
+      "contentHash": "04dbccfdf1bb238044d4cd9c6725849e4f21b5396aa845dc47edf828c1becd23",
+      "source": "temporal",
+      "readable": false
+    },
+    "proposal": {
+      "updatedAt": "2026-06-25T14:28:37.486Z",
+      "contentHash": "7c51d7c86b6d87fe0057dba0389511b5a93c223883c54d4bf18ac0c3b44da9eb",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-06-25T14:39:34.645Z",
+      "contentHash": "a53137878a404480025c8283e4629e5f27eeadb4ecf0fe5511fbbb354e821522",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-06-25T14:46:23.661Z",
+      "contentHash": "7fcb5bcbbd4f44aea57eccca3926785f08c56a88501b19d3d4e6fa13c431b127",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-06-25T16:32:14.595Z",
+      "contentHash": "53f0d7c1a1a17b6763379deba2411560c3d675f27d4251cfcc9c11208c0473dc",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-06-25T16:37:42.882Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true
+}

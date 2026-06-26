@@ -97,6 +97,7 @@
 | `adv_gate_complete` | `no-cli-dangerous` | Gate completion + workflow advance |
 | `adv_contract_mint` | `no-cli-dangerous` | Contract authority mutation |
 | `adv_contract_review_matrix_set` | `no-cli-dangerous` | Contract authority mutation |
+| `adv_design_concern_disposition` | `no-cli-dangerous` | Contract authority mutation |
 | `adv_worktree_create` | `no-cli-dangerous` | Worktree mutation |
 | `adv_worktree_resume` | `no-cli-dangerous` | Worktree mutation |
 | `adv_worktree_delete` | `no-cli-dangerous` | Worktree mutation |

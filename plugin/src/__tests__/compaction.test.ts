@@ -133,10 +133,10 @@ describe("experimental.session.compacting enrichment", () => {
 
     store.close();
 
-    // Set active change via tool.execute.before only after the change exists
+    // Set active change via active-work mutator only after the change exists
     // on disk, so the reachability gate permits re-pointing.
     await hooks["tool.execute.before"]!(
-      { tool: "adv_task_list" } as any,
+      { tool: "adv_task_update" } as any,
       { args: { changeId } } as any,
     );
 
@@ -172,9 +172,9 @@ describe("experimental.session.compacting enrichment", () => {
     await store.init();
 
     const { changeId } = await store.changes.create("Progress test");
-    // Set active change via tool.execute.before
+    // Set active change via active-work mutator.
     await hooks["tool.execute.before"]!(
-      { tool: "adv_task_list" } as any,
+      { tool: "adv_task_update" } as any,
       { args: { changeId } } as any,
     );
 
@@ -231,7 +231,7 @@ describe("experimental.session.compacting enrichment", () => {
 
     const { changeId } = await store.changes.create("Long title test");
     await hooks["tool.execute.before"]!(
-      { tool: "adv_task_list" } as any,
+      { tool: "adv_task_update" } as any,
       { args: { changeId } } as any,
     );
 

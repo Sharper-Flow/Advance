@@ -3,8 +3,8 @@
   "name": "prep-readiness",
   "title": "Prep Readiness",
   "purpose": "Machine-enforced readiness checks that gate the prep phase. Answers: 'Do we have everything we need ready to make the full change?'",
-  "version": "1.6.0",
-  "updated_at": "2026-06-22T00:00:00.000Z",
+  "version": "1.7.0",
+  "updated_at": "2026-06-25T00:00:00.000Z",
   "requirements": [
     {
       "id": "rq-PR001sml",
@@ -527,6 +527,36 @@
             "No non-code evidence readiness error is returned for that task",
             "The task remains eligible for review-matrix proof instead of red/green TDD proof"
           ]
+        }
+      ]
+    },
+    {
+      "id": "rq-PR009frontendApplicability",
+      "title": "Frontend Applicability Metadata Readiness",
+      "body": "Prep readiness MUST validate frontend applicability using structured task metadata before planning completes. When a change or task has structured frontend/design applicability, each relevant non-cancelled task MUST record metadata.frontend as \"true\" for frontend/UI implementation scope or \"false\" with a non-empty metadata.frontend_rationale for non-frontend work. Filename, title, and path heuristics MAY emit warnings that suggest missing frontend metadata, but MUST NOT be the sole authority for hard-blocking planning. This check preserves adv-designer routing correctness without weakening backend boundaries.",
+      "priority": "must",
+      "tags": ["prep", "frontend", "metadata", "routing", "structural-correctness"],
+      "scenarios": [
+        {
+          "id": "rq-PR009frontendApplicability.1",
+          "title": "Structured frontend task without metadata blocks prep",
+          "given": ["A non-cancelled task is structurally identified as frontend/UI implementation scope", "The task lacks metadata.frontend"],
+          "when": "runPrepReadinessChecks is called",
+          "then": ["A frontend applicability readiness error is returned", "The planning gate remains blocked until metadata.frontend is explicit"]
+        },
+        {
+          "id": "rq-PR009frontendApplicability.2",
+          "title": "Non-frontend task in design scope needs rationale",
+          "given": ["A visual/design-quality change contains a non-cancelled task", "The task sets metadata.frontend to \"false\" but omits metadata.frontend_rationale"],
+          "when": "runPrepReadinessChecks is called",
+          "then": ["A frontend rationale readiness error is returned", "The planning gate remains blocked until a bounded non-frontend rationale is present"]
+        },
+        {
+          "id": "rq-PR009frontendApplicability.3",
+          "title": "Heuristic frontend hint is advisory only",
+          "given": ["A task title or path appears UI-related", "No structured frontend applicability source is present"],
+          "when": "runPrepReadinessChecks is called",
+          "then": ["A frontend applicability warning may be returned", "The planning gate is not blocked by the heuristic warning alone"]
         }
       ]
     }

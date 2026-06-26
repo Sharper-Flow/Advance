@@ -239,6 +239,13 @@ const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
     target_path: { blank: "omit" },
     confirmationEvidence: { blank: "omit" },
   },
+  adv_design_concern_disposition: {
+    taskId: { blank: "reject" },
+    concernKey: { blank: "reject" },
+    evidence: { blank: "reject" }, // required disposition rationale
+    target_path: { blank: "omit" },
+    confirmationEvidence: { blank: "omit" },
+  },
   adv_temporal_register_search_attributes: {
     approvalEvidence: { blank: "reject" }, // audit
   },

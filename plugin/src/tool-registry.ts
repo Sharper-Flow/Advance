@@ -34,6 +34,7 @@ import { changeTools } from "./tools/change";
 import { followupTools } from "./tools/followup";
 import { opsEvidenceTools } from "./tools/ops-evidence";
 import { contractTools } from "./tools/contract";
+import { designConcernTools } from "./tools/design-concern";
 import { taskTools } from "./tools/task";
 import { subagentReportTools } from "./tools/subagent-report";
 import { wisdomTools } from "./tools/wisdom";
@@ -409,6 +410,11 @@ export function createToolMap(
       "adv_contract_review_matrix_set",
       store,
     ),
+    adv_design_concern_disposition: bindTool(
+      designConcernTools.adv_design_concern_disposition,
+      "adv_design_concern_disposition",
+      store,
+    ),
 
     // Task Tools
     adv_task_show: bindTool(taskTools.adv_task_show, "adv_task_show", store),
@@ -778,6 +784,53 @@ export function createToolMap(
 }
 
 /**
+ * Live tool-surface lookup (addAcWarrantGuard): tool name → set of declared
+ * argument keys, read directly from each `*Tools` definition's `args` record
+ * (data only — no `execute` invocation). This is the source of truth used to
+ * verify capability warrants at contract mint. It is intentionally read from
+ * the already-imported tool groups so the surface is always live (DDC3) with
+ * zero generated-artifact drift.
+ *
+ * Consumed by `adv_contract_mint` via a runtime dynamic import so the pure
+ * `validator/contract-mint.ts` / `validator/warrant.ts` never statically import
+ * the registry (DDC2, no cycle).
+ */
+export function getToolSurface(): Map<string, Set<string>> {
+  const groups: Array<Record<string, { args?: Record<string, unknown> }>> = [
+    specTools,
+    roadmapTools,
+    backlogTools,
+    changeTools,
+    followupTools,
+    opsEvidenceTools,
+    contractTools,
+    taskTools,
+    subagentReportTools,
+    wisdomTools,
+    statusTools,
+    agendaTools,
+    projectTools,
+    gateTools,
+    testTools,
+    temporalOpsTools,
+    checkpointTools,
+    reflectionTools,
+    snapshotHealthTools,
+    projectMetadataTools,
+    conformanceTools,
+    advWorktreeTools,
+    advSessionTools,
+  ];
+  const surface = new Map<string, Set<string>>();
+  for (const group of groups) {
+    for (const [name, def] of Object.entries(group)) {
+      surface.set(name, new Set(Object.keys(def.args ?? {})));
+    }
+  }
+  return surface;
+}
+
+/**
  * Canonical list of all ADV tool names. Kept in sync with createToolMap so
  * that createDegradedToolMap can register a stub for every tool when plugin
  * init fails.
@@ -815,6 +868,7 @@ export const ADV_TOOL_NAMES: readonly string[] = [
   "adv_ops_evidence_add",
   "adv_contract_mint",
   "adv_contract_review_matrix_set",
+  "adv_design_concern_disposition",
   "adv_task_show",
   "adv_task_list",
   "adv_task_ready",

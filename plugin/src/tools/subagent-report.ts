@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { Store } from "../storage/store-types";
-import { addAgendaItem } from "../storage/agenda";
+import { addAgendaItem, loadAgenda } from "../storage/agenda";
 import { getService } from "../temporal/service";
 import {
   subagentReportSubmittedSignal,
@@ -587,6 +587,125 @@ async function consumeRequiredFollowUps(input: {
   };
 }
 
+// rq-designQualityEvidence01: advisory promotion of design-quality concerns.
+//
+// For adv-designer reports, surface each design_dimensions `concern` and each
+// neighboring_recommendation into a durable `required-obligation` agenda item.
+// This is ADVISORY routing only — the structural acceptance/release block is
+// owned by the gate-readiness evaluator (checkUnresolvedDesignConcerns), not by
+// agenda state. Dedupe is attempt-stable via a `design-concern:<change>:<task>:
+// <concernKey>` marker so a higher-attempt resubmit does not duplicate items.
+const DESIGN_DIMENSION_KEYS = [
+  "component_correctness",
+  "semantic_html_a11y",
+  "responsive_behavior",
+  "visual_polish",
+  "site_design_consistency",
+  "finer_details",
+] as const;
+
+function designConcernDedupeKey(
+  changeId: string,
+  taskId: string,
+  concernKey: string,
+): string {
+  return `design-concern:${changeId}:${taskId}:${concernKey}`;
+}
+
+async function consumeDesignerDesignConcerns(input: {
+  store: Store;
+  report: ScopedSubagentReport;
+  dryRun?: boolean;
+}): Promise<{
+  previewCount: number;
+  created: unknown[];
+  warnings: ConsumerWarning[];
+}> {
+  const { report } = input;
+  if (report.agent !== "adv-designer") {
+    return { previewCount: 0, created: [], warnings: [] };
+  }
+
+  const taskId = reportTaskId(report);
+  const concerns: { concernKey: string; title: string }[] = [];
+  for (const dim of DESIGN_DIMENSION_KEYS) {
+    if (report.design_dimensions[dim] === "concern") {
+      const notes = report.design_dimensions.notes?.trim();
+      concerns.push({
+        concernKey: `dimension:${dim}`,
+        title: `Resolve design concern: ${dim}${notes ? ` — ${notes}` : ""}`,
+      });
+    }
+  }
+  report.neighboring_recommendations.forEach((rec, index) => {
+    concerns.push({
+      concernKey: `neighbor:${index}`,
+      title: `Resolve neighboring UI recommendation: ${rec.what}`,
+    });
+  });
+
+  if (concerns.length === 0 || !taskId) {
+    return { previewCount: concerns.length, created: [], warnings: [] };
+  }
+
+  if (input.dryRun) {
+    return { previewCount: concerns.length, created: [], warnings: [] };
+  }
+
+  const { items: existing } = await loadAgenda(input.store.paths.root, {
+    agendaPath: input.store.paths.agenda,
+  });
+
+  const created: unknown[] = [];
+  const warnings: ConsumerWarning[] = [];
+  for (const concern of concerns) {
+    const dedupeKey = designConcernDedupeKey(
+      report.change_id,
+      taskId,
+      concern.concernKey,
+    );
+    const alreadyPromoted = existing.some((item) =>
+      item.description?.includes(dedupeKey),
+    );
+    if (alreadyPromoted) continue;
+
+    try {
+      const description = [
+        reportSourceDescription(report),
+        dedupeKey,
+        `ConcernKey: ${concern.concernKey}`,
+        `Disposition via adv_design_concern_disposition (taskId=${taskId}, concernKey=${concern.concernKey}).`,
+      ].join("\n");
+      created.push(
+        await addAgendaItem(input.store.paths.root, concern.title, {
+          description,
+          priority: "high",
+          category: "required-obligation",
+          agendaPath: input.store.paths.agenda,
+        }),
+      );
+      warnings.push({
+        kind: "design_concern_promoted",
+        message: `Promoted design concern ${concern.concernKey} on task ${taskId} to a durable obligation (advisory; acceptance is blocked structurally until disposed).`,
+      });
+    } catch (error) {
+      warnings.push({
+        kind: "consumer_failure",
+        message:
+          error instanceof Error
+            ? `Failed to promote design concern: ${error.message}`
+            : "Failed to promote design concern",
+      });
+    }
+  }
+
+  return {
+    previewCount: concerns.length,
+    created,
+    warnings: validateConsumerWarnings(warnings),
+  };
+}
+
 function appendProjectContext(
   output: string,
   projectContext?: TargetProjectOutputContext,
@@ -650,6 +769,7 @@ async function executeSubmit(
         consumerResults: {
           followUps: { previewCount: 0, created: [] },
           requiredFollowUps: { previewCount: 0, created: [] },
+          designConcerns: { previewCount: 0, created: [] },
           verification: { warnings: [] },
         },
       }),
@@ -707,10 +827,16 @@ async function executeSubmit(
     report,
     dryRun: args.dryRun,
   });
+  const designConcerns = await consumeDesignerDesignConcerns({
+    store,
+    report,
+    dryRun: args.dryRun,
+  });
   const warnings = [
     ...initialWarnings,
     ...followUps.warnings,
     ...requiredFollowUps.warnings,
+    ...designConcerns.warnings,
   ];
 
   return appendProjectContext(
@@ -728,6 +854,10 @@ async function executeSubmit(
         requiredFollowUps: {
           previewCount: requiredFollowUps.previewCount,
           created: requiredFollowUps.created,
+        },
+        designConcerns: {
+          previewCount: designConcerns.previewCount,
+          created: designConcerns.created,
         },
         verification: { warnings },
       },

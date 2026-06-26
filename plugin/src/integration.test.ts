@@ -66,9 +66,9 @@ describe("Wisdom Lifecycle Integration", () => {
     );
     expect(out1Filtered).toHaveLength(0);
 
-    // 2. Start working on a task (sets active change via before hook)
+    // 2. Start working on a task (sets active change via active-work mutator)
     await hooks["tool.execute.before"]!(
-      { tool: "adv_task_list" } as any,
+      { tool: "adv_task_update" } as any,
       { args: { changeId } } as any,
     );
 
