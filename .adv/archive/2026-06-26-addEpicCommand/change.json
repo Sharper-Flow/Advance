@@ -1,0 +1,1253 @@
+{
+  "id": "addEpicCommand",
+  "title": "Add epic command",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-06-26T17:35:51.310Z",
+  "tasks": [
+    {
+      "id": "tk-88ef53afd9ee",
+      "title": "Add `/adv-epic` command contract and Epic spec anchors",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-06-26T18:11:26.393Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "SC4",
+          "AC1",
+          "AC3",
+          "AC5",
+          "AC6",
+          "AC7"
+        ],
+        "verifies": [
+          "AC1",
+          "AC3",
+          "AC5",
+          "AC6",
+          "AC7",
+          "AC8"
+        ],
+        "respects": [
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "C7",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "OOS2",
+          "OOS3",
+          "OOS4",
+          "OOS5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-26T18:14:09.995Z",
+      "verification": "RED: `pnpm exec vitest run src/advance-epics-assets.test.ts --testNamePattern \"/adv-epic command contract\"` failed with missing adv-epic command file. GREEN: `pnpm exec vitest run src/advance-epics-assets.test.ts --testNamePattern \"/adv-epic command contract|Advance Epics spec documentation\"` passed (6 tests).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added `.opencode/command/adv-epic.md` with goal-first, overlap-aware Epic creation workflow using typed Epic tools. Updated advance-epics spec and docs to version 1.3.0 with `rq-epicCreateCommand01`. Added targeted asset tests for command existence, ultimate goal, neutral overlap handling, optional entries, and spec/doc mirror.",
+      "filesTouched": [
+        ".adv/specs/advance-epics/spec.json",
+        ".opencode/command/adv-epic.md",
+        "docs/specs/advance-epics.md",
+        "plugin/src/advance-epics-assets.test.ts"
+      ],
+      "touched_files": [
+        ".adv/specs/advance-epics/spec.json",
+        ".opencode/command/adv-epic.md",
+        "docs/specs/advance-epics.md",
+        "plugin/src/advance-epics-assets.test.ts"
+      ],
+      "checkpointSha": "4b10c6a9b8f1f7b0dd025101c9e75a9d324a8767",
+      "completedAt": "2026-06-26T18:21:27.935Z",
+      "completed_at": "2026-06-26T18:21:27.935Z",
+      "notes": "Implemented `/adv-epic` command contract, added `rq-epicCreateCommand01` to JSON/markdown specs, and added command/spec asset tests. Checkpoint commit: 4b10c6a9.",
+      "error_recovery": {
+        "last_error": "Initial green test failed because asset assertion expected plain `Gate: None` while command used canonical `**Gate:** None`; test adjusted to accept canonical bold command boundary.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "Continue with manifest/docs registration task.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "Assertion expected /Gate:\\s*None/i but command contained `**Gate:** None`.",
+            "diagnosis": "Test was too strict for canonical command boundary formatting used across command docs.",
+            "fix_tried": "Updated assertion to accept `**Gate:** None` or plain `Gate: None`.",
+            "strategy_label": "align-test-with-command-format",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-26T18:20:48Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-26T18:21:51.973Z"
+    },
+    {
+      "id": "tk-3a9f8ecf5f3f",
+      "title": "Register `/adv-epic` in manifest and public command surfaces",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-06-26T18:11:48.924Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-88ef53afd9ee"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "AC2",
+          "AC8"
+        ],
+        "verifies": [
+          "AC2",
+          "AC8"
+        ],
+        "respects": [
+          "C1",
+          "C4",
+          "C5",
+          "C6",
+          "OOS1",
+          "DONT3"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-26T18:22:16.353Z",
+      "verification": "RED: `pnpm exec vitest run src/manifest.test.ts src/manifest-doc-drift.test.ts src/cli-surface-matrix.test.ts --testNamePattern \"contains all|command doc|frontmatter|matrix row\"` failed with missing manifest entry and CLI matrix row. GREEN: same targeted command passed (11 tests).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added `adv-epic` manifest entry with pre-implementation/no-gate scope and honest Epic mutation boundary. Updated manifest count/list/title, README, SETUP, CLI surface matrix, ADV_INSTRUCTIONS command tables/classification, and token budget baseline. Targeted manifest/doc drift/CLI matrix tests pass.",
+      "filesTouched": [
+        ".opencode/token-budgets.json",
+        "ADV_INSTRUCTIONS.md",
+        "README.md",
+        "SETUP.md",
+        "docs/cli-surface-matrix.md",
+        "plugin/src/manifest.test.ts",
+        "plugin/src/manifest.ts"
+      ],
+      "touched_files": [
+        ".opencode/token-budgets.json",
+        "ADV_INSTRUCTIONS.md",
+        "README.md",
+        "SETUP.md",
+        "docs/cli-surface-matrix.md",
+        "plugin/src/manifest.test.ts",
+        "plugin/src/manifest.ts"
+      ],
+      "checkpointSha": "795e7c335e67c825234b2a18669d58545be2fe0b",
+      "completedAt": "2026-06-26T18:26:54.910Z",
+      "completed_at": "2026-06-26T18:26:54.910Z",
+      "notes": "Registered `/adv-epic` in manifest and public command surfaces. Checkpoint commit: 795e7c3.",
+      "error_recovery": {
+        "last_error": "Initial green test failed because ADV_INSTRUCTIONS.md command table was missing `/adv-epic`.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "Proceed to final verification.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "manifest-doc-drift: ADV_INSTRUCTIONS.md missing command table entry for adv-epic.",
+            "diagnosis": "Added command to classification row but not slash-command table parsed by drift test.",
+            "fix_tried": "Added `/adv-epic` rows to ADV_INSTRUCTIONS collaboration and command-reference tables.",
+            "strategy_label": "update-doc-table-drift-surface",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-26T18:26:18Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-26T18:27:13.882Z"
+    },
+    {
+      "id": "tk-9ab0dbdcd7b9",
+      "title": "Run final command/spec verification and fix touched-scope drift",
+      "type": "verification",
+      "section": "Verification",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-06-26T18:12:13.801Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-3a9f8ecf5f3f"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [],
+        "verifies": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "SC4",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7",
+          "AC8"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "C7",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "OOS1",
+          "OOS2",
+          "OOS3",
+          "OOS4",
+          "OOS5",
+          "OOS6"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-26T18:27:38.820Z",
+      "verification": "HARDEN CLEANUP VERIFY: adjusted adv-epic token budget baseline from 112 to actual 110 lines. `pnpm exec vitest run src/adv-skill-backed-commands-assets.test.ts src/advance-epics-assets.test.ts src/manifest.test.ts src/manifest-doc-drift.test.ts src/cli-surface-matrix.test.ts src/adv-instructions-assets.test.ts` passed (183 tests). `bin/oc-test smoke` passed (format check, schemas:check, typecheck, test isolation, lockfile policy, lint, format:check, plus smoke tests).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Ran final command/spec verification, acceptance review remediation, and harden cleanup. Adjusted `/adv-epic` description to an allowed strong verb, added explicit `requiresChangeId: false` frontmatter, strengthened asset tests, and aligned `.opencode/token-budgets.json` `adv-epic.md` baseline to the actual 110-line command file. Harden scanners found no blocker/high findings; remaining README/SETUP/CLI doc-table drift-test suggestion is low, pre-existing pattern, and nonblocking.",
+      "filesTouched": [
+        ".opencode/token-budgets.json"
+      ],
+      "touched_files": [
+        ".opencode/token-budgets.json"
+      ],
+      "checkpointSha": "b4909d58f79bfcdbf9a2554a3380ef59ed8f35b9",
+      "completedAt": "2026-06-26T19:02:02.501Z",
+      "completed_at": "2026-06-26T19:02:02.501Z",
+      "notes": "Harden cleanup completed. Token budget baseline adjusted to actual `/adv-epic` line count. Checkpoint commit: b4909d5.",
+      "error_recovery": {
+        "last_error": "Harden documentation scanner found token budget baseline drift for `adv-epic.md` (baseline 112 vs actual 110 lines).",
+        "retry_count": 3,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "Proceed to archive sign-off boundary after harden report.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "manifest.test.ts: adv-epic description must start with a strong verb, got `Create Epics with goal-first workflow`.",
+            "diagnosis": "Manifest strong-verb allowlist did not include `Create`. Description needed to use an accepted verb and remain exact across manifest/frontmatter/docs.",
+            "fix_tried": "Changed description to `Gather Epic goals before typed creation` in manifest, command frontmatter, README, SETUP, and ADV_INSTRUCTIONS.",
+            "strategy_label": "align-description-with-voice-standard",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-26T18:28:48Z"
+          },
+          {
+            "attempt_number": 2,
+            "error": "AC1 required `requiresChangeId: false` in command frontmatter; implementation only had it in manifest comment.",
+            "diagnosis": "Command contract frontmatter needed explicit no-change-id metadata and tests should assert frontmatter, not just whole-file text.",
+            "fix_tried": "Added `requiresChangeId: false` to `.opencode/command/adv-epic.md` YAML frontmatter and tightened `advance-epics-assets.test.ts` frontmatter assertions.",
+            "strategy_label": "frontmatter-ac1-remediation",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-26T18:39:26Z"
+          },
+          {
+            "attempt_number": 3,
+            "error": "Harden scanner found `.opencode/token-budgets.json` `adv-epic.md` baseline was 112 while command file is 110 lines.",
+            "diagnosis": "Baseline should reflect current command length; drift is safe adjacent cleanup.",
+            "fix_tried": "Updated `adv-epic.md` token budget baseline to 110 and reran targeted asset tests plus smoke gate.",
+            "strategy_label": "token-budget-baseline-cleanup",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-26T19:01:33Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-26T19:02:34.735Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "addEpicCommand",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:discovery-opportunity-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Opportunity scout: /adv-epic user-facing Epic creation command",
+      "sources": [
+        {
+          "label": "advance-epics spec (adv_spec)",
+          "locator": "advance-epics rq-epicEntity01 / rq-epicCliList01 / rq-epicNoJiraClone01",
+          "summary": "Epic record fields are typed (id,title,narrative,entries,scope); no ultimate_goal field. CLI namespace read-only & fail-closed. v1 forbids Jira-like fields. Constrains command to encode ultimate goal in narrative and use typed mutation tools only."
+        },
+        {
+          "label": "adv_epic_create tool",
+          "locator": "plugin/src/tools/epic.ts:426-497",
+          "summary": "Args: epic_id (EPIC_ID_SCHEMA camelCase), title (min1), narrative (min1 required), optional scope_kind/owner_project_id/scope_repos. narrative is the ONLY free-text field; no structural ultimate_goal; no overlap detection in tool layer."
+        },
+        {
+          "label": "adv-proposal command overlap recipe",
+          "locator": ".opencode/command/adv-proposal.md:41 + :40 + :37",
+          "summary": "Canonical overlap pattern: `adv_change_list` -> detect overlapping changes; reuse/reference obvious match, ask only if ambiguous. Also documents adv_epic_promote_shell shell->change path and CLAIM_CONFLICT handling."
+        },
+        {
+          "label": "adv-idea command template",
+          "locator": ".opencode/command/adv-idea.md:1-97",
+          "summary": "Structural template for a collaborative, no-gate, ADV-state-light command: frontmatter+manifest comment, Command Boundary (Produces / MUST NOT / Gate:None), Boundary-vs-Nearby, Exits table, question-tool loop, convergence check, output. Near-exact shape for /adv-epic."
+        },
+        {
+          "label": "registration drift tests",
+          "locator": "plugin/src/manifest-doc-drift.test.ts:101-186 + cli-surface-matrix.test.ts:42-60 + advance-epics-assets.test.ts:199-228",
+          "summary": "Test-enforced registration burden: manifest entry + command doc (frontmatter desc EXACT match, 5-14 words, single-line scalar) + README.md table + ADV_INSTRUCTIONS.md table + docs/cli-surface-matrix.md row (agent-workflow-only). All four must stay in lockstep or CI fails."
+        },
+        {
+          "label": "advance-epics overlap-scan sources",
+          "locator": "adv_epic_list / adv_epic_show + adv_change_list + adv_backlog_state",
+          "summary": "Typed read tools available for the open-work scan the proposal requires; adv_epic_list confirmed returning no active Epics in this project (proposal preflight)."
+        }
+      ],
+      "architecture_assessment": "The proposal is boring-by-construction and low-risk: /adv-epic is a thin collaborative command over already-shipped typed Epic tools. The by-the-book pattern already exists in-repo — adv-idea.md is the structural template (collaborative, Gate:None, no change/task creation) and adv-proposal.md already encodes the exact overlap recipe (adv_change_list -> reuse obvious match, ask only if ambiguous) plus the shell-promotion path. The single material data-model question (ultimate_goal) resolves toward the simpler option: adv_epic_create exposes no ultimate_goal field and advance-epics rq-epicNoJiraClone01 forbids field sprawl, so v1 should encode ultimate goal inside the required narrative rather than add a schema field. No new spec law is required to ship a command-only contract; rq-epicCreateCommand01 is optional and should be deferred unless discovery proves the workflow must be enforced structurally. Registration is mechanical but multi-surface and CI-gated (manifest + 4 doc/test surfaces in lockstep).",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "No anti-patterns. Reuse existing adv-idea structure + adv-proposal overlap recipe rather than inventing new machinery. Avoid adding ultimate_goal schema field (violates simplicity + brushes rq-epicNoJiraClone01). Overlap decision must remain user-confirmed (heuristics advisory only per proposal Must-Not + P33)."
+      },
+      "recommendation": "Adopt now: (1) clone adv-idea.md structure for .opencode/command/adv-epic.md; (2) encode ultimate_goal into narrative (no schema change); (3) reuse adv-proposal.md:41 overlap recipe with adv_epic_list+adv_change_list+adv_backlog_state, surfacing update-vs-new as a question only when overlap ambiguous; (4) register across all 5 CI-gated surfaces (manifest.ts, command doc, README table, ADV_INSTRUCTIONS table, cli-surface-matrix.md row=agent-workflow-only) with frontmatter description 5-14 words. Defer rq-epicCreateCommand01 spec law unless discovery proves enforcement needed. Surface to user: the update-vs-new recommendation default and whether ultimate goal should ever become a structural field (future, not v1).",
+      "follow_ups": [
+        "Discovery decision: command-only vs new spec requirement rq-epicCreateCommand01 (recommend command-only for v1).",
+        "Confirm frontmatter description wording lands in 5-14 words AND matches manifest exactly (manifest-doc-drift.test.ts).",
+        "cli-surface-matrix.md must get an adv-epic row with agent-workflow-only disposition or cli-surface-matrix.test.ts fails."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addEpicCommand",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-leverage-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design leverage scout: /adv-epic command",
+      "sources": [
+        {
+          "label": "adv-idea command template",
+          "locator": ".opencode/command/adv-idea.md (full)",
+          "summary": "Read-only no-gate collaborative template: frontmatter (name+description) + manifest HTML comment + Command Boundary(Produces/MUST NOT/Gate:None) + Boundary-vs-Nearby + Exits table + question loop + convergence + output. /adv-epic mutates (creates Epic) so MUST NOT clone idea's read-only boundary verbatim; it needs an explicit mutate-after-confirmation boundary like adv-proposal."
+        },
+        {
+          "label": "manifest.ts no-gate entries",
+          "locator": "plugin/src/manifest.ts:136-163 (adv-idea, adv-problem)",
+          "summary": "All no-gate commands use phase:'pre-implementation', NOT 'utility'. No 'utility' phase exists in manifest. Each entry has scope{creates,reads,modifies,gates}. idea/problem have empty creates/modifies. /adv-epic should set phase:'pre-implementation' and scope.modifies/creates reflecting Epic mutation (not empty)."
+        },
+        {
+          "label": "manifest.test.ts hard count assertions",
+          "locator": "plugin/src/manifest.test.ts:28-63",
+          "summary": "Two coupled assertions: expectedCommands[] array (must add 'adv-epic') AND toHaveLength(26)+test title 'contains all 26 ADV commands' (must become 27 and title updated). Both fail without update. This is the highest-leverage easy-to-miss anchor."
+        },
+        {
+          "label": "advance-epics-assets.test.ts",
+          "locator": "plugin/src/advance-epics-assets.test.ts:27-58, 199-228",
+          "summary": "Spec-doc mirror test (lines 31-44) is an INCLUSION list of rq-ids in docs/specs/advance-epics.md; adding rq-epicCreateCommand01 there + a new assertion anchors it. Command-context test (199-228) checks token presence per command file — NOT auto-extended to adv-epic; design must ADD an adv-epic command-contract assertion (Ultimate Goal, overlap, typed-tool tokens) to satisfy AC8 RED."
+        },
+        {
+          "label": "cli-surface-matrix.md + .test.ts",
+          "locator": "docs/cli-surface-matrix.md:34-35,112-122",
+          "summary": "All Epic tools already rowed (adv_epic_create=no-cli-dangerous etc). /adv-epic command row absent — must add agent-workflow-only row or cli-surface-matrix.test.ts fails. C1/OOS1 satisfied: no bin/adv epic create planned; matrix already keeps Epic namespace read-only for list."
+        },
+        {
+          "label": "manifest-doc-drift surfaces",
+          "locator": "README.md:399-400 ; ADV_INSTRUCTIONS.md:33-34,119-120,988 ; SETUP.md:1341-1342",
+          "summary": "Drift test requires exact-description lockstep across: command frontmatter, manifest.description, README table, ADV_INSTRUCTIONS table(s). ADV_INSTRUCTIONS has a Collaborative-style table(33-34) AND a description table(119-120) AND a Command-only execution-mode list(988) — adv-epic must be added to all relevant rows. SETUP.md table(1341-1342) also mirrors descriptions."
+        },
+        {
+          "label": "advance-epics spec constraints",
+          "locator": ".adv/specs/advance-epics/spec.json rq-epicEntity01, rq-epicNoJiraClone01, rq-epicCliList01",
+          "summary": "narrative is only free-text field; no ultimate_goal schema field (confirms C2 — encode goal in narrative). rq-epicNoJiraClone01 forbids field sprawl. rq-epicCliList01.4 keeps CLI namespace read-only (confirms C1). New rq-epicCreateCommand01 must not contradict these."
+        },
+        {
+          "label": "discovery opportunity-scout report (prior)",
+          "locator": "adv_change_show subagent_reports[0]",
+          "summary": "Prior scout already validated boring approach: clone idea structure, encode goal in narrative, reuse adv-proposal overlap recipe, register across CI-gated surfaces. This design-phase scout confirms + adds manifest phase/count/test-anchor specifics it did not enumerate."
+        }
+      ],
+      "architecture_assessment": "Draft design is boring-by-construction and low-risk; it correctly reuses adv-idea as structural template, encodes ultimate goal in narrative (no schema field, honoring C2 + rq-epicNoJiraClone01), reuses adv-proposal overlap recipe, and uses typed Epic tools only. Four concrete deviations/risks need correction before prep: (1) Design says phase:'utility' or equivalent — NO 'utility' phase exists in manifest.ts; every no-gate command uses phase:'pre-implementation'. Use that to avoid inventing a phase value (simpler, proven). (2) Modeling on adv-idea risks copying its read-only MUST-NOT boundary; /adv-epic MUST mutate (adv_epic_create) after confirmation, so its Command Boundary and manifest scope.creates/modifies must reflect Epic mutation, unlike idea/problem's empty scope. (3) manifest.test.ts has a hard count assertion (toHaveLength(26) + 'contains all 26 ADV commands' title at lines 28-63) that the design's task-5 list omits explicitly — both the array and the count/title must change to 27. (4) advance-epics-assets.test.ts command-context block (199-228) is NOT auto-extended to adv-epic; AC8 RED requires the design to ADD an adv-epic command-contract assertion (Ultimate Goal / overlap-decision / typed-tool tokens) plus add rq-epicCreateCommand01 to the spec-doc mirror inclusion list (31-44). The spec law rq-epicCreateCommand01 (AC7) is warranted here because AC8 demands a failing-without/passing-with anchor; command-only prose alone has no structural test hook unless the asset test asserts the command tokens. No simpler equivalent avoids the multi-surface registration — it is mechanical lockstep enforced by drift tests, not accidental complexity.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "No anti-patterns. Boring approach confirmed. Corrections are precision fixes to the draft (phase value, mutate-boundary, exact test anchors), not architectural redirection. C1/C2/C6/C7 and OOS1/OOS2 all consistent with current repo state. Defer of getToolSurface() warrant omission to ag-Adj91lPD is correct and unrelated to this scope."
+      },
+      "recommendation": "Adopt draft with 4 precision corrections: (1) set manifest phase:'pre-implementation' (not 'utility'); (2) author /adv-epic Command Boundary + manifest scope to reflect Epic MUTATION after user confirmation (do NOT inherit adv-idea's read-only MUST-NOT); (3) explicitly update manifest.test.ts count 26->27, title, and expectedCommands[] (highest-miss-risk anchor); (4) extend advance-epics-assets.test.ts with an adv-epic command-contract assertion (Ultimate Goal + overlap-decision + typed-Epic-tool tokens) and add rq-epicCreateCommand01 to the docs/specs/advance-epics.md mirror inclusion list — this is what gives AC8 its RED/GREEN teeth. Keep rq-epicCreateCommand01 minimal: goal-first creation + evidence-backed overlap decision, no new fields. Register across README.md, ADV_INSTRUCTIONS.md (all 3 relevant rows incl. line 988 command-only list), SETUP.md, cli-surface-matrix.md(agent-workflow-only). Frontmatter description 5-14 words, exact-match manifest.description.",
+      "follow_ups": [
+        "TASK_SCOPE/IN_SCOPE/OUT_OF_SCOPE/DONE_WHEN/STOP_WHEN/VERIFICATION anchors were present in packet; all identity anchors present, no packet defect.",
+        "Confirm exact frontmatter description wording lands 5-14 words AND identical in manifest, README, ADV_INSTRUCTIONS(x2), SETUP, command file (manifest-doc-drift.test.ts).",
+        "Verify whether ADV_INSTRUCTIONS.md line 988 'Command-only' execution-mode list must include adv-epic (it lists command-only commands; adv-epic is command-only-with-mutation — decide row placement during prep).",
+        "token-budgets.json (.opencode/token-budgets.json) tracks per-command line budgets for idea/problem; check if adv-epic.md needs an entry to avoid a budget-drift failure."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addEpicCommand",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation for /adv-epic command addition",
+      "sources": [
+        {
+          "label": "advance-epics spec (live, adv_spec)",
+          "locator": "adv_spec action=show capability=advance-epics",
+          "summary": "15 requirements. No existing requirement governs a user-facing Epic-creation command; rq-epicCliList01 mandates CLI Epic namespace stays read-only (no create/update/delete/archive). adv_epic_create requires narrative (no ultimate_goal field exists). Design's rq-epicCreateCommand01 fills a real gap and does not contradict any law."
+        },
+        {
+          "label": "plugin/src/manifest.ts",
+          "locator": "plugin/src/manifest.ts:19-23,135-163,377-424",
+          "summary": "Phase union includes 'pre-implementation' and 'utility'. adv-idea/adv-problem are pre-implementation, requiresChangeId:false, scope.modifies:[]. CommandScope.modifies is string[] (free-form), so modifies:['epic'] is type-valid. Both phase choices are schema-legal; agreement AC2 explicitly allows either."
+        },
+        {
+          "label": ".opencode/command/adv-idea.md",
+          "locator": ".opencode/command/adv-idea.md:1-21",
+          "summary": "Confirms the no-gate collaborative command pattern the design reuses. adv-idea is explicitly read-only ('× MUST NOT: create change'). Design correctly diverges: /adv-epic mutates after confirmation, so it must NOT clone adv-idea's read-only boundary wording — design Key Decision 3 captures this."
+        },
+        {
+          "label": "plugin/src/manifest.test.ts",
+          "locator": "plugin/src/manifest.test.ts:40-62",
+          "summary": "Two coupled assertions: expectedCommands list (lines 40-56) AND toHaveLength(26) (line 62). Both must move to 27. Design says '26->27' but lists it as a single 'list' edit; the dual update point is implicit, not explicit."
+        },
+        {
+          "label": "plugin/src/manifest-doc-drift.test.ts + cli-surface-matrix.test.ts",
+          "locator": "manifest-doc-drift.test.ts:121; cli-surface-matrix.test.ts:42",
+          "summary": "Drift test enforces exact frontmatter↔manifest description match; CLI matrix test requires every command .md to have a disposition row. Confirms design DDC3/DDC4 and the 'agent-workflow-only' matrix-row plan are backed by real auto-enforcing tests."
+        }
+      ],
+      "architecture_assessment": "Design is the boring, by-the-book path: a command-file workflow layered over existing typed Epic MCP tools, with mutation authority unchanged. It correctly avoids an ultimate_goal schema migration (encodes goal in required narrative), preserves all Epic invariants (optional membership, advisory order, one-Epic-per-change, product scope, no-Jira-clone), and keeps the CLI Epic namespace read-only per rq-epicCliList01. Phase choice 'pre-implementation' is schema-legal and agreement-permitted; the mutation boundary (mutate-after-confirm, unlike read-only adv-idea) is explicitly modeled. Drift surfaces (manifest count+list, doc-drift, CLI matrix, asset tests, spec mirror) map to real auto-enforcing tests. The only gap is a minor test-update precision issue: manifest.test.ts has TWO coupled edit points (expectedCommands array + toHaveLength) that the design references only as a single 'list' change.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "No spec-law conflict, no security/release blocker, no materially simpler equivalent overlooked. One CAUTION: manifest.test.ts requires updating both the expectedCommands array (lines 40-56) and toHaveLength(26)->27 (line 62); a count-only or list-only edit fails. Minor, fully recoverable in prep. Secondary CAUTION (already tracked, not this change's scope): contract warrant tags for Epic tools fail because getToolSurface() omits epicTools (agenda ag-Adj91lPD); agreement correctly avoids Epic tool warrant tags."
+      },
+      "recommendation": "VALIDATED. Proceed to prep. The command-over-typed-tools architecture is the simplest correct approach and contradicts no advance-epics requirement. During prep, make the manifest.test.ts edit explicit: update BOTH the expectedCommands array (add 'adv-epic') AND toHaveLength(26)->27, plus the title 'creates N commands' string if present. Keep phase as 'pre-implementation' (agreement-permitted, schema-legal) and ensure manifest scope.modifies includes 'epic' so the mutation boundary is not misrepresented as read-only. No alternative (new utility phase, ultimate_goal schema field, CLI mutation verb) is warranted — each is explicitly out of scope and would add unjustified complexity.",
+      "follow_ups": [
+        "Prep: split the manifest.test.ts update into its two coupled edit points (expectedCommands array + toHaveLength) to avoid a partial-edit test failure.",
+        "Confirm during prep whether ADV_INSTRUCTIONS.md and .opencode/token-budgets.json enumerate per-command entries requiring an adv-epic row (design flagged as 'surfaced/partial')."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addEpicCommand",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addEpicCommand",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [
+        {
+          "file": ".opencode/command/adv-epic.md",
+          "summary": "Added `requiresChangeId: false` to the YAML frontmatter so AC1 is satisfied structurally, not only through the manifest comment.",
+          "verification": "`pnpm exec vitest run src/advance-epics-assets.test.ts src/manifest.test.ts src/manifest-doc-drift.test.ts src/cli-surface-matrix.test.ts` passed: 4 files, 100 tests."
+        },
+        {
+          "file": "plugin/src/advance-epics-assets.test.ts",
+          "summary": "Tightened the `/adv-epic` asset test to assert name, exact manifest-matching description, and `requiresChangeId: false` inside YAML frontmatter.",
+          "verification": "`pnpm exec vitest run src/advance-epics-assets.test.ts src/manifest.test.ts src/manifest-doc-drift.test.ts src/cli-surface-matrix.test.ts` passed: 4 files, 100 tests."
+        }
+      ],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "pnpm exec vitest run src/advance-epics-assets.test.ts src/manifest.test.ts src/manifest-doc-drift.test.ts src/cli-surface-matrix.test.ts"
+        ],
+        "results": "pass",
+        "evidence": "Targeted acceptance-review verification passed in plugin/: manifest.test.ts 40 tests, manifest-doc-drift.test.ts 17 tests, cli-surface-matrix.test.ts 2 tests, advance-epics-assets.test.ts 41 tests; total 4 files / 100 tests passed."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Reviewer ran targeted command/manifest/doc tests only; prior implementation evidence covers schemas:check and strict validation."
+      ],
+      "required_main_agent_actions": [
+        "Tool schema rejected caller-requested scope_key `acceptance-review`; report submitted with canonical independent review scope_key `review:acceptance`."
+      ],
+      "required_follow_ups": [],
+      "consumer_warnings": [
+        {
+          "kind": "consumer_failure",
+          "message": "Initial report submission failed because current report schema only accepts change-scope keys matching `review:acceptance` for review summaries, not `acceptance-review`."
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addEpicCommand",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addEpicCommand",
+      "scope": {
+        "kind": "change",
+        "scope_key": "scanner-bundle:harden"
+      },
+      "agent": "adv-scanner-bundle",
+      "phase": "harden",
+      "scanner_count": 3,
+      "dimensions": [
+        "documentation-hygiene",
+        "cleanup-readiness",
+        "residual-slop-maintainability",
+        "test-coverage",
+        "production-readiness",
+        "deployment-readiness"
+      ],
+      "summary": "Harden scanners passed. No blocker/high/medium findings. Token budget baseline cleanup fixed and verified. One low informational docs-drift suggestion remains: README/SETUP/CLI table row tests are not enforced, matching existing command-doc pattern and nonblocking.",
+      "findings": [
+        {
+          "scanner": "release-deploy-readiness",
+          "severity": "info",
+          "summary": "README.md, SETUP.md, and docs/cli-surface-matrix.md `/adv-epic` rows are not directly test-enforced; this matches the existing command documentation pattern and manifest/doc drift surfaces remain covered.",
+          "evidence": [
+            {
+              "label": "scanner evidence",
+              "locator": "README.md:401; SETUP.md command table; docs/cli-surface-matrix.md",
+              "summary": "Low informational suggestion only; no release blocker/high finding."
+            }
+          ]
+        }
+      ],
+      "follow_ups": [],
+      "consumer_warnings": []
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-u_S06j",
+      "type": "gotcha",
+      "content": "`advance-epics-assets.test.ts` command-boundary assertions should allow canonical bold command docs (`**Gate:** None`) rather than only plain `Gate: None`; command files commonly use bold labels in boundary sections.",
+      "source_task": "tk-88ef53afd9ee",
+      "recorded_at": "2026-06-26T18:22:03.446Z"
+    },
+    {
+      "id": "ws-c8NwO8",
+      "type": "gotcha",
+      "content": "Manifest voice-standard strong-verb allowlist does not include `Create`; new command descriptions must start with an allowed verb such as `Gather`, and exact wording must be propagated to command frontmatter and command tables to satisfy manifest-doc-drift tests.",
+      "source_task": "tk-9ab0dbdcd7b9",
+      "recorded_at": "2026-06-26T18:30:22.089Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-06-26T17:41:15.265Z",
+      "completed_by": "adv-proposal",
+      "approval_evidence": "Proposal approved by command-as-approval: user invoked `/adv-discover addEpicCommand` while proposal checkpoint pending after wayfinder showed `/adv-discover addEpicCommand`.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "45b9e4871a52f0d6c3ccb0225a1995f9fe08aaf57ab844e7ab40a8bcf4f8a562",
+        "non_whitespace_chars": 5474,
+        "checked_at": "2026-06-26T17:35:51.377Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-06-26T18:01:21.775Z",
+      "completed_by": "adv-discover",
+      "approval_evidence": "Discovery completed after user approved acceptance/success criteria in chat: `approve`. Agreement persisted and ChangeContract minted. Epic tool warrant-surface omission tracked separately as agenda ag-Adj91lPD.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "9843c4aee863fb6bc991a3592d6747b8f02317d22a086b1c031b4df339553fee",
+        "non_whitespace_chars": 4305,
+        "checked_at": "2026-06-26T17:35:51.378Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-06-26T18:10:03.037Z",
+      "completed_by": "adv-design",
+      "approval_evidence": "Design validated with one non-blocking caution. No unresolved conflict, no user-value tradeoff, no contract-compromise risk. Proceeding to prep per auto-pass rule.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "4985229a49270c383e6ab1bfe9b656a5069fa2497c62f2c0cc6a93d56c08f951",
+        "non_whitespace_chars": 8308,
+        "checked_at": "2026-06-26T17:35:51.379Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-06-26T18:13:36.091Z",
+      "completed_by": "adv-prep",
+      "approval_evidence": "User approved prep plan in chat: `approve`. Task graph has 3 tasks with contract refs and TDD intent."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-06-26T18:31:48.873Z",
+      "completed_by": "adv-apply",
+      "approval_evidence": "All 3 planned tasks completed with checkpoints. Final targeted verification passed: `pnpm exec vitest run src/advance-epics-assets.test.ts src/manifest.test.ts src/manifest-doc-drift.test.ts src/cli-surface-matrix.test.ts` (100 tests), `pnpm run schemas:check`, and `adv_change_validate strict:true` (expected NO_DELTAS warning only)."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-06-26T18:53:17.700Z",
+      "completed_by": "adv-review",
+      "approval_evidence": "User invoked `/adv-harden addEpicCommand` while acceptance checkpoint was pending after acceptance summary. Per Tier A command-as-approval, this accepts delivered work. Acceptance proof persisted before approval: executive summary hash f8bb595226f87569f4e180c88c4e428e5578ff49d856624070f8ecbc2a434839, contract review matrix 29 rows with 0 failing rows, reviewer READY with 0 findings, targeted tests passed 100 tests, preview URL not_applicable.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "f8bb595226f87569f4e180c88c4e428e5578ff49d856624070f8ecbc2a434839",
+        "non_whitespace_chars": 1636,
+        "checked_at": "2026-06-26T17:35:51.380Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "adhoc"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "9843c4aee863fb6bc991a3592d6747b8f02317d22a086b1c031b4df339553fee",
+      "approvedAt": "2026-06-26T18:01:11.875Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "Users can invoke `/adv-epic` to create an Epic through one collaborative, goal-first workflow.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9843c4aee863fb6bc991a3592d6747b8f02317d22a086b1c031b4df339553fee",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "Epic creation never proceeds until the user has confirmed the Epic's ultimate goal.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9843c4aee863fb6bc991a3592d6747b8f02317d22a086b1c031b4df339553fee",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "Overlapping open Epics/changes/backlog work are surfaced before mutation, with neutral evidence and explicit user choice.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9843c4aee863fb6bc991a3592d6747b8f02317d22a086b1c031b4df339553fee",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC4",
+        "kind": "success_criterion",
+        "text": "Valid Epics can be created with zero initial roadmap entries.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9843c4aee863fb6bc991a3592d6747b8f02317d22a086b1c031b4df339553fee",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "`.opencode/command/adv-epic.md` exists with frontmatter `name: adv-epic`, exact manifest-matching description, and `requiresChangeId: false`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9843c4aee863fb6bc991a3592d6747b8f02317d22a086b1c031b4df339553fee",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "`plugin/src/manifest.ts` registers `adv-epic` as no-gate, `requiresChangeId: false`, `phase: \"utility\"` or equivalent no-gate initiative-planning phase.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9843c4aee863fb6bc991a3592d6747b8f02317d22a086b1c031b4df339553fee",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "`/adv-epic` command contract requires an explicit `Ultimate Goal` before Epic creation mutation may run.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9843c4aee863fb6bc991a3592d6747b8f02317d22a086b1c031b4df339553fee",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "`/adv-epic` command contract requires related-work checks using Epic/change/backlog reads before creation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9843c4aee863fb6bc991a3592d6747b8f02317d22a086b1c031b4df339553fee",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "If plausible overlap exists, command asks user to choose update/clarify existing vs create new before mutation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9843c4aee863fb6bc991a3592d6747b8f02317d22a086b1c031b4df339553fee",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Command contract states initial shell/change entries are optional; shell/link additions use typed Epic tools only.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9843c4aee863fb6bc991a3592d6747b8f02317d22a086b1c031b4df339553fee",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "`advance-epics` spec gains a requirement covering `/adv-epic` goal-first creation and overlap decision behavior.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9843c4aee863fb6bc991a3592d6747b8f02317d22a086b1c031b4df339553fee",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "spec:rq-epicEntity01"
+        ]
+      },
+      {
+        "id": "AC8",
+        "kind": "acceptance_criterion",
+        "text": "Tests fail without command/manifest/docs/spec anchors and pass after implementation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9843c4aee863fb6bc991a3592d6747b8f02317d22a086b1c031b4df339553fee",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Do not add `bin/adv epic create` or any CLI mutation verb.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9843c4aee863fb6bc991a3592d6747b8f02317d22a086b1c031b4df339553fee",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Do not add a separate structural `ultimate_goal` field to the Epic schema in this change; encode the ultimate goal in the command-required narrative structure.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9843c4aee863fb6bc991a3592d6747b8f02317d22a086b1c031b4df339553fee",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Do not make initial roadmap entries mandatory.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9843c4aee863fb6bc991a3592d6747b8f02317d22a086b1c031b4df339553fee",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Do not make Epic membership mandatory for all ADV changes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9843c4aee863fb6bc991a3592d6747b8f02317d22a086b1c031b4df339553fee",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Do not treat Epic order as a gate/task blocker.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9843c4aee863fb6bc991a3592d6747b8f02317d22a086b1c031b4df339553fee",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C6",
+        "kind": "constraint",
+        "text": "Do not bypass typed Epic MCP tools or read ADV state files directly.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9843c4aee863fb6bc991a3592d6747b8f02317d22a086b1c031b4df339553fee",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C7",
+        "kind": "constraint",
+        "text": "Keep overlap detection evidence-backed: typed Epic/change/backlog reads plus user confirmation; heuristics may only rank/summarize evidence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9843c4aee863fb6bc991a3592d6747b8f02317d22a086b1c031b4df339553fee",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "CLI mutation command such as `bin/adv epic create`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9843c4aee863fb6bc991a3592d6747b8f02317d22a086b1c031b4df339553fee",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "Epic schema migration for a new `ultimate_goal` field.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9843c4aee863fb6bc991a3592d6747b8f02317d22a086b1c031b4df339553fee",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "Mandatory shell/change entries at Epic creation time.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9843c4aee863fb6bc991a3592d6747b8f02317d22a086b1c031b4df339553fee",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS4",
+        "kind": "out_of_scope",
+        "text": "Jira-like assignee, estimate, sprint, board, or ownership workflows.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9843c4aee863fb6bc991a3592d6747b8f02317d22a086b1c031b4df339553fee",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS5",
+        "kind": "out_of_scope",
+        "text": "Automatic implementation change/task creation from every shell entry.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9843c4aee863fb6bc991a3592d6747b8f02317d22a086b1c031b4df339553fee",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS6",
+        "kind": "out_of_scope",
+        "text": "Fixing the pre-existing Epic tool warrant-surface omission; tracked separately as agenda `ag-Adj91lPD`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9843c4aee863fb6bc991a3592d6747b8f02317d22a086b1c031b4df339553fee",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not create a new Epic when a clearly overlapping open Epic exists without asking the user to choose update/clarify existing vs create new.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9843c4aee863fb6bc991a3592d6747b8f02317d22a086b1c031b4df339553fee",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not present neutral overlap evidence as a hidden recommendation; user chose neutral evidence, not a default recommendation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9843c4aee863fb6bc991a3592d6747b8f02317d22a086b1c031b4df339553fee",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not weaken existing product/cross-project Epic guidance.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9843c4aee863fb6bc991a3592d6747b8f02317d22a086b1c031b4df339553fee",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not complete discovery based on archived-change scan success; archived scan degraded due `adv_change_list includeArchived:true` timeout and is not required for this scope.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9843c4aee863fb6bc991a3592d6747b8f02317d22a086b1c031b4df339553fee",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-06-26T18:40:45.000Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "`/adv-epic` command file exists and is registered in manifest/docs. Reviewer verdict READY; targeted test suite passed 100 tests.",
+          "notes": "Collaborative goal-first workflow implemented."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "`.opencode/command/adv-epic.md` requires explicit Ultimate Goal confirmation before create/update mutation.",
+          "notes": "Goal confirmation is command contract requirement."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "Command contract requires related-work scan and overlap decision before mutation; asset tests cover overlap handling.",
+          "notes": "Neutral evidence + explicit choice."
+        },
+        {
+          "contractId": "SC4",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "Command contract states initial entries are optional and `adv_epic_create` may run without shell/change entries.",
+          "notes": "Zero-entry Epic allowed."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`.opencode/command/adv-epic.md` frontmatter includes `name: adv-epic`, `description: Gather Epic goals before typed creation`, and `requiresChangeId: false`; `advance-epics-assets.test.ts` asserts these; targeted suite passed.",
+          "notes": "Reviewer remediated frontmatter gap."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`plugin/src/manifest.ts` registers `adv-epic` with `requiresChangeId:false`, no gate, and `phase:\"pre-implementation\"`; manifest tests passed.",
+          "notes": "Equivalent no-gate initiative-planning phase."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "Command contract includes explicit Ultimate Goal checkpoint before any Epic mutation; asset tests passed.",
+          "notes": "No mutation before confirmed goal."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "Command contract requires `adv_epic_list`/`adv_epic_show`, `adv_change_list`, and backlog read before creation; asset tests passed.",
+          "notes": "Typed reads before mutation."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "Command contract requires user choice to update/clarify existing vs create new when plausible overlap exists; asset tests passed.",
+          "notes": "No hidden recommendation."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "Command contract states initial shell/change entries are optional and shell/link additions use typed Epic tools only; asset tests passed.",
+          "notes": "No mandatory initial roadmap."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "`advance-epics` spec and markdown mirror add `rq-epicCreateCommand01`; spec/docs asset tests and schemas check passed.",
+          "notes": "Spec anchor added."
+        },
+        {
+          "contractId": "AC8",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "RED/GREEN task evidence recorded for missing command/manifest/docs rows; final targeted suite passed 100 tests after implementation/remediation.",
+          "notes": "Test coverage validates anchors."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No `bin/adv epic create` or CLI mutation added; CLI surface matrix row is `agent-workflow-only`; CLI matrix test passed.",
+          "notes": "CLI remains read-focused."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No Epic schema field `ultimate_goal` added; goal is encoded in command-required narrative structure.",
+          "notes": "Schema unchanged for ultimate goal."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Command contract explicitly allows creating Epic with zero initial entries.",
+          "notes": "Initial roadmap optional."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No change made requiring Epic membership for all ADV changes; existing optional-membership guidance preserved.",
+          "notes": "Optional membership intact."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No command/spec/doc language makes Epic order a gate or task blocker; existing advisory-order guidance preserved.",
+          "notes": "Order advisory only."
+        },
+        {
+          "contractId": "C6",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Command contract uses typed Epic MCP tools for mutations and typed reads for state; no direct ADV state file reads introduced.",
+          "notes": "Typed tools remain authority."
+        },
+        {
+          "contractId": "C7",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Overlap scan is evidence-backed via typed Epic/change/backlog reads; command text treats heuristics as neutral summarization/ranking only.",
+          "notes": "P33 boundary preserved."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Command contract requires overlap decision before creating a new Epic when plausible existing open work overlaps.",
+          "notes": "No silent duplicate Epic path."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Command contract presents overlap evidence neutrally and asks user to choose; no default recommendation encoded.",
+          "notes": "User preference honored."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Product/cross-project Epic guidance in ADV_INSTRUCTIONS remains present; `/adv-epic` row only adds command surface.",
+          "notes": "Existing guidance not weakened."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Discovery degraded archived-change scan was not used as completion proof; implementation scope relies on active typed reads/command contract/tests.",
+          "notes": "Archived scan degradation isolated."
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No CLI mutation command added; CLI surface matrix remains agent-workflow-only for `/adv-epic`.",
+          "notes": "Out of scope excluded."
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No Epic schema migration for `ultimate_goal`.",
+          "notes": "Out of scope excluded."
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Command allows zero initial entries and does not require shell/change entries.",
+          "notes": "Out of scope excluded."
+        },
+        {
+          "contractId": "OOS4",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No assignee/estimate/sprint/board/ownership workflow fields or docs added.",
+          "notes": "Out of scope excluded."
+        },
+        {
+          "contractId": "OOS5",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No automatic implementation change/task creation from shell entries added.",
+          "notes": "Out of scope excluded."
+        },
+        {
+          "contractId": "OOS6",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "artifact_reference",
+          "evidence": "Epic tool warrant-surface omission remains tracked separately as agenda `ag-Adj91lPD`; this change avoided requiring that fix.",
+          "notes": "Follow-up remains separate."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "`.opencode/command/adv-epic.md` exists with frontmatter `name: adv-epic`, exact manifest-matching description, and `requiresChangeId: false`.",
+    "`plugin/src/manifest.ts` registers `adv-epic` as no-gate, `requiresChangeId: false`, `phase: \"utility\"` or equivalent no-gate initiative-planning phase.",
+    "`/adv-epic` command contract requires an explicit `Ultimate Goal` before Epic creation mutation may run.",
+    "`/adv-epic` command contract requires related-work checks using Epic/change/backlog reads before creation.",
+    "If plausible overlap exists, command asks user to choose update/clarify existing vs create new before mutation.",
+    "Command contract states initial shell/change entries are optional; shell/link additions use typed Epic tools only.",
+    "`advance-epics` spec gains a requirement covering `/adv-epic` goal-first creation and overlap decision behavior.",
+    "Tests fail without command/manifest/docs/spec anchors and pass after implementation."
+  ],
+  "documents": {
+    "proposal": "# Add epic command\n\n## Problem\nADV has typed Epic tools (`adv_epic_create`, `adv_epic_add_shell`, `adv_epic_link_change`, and related membership tools), but no user-facing `/adv-epic` command contract for creating Epics collaboratively. Users need a guided Epic-creation workflow that forces an explicit ultimate goal, checks for related open Epics and changes, and asks whether to update an overlapping Epic or create a new one before mutating Epic state.\n\n## User Outcomes\n- A user can start Epic creation with `/adv-epic` and be guided through the information needed to create a useful initiative container.\n- The user and ADV agree on the Epic’s ultimate goal before any Epic state is created.\n- ADV checks for existing overlapping Epics, open ADV changes, and relevant backlog/roadmap work before creating a new Epic.\n- When overlap exists, the user gets a clear choice to update/clarify the existing Epic or create a separate new Epic.\n- Initial Epic roadmap entries are captured as existing linked changes or lightweight shell entries when useful, without making entries or Epic membership mandatory.\n\n## Scope\n\n### In Scope\n- Add a `/adv-epic` command contract under `.opencode/command/`.\n- Register `adv-epic` in `plugin/src/manifest.ts` as an Epic/initiative-planning command with no gate ownership.\n- Define required collaborative checks before Epic creation: ultimate goal, narrative context, scope kind, related open work, overlap decision, and optional initial roadmap entries.\n- Define overlap behavior: when existing open Epic overlap is found, ask whether to update/clarify the existing Epic or create a new Epic; present evidence neutrally without forcing a default recommendation.\n- Require use of typed Epic tools for mutations (`adv_epic_create`, `adv_epic_add_shell`, `adv_epic_link_change`, `adv_epic_update`) rather than direct state edits.\n- Add/update tests for command presence, manifest registration, overlap-check instructions, ultimate-goal requirement, and Epic-rule guardrails.\n- Add an `advance-epics` spec requirement for the user-facing Epic creation command contract.\n\n### Out of Scope\n- Implementing a CLI mutation command such as `bin/adv epic create`.\n- Adding a separate structural `ultimate_goal` field to the Epic schema in this change.\n- Making initial Epic entries mandatory.\n- Making Epic membership mandatory for all ADV changes.\n- Adding Jira-like planning fields such as assignees, estimates, sprints, or boards.\n- Automatically creating implementation changes/tasks from every shell entry.\n\n### Must Not\n- Must not create a new Epic when a clearly overlapping open Epic exists without asking the user to choose update/clarify vs new.\n- Must not bypass typed Epic MCP tools or read ADV state files directly.\n- Must not treat Epic order as a gate/task blocker.\n- Must not use heuristics as final authority for Epic overlap; evidence must come from typed Epic/change/backlog reads and user confirmation.\n\n## Discovery Findings\n\n### Discovery Checklist\n| Step | Result | Reason |\n|---|---|---|\n| Skill Discovery | PASS | Loaded `customize-opencode`, `adv-instructions-audit`, and `adv-agent-tool-contracts`; no reviewed skill gap requiring new skill. Pending-review scan found only an instructional mention, not pending skill metadata. |\n| Prior Research Extension | PASS | `docs/*-prep.md` files exist, but none directly cover `/adv-epic`; new finding: command additions are covered by manifest/doc drift tests and CLI matrix tests. |\n| Conflict Scan | PASS with tool degradation | `adv_change_validate` passed; NO_TASKS/NO_DELTAS are expected pre-planning. `adv_epic_list` returned no active Epics. `adv_change_list includeArchived:true` timed out twice; active recency scan from proposal found adjacent command changes but no exact `/adv-epic` overlap. `adv_agenda_list` surfaced `Fix Epic cross-project guidance`, relevant for discovery awareness. |\n| Edge Case Investigation | PASS | Edge cases recorded below. |\n| Design Question Depth | PASS | Open design questions annotated below. |\n| Draft Spec Delta Shapes | PASS | Draft `rq-epicCreateCommand01` recorded below. |\n| Related Pattern Scan | PASS | Similar command surfaces and drift tests found. |\n| LBP Check | PASS | Boring-by-construction command-only workflow using existing Epic tools; no external solution needed. |\n| Completeness Verification | PASS | Problem and solution scope bounded to command contract + manifest/test/doc/spec surfaces. |\n\n### Skills Considered\n- `customize-opencode`: matched because this change adds an OpenCode command file and manifest surface.\n- `adv-instructions-audit`: matched because command/instruction prose needs executable anchors.\n- `adv-agent-tool-contracts`: partially matched because command packets and typed tool usage must stay aligned; no new tool schema planned.\n- `adv-opportunity-scout`: executed through `adv-researcher`; report submitted successfully.\n\n### Extends\n- No prior research pack directly covers `/adv-epic`.\n- `docs/cli-surface-matrix.md` provides an existing command disposition contract; new finding: `/adv-epic` should be `agent-workflow-only`, not CLI mutation.\n- `plugin/src/manifest-doc-drift.test.ts` provides exact manifest/frontmatter drift enforcement; new finding: adding `/adv-epic` requires exact description alignment.\n\n### Conflict Scan\n- Active Epics: none found by `adv_epic_list`.\n- Target validation: passed; warnings `NO_TASKS` and `NO_DELTAS` are expected before planning.\n- Agenda: `Fix Epic cross-project guidance` is related and should be considered during design so `/adv-epic` does not regress product/cross-project Epic wording.\n- Backlog: no roadmap item directly named `/adv-epic`; high-priority backlog includes unrelated Temporal/ADV issues.\n- Archived change scan: attempted through `adv_change_list includeArchived:true`; timed out despite Temporal diagnosis reporting healthy. Treat as degraded discovery coverage, not a blocking conflict.\n\n### Current State\n- `.opencode/command/` has no `adv-epic.md`.\n- `plugin/src/manifest.ts` has no `adv-epic` entry.\n- `adv_epic_create` requires `title` and `narrative`, where `narrative` is the existing place to encode the initiative goal.\n- `adv_epic_add_shell` supports optional lightweight future entries with `title` + `success_hint`.\n- `adv_epic_link_change` supports linking existing ADV changes with required `link_evidence` and target-path routing.\n- `advance-epics` spec requires optional membership, one Epic per change in v1, advisory order, product scope metadata, and no Jira-like fields.\n- README, SETUP, `docs/cli-surface-matrix.md`, manifest tests, manifest-doc-drift tests, and Epic asset tests are current drift surfaces for adding a command.\n\n### Edge Cases\n1. Overlap ambiguity:\n   - Existing Epic has similar title but different ultimate goal.\n   - Existing Epic has different title but same objective/scope.\n2. Partial creation:\n   - `adv_epic_create` succeeds but adding a shell fails.\n   - Cross-project `adv_epic_link_change` target path is unreachable after current-project Epic creation.\n3. Empty initial roadmap:\n   - User has a valid initiative goal but no immediate child changes.\n   - User supplies vague shell entries without success hints.\n4. Product scope:\n   - User asks for a product-wide Epic but only current repo is configured/reachable.\n   - Some product repos are optional/non-required and should not block current Epic creation.\n\n### Open Design Questions\n- Command scope surface: trust model agent-owned; blast radius command drift/tests; alternatives command-only vs CLI mutation. Recommendation: command-only, agent-workflow-only.\n- Ultimate goal persistence: trust model agent-owned; blast radius schema churn and compatibility; alternatives new `ultimate_goal` field vs encode in `narrative`. Recommendation: encode in narrative for v1 and require a dedicated `## Ultimate Goal` section in command prompt/output.\n- Overlap decision: trust model joint; blast radius duplicate Epics or accidental merge of distinct initiatives; alternatives recommended default vs neutral evidence. User chose neutral evidence with explicit choice.\n- Initial entries: trust model joint; blast radius blocking valid early initiatives; alternatives required vs optional. User chose optional entries.\n\n### Draft Spec Deltas\n- `rq-epicCreateCommand01` — `/adv-epic` command requires goal-first creation workflow.\n  - Given a user invokes `/adv-epic` to create an initiative,\n  - When the command prepares an Epic creation plan,\n  - Then it requires an explicit ultimate goal, narrative context, scope kind, overlap scan, and user confirmation before calling typed Epic mutation tools.\n- `rq-epicCreateCommand01.2` — overlapping Epic decision is user-confirmed.\n  - Given an overlap scan finds one or more plausible existing open Epics,\n  - When `/adv-epic` presents the creation plan,\n  - Then it asks the user to choose update/clarify existing or create new, and does not create a duplicate without that choice.\n- `rq-epicCreateCommand01.3` — initial entries are optional.\n  - Given the user has a valid ultimate goal and narrative but no initial child work,\n  - When `/adv-epic` creates the Epic,\n  - Then the Epic may be created with zero initial entries, and shell/link additions remain available later.\n\n### Related Pattern Scan\n- Similar command-file pattern: `.opencode/command/adv-idea.md` is collaborative, no-gate, no-change/task creation, and a good structural template.\n- Similar overlap behavior: `.opencode/command/adv-proposal.md` already uses `adv_change_list` to detect overlaps and ask only when ambiguity remains.\n- Drift anchors: `plugin/src/manifest.test.ts`, `plugin/src/manifest-doc-drift.test.ts`, `plugin/src/cli-surface-matrix.test.ts`, and `plugin/src/advance-epics-assets.test.ts` should be expanded.\n\n### Completeness Verification\n- Problem completeness: high confidence. The problem is not only missing file `adv-epic.md`; it includes absent user-facing workflow, absent ultimate-goal checkpoint, absent overlap decision, and absent command registration/docs/test anchors.\n- Solution scope: high confidence. Full intended solution is command contract + manifest/docs/tests + spec requirement; not CLI mutation or Epic schema field change.\n- Sole-entry claim: no cross-cutting sole-entry implementation claim is needed. `/adv-epic` is a new entrypoint; existing typed Epic tools remain mutation authority.\n- Secondary surfaces: README, SETUP, CLI matrix, manifest-doc drift, and Epic asset tests are in scope. `bin/adv epic create` is out of scope because CLI mutation is explicitly avoided.\n\n### LBP Check\n- Recommended direction is long-term best practice: add a boring command contract using existing typed Epic tools and drift tests.\n- External-solution check skipped: this is an internal workflow/command surface, not a library/service selection.\n- Opportunity scout auto-adopted: encode ultimate goal in narrative for v1, clone `adv-idea` command structure, reuse proposal overlap recipe.\n- Opportunity scout deferred: separate structural `ultimate_goal` schema field unless future evidence shows narrative is insufficient.\n\n### AMBIGUITY ANALYSIS — no blocking ambiguity findings. Coverage: B:C F:C S:C M:C\n- Advisory: archived-change related-work scan timed out; current Epic list, active changes, agenda, backlog, specs, and code/test scans provide enough discovery evidence for agreement.\n\n## Recommended Objectives\n1. Provide `/adv-epic` as a collaborative no-gate command for creating ADV Epics.\n2. Require explicit ultimate goal confirmation before Epic mutation.\n3. Require related open work scan before create/update choice.\n4. Use existing typed Epic tools for all mutations.\n5. Add tests/docs/spec anchors so command behavior does not drift.\n\n## User Decisions\n- Create timing: create the Epic after final confirmation when no overlap blocks creation.\n- Initial entries: optional; a valid Epic can start with only goal and narrative.\n- Overlap default: present evidence neutrally; do not force a default recommendation.\n\n## Remaining Discovery Questions\nNone requiring user input before agreement. Technical details move to design.\n",
+    "problemStatement": "ADV has typed Epic tools, but no user-facing `/adv-epic` command contract. Users need a guided Epic-creation workflow that forces an explicit ultimate goal, checks for related/open overlapping Epics or changes, and asks whether to update an existing Epic or create a new one before mutating state.",
+    "agreement": "# Agreement: Add epic command\n\n## Objectives\n1. Add `/adv-epic` as a collaborative, no-gate ADV command for creating Epics.\n2. Require explicit user-confirmed ultimate goal before any Epic mutation.\n3. Require related open work scan before the command creates or updates an Epic.\n4. Preserve existing Epic invariants: optional membership, one Epic per change in v1, advisory order, product scope support, and no Jira-like planning fields.\n5. Anchor the command in manifest, docs/specs, and tests so behavior does not drift.\n\n## Success Criteria\n- SC1. Users can invoke `/adv-epic` to create an Epic through one collaborative, goal-first workflow.\n- SC2. Epic creation never proceeds until the user has confirmed the Epic's ultimate goal.\n- SC3. Overlapping open Epics/changes/backlog work are surfaced before mutation, with neutral evidence and explicit user choice.\n- SC4. Valid Epics can be created with zero initial roadmap entries.\n\n## Acceptance Criteria\n- AC1. `.opencode/command/adv-epic.md` exists with frontmatter `name: adv-epic`, exact manifest-matching description, and `requiresChangeId: false`.\n- AC2. `plugin/src/manifest.ts` registers `adv-epic` as no-gate, `requiresChangeId: false`, `phase: \"utility\"` or equivalent no-gate initiative-planning phase.\n- AC3. `/adv-epic` command contract requires an explicit `Ultimate Goal` before Epic creation mutation may run.\n- AC4. `/adv-epic` command contract requires related-work checks using Epic/change/backlog reads before creation.\n- AC5. If plausible overlap exists, command asks user to choose update/clarify existing vs create new before mutation.\n- AC6. Command contract states initial shell/change entries are optional; shell/link additions use typed Epic tools only.\n- AC7. `advance-epics` spec gains a requirement covering `/adv-epic` goal-first creation and overlap decision behavior. [warrant: spec:rq-epicEntity01]\n- AC8. Tests fail without command/manifest/docs/spec anchors and pass after implementation.\n\n## Constraints\n- C1. Do not add `bin/adv epic create` or any CLI mutation verb.\n- C2. Do not add a separate structural `ultimate_goal` field to the Epic schema in this change; encode the ultimate goal in the command-required narrative structure.\n- C3. Do not make initial roadmap entries mandatory.\n- C4. Do not make Epic membership mandatory for all ADV changes.\n- C5. Do not treat Epic order as a gate/task blocker.\n- C6. Do not bypass typed Epic MCP tools or read ADV state files directly.\n- C7. Keep overlap detection evidence-backed: typed Epic/change/backlog reads plus user confirmation; heuristics may only rank/summarize evidence.\n\n## Out of Scope\n- OOS1. CLI mutation command such as `bin/adv epic create`.\n- OOS2. Epic schema migration for a new `ultimate_goal` field.\n- OOS3. Mandatory shell/change entries at Epic creation time.\n- OOS4. Jira-like assignee, estimate, sprint, board, or ownership workflows.\n- OOS5. Automatic implementation change/task creation from every shell entry.\n- OOS6. Fixing the pre-existing Epic tool warrant-surface omission; tracked separately as agenda `ag-Adj91lPD`.\n\n## Avoidances\n- DONT1. Do not create a new Epic when a clearly overlapping open Epic exists without asking the user to choose update/clarify existing vs create new.\n- DONT2. Do not present neutral overlap evidence as a hidden recommendation; user chose neutral evidence, not a default recommendation.\n- DONT3. Do not weaken existing product/cross-project Epic guidance.\n- DONT4. Do not complete discovery based on archived-change scan success; archived scan degraded due `adv_change_list includeArchived:true` timeout and is not required for this scope.\n\n## Preview Applicability\nvisual_surface: false\n\nRationale: This change adds command/spec/test/docs behavior for an agent workflow. It does not affect browser-visible UI or visual output.\n\n## Decisions\n\n### User Decisions\n- Create timing: when no overlap blocks creation, `/adv-epic` creates the Epic after one final confirmation.\n- Initial entries: optional; an Epic may start with only ultimate goal and narrative.\n- Overlap default: present evidence neutrally; do not force a default recommendation.\n\n### Agent Decisions (LBP)\n- Use existing `adv_epic_create.narrative` to carry the ultimate goal structure for v1 instead of adding a new schema field.\n- Model `/adv-epic` after the collaborative, no-gate structure of `/adv-idea`, but allow typed Epic mutation after user confirmation.\n- Reuse `/adv-proposal`'s overlap recipe concept: scan related work, reuse/update obvious overlap, ask only when ambiguity or user choice matters.\n- Register `/adv-epic` as `agent-workflow-only` in CLI surface matrix; CLI Epic namespace remains read-only for list.\n- Discovery found Epic tool warrants currently do not resolve through `adv_contract_mint` because `getToolSurface()` omits `epicTools`; this is tracked separately as agenda `ag-Adj91lPD`, so this contract avoids tool warrant tags for Epic tools.\n\n## Deferred Questions\nNone.\n\n## Sign-Off\nCriteria approved by user in chat: `approve`.",
+    "design": "# Design: Add epic command\n\n## Architecture Overview\n\nAdd `/adv-epic` as a command-file workflow over the existing typed Epic MCP tools. The command becomes the user-facing orchestration layer for Epic creation; the existing Epic tools remain the mutation authority.\n\nThe design intentionally avoids a new Epic schema field for `ultimate_goal`. Instead, `/adv-epic` requires an explicit `## Ultimate Goal` section in the command workflow and encodes that goal inside the existing required `narrative` passed to `adv_epic_create`. This preserves v1 compatibility and avoids field sprawl while still making the goal mandatory at the command boundary.\n\n## Key Decisions\n\n1. **Command-only user workflow, typed-tool mutation.**\n   - `/adv-epic` owns collaboration, overlap evidence, and final confirmation.\n   - `adv_epic_create`, `adv_epic_update`, `adv_epic_add_shell`, and `adv_epic_link_change` own state mutation.\n   - No direct ADV state reads/writes.\n\n2. **Use `phase: \"pre-implementation\"`, not a new or utility-only phase.**\n   - Existing no-gate idea/problem flows live in pre-implementation.\n   - Epic creation is initiative planning before change execution, so pre-implementation is the closest existing phase.\n   - Agreement allowed `phase: \"utility\"` or equivalent no-gate initiative-planning phase; this satisfies the equivalent path.\n\n3. **Do not clone `/adv-idea` read-only boundary.**\n   - `/adv-idea` is a structural template for collaborative framing only.\n   - `/adv-epic` mutates after final user confirmation, closer to `/adv-proposal` in mutation semantics.\n   - Manifest scope must show Epic creation/modification, not empty read-only scope.\n\n4. **Overlap evidence stays neutral.**\n   - User chose neutral evidence when overlap exists.\n   - The command should present evidence and concrete choices: update/clarify existing Epic, create new Epic, or stop.\n   - The command must not hide a recommendation as the default action.\n\n5. **Initial entries are optional.**\n   - A valid Epic can be goal+narrative only.\n   - Shells and linked changes are optional follow-on steps within the same confirmed flow or later.\n\n6. **Spec law is minimal.**\n   - Add one `advance-epics` requirement (`rq-epicCreateCommand01`) for the user-facing command contract.\n   - Do not broaden the Epic data model or CLI namespace.\n\n## ADR Drafts\n\nNo ADR draft required. The decision is not hard to reverse, surprising, and tradeoff-heavy enough to warrant a standalone ADR. Existing spec + command docs provide sufficient context.\n\n## Implementation Strategy\n\n1. **Create command contract**\n   - Add `.opencode/command/adv-epic.md`.\n   - Frontmatter:\n     - `name: adv-epic`\n     - description exactly matching manifest, likely `Create Epics with goal-first workflow`.\n   - Manifest comment: `requiresChangeId: false`; no gate.\n   - Command phases:\n     1. Parse user request and load `advance-epics` spec context.\n     2. Elicit/confirm title, ultimate goal, narrative context, scope kind, constraints, and optional initial entries.\n     3. Run related-work scan: `adv_epic_list`; `adv_epic_show` for plausible active Epics; `adv_change_list`; `adv_backlog_state` when backlog/roadmap relevance is plausible.\n     4. Present overlap evidence neutrally. If plausible overlap exists, ask user to choose update/clarify existing, create new, or stop.\n     5. Present final plan and require explicit final confirmation.\n     6. On confirmation, call typed tools: `adv_epic_create`; then optional `adv_epic_add_shell` / `adv_epic_link_change` only for user-approved entries.\n     7. Report created/updated Epic ID, entries added/linked, skipped items, and retry/repair path for partial failures.\n\n2. **Register command**\n   - Add `adv-epic` to `plugin/src/manifest.ts`.\n   - Use `phase: \"pre-implementation\"`, `requiresChangeId: false`, no gate, no prerequisites.\n   - Successors should include `adv-proposal`, and optionally `adv-roadmap`/`adv-status` only if existing navigation patterns support them. Prefer minimal successor set to avoid misleading flow.\n   - Scope should show `creates: [\"epic\"]`, reads `specs`, `codebase`/`changes`/`backlog` as appropriate, and modifies `epic`/membership projections through typed tools.\n\n3. **Add spec requirement**\n   - Update `.adv/specs/advance-epics/spec.json` with `rq-epicCreateCommand01`.\n   - Mirror in `docs/specs/advance-epics.md`.\n   - Requirement covers: explicit ultimate goal, related-work scan, overlap decision before duplicate creation, final confirmation, typed-tool mutations, optional initial entries.\n\n4. **Add drift/test anchors**\n   - `plugin/src/manifest.test.ts`: add `adv-epic`, update expectedCommands array, update test title string from 26 to 27, and update `toHaveLength(26)` to 27.\n   - `plugin/src/manifest-doc-drift.test.ts`: existing test should catch frontmatter/manifest mismatch automatically.\n   - `plugin/src/cli-surface-matrix.test.ts`: existing test should require a row after command file exists.\n   - `plugin/src/advance-epics-assets.test.ts`: add command-contract tests for `Ultimate Goal`, overlap behavior, neutral choice, typed tools, optional entries, and `rq-epicCreateCommand01` spec/doc mirror.\n   - Add or update any README/SETUP command table tests if present.\n\n5. **Update docs/config surfaces**\n   - README command reference.\n   - SETUP command table.\n   - `docs/cli-surface-matrix.md` row with `agent-workflow-only` disposition.\n   - `ADV_INSTRUCTIONS.md` command list/routing if it has a command-only list entry.\n   - `token-budgets.json` if it enumerates per-command budgets.\n\n## LBP Analysis\n\nThe long-term best path is a boring command workflow over existing typed tools.\n\n- It keeps correctness structural: schema/tool state remains owned by Epic tools, while command behavior is enforced by spec/doc/asset tests.\n- It avoids a premature `ultimate_goal` schema migration. The command can force a goal section in narrative now; a future schema field remains possible if usage proves narrative insufficient.\n- It avoids CLI mutation, preserving the current read-only `adv epic list --json` contract.\n- It reuses existing no-gate command patterns but corrects the boundary: `/adv-epic` mutates only after explicit confirmation.\n\n## Affected Components\n\n- `.opencode/command/adv-epic.md`\n- `plugin/src/manifest.ts`\n- `plugin/src/manifest.test.ts`\n- `plugin/src/advance-epics-assets.test.ts`\n- `.adv/specs/advance-epics/spec.json`\n- `docs/specs/advance-epics.md`\n- `docs/cli-surface-matrix.md`\n- `README.md`\n- `SETUP.md`\n- `ADV_INSTRUCTIONS.md` if command lists/routing require it\n- `.opencode/token-budgets.json` if per-command budget enumeration requires it\n\n## Design-Derived Criteria\n\n- DDC1. Command mutation phase is reachable only after explicit final confirmation text in the command contract.\n- DDC2. Command overlap scan must use typed tools; wording may rank or summarize evidence but cannot declare overlap as final authority without user choice.\n- DDC3. Manifest/frontmatter description must be a single-line exact match and satisfy existing manifest-doc-drift constraints.\n- DDC4. Tests must include a failing assertion specifically tied to `/adv-epic` ultimate-goal and overlap behavior, not only generic command existence.\n- DDC5. Spec delta must be mirrored in both JSON spec and markdown spec doc.\n- DDC6. Prep must explicitly verify both manifest test count/list and title string updates.\n\n## Risks / Mitigations\n\n- **Risk: accidental duplicate Epic creation.**\n  - Mitigation: require typed related-work scan and user choice before creating when overlap appears plausible.\n\n- **Risk: command prompt says read-only while mutating.**\n  - Mitigation: explicitly model mutation-after-confirm boundary; manifest scope declares Epic creation/modification.\n\n- **Risk: adding command breaks drift tests.**\n  - Mitigation: update manifest count/list/title, command doc frontmatter, CLI surface matrix, README/SETUP, Epic asset tests, and token budget list if needed.\n\n- **Risk: product/cross-project guidance regresses.**\n  - Mitigation: command contract must preserve target-path trust and typed membership tools; agenda `Fix Epic cross-project guidance` remains related context.\n\n- **Risk: contract warrant tags for Epic tools fail today.**\n  - Mitigation: out of scope for this change; tracked as agenda `ag-Adj91lPD`. Do not rely on tool warrant tags for Epic tools until fixed.\n\n## Design Leverage Scout\n\n- Candidates considered: 5.\n- Auto-adopted: 4.\n  - Use `phase: \"pre-implementation\"` rather than inventing a phase.\n  - Correct command boundary to mutation-after-confirm, not read-only.\n  - Update manifest test count/list/title from 26 to 27.\n  - Add explicit `/adv-epic` command-contract asset tests and `rq-epicCreateCommand01` mirror coverage.\n- Surfaced/partial: 1.\n  - Verify extra drift surfaces during prep: `ADV_INSTRUCTIONS.md` command-only lists and `.opencode/token-budgets.json`.\n- Inconclusive/skipped: none.\n\n## Validator Result\n\nValidator: VALIDATED with one caution.\n\n- Correctness: CAUTION — design solves objectives; prep must make manifest.test.ts dual edit explicit: expectedCommands array and `toHaveLength(26)` plus title string.\n- Simplicity: VALIDATED — command-over-typed-tools is simplest correct path; schema field, new phase, or CLI mutation would add unjustified complexity.\n- Spec-law compliance: VALIDATED — preserves read-only CLI Epic namespace and all Epic invariants.\n- Key alternatives: VALIDATED — no significant viable alternative overlooked.\n\nRecommendation: proceed to prep. Keep `phase: \"pre-implementation\"`, declare mutation boundary honestly in manifest scope, update both manifest test list/count/title, and verify `ADV_INSTRUCTIONS.md` plus `.opencode/token-budgets.json` drift surfaces.\n",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\nAdded `/adv-epic` as a goal-first, overlap-aware, no-gate ADV command for creating Epics through typed Epic tools. Acceptance review found no remaining blockers or nonblocking findings after a frontmatter metadata remediation.\n\n## Verdict\nAPPROVED\n\n## What Was Built\n1. Added `.opencode/command/adv-epic.md` with explicit Ultimate Goal confirmation, related-work scan, neutral overlap choice, optional initial entries, and typed Epic mutation boundaries.\n2. Added `rq-epicCreateCommand01` to the `advance-epics` JSON spec and markdown mirror.\n3. Registered `/adv-epic` in the command manifest and public command surfaces: README, SETUP, ADV_INSTRUCTIONS, CLI surface matrix, and token budget baseline.\n4. Added/updated tests covering command frontmatter, command contract text, manifest/doc drift, CLI matrix classification, and spec/doc anchors.\n5. Remediated acceptance review gap by adding `requiresChangeId: false` to command YAML frontmatter and strengthening the asset test to assert frontmatter metadata exactly.\n\n## What Was Verified\n- Verdict: APPROVED / READY; reviewer reported 0 blocking and 0 nonblocking findings after remediation.\n- Tests: `pnpm exec vitest run src/advance-epics-assets.test.ts src/manifest.test.ts src/manifest-doc-drift.test.ts src/cli-surface-matrix.test.ts` passed with 100 tests.\n- Schemas: `pnpm run schemas:check` passed.\n- Change validation: `adv_change_validate strict:true` passed with only expected `NO_DELTAS` warning.\n- Preview URL: not_applicable — agreement declares `visual_surface: false`; delivered work is command/spec/docs/tests only, with no browser-visible surface.\n- Contract matrix: 29 required rows passed/respected; 0 failed/violated/unknown.\n\n## Remaining Concerns\nNone for this change. Separate follow-up remains: agenda `ag-Adj91lPD` tracks Epic tool warrant-surface exposure.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-06-26T18:40:45.000Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | Users can invoke `/adv-epic` to create an Epic through one collaborative, goal-first workflow. | pass | `/adv-epic` command file exists and is registered in manifest/docs. Reviewer verdict READY; targeted test suite passed 100 tests. |\n| SC2 | success_criterion | Epic creation never proceeds until the user has confirmed the Epic's ultimate goal. | pass | `.opencode/command/adv-epic.md` requires explicit Ultimate Goal confirmation before create/update mutation. |\n| SC3 | success_criterion | Overlapping open Epics/changes/backlog work are surfaced before mutation, with neutral evidence and explicit user choice. | pass | Command contract requires related-work scan and overlap decision before mutation; asset tests cover overlap handling. |\n| SC4 | success_criterion | Valid Epics can be created with zero initial roadmap entries. | pass | Command contract states initial entries are optional and `adv_epic_create` may run without shell/change entries. |\n| AC1 | acceptance_criterion | `.opencode/command/adv-epic.md` exists with frontmatter `name: adv-epic`, exact manifest-matching description, and `requiresChangeId: false`. | pass | `.opencode/command/adv-epic.md` frontmatter includes `name: adv-epic`, `description: Gather Epic goals before typed creation`, and `requiresChangeId: false`; `advance-epics-assets.test.ts` asserts these; targeted suite passed. |\n| AC2 | acceptance_criterion | `plugin/src/manifest.ts` registers `adv-epic` as no-gate, `requiresChangeId: false`, `phase: \"utility\"` or equivalent no-gate initiative-planning phase. | pass | `plugin/src/manifest.ts` registers `adv-epic` with `requiresChangeId:false`, no gate, and `phase:\"pre-implementation\"`; manifest tests passed. |\n| AC3 | acceptance_criterion | `/adv-epic` command contract requires an explicit `Ultimate Goal` before Epic creation mutation may run. | pass | Command contract includes explicit Ultimate Goal checkpoint before any Epic mutation; asset tests passed. |\n| AC4 | acceptance_criterion | `/adv-epic` command contract requires related-work checks using Epic/change/backlog reads before creation. | pass | Command contract requires `adv_epic_list`/`adv_epic_show`, `adv_change_list`, and backlog read before creation; asset tests passed. |\n| AC5 | acceptance_criterion | If plausible overlap exists, command asks user to choose update/clarify existing vs create new before mutation. | pass | Command contract requires user choice to update/clarify existing vs create new when plausible overlap exists; asset tests passed. |\n| AC6 | acceptance_criterion | Command contract states initial shell/change entries are optional; shell/link additions use typed Epic tools only. | pass | Command contract states initial shell/change entries are optional and shell/link additions use typed Epic tools only; asset tests passed. |\n| AC7 | acceptance_criterion | `advance-epics` spec gains a requirement covering `/adv-epic` goal-first creation and overlap decision behavior. | pass | `advance-epics` spec and markdown mirror add `rq-epicCreateCommand01`; spec/docs asset tests and schemas check passed. |\n| AC8 | acceptance_criterion | Tests fail without command/manifest/docs/spec anchors and pass after implementation. | pass | RED/GREEN task evidence recorded for missing command/manifest/docs rows; final targeted suite passed 100 tests after implementation/remediation. |\n| C1 | constraint | Do not add `bin/adv epic create` or any CLI mutation verb. | respected | No `bin/adv epic create` or CLI mutation added; CLI surface matrix row is `agent-workflow-only`; CLI matrix test passed. |\n| C2 | constraint | Do not add a separate structural `ultimate_goal` field to the Epic schema in this change; encode the ultimate goal in the command-required narrative structure. | respected | No Epic schema field `ultimate_goal` added; goal is encoded in command-required narrative structure. |\n| C3 | constraint | Do not make initial roadmap entries mandatory. | respected | Command contract explicitly allows creating Epic with zero initial entries. |\n| C4 | constraint | Do not make Epic membership mandatory for all ADV changes. | respected | No change made requiring Epic membership for all ADV changes; existing optional-membership guidance preserved. |\n| C5 | constraint | Do not treat Epic order as a gate/task blocker. | respected | No command/spec/doc language makes Epic order a gate or task blocker; existing advisory-order guidance preserved. |\n| C6 | constraint | Do not bypass typed Epic MCP tools or read ADV state files directly. | respected | Command contract uses typed Epic MCP tools for mutations and typed reads for state; no direct ADV state file reads introduced. |\n| C7 | constraint | Keep overlap detection evidence-backed: typed Epic/change/backlog reads plus user confirmation; heuristics may only rank/summarize evidence. | respected | Overlap scan is evidence-backed via typed Epic/change/backlog reads; command text treats heuristics as neutral summarization/ranking only. |\n| OOS1 | out_of_scope | CLI mutation command such as `bin/adv epic create`. | respected | No CLI mutation command added; CLI surface matrix remains agent-workflow-only for `/adv-epic`. |\n| OOS2 | out_of_scope | Epic schema migration for a new `ultimate_goal` field. | respected | No Epic schema migration for `ultimate_goal`. |\n| OOS3 | out_of_scope | Mandatory shell/change entries at Epic creation time. | respected | Command allows zero initial entries and does not require shell/change entries. |\n| OOS4 | out_of_scope | Jira-like assignee, estimate, sprint, board, or ownership workflows. | respected | No assignee/estimate/sprint/board/ownership workflow fields or docs added. |\n| OOS5 | out_of_scope | Automatic implementation change/task creation from every shell entry. | respected | No automatic implementation change/task creation from shell entries added. |\n| OOS6 | out_of_scope | Fixing the pre-existing Epic tool warrant-surface omission; tracked separately as agenda `ag-Adj91lPD`. | respected | Epic tool warrant-surface omission remains tracked separately as agenda `ag-Adj91lPD`; this change avoided requiring that fix. |\n| DONT1 | avoidance | Do not create a new Epic when a clearly overlapping open Epic exists without asking the user to choose update/clarify existing vs create new. | respected | Command contract requires overlap decision before creating a new Epic when plausible existing open work overlaps. |\n| DONT2 | avoidance | Do not present neutral overlap evidence as a hidden recommendation; user chose neutral evidence, not a default recommendation. | respected | Command contract presents overlap evidence neutrally and asks user to choose; no default recommendation encoded. |\n| DONT3 | avoidance | Do not weaken existing product/cross-project Epic guidance. | respected | Product/cross-project Epic guidance in ADV_INSTRUCTIONS remains present; `/adv-epic` row only adds command surface. |\n| DONT4 | avoidance | Do not complete discovery based on archived-change scan success; archived scan degraded due `adv_change_list includeArchived:true` timeout and is not required for this scope. | respected | Discovery degraded archived-change scan was not used as completion proof; implementation scope relies on active typed reads/command contract/tests. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-06-26T17:55:21.673Z",
+      "contentHash": "1caa36c87bfab433da19d1654248b17225f1cdcc6be73114e8cfa189ecf1b2bb",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-06-26T17:35:51.505Z",
+      "contentHash": "ae3a7d3d008470af48ecce72d9c499a87eec4fa3a4a3bb26b80679236ee776dd",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-06-26T18:01:02.911Z",
+      "contentHash": "9843c4aee863fb6bc991a3592d6747b8f02317d22a086b1c031b4df339553fee",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-06-26T18:09:52.327Z",
+      "contentHash": "4985229a49270c383e6ab1bfe9b656a5069fa2497c62f2c0cc6a93d56c08f951",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-06-26T18:42:14.479Z",
+      "contentHash": "f8bb595226f87569f4e180c88c4e428e5578ff49d856624070f8ecbc2a434839",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-06-26T19:03:04.105Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_MISSING_ERROR_HANDLING",
+      "severity": "warning",
+      "message": "Proposal describes behavior that could fail but doesn't mention error handling or rollback. What happens when things go wrong?",
+      "recorded_at": "2026-06-26T18:02:01.392Z"
+    }
+  ],
+  "worktree_auto_managed": true
+}
