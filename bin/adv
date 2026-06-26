@@ -462,6 +462,8 @@ USAGE:
 SUBCOMMANDS:
   status      (default)  Show active changes table
   dashboard            Run local read-only ADV/GitHub dashboard
+  dashboard install     Install a dashboard user service profile
+  dashboard doctor      Check dashboard user service health
   roadmap              Show prioritized backlog from file snapshot
   slop-scan            Run deterministic slop scanner
 
@@ -483,6 +485,10 @@ FLAGS (dashboard only):
       --port <N>           Local port (default: 8765)
       --host <host>        Bind host (default: 127.0.0.1)
       --allow-network-host Explicitly allow non-loopback host
+
+FLAGS (dashboard install/doctor):
+      --profile pokeedge   Use the PokeEdge dashboard profile
+      --dry-run            Print planned writes/checks without mutating
 
 EXIT CODES:
   0  Success
