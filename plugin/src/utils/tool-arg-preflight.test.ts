@@ -23,7 +23,12 @@ type RegressionMatrixCase = {
 type ExpectedFieldPolicy = {
   toolName: string;
   field: string;
-  policy: "blank" | "emptyArray" | "zero" | "recordValuesBlank";
+  policy:
+    | "blank"
+    | "sentinels"
+    | "emptyArray"
+    | "zero"
+    | "recordValuesBlank";
   action: "reject" | "omit" | "allow";
 };
 
@@ -37,6 +42,48 @@ const AUDITED_PREFLIGHT_POLICY_REQUIREMENTS: ExpectedFieldPolicy[] = [
   {
     toolName: "adv_change_create",
     field: "origin_issue_number",
+    policy: "zero",
+    action: "omit",
+  },
+  {
+    toolName: "adv_change_create",
+    field: "epic_id",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_change_create",
+    field: "epic_id",
+    policy: "sentinels",
+    action: "omit",
+  },
+  {
+    toolName: "adv_change_create",
+    field: "entry_id",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_change_create",
+    field: "entry_id",
+    policy: "sentinels",
+    action: "omit",
+  },
+  {
+    toolName: "adv_change_create",
+    field: "epic_title",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_change_create",
+    field: "epic_title",
+    policy: "sentinels",
+    action: "omit",
+  },
+  {
+    toolName: "adv_change_create",
+    field: "epic_order",
     policy: "zero",
     action: "omit",
   },
@@ -209,6 +256,10 @@ const CREATE_SCHEMA = {
   source_change_id: z.string().optional(),
   parent_change_id: z.string().optional(),
   scope_repos: z.array(z.object({ repo_id: z.string() })).optional(),
+  epic_id: z.string().min(1).optional(),
+  entry_id: z.string().min(1).optional(),
+  epic_order: z.number().int().min(0).optional(),
+  epic_title: z.string().min(1).optional(),
 };
 
 const PLACEHOLDER_POLICY_REGRESSION_MATRIX: RegressionMatrixCase[] = [
@@ -364,6 +415,61 @@ const PLACEHOLDER_POLICY_REGRESSION_MATRIX: RegressionMatrixCase[] = [
     rawArgs: { summary: "Add scope guard", scope_repos: [] },
     ok: true,
     normalizedArgs: { summary: "Add scope guard" },
+  },
+  {
+    label: "blank create-time Epic fields normalize to omitted",
+    toolName: "adv_change_create",
+    schema: CREATE_SCHEMA,
+    rawArgs: {
+      summary: "Add Epic guard",
+      epic_id: " ",
+      entry_id: " ",
+      epic_title: " ",
+      epic_order: 0,
+    },
+    ok: true,
+    normalizedArgs: { summary: "Add Epic guard" },
+  },
+  {
+    label: "sentinel create-time Epic fields normalize to omitted",
+    toolName: "adv_change_create",
+    schema: CREATE_SCHEMA,
+    rawArgs: {
+      summary: "Add Epic sentinel guard",
+      epic_id: "none",
+      entry_id: "n/a",
+      epic_title: "null",
+    },
+    ok: true,
+    normalizedArgs: { summary: "Add Epic sentinel guard" },
+  },
+  {
+    label: "partial create-time Epic membership is rejected before persistence",
+    toolName: "adv_change_create",
+    schema: CREATE_SCHEMA,
+    rawArgs: { summary: "Add Epic partial guard", epic_id: "addAuthEpic" },
+    ok: false,
+    fields: ["entry_id", "epic_title"],
+  },
+  {
+    label: "complete create-time Epic membership survives preflight",
+    toolName: "adv_change_create",
+    schema: CREATE_SCHEMA,
+    rawArgs: {
+      summary: "Add Epic member",
+      epic_id: "addAuthEpic",
+      entry_id: "entry-1",
+      epic_title: "Add Auth",
+      epic_order: 2,
+    },
+    ok: true,
+    normalizedArgs: {
+      summary: "Add Epic member",
+      epic_id: "addAuthEpic",
+      entry_id: "entry-1",
+      epic_title: "Add Auth",
+      epic_order: 2,
+    },
   },
   {
     label: "blank task content rejected",

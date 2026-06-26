@@ -71,6 +71,13 @@ const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
     parent_change_id: { blank: "omit", sentinels: "reject" },
     origin_source_artifact: { blank: "omit" },
     scope_repos: { emptyArray: "omit" },
+    // Optional create-time Epic membership. Strict-mode providers fill these
+    // optional strings with blanks/sentinels when no Epic is intended; normalize
+    // before Zod .min(1) and before create can seed workflow metadata.
+    epic_id: { blank: "omit", sentinels: "omit" },
+    entry_id: { blank: "omit", sentinels: "omit" },
+    epic_title: { blank: "omit", sentinels: "omit" },
+    epic_order: { zero: "omit" },
     // rq-toolPlaceholderPolicy01.5: strict-mode providers fill optional
     // .positive() int placeholders with 0. Normalize to omitted so cross-
     // field origin matrix and Zod .positive() never see the placeholder.
@@ -455,6 +462,23 @@ const CROSS_FIELD_VALIDATORS: Record<string, CrossFieldValidator> = {
         message: "parent_change_id cannot be combined with target_path.",
       });
     }
+
+    const epicFields = ["epic_id", "entry_id", "epic_title"] as const;
+    const providedEpicFields = epicFields.filter(
+      (field) => args[field] !== undefined,
+    );
+    if (providedEpicFields.length > 0 && providedEpicFields.length < 3) {
+      for (const field of epicFields) {
+        if (args[field] === undefined) {
+          invalid.push({
+            field,
+            message:
+              "Complete create-time Epic membership requires epic_id, entry_id, and epic_title; omit all Epic fields when no Epic membership is intended.",
+          });
+        }
+      }
+    }
+
     // rq-backlogCoord08: validate creation-origin linkage structurally before
     // adv_change_create execution can seed workflow state or claim metadata.
     if (originKind === "roadmap") {
