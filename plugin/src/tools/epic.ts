@@ -9,7 +9,8 @@
 
 import { z } from "zod";
 import type { Store } from "../storage/store-types";
-import type { EpicEntry, EpicMembershipStatus } from "../types";
+import { deriveEpicScopeLabel } from "../types";
+import type { EpicEntry, EpicMembershipStatus, EpicScope } from "../types";
 import { formatToolOutput, paginate } from "../utils/tool-output";
 import {
   appendTargetProjectContextOutput,
@@ -21,6 +22,14 @@ const EPIC_ID_SCHEMA = z
   .string()
   .min(1)
   .describe("Epic ID using ADV change naming convention (camelCase title).");
+
+const EpicToolScopeRepoSchema = z.object({
+  repo_id: z.string().min(1),
+  repo_project_id: z.string().min(1),
+  path: z.string().min(1).optional(),
+  role: z.enum(["primary", "secondary"]),
+  required: z.boolean(),
+});
 
 function epicNotFound(epicId: string) {
   return formatToolOutput({
@@ -225,14 +234,53 @@ async function loadChange(store: Store, changeId: string) {
   return result.data;
 }
 
+function buildEpicScope(input: {
+  ownerProjectId: string;
+  ownerRepoId?: string;
+  repos: EpicScope["repos"];
+}): EpicScope {
+  return {
+    kind: input.repos.length > 1 ? "product" : "repo",
+    owner_project_id: input.ownerProjectId,
+    ...(input.ownerRepoId ? { owner_repo_id: input.ownerRepoId } : {}),
+    repos: input.repos,
+  };
+}
+
+function linkedEntriesForRemovedScopeRepos(
+  epic: import("../types").Epic,
+  nextRepos: EpicScope["repos"],
+) {
+  const currentRepos = epic.epic_scope?.repos ?? [];
+  if (currentRepos.length === 0) return [];
+  const nextRepoIds = new Set(nextRepos.map((repo) => repo.repo_id));
+  const removedRepoIds = new Set(
+    currentRepos
+      .map((repo) => repo.repo_id)
+      .filter((repoId) => !nextRepoIds.has(repoId)),
+  );
+  if (removedRepoIds.size === 0) return [];
+  return epic.entries.filter(
+    (entry) =>
+      entry.kind === "change" &&
+      entry.change_ref?.repo_id &&
+      removedRepoIds.has(entry.change_ref.repo_id) &&
+      entry.membership_status !== "unlinked",
+  );
+}
+
 function terminalSummaryStatusForChange(
   status: string,
 ): "archived" | "closed" | null {
   return status === "archived" || status === "closed" ? status : null;
 }
 
-function terminalSummaryCompletedAt(change: Awaited<ReturnType<typeof loadChange>>) {
-  return change?.updated_at ?? new Date().toISOString();
+function terminalSummaryCompletedAt(
+  change: Awaited<ReturnType<typeof loadChange>>,
+) {
+  return typeof change?.updated_at === "string"
+    ? change.updated_at
+    : new Date().toISOString();
 }
 
 async function resolveChildStore(
@@ -608,6 +656,120 @@ export const epicTools = {
           expectedVersion: expected_version,
         });
         return formatToolOutput({ success: true, epic: formatEpic(epic) });
+      } catch (err) {
+        return epicError(err);
+      }
+    },
+  },
+
+  adv_epic_update_scope: {
+    description:
+      "Update an Epic's typed repo/project scope with audit evidence and optimistic-concurrency protection.",
+    args: {
+      epic_id: EPIC_ID_SCHEMA,
+      owner_project_id: z
+        .string()
+        .min(1)
+        .describe("ADV project ID that owns the Epic workflow."),
+      owner_repo_id: z
+        .string()
+        .min(1)
+        .optional()
+        .describe("Product config repo ID of the owner repo when known."),
+      scope_repos: z
+        .array(EpicToolScopeRepoSchema)
+        .describe("Repos covered by this Epic. Empty array clears scope."),
+      expected_version: z
+        .number()
+        .int()
+        .min(0)
+        .describe("Current Epic version from adv_epic_show."),
+      updated_by: z
+        .string()
+        .min(1)
+        .optional()
+        .describe("Identity updating scope. Defaults to agent."),
+      audit_evidence: z
+        .string()
+        .min(1)
+        .describe("Required audit evidence for the scope mutation."),
+      dryRun: z
+        .boolean()
+        .optional()
+        .describe("Preview scope mutation without firing a workflow signal."),
+    },
+    execute: async (
+      {
+        epic_id,
+        owner_project_id,
+        owner_repo_id,
+        scope_repos,
+        expected_version,
+        updated_by,
+        audit_evidence,
+        dryRun,
+      }: {
+        epic_id: string;
+        owner_project_id: string;
+        owner_repo_id?: string;
+        scope_repos: EpicScope["repos"];
+        expected_version: number;
+        updated_by?: string;
+        audit_evidence: string;
+        dryRun?: boolean;
+      },
+      store: Store,
+    ) => {
+      try {
+        const epic = await loadEpic(store, epic_id);
+        if (!epic) return epicNotFound(epic_id);
+
+        const blockedEntries = linkedEntriesForRemovedScopeRepos(
+          epic,
+          scope_repos,
+        );
+        if (blockedEntries.length > 0) {
+          return formatToolOutput({
+            error:
+              "Scope update would remove repos that still have linked Epic entries.",
+            code: "SCOPE_REMOVAL_HAS_LINKED_ENTRIES",
+            entries: blockedEntries.map(mapEpicEntry),
+          });
+        }
+
+        const epicScope =
+          scope_repos.length > 0
+            ? buildEpicScope({
+                ownerProjectId: owner_project_id,
+                ownerRepoId: owner_repo_id,
+                repos: scope_repos,
+              })
+            : undefined;
+        const scopeLabel = deriveEpicScopeLabel(epicScope);
+
+        if (dryRun) {
+          return formatToolOutput({
+            success: true,
+            dryRun: true,
+            epic_id,
+            epic_scope: epicScope,
+            scope_label: scopeLabel,
+            expected_version,
+          });
+        }
+
+        const updated = await store.epics.updateScope(epic_id, {
+          epicScope,
+          expectedVersion: expected_version,
+          updatedBy: updated_by ?? "agent",
+          auditEvidence: audit_evidence,
+        });
+
+        return formatToolOutput({
+          success: true,
+          scope_label: deriveEpicScopeLabel(updated.epic_scope),
+          epic: formatEpic(updated),
+        });
       } catch (err) {
         return epicError(err);
       }

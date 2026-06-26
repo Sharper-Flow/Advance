@@ -11,6 +11,7 @@ import { createEpicOps } from "./epics";
 import type { StoreDeps } from "./shared";
 import {
   epicCreatedSignal,
+  epicScopeUpdatedSignal,
   epicUpdatedSignal,
   shellAddedSignal,
   shellPromotedSignal,
@@ -135,6 +136,41 @@ describe("createEpicOps", () => {
       title: "Updated",
       expectedVersion: 1,
       idempotencyKey: "epic-update|addAuthEpic|1",
+    });
+  });
+
+  test("updateScope fires epicScopeUpdated with audit evidence", async () => {
+    const { deps, queryMock, signalMock } = setup();
+    const epic = makeEpic({ version: 1 });
+    queryMock.mockResolvedValue(makeState(epic));
+
+    const ops = createEpicOps(deps);
+    await ops.updateScope("addAuthEpic", {
+      epicScope: {
+        kind: "product",
+        owner_project_id: "project-web",
+        repos: [
+          {
+            repo_id: "web",
+            repo_project_id: "project-web",
+            role: "primary",
+            required: true,
+          },
+        ],
+      },
+      expectedVersion: 1,
+      updatedBy: "agent",
+      auditEvidence: "User approved product scope.",
+    });
+
+    const call = signalMock.mock.calls.find(
+      (c) => c[0] === epicScopeUpdatedSignal,
+    );
+    expect(call?.[1]).toMatchObject({
+      expectedVersion: 1,
+      updatedBy: "agent",
+      auditEvidence: "User approved product scope.",
+      idempotencyKey: "epic-scope-update|addAuthEpic|1",
     });
   });
 

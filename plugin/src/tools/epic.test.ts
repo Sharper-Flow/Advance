@@ -58,6 +58,7 @@ function makeStore(epicOverrides?: Partial<Epic>): Store {
       get: vi.fn(async () => ({ success: true, data: epic })),
       list: vi.fn(async () => [epic]),
       update: vi.fn(async () => epic),
+      updateScope: vi.fn(async () => epic),
       addShell: vi.fn(async () =>
         makeShellEntry({ entry_id: "shell-1", title: "Shell One" }),
       ),
@@ -1136,5 +1137,130 @@ describe("adv_epic_update", () => {
     );
     const parsed = parseToolOutput(output);
     expect(parsed.error).toMatch(/title or narrative/);
+  });
+});
+
+describe("adv_epic_update_scope", () => {
+  test("dry-run reports derived scope label and does not mutate", async () => {
+    const store = makeStore({ version: 2 });
+    const output = await epicTools.adv_epic_update_scope.execute(
+      {
+        epic_id: "addAuthEpic",
+        expected_version: 2,
+        audit_evidence: "User approved scope expansion.",
+        owner_project_id: "project-web",
+        scope_repos: [
+          {
+            repo_id: "web",
+            repo_project_id: "project-web",
+            role: "primary",
+            required: true,
+          },
+          {
+            repo_id: "api",
+            repo_project_id: "project-api",
+            role: "secondary",
+            required: true,
+          },
+        ],
+        dryRun: true,
+      },
+      store,
+    );
+
+    const parsed = parseToolOutput(output);
+    expect(parsed.success).toBe(true);
+    expect(parsed.dryRun).toBe(true);
+    expect(parsed.scope_label).toBe("product-spanning");
+    expect(store.epics.updateScope).not.toHaveBeenCalled();
+  });
+
+  test("rejects removing scope repo that still has linked entries", async () => {
+    const store = makeStore({
+      version: 2,
+      epic_scope: {
+        kind: "product",
+        owner_project_id: "project-web",
+        repos: [
+          {
+            repo_id: "web",
+            repo_project_id: "project-web",
+            role: "primary",
+            required: true,
+          },
+        ],
+      },
+      entries: [
+        makeChangeEntry({
+          change_ref: {
+            change_id: "change-2",
+            project_id: "project-web",
+            repo_id: "web",
+          },
+          title: "Linked Change",
+          membership_status: "linked",
+          linked_at: "2026-06-25T00:00:00.000Z",
+          linked_by: "agent",
+          link_evidence: "linked",
+        }),
+      ],
+    });
+
+    const output = await epicTools.adv_epic_update_scope.execute(
+      {
+        epic_id: "addAuthEpic",
+        expected_version: 2,
+        audit_evidence: "Remove web repo.",
+        owner_project_id: "project-web",
+        scope_repos: [],
+      },
+      store,
+    );
+
+    const parsed = parseToolOutput(output);
+    expect(parsed.success).toBeFalsy();
+    expect(parsed.code).toBe("SCOPE_REMOVAL_HAS_LINKED_ENTRIES");
+    expect(store.epics.updateScope).not.toHaveBeenCalled();
+  });
+
+  test("updates scope through store with audit evidence", async () => {
+    const store = makeStore({ version: 2 });
+    const output = await epicTools.adv_epic_update_scope.execute(
+      {
+        epic_id: "addAuthEpic",
+        expected_version: 2,
+        audit_evidence: "User approved scope expansion.",
+        owner_project_id: "project-web",
+        scope_repos: [
+          {
+            repo_id: "web",
+            repo_project_id: "project-web",
+            role: "primary",
+            required: true,
+          },
+        ],
+      },
+      store,
+    );
+
+    const parsed = parseToolOutput(output);
+    expect(parsed.success).toBe(true);
+    expect(store.epics.updateScope).toHaveBeenCalledWith("addAuthEpic", {
+      epicScope: {
+        kind: "repo",
+        owner_project_id: "project-web",
+        repos: [
+          {
+            repo_id: "web",
+            repo_project_id: "project-web",
+            role: "primary",
+            required: true,
+          },
+        ],
+      },
+      expectedVersion: 2,
+      updatedBy: "agent",
+      auditEvidence: "User approved scope expansion.",
+    });
   });
 });

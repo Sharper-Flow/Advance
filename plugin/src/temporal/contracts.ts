@@ -116,6 +116,7 @@ export const EPIC_WORKFLOW_QUERY_NAMES = {
 export const EPIC_WORKFLOW_SIGNAL_NAMES = {
   epicCreated: "adv.epic.epicCreated",
   epicUpdated: "adv.epic.epicUpdated",
+  epicScopeUpdated: "adv.epic.epicScopeUpdated",
   shellAdded: "adv.epic.shellAdded",
   shellPromoted: "adv.epic.shellPromoted",
   changeLinked: "adv.epic.changeLinked",

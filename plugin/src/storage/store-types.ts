@@ -341,6 +341,15 @@ export interface Store {
       epicId: string,
       input: { title?: string; narrative?: string; expectedVersion: number },
     ) => Promise<Epic>;
+    updateScope: (
+      epicId: string,
+      input: {
+        epicScope?: Epic["epic_scope"];
+        expectedVersion: number;
+        updatedBy?: string;
+        auditEvidence: string;
+      },
+    ) => Promise<Epic>;
     addShell: (
       epicId: string,
       input: {

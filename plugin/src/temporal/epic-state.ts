@@ -20,6 +20,7 @@ import type {
   EntriesReorderedSignalPayload,
   EntryTerminalSummarySignalPayload,
   EpicArchivedSignalPayload,
+  EpicScopeUpdatedSignalPayload,
 } from "../types";
 import { EpicStatusSchema } from "../types";
 import type {
@@ -177,6 +178,31 @@ export function applyEpicUpdatedToState(
 
   if (payload.title !== undefined) state.epic.title = payload.title;
   if (payload.narrative !== undefined) state.epic.narrative = payload.narrative;
+
+  bumpVersion(state.epic);
+  recordIdempotency(state, payload.idempotencyKey, payload.updatedAt);
+  setLastSignalAt(state, payload.updatedAt);
+  recomputeEpicProgress(state);
+
+  return { ok: true, value: { version: state.epic.version } };
+}
+
+export function applyEpicScopeUpdatedToState(
+  state: EpicWorkflowState,
+  payload: EpicScopeUpdatedSignalPayload,
+): EpicMutationResult<{ version: number }> {
+  if (isArchived(state)) {
+    return { ok: false, code: "epic_archived", message: "Epic is archived" };
+  }
+
+  const idempotency = checkIdempotency(state, payload.idempotencyKey);
+  if (idempotency) return idempotency;
+
+  const version = checkVersion(state, payload.expectedVersion);
+  if (version) return version;
+
+  if (payload.epicScope) state.epic.epic_scope = payload.epicScope;
+  else delete state.epic.epic_scope;
 
   bumpVersion(state.epic);
   recordIdempotency(state, payload.idempotencyKey, payload.updatedAt);

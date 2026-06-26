@@ -8,6 +8,7 @@ import {
   applyEntriesReorderedToState,
   applyEntryTerminalSummaryToState,
   applyEpicArchivedToState,
+  applyEpicScopeUpdatedToState,
   applyEpicCreatedToState,
   applyEpicUpdatedToState,
   applyShellAddedToState,
@@ -405,6 +406,72 @@ describe("epic-state", () => {
       });
       expect(result.ok).toBe(false);
       if (!result.ok) expect(result.code).toBe("stale_version");
+    });
+  });
+
+  describe("applyEpicScopeUpdatedToState", () => {
+    it("updates Epic scope with CAS version check", () => {
+      const state = makeState();
+      const result = applyEpicScopeUpdatedToState(state, {
+        epicScope: {
+          kind: "product",
+          owner_project_id: "project-web",
+          repos: [
+            {
+              repo_id: "web",
+              repo_project_id: "project-web",
+              role: "primary",
+              required: true,
+            },
+            {
+              repo_id: "api",
+              repo_project_id: "project-api",
+              role: "secondary",
+              required: true,
+            },
+          ],
+        },
+        expectedVersion: 0,
+        updatedBy: "agent",
+        auditEvidence: "User approved product scope.",
+        idempotencyKey: "scope-update-1",
+        updatedAt: "2026-06-24T00:01:00.000Z",
+      });
+
+      expect(result.ok).toBe(true);
+      expect(state.epic.epic_scope?.repos).toHaveLength(2);
+      expect(state.epic.version).toBe(1);
+      expect(state.idempotencyLedger["scope-update-1"]).toBeDefined();
+    });
+
+    it("rejects stale scope update without changing scope", () => {
+      const state = makeState({
+        epic_scope: {
+          kind: "repo",
+          owner_project_id: "project-web",
+          repos: [
+            {
+              repo_id: "web",
+              repo_project_id: "project-web",
+              role: "primary",
+              required: true,
+            },
+          ],
+        },
+      });
+
+      const result = applyEpicScopeUpdatedToState(state, {
+        epicScope: undefined,
+        expectedVersion: 5,
+        updatedBy: "agent",
+        auditEvidence: "Bad stale write.",
+        idempotencyKey: "scope-update-stale",
+        updatedAt: "2026-06-24T00:01:00.000Z",
+      });
+
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.code).toBe("stale_version");
+      expect(state.epic.epic_scope?.repos).toHaveLength(1);
     });
   });
 

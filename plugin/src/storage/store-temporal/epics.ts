@@ -3,6 +3,7 @@ import type { Epic } from "../../types";
 import { ensureEpicWorkflowStarted } from "../../temporal/workflow-start";
 import {
   epicCreatedSignal,
+  epicScopeUpdatedSignal,
   epicUpdatedSignal,
   shellAddedSignal,
   shellPromotedSignal,
@@ -293,6 +294,41 @@ export function createEpicOps(deps: StoreDeps): Store["epics"] {
       const updated = await queryEpic(epicId);
       if (!updated) {
         throw new Error(`Epic disappeared during update: ${epicId}`);
+      }
+      return updated;
+    },
+
+    updateScope: async (
+      epicId,
+      { epicScope, expectedVersion, updatedBy, auditEvidence },
+    ) => {
+      await assertEpicExists(epicId);
+      const handle = getEpicHandle(epicId);
+
+      const payload = {
+        ...(epicScope !== undefined ? { epicScope } : {}),
+        expectedVersion,
+        updatedBy: updatedBy ?? "agent",
+        auditEvidence,
+        idempotencyKey: idempotencyKey(
+          "epic-scope-update",
+          epicId,
+          String(expectedVersion),
+        ),
+        updatedAt: new Date().toISOString(),
+      };
+
+      await fireEpicSignal(
+        handle,
+        "epicScopeUpdated",
+        payload.updatedAt,
+        epicScopeUpdatedSignal,
+        payload,
+      );
+
+      const updated = await queryEpic(epicId);
+      if (!updated) {
+        throw new Error(`Epic disappeared during scope update: ${epicId}`);
       }
       return updated;
     },
