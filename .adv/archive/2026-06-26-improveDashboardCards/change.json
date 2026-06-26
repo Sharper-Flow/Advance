@@ -1,0 +1,573 @@
+{
+  "id": "improveDashboardCards",
+  "title": "Improve dashboard cards",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-06-26T18:05:59.735Z",
+  "tasks": [
+    {
+      "id": "tk-4bbe0e79dd99",
+      "title": "Replace dashboard lifecycle status with gate progress and sort cards",
+      "type": "code",
+      "section": "Dashboard cards",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-06-26T18:10:33.160Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-26T18:11:30.657Z",
+      "verification": "RED tr_mqv90qsc_23a4c171 failed on old `Status: draft` rendering and unsorted lane order. GREEN tr_mqv9321x_efe255b8 passed targeted attention/ui tests (14 tests, 92 assertions). VERIFY tr_mqv9668v_e9fc46a2 passed `bun test bin/lib/dashboard` (41 tests, 192 assertions). `git diff --check` passed. Full `bun test bin/` attempts reached unrelated slop-scan timeout in `bin/adv.test.ts` (exit 143), outside touched dashboard scope.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added structural `GATE_ORDER` and `completedGates` fields for ADV status cards. Each dashboard lane sorts `adv_change_status` items by completed gate count descending, then last activity descending, title ascending, and id ascending; degraded items remain first in `needs_attention`. Removed lifecycle status rendering from ADV status cards and legacy ADV change cards, replacing it with `Gate progress` display alongside the existing next-gate badge. Updated dashboard model/UI/server tests for new sort and rendering behavior.",
+      "filesTouched": [
+        "bin/lib/dashboard/attention.test.ts",
+        "bin/lib/dashboard/attention.ts",
+        "bin/lib/dashboard/server.test.ts",
+        "bin/lib/dashboard/ui.test.ts",
+        "bin/lib/dashboard/ui.ts"
+      ],
+      "touched_files": [
+        "bin/lib/dashboard/attention.test.ts",
+        "bin/lib/dashboard/attention.ts",
+        "bin/lib/dashboard/server.test.ts",
+        "bin/lib/dashboard/ui.test.ts",
+        "bin/lib/dashboard/ui.ts"
+      ],
+      "checkpointSha": "51d9d32b09b951e106466a64dc1e026be03d0ce3",
+      "completedAt": "2026-06-26T18:17:29.950Z",
+      "completed_at": "2026-06-26T18:17:29.950Z",
+      "notes": "Completed with checkpoint 51d9d32b. Dashboard cards now show gate progress instead of lifecycle status, and ADV cards sort by completed gate count descending with deterministic tie-breaks. Unmatched source behavior unchanged.",
+      "error_recovery": {
+        "last_error": "Full `bun test bin/` failed due unrelated slop-scan dispatcher timeout in `bin/adv.test.ts` with exit 143; dashboard-specific verification passed.",
+        "retry_count": 2,
+        "max_retries": 3,
+        "error_class": "ENVIRONMENTAL",
+        "next_strategy": "Use dashboard-scoped verification for this touched scope; investigate slop-scan timeout separately if full bin suite is required.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "RED tr_mqv90qsc_23a4c171 failed on old code: missing `Gate progress`, lifecycle `Status` still rendered, and lane order remained insertion-based.",
+            "diagnosis": "Expected failure from new tests before implementation.",
+            "fix_tried": "Implemented gate-count sort and replaced lifecycle status rendering with gate progress.",
+            "strategy_label": "tdd-red-before-implementation",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-26T18:12:00.000Z"
+          },
+          {
+            "attempt_number": 2,
+            "error": "VERIFY tr_mqv9419k_9ee0c0d1 `bun test bin/` failed because `dashboard server state > builds change-centered lanes...` expected old insertion order.",
+            "diagnosis": "Adjacent dashboard test still pinned to pre-change backlog order.",
+            "fix_tried": "Updated server test expectation to new recency tie-break order for equal gate progress.",
+            "strategy_label": "update-coupled-dashboard-contract-test",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-26T18:15:00.000Z"
+          },
+          {
+            "attempt_number": 3,
+            "error": "VERIFY tr_mqv95nsx_a282e97e `bun test bin/` failed in unrelated slop-scan dispatcher test (`bin/adv.test.ts`) with exit 143 timeout.",
+            "diagnosis": "Failure outside touched dashboard scope; subsequent dashboard-scoped suite passed 41 tests/192 assertions.",
+            "fix_tried": "Reran dashboard-scoped verification with `bun test bin/lib/dashboard`.",
+            "strategy_label": "scope-classify-unrelated-full-suite-failure",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-26T18:17:00.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-26T18:18:01.781Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "improveDashboardCards",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/improveDashboardCards",
+          "task_id": "tk-4bbe0e79dd99",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-4bbe0e79dd99"
+          },
+          "agent": "adv-reviewer",
+          "phase": "review",
+          "verdict": "READY",
+          "blocking_findings": [],
+          "nonblocking_findings": [
+            {
+              "id": "review-praise-1",
+              "label": "praise",
+              "file": "bin/lib/dashboard/attention.ts",
+              "line": 258,
+              "what": "Lane ordering now uses structural completed-gate count before deterministic recency/title/id tie-breaks.",
+              "why": "Matches requested presentation contract while keeping unmatched source handling separate.",
+              "fix": "n/a"
+            },
+            {
+              "id": "review-praise-2",
+              "label": "praise",
+              "file": "bin/lib/dashboard/ui.ts",
+              "line": 117,
+              "what": "ADV status-card rendering presents next gate and gate progress without lifecycle Status noise.",
+              "why": "Satisfies dashboard card contract and preserves source status only for source-detail contexts.",
+              "fix": "n/a"
+            }
+          ],
+          "changes_made": [],
+          "wisdom_candidates": [],
+          "verification": {
+            "tests_run": [
+              "bun test bin/lib/dashboard/attention.test.ts bin/lib/dashboard/ui.test.ts bin/lib/dashboard/server.test.ts"
+            ],
+            "results": "pass",
+            "evidence": "adv_run_test tr_mqv9at47_0137ffb4 exit 0; 22 tests across 3 dashboard files passed, 124 expect() calls. Diff inspected against trunk for scoped files; no blocking issues found."
+          },
+          "scope_drift": null,
+          "risks": [
+            "Full `bun test bin/` previously hit unrelated slop-scan dispatcher timeout (exit 143); scoped dashboard verification passed and no reviewed evidence links timeout to dashboard change."
+          ],
+          "required_main_agent_actions": [],
+          "required_follow_ups": [],
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bun test bin/lib/dashboard/attention.test.ts bin/lib/dashboard/ui.test.ts bin/lib/dashboard/server.test.ts"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "improveDashboardCards",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:dashboard-card-design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Dashboard card gate-badge/progress + intra-lane sort + unmatched_source semantics validation against repo-local architecture",
+      "sources": [
+        {
+          "label": "bin/lib/dashboard/attention.ts",
+          "locator": "/home/jon/dev/advance/bin/lib/dashboard/attention.ts:114-231",
+          "summary": "buildAttentionLanes filters buildChangeStatusItems() per latest.overall into needs_attention/running/ready_landed/backlog; unmatched_source comes from buildUnmatchedSource(input.unlinked) only. changeStatusItem already populates gate=firstIncompleteGate??'complete' and progress=gateProgressStr. NO intra-lane sort exists today; order = input.changes Map insertion. degradedItems are prepended to needs_attention (must stay ahead of sorted ADV cards)."
+        },
+        {
+          "label": "bin/lib/dashboard/ui.ts",
+          "locator": "/home/jon/dev/advance/bin/lib/dashboard/ui.ts:52-54,117-128,197-200",
+          "summary": "changeStatusHtml already renders a gate badge via gateClass() with CSS .gate-badge/.gate-acceptance/.gate-release/.gate-complete. BUT it also still renders a 'Status: <status>' block (line 119) — this is the AC1 target to replace. renderLane (172-174) renders items in array order, so sorting must be done upstream in attention.ts, not in UI."
+        },
+        {
+          "label": "bin/lib/dashboard/adv.ts",
+          "locator": "/home/jon/dev/advance/bin/lib/dashboard/adv.ts:12-22,84-100",
+          "summary": "DashboardAdvChange carries gateProgressStr:string + firstIncompleteGate:string|null + lastActivityAt + id + title, sourced from ChangeSummary. It does NOT carry the raw gate map, so completed-gate count must be derived from gateProgressStr glyphs or from firstIncompleteGate index in GATE_ORDER."
+        },
+        {
+          "label": "bin/lib/changes.ts",
+          "locator": "/home/jon/dev/advance/bin/lib/changes.ts:25-33,136-152",
+          "summary": "Canonical GATE_ORDER = [proposal,discovery,design,planning,execution,acceptance,release]. buildGateProgress maps done->✓ else ○ in GATE_ORDER sequence. firstIncompleteGate returns first non-done gate id or null when all done. Index of firstIncompleteGate in GATE_ORDER == completed-gate count (null => 7). This gives a structural completed-count without glyph parsing."
+        },
+        {
+          "label": "adv_change_show contract (improveDashboardCards)",
+          "locator": "AC1-AC5,C1-C4",
+          "summary": "Approved standard-rigor contract: AC1 replace Status:draft with gate progress/badge; AC2 sort more-complete first; AC3 deterministic tiebreak by recency/title/id; AC4 unmatched stays unmatched_source w/o structural conversion; AC5 targeted tests cover. Constraints: no mutation, no secrets, local read-only, implementation-only (no spec-law change)."
+        }
+      ],
+      "architecture_assessment": "The approach aligns tightly with the existing reframeDashboardStatus architecture (archived 2026-06-26). All required data is already plumbed: gate badge rendering and gate/progress fields exist on ChangeStatusLaneItem (attention.ts changeStatusItem) and in changeStatusHtml. The change is genuinely a thin presentation/model refinement, not new infrastructure. Three concrete deltas: (1) AC1 — remove/replace the residual 'Status: <status>' block in changeStatusHtml (ui.ts:119) with gate progress text; the badge already renders. (2) AC2/AC3 — add a deterministic sort of adv_change_status items inside buildAttentionLanes per-lane after filtering (attention.ts:127-139), keying on completed-gate count descending then a stable tiebreak. (3) AC4 — no code change needed; unmatched_source already derives solely from input.unlinked (source-only) and is never converted to an ADV card. Structural-correctness note (P33): derive completed-gate count from GATE_ORDER.indexOf(firstIncompleteGate) (null => GATE_ORDER.length) rather than parsing ✓ glyphs from gateProgressStr — index lookup is structural and robust to display-string format drift; both attention.ts and ui.ts/render.ts use slightly different gateProgressStr formats (compact '✓ ✓ ...' vs labeled 'proposal ✓ discovery ✓ ...' seen in tests), so glyph-counting is fragile across producers. Sorting must live in attention.ts (model), not ui.ts renderLane, because renderLane preserves array order; and the degradedItems prepend in needs_attention must remain ahead of sorted ADV cards.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "VALIDATED. No architectural conflict, no spec-law impact (no dashboard capability law governs card presentation/lane sort; design+proposal spec-law-impact analysis confirmed). Risks are localized: (R1) gateProgressStr format is inconsistent across producers/tests (compact vs labeled) — prefer firstIncompleteGate index for completed-count to avoid brittle glyph parsing. (R2) sort placement: must apply in buildAttentionLanes after per-lane filter, preserving degraded-source prepend order in needs_attention. (R3) AC3 deterministic tiebreak needs a total order — use lastActivityAt desc then title then id to guarantee stability (DashboardAdvChange carries lastActivityAt + id + title). (R4) ChangeStatusLaneItem currently lacks lastActivityAt; sort either needs it threaded onto the item or must sort the DashboardAdvChange/accumulator set before constructing items. (R5) UI tests assert presence of 'Status' text today — removing the Status block will require deliberate test updates (same coupled-contract pattern flagged in prior reframeDashboardStatus archive)."
+      },
+      "recommendation": "Proceed (VALIDATED). Implementation guidance: (1) Add a pure completedGateCount(change) helper deriving from GATE_ORDER.indexOf(firstIncompleteGate) (null => 7) — do NOT count ✓ glyphs. (2) Sort within buildAttentionLanes per lane after filtering: completedGateCount desc, then lastActivityAt desc, then title asc, then id asc; keep degradedItems prepended ahead of sorted needs_attention ADV cards. (3) Thread lastActivityAt onto ChangeStatusLaneItem (or sort accumulators/changes before item construction) so the tiebreak data is available. (4) In changeStatusHtml replace the 'Status: <status>' block with a gate-progress line; retain the existing gate badge. (5) Leave buildUnmatchedSource untouched for AC4. Test focus: model test for completedGateCount edge cases (all ○, all ✓/null, mixed); intra-lane sort ordering test with differing gate progress (AC2) and equal-progress deterministic tiebreak (AC3); UI test asserting 'Status: draft' no longer renders and gate progress does (AC1); regression test that unmatched GitHub source stays in unmatched_source and is not converted to adv_change_status (AC4); verify degraded source still leads needs_attention after sort; run via 'bin/oc-test targeted -- bin/lib/dashboard' then full 'bun test bin/'.",
+      "follow_ups": [
+        "TASK_SCOPE/IN_SCOPE/OUT_OF_SCOPE/DONE_WHEN/STOP_WHEN/VERIFICATION packet anchors were not provided in the prompt; proceeded with prompt scope per policy.",
+        "Confirm whether gateProgressStr format divergence (compact vs labeled, seen in attention.test.ts:174 vs adv.test.ts:25) is intentional; if a single producer feeds the dashboard it is moot, but it reinforces using firstIncompleteGate index over glyph parsing."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "improveDashboardCards",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/improveDashboardCards",
+      "task_id": "tk-4bbe0e79dd99",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-4bbe0e79dd99"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [
+        {
+          "id": "review-praise-1",
+          "label": "praise",
+          "file": "bin/lib/dashboard/attention.ts",
+          "line": 258,
+          "what": "Lane ordering now uses structural completed-gate count before deterministic recency/title/id tie-breaks.",
+          "why": "Matches requested presentation contract while keeping unmatched source handling separate.",
+          "fix": "n/a"
+        },
+        {
+          "id": "review-praise-2",
+          "label": "praise",
+          "file": "bin/lib/dashboard/ui.ts",
+          "line": 117,
+          "what": "ADV status-card rendering presents next gate and gate progress without lifecycle Status noise.",
+          "why": "Satisfies dashboard card contract and preserves source status only for source-detail contexts.",
+          "fix": "n/a"
+        }
+      ],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "bun test bin/lib/dashboard/attention.test.ts bin/lib/dashboard/ui.test.ts bin/lib/dashboard/server.test.ts"
+        ],
+        "results": "pass",
+        "evidence": "adv_run_test tr_mqv9at47_0137ffb4 exit 0; 22 tests across 3 dashboard files passed, 124 expect() calls. Diff inspected against trunk for scoped files; no blocking issues found."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Full `bun test bin/` previously hit unrelated slop-scan dispatcher timeout (exit 143); scoped dashboard verification passed and no reviewed evidence links timeout to dashboard change."
+      ],
+      "required_main_agent_actions": [],
+      "required_follow_ups": [],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bun test bin/lib/dashboard/attention.test.ts bin/lib/dashboard/ui.test.ts bin/lib/dashboard/server.test.ts"
+        }
+      ]
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-06-26T18:06:16.841Z",
+      "completed_by": "agent",
+      "approval_evidence": "Fast-track proposal confirmed by user via question tool. Scope: replace dashboard card lifecycle status with gate badge/progress and sort cards by gate completion.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "8fe85d25b88ef6d95b528514d2889f9e73b665aa12c6b10d1a08301aeab49f15",
+        "non_whitespace_chars": 835,
+        "checked_at": "2026-06-26T18:05:59.868Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-06-26T18:09:20.968Z",
+      "completed_by": "agent",
+      "approval_evidence": "Agreement contract minted. Spec-law impact: No spec law update required; spec list/search found no dashboard law covering local dashboard card presentation/sorting. Unmatched-source semantics confirmed: GitHub source activity without structural ADV match remains secondary.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "e1e4e8618e34db15c02132a435baebb3f4ccd286f65f02ccc15596a727439df6",
+        "non_whitespace_chars": 1009,
+        "checked_at": "2026-06-26T18:05:59.869Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-06-26T18:09:30.466Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design validated by adv-researcher: approach aligns with existing dashboard architecture. Use existing firstIncompleteGate/gate progress; sort in model layer, not UI; avoid parsing glyph progress; keep unmatched_source source-only.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "ecddaeb3d638d8564404c89286e4bb12560c1eb7db97f3cb4b43436d0c425e83",
+        "non_whitespace_chars": 826,
+        "checked_at": "2026-06-26T18:05:59.870Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-06-26T18:10:49.634Z",
+      "completed_by": "agent",
+      "approval_evidence": "Fast-track planning complete. One TDD-inline implementation task added. User approved quick contract via question tool selecting `Confirmed — execute`. Validation passed with NO_DELTAS warning accepted because no dashboard spec law applies."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-06-26T18:18:19.095Z",
+      "completed_by": "agent",
+      "approval_evidence": "Implementation complete: task tk-4bbe0e79dd99 done with checkpoint 51d9d32b. RED/GREEN/verify evidence recorded. Dashboard cards now show gate progress, sort by completed gates, and keep unmatched-source behavior unchanged."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-06-26T18:23:58.245Z",
+      "completed_by": "user:jon",
+      "approval_evidence": "User accepted delivered dashboard card update by explicit reply `approve`. Contract matrix 9/9 pass/respected. Reviewer READY. Dashboard scoped tests passed.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "1fb7d60f5ffa340e954d5242008203801ab16291b02c44b8447f3fdaa624e89e",
+        "non_whitespace_chars": 827,
+        "checked_at": "2026-06-26T18:05:59.871Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "discovery",
+    "source_artifact": "user-feedback:dashboard-gate-badge-sort"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "e1e4e8618e34db15c02132a435baebb3f4ccd286f65f02ccc15596a727439df6",
+      "approvedAt": "2026-06-26T18:06:51.736Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "Given an ADV card has gate data, when rendered, then it shows gate progress/badge text instead of `Status: draft`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e1e4e8618e34db15c02132a435baebb3f4ccd286f65f02ccc15596a727439df6",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Given two ADV cards in the same column have different gate progress, when rendered, then the card with more completed gates appears first.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e1e4e8618e34db15c02132a435baebb3f4ccd286f65f02ccc15596a727439df6",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Given two ADV cards have equal gate progress, when rendered, then ordering remains deterministic by recency/title/id.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e1e4e8618e34db15c02132a435baebb3f4ccd286f65f02ccc15596a727439df6",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Given unmatched GitHub source exists, when rendered, then it remains in `unmatched_source` and is not converted to an ADV card without structural match.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e1e4e8618e34db15c02132a435baebb3f4ccd286f65f02ccc15596a727439df6",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Given dashboard tests run, when targeted dashboard tests complete, then card rendering and sorting behavior are covered.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e1e4e8618e34db15c02132a435baebb3f4ccd286f65f02ccc15596a727439df6",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "No mutation controls.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e1e4e8618e34db15c02132a435baebb3f4ccd286f65f02ccc15596a727439df6",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "No token/secret display.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e1e4e8618e34db15c02132a435baebb3f4ccd286f65f02ccc15596a727439df6",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Local-only, read-only dashboard.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e1e4e8618e34db15c02132a435baebb3f4ccd286f65f02ccc15596a727439df6",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Implementation-only presentation/model refinement; no dashboard capability law change expected.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e1e4e8618e34db15c02132a435baebb3f4ccd286f65f02ccc15596a727439df6",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-06-26T18:22:06.534Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`bun test bin/lib/dashboard` tr_mqv9668v_e9fc46a2 passed 41 tests/192 assertions; reviewer scoped test tr_mqv9at47_0137ffb4 passed 22 tests/124 assertions. UI test asserts ADV status cards contain `Gate progress`/`item.progress` and not `<strong>Status</strong>`.",
+          "notes": "ADV status cards replace lifecycle status display with gate progress."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`bin/lib/dashboard/attention.test.ts` test `sorts ADV cards inside a lane from most completed gate progress to least` passed in tr_mqv9668v_e9fc46a2 and tr_mqv9at47_0137ffb4.",
+          "notes": "Completed gate count descending is structural via GATE_ORDER/firstIncompleteGate."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`bin/lib/dashboard/attention.test.ts` test `uses deterministic recency/title/id tie-breaks for equal gate progress` passed in tr_mqv9668v_e9fc46a2 and tr_mqv9at47_0137ffb4.",
+          "notes": "Tie-break is lastActivityAt desc, title asc, changeId asc."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Existing `unlinked source stays secondary with projected metadata` passed in tr_mqv9668v_e9fc46a2 and tr_mqv9at47_0137ffb4.",
+          "notes": "Unmatched source remains built from input.unlinked and stays source-only."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Dashboard scoped suite tr_mqv9668v_e9fc46a2 passed 41 tests/192 assertions; reviewer scoped suite tr_mqv9at47_0137ffb4 passed 22 tests/124 assertions.",
+          "notes": "Rendering and sorting covered."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No form/mutation controls added; `does not render mutation controls` passed in UI tests.",
+          "notes": "Read-only constraint preserved."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No token/secret rendering paths changed; safe URL/escape helpers retained; GitHub setup secret negative assertions still pass.",
+          "notes": "No secret display preserved."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Only local dashboard model/UI/tests changed. Service/network behavior unchanged.",
+          "notes": "Local-only dashboard preserved."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No spec-law delta added; adv validation passed with accepted NO_DELTAS warning. Local presentation/model refinement only.",
+          "notes": "No dashboard capability law change required."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "Given an ADV card has gate data, when rendered, then it shows gate progress/badge text instead of `Status: draft`.",
+    "Given two ADV cards in the same column have different gate progress, when rendered, then the card with more completed gates appears first.",
+    "Given two ADV cards have equal gate progress, when rendered, then ordering remains deterministic by recency/title/id.",
+    "Given unmatched GitHub source exists, when rendered, then it remains in `unmatched_source` and is not converted to an ADV card without structural match.",
+    "Given dashboard tests run, when targeted dashboard tests complete, then card rendering and sorting behavior are covered."
+  ],
+  "documents": {
+    "proposal": "# Improve dashboard cards\n\n## Intent\nReplace repeated `Status: draft` on ADV dashboard cards with meaningful gate progress, and order cards inside each dashboard column from most-complete gate progress to least-complete.\n\n## LBP Targets\n- Use existing gate data already present in dashboard change models; do not infer state from Temporal lifecycle `status`.\n- Sort ADV-centered cards by deterministic gate progress descending, with stable secondary ordering.\n- Preserve read-only local dashboard behavior and unmatched-source semantics.\n\n## Scope\n- `bin/lib/dashboard/attention.ts`\n- `bin/lib/dashboard/ui.ts`\n- Related tests under `bin/lib/dashboard/*test.ts`\n\n## User Outcomes\n- ADV cards no longer display noisy `Status: draft` for in-progress changes.\n- Cards show a gate badge/progress signal users can act on.\n- Columns prioritize more-complete changes first.\n- Unmatched source remains secondary and still means GitHub source activity with no structural ADV match.\n\n## Spec-law impact\nNo spec law update required: existing specs do not define the local dashboard card presentation/lane sorting behavior, and this change preserves read-only dashboard constraints, safe rendering, and unmatched-source semantics.",
+    "problemStatement": "Dashboard ADV cards currently show `Status: draft`, which is not useful because many in-progress ADV changes retain draft lifecycle status due to Temporal behavior. Columns also do not prioritize most-complete work first.",
+    "agreement": "# Agreement\n\n## Objectives\n1. Replace `Status: draft` card text with a gate badge/progress signal derived from ADV gate data.\n2. Sort ADV cards inside each column from most-complete gate progress to least-complete.\n3. Preserve read-only dashboard behavior, safe rendering, and unmatched-source semantics.\n\n## Acceptance Criteria\n- Given an ADV card has gate data, when rendered, then it shows gate progress/badge text instead of `Status: draft`.\n- Given two ADV cards in the same column have different gate progress, when rendered, then the card with more completed gates appears first.\n- Given two ADV cards have equal gate progress, when rendered, then ordering remains deterministic by recency/title/id.\n- Given unmatched GitHub source exists, when rendered, then it remains in `unmatched_source` and is not converted to an ADV card without structural match.\n- Given dashboard tests run, when targeted dashboard tests complete, then card rendering and sorting behavior are covered.\n\n## Constraints\n- No mutation controls.\n- No token/secret display.\n- Local-only, read-only dashboard.\n- Implementation-only presentation/model refinement; no dashboard capability law change expected.",
+    "design": "# Design\n\n## Approach\n- Compute gate completion score from existing ADV gate fields on dashboard change records.\n- Replace lifecycle status rendering in `changeStatusHtml`/card template with a gate progress badge and next-gate badge.\n- Sort `adv_change_status` cards within each lane by completed gate count descending, then deterministic fallback ordering.\n- Leave source-only items in `unmatched_source` unchanged.\n\n## Spec-law impact\nNo spec law update required: `adv_spec list` and targeted search for dashboard status/card/gate/sort/unmatched-source requirements found no dashboard capability law that needs modification. This is an implementation-only refinement of local CLI dashboard presentation.\n\n## Validation\n- Add/update model tests for lane/card ordering.\n- Add/update UI tests asserting `Status: draft` no longer renders for ADV cards and gate progress does.\n- Run targeted dashboard tests, then restart service and verify `/` and `/api/state`.",
+    "executiveSummary": "# Executive Summary\n\nUpdated the local ADV dashboard cards so in-progress changes no longer show noisy `Status: draft` lifecycle text. ADV status cards now show the existing next-gate badge plus `Gate progress`, derived from already-plumbed gate data.\n\nCards inside each lane now sort by completed gate count descending, then by last activity, title, and change id for deterministic ordering. This puts the most-complete changes first without relying on Temporal lifecycle status.\n\nUnmatched source semantics remain unchanged: GitHub PR/workflow/deployment items without structural ADV correlation stay in the secondary `unmatched_source` lane, which covers one-off or small-fix source activity that has no ADV change match.\n\nVerification: RED `tr_mqv90qsc_23a4c171`; GREEN `tr_mqv9321x_efe255b8`; dashboard suite `tr_mqv9668v_e9fc46a2` (41 tests, 192 assertions); reviewer suite `tr_mqv9at47_0137ffb4` (22 tests, 124 assertions); reviewer verdict READY.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-06-26T18:22:06.534Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| AC1 | acceptance_criterion | Given an ADV card has gate data, when rendered, then it shows gate progress/badge text instead of `Status: draft`. | pass | `bun test bin/lib/dashboard` tr_mqv9668v_e9fc46a2 passed 41 tests/192 assertions; reviewer scoped test tr_mqv9at47_0137ffb4 passed 22 tests/124 assertions. UI test asserts ADV status cards contain `Gate progress`/`item.progress` and not `<strong>Status</strong>`. |\n| AC2 | acceptance_criterion | Given two ADV cards in the same column have different gate progress, when rendered, then the card with more completed gates appears first. | pass | `bin/lib/dashboard/attention.test.ts` test `sorts ADV cards inside a lane from most completed gate progress to least` passed in tr_mqv9668v_e9fc46a2 and tr_mqv9at47_0137ffb4. |\n| AC3 | acceptance_criterion | Given two ADV cards have equal gate progress, when rendered, then ordering remains deterministic by recency/title/id. | pass | `bin/lib/dashboard/attention.test.ts` test `uses deterministic recency/title/id tie-breaks for equal gate progress` passed in tr_mqv9668v_e9fc46a2 and tr_mqv9at47_0137ffb4. |\n| AC4 | acceptance_criterion | Given unmatched GitHub source exists, when rendered, then it remains in `unmatched_source` and is not converted to an ADV card without structural match. | pass | Existing `unlinked source stays secondary with projected metadata` passed in tr_mqv9668v_e9fc46a2 and tr_mqv9at47_0137ffb4. |\n| AC5 | acceptance_criterion | Given dashboard tests run, when targeted dashboard tests complete, then card rendering and sorting behavior are covered. | pass | Dashboard scoped suite tr_mqv9668v_e9fc46a2 passed 41 tests/192 assertions; reviewer scoped suite tr_mqv9at47_0137ffb4 passed 22 tests/124 assertions. |\n| C1 | constraint | No mutation controls. | respected | No form/mutation controls added; `does not render mutation controls` passed in UI tests. |\n| C2 | constraint | No token/secret display. | respected | No token/secret rendering paths changed; safe URL/escape helpers retained; GitHub setup secret negative assertions still pass. |\n| C3 | constraint | Local-only, read-only dashboard. | respected | Only local dashboard model/UI/tests changed. Service/network behavior unchanged. |\n| C4 | constraint | Implementation-only presentation/model refinement; no dashboard capability law change expected. | respected | No spec-law delta added; adv validation passed with accepted NO_DELTAS warning. Local presentation/model refinement only. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-06-26T18:06:50.929Z",
+      "contentHash": "19c1f0da4ca3ae27443c9246abe9256064a43409bcfc6d2e7a1129149156638d",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-06-26T18:05:59.914Z",
+      "contentHash": "ee0767766ab54793cc807c94c3e2f1c6c62000a4c782021c00444c65432cbc5d",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-06-26T18:05:59.914Z",
+      "contentHash": "e1e4e8618e34db15c02132a435baebb3f4ccd286f65f02ccc15596a727439df6",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-06-26T18:06:50.929Z",
+      "contentHash": "ecddaeb3d638d8564404c89286e4bb12560c1eb7db97f3cb4b43436d0c425e83",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-06-26T18:22:06.551Z",
+      "contentHash": "1fb7d60f5ffa340e954d5242008203801ab16291b02c44b8447f3fdaa624e89e",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-06-26T18:23:58.245Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true
+}

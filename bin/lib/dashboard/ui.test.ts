@@ -35,11 +35,18 @@ describe("dashboard UI", () => {
 
   test("renders ADV change status cards with latest source summaries", () => {
     const html = renderDashboardHtml();
+    const changeStatusFunction = html.slice(
+      html.indexOf("function changeStatusHtml"),
+      html.indexOf("function sourceSummaryHtml"),
+    );
 
     expect(html).toContain(
       "if (item.kind === 'adv_change_status') return changeStatusHtml(item)",
     );
     expect(html).toContain("Next gate");
+    expect(changeStatusFunction).toContain("Gate progress");
+    expect(changeStatusFunction).toContain("item.progress");
+    expect(changeStatusFunction).not.toContain("<strong>Status</strong>");
     expect(html).toContain("Latest CI");
     expect(html).toContain("Latest deployment");
     expect(html).toContain("Latest PR");

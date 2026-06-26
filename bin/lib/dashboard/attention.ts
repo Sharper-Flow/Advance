@@ -64,6 +64,8 @@ export interface ChangeStatusLaneItem {
   status: string;
   gate: string;
   progress: string;
+  completedGates: number;
+  lastActivityAt: string;
   latest: {
     overall: "attention" | "running" | "ready_landed" | "backlog" | "unknown";
     pr?: SourceStatusSummary;
@@ -111,6 +113,16 @@ export interface GroupedLaneItem {
   metadata?: LaneCardMetadata[];
 }
 
+const GATE_ORDER = [
+  "proposal",
+  "discovery",
+  "design",
+  "planning",
+  "execution",
+  "acceptance",
+  "release",
+] as const;
+
 export function buildAttentionLanes(input: AttentionInput): AttentionLanes {
   const degradedItems = input.degradedSources.map(
     (source): DegradedLaneItem => ({
@@ -127,13 +139,21 @@ export function buildAttentionLanes(input: AttentionInput): AttentionLanes {
   return {
     needs_attention: [
       ...degradedItems,
-      ...changes.filter((item) => item.latest.overall === "attention"),
+      ...sortChangeStatusItems(
+        changes.filter((item) => item.latest.overall === "attention"),
+      ),
     ],
-    running: changes.filter((item) => item.latest.overall === "running"),
-    ready_landed: changes.filter((item) => item.latest.overall === "ready_landed"),
-    backlog: changes.filter(
-      (item) =>
-        item.latest.overall === "backlog" || item.latest.overall === "unknown",
+    running: sortChangeStatusItems(
+      changes.filter((item) => item.latest.overall === "running"),
+    ),
+    ready_landed: sortChangeStatusItems(
+      changes.filter((item) => item.latest.overall === "ready_landed"),
+    ),
+    backlog: sortChangeStatusItems(
+      changes.filter(
+        (item) =>
+          item.latest.overall === "backlog" || item.latest.overall === "unknown",
+      ),
     ),
     unmatched_source: unmatched,
   };
@@ -212,6 +232,8 @@ function changeStatusItem(accumulator: ChangeStatusAccumulator): ChangeStatusLan
     status: accumulator.change.status,
     gate: accumulator.change.firstIncompleteGate ?? "complete",
     progress: accumulator.change.gateProgressStr,
+    completedGates: completedGateCount(accumulator.change.firstIncompleteGate),
+    lastActivityAt: accumulator.change.lastActivityAt,
     latest: {
       overall,
       pr: latestPr ? sourceSummary(latestPr) : undefined,
@@ -225,9 +247,34 @@ function changeStatusItem(accumulator: ChangeStatusAccumulator): ChangeStatusLan
     },
     metadata: compactMetadata([
       { label: "Gate", value: accumulator.change.firstIncompleteGate ?? "complete" },
-      { label: "Status", value: accumulator.change.status },
     ]),
   };
+}
+
+function sortChangeStatusItems(items: ChangeStatusLaneItem[]): ChangeStatusLaneItem[] {
+  return [...items].sort(compareChangeStatusItems);
+}
+
+function compareChangeStatusItems(
+  a: ChangeStatusLaneItem,
+  b: ChangeStatusLaneItem,
+): number {
+  const gateDelta = b.completedGates - a.completedGates;
+  if (gateDelta !== 0) return gateDelta;
+  if (a.lastActivityAt !== b.lastActivityAt) {
+    return b.lastActivityAt.localeCompare(a.lastActivityAt);
+  }
+  const titleDelta = a.title.localeCompare(b.title);
+  if (titleDelta !== 0) return titleDelta;
+  return a.changeId.localeCompare(b.changeId);
+}
+
+function completedGateCount(firstIncompleteGate: string | null): number {
+  if (firstIncompleteGate === null) return GATE_ORDER.length;
+  const gateIndex = GATE_ORDER.indexOf(
+    firstIncompleteGate as (typeof GATE_ORDER)[number],
+  );
+  return gateIndex >= 0 ? gateIndex : -1;
 }
 
 function representativeSource(

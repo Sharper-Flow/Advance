@@ -111,12 +111,12 @@ export function renderDashboardHtml(): string {
     }
     function advChangeHtml(item) {
       const gate = item.source_states && item.source_states.gate ? item.source_states.gate : 'unknown';
-      const status = item.status ? '<div><strong>Status</strong>: <code>' + escapeHtml(item.status) + '</code></div>' : '';
-      return '<article class="item adv-change"><div class="change-title">' + escapeHtml(item.title || item.changeId || 'ADV change') + '</div><div class="change-id"><code>' + escapeHtml(item.changeId || '') + '</code></div>' + status + '<div class="gate-row"><span class="gate-label">Next gate</span><strong class="gate-badge ' + gateClass(gate) + '">' + escapeHtml(gate) + '</strong></div></article>';
+      const progress = item.source_states && item.source_states.progress ? '<div><strong>Gate progress</strong>: <code>' + escapeHtml(item.source_states.progress) + '</code></div>' : '';
+      return '<article class="item adv-change"><div class="change-title">' + escapeHtml(item.title || item.changeId || 'ADV change') + '</div><div class="change-id"><code>' + escapeHtml(item.changeId || '') + '</code></div><div class="gate-row"><span class="gate-label">Next gate</span><strong class="gate-badge ' + gateClass(gate) + '">' + escapeHtml(gate) + '</strong></div>' + progress + '</article>';
     }
     function changeStatusHtml(item) {
       const gate = item.gate || 'unknown';
-      const status = item.status ? '<div><strong>Status</strong>: <code>' + escapeHtml(item.status) + '</code></div>' : '';
+      const progress = item.progress ? '<div><strong>Gate progress</strong>: <code>' + escapeHtml(item.progress) + '</code></div>' : '';
       const latest = item.latest || {};
       const summaries = [
         sourceSummaryHtml('Latest PR', latest.pr),
@@ -124,7 +124,7 @@ export function renderDashboardHtml(): string {
         sourceSummaryHtml('Latest deployment', latest.deployment),
       ].join('');
       const details = sourceDetailsHtml(item.sources || {});
-      return '<article class="item adv-change status-card"><div class="change-title">' + escapeHtml(item.title || item.changeId || 'ADV change') + '</div><div class="change-id"><code>' + escapeHtml(item.changeId || '') + '</code></div>' + status + '<div class="gate-row"><span class="gate-label">Next gate</span><strong class="gate-badge ' + gateClass(gate) + '">' + escapeHtml(gate) + '</strong></div><div><strong>Overall</strong>: <code>' + escapeHtml(latest.overall || 'unknown') + '</code></div>' + summaries + details + '</article>';
+      return '<article class="item adv-change status-card"><div class="change-title">' + escapeHtml(item.title || item.changeId || 'ADV change') + '</div><div class="change-id"><code>' + escapeHtml(item.changeId || '') + '</code></div><div class="gate-row"><span class="gate-label">Next gate</span><strong class="gate-badge ' + gateClass(gate) + '">' + escapeHtml(gate) + '</strong></div>' + progress + '<div><strong>Overall</strong>: <code>' + escapeHtml(latest.overall || 'unknown') + '</code></div>' + summaries + details + '</article>';
     }
     function sourceSummaryHtml(label, summary) {
       if (!summary) return '';
