@@ -16,6 +16,8 @@ import type {
   DashboardProjectConfig,
 } from "./types";
 
+export const DEFAULT_DASHBOARD_READER_TIMEOUT_MS = 5_000;
+
 export interface DashboardProjectState {
   id: string;
   label: string;
@@ -97,7 +99,7 @@ export async function buildDashboardState(
   deps: DashboardStateDeps = {},
 ): Promise<DashboardApiState> {
   const now = deps.now?.() ?? new Date();
-  const readerTimeoutMs = deps.readerTimeoutMs ?? 10_000;
+  const readerTimeoutMs = deps.readerTimeoutMs ?? DEFAULT_DASHBOARD_READER_TIMEOUT_MS;
   const githubClient = createGitHubDashboardClient({ now: () => now });
   const advReader = deps.advReader ?? readDashboardAdvProject;
   const githubReader =

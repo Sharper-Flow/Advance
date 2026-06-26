@@ -5,6 +5,7 @@ import {
   buildDashboardState,
   createDashboardHandler,
   createDashboardStateProvider,
+  DEFAULT_DASHBOARD_READER_TIMEOUT_MS,
   normalizeDashboardServerOptions,
 } from "./server";
 
@@ -32,6 +33,10 @@ function config() {
 }
 
 describe("dashboard server state", () => {
+  test("default source reader timeout fits interactive /api/state health budget", () => {
+    expect(DEFAULT_DASHBOARD_READER_TIMEOUT_MS).toBeLessThanOrEqual(5_000);
+  });
+
   test("composes projects independently and degrades one source only", async () => {
     const state = await buildDashboardState(config(), {
       now: () => new Date("2026-06-25T22:00:00.000Z"),
