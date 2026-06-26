@@ -37,6 +37,11 @@ export function renderDashboardHtml(): string {
     .lane-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: .7rem; }
     .lane-count { font-size: .72rem; color: var(--muted); }
     .item { margin: .55rem 0; padding: .6rem .7rem; border: 1px solid color-mix(in srgb, var(--border) 60%, transparent); border-left: 3px solid currentColor; border-radius: .65rem; background: color-mix(in srgb, Canvas 72%, CanvasText 5%); }
+    .group-card { margin: .55rem 0; padding: .6rem .7rem; border: 1px solid color-mix(in srgb, var(--border) 60%, transparent); border-left: 3px solid var(--accent); border-radius: .65rem; background: color-mix(in srgb, Canvas 76%, CanvasText 4%); }
+    .group-card summary { cursor: pointer; font-weight: 680; }
+    .group-meta { margin: .35rem 0 .2rem; color: var(--muted); font-size: .78rem; }
+    .group-items { margin-top: .5rem; }
+    .hidden-count { margin: .45rem 0 0; font-size: .78rem; color: var(--muted); }
     .setup-card { border-left-color: var(--warning); background: color-mix(in srgb, var(--warning) 10%, Canvas); }
     .setup-card ul { margin: .45rem 0 0; padding-left: 1.1rem; }
     .adv-change { display: grid; gap: .45rem; border-left-color: var(--accent); }
@@ -88,6 +93,7 @@ export function renderDashboardHtml(): string {
 
     function text(value) { return value == null ? '' : String(value); }
     function itemHtml(item) {
+      if (item.kind === 'group') return groupHtml(item);
       if (item.kind === 'adv_change') return advChangeHtml(item);
       const title = '<div class="item-title">' + escapeHtml(item.title || item.kind || 'Item') + '</div>';
       const subtitle = item.subtitle ? '<div class="item-subtitle">' + escapeHtml(item.subtitle) + '</div>' : '';
@@ -104,6 +110,21 @@ export function renderDashboardHtml(): string {
       const gate = item.source_states && item.source_states.gate ? item.source_states.gate : 'unknown';
       const status = item.status ? '<div><strong>Status</strong>: <code>' + escapeHtml(item.status) + '</code></div>' : '';
       return '<article class="item adv-change"><div class="change-title">' + escapeHtml(item.title || item.changeId || 'ADV change') + '</div><div class="change-id"><code>' + escapeHtml(item.changeId || '') + '</code></div>' + status + '<div class="gate-row"><span class="gate-label">Next gate</span><strong class="gate-badge ' + gateClass(gate) + '">' + escapeHtml(gate) + '</strong></div></article>';
+    }
+    function groupHtml(group) {
+      const limit = groupPreviewLimit(group);
+      const members = (group.items || []).slice(0, limit);
+      const hiddenCount = Math.max(0, Number(group.count || 0) - members.length);
+      const latest = group.latestUpdatedAt ? ' · latest <code>' + escapeHtml(group.latestUpdatedAt) + '</code>' : '';
+      const status = group.status ? ' · status <code>' + escapeHtml(group.status) + '</code>' : '';
+      const summary = '<summary>' + escapeHtml(group.title || 'Grouped items') + ' <span class="muted">×' + escapeHtml(group.count || members.length) + status + latest + '</span></summary>';
+      const metadata = metadataHtml(group.metadata);
+      const memberHtml = members.map((member) => itemHtml(member)).join('');
+      const hidden = hiddenCount ? '<p class="hidden-count">' + escapeHtml(hiddenCount) + ' more item' + (hiddenCount === 1 ? '' : 's') + ' hidden from preview.</p>' : '';
+      return '<details class="group-card"' + (group.collapsedByDefault === false ? ' open' : '') + '>' + summary + '<div class="group-meta">Grouped ' + escapeHtml(group.groupKind || 'items') + '</div>' + metadata + '<div class="group-items">' + memberHtml + hidden + '</div></details>';
+    }
+    function groupPreviewLimit(group) {
+      return group.groupKind === 'inventory' ? 5 : Math.max(1, Number(group.count || 0));
     }
     function metadataHtml(metadata) {
       if (!metadata || !metadata.length) return '';
