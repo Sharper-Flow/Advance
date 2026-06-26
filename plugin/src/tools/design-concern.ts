@@ -3,9 +3,15 @@ import type { Store } from "../storage/store-types";
 import { getService } from "../temporal/service";
 import { designConcernDispositionedSignal } from "../temporal/messages";
 import { DesignConcernDispositionSchema, type Change } from "../types";
+import {
+  isPreciseWorkflowRecoveryEvidence,
+  RECOVERY_RECONCILIATION_WARNING,
+} from "../temporal/recovery-classification";
 import { getProjectId } from "../utils/project-id";
 import { formatToolOutput } from "../utils/tool-output";
 import { fireSignalAndRefresh, getChangeHandle } from "./_adapters";
+import { saveRecoveredDesignConcernDisposition } from "./_recovery-writers";
+import { classifyCompletedOrPoisonedRecovery } from "./recovery-probe";
 import {
   formatTargetProjectContext,
   withTargetPathStore,
@@ -49,9 +55,27 @@ interface DispositionArgs {
   disposition: (typeof DESIGN_CONCERN_DISPOSITIONS)[number];
   evidence: string;
   dryRun?: boolean;
+  recoveryMode?: "normal" | "poisoned_history";
+  recoveryEvidence?: string;
+  recoveryReason?: string;
+  priorApprovalEvidence?: string;
   target_path?: string;
   target_confirmed?: true;
   confirmationEvidence?: string;
+}
+
+function recoveryEvidenceError(args: DispositionArgs): string | undefined {
+  if (args.recoveryMode !== "poisoned_history") return undefined;
+  if (!args.recoveryEvidence?.trim()) {
+    return "design-concern disposition recovery requires non-empty recoveryEvidence";
+  }
+  if (!isPreciseWorkflowRecoveryEvidence(args.recoveryEvidence)) {
+    return "design-concern disposition recoveryEvidence must cite precise poisoned-history or completed-workflow evidence";
+  }
+  if (!args.recoveryReason?.trim()) {
+    return "design-concern disposition recovery requires recoveryReason";
+  }
+  return undefined;
 }
 
 async function getChangeHandleForChangeId(store: Store, changeId: string) {
@@ -77,6 +101,11 @@ async function executeDisposition(
   projectContext?: TargetProjectOutputContext,
 ): Promise<string> {
   const proj = projectContext ? { _projectContext: projectContext } : {};
+
+  const recoveryError = recoveryEvidenceError(args);
+  if (recoveryError) {
+    return formatToolOutput({ error: recoveryError, changeId: args.changeId });
+  }
 
   const change = await loadChange(store, args.changeId);
   const taskExists = (change.tasks ?? []).some((t) => t.id === args.taskId);
@@ -119,13 +148,42 @@ async function executeDisposition(
   }
 
   const handle = await getChangeHandleForChangeId(store, args.changeId);
-  await fireSignalAndRefresh(
-    handle,
-    store,
-    args.changeId,
-    designConcernDispositionedSignal,
-    disposition,
-  );
+  try {
+    await fireSignalAndRefresh(
+      handle,
+      store,
+      args.changeId,
+      designConcernDispositionedSignal,
+      disposition,
+    );
+  } catch (signalError) {
+    if (args.recoveryMode === "poisoned_history") {
+      const { recover } = await classifyCompletedOrPoisonedRecovery(
+        handle,
+        signalError,
+      );
+      if (recover) {
+        await saveRecoveredDesignConcernDisposition({
+          store,
+          change,
+          authorization: {
+            reason: args.recoveryReason?.trim() ?? "",
+            evidence: args.recoveryEvidence?.trim() ?? "",
+          },
+          disposition,
+        });
+        return formatToolOutput({
+          success: true,
+          changeId: args.changeId,
+          disposition,
+          _recoveryMutation: true,
+          reconciliationWarning: RECOVERY_RECONCILIATION_WARNING,
+          ...proj,
+        });
+      }
+    }
+    throw signalError;
+  }
 
   return formatToolOutput({
     success: true,
@@ -163,12 +221,36 @@ export const designConcernTools = {
         .boolean()
         .optional()
         .describe("Preview the disposition without firing the signal."),
+      recoveryMode: z
+        .enum(["normal", "poisoned_history"])
+        .optional()
+        .describe(
+          "Optional recovery mode. Default 'normal'. 'poisoned_history' authorizes an audited disk-projection fallback when the normal signal path fails with poisoned/completed-workflow evidence.",
+        ),
+      recoveryEvidence: z
+        .string()
+        .optional()
+        .describe(
+          "Required when recoveryMode='poisoned_history'. Must cite precise poisoned-history or completed-workflow evidence.",
+        ),
+      recoveryReason: z
+        .string()
+        .optional()
+        .describe(
+          "Required when recoveryMode='poisoned_history'. Explains why disk-projection recovery is appropriate.",
+        ),
+      priorApprovalEvidence: z
+        .string()
+        .optional()
+        .describe(
+          "Optional prior approval evidence for audit continuity when recovery follows a gate/acceptance approval.",
+        ),
       ...targetArgs,
     },
     execute: async (args: DispositionArgs, store: Store): Promise<string> => {
       try {
         if (args.target_path) {
-          return withTargetPathStore(
+          return await withTargetPathStore(
             {
               currentProjectPath: store.paths.root,
               target_path: args.target_path,
@@ -184,7 +266,7 @@ export const designConcernTools = {
               ),
           );
         }
-        return executeDisposition(args, store);
+        return await executeDisposition(args, store);
       } catch (error) {
         return formatToolOutput({
           error:

@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   saveRecoveredArtifactMetadata,
   saveRecoveredChangeStatus,
+  saveRecoveredDesignConcernDisposition,
   saveRecoveredGateCompletion,
   saveRecoveredTaskAdd,
   saveRecoveredTaskMutation,
@@ -309,6 +310,83 @@ describe("saveRecoveredChangeStatus", () => {
         store,
         change,
         status: "archived",
+      } as any),
+    ).rejects.toThrow(/recovery authorization/);
+  });
+});
+
+describe("saveRecoveredDesignConcernDisposition", () => {
+  it("records latest-wins disposition through disk-direct saveChange", async () => {
+    const { store, saveCalls } = createMockStore();
+    const change = {
+      ...baseChange(),
+      design_concern_dispositions: [
+        {
+          taskId: "tk-1",
+          concernKey: "neighbor:0",
+          disposition: "fast_follow",
+          evidence: "old follow-up",
+          dispositionedAt: "2026-05-21T00:00:00Z",
+        },
+      ],
+    } as Change;
+    (mockedSaveChange as unknown as ReturnType<typeof vi.fn>).mockClear();
+
+    const updated = await saveRecoveredDesignConcernDisposition({
+      store,
+      change,
+      authorization: {
+        reason: "completed_workflow_design_concern_recovery",
+        evidence: "WorkflowNotFoundError: workflow execution already completed",
+      },
+      disposition: {
+        taskId: "tk-1",
+        concernKey: "neighbor:0",
+        disposition: "fixed",
+        evidence: "fixed in commit abc123",
+        dispositionedAt: "2026-05-22T00:00:00Z",
+      },
+    });
+
+    expect(updated.design_concern_dispositions).toHaveLength(1);
+    expect(updated.design_concern_dispositions?.[0]).toMatchObject({
+      taskId: "tk-1",
+      concernKey: "neighbor:0",
+      disposition: "fixed",
+      evidence: "fixed in commit abc123",
+      recovery_audit: expect.objectContaining({
+        reason: "completed_workflow_design_concern_recovery",
+      }),
+    });
+    expect(saveCalls).toHaveLength(0);
+    expect(store.changes.save).not.toHaveBeenCalled();
+    expect(mockedSaveChange).toHaveBeenCalledWith(
+      "/tmp/test/.adv/changes",
+      expect.objectContaining({
+        design_concern_dispositions: [
+          expect.objectContaining({
+            taskId: "tk-1",
+            concernKey: "neighbor:0",
+            disposition: "fixed",
+          }),
+        ],
+      }),
+    );
+  });
+
+  it("requires recovery authorization for design concern recovery", async () => {
+    const { store } = createMockStore();
+    await expect(
+      saveRecoveredDesignConcernDisposition({
+        store,
+        change: baseChange(),
+        disposition: {
+          taskId: "tk-1",
+          concernKey: "neighbor:0",
+          disposition: "fixed",
+          evidence: "fixed",
+          dispositionedAt: "2026-05-22T00:00:00Z",
+        },
       } as any),
     ).rejects.toThrow(/recovery authorization/);
   });

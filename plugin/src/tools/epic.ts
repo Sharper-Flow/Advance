@@ -10,7 +10,12 @@
 import { z } from "zod";
 import type { Store } from "../storage/store-types";
 import { deriveEpicScopeLabel } from "../types";
-import type { EpicEntry, EpicMembershipStatus, EpicScope } from "../types";
+import type {
+  Change,
+  EpicEntry,
+  EpicMembershipStatus,
+  EpicScope,
+} from "../types";
 import { formatToolOutput, paginate } from "../utils/tool-output";
 import {
   appendTargetProjectContextOutput,
@@ -232,7 +237,10 @@ async function loadEpic(store: Store, epicId: string) {
   return result.data;
 }
 
-async function loadChange(store: Store, changeId: string) {
+async function loadChange(
+  store: Store,
+  changeId: string,
+): Promise<Change | null> {
   const result = await store.changes.get(changeId);
   if (!result.success || !result.data) return null;
   return result.data;
@@ -282,10 +290,13 @@ function terminalSummaryStatusForChange(
 
 function terminalSummaryCompletedAt(
   change: Awaited<ReturnType<typeof loadChange>>,
-) {
-  return typeof change?.updated_at === "string"
-    ? change.updated_at
-    : new Date().toISOString();
+): string {
+  return (
+    change?.lastSignalAt ??
+    (change as { updated_at?: string } | null)?.updated_at ??
+    change?.created_at ??
+    new Date().toISOString()
+  );
 }
 
 async function resolveChildStore(
