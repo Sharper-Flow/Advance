@@ -3,18 +3,24 @@ import { describe, expect, test } from "bun:test";
 import { renderDashboardHtml } from "./ui";
 
 describe("dashboard UI", () => {
-  test("renders read-only dashboard shell with lanes, evidence, degraded labels, and polling", () => {
+  test("renders read-only dashboard shell with actionability lanes, metadata, and polling", () => {
     const html = renderDashboardHtml();
 
     expect(html).toContain("ADV Local Dashboard");
     expect(html).toContain("project-stats");
     expect(html).toContain("lane-head");
     expect(html).toContain('data-lane="attention"');
-    expect(html).toContain('data-lane="running"');
-    expect(html).toContain('data-lane="linked"');
-    expect(html).toContain('data-lane="unlinked"');
+    expect(html).toContain('data-lane="active"');
+    expect(html).toContain('data-lane="unmatched"');
+    expect(html).toContain('data-lane="inventory"');
+    expect(html).toContain("Active work");
+    expect(html).toContain("Unmatched source");
+    expect(html).toContain("Inventory");
     expect(html).toContain("Evidence");
     expect(html).toContain("Status");
+    expect(html).toContain("metadataHtml(item.metadata)");
+    expect(html).toContain("item.url");
+    expect(html).toContain("item.updated_at");
     expect(html).toContain("Source states");
     expect(html).toContain("Degraded");
     expect(html).toContain("last successful refresh");
@@ -63,5 +69,12 @@ describe("dashboard UI", () => {
     expect(html).toContain("GITHUB_TOKEN");
     expect(html).not.toContain("stderr");
     expect(html).not.toContain("ghp_secret123");
+  });
+
+  test("distinguishes unmatched source from GitHub authentication", () => {
+    const html = renderDashboardHtml();
+
+    expect(html).toContain("Unmatched source item");
+    expect(html).not.toContain("Unmatched GitHub auth");
   });
 });
