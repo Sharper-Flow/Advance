@@ -1,0 +1,33 @@
+{
+  "entries": [
+    {
+      "id": "ws-eCW1-n",
+      "type": "pattern",
+      "content": "For dashboard lanes, use a separate actionability predicate instead of reusing broad active-status constants meant for lifecycle listings. In this dashboard, `draft` is inventory/noise, while active work is only `pending`/`active`; pin the split with lane-classifier tests.",
+      "source_task": "tk-ec836cd3492c",
+      "recorded_at": "2026-06-26T03:57:01.275Z"
+    },
+    {
+      "id": "ws-7L8bps",
+      "type": "pattern",
+      "content": "When a backend correlator preserves raw `unknown` source payloads, add a typed view-model projection before UI rendering. Use deterministic field extraction at the lane-builder boundary (repo, branch, URL, recency, status/conclusion) so the UI stays a dumb escaped formatter and does not infer source shapes heuristically.",
+      "source_task": "tk-c1c8d7c792ca",
+      "recorded_at": "2026-06-26T04:00:59.114Z"
+    },
+    {
+      "id": "ws-4epwyN",
+      "type": "success",
+      "content": "Keeping the dashboard UI as a formatter over lane item fields made the lane taxonomy change small: update lane definitions, stats labels, and generic metadata rendering without adding source-shape logic to the browser script.",
+      "source_task": "tk-fe7ccffac1f9",
+      "recorded_at": "2026-06-26T04:04:11.750Z"
+    },
+    {
+      "id": "ws-FtE7cu",
+      "type": "gotcha",
+      "content": "Full `bun test bin/` can fail when the installed dashboard service is already occupying fixed port 8765 because the collision test binds that port first. For local verification after installing the service, stop `adv-dashboard-pokeedge.service`, run tests, then restart and doctor-check the service.",
+      "source_task": "tk-65e8ca728dff",
+      "recorded_at": "2026-06-26T04:08:28.717Z"
+    }
+  ],
+  "count": 4
+}

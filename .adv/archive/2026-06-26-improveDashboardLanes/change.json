@@ -1,0 +1,1116 @@
+{
+  "id": "improveDashboardLanes",
+  "title": "Improve dashboard lanes",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-06-26T03:32:23.717Z",
+  "tasks": [
+    {
+      "id": "tk-ec836cd3492c",
+      "title": "Implement deterministic actionability lane classifier and typed lane item model",
+      "type": "code",
+      "section": "Lane model",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-06-26T03:47:09.503Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required",
+        "frontend": "false"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "AC1",
+          "AC2",
+          "AC5",
+          "AC6",
+          "AC7",
+          "C4"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC5",
+          "AC6",
+          "AC7"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-26T03:53:17.387Z",
+      "verification": "RED tr_mquecz8j_9ae635ec failed for old lane keys; GREEN tr_mquefg54_d659b62d passed attention lane classifier test.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Replaced implementation-first lanes with actionability lanes: `attention`, `active`, `unmatched`, and `inventory`. Added typed `DashboardLaneItem` union and `SummaryLaneItem`. Draft/non-actionable ADV changes now route to inventory; pending/active ADV changes route to active; failed/cancelled source items route to attention; running source items route to active; successful/skipped workflow/deployment history is summarized into inventory.",
+      "filesTouched": [
+        "bin/lib/dashboard/attention.test.ts",
+        "bin/lib/dashboard/attention.ts"
+      ],
+      "touched_files": [
+        "bin/lib/dashboard/attention.test.ts",
+        "bin/lib/dashboard/attention.ts"
+      ],
+      "checkpointSha": "76162e68577380ed9fc5e50d1919a173991b28f0",
+      "completedAt": "2026-06-26T03:56:31.519Z",
+      "completed_at": "2026-06-26T03:56:31.519Z",
+      "notes": "Completed. RED tr_mquecz8j_9ae635ec; GREEN tr_mquefg54_d659b62d. Checkpoint 76162e68.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "GREEN attempt tr_mqueetum_f3b60a9f failed because active lane ordering put pull before second workflow_run.",
+            "diagnosis": "Classifier was correct but deterministic active lane ordering needed source-kind rank.",
+            "fix_tried": "Added activeSort to order adv_change, workflow_run, pull, then other source items.",
+            "strategy_label": "deterministic-active-sort",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-26T03:55:00.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-26T03:56:51.968Z"
+    },
+    {
+      "id": "tk-c1c8d7c792ca",
+      "title": "Project GitHub source metadata into safe lane card summaries",
+      "type": "code",
+      "section": "Source metadata",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-06-26T03:47:33.117Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-ec836cd3492c"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed",
+        "frontend": "false"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC4",
+          "AC3",
+          "AC4",
+          "AC8",
+          "C3",
+          "C4"
+        ],
+        "verifies": [
+          "AC3",
+          "AC4",
+          "AC8"
+        ],
+        "respects": [
+          "C2",
+          "C3",
+          "C4",
+          "C6"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-26T03:57:30.390Z",
+      "verification": "RED tr_mquei34s_6db8db95 failed because GitHub source cards lacked projected metadata. GREEN tr_mquekcgv_e3791afb passed attention/source metadata tests.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added deterministic GitHub source metadata projection into lane items. PR cards now carry number/title, URL, updated time, repo, branch, and SHA metadata when present. Workflow-run cards carry workflow/display title, URL, updated time, repo, branch, conclusion, and SHA metadata when present. Deployment cards carry environment/ref/status/SHA metadata. `buildDashboardState` now passes project GitHub owner/repo into lane building for repo metadata.",
+      "filesTouched": [
+        "bin/lib/dashboard/attention.test.ts",
+        "bin/lib/dashboard/attention.ts",
+        "bin/lib/dashboard/server.ts"
+      ],
+      "touched_files": [
+        "bin/lib/dashboard/attention.test.ts",
+        "bin/lib/dashboard/attention.ts",
+        "bin/lib/dashboard/server.ts"
+      ],
+      "checkpointSha": "e474814abfaf351e902789f94feb1edf35cc499a",
+      "completedAt": "2026-06-26T04:00:30.649Z",
+      "completed_at": "2026-06-26T04:00:30.649Z",
+      "notes": "Completed. RED tr_mquei34s_6db8db95; GREEN tr_mquekcgv_e3791afb. Checkpoint e474814a.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "RED expected projected source card fields but received raw unlinked GitHub payload only.",
+            "diagnosis": "UI-facing lane items were still raw correlation items without title/url/metadata projection.",
+            "fix_tried": "Added source projection helpers in attention.ts and passed project GitHub config from server.ts.",
+            "strategy_label": "typed-source-projection",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-26T04:02:00.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-26T04:00:47.975Z"
+    },
+    {
+      "id": "tk-fe7ccffac1f9",
+      "title": "Update dashboard UI for actionability lanes and metadata cards",
+      "type": "code",
+      "section": "UI rendering",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-06-26T03:47:53.672Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-c1c8d7c792ca"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed",
+        "frontend": "true"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC4",
+          "SC5",
+          "AC3",
+          "AC4",
+          "AC7",
+          "AC8",
+          "AC9"
+        ],
+        "verifies": [
+          "AC3",
+          "AC4",
+          "AC7",
+          "AC8",
+          "AC9"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-26T04:01:22.205Z",
+      "verification": "RED tr_mquemsoo_b812d2bb failed for old lane keys/labels and missing metadata rendering. GREEN tr_mqueopwa_59827faf passed UI lane/metadata/read-only tests.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Updated dashboard UI to render actionability lanes (`Attention`, `Active work`, `Unmatched source`, `Inventory`) and project stats for those lanes. Added generic metadata, URL, updated-at, subtitle, and unmatched-source rendering over typed lane item fields. Preserved compact ADV cards, degraded setup card, HTML escaping, and no mutation controls/forms.",
+      "filesTouched": [
+        "bin/lib/dashboard/ui.test.ts",
+        "bin/lib/dashboard/ui.ts"
+      ],
+      "touched_files": [
+        "bin/lib/dashboard/ui.test.ts",
+        "bin/lib/dashboard/ui.ts"
+      ],
+      "checkpointSha": "9302d99d606c0f6698e37372883f724740908282",
+      "completedAt": "2026-06-26T04:03:44.643Z",
+      "completed_at": "2026-06-26T04:03:44.643Z",
+      "notes": "Completed. RED tr_mquemsoo_b812d2bb; GREEN tr_mqueopwa_59827faf. Checkpoint 9302d99d.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "RED expected `data-lane=\"active\"` and metadata rendering hooks but UI still emitted old running/linked/unlinked lanes.",
+            "diagnosis": "UI had not been updated to consume new lane taxonomy or typed card fields.",
+            "fix_tried": "Updated lane definitions, project stats, item rendering, metadata rendering, and unmatched-source copy.",
+            "strategy_label": "render-actionability-lanes",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-26T04:05:00.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-26T04:04:02.930Z"
+    },
+    {
+      "id": "tk-65e8ca728dff",
+      "title": "Wire server state and live dashboard verification for new lanes",
+      "type": "verification",
+      "section": "Integration verification",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-06-26T03:48:18.674Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-fe7ccffac1f9"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "inline_required",
+        "frontend": "false"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "SC4",
+          "SC5",
+          "SC6",
+          "AC10"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7",
+          "AC8",
+          "AC9",
+          "AC10"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-26T04:04:42.899Z",
+      "verification": "Release harden reviewer READY and remediated safe URL allowlist for dashboard source links. `git diff --check` passed. VERIFY tr_mqug2trs_2a6de4eb passed `bun test bin/` (151 tests, 431 expects).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "bin/lib/dashboard/ui.test.ts",
+        "bin/lib/dashboard/ui.ts"
+      ],
+      "touched_files": [
+        "bin/lib/dashboard/ui.test.ts",
+        "bin/lib/dashboard/ui.ts"
+      ],
+      "checkpointSha": "395efecd90b1106c0b397aa0782205544dcebeb5",
+      "completedAt": "2026-06-26T04:42:33.551Z",
+      "completed_at": "2026-06-26T04:42:33.551Z",
+      "notes": "Completed. Targeted verify tr_mques8p8_de1024ec; full verify tr_mquetl9l_0c1224c2. Checkpoint 8fb3bf55.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 2,
+        "max_retries": 3,
+        "error_class": "ENVIRONMENTAL",
+        "next_strategy": "",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "tr_mqueqrks_2523d980 failed because server test still looked for old `lanes.linked`.",
+            "diagnosis": "Integration test needed update for actionability lane taxonomy.",
+            "fix_tried": "Updated test to inspect `active`, `attention`, and `inventory` lanes.",
+            "strategy_label": "update-server-lane-test",
+            "outcome": "failed",
+            "attempted_at": "2026-06-26T04:07:00.000Z"
+          },
+          {
+            "attempt_number": 2,
+            "error": "tr_mquerg04_87c4b23e failed because deployment source state did not contribute to correlated item status, leaving failed deployment outside attention.",
+            "diagnosis": "correlation.statusOf ignored `source_states.github_deployment`.",
+            "fix_tried": "Updated `statusOf` to fall back to `source_states.github_deployment`.",
+            "strategy_label": "propagate-deployment-status",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-26T04:08:00.000Z"
+          },
+          {
+            "attempt_number": 3,
+            "error": "tr_mquesql4_3ab9db65 full bin test failed because installed `adv-dashboard-pokeedge.service` already occupied fixed port 8765 before collision test could bind it.",
+            "diagnosis": "Environmental conflict from the dashboard service installed earlier in session, not product code failure.",
+            "fix_tried": "Temporarily stopped service, reran `bun test bin/` successfully, then restarted service and verified doctor healthy.",
+            "strategy_label": "isolate-fixed-port-test",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-26T04:10:00.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-26T04:08:18.150Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "improveDashboardLanes",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:dashboard-lane-ia-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Validate dashboard lane IA redesign (actionability-first lanes, typed summaries, deterministic ADV/GitHub classification, safe metadata render)",
+      "sources": [
+        {
+          "label": "bin/lib/dashboard/attention.ts (current lane builder)",
+          "locator": "bin/lib/dashboard/attention.ts:40-90",
+          "summary": "buildAttentionLanes emits 4 lanes attention/running/linked/unlinked. linked = ALL advItems (changes.map, no status filter, L41-53,70-75) concatenated with non-attention/non-running GitHub items. unlinked = input.unlinked verbatim (L76), no success/failure split. isAttentionStatus (L80-84) only matches failure/error/cancelled/stale; isRunningStatus (L86-90) matches queued/in_progress. Successful workflow_run (conclusion=success) falls through to neither => lands in raw unlinked lane. Confirms agreement evidence that draft changes flood linked and success history floods unlinked."
+        },
+        {
+          "label": "bin/lib/changes.ts (existing deterministic ADV classifier)",
+          "locator": "bin/lib/changes.ts:43-47,165-167",
+          "summary": "DASHBOARD_ACTIVE_STATUSES = {draft, pending, active}; isDashboardActiveStatus(status) already exists. firstIncompleteGate (L143-152) already computed and surfaced on DashboardAdvChange. A deterministic ADV active/inventory classifier is already available to reuse — but its current definition counts draft as active, which directly contradicts the agreement's finding that draft ADV inventory is non-actionable noise."
+        },
+        {
+          "label": "bin/lib/dashboard/correlation.ts (item typing)",
+          "locator": "bin/lib/dashboard/correlation.ts:12-26,129-135",
+          "summary": "UnlinkedDashboardItem carries item?: unknown and only reason/status. LinkedDashboardItem.item is unknown. Raw GitHub payload is preserved but untyped. No typed PR/run/deployment summary shape exists. Validates recommendation #2 (introduce typed lane-item summaries instead of raw-item heuristics)."
+        },
+        {
+          "label": "bin/lib/dashboard/ui.ts (renderer hides payload)",
+          "locator": "bin/lib/dashboard/ui.ts:84-96",
+          "summary": "itemHtml renders only kind, changeId, title, evidence, reason, status, source_states. It NEVER dereferences item.item, so html_url/number/head.ref/head_branch/workflow name/conclusion/updated_at present in the payload are not shown. This is the structural cause of low-info cards. Fixing requires a typed summary projected upstream (attention/correlation), not ad-hoc UI digging into unknown."
+        },
+        {
+          "label": "bin/lib/dashboard/config.ts (sanitization is structural)",
+          "locator": "bin/lib/dashboard/config.ts:181-206",
+          "summary": "sanitizeDashboardState recursively drops keys matching /token|authorization|secret|password/ and redacts gh token patterns + secret words in strings. Already applied in adv.ts:74 and github.ts:164,166. A typed metadata projection (number/title/url/branch/status/updated_at) renders only safe fields and remains covered by this sink. Validates recommendation #5 (safe metadata render, no secrets) as low-risk."
+        },
+        {
+          "label": "bin/lib/dashboard/attention.test.ts (behavior pin)",
+          "locator": "bin/lib/dashboard/attention.test.ts:6-83",
+          "summary": "Single test asserts exact lane membership/order: attention=[deployment,degraded_source], running=[workflow_run,workflow_run], linked=[adv_change,pull]. Any lane rename or new lane (active/inventory/history) WILL break this test. Constraint in agreement ('if lane names change, tests must pin behavior') is correctly anticipated; this test must be updated/replaced deliberately, not by accident."
+        },
+        {
+          "label": "GitHub notifications/inbox triage model (reference architecture)",
+          "locator": "https://docs.github.com/en/account-and-profile/managing-subscriptions-and-notifications-on-github/viewing-and-triaging-notifications/managing-notifications-from-your-inbox",
+          "summary": "Canonical, boring precedent: an actionability inbox separates items needing action from Done/archived inventory and supports grouping/collapsing low-signal items. The proposed split (attention/active vs collapsed inventory + summarized success history) is the by-the-book triage pattern, not a novel invention. Supports VALIDATED direction."
+        }
+      ],
+      "architecture_assessment": "Existing pattern: attention.ts splits purely on GitHub run status (failure->attention, in_progress->running) and dumps ALL ADV changes into linked and ALL uncorrelated GitHub items into unlinked with no actionability tier and no success/inventory separation; ui.ts renders only top-level fields and ignores the raw payload, producing the low-info cards. Reference pattern: an actionability-first inbox (GitHub-notifications-style) with a small fixed lane taxonomy (needs-attention | active work | unmatched-actionable | collapsed inventory/history), plus typed per-source summaries projected upstream so the renderer is a dumb formatter over a known shape. Deviation: MAJOR but expected — this change is the fix. The five proposed directions are all sound and align with proven triage IA. One concrete reuse opportunity: the deterministic ADV classifier already exists (isDashboardActiveStatus / DASHBOARD_ACTIVE_STATUSES + firstIncompleteGate) — extend/refine it rather than inventing a parallel classifier (P04 locality, P19 simplicity). One concrete semantic conflict: that classifier currently treats draft as active, which contradicts the agreement's core finding that draft ADV inventory is the noise to demote.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "Design direction VALIDATED with adjustments. (1) DRAFT SEMANTIC CONFLICT: AC#1/#2 require draft to be demoted out of the primary active lane, but bin/lib/changes.ts:43-47 DASHBOARD_ACTIVE_STATUSES includes 'draft' and isDashboardActiveStatus(draft)===true. Define the dashboard 'active/in-flight' tier as a distinct, narrower predicate (e.g. status active|pending AND firstIncompleteGate not null past proposal, draft => inventory) OR refine the shared set deliberately and re-pin both this dashboard test and any other callers of isDashboardActiveStatus. Do NOT silently mix draft into the active lane. (2) TYPED SUMMARY: correlation.ts/attention.ts must emit a typed LaneItemSummary (discriminated by kind: pull|workflow_run|deployment) projecting only number/title/url/branch/status|conclusion/updated_at; ui.ts itemHtml (L84-96) then renders the typed shape and stops treating item.item as unknown. This is the structural fix for low-info cards and satisfies P33 (structural before heuristic). (3) SUCCESS-HISTORY COLLAPSE: isAttentionStatus/isRunningStatus (attention.ts:80-90) currently leave conclusion=success runs in raw unlinked; add an explicit success/history classifier so successful workflow_runs are summarized/collapsed and cannot fill the primary list (AC#5), while failure/cancelled stay inspectable (AC#6). (4) TEST PIN: attention.test.ts pins exact 4-lane names and membership; updating the lane taxonomy is a deliberate breaking change — replace this test with new lane-taxonomy + typed-card + read-only coverage (AC#10), do not delete coverage. (5) SAFE METADATA: render path stays inside sanitizeDashboardState (config.ts:181-206); a typed projection of GitHub fields renders only allowlisted safe keys and is already covered by the secret sink — low risk, keep a test asserting no token/authorization leakage on the new cards (AC#8)."
+      },
+      "recommendation": "VALIDATED — proceed with the five-direction design, with these adjustments: (a) Do not reuse DASHBOARD_ACTIVE_STATUS as-is for the active lane because it counts draft as active and conflicts with AC#1/#2; introduce or refine a dashboard-specific active-vs-inventory predicate (active=status active/pending with real gate progress; draft/closed/archived/stale => inventory) and re-pin all affected tests. (b) Add a typed discriminated-union LaneItemSummary projected in correlation.ts/attention.ts so ui.ts renders a known shape (number/title/url/branch/status|conclusion/updated_at) instead of reaching into item:unknown. (c) Add an explicit success/history classifier so conclusion=success workflow runs are collapsed/summarized out of primary lanes (AC#5) while failures remain in an attention lane (AC#6). (d) Keep lane count small and fixed (recommend: attention | active | unmatched | inventory-or-history) to match the proven GitHub-inbox triage model and avoid lane sprawl (P19). (e) Treat attention.test.ts as an intentional breaking update; replace with lane-taxonomy + typed-card-metadata + no-secret-leak + read-only tests. (f) Preserve sanitizeDashboardState as the single redaction sink; do not add a second ad-hoc redaction path. No code changes performed.",
+      "follow_ups": [
+        "Audit all callers of isDashboardActiveStatus / DASHBOARD_ACTIVE_STATUSES before redefining draft semantics, so the dashboard active-lane change does not regress bin/adv status or render.ts active-row logic.",
+        "Decide deterministic disposition for ADV statuses outside {draft,pending,active} (closed, archived, superseded) into the inventory/history tier, since the current set only enumerates the 3 active-ish statuses.",
+        "Confirm GitHub payload field names against live API shape (pull: number/title/html_url/head.ref/state; run: name/head_branch/conclusion/status/html_url/updated_at; deployment: environment/ref/sha) before encoding the typed summary, since correlation.ts only reads head.ref/head.sha/head_branch today."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "improveDashboardLanes",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/improveDashboardLanes",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [
+        {
+          "id": "review-praise-1",
+          "label": "praise",
+          "file": "bin/lib/dashboard/attention.ts",
+          "line": 71,
+          "what": "Lane builder now exposes actionability-first lanes and deterministic typed projections for source cards.",
+          "why": "Draft ADV changes route to inventory, pending/active route to active, successful workflow/deployment history is summarized, and source metadata is projected before UI rendering.",
+          "fix": "n/a"
+        }
+      ],
+      "changes_made": [
+        {
+          "file": "bin/dashboard-cli.test.ts",
+          "summary": "Made the fixed-port collision test occupy an ephemeral loopback port and pass that same --port to the dashboard command, avoiding false failures when the real local dashboard already owns 8765 while preserving collision coverage.",
+          "verification": "bun test bin/dashboard-cli.test.ts passed: 6 pass, 0 fail. bun test bin/ passed: 151 pass, 0 fail, 429 expect() calls."
+        }
+      ],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "Dashboard CLI fixed-port tests should not assume default port 8765 is free; the installed local dashboard may already be running. Bind an ephemeral loopback port and pass it explicitly to collision-path tests."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "adv_run_test bun test bin/ (recording failed: Task not found: acceptance-review)",
+          "bun test bin/dashboard-cli.test.ts",
+          "bun test bin/"
+        ],
+        "results": "pass",
+        "evidence": "Initial bun test bin/ exposed a false test-environment failure in bin/dashboard-cli.test.ts because port 8765 was already occupied before the test could occupy it. After remediation, bun test bin/dashboard-cli.test.ts passed with 6 pass / 0 fail, and bun test bin/ passed with 151 pass / 0 fail / 429 expect() calls. Reviewed agreement/design anchors and focus files for lane classification, metadata rendering, unmatched labeling, sanitization, GET-only routing, and local-only loopback behavior."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Context packet TASK anchor `acceptance-review` is not an existing ADV task; first task-scoped report submit failed with INVALID_TASK_ANCHOR, so this report was persisted as change-scoped acceptance review."
+      ],
+      "required_main_agent_actions": [],
+      "required_follow_ups": [],
+      "consumer_warnings": [
+        {
+          "kind": "consumer_failure",
+          "message": "Task-scoped submit rejected with INVALID_TASK_ANCHOR for packet task `acceptance-review`; persisted change-scoped review report instead."
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "improveDashboardLanes",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/improveDashboardLanes",
+      "scope": {
+        "kind": "change",
+        "scope_key": "harden:release"
+      },
+      "agent": "adv-reviewer",
+      "phase": "harden",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [
+        {
+          "file": "bin/lib/dashboard/ui.ts",
+          "summary": "Added client-side URL protocol allowlist before rendering dashboard source links, preventing source-provided javascript:/invalid hrefs from becoming clickable links.",
+          "verification": "bun test bin/lib/dashboard/ui.test.ts bin/lib/dashboard/attention.test.ts bin/lib/dashboard/server.test.ts bin/dashboard-cli.test.ts passed: 20 pass, 0 fail, 109 expects. Full bun test bin/ passed: 151 pass, 0 fail, 431 expects."
+        },
+        {
+          "file": "bin/lib/dashboard/ui.test.ts",
+          "summary": "Extended dashboard shell test assertions to require safeUrl(item.url) and http/https protocol allowlist coverage.",
+          "verification": "bun test bin/ passed: 151 pass, 0 fail, 431 expects."
+        }
+      ],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "Dashboard source URLs are escaped but still need protocol allowlisting before href rendering; HTML escaping alone does not block javascript: links."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "git diff --check",
+          "bun test bin/lib/dashboard/ui.test.ts bin/lib/dashboard/attention.test.ts bin/lib/dashboard/server.test.ts bin/dashboard-cli.test.ts",
+          "bun test bin/"
+        ],
+        "results": "pass",
+        "evidence": "git diff --check produced no output. Targeted dashboard/bin tests passed: 20 pass, 0 fail, 109 expects. Full bin suite passed after remediation: 151 pass, 0 fail, 431 expects. Earlier bin/oc-test targeted -- bin/lib/dashboard/ui.test.ts was not applicable to bin tests and failed with 'No test files found' because wrapper filters plugin src tests only; verified with Bun bin test surface instead."
+      },
+      "scope_drift": null,
+      "risks": [
+        "bin/oc-test targeted does not cover root bin/*.test.ts; release verification for bin dashboard used Bun's bin test suite directly.",
+        "No browser-driven visual check performed; harden scope focused deterministic final-diff, security, mutation-control, and regression checks."
+      ],
+      "required_main_agent_actions": [
+        "Stage/review the two remediation files before release: bin/lib/dashboard/ui.ts and bin/lib/dashboard/ui.test.ts.",
+        "Preserve accepted lane API keys only: attention, active, unmatched, inventory."
+      ],
+      "required_follow_ups": [],
+      "consumer_warnings": []
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-eCW1-n",
+      "type": "pattern",
+      "content": "For dashboard lanes, use a separate actionability predicate instead of reusing broad active-status constants meant for lifecycle listings. In this dashboard, `draft` is inventory/noise, while active work is only `pending`/`active`; pin the split with lane-classifier tests.",
+      "source_task": "tk-ec836cd3492c",
+      "recorded_at": "2026-06-26T03:57:01.275Z"
+    },
+    {
+      "id": "ws-7L8bps",
+      "type": "pattern",
+      "content": "When a backend correlator preserves raw `unknown` source payloads, add a typed view-model projection before UI rendering. Use deterministic field extraction at the lane-builder boundary (repo, branch, URL, recency, status/conclusion) so the UI stays a dumb escaped formatter and does not infer source shapes heuristically.",
+      "source_task": "tk-c1c8d7c792ca",
+      "recorded_at": "2026-06-26T04:00:59.114Z"
+    },
+    {
+      "id": "ws-4epwyN",
+      "type": "success",
+      "content": "Keeping the dashboard UI as a formatter over lane item fields made the lane taxonomy change small: update lane definitions, stats labels, and generic metadata rendering without adding source-shape logic to the browser script.",
+      "source_task": "tk-fe7ccffac1f9",
+      "recorded_at": "2026-06-26T04:04:11.750Z"
+    },
+    {
+      "id": "ws-FtE7cu",
+      "type": "gotcha",
+      "content": "Full `bun test bin/` can fail when the installed dashboard service is already occupying fixed port 8765 because the collision test binds that port first. For local verification after installing the service, stop `adv-dashboard-pokeedge.service`, run tests, then restart and doctor-check the service.",
+      "source_task": "tk-65e8ca728dff",
+      "recorded_at": "2026-06-26T04:08:28.717Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-06-26T03:34:22.525Z",
+      "completed_by": "agent",
+      "approval_evidence": "Proposal approved by explicit user reply `approve` after dashboard usability diagnosis. Scope: make local dashboard lanes actionable, separate active ADV work from noisy/non-active entries, improve unlinked GitHub metadata, and avoid implying auth failure when correlation fails.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "2a6dc3085682e9c27fc8ec3fa8982d3773c2d1fa057c2b7e188b0476e32a7975",
+        "non_whitespace_chars": 1835,
+        "checked_at": "2026-06-26T03:32:23.751Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-06-26T03:42:22.560Z",
+      "completed_by": "agent",
+      "approval_evidence": "Agreement approved by explicit user reply `approve`. Discovery evidence confirms auth is valid and the problem is lane information architecture: draft ADV inventory and successful GitHub history dominate primary lanes. Contract minted with 22 items.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "84ae0258d8fa6516b4df18f3a4d0bfff4dd43fe5e5a5897487ee02dd0b95dd62",
+        "non_whitespace_chars": 4983,
+        "checked_at": "2026-06-26T03:32:23.752Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-06-26T03:46:30.770Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design completed and independently validated. Chosen lane taxonomy: attention, active, unmatched, inventory. Key adjustment from validator: do not reuse DASHBOARD_ACTIVE_STATUSES because it includes draft; use a narrower local actionable predicate. No product tradeoff, validator conflict, or contract-compromise risk remains.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "1def69c057d2a58c23cba677224b1d93de5aa163ac4b0218669aee75d795bcf4",
+        "non_whitespace_chars": 5849,
+        "checked_at": "2026-06-26T03:32:23.753Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-06-26T03:52:36.047Z",
+      "completed_by": "agent",
+      "approval_evidence": "Prep approved by explicit user reply `approve` after task graph presentation. Task graph has 4 tasks with TDD intent, dependencies, evidence policies, and contract refs. Validation passed with accepted NO_DELTAS warning because dashboard CLI behavior is not a spec-law change."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-06-26T04:08:53.373Z",
+      "completed_by": "agent",
+      "approval_evidence": "Execution complete: 4/4 tasks done with checkpoints. Delivered actionability lanes, typed lane item/source metadata projection, UI lane labels/cards, server integration, and verification. Full `bun test bin/` passed in tr_mquetl9l_0c1224c2 after isolating fixed-port service conflict; dashboard service restarted and doctor healthy."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-06-26T04:32:56.237Z",
+      "completed_by": "user:jon",
+      "approval_evidence": "User accepted delivered work by explicit reply `approve` after acceptance summary. Pre-acceptance evidence: contract matrix 22/22 pass/respected; reviewer READY; targeted dashboard tests tr_mques8p8_de1024ec passed 14 tests/87 assertions; full bin tests tr_mquetl9l_0c1224c2 passed 151 tests/429 assertions; dashboard service restarted and doctor healthy.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "09e60982f4d057f52c6e561a13198e53cc703c7fa654879b666e8c6da9fd9bdf",
+        "non_whitespace_chars": 1965,
+        "checked_at": "2026-06-26T03:32:23.754Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "fast_follow_of": {
+    "parent_change_id": "improveDashboardAutostart",
+    "linked_at": "2026-06-26T03:32:23.695Z"
+  },
+  "origin": {
+    "kind": "discovery",
+    "source_artifact": "user-feedback:dashboard-installed-unlinked-active-lanes"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "84ae0258d8fa6516b4df18f3a4d0bfff4dd43fe5e5a5897487ee02dd0b95dd62",
+      "approvedAt": "2026-06-26T03:42:14.392Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "The top-level lane names and counts make it clear which items need attention now, which ADV changes are active/in-flight, and which source items are unmatched/noisy.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "84ae0258d8fa6516b4df18f3a4d0bfff4dd43fe5e5a5897487ee02dd0b95dd62",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "Successful historical workflow runs no longer dominate the primary visible lane area.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "84ae0258d8fa6516b4df18f3a4d0bfff4dd43fe5e5a5897487ee02dd0b95dd62",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "An unlinked PR card shows at least PR number/title, repository, branch, status, updated time, and URL when GitHub provides those fields.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "84ae0258d8fa6516b4df18f3a4d0bfff4dd43fe5e5a5897487ee02dd0b95dd62",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC4",
+        "kind": "success_criterion",
+        "text": "An unlinked workflow-run card shows at least workflow name/display title, repository, branch, status/conclusion, updated time, and URL when GitHub provides those fields.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "84ae0258d8fa6516b4df18f3a4d0bfff4dd43fe5e5a5897487ee02dd0b95dd62",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC5",
+        "kind": "success_criterion",
+        "text": "An unlinked deployment card shows at least environment/ref/SHA or deployment URL/status metadata when GitHub provides those fields.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "84ae0258d8fa6516b4df18f3a4d0bfff4dd43fe5e5a5897487ee02dd0b95dd62",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC6",
+        "kind": "success_criterion",
+        "text": "If GitHub auth is valid and correlation fails, the UI explains it as an unmatched source item, not as a login/auth problem.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "84ae0258d8fa6516b4df18f3a4d0bfff4dd43fe5e5a5897487ee02dd0b95dd62",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "Given the PokeEdge profile dashboard loads, when ADV changes are rendered, then active/in-flight ADV changes are visually separated from non-active ADV inventory using a deterministic status/gate classification.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "84ae0258d8fa6516b4df18f3a4d0bfff4dd43fe5e5a5897487ee02dd0b95dd62",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Given ADV changes with status `draft` dominate the project snapshot, when the dashboard renders, then those draft/non-active changes are not mixed into the primary active-work lane.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "84ae0258d8fa6516b4df18f3a4d0bfff4dd43fe5e5a5897487ee02dd0b95dd62",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Given unlinked open pull requests exist, when their cards render, then each visible card includes PR number or title, repo, branch, status, recency, and URL when present in the API payload.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "84ae0258d8fa6516b4df18f3a4d0bfff4dd43fe5e5a5897487ee02dd0b95dd62",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Given unlinked workflow runs exist, when their cards render, then each visible card includes workflow/display name, repo, branch, status or conclusion, recency, and URL when present in the API payload.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "84ae0258d8fa6516b4df18f3a4d0bfff4dd43fe5e5a5897487ee02dd0b95dd62",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Given unlinked successful workflow runs exist, when the dashboard renders, then successful historical runs are collapsed, summarized, or moved out of the primary attention/action lanes so they cannot fill the visible primary list.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "84ae0258d8fa6516b4df18f3a4d0bfff4dd43fe5e5a5897487ee02dd0b95dd62",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Given unlinked failed/cancelled/error workflow runs exist, when the dashboard renders, then they remain visible in an attention/action lane with identifying metadata.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "84ae0258d8fa6516b4df18f3a4d0bfff4dd43fe5e5a5897487ee02dd0b95dd62",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "Given GitHub auth is available through `GITHUB_TOKEN` or `gh auth token`, when an item is unlinked, then the UI labels the cause as unmatched/correlation state and does not display a GitHub setup/auth card for that item.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "84ae0258d8fa6516b4df18f3a4d0bfff4dd43fe5e5a5897487ee02dd0b95dd62",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC8",
+        "kind": "acceptance_criterion",
+        "text": "Given dashboard API state is sanitized, when cards render GitHub metadata, then no token, secret, authorization header, or raw credential-like value is displayed.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "84ae0258d8fa6516b4df18f3a4d0bfff4dd43fe5e5a5897487ee02dd0b95dd62",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC9",
+        "kind": "acceptance_criterion",
+        "text": "Given non-GET requests are sent to dashboard routes, when the dashboard handles them, then no mutation controls or write actions are introduced.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "84ae0258d8fa6516b4df18f3a4d0bfff4dd43fe5e5a5897487ee02dd0b95dd62",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC10",
+        "kind": "acceptance_criterion",
+        "text": "Given existing dashboard tests run, when `bun test bin/` completes, then lane classification, card metadata rendering, and read-only constraints are covered by tests.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "84ae0258d8fa6516b4df18f3a4d0bfff4dd43fe5e5a5897487ee02dd0b95dd62",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Local-only dashboard at `127.0.0.1`; no hosted service behavior.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "84ae0258d8fa6516b4df18f3a4d0bfff4dd43fe5e5a5897487ee02dd0b95dd62",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Read-only only; no rerun/merge/approve/deploy/archive/cancel controls.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "84ae0258d8fa6516b4df18f3a4d0bfff4dd43fe5e5a5897487ee02dd0b95dd62",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "No token or secret display.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "84ae0258d8fa6516b4df18f3a4d0bfff4dd43fe5e5a5897487ee02dd0b95dd62",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Keep API shape backward-compatible where practical; if lane names change, tests must pin behavior.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "84ae0258d8fa6516b4df18f3a4d0bfff4dd43fe5e5a5897487ee02dd0b95dd62",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Prefer deterministic classifiers over UI heuristics.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "84ae0258d8fa6516b4df18f3a4d0bfff4dd43fe5e5a5897487ee02dd0b95dd62",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C6",
+        "kind": "constraint",
+        "text": "Keep low API usage behavior from the previous change: cached/coalesced state provider remains intact.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "84ae0258d8fa6516b4df18f3a4d0bfff4dd43fe5e5a5897487ee02dd0b95dd62",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-06-26T04:16:37.282Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "UI/server implementation exposes actionability lane labels/counts: Attention, Active work, Unmatched source, Inventory. Tests: tr_mqueopwa_59827faf, tr_mques8p8_de1024ec.",
+          "notes": "Reviewer READY."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Successful/skipped workflow/deployment history summarized into inventory via SummaryLaneItem; attention/active/unmatched tests passed in tr_mquefg54_d659b62d and tr_mques8p8_de1024ec.",
+          "notes": "No primary-lane domination by success history."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "PR source projection includes #/title, repo, branch, URL, updated_at in attention.test; green tr_mquekcgv_e3791afb.",
+          "notes": ""
+        },
+        {
+          "contractId": "SC4",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Workflow run projection includes workflow name, display title, repo, branch, conclusion, URL, updated_at; green tr_mquekcgv_e3791afb.",
+          "notes": ""
+        },
+        {
+          "contractId": "SC5",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Deployment projection includes environment/ref/status/SHA metadata; server integration verifies failed deployment metadata in tr_mques8p8_de1024ec.",
+          "notes": ""
+        },
+        {
+          "contractId": "SC6",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "UI test asserts `Unmatched source item` copy and no unmatched-auth language; green tr_mqueopwa_59827faf.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Lane classifier test verifies deterministic split of active vs inventory ADV changes; tr_mquefg54_d659b62d and tr_mques8p8_de1024ec passed.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Draft ADV change routes to inventory, not active lane, in `groups project-first activity into actionability lanes`; tr_mquefg54_d659b62d passed.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "PR metadata card summary test covers PR number/title, repo, branch, URL, updated_at; tr_mquekcgv_e3791afb passed.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Workflow-run metadata test covers name/display title, repo, branch, conclusion, URL, updated_at; tr_mquekcgv_e3791afb passed.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Successful workflow_run in classifier test becomes `summary` item in inventory; tr_mquefg54_d659b62d passed.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Failed workflow/deployment statuses route to attention with metadata; tr_mquekcgv_e3791afb and tr_mques8p8_de1024ec passed.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "UI unmatched copy test asserts unmatched/correlation language and no auth implication; tr_mqueopwa_59827faf passed.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC8",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Sanitization/read-only tests passed; full `bun test bin/` tr_mquetl9l_0c1224c2 passed 151 tests/429 assertions and reviewer reran same successfully.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC9",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Server rejects mutation methods and UI has no mutation controls/forms; tr_mqueopwa_59827faf and tr_mques8p8_de1024c2/tr_mquetl9l_0c1224c2 passed.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC10",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Full `bun test bin/` passed: tr_mquetl9l_0c1224c2, 151 tests, 429 assertions. Reviewer reran `bun test bin/` with same pass counts.",
+          "notes": ""
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No hosted-service behavior added; dashboard server still loopback/default host behavior covered by server tests in tr_mques8p8_de1024ec and full tr_mquetl9l_0c1224c2.",
+          "notes": ""
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "UI test `does not render mutation controls` passed in tr_mqueopwa_59827faf and full tr_mquetl9l_0c1224c2.",
+          "notes": ""
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Sanitization tests and UI no-secret checks passed; no raw credentials added to metadata projection. Full tr_mquetl9l_0c1224c2 passed.",
+          "notes": ""
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Lane taxonomy change pinned by attention/UI/server tests; API lanes now covered by tr_mques8p8_de1024ec and full tr_mquetl9l_0c1224c2.",
+          "notes": "Known local dashboard consumer updated."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Classifier and source projection implemented as deterministic TypeScript functions, not UI heuristics; tests tr_mquefg54_d659b62d/tr_mquekcgv_e3791afb passed.",
+          "notes": ""
+        },
+        {
+          "contractId": "C6",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No cache/coalescing provider behavior changed; server cache/coalesce test passed in tr_mques8p8_de1024ec and full tr_mquetl9l_0c1224c2.",
+          "notes": ""
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "Given the PokeEdge profile dashboard loads, when ADV changes are rendered, then active/in-flight ADV changes are visually separated from non-active ADV inventory using a deterministic status/gate classification.",
+    "Given ADV changes with status `draft` dominate the project snapshot, when the dashboard renders, then those draft/non-active changes are not mixed into the primary active-work lane.",
+    "Given unlinked open pull requests exist, when their cards render, then each visible card includes PR number or title, repo, branch, status, recency, and URL when present in the API payload.",
+    "Given unlinked workflow runs exist, when their cards render, then each visible card includes workflow/display name, repo, branch, status or conclusion, recency, and URL when present in the API payload.",
+    "Given unlinked successful workflow runs exist, when the dashboard renders, then successful historical runs are collapsed, summarized, or moved out of the primary attention/action lanes so they cannot fill the visible primary list.",
+    "Given unlinked failed/cancelled/error workflow runs exist, when the dashboard renders, then they remain visible in an attention/action lane with identifying metadata.",
+    "Given GitHub auth is available through `GITHUB_TOKEN` or `gh auth token`, when an item is unlinked, then the UI labels the cause as unmatched/correlation state and does not display a GitHub setup/auth card for that item.",
+    "Given dashboard API state is sanitized, when cards render GitHub metadata, then no token, secret, authorization header, or raw credential-like value is displayed.",
+    "Given non-GET requests are sent to dashboard routes, when the dashboard handles them, then no mutation controls or write actions are introduced.",
+    "Given existing dashboard tests run, when `bun test bin/` completes, then lane classification, card metadata rendering, and read-only constraints are covered by tests."
+  ],
+  "documents": {
+    "proposal": "# Improve dashboard lanes\n\n## Problem\nThe local dashboard is technically working, but its lane model is not usable for daily triage.\n\nObserved at `http://127.0.0.1:8765/` after installing the PokeEdge profile:\n- GitHub auth is working (`gh auth status` shows authenticated with repo/workflow/project scopes).\n- `/api/state` returns healthy project state.\n- `Unlinked` contains a very long list of low-information GitHub items labeled only `pull` / `workflow_run` with `Unlinked: no structural match`.\n- `Linked` contains many ADV changes, including non-active or not immediately actionable changes.\n- `Running` is empty because it only represents currently-running GitHub work, not in-flight ADV work.\n\nThis makes it unclear what to act on next.\n\n## Scope\nImprove dashboard information architecture so daily-use lanes show actionable work first and move noisy/non-actionable items out of the primary view.\n\n## Initial direction\n- Split ADV changes by actionability, not just linked/unlinked correlation.\n- Keep active/in-flight ADV changes in the primary lane.\n- Move non-active/stale/backlog/closed-or-archived-style ADV entries into a separate lower-priority lane or collapsed section.\n- Make unlinked GitHub items more useful by showing distinguishing metadata: PR number/title/repo/branch, workflow name/conclusion, URL, and recency where available.\n- Filter or collapse successful historical workflow runs so `Unlinked` is not dominated by old success noise.\n- Preserve read-only/local-only constraints.\n\n## Acceptance criteria draft\n- Given PokeEdge dashboard loads, when ADV changes are shown, then in-flight/actionable changes are visually separated from non-active or backlog/stale changes.\n- Given unlinked GitHub items are shown, when a card renders, then it includes enough source metadata to identify the item without opening developer tools.\n- Given successful historical workflow runs exist, when the dashboard renders, then they do not dominate the primary `Unlinked` lane.\n- Given GitHub auth is valid, when the dashboard shows unlinked items, then it must not imply the user is logged out solely because correlation failed.",
+    "problemStatement": "Dashboard installed successfully, GitHub auth works, but daily triage view is noisy: `Unlinked` and current ADV change lanes contain too many low-information or non-actionable items. User cannot tell what to do next from the dashboard.",
+    "agreement": "# Agreement: Improve dashboard lanes\n\n## Problem\nThe installed local dashboard works and GitHub auth is valid, but the default lanes do not answer the daily question: “what should I look at now?”\n\nEvidence gathered from the live installed dashboard:\n- `gh auth status --hostname github.com` is authenticated with `repo`, `workflow`, and `project` scopes.\n- `GET http://127.0.0.1:8765/api/state` succeeds.\n- PokeEdge lanes currently show: `attention=12`, `running=0`, `linked=69`, `unlinked=138`.\n- PokeEdge Web lanes currently show: `attention=5`, `running=0`, `linked=26`, `unlinked=131`.\n- `linked` is currently dominated by `adv_change` items with status `draft`; these are not necessarily daily-active work.\n- `unlinked` is dominated by GitHub history: workflow runs, deployments, and open PRs that did not correlate by branch/SHA.\n- Existing cards contain useful raw GitHub metadata in the API payload, but the UI hides it and renders only low-information labels such as `pull`, `workflow_run`, `Status`, and `Unlinked: no structural match`.\n\n## Objectives\n1. Make the primary dashboard lanes actionability-first rather than implementation-first.\n2. Separate active/in-flight ADV work from non-active ADV inventory.\n3. Keep noisy GitHub history visible but lower-priority/collapsed so it does not dominate the page.\n4. Render enough metadata on GitHub cards to identify the source item without developer tools.\n5. Preserve local-only, read-only dashboard behavior.\n6. Preserve existing GitHub auth model: `GITHUB_TOKEN` first, then bounded `gh auth token`; no browser login flow and no token display.\n\n## Success criteria\n- The top-level lane names and counts make it clear which items need attention now, which ADV changes are active/in-flight, and which source items are unmatched/noisy.\n- Successful historical workflow runs no longer dominate the primary visible lane area.\n- An unlinked PR card shows at least PR number/title, repository, branch, status, updated time, and URL when GitHub provides those fields.\n- An unlinked workflow-run card shows at least workflow name/display title, repository, branch, status/conclusion, updated time, and URL when GitHub provides those fields.\n- An unlinked deployment card shows at least environment/ref/SHA or deployment URL/status metadata when GitHub provides those fields.\n- If GitHub auth is valid and correlation fails, the UI explains it as an unmatched source item, not as a login/auth problem.\n\n## Acceptance criteria\n1. Given the PokeEdge profile dashboard loads, when ADV changes are rendered, then active/in-flight ADV changes are visually separated from non-active ADV inventory using a deterministic status/gate classification.\n2. Given ADV changes with status `draft` dominate the project snapshot, when the dashboard renders, then those draft/non-active changes are not mixed into the primary active-work lane.\n3. Given unlinked open pull requests exist, when their cards render, then each visible card includes PR number or title, repo, branch, status, recency, and URL when present in the API payload.\n4. Given unlinked workflow runs exist, when their cards render, then each visible card includes workflow/display name, repo, branch, status or conclusion, recency, and URL when present in the API payload.\n5. Given unlinked successful workflow runs exist, when the dashboard renders, then successful historical runs are collapsed, summarized, or moved out of the primary attention/action lanes so they cannot fill the visible primary list.\n6. Given unlinked failed/cancelled/error workflow runs exist, when the dashboard renders, then they remain visible in an attention/action lane with identifying metadata.\n7. Given GitHub auth is available through `GITHUB_TOKEN` or `gh auth token`, when an item is unlinked, then the UI labels the cause as unmatched/correlation state and does not display a GitHub setup/auth card for that item.\n8. Given dashboard API state is sanitized, when cards render GitHub metadata, then no token, secret, authorization header, or raw credential-like value is displayed.\n9. Given non-GET requests are sent to dashboard routes, when the dashboard handles them, then no mutation controls or write actions are introduced.\n10. Given existing dashboard tests run, when `bun test bin/` completes, then lane classification, card metadata rendering, and read-only constraints are covered by tests.\n\n## Constraints\n- Local-only dashboard at `127.0.0.1`; no hosted service behavior.\n- Read-only only; no rerun/merge/approve/deploy/archive/cancel controls.\n- No token or secret display.\n- Keep API shape backward-compatible where practical; if lane names change, tests must pin behavior.\n- Prefer deterministic classifiers over UI heuristics.\n- Keep low API usage behavior from the previous change: cached/coalesced state provider remains intact.\n\n## Avoidances / out of scope\n- No GitHub mutation controls.\n- No ADV mutation controls.\n- No new external service or database.\n- No broad analytics/trends dashboard.\n- No attempt to auto-link unrelated GitHub history by fuzzy title matching.\n- No hiding all unmatched data; noisy successful history may be collapsed/summarized, but actionable failures/open PRs stay inspectable.\n\n## Discovery notes\n- Current lane builder is `bin/lib/dashboard/attention.ts`.\n- Current UI renderer is `bin/lib/dashboard/ui.ts`.\n- Current correlator is `bin/lib/dashboard/correlation.ts` and already carries raw `item` payloads for unlinked GitHub cards.\n- Live API payload already includes useful fields for PRs and workflow runs (`title`, `number`, `html_url`, `head.ref`, `head_branch`, `workflow name`, `conclusion`, `updated_at`); UI rendering is the main missing layer.\n- Current `Running` lane means GitHub queued/in-progress, not active ADV work; rename or add a separate lane to remove ambiguity.",
+    "design": "# Design: Improve dashboard lanes\n\n## Summary\nReplace the current implementation-first dashboard lanes (`attention`, `running`, `linked`, `unlinked`) with an actionability-first lane model and typed card view-models.\n\nCurrent structural issue:\n- `bin/lib/dashboard/attention.ts` maps **all** ADV summaries into the `linked` lane, including `draft` changes.\n- `bin/lib/dashboard/correlation.ts` preserves raw GitHub `item` payloads but leaves their shape as `unknown`.\n- `bin/lib/dashboard/ui.ts` renders only `kind`, `status`, `reason`, and `evidence`; it does not project fields from the raw GitHub payload.\n- Successful workflow/deployment history falls into `unlinked` and dominates the page.\n\n## Lane taxonomy\nUse four lanes with stable internal keys and human-readable labels:\n\n1. `attention` — needs attention now\n   - degraded sources\n   - failed/error/cancelled/timed-out GitHub workflow runs or deployments\n   - any linked/unmatched item with attention status\n\n2. `active` — active ADV work and live source work\n   - ADV changes with status `pending` or `active`\n   - GitHub queued/in-progress/running workflow runs\n   - linked open PRs for active ADV changes\n\n3. `unmatched` — source work not structurally linked to ADV\n   - open PRs with no branch/SHA match\n   - non-success/non-running unmatched source items that are not attention items\n   - card copy says `Unmatched source item`, not auth/login language\n\n4. `inventory` — lower-priority/non-active inventory\n   - ADV changes with status `draft`\n   - closed/archived/non-active ADV states if present in snapshots\n   - summarized/collapsed successful or skipped workflow/deployment history\n\nDisplay labels should be user-facing, not implementation-facing:\n- `Attention`\n- `Active work`\n- `Unmatched source`\n- `Inventory`\n\n## Typed lane item view-model\nAdd a typed dashboard lane item union in/near `bin/lib/dashboard/attention.ts` or a new local module such as `bin/lib/dashboard/lane-items.ts`:\n\n```ts\ntype DashboardLaneItem =\n  | AdvChangeLaneItem\n  | GitHubPullLaneItem\n  | GitHubWorkflowRunLaneItem\n  | GitHubDeploymentLaneItem\n  | DegradedLaneItem\n  | SummaryLaneItem;\n```\n\nCommon card fields:\n- `kind`\n- `title`\n- `subtitle`\n- `status`\n- `url`\n- `updated_at`\n- `reason`\n- `metadata: Array<{ label: string; value: string }>`\n\nGitHub-specific projections should be deterministic field extraction, not UI heuristics:\n- PR: `number`, `title`, `html_url`, `head.ref`, `head.sha`, `state`, `updated_at`, repo owner/name from project config.\n- workflow run: `name`, `display_title`, `html_url`, `head_branch`, `head_sha`, `status`, `conclusion`, `updated_at`, repo owner/name.\n- deployment: `environment`, `ref`, `sha`, `statuses_url` or `url`, source state from `source_states.github_deployment`, repo owner/name.\n\nKeep `sanitizeDashboardState` as the redaction sink before response emission. UI still escapes HTML.\n\n## Classification rules\n\n### ADV active vs inventory\nDo **not** use `DASHBOARD_ACTIVE_STATUSES` from `bin/lib/changes.ts` for this dashboard lane split because it includes `draft`; that set is too broad for this UI.\n\nDefine a narrower local predicate:\n\n```ts\nfunction isDashboardActionableAdvStatus(status: string): boolean {\n  return status === \"pending\" || status === \"active\";\n}\n```\n\n- `pending` / `active` → `active`\n- `draft` → `inventory`\n- `archived` / `closed` / unknown non-active states → `inventory`\n- gate and progress remain visible on every ADV card.\n\n### GitHub source items\n- attention statuses: `failure`, `failed`, `error`, `cancelled`, `timed_out`, `degraded`\n- running statuses: `queued`, `requested`, `waiting`, `pending`, `in_progress`, `running`\n- successful history statuses: `success`, `skipped`, neutral completed deployment status when no failure state is present\n\nRules:\n- attention statuses → `attention`\n- running statuses → `active`\n- open unmatched PRs → `unmatched`\n- successful/skipped workflow runs and deployments → `inventory` summary/collapsed group, not individual primary cards\n- linked source items follow the same status rules, but include `changeId` and evidence metadata.\n\n## Successful history collapse\nSuccessful/skipped workflow runs and deployments should not render as one card per item in the primary lanes.\n\nImplementation options, in order:\n1. Produce `SummaryLaneItem` objects grouped by kind/status/repo, e.g. `92 successful workflow runs hidden`, with latest timestamp and optional latest URL.\n2. If preserving inspectability is easy, render a `<details>` section in `inventory` with first N latest items and count hidden.\n3. Do not put each successful run into `attention`, `active`, or `unmatched`.\n\nAcceptance only requires that successful history does not dominate primary visible lanes; summary grouping is sufficient.\n\n## UI rendering\nMake `ui.ts` a dumb formatter over typed lane item fields:\n- Render title/subtitle/status/reason/URL/metadata uniformly.\n- Keep `advChangeHtml` compact but include status/gate/progress.\n- Rename lane labels and stats to the new taxonomy.\n- Keep no forms, no mutation verbs as controls, no POST actions.\n- Unmatched copy must say correlation/unmatched, not auth/login.\n\n## Sorting and bounding\nWithin each lane:\n1. attention severity first, newest update second\n2. active work newest update first\n3. unmatched open PRs first, then other source items newest first\n4. inventory ADV changes first or latest activity first, then summary cards\n\nNo hard cap required for acceptance, but inventory may use collapsed/details rendering to keep page usable.\n\n## Test strategy\nAdd or update Bun tests under `bin/lib/dashboard`:\n- `attention.test.ts`: lane taxonomy, draft ADV to inventory, pending/active ADV to active, failed runs to attention, running runs to active, successful runs summarized/collapsed.\n- `correlation.test.ts` or new `lane-items.test.ts`: PR/workflow/deployment summary projection from raw GitHub payloads.\n- `ui.test.ts`: labels `Active work`, `Unmatched source`, `Inventory`; card metadata rendered; no mutation controls; no auth setup card for unmatched items.\n- Existing `bun test bin/` remains the verification command.\n\n## Validator outcome\nIndependent validator returned `VALIDATED` with adjustments:\n- Design direction is correct.\n- Do not reuse `DASHBOARD_ACTIVE_STATUSES` because it includes `draft`.\n- Typed summary projection should happen upstream of `ui.ts`.\n- Replace old lane-taxonomy tests deliberately rather than deleting coverage.\n\n## Risks\n- Changing lane keys is a dashboard API behavior change. This is acceptable because the dashboard is local and the UI is the known consumer, but tests must pin the new schema.\n- GitHub payload fields are optional; projections must tolerate missing fields and render only present metadata.\n- Sanitization must remain applied after projection to avoid leaking unexpected credential-like fields.",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\n\nImplemented actionability-first dashboard lanes for the local ADV dashboard. The dashboard now separates urgent source failures, active ADV/source work, unmatched GitHub source items, and lower-priority inventory instead of mixing draft ADV changes and GitHub history into low-information `linked`/`unlinked` lists.\n\n## Verdict\n\nAPPROVED\n\n## What Was Built\n\n1. Replaced dashboard lanes with `attention`, `active`, `unmatched`, and `inventory`.\n2. Routed `draft` and other non-active ADV changes to inventory; routed `pending`/`active` ADV changes to active work.\n3. Summarized successful/skipped workflow/deployment history into inventory so it does not dominate primary lanes.\n4. Added typed GitHub source card projections for PRs, workflow runs, and deployments.\n5. Rendered source metadata in the UI: repo, branch/ref, URL, updated time, conclusion/deployment status, and SHA where present.\n6. Updated UI labels to `Attention`, `Active work`, `Unmatched source`, and `Inventory`.\n7. Changed unlinked/correlation copy to `Unmatched source item` so valid GitHub auth is not confused with correlation failure.\n8. Preserved local-only, read-only, sanitized dashboard behavior.\n9. Hardened the dashboard fixed-port collision test to avoid failing when the installed dashboard service is already active.\n\n## What Was Verified\n\n- Contract matrix: 22/22 rows pass/respected.\n- Acceptance reviewer: `improveDashboardLanes|change:review:acceptance|adv-reviewer|1` returned READY.\n- Targeted tests: `tr_mques8p8_de1024ec` passed dashboard server/attention/UI tests — 14 tests, 87 assertions.\n- Full tests: `tr_mquetl9l_0c1224c2` passed `bun test bin/` — 151 tests, 429 assertions.\n- Reviewer verification: `bun test bin/dashboard-cli.test.ts` passed 6 tests; `bun test bin/` passed 151 tests, 429 assertions.\n- Installed dashboard service was restarted after fixed-port test isolation; `bin/adv dashboard doctor --profile pokeedge` reported config present, service present, linger enabled, and service active.\n\n## Remaining Concerns\n\nNone for the accepted contract. The currently installed service still runs the previously archived code until this change is released/merged and the service is reinstalled or restarted from the updated checkout.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-06-26T04:16:37.282Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | The top-level lane names and counts make it clear which items need attention now, which ADV changes are active/in-flight, and which source items are unmatched/noisy. | pass | UI/server implementation exposes actionability lane labels/counts: Attention, Active work, Unmatched source, Inventory. Tests: tr_mqueopwa_59827faf, tr_mques8p8_de1024ec. |\n| SC2 | success_criterion | Successful historical workflow runs no longer dominate the primary visible lane area. | pass | Successful/skipped workflow/deployment history summarized into inventory via SummaryLaneItem; attention/active/unmatched tests passed in tr_mquefg54_d659b62d and tr_mques8p8_de1024ec. |\n| SC3 | success_criterion | An unlinked PR card shows at least PR number/title, repository, branch, status, updated time, and URL when GitHub provides those fields. | pass | PR source projection includes #/title, repo, branch, URL, updated_at in attention.test; green tr_mquekcgv_e3791afb. |\n| SC4 | success_criterion | An unlinked workflow-run card shows at least workflow name/display title, repository, branch, status/conclusion, updated time, and URL when GitHub provides those fields. | pass | Workflow run projection includes workflow name, display title, repo, branch, conclusion, URL, updated_at; green tr_mquekcgv_e3791afb. |\n| SC5 | success_criterion | An unlinked deployment card shows at least environment/ref/SHA or deployment URL/status metadata when GitHub provides those fields. | pass | Deployment projection includes environment/ref/status/SHA metadata; server integration verifies failed deployment metadata in tr_mques8p8_de1024ec. |\n| SC6 | success_criterion | If GitHub auth is valid and correlation fails, the UI explains it as an unmatched source item, not as a login/auth problem. | pass | UI test asserts `Unmatched source item` copy and no unmatched-auth language; green tr_mqueopwa_59827faf. |\n| AC1 | acceptance_criterion | Given the PokeEdge profile dashboard loads, when ADV changes are rendered, then active/in-flight ADV changes are visually separated from non-active ADV inventory using a deterministic status/gate classification. | pass | Lane classifier test verifies deterministic split of active vs inventory ADV changes; tr_mquefg54_d659b62d and tr_mques8p8_de1024ec passed. |\n| AC2 | acceptance_criterion | Given ADV changes with status `draft` dominate the project snapshot, when the dashboard renders, then those draft/non-active changes are not mixed into the primary active-work lane. | pass | Draft ADV change routes to inventory, not active lane, in `groups project-first activity into actionability lanes`; tr_mquefg54_d659b62d passed. |\n| AC3 | acceptance_criterion | Given unlinked open pull requests exist, when their cards render, then each visible card includes PR number or title, repo, branch, status, recency, and URL when present in the API payload. | pass | PR metadata card summary test covers PR number/title, repo, branch, URL, updated_at; tr_mquekcgv_e3791afb passed. |\n| AC4 | acceptance_criterion | Given unlinked workflow runs exist, when their cards render, then each visible card includes workflow/display name, repo, branch, status or conclusion, recency, and URL when present in the API payload. | pass | Workflow-run metadata test covers name/display title, repo, branch, conclusion, URL, updated_at; tr_mquekcgv_e3791afb passed. |\n| AC5 | acceptance_criterion | Given unlinked successful workflow runs exist, when the dashboard renders, then successful historical runs are collapsed, summarized, or moved out of the primary attention/action lanes so they cannot fill the visible primary list. | pass | Successful workflow_run in classifier test becomes `summary` item in inventory; tr_mquefg54_d659b62d passed. |\n| AC6 | acceptance_criterion | Given unlinked failed/cancelled/error workflow runs exist, when the dashboard renders, then they remain visible in an attention/action lane with identifying metadata. | pass | Failed workflow/deployment statuses route to attention with metadata; tr_mquekcgv_e3791afb and tr_mques8p8_de1024ec passed. |\n| AC7 | acceptance_criterion | Given GitHub auth is available through `GITHUB_TOKEN` or `gh auth token`, when an item is unlinked, then the UI labels the cause as unmatched/correlation state and does not display a GitHub setup/auth card for that item. | pass | UI unmatched copy test asserts unmatched/correlation language and no auth implication; tr_mqueopwa_59827faf passed. |\n| AC8 | acceptance_criterion | Given dashboard API state is sanitized, when cards render GitHub metadata, then no token, secret, authorization header, or raw credential-like value is displayed. | pass | Sanitization/read-only tests passed; full `bun test bin/` tr_mquetl9l_0c1224c2 passed 151 tests/429 assertions and reviewer reran same successfully. |\n| AC9 | acceptance_criterion | Given non-GET requests are sent to dashboard routes, when the dashboard handles them, then no mutation controls or write actions are introduced. | pass | Server rejects mutation methods and UI has no mutation controls/forms; tr_mqueopwa_59827faf and tr_mques8p8_de1024c2/tr_mquetl9l_0c1224c2 passed. |\n| AC10 | acceptance_criterion | Given existing dashboard tests run, when `bun test bin/` completes, then lane classification, card metadata rendering, and read-only constraints are covered by tests. | pass | Full `bun test bin/` passed: tr_mquetl9l_0c1224c2, 151 tests, 429 assertions. Reviewer reran `bun test bin/` with same pass counts. |\n| C1 | constraint | Local-only dashboard at `127.0.0.1`; no hosted service behavior. | respected | No hosted-service behavior added; dashboard server still loopback/default host behavior covered by server tests in tr_mques8p8_de1024ec and full tr_mquetl9l_0c1224c2. |\n| C2 | constraint | Read-only only; no rerun/merge/approve/deploy/archive/cancel controls. | respected | UI test `does not render mutation controls` passed in tr_mqueopwa_59827faf and full tr_mquetl9l_0c1224c2. |\n| C3 | constraint | No token or secret display. | respected | Sanitization tests and UI no-secret checks passed; no raw credentials added to metadata projection. Full tr_mquetl9l_0c1224c2 passed. |\n| C4 | constraint | Keep API shape backward-compatible where practical; if lane names change, tests must pin behavior. | respected | Lane taxonomy change pinned by attention/UI/server tests; API lanes now covered by tr_mques8p8_de1024ec and full tr_mquetl9l_0c1224c2. |\n| C5 | constraint | Prefer deterministic classifiers over UI heuristics. | respected | Classifier and source projection implemented as deterministic TypeScript functions, not UI heuristics; tests tr_mquefg54_d659b62d/tr_mquekcgv_e3791afb passed. |\n| C6 | constraint | Keep low API usage behavior from the previous change: cached/coalesced state provider remains intact. | respected | No cache/coalescing provider behavior changed; server cache/coalesce test passed in tr_mques8p8_de1024ec and full tr_mquetl9l_0c1224c2. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-06-26T03:32:23.757Z",
+      "contentHash": "2a6dc3085682e9c27fc8ec3fa8982d3773c2d1fa057c2b7e188b0476e32a7975",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-06-26T03:32:23.757Z",
+      "contentHash": "f841f12a32249f017f90e9503c62b534e9ad75172808502482f0db39f95fe884",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-06-26T03:36:14.685Z",
+      "contentHash": "84ae0258d8fa6516b4df18f3a4d0bfff4dd43fe5e5a5897487ee02dd0b95dd62",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-06-26T03:46:20.426Z",
+      "contentHash": "1def69c057d2a58c23cba677224b1d93de5aa163ac4b0218669aee75d795bcf4",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-06-26T04:17:07.800Z",
+      "contentHash": "09e60982f4d057f52c6e561a13198e53cc703c7fa654879b666e8c6da9fd9bdf",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-06-26T04:42:33.551Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_ASSUMPTION_HEAVY",
+      "severity": "warning",
+      "message": "Proposal references authentication/authorization without specifying the model. What auth mechanism will be used?",
+      "recorded_at": "2026-06-26T03:34:13.858Z"
+    }
+  ],
+  "worktree_auto_managed": true
+}
