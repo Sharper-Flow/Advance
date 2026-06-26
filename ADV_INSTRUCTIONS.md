@@ -543,7 +543,8 @@ When a change has `epic_membership`:
 2. Surface Epic ID, title, entry ID, order, entry title, projection source, and repo/project owner metadata when present in change show/status/resume outputs.
 3. Use Epic order as advisory for next-work recommendations: warn about earlier incomplete entries, but do not block gates, tasks, or promotion solely because of order.
 4. Include Epic context in sub-agent prompts when it helps the worker understand initiative scope.
-5. If no Epic membership is present, render the change identically to the pre-Epic flow.
+5. During archive/release, verify terminal projection evidence for the linked Epic entry after release proof, use typed repair/backfill when an already-archived child still appears active, and include the Epic verification/repair result in the archive report.
+6. If no Epic membership is present, render the change identically to the pre-Epic flow.
 
 Existing changes can be linked into, unlinked from, or moved between Epics only through `adv_epic_link_change`, `adv_epic_unlink_change`, and `adv_epic_move_change` with audit evidence; use `target_path` when the child change lives in another ADV-enabled project. Use `adv_epic_repair_membership` for `projection_pending`, `projection_stale`, `projection_mismatch`, or `target_unreachable` states; default Epic views show bounded `member_status`, not full target-project traces. For cross-project shell-shaped work, create or use the target-project ADV change first, then link it into the owner Epic with `adv_epic_link_change target_path`; do not claim direct cross-project `adv_epic_promote_shell` creation unless that tool later gains structural target support.
 

@@ -964,6 +964,9 @@ export async function createDiskStore(
       setEntryMembershipStatus: async () => {
         throw new Error("Epics require the Temporal store backend.");
       },
+      setEntryTerminalSummary: async () => {
+        throw new Error("Epics require the Temporal store backend.");
+      },
       reorder: async () => {
         throw new Error("Epics require the Temporal store backend.");
       },

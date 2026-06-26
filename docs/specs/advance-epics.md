@@ -1,6 +1,6 @@
 # Advance Epics
 
-> **Version:** 1.3.0
+> **Version:** 1.4.0
 > **Updated:** 2026-06-26
 
 ## Purpose
@@ -378,6 +378,80 @@ Existing ADV changes MAY be linked into an Epic after creation, unlinked, or mov
 - The Epic remains readable
 - The member reports `target_unreachable` or another typed repair status
 - A repair operation can dry-run before mutating state
+
+---
+
+### Archive Synchronizes Epic Child Terminal State
+
+**ID:** `rq-epicArchiveSync01` | **Priority:** **[MUST]**
+
+When an ADV change with `epic_membership` is archived, the archive/release flow MUST load the parent Epic, project the child change's terminal state onto the linked Epic entry after release proof, verify the terminal Epic entry/projection state, and surface Epic evidence in the archive report. Already-archived child changes whose Epic entries remain active MUST be repairable/backfillable from canonical child/archive state through typed Epic tools such as `adv_epic_repair_membership`; direct ADV state edits are forbidden. Changes without Epic membership MUST continue through the normal archive flow. Epic order MUST remain advisory and MUST NOT block archive solely because earlier entries are incomplete.
+
+**Tags:** `epics`, `archive`, `release`, `membership`
+
+#### Scenarios
+
+**Epic child archive records terminal summary** (`rq-epicArchiveSync01.1`)
+
+**Given:**
+- A change has an `epic_membership` projection
+- The archive flow has obtained valid release proof for the child change
+
+**When:** The change is marked archived
+
+**Then:**
+- The parent Epic entry receives a terminal summary or equivalent typed terminal-history state
+- The archived child appears in compact Epic history rather than active next work
+- The archive report includes Epic verification evidence
+
+**Stale projection uses typed repair path** (`rq-epicArchiveSync01.2`)
+
+**Given:**
+- An archived child change has an Epic entry whose membership projection is stale, pending, or target-unreachable
+
+**When:** Archive verification inspects the parent Epic
+
+**Then:**
+- The flow uses `adv_epic_repair_membership` or another typed Epic tool to repair or mark the projection
+- No direct ADV state files are read or edited
+- Unresolved repair status is surfaced in archive evidence
+
+**Retroactive repair backfills archived child progress** (`rq-epicArchiveSync01.3`)
+
+**Given:**
+- An Epic entry remains active even though the linked child change is already `archived` or `closed`
+
+**When:** `adv_epic_repair_membership mode=sync_child_projection` runs with canonical child/archive evidence
+
+**Then:**
+- The existing Epic entry receives terminal summary state
+- Epic progress recomputes completed entries and next entry from terminal summaries
+- The repair result reports terminal projection evidence
+
+**Non-Epic archive remains unchanged** (`rq-epicArchiveSync01.4`)
+
+**Given:**
+- A change has no `epic_membership` projection
+
+**When:** The change is archived
+
+**Then:**
+- No Epic lookup or mutation is required
+- The normal archive proof and report behavior remain valid
+- The report may record `Epic: n/a`
+
+**Earlier incomplete Epic entries do not block archive by order** (`rq-epicArchiveSync01.5`)
+
+**Given:**
+- A child change belongs to an Epic
+- An earlier Epic entry is incomplete
+
+**When:** The child change archive flow verifies Epic context
+
+**Then:**
+- The earlier incomplete entry may be reported as advisory context
+- The archive is not blocked solely by Epic order
+- Phase 9 release proof remains the archive authority
 
 ---
 

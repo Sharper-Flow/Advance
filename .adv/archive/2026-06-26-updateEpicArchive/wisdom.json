@@ -1,0 +1,19 @@
+{
+  "entries": [
+    {
+      "id": "ws-7ZuiO0",
+      "type": "gotcha",
+      "content": "Epic membership repair status is not the same as terminal-history projection: `adv_epic_repair_membership` can make child projection `ok`, but compact Epic history depends on `entry.terminal_summary`. Archive paths must fire the existing terminal-summary signal after release proof to move archived children out of `next_work`.",
+      "source_task": "tk-d2912ef2591a",
+      "recorded_at": "2026-06-26T19:41:54.190Z"
+    },
+    {
+      "id": "ws-0W7bvf",
+      "type": "pattern",
+      "content": "For Epic repair/backfill, route terminal archived/closed child changes through the existing `entryTerminalSummarySignal`/`setEntryTerminalSummary` path instead of child membership projection. `recomputeEpicProgress` keys off `terminal_summary`, so membership repair alone cannot advance completed_entries or next_entry_id.",
+      "source_task": "tk-e2081173496e",
+      "recorded_at": "2026-06-26T20:55:27.911Z"
+    }
+  ],
+  "count": 2
+}

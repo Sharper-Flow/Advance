@@ -1331,6 +1331,43 @@ async function recordPhase9Status(input: {
   );
 }
 
+async function projectEpicTerminalSummaryAfterArchive(input: {
+  store: Store;
+  change: Change;
+  completedAt: string;
+}): Promise<
+  | { status: "not_applicable" }
+  | { status: "recorded"; epicId: string; entryId: string }
+  | { status: "warning"; epicId: string; entryId: string; error: string }
+> {
+  const membership = input.change.epic_membership;
+  if (!membership) return { status: "not_applicable" };
+
+  try {
+    await input.store.epics.setEntryTerminalSummary(membership.epic_id, {
+      entryId: membership.entry_id,
+      status: "archived",
+      completedAt: input.completedAt,
+    });
+    return {
+      status: "recorded",
+      epicId: membership.epic_id,
+      entryId: membership.entry_id,
+    };
+  } catch (err) {
+    const error = err instanceof Error ? err.message : String(err);
+    logger.warn(
+      `archive epic terminal projection: failed to update ${membership.epic_id}/${membership.entry_id} for ${input.change.id}: ${error}`,
+    );
+    return {
+      status: "warning",
+      epicId: membership.epic_id,
+      entryId: membership.entry_id,
+      error,
+    };
+  }
+}
+
 /**
  * Verify Phase 9 release evidence from the main checkout when the original
  * change worktree is already gone. Used only for existing-bundle retries; it
@@ -4261,17 +4298,23 @@ export const changeTools = {
               }
 
               // Archive status transition
+              const archivedAt = new Date().toISOString();
               await recordPhase9Status({
                 store,
                 changeId,
                 status: {
                   status: "done",
                   startedAt: currentChange.phase9_status?.startedAt ?? now,
-                  completedAt: new Date().toISOString(),
+                  completedAt: archivedAt,
                 },
               });
               currentChange.status = "archived";
               await store.changes.save(currentChange);
+              await projectEpicTerminalSummaryAfterArchive({
+                store,
+                change: currentChange,
+                completedAt: archivedAt,
+              });
 
               // Cleanup. Failures here are non-fatal (the change is already
               // durably archived) but MUST be observable so leaked dirs,
@@ -4533,9 +4576,20 @@ export const changeTools = {
       if (!dryRun && archiveResult.success) {
         const statusAlreadyArchived = change.status === "archived";
         if (!statusAlreadyArchived) {
+          const archivedAt = new Date().toISOString();
           change.status = "archived";
           try {
             await store.changes.save(change);
+            const epicProjection = await projectEpicTerminalSummaryAfterArchive({
+              store,
+              change,
+              completedAt: archivedAt,
+            });
+            if (epicProjection.status === "warning") {
+              archiveResult.errors.push(
+                `Epic terminal projection warning: failed to update ${epicProjection.epicId}/${epicProjection.entryId}: ${epicProjection.error}`,
+              );
+            }
           } catch (saveError) {
             const saveErrorText = collectErrorText(saveError);
             const contextMismatch = extractContextMismatch(saveError);

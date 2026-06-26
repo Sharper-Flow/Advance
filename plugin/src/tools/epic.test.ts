@@ -80,6 +80,21 @@ function makeStore(epicOverrides?: Partial<Epic>): Store {
           link_evidence: "target failed",
         }),
       ),
+      setEntryTerminalSummary: vi.fn(async () =>
+        makeChangeEntry({
+          entry_id: "entry-2",
+          change_ref: { change_id: "change-2", project_id: "project-api" },
+          title: "Linked Change",
+          membership_status: "terminal",
+          linked_at: "2026-06-25T00:00:00.000Z",
+          linked_by: "agent",
+          link_evidence: "terminal repair",
+          terminal_summary: {
+            status: "archived",
+            completed_at: "2026-06-26T00:00:00.000Z",
+          },
+        }),
+      ),
       reorder: vi.fn(async () => epic),
     },
     changes: {
@@ -951,6 +966,110 @@ describe("adv_epic_repair_membership", () => {
         }),
       }),
     );
+  });
+
+  test("sync_child_projection backfills terminal summary for archived child", async () => {
+    const store = makeStore({
+      entries: [
+        makeChangeEntry({
+          entry_id: "entry-2",
+          change_ref: {
+            change_id: "change-2",
+            project_id: "epic-test-project",
+          },
+          title: "Linked Change",
+          membership_status: "projection_stale",
+          linked_at: "2026-06-25T00:00:00.000Z",
+          linked_by: "agent",
+          link_evidence: "repair test",
+        }),
+      ],
+    });
+    vi.mocked(store.changes.get).mockResolvedValueOnce({
+      success: true,
+      data: {
+        id: "change-2",
+        title: "Linked Change",
+        status: "archived",
+        gates: {},
+        tasks: [],
+        deltas: {},
+        wisdom: [],
+        created_at: "2026-06-25T00:00:00.000Z",
+        updated_at: "2026-06-26T00:00:00.000Z",
+      } as Change,
+    });
+
+    const output = await epicTools.adv_epic_repair_membership.execute(
+      {
+        epic_id: "addAuthEpic",
+        entry_id: "entry-2",
+        mode: "sync_child_projection",
+        evidence: "Operator verified archived child remains active in Epic.",
+      },
+      store,
+    );
+    const parsed = parseToolOutput(output);
+
+    expect(parsed.success).toBe(true);
+    expect(parsed.terminal_summary_projected).toBe(true);
+    expect(store.epics.setEntryTerminalSummary).toHaveBeenCalledWith(
+      "addAuthEpic",
+      {
+        entryId: "entry-2",
+        status: "archived",
+        completedAt: "2026-06-26T00:00:00.000Z",
+      },
+    );
+    expect(store.changes.setEpicMembership).not.toHaveBeenCalled();
+  });
+
+  test("dry-run sync_child_projection previews closed child terminal backfill without mutation", async () => {
+    const store = makeStore({
+      entries: [
+        makeChangeEntry({
+          entry_id: "entry-2",
+          change_ref: { change_id: "change-2", project_id: "project-api" },
+          title: "Linked Change",
+          membership_status: "projection_stale",
+          linked_at: "2026-06-25T00:00:00.000Z",
+          linked_by: "agent",
+          link_evidence: "repair test",
+        }),
+      ],
+    });
+    vi.mocked(store.changes.get).mockResolvedValueOnce({
+      success: true,
+      data: {
+        id: "change-2",
+        title: "Linked Change",
+        status: "closed",
+        gates: {},
+        tasks: [],
+        deltas: {},
+        wisdom: [],
+        created_at: "2026-06-25T00:00:00.000Z",
+      } as Change,
+    });
+
+    const output = await epicTools.adv_epic_repair_membership.execute(
+      {
+        epic_id: "addAuthEpic",
+        entry_id: "entry-2",
+        mode: "sync_child_projection",
+        evidence: "Operator verified closed child remains active in Epic.",
+        dryRun: true,
+      },
+      store,
+    );
+    const parsed = parseToolOutput(output);
+
+    expect(parsed.success).toBe(true);
+    expect(parsed.dryRun).toBe(true);
+    expect(parsed.action).toBe("project_terminal_summary");
+    expect(parsed.terminal_summary.status).toBe("closed");
+    expect(store.epics.setEntryTerminalSummary).not.toHaveBeenCalled();
+    expect(store.changes.setEpicMembership).not.toHaveBeenCalled();
   });
 
   test("dry-run mark_target_unreachable previews Epic status update without mutation", async () => {
