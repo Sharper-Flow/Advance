@@ -1,8 +1,9 @@
-import type { DashboardDegradedSource } from "./types";
+import type { DashboardDegradedSource, DashboardGithubConfig } from "./types";
 import type { LinkedDashboardItem, UnlinkedDashboardItem } from "./correlation";
 import type { DashboardAdvChange } from "./adv";
 
 export interface AttentionInput {
+  github?: DashboardGithubConfig;
   changes: DashboardAdvChange[];
   linked: LinkedDashboardItem[];
   unlinked: UnlinkedDashboardItem[];
@@ -17,11 +18,29 @@ export interface AttentionLanes {
 }
 
 export type DashboardLaneItem =
-  | LinkedDashboardItem
-  | UnlinkedDashboardItem
+  | ProjectedSourceLaneItem
   | AdvChangeLaneItem
   | DegradedLaneItem
   | SummaryLaneItem;
+
+export type ProjectedSourceLaneItem = (
+  | LinkedDashboardItem
+  | UnlinkedDashboardItem
+) &
+  LaneCardFields;
+
+export interface LaneCardFields {
+  title?: string;
+  subtitle?: string;
+  url?: string;
+  updated_at?: string;
+  metadata?: LaneCardMetadata[];
+}
+
+export interface LaneCardMetadata {
+  label: string;
+  value: string;
+}
 
 export interface AdvChangeLaneItem {
   kind: "adv_change";
@@ -70,14 +89,16 @@ export function buildAttentionLanes(input: AttentionInput): AttentionLanes {
   const unmatched: DashboardLaneItem[] = [];
   const historySummary = new Map<string, number>();
 
-  for (const item of input.linked) {
+  for (const raw of input.linked) {
+    const item = projectSourceItem(raw, input.github);
     if (isSuccessfulHistory(item)) increment(historySummary, summaryKey(item));
     else if (isAttentionStatus(item)) attention.unshift(item);
     else if (isRunningStatus(item) || isOpenStatus(item)) active.push(item);
     else inventory.push(item);
   }
 
-  for (const item of input.unlinked) {
+  for (const raw of input.unlinked) {
+    const item = projectSourceItem(raw, input.github);
     if (isSuccessfulHistory(item)) increment(historySummary, summaryKey(item));
     else if (isAttentionStatus(item)) attention.unshift(item);
     else if (isRunningStatus(item)) active.push(item);
@@ -112,6 +133,114 @@ function advChangeItem(change: DashboardAdvChange): AdvChangeLaneItem {
       gate: change.firstIncompleteGate ?? "complete",
       progress: change.gateProgressStr,
     },
+  };
+}
+
+function projectSourceItem<T extends LinkedDashboardItem | UnlinkedDashboardItem>(
+  item: T,
+  github: DashboardGithubConfig | undefined,
+): T & LaneCardFields {
+  return { ...item, ...sourceFields(item, github) };
+}
+
+function sourceFields(
+  item: LinkedDashboardItem | UnlinkedDashboardItem,
+  github: DashboardGithubConfig | undefined,
+): LaneCardFields {
+  if (item.kind === "pull") return pullFields(item.item, github);
+  if (item.kind === "workflow_run") return workflowRunFields(item.item, github);
+  if (item.kind === "deployment") return deploymentFields(item.item, github);
+  return baseFields(item.item, github);
+}
+
+function pullFields(
+  value: unknown,
+  github: DashboardGithubConfig | undefined,
+): LaneCardFields {
+  const item = record(value);
+  const number = numberField(item, "number");
+  const title = stringField(item, "title") ?? "Pull request";
+  const branch = stringField(record(item?.head), "ref");
+  return {
+    title: number ? `#${number} ${title}` : title,
+    url: stringField(item, "html_url"),
+    updated_at: stringField(item, "updated_at"),
+    metadata: compactMetadata([
+      repoMetadata(github),
+      branch ? { label: "Branch", value: branch } : undefined,
+      stringField(record(item?.head), "sha")
+        ? { label: "SHA", value: shortSha(stringField(record(item?.head), "sha")!) }
+        : undefined,
+    ]),
+  };
+}
+
+function workflowRunFields(
+  value: unknown,
+  github: DashboardGithubConfig | undefined,
+): LaneCardFields {
+  const item = record(value);
+  const name =
+    stringField(item, "name") ??
+    stringField(item, "workflow_name") ??
+    stringField(item, "display_title") ??
+    "Workflow run";
+  const displayTitle = stringField(item, "display_title");
+  const conclusion = stringField(item, "conclusion");
+  return {
+    title: name,
+    subtitle: displayTitle && displayTitle !== name ? displayTitle : undefined,
+    url: stringField(item, "html_url"),
+    updated_at: stringField(item, "updated_at"),
+    metadata: compactMetadata([
+      repoMetadata(github),
+      stringField(item, "head_branch")
+        ? { label: "Branch", value: stringField(item, "head_branch")! }
+        : undefined,
+      conclusion ? { label: "Conclusion", value: conclusion } : undefined,
+      stringField(item, "head_sha")
+        ? { label: "SHA", value: shortSha(stringField(item, "head_sha")!) }
+        : undefined,
+    ]),
+  };
+}
+
+function deploymentFields(
+  value: unknown,
+  github: DashboardGithubConfig | undefined,
+): LaneCardFields {
+  const item = record(value);
+  const environment = stringField(item, "environment");
+  const ref = stringField(item, "ref");
+  const sourceStates = record(item?.source_states);
+  const deploymentStatus = stringField(sourceStates, "github_deployment");
+  return {
+    title: environment ? `Deployment: ${environment}` : "Deployment",
+    url: stringField(item, "html_url") ?? stringField(item, "url"),
+    updated_at: stringField(item, "updated_at") ?? stringField(item, "created_at"),
+    metadata: compactMetadata([
+      repoMetadata(github),
+      ref ? { label: "Ref", value: ref } : undefined,
+      deploymentStatus
+        ? { label: "Deployment", value: deploymentStatus }
+        : undefined,
+      stringField(item, "sha")
+        ? { label: "SHA", value: shortSha(stringField(item, "sha")!) }
+        : undefined,
+    ]),
+  };
+}
+
+function baseFields(
+  value: unknown,
+  github: DashboardGithubConfig | undefined,
+): LaneCardFields {
+  const item = record(value);
+  return {
+    title: stringField(item, "title") ?? stringField(item, "name"),
+    url: stringField(item, "html_url") ?? stringField(item, "url"),
+    updated_at: stringField(item, "updated_at"),
+    metadata: compactMetadata([repoMetadata(github)]),
   };
 }
 
@@ -159,4 +288,45 @@ function activeKindRank(kind: string): number {
   if (kind === "workflow_run") return 1;
   if (kind === "pull") return 2;
   return 3;
+}
+
+function repoMetadata(
+  github: DashboardGithubConfig | undefined,
+): LaneCardMetadata | undefined {
+  return github ? { label: "Repo", value: `${github.owner}/${github.repo}` } : undefined;
+}
+
+function compactMetadata(
+  entries: Array<LaneCardMetadata | undefined>,
+): LaneCardMetadata[] | undefined {
+  const metadata = entries.filter((entry): entry is LaneCardMetadata => !!entry);
+  return metadata.length > 0 ? metadata : undefined;
+}
+
+function shortSha(value: string): string {
+  return value.length > 12 ? value.slice(0, 12) : value;
+}
+
+function record(value: unknown): Record<string, unknown> | undefined {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : undefined;
+}
+
+function stringField(
+  record: Record<string, unknown> | undefined,
+  key: string,
+): string | undefined {
+  const value = record?.[key];
+  return typeof value === "string" && value.trim().length > 0
+    ? value.trim()
+    : undefined;
+}
+
+function numberField(
+  record: Record<string, unknown> | undefined,
+  key: string,
+): number | undefined {
+  const value = record?.[key];
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
 }
