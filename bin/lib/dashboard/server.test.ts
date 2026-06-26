@@ -160,7 +160,7 @@ describe("dashboard server state", () => {
     expect(state.projects[1]?.degradedSources).toEqual([]);
   });
 
-  test("keeps GitHub deployment status and ADV ops evidence separately visible", async () => {
+  test("attaches latest deployment failure to the linked ADV change", async () => {
     const state = await buildDashboardState(config(), {
       now: () => new Date("2026-06-25T22:00:00.000Z"),
       advReader: async (project) => ({
@@ -208,37 +208,33 @@ describe("dashboard server state", () => {
       }),
     });
 
-    const active = state.projects[0]?.lanes.active ?? [];
-    const attention = state.projects[0]?.lanes.attention ?? [];
-    const inventory = state.projects[0]?.lanes.inventory ?? [];
-    const advChange = active.find((item) => item.kind === "adv_change");
-    const deployment = attention.find((item) => item.kind === "deployment");
-    const ops = inventory.find((item) => item.kind === "ops");
+    const needsAttention = state.projects[0]?.lanes.needs_attention ?? [];
+    const advChange = needsAttention.find(
+      (item) => item.kind === "adv_change_status",
+    );
 
     expect(advChange).toMatchObject({
       changeId: "addLocalDashboard",
       title: "Add local dashboard",
-      evidence: "adv.change: addLocalDashboard",
+      latest: {
+        overall: "attention",
+        deployment: expect.objectContaining({
+          status: "failure",
+          title: "Deployment",
+          metadata: expect.arrayContaining([
+            { label: "Repo", value: "Sharper-Flow/Advance" },
+            { label: "Ref", value: "change/addLocalDashboard" },
+            { label: "Deployment", value: "failure" },
+          ]),
+        }),
+      },
     });
-    expect(deployment?.source_states).toEqual({ github_deployment: "failure" });
-    expect(deployment).toMatchObject({
-      title: "Deployment",
-      metadata: expect.arrayContaining([
-        { label: "Repo", value: "Sharper-Flow/Advance" },
-        { label: "Ref", value: "change/addLocalDashboard" },
-        { label: "Deployment", value: "failure" },
-      ]),
-    });
-    expect(ops?.status).toBe("success");
-    expect(deployment?.evidence).toBe(
+    expect(advChange?.sources.deployments[0]?.evidence).toBe(
       "deployment.ref: change/addLocalDashboard",
-    );
-    expect(ops?.evidence).toBe(
-      "ops.environment+completion_signal: prod/dashboard-ready",
     );
   });
 
-  test("compacts live-shaped dashboard clutter into grouped lanes", async () => {
+  test("builds change-centered lanes and keeps unmatched source secondary", async () => {
     const state = await buildDashboardState(config(), {
       now: () => new Date("2026-06-26T05:00:00.000Z"),
       advReader: async (project) => ({
@@ -248,18 +244,33 @@ describe("dashboard server state", () => {
         generated_at: "2026-06-26T05:00:00.000Z",
         changes:
           project.id === "advance"
-            ? Array.from({ length: 8 }, (_, index) => ({
-                id: `draft${index}`,
-                title: `Draft ${index}`,
-                status: "draft",
-                gateProgressStr: "proposal ○ discovery ○ design ○ planning ○ execution ○ acceptance ○ release ○",
-                firstIncompleteGate: "proposal",
-                lastActivityAt: `2026-06-25T20:0${index}:00.000Z`,
-                correlation_keys: {
-                  branches: [`change/draft${index}`],
-                  head_shas: [],
+            ? [
+                {
+                  id: "evaluatePrintingIdentityField",
+                  title: "Evaluate printing identity field",
+                  status: "active",
+                  gateProgressStr: "execution",
+                  firstIncompleteGate: "execution",
+                  lastActivityAt: "2026-06-25T20:00:00.000Z",
+                  correlation_keys: {
+                    branches: ["change/evaluatePrintingIdentityField"],
+                    head_shas: [],
+                  },
                 },
-              }))
+                ...Array.from({ length: 3 }, (_, index) => ({
+                  id: `draft${index}`,
+                  title: `Draft ${index}`,
+                  status: "draft",
+                  gateProgressStr:
+                    "proposal ○ discovery ○ design ○ planning ○ execution ○ acceptance ○ release ○",
+                  firstIncompleteGate: "proposal",
+                  lastActivityAt: `2026-06-25T20:0${index}:00.000Z`,
+                  correlation_keys: {
+                    branches: [`change/draft${index}`],
+                    head_shas: [],
+                  },
+                })),
+              ]
             : [],
         degradedSources: [],
       }),
@@ -337,32 +348,33 @@ describe("dashboard server state", () => {
     });
 
     const lanes = state.projects[0]?.lanes;
-    expect(lanes?.attention).toHaveLength(1);
-    expect(lanes?.attention[0]).toMatchObject({
-      kind: "group",
-      groupKind: "workflow_run",
-      count: 2,
-      latestUpdatedAt: "2026-06-25T17:22:39Z",
+    expect(Object.keys(lanes ?? {})).toEqual([
+      "needs_attention",
+      "running",
+      "ready_landed",
+      "backlog",
+      "unmatched_source",
+    ]);
+    expect(lanes?.needs_attention).toHaveLength(1);
+    expect(lanes?.needs_attention[0]).toMatchObject({
+      kind: "adv_change_status",
+      changeId: "evaluatePrintingIdentityField",
+      latest: { overall: "attention", ci: { status: "failure" } },
     });
-    expect(lanes?.unmatched.map((item) => item.kind)).toEqual(["pull", "group"]);
-    expect(lanes?.unmatched[1]).toMatchObject({
+    expect(lanes?.unmatched_source.map((item) => item.kind)).toEqual([
+      "pull",
+      "group",
+    ]);
+    expect(lanes?.unmatched_source[1]).toMatchObject({
       kind: "group",
       groupKind: "deployment",
       count: 2,
       latestUpdatedAt: "2026-06-26T01:06:22Z",
     });
-    expect(lanes?.inventory).toHaveLength(1);
-    expect(lanes?.inventory[0]).toMatchObject({
-      kind: "group",
-      groupKind: "inventory",
-      count: 8,
-      collapsedByDefault: true,
-    });
-    expect(Object.keys(lanes ?? {})).toEqual([
-      "attention",
-      "active",
-      "unmatched",
-      "inventory",
+    expect(lanes?.backlog.map((item) => item.changeId)).toEqual([
+      "draft0",
+      "draft1",
+      "draft2",
     ]);
   });
 
