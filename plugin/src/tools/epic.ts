@@ -842,6 +842,13 @@ export const epicTools = {
         const epic = await loadEpic(store, epic_id);
         if (!epic) return epicNotFound(epic_id);
 
+        if (epic.version !== expected_version) {
+          return formatToolOutput({
+            error: `Expected Epic version ${expected_version}, found ${epic.version}`,
+            code: "stale_version",
+          });
+        }
+
         const blockedEntries = linkedEntriesForRemovedScopeRepos(
           epic,
           scope_repos,

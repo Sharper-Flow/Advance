@@ -1353,6 +1353,53 @@ describe("adv_epic_update_scope", () => {
     expect(store.epics.updateScope).not.toHaveBeenCalled();
   });
 
+  test("returns stale version before scope-removal guard", async () => {
+    const store = makeStore({
+      version: 5,
+      epic_scope: {
+        kind: "repo",
+        owner_project_id: "project-web",
+        repos: [
+          {
+            repo_id: "web",
+            repo_project_id: "project-web",
+            role: "primary",
+            required: true,
+          },
+        ],
+      },
+      entries: [
+        makeChangeEntry({
+          change_ref: {
+            change_id: "legacy-change",
+            project_id: "project-web",
+          },
+          title: "Legacy Linked Change",
+          membership_status: "linked",
+          linked_at: "2026-06-25T00:00:00.000Z",
+          linked_by: "agent",
+          link_evidence: "legacy link",
+        }),
+      ],
+    });
+
+    const output = await epicTools.adv_epic_update_scope.execute(
+      {
+        epic_id: "addAuthEpic",
+        expected_version: 2,
+        audit_evidence: "Clear scope.",
+        owner_project_id: "project-web",
+        scope_repos: [],
+      },
+      store,
+    );
+
+    const parsed = parseToolOutput(output);
+    expect(parsed.code).toBe("stale_version");
+    expect(parsed.error).toBe("Expected Epic version 2, found 5");
+    expect(store.epics.updateScope).not.toHaveBeenCalled();
+  });
+
   test("updates scope through store with audit evidence", async () => {
     const store = makeStore({ version: 2 });
     const output = await epicTools.adv_epic_update_scope.execute(
