@@ -1,0 +1,1510 @@
+{
+  "id": "updateEpicArchive",
+  "title": "Update epic archive",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-06-26T19:17:23.994Z",
+  "tasks": [
+    {
+      "id": "tk-d2912ef2591a",
+      "title": "Runtime: project archived Epic child terminal summary",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-06-26T19:32:29.266Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC2",
+          "AC2"
+        ],
+        "verifies": [
+          "SC2",
+          "AC2"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C5",
+          "C6",
+          "OOS1",
+          "OOS2",
+          "OOS3",
+          "DONT1",
+          "DONT2",
+          "DONT3"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-26T19:34:46.398Z",
+      "verification": "RED: `pnpm exec vitest run src/tools/change.archive-phase9.test.ts --testNamePattern \"projects terminal summary\"` failed because `setEntryTerminalSummary` was never called. GREEN: same targeted test passed. VERIFY: full `pnpm exec vitest run src/tools/change.archive-phase9.test.ts` passed (28 tests).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added `Store.epics.setEntryTerminalSummary` backed by existing `entryTerminalSummarySignal`, disk fallback stub, and archive terminalization calls after durable release proof/status archive transition in both async and sync paths. Added failing-then-passing Phase 9 test asserting Epic terminal summary projection after archive proof and after change save.",
+      "filesTouched": [
+        "plugin/src/storage/store-disk.ts",
+        "plugin/src/storage/store-temporal/epics.ts",
+        "plugin/src/storage/store-types.ts",
+        "plugin/src/tools/change.archive-phase9.test.ts",
+        "plugin/src/tools/change.ts"
+      ],
+      "touched_files": [
+        "plugin/src/storage/store-disk.ts",
+        "plugin/src/storage/store-temporal/epics.ts",
+        "plugin/src/storage/store-types.ts",
+        "plugin/src/tools/change.archive-phase9.test.ts",
+        "plugin/src/tools/change.ts"
+      ],
+      "checkpointSha": "2f8e7829f6ca4c70e18c2234c41d9056f8110753",
+      "completedAt": "2026-06-26T19:41:21.763Z",
+      "completed_at": "2026-06-26T19:41:21.763Z",
+      "notes": "Runtime terminal projection implemented and checkpointed at 2f8e7829. Tests passed: targeted RED/GREEN and full change.archive-phase9 suite (28 tests).",
+      "error_recovery": {
+        "last_error": "Initial RED test failed because archive did not call `store.epics.setEntryTerminalSummary` for Epic child changes.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "Proceed to docs/spec/agent guidance task.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "`setEntryTerminalSummary` call count was 0 in new archive Phase 9 test.",
+            "diagnosis": "Existing archive path saved archived change status but never fired the existing Epic terminal-summary signal.",
+            "fix_tried": "Added store adapter method and invoked it after archive status transition in sync and async archive paths.",
+            "strategy_label": "wire-existing-terminal-summary-signal",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-26T19:40:55Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-26T19:41:41.553Z"
+    },
+    {
+      "id": "tk-353124fdcc9f",
+      "title": "Docs/spec/agent: make archive Epic-aware",
+      "type": "docs",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-06-26T19:33:00.544Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-d2912ef2591a"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC5",
+          "AC1",
+          "AC6",
+          "AC7",
+          "AC8",
+          "AC9",
+          "AC10",
+          "AC11"
+        ],
+        "verifies": [
+          "SC1",
+          "SC5",
+          "AC1",
+          "AC6",
+          "AC7",
+          "AC8",
+          "AC9",
+          "AC10",
+          "AC11"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "C7",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-26T19:42:07.433Z",
+      "notes": "Archive docs/spec/agent guidance implemented and checkpointed at 304af0c. Asset tests passed: targeted green and full advance-epics-assets suite (45 tests).",
+      "error_recovery": {
+        "last_error": "Asset test failed because docs/specs/advance-epics.md lacked `rq-epicArchiveSync01`.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "Proceed to close duplicate retro docs task with same evidence and run expanded verification.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "`docs/specs/advance-epics.md mirrors the capability spec` expected `rq-epicArchiveSync01` but doc lacked it.",
+            "diagnosis": "Spec JSON had the new archive sync requirement but generated/mirror markdown had not been updated.",
+            "fix_tried": "Added mirror requirement section and expanded command/agent/instruction guidance plus asset assertions.",
+            "strategy_label": "mirror-spec-and-command-assets",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-26T21:00:10Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-26T21:00:58.868Z",
+      "verification": "RED: `pnpm exec vitest run src/advance-epics-assets.test.ts --testNamePattern \"archive|mirrors|valid JSON|retroactive\"` failed because docs/specs/advance-epics.md lacked `rq-epicArchiveSync01`. GREEN: targeted archive/mirror/retroactive/backfill asset tests passed. VERIFY: full `pnpm exec vitest run src/advance-epics-assets.test.ts` passed (45 tests).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Updated `/adv-archive` Phase 1/7/8 guidance for Epic child archive verification, terminal_summary repair/backfill, and Epic report line. Updated ADV agent and ADV_INSTRUCTIONS Epic context guidance for archive/release repair evidence. Added `rq-epicArchiveSync01` to spec JSON and docs mirror. Extended asset tests for archive/release terminal projection and retroactive repair/backfill guidance.",
+      "filesTouched": [
+        ".adv/specs/advance-epics/spec.json",
+        ".opencode/agents/adv.md",
+        ".opencode/command/adv-archive.md",
+        "ADV_INSTRUCTIONS.md",
+        "docs/specs/advance-epics.md",
+        "plugin/src/advance-epics-assets.test.ts"
+      ],
+      "touched_files": [
+        ".adv/specs/advance-epics/spec.json",
+        ".opencode/agents/adv.md",
+        ".opencode/command/adv-archive.md",
+        "ADV_INSTRUCTIONS.md",
+        "docs/specs/advance-epics.md",
+        "plugin/src/advance-epics-assets.test.ts"
+      ],
+      "checkpointSha": "304af0c0118a68c2ba745de351b32fd02db7cd46",
+      "completedAt": "2026-06-26T21:00:35.976Z",
+      "completed_at": "2026-06-26T21:00:35.976Z"
+    },
+    {
+      "id": "tk-42ff2f9385d8",
+      "title": "Verification: run targeted contract checks and validate change",
+      "type": "verification",
+      "section": "Verification",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-06-26T19:33:24.436Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-d2912ef2591a"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-353124fdcc9f"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "contract_refs": {
+        "implements": [],
+        "verifies": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "SC4",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7",
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "DONT1",
+          "DONT2",
+          "DONT3"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-26T21:03:45.887Z",
+      "verification": "VERIFY: `bin/oc-test targeted -- src/tools/change.archive-phase9.test.ts src/tools/epic.test.ts src/advance-epics-assets.test.ts` passed (3 files, 99 tests). `adv_change_validate strict:true` passed with one non-blocking NO_DELTAS warning. Public schema artifacts not touched; schemas:check not applicable.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Verified archive Phase 9 Epic terminal projection, retroactive Epic repair/backfill, and asset/spec/agent command contracts. `adv_change_validate strict:true` passed with non-blocking NO_DELTAS warning.",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "304af0c0118a68c2ba745de351b32fd02db7cd46",
+      "completedAt": "2026-06-26T21:04:01.170Z",
+      "completed_at": "2026-06-26T21:04:01.170Z",
+      "notes": "Verification completed using expanded targeted suite and strict change validation. Clean checkpoint recorded at 304af0c.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "Proceed to execution gate completion.",
+        "attempts": []
+      },
+      "updatedAt": "2026-06-26T21:04:34.194Z"
+    },
+    {
+      "id": "tk-e2081173496e",
+      "title": "Runtime: repair archived Epic children retroactively",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-06-26T20:48:19.317Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-d2912ef2591a"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC3",
+          "SC4",
+          "AC4",
+          "AC5"
+        ],
+        "verifies": [
+          "SC3",
+          "SC4",
+          "AC4",
+          "AC5"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C5",
+          "C7",
+          "DONT2",
+          "DONT4"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-26T20:50:52.299Z",
+      "verification": "RED: `pnpm exec vitest run src/tools/epic.test.ts --testNamePattern \"sync_child_projection\"` failed because terminal-summary projection fields/actions were absent. GREEN: same targeted test passed with archived/closed child terminal backfill. VERIFY: full `pnpm exec vitest run src/tools/epic.test.ts` passed (26 tests).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Extended `adv_epic_repair_membership mode=sync_child_projection` so terminal child changes (`archived`/`closed`) project `terminal_summary` onto the parent Epic via existing `store.epics.setEntryTerminalSummary` instead of only refreshing child membership. Added archived-child and closed-child dry-run tests proving terminal backfill and no child workflow mutation.",
+      "filesTouched": [
+        "plugin/src/tools/epic.test.ts",
+        "plugin/src/tools/epic.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/epic.test.ts",
+        "plugin/src/tools/epic.ts"
+      ],
+      "checkpointSha": "428aa0b58652cc22560c5a0b23db60dbe57b697b",
+      "completedAt": "2026-06-26T20:54:55.075Z",
+      "completed_at": "2026-06-26T20:54:55.075Z",
+      "notes": "Retroactive Epic repair/backfill implemented and checkpointed at 428aa0b. Tests passed: targeted sync_child_projection RED/GREEN and full epic.test.ts (26 tests).",
+      "error_recovery": {
+        "last_error": "Initial RED tests showed sync_child_projection output lacked terminal_summary_projected/action fields and did not call `setEntryTerminalSummary`.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "Proceed to docs/spec/agent guidance update.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "Archived/closed child repair stayed on membership refresh path; terminal summary projection absent.",
+            "diagnosis": "sync_child_projection treated all readable child changes the same and never branched on terminal statuses.",
+            "fix_tried": "Added archived/closed terminal branch before membership refresh, using existing Epic terminal-summary signal path and dry-run preview.",
+            "strategy_label": "terminal-status-repair-branch",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-26T20:54:09Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-26T20:55:14.825Z"
+    },
+    {
+      "id": "tk-43abd80f168a",
+      "title": "Docs/spec: include retroactive Epic repair contract",
+      "type": "docs",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-06-26T20:48:50.506Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-e2081173496e"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC5",
+          "AC1",
+          "AC6",
+          "AC7",
+          "AC8",
+          "AC9",
+          "AC10",
+          "AC11"
+        ],
+        "verifies": [
+          "SC1",
+          "SC5",
+          "AC1",
+          "AC6",
+          "AC7",
+          "AC8",
+          "AC9",
+          "AC10",
+          "AC11"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "C7",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-26T21:01:15.163Z",
+      "verification": "RED: `pnpm exec vitest run src/advance-epics-assets.test.ts --testNamePattern \"archive|mirrors|valid JSON|retroactive\"` failed because docs/specs/advance-epics.md lacked `rq-epicArchiveSync01`. GREEN: targeted archive/mirror/retroactive/backfill asset tests passed. VERIFY: full `pnpm exec vitest run src/advance-epics-assets.test.ts` passed (45 tests). Source changes were committed in docs/spec checkpoint 304af0c.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Expanded `rq-epicArchiveSync01` and mirror docs to cover retroactive repair/backfill of already archived/closed child changes, canonical child/archive evidence, terminal_summary projection, progress recomputation, and non-Epic/archive-order invariants. Command and agent guidance now mention typed repair/backfill for already-archived children still shown active.",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "304af0c0118a68c2ba745de351b32fd02db7cd46",
+      "completedAt": "2026-06-26T21:01:27.516Z",
+      "completed_at": "2026-06-26T21:01:27.516Z",
+      "notes": "Retroactive repair contract task satisfied by docs/spec checkpoint 304af0c; clean checkpoint recorded. Asset tests passed targeted and full suite.",
+      "error_recovery": {
+        "last_error": "Initial asset red showed the docs mirror lacked the new archive sync requirement.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "Proceed to expanded verification task.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "Asset test expected `rq-epicArchiveSync01` and retroactive backfill docs, but docs mirror was stale.",
+            "diagnosis": "Spec/docs/command text needed to include retroactive terminal-summary repair contract.",
+            "fix_tried": "Added spec/docs sections and asset assertions for retroactive repair/backfill.",
+            "strategy_label": "retroactive-contract-docs",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-26T21:00:10Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-26T21:01:48.081Z"
+    },
+    {
+      "id": "tk-8edad6523690",
+      "title": "Verification: expanded Epic archive and repair coverage",
+      "type": "verification",
+      "section": "Verification",
+      "status": "done",
+      "priority": 5,
+      "created_at": "2026-06-26T20:49:18.003Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-353124fdcc9f"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-e2081173496e"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-43abd80f168a"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "contract_refs": {
+        "implements": [],
+        "verifies": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "SC4",
+          "SC5",
+          "SC6",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7",
+          "AC8",
+          "AC9",
+          "AC10",
+          "AC11",
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "C7",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "C7"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-26T21:02:18.360Z",
+      "verification": "VERIFY: `bin/oc-test targeted -- src/tools/change.archive-phase9.test.ts src/tools/epic.test.ts src/advance-epics-assets.test.ts` passed (3 files, 99 tests). `adv_change_validate strict:true` passed with one non-blocking NO_DELTAS warning. Public schema artifacts not touched; schemas:check not applicable.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Verified future archive terminal projection, retroactive archived/closed child repair, archive/spec/agent guidance, and ADV contract validation. No source edits required for this verification task.",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "304af0c0118a68c2ba745de351b32fd02db7cd46",
+      "completedAt": "2026-06-26T21:02:57.128Z",
+      "completed_at": "2026-06-26T21:02:57.128Z",
+      "notes": "Expanded verification passed. Targeted suite via bin/oc-test passed 99 tests across archive Phase 9, Epic repair, and Epic asset contracts. adv_change_validate strict:true passed with non-blocking NO_DELTAS warning. Public schema artifacts not touched.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "Proceed to remaining legacy verification task and execution gate completion.",
+        "attempts": []
+      },
+      "updatedAt": "2026-06-26T21:03:29.839Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "updateEpicArchive",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Epic-aware archive orchestration design validation",
+      "sources": [
+        {
+          "label": "adv-archive command Phase 1/7/8",
+          "locator": ".opencode/command/adv-archive.md:31-37,159-203",
+          "summary": "Confirms design's current-anchor claims: Phase 1 loads change context, Phase 7 verify is spec/dir checks only, Phase 8 Delivered report has no Epic line. All accurate."
+        },
+        {
+          "label": "Epic repair tool modes/statuses",
+          "locator": "plugin/src/tools/epic.ts:411-423",
+          "summary": "Repair modes sync_child_projection/clear_stale_projection/mark_target_unreachable and statuses are real. BUT repairModeStatus('sync_child_projection') returns 'linked', not 'terminal'."
+        },
+        {
+          "label": "Epic show terminal projection",
+          "locator": "plugin/src/tools/epic.ts:83-194",
+          "summary": "Terminal child state surfaces ONLY via entry.terminal_summary (status archived/closed). Entries with terminal_summary==null are classified as active 'next_work', not history."
+        },
+        {
+          "label": "entryTerminalSummary signal has no production caller",
+          "locator": "plugin/src/temporal/epic-state.ts:502-542; plugin/src/temporal/workflows.ts:1846-1849; grep across src/tools + src/storage",
+          "summary": "applyEntryTerminalSummaryToState handler + entryTerminalSummarySignal exist but are fired ONLY from workflows.epic.test.ts:298. No change.ts archive/close path, no activity, no orchestration fires it. terminal_summary is never set in production."
+        },
+        {
+          "label": "sync_child_projection does not set terminal_summary",
+          "locator": "plugin/src/tools/epic.ts:1275-1308; storage/store-temporal/epics.ts:438 setEntryMembershipStatus",
+          "summary": "sync_child_projection sets child epic_membership + entry membership_status='linked'; never writes terminal_summary. No typed repair mode projects archived terminal child state into Epic history."
+        }
+      ],
+      "architecture_assessment": "Design is structurally sound for preflight (D1), report line (D3), agent rule (D4), spec law (D5) — all expressible as docs/spec/asset-test changes with accurate typed-tool references. D2 (post-archive terminal-state verification + repair) has a CONFLICT: it assumes typed Epic tools can drive/verify the entry into terminal state, but no existing tool sets entry.terminal_summary. sync_child_projection yields membership_status='linked' (memberStatusForEntry='ok'), which makes the entry look healthy while adv_epic_show still classifies the archived child as active next_work because terminal_summary stays null. The only mechanism that sets terminal_summary (entryTerminalSummarySignal) has zero production callers. So a docs-only D2 cannot make the archived child appear in Epic history — verification would pass on a still-active projection and Epic history would remain wrong. This contradicts SC2/AC5 ('verify entry reflects terminal child state') and exceeds the agreement OOS2 docs-only assumption.",
+      "validation": {
+        "status": "caution",
+        "blockers": [
+          "D2 terminal-state verification is not satisfiable by existing typed Epic tools: no tool sets entry.terminal_summary, and sync_child_projection reports 'linked'/'ok' without moving the entry into terminal history (epic.ts:422, 1275-1308).",
+          "entryTerminalSummarySignal has no production caller (only workflows.epic.test.ts:298); adv_change_archive does not project child terminal state onto the Epic entry."
+        ],
+        "notes": "D1/D3/D4/D5 PASS as docs/spec/asset-test only. D2 needs either (a) a runtime wire-up firing entryTerminalSummarySignal from the archive/close path, or (b) a scope reduction to 'projection-linked verification + repair' (membership_status only) with explicit acknowledgement that terminal_summary/history projection is deferred. Agreement OOS2 already provides the escape hatch: runtime code change is allowed when discovery proves markdown-only cannot satisfy the contract — that condition is now proven true for the terminal-history dimension."
+      },
+      "recommendation": "Do NOT complete the design gate as docs/spec/asset-test only. Resolve D2 before design gate by choosing one: (1) PREFERRED — add a thin runtime wire-up so adv_change_archive (and close) fires entryTerminalSummarySignal for the linked Epic entry, setting terminal_summary={status:'archived',completed_at}; then D2 verify reloads adv_epic_show and confirms the entry appears in history. This is the boring, correct fix and uses the already-built signal/handler. Keep repair (sync/clear/mark_unreachable) as the fallback for stale/unreachable projection only. (2) If runtime change is rejected now, narrow rq-epicArchiveSync01 and AC5 to membership-projection liveness verification (linked vs stale/unreachable), explicitly state terminal-history projection is a tracked follow-up, and avoid wording that claims the archive verifies 'terminal entry state' — because no tool delivers that today. Either way, update design.md D2 + acceptance criteria to match the chosen path, and re-enter design before planning.",
+      "follow_ups": [
+        "If option (1): wiring should fire from the same archive transition that already records terminal change state, idempotent via idempotencyKey (epic-state.ts:510); guard cross-project via target-path trust rules; preserve Phase 9 release-proof semantics (Epic projection is additive, never gates release).",
+        "Add asset/integration test asserting an archived Epic child appears in adv_epic_show history (terminal_summary set), not just that membership_status is 'ok'. A membership_status-only assertion would pass against the broken state.",
+        "Verify clear_stale_projection-for-missing-Epic path (epic.ts:1141) and mark_target_unreachable interplay with archive cleanup do not regress.",
+        "TASK_SCOPE/IN_SCOPE/OUT_OF_SCOPE/DONE_WHEN/STOP_WHEN/VERIFICATION packet anchors were not provided; continued with prompt scope per policy."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "updateEpicArchive",
+      "attempt": 2,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Revised Epic-aware archive terminal projection design validation",
+      "sources": [
+        {
+          "label": "entryTerminalSummarySignal handler (terminal_summary writer)",
+          "locator": "plugin/src/temporal/epic-state.ts:502-542",
+          "summary": "applyEntryTerminalSummaryToState validates entry is a linked change, sets entry.terminal_summary={status,completed_at}, idempotent via checkIdempotency/recordIdempotency. The exact structural mechanism the revised D2 reuses."
+        },
+        {
+          "label": "Signal defined + wired in workflow",
+          "locator": "plugin/src/temporal/workflows.ts:436-438,1846-1849; plugin/src/temporal/messages.ts:325-327; contracts.ts EPIC_WORKFLOW_SIGNAL_NAMES.entryTerminalSummary",
+          "summary": "entryTerminalSummarySignal is defined and routed to applyEntryTerminalSummaryToState in the live Epic workflow. Signal/handler are production-wired; only a tool/store CALLER was missing — which is precisely what D2 adds."
+        },
+        {
+          "label": "terminal_summary surfaces in adv_epic_show history",
+          "locator": "plugin/src/tools/epic.ts:61,121-133,147",
+          "summary": "adv_epic_show classifies entries with terminal_summary!=null as history (status archived/closed); entries with terminal_summary==null remain active next_work. Confirms setting terminal_summary is the ONLY way archived child appears in Epic history — validates D2 over a docs-only approach."
+        },
+        {
+          "label": "Archive terminalization point (async phase9) AFTER durable release proof",
+          "locator": "plugin/src/tools/change.ts:4238-4274",
+          "summary": "completeReleaseGateAfterFinalization + verifyReleaseGateDurableForArchive run, THEN currentChange.status='archived'; store.changes.save. currentChange (with epic_membership) is in scope. Exact post-release-proof terminalization hook D2 requires; satisfies ordering 'only after release proof exists'."
+        },
+        {
+          "label": "Sync/recovery terminalization point",
+          "locator": "plugin/src/tools/change.ts:4534-4536; rq-releaseFinalization01 comment 4174-4179",
+          "summary": "Second status='archived' transition for recovery/non-async path; change object with epic_membership in scope. Both terminal sites are reachable for the additive projection."
+        },
+        {
+          "label": "Store-adapter Epic-signal precedent (boring pattern to copy)",
+          "locator": "plugin/src/storage/store-temporal/epics.ts:438-505",
+          "summary": "changeProjectionStatusUpdated and entriesReordered fire via getEpicHandle + fireEpicSignal + idempotencyKey. A parallel setEntryTerminalSummary method firing entryTerminalSummarySignal is the exact-pattern, idempotent, by-the-book addition the design calls for."
+        },
+        {
+          "label": "epic_membership available on Change in tool layer",
+          "locator": "plugin/src/tools/change.ts:2182-2186,2958-3004; plugin/src/tools/epic.ts:301-393",
+          "summary": "epic_membership {epic_id,entry_id,title,...} is a first-class Change field read across tools; derivable at archive terminalization with no new schema field (respects OOS1)."
+        }
+      ],
+      "architecture_assessment": "The revised design resolves the attempt-1 CAUTION. The prior blocker — that no docs-only/repair mechanism sets entry.terminal_summary, so an archived Epic child would never enter Epic history — is now correctly fixed by D2's runtime wire-up firing the EXISTING entryTerminalSummarySignal/applyEntryTerminalSummaryToState (epic-state.ts:502; workflows.ts:436,1846). All four design assumptions verify: (1) signal+handler exist and are production-wired, lacking only a caller; (2) terminal_summary is the sole structural path into adv_epic_show history (epic.ts:121-147); (3) a real post-release-proof terminalization point exists (change.ts:4252-4274, async; 4534-4536, sync) where currentChange.epic_membership is in scope; (4) firing the Epic signal from a tool/store path is an established, idempotent pattern (epics.ts:438-505). Ordering invariant is honored: D2 fires AFTER verifyReleaseGateDurableForArchive, so Phase 9 release proof is never weakened or substituted (respects C6/DONT3). adv_epic_repair_membership is correctly demoted to fallback for stale/unreachable membership projection (it sets membership_status='linked'/'ok' but never terminal_summary — epic.ts:422,1275-1308 — so it cannot stand in for terminal history). The mandated runtime test (archived child shows terminal_summary/history via adv_epic_show, not merely membership_status:'ok') directly closes the false-positive gap from attempt 1. No new Epic schema fields (OOS1 respected), optional membership preserved (C1), advisory order preserved (C2), no direct state-file reads (C3), typed tools only (C5). D1/D3/D4/D5/D6 remain expressible as command/spec/asset-test changes against accurate anchors. Boring-solution test passes: design reuses already-built signal/handler and copies an existing store-adapter signaling pattern rather than inventing new machinery.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "No remaining design-gate blockers. Two non-blocking implementation cautions to carry into planning, not design re-entry: (1) BOTH terminal sites must fire the projection — the async phase9 path (change.ts:4273) AND the sync/recovery path (change.ts:4536) — or Epic history desyncs on the recovery branch; the design names 'archive terminalization' generally, so planning should enumerate both. (2) Cross-project Epic membership (target_path) must route the Epic signal through the correct target store/handle and respect target-path trust rules; failure to reach the Epic workflow must surface a typed warning and MUST NOT mutate release proof (design already states this; ensure the implementation guards the cross-project handle). Idempotency is already provided by the handler (recordIdempotency, epic-state.ts:537) and the store idempotencyKey pattern (epics.ts:449), so duplicate archive retries are safe."
+      },
+      "recommendation": "PASS — complete the design gate. The runtime wire-up (D2) is the correct, boring fix and the design's anchors are all verified against source. Shortest implementation path: (1) RED: add a runtime/integration test asserting an archived change with epic_membership yields entry.terminal_summary visible as history through adv_epic_show (assert status/completed_at, NOT membership_status). (2) Add store method epics.setEntryTerminalSummary(epicId,{entryId,status:'archived',completedAt,idempotencyKey}) firing entryTerminalSummarySignal via the epics.ts:438-505 pattern. (3) Call it from BOTH archive terminal sites in change.ts AFTER status='archived'/save: async path after line 4274, sync/recovery path after line 4536; derive payload from currentChange.epic_membership; wrap in try/catch that logs a typed warning and never alters phase9_status/release proof on Epic-unreachable. (4) GREEN the runtime test. (5) Asset tests in advance-epics-assets.test.ts for adv-archive.md Phase 1/7/8 + Epic report line + rq-epicArchiveSync01 + adv.md archive/release Epic rule. (6) Spec: .adv/specs/advance-epics/spec.json version bump + rq-epicArchiveSync01; mirror docs/specs/advance-epics.md. (7) Targeted run via bin/oc-test targeted -- src/advance-epics-assets.test.ts and the new runtime test; adv_change_validate strict:true before acceptance.",
+      "follow_ups": [
+        "Planning must enumerate BOTH archive terminalization sites (change.ts:4273 async, 4536 sync/recovery) so Epic projection fires on the recovery branch too — single-site wiring would leave a desync hole.",
+        "Cross-project (target_path) Epic membership: route entryTerminalSummarySignal through the target store/handle, guard trust rules, and on unreachable-Epic emit typed warning without touching release proof.",
+        "Confirm the runtime test asserts terminal_summary/history (not membership_status:'ok'), per the attempt-1 lesson that a membership_status-only assertion passes against the broken state.",
+        "TASK_SCOPE/IN_SCOPE/OUT_OF_SCOPE/DONE_WHEN/STOP_WHEN/VERIFICATION packet anchors were not provided; continued with prompt scope per policy (warning, non-blocking)."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "updateEpicArchive",
+      "attempt": 3,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/updateEpicArchive",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:epic-archive-sync-design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Validate expanded Epic archive sync + retroactive repair/backfill design",
+      "sources": [
+        {
+          "label": "recomputeEpicProgress (completed-counting authority)",
+          "locator": "plugin/src/temporal/epic-state.ts:598-637",
+          "summary": "completed_entries counts entries where kind==='change' && terminal_summary?.status != null (L603-606). next_entry_id stops at first shell or entry with terminal_summary?.status == null (L612-619). Membership_status is NOT consulted for progress. Confirms only terminal_summary advances progress/next_entry_id."
+        },
+        {
+          "label": "sync_child_projection repair path (the bug)",
+          "locator": "plugin/src/tools/epic.ts:1263-1309",
+          "summary": "On sync it calls setEpicMembership (L1291) + setEntryMembershipStatus->'linked' (L1296-1301). It NEVER calls setEntryTerminalSummary. So a child that archived/merged stays uncounted: progress.completed_entries and next_entry_id never advance. Validates user-reported field bug."
+        },
+        {
+          "label": "repairModeStatus mapping",
+          "locator": "plugin/src/tools/epic.ts:417-423",
+          "summary": "sync_child_projection -> 'linked' membership_status only; no terminal awareness."
+        },
+        {
+          "label": "Future archive path foundation (already implemented)",
+          "locator": "plugin/src/tools/change.ts:1334-1369",
+          "summary": "projectEpicTerminalSummaryAfterArchive fires setEntryTerminalSummary({status:'archived', completedAt}) post-archive, warning-not-blocking on failure. This is the correct mechanism the retroactive path should reuse."
+        },
+        {
+          "label": "setEntryTerminalSummary store API + signal",
+          "locator": "plugin/src/storage/store-temporal/epics.ts:477-511; plugin/src/storage/store-types.ts:386-393",
+          "summary": "Typed store API fires entryTerminalSummary signal, idempotency-keyed on (epic,entry,status), returns updated entry. status:'archived'|'closed', completedAt:string. No raw file reads."
+        },
+        {
+          "label": "entryTerminalSummary state handler",
+          "locator": "plugin/src/temporal/epic-state.ts:502-542",
+          "summary": "applyEntryTerminalSummaryToState sets entry.terminal_summary {status,completed_at}, bumps version, then recomputeEpicProgress (L539). Guards: epic_archived (L506), entry_not_found (L514), non-change entry (L523). Idempotent via idempotencyKey."
+        },
+        {
+          "label": "Child terminal state IS exposed via store API (no raw reads)",
+          "locator": "plugin/src/storage/store-temporal/index.ts:451,490,825; plugin/src/tools/epic.ts:222-226",
+          "summary": "store.changes.get() resolves archived children from the archive bundle and returns status:'archived' (index.ts:451,825); closed similarly (L490). loadChange(epic.ts:222) uses store.changes.get. So the repair path can derive terminal child state canonically through store APIs — satisfies 'no direct ADV state file reads'."
+        },
+        {
+          "label": "Type alignment child.status -> terminal_summary.status",
+          "locator": "plugin/src/types/changes.ts:63-69; plugin/src/types/epics.ts:204-210; plugin/src/types/signals.ts:618-623",
+          "summary": "ChangeStatus enum includes 'archived'|'closed'. terminal_summary.status enum is exactly ['archived','closed']. EntryTerminalSummarySignalPayload.completedAt is IsoTimestampSchema (REQUIRED, non-optional) — repair must supply a valid ISO timestamp."
+        },
+        {
+          "label": "completedAt source for retroactive backfill",
+          "locator": "plugin/src/types/changes.ts:454",
+          "summary": "Change schema carries updated_at (optional ISO). Use child.updated_at when present, else new Date().toISOString() fallback, since signal requires a non-empty ISO completedAt."
+        },
+        {
+          "label": "Existing sync test confirms gap",
+          "locator": "plugin/src/tools/epic.test.ts:912-954",
+          "summary": "Existing sync_child_projection test uses a non-terminal child and asserts only setEpicMembership + repaired:true. No terminal-summary coverage exists; a completed-child sync test is the missing anchor."
+        }
+      ],
+      "architecture_assessment": "Existing pattern: sync_child_projection only reconciles membership_status; progress is driven solely by terminal_summary, so archived/merged children never count and Epics stay active — exactly the reported bug. Reference/by-the-book pattern already exists in-repo: the future archive path (change.ts:1334) fires the typed setEntryTerminalSummary signal, which flows through applyEntryTerminalSummaryToState -> recomputeEpicProgress. The proposed retroactive design correctly REUSES that same signal rather than inventing a parallel mutation surface (boring/proven; aligns with signal-driven Epic state model and P19/P33). Deviation from current code: MINOR-to-MEDIUM additive change — extend sync_child_projection (or add a backfill branch) to detect child.status in {archived,closed} via store.changes.get and, when terminal, additionally call setEntryTerminalSummary with completedAt derived from child.updated_at (fallback now). No Phase 9 proof weakening, no raw file reads, order stays advisory. All four design claims independently verified.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "No blockers before the design gate. Three correctness watch-items (not blockers): (1) completedAt is REQUIRED IsoTimestampSchema — repair MUST pass a valid ISO string (child.updated_at ?? new Date().toISOString()); a blank will be rejected by the signal payload schema. (2) applyEntryTerminalSummaryToState returns epic_archived if the Epic itself is already archived (epic-state.ts:506) — decide intended behavior when backfilling an entry inside an already-archived Epic (likely acceptable no-op, but make it explicit and tested). (3) Idempotency key is (epic,entry,status) — re-running backfill is safe/idempotent; good. Confirm whether membership_status should also move to 'linked' for terminal children or remain as-is; progress does not depend on it, so this is a display choice, not correctness."
+      },
+      "recommendation": "PROCEED to design gate. Shortest implementation path: in adv_epic_repair_membership sync_child_projection (epic.ts:1263-1309), after loading the child (L1207) and before/alongside the existing setEpicMembership+setEntryMembershipStatus, branch on child.status: if 'archived' or 'closed', also call store.epics.setEntryTerminalSummary(epic_id,{entryId:entry.entry_id,status:child.status,completedAt: child.updated_at ?? new Date().toISOString()}). Keep dryRun preview symmetric (surface a terminal_summary preview). Reuse warning-not-fatal posture if desired but prefer fatal here since this is the operator's explicit repair intent. Honor target_path/childStore routing already in place. Test anchors: (a) extend plugin/src/tools/epic.test.ts near :912 with a sync test where child.status='archived' asserting setEntryTerminalSummary called with status:'archived' and a valid ISO completedAt, and repaired:true; (b) add a closed-child variant; (c) unit-cover recomputeEpicProgress advancing completed_entries+next_entry_id given a terminal_summary (epic-state.test.ts already at :684 has a recomputeEpicProgress block — add a backfill case); (d) dryRun symmetry test asserting no signal fired. Confirm via: bin/oc-test targeted -- src/tools/epic.test.ts src/temporal/epic-state.test.ts.",
+      "follow_ups": [
+        "Decide + test the already-archived-Epic backfill case (epic_archived guard at epic-state.ts:506).",
+        "Decide whether terminal children should also show membership_status='linked' (display-only; progress unaffected).",
+        "Ensure schemas:check stays green if any public Epic schema is touched (none required by this design)."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "updateEpicArchive",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/updateEpicArchive",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [
+        {
+          "id": "review-praise-1",
+          "label": "praise",
+          "file": "plugin/src/tools/epic.ts",
+          "line": 1285,
+          "what": "Retroactive repair routes archived/closed child state through setEntryTerminalSummary instead of rewriting membership or progress directly.",
+          "why": "This preserves typed Epic signal ownership and lets Epic progress recompute structurally from terminal summaries.",
+          "fix": "n/a"
+        },
+        {
+          "id": "review-praise-2",
+          "label": "praise",
+          "file": "plugin/src/tools/change.ts",
+          "line": 4289,
+          "what": "Future archive projection occurs only after release gate completion and durable release proof verification.",
+          "why": "This keeps Epic terminal projection additive and avoids treating Epic state as release proof.",
+          "fix": "n/a"
+        }
+      ],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- plugin/src/tools/change.archive-phase9.test.ts plugin/src/tools/epic.test.ts plugin/src/advance-epics-assets.test.ts",
+          "bin/oc-test targeted -- src/tools/change.archive-phase9.test.ts src/tools/epic.test.ts src/advance-epics-assets.test.ts"
+        ],
+        "results": "pass",
+        "evidence": "First wrapper invocation used repo-root-prefixed test paths and returned 'No test files found' because bin/oc-test runs from plugin/. Corrected wrapper-relative command passed: 3 files, 99 tests."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Live OpenCode tool behavior still requires normal build/deploy/restart before validating through the deployed plugin runtime; source tests passed in this worktree."
+      ],
+      "required_main_agent_actions": [],
+      "required_follow_ups": [],
+      "consumer_warnings": []
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-7ZuiO0",
+      "type": "gotcha",
+      "content": "Epic membership repair status is not the same as terminal-history projection: `adv_epic_repair_membership` can make child projection `ok`, but compact Epic history depends on `entry.terminal_summary`. Archive paths must fire the existing terminal-summary signal after release proof to move archived children out of `next_work`.",
+      "source_task": "tk-d2912ef2591a",
+      "recorded_at": "2026-06-26T19:41:54.190Z"
+    },
+    {
+      "id": "ws-0W7bvf",
+      "type": "pattern",
+      "content": "For Epic repair/backfill, route terminal archived/closed child changes through the existing `entryTerminalSummarySignal`/`setEntryTerminalSummary` path instead of child membership projection. `recomputeEpicProgress` keys off `terminal_summary`, so membership repair alone cannot advance completed_entries or next_entry_id.",
+      "source_task": "tk-e2081173496e",
+      "recorded_at": "2026-06-26T20:55:27.911Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-06-26T19:19:16.460Z",
+      "completed_by": "adv-proposal",
+      "approval_evidence": "User approved proposal in chat: `approve`.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "8ce0fd30c674b25c9106e4b39667826b4cc6e140f23af00b01aea86bbe976345",
+        "non_whitespace_chars": 1542,
+        "checked_at": "2026-06-26T19:17:24.074Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-06-26T20:44:25.786Z",
+      "completed_by": "adv-discover",
+      "approval_evidence": "Re-entry discovery completed after user scope expansion `fix`. Agreement updated for future archive projection plus retroactive repair/backfill; ChangeContract re-minted with 31 items.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "79cfc9d8deb7065b7948a1b4b754146ea0fbd98d6d5260c744f2262b79972369",
+        "non_whitespace_chars": 4184,
+        "checked_at": "2026-06-26T19:17:24.077Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-06-26T20:47:46.863Z",
+      "completed_by": "adv-design",
+      "approval_evidence": "Expanded design for retroactive Epic archive repair/backfill independently validated PASS. Validator confirmed sync_child_projection is membership-only and terminal_summary is required for progress; recommended extending repair to call setEntryTerminalSummary from canonical archived child state.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "fb12b12f53e7916e14ec9cce6e6a32eaf5aba9f72179ab53fc80607756ff56e4",
+        "non_whitespace_chars": 5062,
+        "checked_at": "2026-06-26T19:17:24.078Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-06-26T20:50:10.214Z",
+      "completed_by": "adv-prep",
+      "approval_evidence": "User approved updated task graph after retroactive Epic repair expansion: `approve`. Task graph includes future archive projection, retroactive repair/backfill, docs/spec guidance, and expanded verification."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-06-26T21:05:03.137Z",
+      "completed_by": "adv-apply",
+      "approval_evidence": "All six tasks completed with checkpoints. Verification: bin/oc-test targeted archive Phase 9, Epic repair, and asset tests passed (99 tests); adv_change_validate strict:true passed with non-blocking NO_DELTAS warning."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-06-26T21:12:46.249Z",
+      "completed_by": "adv-review",
+      "approval_evidence": "User approved acceptance in chat: `approve`. Review verdict READY, contract matrix 31/31 pass/respected, targeted verification passed 99 tests, strict change validation passed with non-blocking NO_DELTAS warning.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "d9b33f2f709ff707e47ae3fd3c558531735ddd315bd08463188cb4c7e698197e",
+        "non_whitespace_chars": 1166,
+        "checked_at": "2026-06-26T19:17:24.079Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [
+    {
+      "from_gate": "discovery",
+      "reason": "User expanded scope with concrete bug evidence: existing Epic entries remain active after linked child changes archive/merge; repair no-ops or fails on completed workflows; archived changes may show release pending.",
+      "scope_delta": "Add retroactive/backfill Epic archive repair for already-archived child changes. Repair should derive terminal child state from canonical archived child/archive bundle/release proof when child workflows are completed or unreachable, project terminal_summary onto parent Epic entries, advance Epic progress/next_entry_id, and surface completed-workflow release-gate projection issue as related investigation/fix where in scope.",
+      "reopened_by": "agent",
+      "reopened_at": "2026-06-26T20:41:26.782Z",
+      "gates_reset": [
+        "discovery",
+        "design",
+        "planning",
+        "execution",
+        "acceptance",
+        "release"
+      ]
+    }
+  ],
+  "fast_follow_of": {
+    "parent_change_id": "addEpicCommand",
+    "linked_at": "2026-06-26T19:17:23.857Z"
+  },
+  "origin": {
+    "kind": "discovery",
+    "source_artifact": "user-request:archive-epic-update-2026-06-26"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "79cfc9d8deb7065b7948a1b4b754146ea0fbd98d6d5260c744f2262b79972369",
+      "approvedAt": "2026-06-26T20:44:16.170Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "Archiving an Epic child change loads the parent Epic through `adv_epic_show` before archive execution.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "79cfc9d8deb7065b7948a1b4b754146ea0fbd98d6d5260c744f2262b79972369",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "Future archive flow projects terminal child state to the parent Epic entry only after release proof.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "79cfc9d8deb7065b7948a1b4b754146ea0fbd98d6d5260c744f2262b79972369",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "Existing archived child changes can be repaired/backfilled so compact Epic history/progress advances.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "79cfc9d8deb7065b7948a1b4b754146ea0fbd98d6d5260c744f2262b79972369",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC4",
+        "kind": "success_criterion",
+        "text": "Repair/backfill can handle completed or unreachable child workflows by using canonical archived child state/archive-bundle/release evidence instead of requiring a live child workflow mutation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "79cfc9d8deb7065b7948a1b4b754146ea0fbd98d6d5260c744f2262b79972369",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC5",
+        "kind": "success_criterion",
+        "text": "Archive and repair reports include Epic ID, entry ID/title/order when available, and evidence/result of verification or repair.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "79cfc9d8deb7065b7948a1b4b754146ea0fbd98d6d5260c744f2262b79972369",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC6",
+        "kind": "success_criterion",
+        "text": "Non-Epic archive behavior remains unchanged.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "79cfc9d8deb7065b7948a1b4b754146ea0fbd98d6d5260c744f2262b79972369",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "`.opencode/command/adv-archive.md` states Phase 1 loads `adv_epic_show epic_id: ...` when `adv_change_show` includes `epic_membership`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "79cfc9d8deb7065b7948a1b4b754146ea0fbd98d6d5260c744f2262b79972369",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Runtime archive terminalization fires an existing typed Epic terminal-summary path after durable release proof, so archived Epic children appear in compact Epic history rather than active next work.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "79cfc9d8deb7065b7948a1b4b754146ea0fbd98d6d5260c744f2262b79972369",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Runtime projection is idempotent and does not duplicate Epic entries on archive retry.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "79cfc9d8deb7065b7948a1b4b754146ea0fbd98d6d5260c744f2262b79972369",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "`adv_epic_repair_membership` (or a closely related typed Epic repair path) can repair an already-archived child by projecting terminal summary from canonical child/archive evidence when the child workflow is completed, missing, or otherwise unreachable.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "79cfc9d8deb7065b7948a1b4b754146ea0fbd98d6d5260c744f2262b79972369",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Repair/backfill updates Epic progress: completed_entries increments and next_entry_id advances past terminal entries when applicable.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "79cfc9d8deb7065b7948a1b4b754146ea0fbd98d6d5260c744f2262b79972369",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Stale/pending/unreachable membership projection repair remains typed and audited; no direct ADV state file reads/edits are introduced.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "79cfc9d8deb7065b7948a1b4b754146ea0fbd98d6d5260c744f2262b79972369",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "`.opencode/command/adv-archive.md` final report template contains an Epic line covering `n/a`, verified terminal state, repaired state, and warning cases.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "79cfc9d8deb7065b7948a1b4b754146ea0fbd98d6d5260c744f2262b79972369",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC8",
+        "kind": "acceptance_criterion",
+        "text": "`.opencode/agents/adv.md` or synchronized ADV instructions include archive/release terminal projection and repair evidence in the Epic context-loading rule.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "79cfc9d8deb7065b7948a1b4b754146ea0fbd98d6d5260c744f2262b79972369",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC9",
+        "kind": "acceptance_criterion",
+        "text": "`advance-epics` spec gains a requirement for Epic-aware archive terminal-state verification and retroactive repair, with Given/When/Then scenarios for future archive, retroactive repair, completed child workflows, and non-Epic archive flows.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "79cfc9d8deb7065b7948a1b4b754146ea0fbd98d6d5260c744f2262b79972369",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC10",
+        "kind": "acceptance_criterion",
+        "text": "`docs/specs/advance-epics.md` mirrors the new requirement.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "79cfc9d8deb7065b7948a1b4b754146ea0fbd98d6d5260c744f2262b79972369",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC11",
+        "kind": "acceptance_criterion",
+        "text": "Tests fail without the archive/Epic runtime, repair, command, spec, and agent guidance and pass after implementation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "79cfc9d8deb7065b7948a1b4b754146ea0fbd98d6d5260c744f2262b79972369",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Do not make Epic membership mandatory.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "79cfc9d8deb7065b7948a1b4b754146ea0fbd98d6d5260c744f2262b79972369",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Do not block archive solely because earlier Epic entries are incomplete; Epic order remains advisory.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "79cfc9d8deb7065b7948a1b4b754146ea0fbd98d6d5260c744f2262b79972369",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Do not read or edit ADV state files directly; use store/tool APIs and archive-bundle/canonical state reads exposed through typed surfaces.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "79cfc9d8deb7065b7948a1b4b754146ea0fbd98d6d5260c744f2262b79972369",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Do not add Jira-like Epic workflow fields.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "79cfc9d8deb7065b7948a1b4b754146ea0fbd98d6d5260c744f2262b79972369",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Do not bypass typed Epic tools/signals for repair/update.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "79cfc9d8deb7065b7948a1b4b754146ea0fbd98d6d5260c744f2262b79972369",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C6",
+        "kind": "constraint",
+        "text": "Do not weaken Phase 9 release-proof requirements or archive sign-off semantics.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "79cfc9d8deb7065b7948a1b4b754146ea0fbd98d6d5260c744f2262b79972369",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C7",
+        "kind": "constraint",
+        "text": "Do not treat Epic terminal projection as release proof.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "79cfc9d8deb7065b7948a1b4b754146ea0fbd98d6d5260c744f2262b79972369",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "Automatic shell promotion, reordering, or new planning workflow features.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "79cfc9d8deb7065b7948a1b4b754146ea0fbd98d6d5260c744f2262b79972369",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "Cross-project target-path repair redesign beyond safe typed warning/target-unreachable handling.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "79cfc9d8deb7065b7948a1b4b754146ea0fbd98d6d5260c744f2262b79972369",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "Manual one-off repair of the reported external Epic outside tested reusable repair capability.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "79cfc9d8deb7065b7948a1b4b754146ea0fbd98d6d5260c744f2262b79972369",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not silently ignore `epic_membership` in release/archive.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "79cfc9d8deb7065b7948a1b4b754146ea0fbd98d6d5260c744f2262b79972369",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not present Epic repair as optional if stale/pending/unreachable projection state is detected during archive verification.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "79cfc9d8deb7065b7948a1b4b754146ea0fbd98d6d5260c744f2262b79972369",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not call a change shipped if release proof is missing; Epic verification is additional evidence, not a substitute for Phase 9 proof.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "79cfc9d8deb7065b7948a1b4b754146ea0fbd98d6d5260c744f2262b79972369",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not let `sync_child_projection` report success while compact Epic history/progress remains stale for an archived child.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "79cfc9d8deb7065b7948a1b4b754146ea0fbd98d6d5260c744f2262b79972369",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-06-26T21:11:19.206Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Reviewer verdict READY; /adv-archive Phase 1 documents `adv_epic_show epic_id:` for `epic_membership`.",
+          "notes": ""
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`change.archive-phase9.test.ts` passes; archive projection test asserts setEntryTerminalSummary after archive save/release proof.",
+          "notes": ""
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`epic.test.ts` passes; archived child sync_child_projection backfills terminal summary.",
+          "notes": ""
+        },
+        {
+          "contractId": "SC4",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`epic.test.ts` passes; repair reads canonical child state from store and does not call child membership mutation for terminal child.",
+          "notes": ""
+        },
+        {
+          "contractId": "SC5",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Command/spec/agent assets include Epic ID/entry/report/repair evidence guidance; asset suite passes.",
+          "notes": ""
+        },
+        {
+          "contractId": "SC6",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Existing archive tests pass; non-Epic path unchanged except report guidance allows `Epic: n/a`.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "`advance-epics-assets.test.ts` requires adv-archive.md contains `epic_membership` and `adv_epic_show epic_id:`; suite passes.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`change.archive-phase9.test.ts` terminal projection test passes.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Projection path uses idempotent `setEntryTerminalSummary`; archive Phase 9 suite passes on retry-safe behavior.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`epic.test.ts` archived and closed child sync repair tests pass.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "design_proof",
+          "evidence": "Repair uses existing Epic terminal-summary signal; Epic workflow recomputes progress from terminal_summary. Reviewer confirmed path.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "All repair/update paths use typed store/Epic APIs; no direct ADV state file reads were added.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "adv-archive report template includes `Epic:` line; asset suite passes.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC8",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "ADV agent and ADV_INSTRUCTIONS include archive/release terminal projection repair/backfill guidance; asset suite passes.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC9",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "Spec JSON includes `rq-epicArchiveSync01` with future archive, retroactive repair, non-Epic, and advisory-order scenarios.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC10",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "docs/specs/advance-epics.md includes `rq-epicArchiveSync01`; mirror asset test passes.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC11",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "RED/GREEN recorded for archive Phase 9, Epic repair, and asset tests; final targeted suite passed 99 tests.",
+          "notes": ""
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No mandatory Epic membership behavior added; non-Epic archive remains valid.",
+          "notes": ""
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Command/spec preserve advisory-order non-blocking language.",
+          "notes": ""
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Implementation uses store/tool APIs only; no direct ADV state file access added.",
+          "notes": ""
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No Jira-like fields/workflows added.",
+          "notes": ""
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Repair/update uses typed Epic signal/store paths.",
+          "notes": ""
+        },
+        {
+          "contractId": "C6",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Archive Phase 9 suite passes; release proof ordering preserved.",
+          "notes": ""
+        },
+        {
+          "contractId": "C7",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Epic terminal projection is reported as derived planning evidence, not release proof.",
+          "notes": ""
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No shell promotion/reordering/planning workflow features added.",
+          "notes": ""
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No cross-project target-path redesign added; existing typed warning/repair surfaces remain.",
+          "notes": ""
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No one-off repair of the reported external Epic performed.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Archive/release no longer ignores `epic_membership`; command and runtime paths cover it.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Stale projection guidance routes to typed repair/backfill.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Archive Phase 9 tests preserve release proof authority.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "`epic.test.ts` proves terminal sync_child_projection reports terminal projection instead of membership-only no-op for archived child.",
+          "notes": ""
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "`.opencode/command/adv-archive.md` states Phase 1 loads `adv_epic_show epic_id: ...` when `adv_change_show` includes `epic_membership`.",
+    "Runtime archive terminalization fires an existing typed Epic terminal-summary path after durable release proof, so archived Epic children appear in compact Epic history rather than active next work.",
+    "Runtime projection is idempotent and does not duplicate Epic entries on archive retry.",
+    "`adv_epic_repair_membership` (or a closely related typed Epic repair path) can repair an already-archived child by projecting terminal summary from canonical child/archive evidence when the child workflow is completed, missing, or otherwise unreachable.",
+    "Repair/backfill updates Epic progress: completed_entries increments and next_entry_id advances past terminal entries when applicable.",
+    "Stale/pending/unreachable membership projection repair remains typed and audited; no direct ADV state file reads/edits are introduced.",
+    "`.opencode/command/adv-archive.md` final report template contains an Epic line covering `n/a`, verified terminal state, repaired state, and warning cases.",
+    "`.opencode/agents/adv.md` or synchronized ADV instructions include archive/release terminal projection and repair evidence in the Epic context-loading rule.",
+    "`advance-epics` spec gains a requirement for Epic-aware archive terminal-state verification and retroactive repair, with Given/When/Then scenarios for future archive, retroactive repair, completed child workflows, and non-Epic archive flows.",
+    "`docs/specs/advance-epics.md` mirrors the new requirement.",
+    "Tests fail without the archive/Epic runtime, repair, command, spec, and agent guidance and pass after implementation."
+  ],
+  "documents": {
+    "proposal": "# Update epic archive\n\n## Problem\nWhen an ADV change belongs to an ADV Epic, the archive workflow currently emphasizes finalizing the change but does not explicitly require the archiving agent to refresh or verify the parent Epic. That can leave Epic roadmap/history context stale or make the final archive report omit Epic-level follow-up evidence.\n\n## Proposed Direction\nTeach the archive/release workflow to detect `epic_membership`, load the parent Epic, and verify/update Epic context during archiving through typed Epic tools only.\n\n## Scope\n- `/adv-archive` command contract: add Epic-aware preflight/finalization guidance.\n- ADV runtime agent guidance if needed: ensure archive step inherits the same Epic context rule as discovery/design/prep/apply/review/harden.\n- `advance-epics` spec/docs/tests: add durable requirement that terminal child-change archive flows refresh/verify Epic entry state and surface Epic context in the archive report.\n\n## Initial Acceptance Criteria\n- If `adv_change_show` returns `epic_membership` during archive, the workflow loads `adv_epic_show epic_id: ...` before archive execution.\n- Archive workflow verifies the linked Epic entry reflects terminal child-change state, or invokes the appropriate typed Epic repair/update path when projection state is stale.\n- Archive final report includes concise Epic context/evidence when the change belongs to an Epic.\n- No direct ADV state file edits are introduced.\n- Epic order remains advisory and never blocks archive solely because earlier Epic entries are incomplete.\n- Tests fail without the archive/Epic guidance and pass after implementation.\n\n## Spec-law Impact\nLikely **Add/Modify** in `advance-epics`: terminal child-change lifecycle must update or verify Epic entry/projection state during archive.",
+    "problemStatement": "When an ADV change belongs to an ADV Epic, archive needs to ensure the parent Epic is updated or verified as part of the release step. Existing evidence shows both future and already-archived child changes can leave parent Epics stale: linked entries remain active, completed_entries stays 0, next_entry_id does not advance, and sync_child_projection repair can no-op or fail when child workflows are completed. The fix must prevent new stale Epic projections and provide a safe retroactive repair/backfill path from canonical archived child state.",
+    "agreement": "# Agreement: Update epic archive\n\n## Objectives\n1. Make `/adv-archive` Epic-aware when the archived change has `epic_membership`.\n2. Require archive preflight to load compact parent Epic context before archive execution.\n3. Project terminal child archive state onto linked Epic entries after release proof.\n4. Provide retroactive repair/backfill for already-archived child changes whose Epic entries remain active.\n5. Ensure stale/pending/unreachable Epic projection repair uses typed Epic tools and safe canonical evidence.\n6. Surface concise Epic context/evidence in archive reports and repair results.\n7. Add durable `advance-epics` spec law and tests so archive/Epic behavior cannot drift.\n\n## Success Criteria\n- SC1. Archiving an Epic child change loads the parent Epic through `adv_epic_show` before archive execution.\n- SC2. Future archive flow projects terminal child state to the parent Epic entry only after release proof.\n- SC3. Existing archived child changes can be repaired/backfilled so compact Epic history/progress advances.\n- SC4. Repair/backfill can handle completed or unreachable child workflows by using canonical archived child state/archive-bundle/release evidence instead of requiring a live child workflow mutation.\n- SC5. Archive and repair reports include Epic ID, entry ID/title/order when available, and evidence/result of verification or repair.\n- SC6. Non-Epic archive behavior remains unchanged.\n\n## Acceptance Criteria\n- AC1. `.opencode/command/adv-archive.md` states Phase 1 loads `adv_epic_show epic_id: ...` when `adv_change_show` includes `epic_membership`.\n- AC2. Runtime archive terminalization fires an existing typed Epic terminal-summary path after durable release proof, so archived Epic children appear in compact Epic history rather than active next work.\n- AC3. Runtime projection is idempotent and does not duplicate Epic entries on archive retry.\n- AC4. `adv_epic_repair_membership` (or a closely related typed Epic repair path) can repair an already-archived child by projecting terminal summary from canonical child/archive evidence when the child workflow is completed, missing, or otherwise unreachable.\n- AC5. Repair/backfill updates Epic progress: completed_entries increments and next_entry_id advances past terminal entries when applicable.\n- AC6. Stale/pending/unreachable membership projection repair remains typed and audited; no direct ADV state file reads/edits are introduced.\n- AC7. `.opencode/command/adv-archive.md` final report template contains an Epic line covering `n/a`, verified terminal state, repaired state, and warning cases.\n- AC8. `.opencode/agents/adv.md` or synchronized ADV instructions include archive/release terminal projection and repair evidence in the Epic context-loading rule.\n- AC9. `advance-epics` spec gains a requirement for Epic-aware archive terminal-state verification and retroactive repair, with Given/When/Then scenarios for future archive, retroactive repair, completed child workflows, and non-Epic archive flows.\n- AC10. `docs/specs/advance-epics.md` mirrors the new requirement.\n- AC11. Tests fail without the archive/Epic runtime, repair, command, spec, and agent guidance and pass after implementation.\n\n## Constraints\n- C1. Do not make Epic membership mandatory.\n- C2. Do not block archive solely because earlier Epic entries are incomplete; Epic order remains advisory.\n- C3. Do not read or edit ADV state files directly; use store/tool APIs and archive-bundle/canonical state reads exposed through typed surfaces.\n- C4. Do not add Jira-like Epic workflow fields.\n- C5. Do not bypass typed Epic tools/signals for repair/update.\n- C6. Do not weaken Phase 9 release-proof requirements or archive sign-off semantics.\n- C7. Do not treat Epic terminal projection as release proof.\n\n## Out of Scope\n- OOS1. Automatic shell promotion, reordering, or new planning workflow features.\n- OOS2. Cross-project target-path repair redesign beyond safe typed warning/target-unreachable handling.\n- OOS3. Manual one-off repair of the reported external Epic outside tested reusable repair capability.\n\n## Avoidances\n- DONT1. Do not silently ignore `epic_membership` in release/archive.\n- DONT2. Do not present Epic repair as optional if stale/pending/unreachable projection state is detected during archive verification.\n- DONT3. Do not call a change shipped if release proof is missing; Epic verification is additional evidence, not a substitute for Phase 9 proof.\n- DONT4. Do not let `sync_child_projection` report success while compact Epic history/progress remains stale for an archived child.\n\n## Spec-Law Impact\nModify `advance-epics` with `rq-epicArchiveSync01` covering future archive projection and retroactive repair/backfill for archived Epic children.\n\n## User Approval Evidence\nUser approved scope expansion after concrete bug report with: `fix`.",
+    "design": "# Design: Update epic archive\n\n## Architecture Overview\n\nThis change now covers two related problems:\n\n1. Future archive prevention: when an Epic child change archives, project terminal child state to the parent Epic entry after release proof.\n2. Retroactive repair/backfill: when existing Epic entries remain active even though linked child changes are already archived/shipped, repair the parent Epic from canonical archived child state without requiring a live child workflow mutation.\n\nThe key structural invariant is unchanged: Phase 9 release proof remains the release authority. Epic terminal projection is derived evidence for initiative planning/progress, not release proof.\n\n## Evidence From Field Bug\n\nReported Epic `simplifiedChineseCardData` still showed completed_entries: 0, active_entries: 6, and stale next_entry_id while multiple linked child changes were shipped/archived. `adv_epic_repair_membership mode=sync_child_projection` either no-oped (entry stayed active) or failed against completed child workflows. This matches the design validator finding: compact Epic history depends on `entry.terminal_summary`, while membership repair can report projection OK without terminal history.\n\n## Design Decisions\n\n### D1. Future archive terminal projection\n\nRuntime archive terminalization calls the existing Epic terminal-summary signal/handler after durable release proof and archived status transition.\n\n- Uses `Store.epics.setEntryTerminalSummary(epicId, { entryId, status:\"archived\", completedAt })`.\n- Store method wraps existing `entryTerminalSummarySignal`.\n- Async and sync archive terminal paths both call the projection helper.\n- Failures become warnings/evidence and do not mutate release proof.\n\n### D2. Retroactive repair/backfill path\n\nExtend typed Epic membership repair so stale archived children can be backfilled without a live child workflow mutation.\n\nRepair logic:\n1. Read parent Epic entry by `epic_id` and `entry_id`.\n2. Resolve linked child change via typed store read (`store.changes.get`) and/or archive-bundle projection already exposed by the store.\n3. If canonical child state is `archived` or terminal with release/archive evidence, set the Epic entry terminal summary via `setEntryTerminalSummary`.\n4. If child workflow is completed/unreachable but archive bundle/canonical archived projection is readable through store APIs, proceed with audited terminal projection.\n5. If no canonical terminal proof exists, return a typed warning/error; do not mark completed.\n\nThis keeps correctness structural: terminal Epic history comes from canonical child state exposed through typed storage/query surfaces, not prose or direct file reads.\n\n### D3. Progress recomputation remains owned by Epic workflow\n\nThe existing terminal-summary handler calls `recomputeEpicProgress`. Therefore retroactive repair should use the same signal path rather than hand-editing progress counters. Expected outcome: completed_entries increments, active_entries decreases, and next_entry_id advances past terminal entries.\n\n### D4. Repair statuses stay typed and audited\n\n`adv_epic_repair_membership` remains the operator-facing repair tool. It may gain a terminal archived-child branch under `sync_child_projection` or a narrow typed mode if implementation requires. Any repair must record evidence describing source child state and whether the terminal summary was projected, target was unreachable, or proof was missing.\n\n### D5. Archive command/report guidance\n\n`/adv-archive` adds:\n- Phase 1 Epic preflight with `adv_epic_show` when `epic_membership` exists.\n- Phase 7 Epic verification after archive proof, including terminal_summary/history checks and typed repair fallback.\n- Phase 8 `Epic:` delivered line with `n/a`, verified, repaired, or warning variants.\n\n### D6. Spec law\n\n`rq-epicArchiveSync01` covers:\n- future archive terminal projection;\n- retroactive repair/backfill of already-archived children;\n- completed/unreachable child workflow repair via canonical archive/child state;\n- non-Epic archives unchanged;\n- Epic order advisory and non-blocking.\n\n## Implementation Plan\n\n1. Keep completed runtime archive projection task as foundation.\n2. Add RED tests for retroactive repair:\n   - parent Epic has linked child entry with no terminal_summary;\n   - child change read returns `status:\"archived\"` or archive projection;\n   - `adv_epic_repair_membership mode=sync_child_projection` sets terminal_summary and compact Epic history/progress advances.\n   - completed/unreachable child workflow does not block when store can read canonical archived projection.\n3. Implement repair branch using typed store APIs and existing `setEntryTerminalSummary` signal path.\n4. Expand command/spec/docs/agent asset tests and text to include retroactive repair evidence.\n5. Run targeted runtime + asset tests and `adv_change_validate strict:true`.\n\n## Risks and Mitigations\n\n- Risk: false completion from weak evidence.\n  - Mitigation: require canonical child state/archive projection through store APIs; no direct file reads or PR-only heuristics.\n- Risk: repair duplicates entries.\n  - Mitigation: use terminal-summary signal on existing entry; idempotency key is entry/status based.\n- Risk: cross-project target unreachable.\n  - Mitigation: return typed target_unreachable/warning, do not mark completed without canonical evidence.\n- Risk: archived child has release gate projection mismatch.\n  - Mitigation: repair can rely on archived status/archive bundle for Epic progress; release-gate pending symptom should be surfaced and fixed if local typed recovery path is available, otherwise reported as follow-up evidence.\n\n## Design Validator Status\n\nPrior validator PASS for future archive projection. Scope expansion requires implementation tests around retroactive repair; no new user-value tradeoff or contract-compromise risk identified.",
+    "executiveSummary": "# Executive Summary: Update epic archive\n\nThis change makes ADV Epic archive handling structural instead of advisory-only.\n\n## Delivered\n\n- Future Epic child archives now project terminal child state to the parent Epic entry after durable release proof, using the existing Epic terminal-summary signal path.\n- Retroactive Epic repair now handles already `archived` or `closed` children in `adv_epic_repair_membership mode=sync_child_projection` by backfilling `terminal_summary` instead of only refreshing membership projection.\n- Epic progress can now recompute from terminal summaries so completed child entries can leave active next-work and advance completed/next-entry progress.\n- `/adv-archive`, ADV agent guidance, ADV_INSTRUCTIONS, and `advance-epics` spec/docs now require Epic-aware archive verification, typed repair/backfill, and archive report evidence.\n\n## Verification\n\n- `bin/oc-test targeted -- src/tools/change.archive-phase9.test.ts src/tools/epic.test.ts src/advance-epics-assets.test.ts` passed: 99 tests across 3 files.\n- `adv_change_validate strict:true` passed with one non-blocking `NO_DELTAS` warning.\n- Independent reviewer verdict: READY; no blockers.\n- Contract review matrix: 31/31 rows passing/respected.\n\n## Notes\n\nPublic schema artifacts were not touched; schema generation/check was not applicable.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-06-26T21:11:19.206Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | Archiving an Epic child change loads the parent Epic through `adv_epic_show` before archive execution. | pass | Reviewer verdict READY; /adv-archive Phase 1 documents `adv_epic_show epic_id:` for `epic_membership`. |\n| SC2 | success_criterion | Future archive flow projects terminal child state to the parent Epic entry only after release proof. | pass | `change.archive-phase9.test.ts` passes; archive projection test asserts setEntryTerminalSummary after archive save/release proof. |\n| SC3 | success_criterion | Existing archived child changes can be repaired/backfilled so compact Epic history/progress advances. | pass | `epic.test.ts` passes; archived child sync_child_projection backfills terminal summary. |\n| SC4 | success_criterion | Repair/backfill can handle completed or unreachable child workflows by using canonical archived child state/archive-bundle/release evidence instead of requiring a live child workflow mutation. | pass | `epic.test.ts` passes; repair reads canonical child state from store and does not call child membership mutation for terminal child. |\n| SC5 | success_criterion | Archive and repair reports include Epic ID, entry ID/title/order when available, and evidence/result of verification or repair. | pass | Command/spec/agent assets include Epic ID/entry/report/repair evidence guidance; asset suite passes. |\n| SC6 | success_criterion | Non-Epic archive behavior remains unchanged. | pass | Existing archive tests pass; non-Epic path unchanged except report guidance allows `Epic: n/a`. |\n| AC1 | acceptance_criterion | `.opencode/command/adv-archive.md` states Phase 1 loads `adv_epic_show epic_id: ...` when `adv_change_show` includes `epic_membership`. | pass | `advance-epics-assets.test.ts` requires adv-archive.md contains `epic_membership` and `adv_epic_show epic_id:`; suite passes. |\n| AC2 | acceptance_criterion | Runtime archive terminalization fires an existing typed Epic terminal-summary path after durable release proof, so archived Epic children appear in compact Epic history rather than active next work. | pass | `change.archive-phase9.test.ts` terminal projection test passes. |\n| AC3 | acceptance_criterion | Runtime projection is idempotent and does not duplicate Epic entries on archive retry. | pass | Projection path uses idempotent `setEntryTerminalSummary`; archive Phase 9 suite passes on retry-safe behavior. |\n| AC4 | acceptance_criterion | `adv_epic_repair_membership` (or a closely related typed Epic repair path) can repair an already-archived child by projecting terminal summary from canonical child/archive evidence when the child workflow is completed, missing, or otherwise unreachable. | pass | `epic.test.ts` archived and closed child sync repair tests pass. |\n| AC5 | acceptance_criterion | Repair/backfill updates Epic progress: completed_entries increments and next_entry_id advances past terminal entries when applicable. | pass | Repair uses existing Epic terminal-summary signal; Epic workflow recomputes progress from terminal_summary. Reviewer confirmed path. |\n| AC6 | acceptance_criterion | Stale/pending/unreachable membership projection repair remains typed and audited; no direct ADV state file reads/edits are introduced. | pass | All repair/update paths use typed store/Epic APIs; no direct ADV state file reads were added. |\n| AC7 | acceptance_criterion | `.opencode/command/adv-archive.md` final report template contains an Epic line covering `n/a`, verified terminal state, repaired state, and warning cases. | pass | adv-archive report template includes `Epic:` line; asset suite passes. |\n| AC8 | acceptance_criterion | `.opencode/agents/adv.md` or synchronized ADV instructions include archive/release terminal projection and repair evidence in the Epic context-loading rule. | pass | ADV agent and ADV_INSTRUCTIONS include archive/release terminal projection repair/backfill guidance; asset suite passes. |\n| AC9 | acceptance_criterion | `advance-epics` spec gains a requirement for Epic-aware archive terminal-state verification and retroactive repair, with Given/When/Then scenarios for future archive, retroactive repair, completed child workflows, and non-Epic archive flows. | pass | Spec JSON includes `rq-epicArchiveSync01` with future archive, retroactive repair, non-Epic, and advisory-order scenarios. |\n| AC10 | acceptance_criterion | `docs/specs/advance-epics.md` mirrors the new requirement. | pass | docs/specs/advance-epics.md includes `rq-epicArchiveSync01`; mirror asset test passes. |\n| AC11 | acceptance_criterion | Tests fail without the archive/Epic runtime, repair, command, spec, and agent guidance and pass after implementation. | pass | RED/GREEN recorded for archive Phase 9, Epic repair, and asset tests; final targeted suite passed 99 tests. |\n| C1 | constraint | Do not make Epic membership mandatory. | respected | No mandatory Epic membership behavior added; non-Epic archive remains valid. |\n| C2 | constraint | Do not block archive solely because earlier Epic entries are incomplete; Epic order remains advisory. | respected | Command/spec preserve advisory-order non-blocking language. |\n| C3 | constraint | Do not read or edit ADV state files directly; use store/tool APIs and archive-bundle/canonical state reads exposed through typed surfaces. | respected | Implementation uses store/tool APIs only; no direct ADV state file access added. |\n| C4 | constraint | Do not add Jira-like Epic workflow fields. | respected | No Jira-like fields/workflows added. |\n| C5 | constraint | Do not bypass typed Epic tools/signals for repair/update. | respected | Repair/update uses typed Epic signal/store paths. |\n| C6 | constraint | Do not weaken Phase 9 release-proof requirements or archive sign-off semantics. | respected | Archive Phase 9 suite passes; release proof ordering preserved. |\n| C7 | constraint | Do not treat Epic terminal projection as release proof. | respected | Epic terminal projection is reported as derived planning evidence, not release proof. |\n| OOS1 | out_of_scope | Automatic shell promotion, reordering, or new planning workflow features. | respected | No shell promotion/reordering/planning workflow features added. |\n| OOS2 | out_of_scope | Cross-project target-path repair redesign beyond safe typed warning/target-unreachable handling. | respected | No cross-project target-path redesign added; existing typed warning/repair surfaces remain. |\n| OOS3 | out_of_scope | Manual one-off repair of the reported external Epic outside tested reusable repair capability. | respected | No one-off repair of the reported external Epic performed. |\n| DONT1 | avoidance | Do not silently ignore `epic_membership` in release/archive. | respected | Archive/release no longer ignores `epic_membership`; command and runtime paths cover it. |\n| DONT2 | avoidance | Do not present Epic repair as optional if stale/pending/unreachable projection state is detected during archive verification. | respected | Stale projection guidance routes to typed repair/backfill. |\n| DONT3 | avoidance | Do not call a change shipped if release proof is missing; Epic verification is additional evidence, not a substitute for Phase 9 proof. | respected | Archive Phase 9 tests preserve release proof authority. |\n| DONT4 | avoidance | Do not let `sync_child_projection` report success while compact Epic history/progress remains stale for an archived child. | respected | `epic.test.ts` proves terminal sync_child_projection reports terminal projection instead of membership-only no-op for archived child. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-06-26T19:17:24.140Z",
+      "contentHash": "8ce0fd30c674b25c9106e4b39667826b4cc6e140f23af00b01aea86bbe976345",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-06-26T20:43:56.847Z",
+      "contentHash": "40b7b03206da077a7c162a036cd19be08aebfdc08b874eaea4d50ed41cab7d62",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-06-26T20:43:56.847Z",
+      "contentHash": "79cfc9d8deb7065b7948a1b4b754146ea0fbd98d6d5260c744f2262b79972369",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-06-26T20:43:56.847Z",
+      "contentHash": "fb12b12f53e7916e14ec9cce6e6a32eaf5aba9f72179ab53fc80607756ff56e4",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-06-26T21:11:42.756Z",
+      "contentHash": "d9b33f2f709ff707e47ae3fd3c558531735ddd315bd08463188cb4c7e698197e",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-06-26T21:12:46.249Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true
+}
