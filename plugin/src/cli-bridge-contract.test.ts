@@ -8,6 +8,7 @@ const ADVANCE_META_SPEC = join(REPO_ROOT, ".adv/specs/advance-meta/spec.json");
 const ADV_CLI = join(REPO_ROOT, "bin/adv");
 const ADV_STATUS_LIVE = join(REPO_ROOT, "bin/lib/live-status.ts");
 const ADV_ROADMAP = join(REPO_ROOT, "bin/lib/roadmap.ts");
+const ADV_EPIC_LIST = join(REPO_ROOT, "bin/lib/epic-list.ts");
 
 function readAdvanceMetaSpec(): {
   requirements?: Array<{
@@ -237,6 +238,26 @@ describe("NO-CLI-MUTATION GUARD (AC9/DONT3)", () => {
       found,
       "bin/adv must not contain mutation subcommand dispatch",
     ).toEqual([]);
+  });
+
+  test("epic CLI namespace only exposes read-only list dispatch", () => {
+    const content = readFileSync(ADV_CLI, "utf8");
+    const epicList = readFileSync(ADV_EPIC_LIST, "utf8");
+
+    expect(content).toContain("EPIC_READ_ONLY_SUBCOMMANDS");
+    expect(content).toContain('"list"');
+
+    const forbidden = ["create", "update", "delete", "archive", "close", "gate", "task"];
+    const nestedDispatch = forbidden.filter(
+      (verb) =>
+        content.includes(`nested === "${verb}"`) ||
+        content.includes(`EPIC_READ_ONLY_SUBCOMMANDS.has("${verb}")`),
+    );
+    expect(nestedDispatch, "epic namespace must remain read-only").toEqual([]);
+
+    expect(epicList).toContain("listEpicWorkflowIds");
+    expect(epicList).not.toContain("getHandle(");
+    expect(epicList).not.toContain("readFile");
   });
 });
 

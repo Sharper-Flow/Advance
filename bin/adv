@@ -63,6 +63,7 @@ import {
 // =============================================================================
 
 const VERSION = "0.1.0";
+const EPIC_READ_ONLY_SUBCOMMANDS = new Set(["list"]);
 
 // =============================================================================
 // Subcommands
@@ -259,7 +260,7 @@ async function runEpicListCommand(json: boolean): Promise<number> {
 
 async function runEpic(argv: string[]): Promise<number> {
   const nested = argv[0];
-  if (nested !== "list") {
+  if (nested === undefined || !EPIC_READ_ONLY_SUBCOMMANDS.has(nested)) {
     process.stderr.write(`epic: unknown command: ${nested ?? ""}. Use epic list.\n`);
     return 2;
   }
