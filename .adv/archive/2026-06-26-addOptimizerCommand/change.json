@@ -1,0 +1,902 @@
+{
+  "id": "addOptimizerCommand",
+  "title": "Add optimizer command",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-06-26T17:11:32.086Z",
+  "tasks": [
+    {
+      "id": "tk-e2b5d19af387",
+      "title": "Implement /adv-optimizer command contract, manifest registration, docs, and structural tests",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-06-26T17:42:46.559Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "SC4",
+          "SC5",
+          "SC6",
+          "SC7",
+          "SC8",
+          "SC9"
+        ],
+        "verifies": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "SC4",
+          "SC5",
+          "SC6",
+          "SC7",
+          "SC8",
+          "SC9"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-26T17:50:20.722Z",
+      "verification": "RED: pnpm test -- src/adv-optimizer-assets.test.ts failed because .opencode/command/adv-optimizer.md did not exist. GREEN: pnpm exec vitest run src/adv-optimizer-assets.test.ts src/manifest.test.ts src/manifest-doc-drift.test.ts src/cli-surface-matrix.test.ts passed (66 tests).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added `.opencode/command/adv-optimizer.md` as a read-only prompt-only utility command with target resolution, first-level explore scanner fan-out, source-evidence requirement, proposal-shaped output, degraded execution, and no-mutation/no-deletion boundaries. Registered `adv-optimizer` in `plugin/src/manifest.ts`, updated `plugin/src/manifest.test.ts` command count/list, added `plugin/src/adv-optimizer-assets.test.ts`, and updated README, ADV_INSTRUCTIONS, and docs/cli-surface-matrix.md rows. Verified with targeted Vitest suite.",
+      "filesTouched": [
+        ".opencode/command/adv-optimizer.md",
+        "ADV_INSTRUCTIONS.md",
+        "README.md",
+        "docs/cli-surface-matrix.md",
+        "plugin/src/adv-optimizer-assets.test.ts",
+        "plugin/src/manifest.test.ts",
+        "plugin/src/manifest.ts"
+      ],
+      "touched_files": [
+        ".opencode/command/adv-optimizer.md",
+        "ADV_INSTRUCTIONS.md",
+        "README.md",
+        "docs/cli-surface-matrix.md",
+        "plugin/src/adv-optimizer-assets.test.ts",
+        "plugin/src/manifest.test.ts",
+        "plugin/src/manifest.ts"
+      ],
+      "checkpointSha": "6b826fe6f0ab8567c492e59cd88b95704b203e71",
+      "completedAt": "2026-06-26T18:00:24.119Z",
+      "completed_at": "2026-06-26T18:00:24.119Z",
+      "notes": "Implemented /adv-optimizer command contract, manifest registration, docs, CLI surface matrix, and optimizer asset tests. RED/GREEN evidence recorded via adv_run_test; checkpoint commit 6b826fe6f0ab8567c492e59cd88b95704b203e71.",
+      "error_recovery": {
+        "last_error": "Initial GREEN using `pnpm test -- ...` ran unrelated tests and hit a Temporal workflow test timeout; reran with `pnpm exec vitest run ...` to target only intended files. Asset test also initially failed on exact phrase mismatches; fixed command prose to include required structural strings.",
+        "retry_count": 2,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "Proceed to separate verification task for static boundary checks and final targeted tests.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "Asset tests failed because command file was missing (expected RED).",
+            "diagnosis": "RED phase proved new command asset test catches missing command contract.",
+            "fix_tried": "Added optimizer command, manifest entry, docs, and matrix/test updates.",
+            "strategy_label": "red-green-command-assets",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-26T17:52:34.987Z"
+          },
+          {
+            "attempt_number": 2,
+            "error": "GREEN run with `pnpm test -- ...` executed unrelated workflow tests and timed out; optimizer asset tests also required exact phrase additions.",
+            "diagnosis": "Package-script invocation was too broad/noisy; asset tests needed literal safety anchors.",
+            "fix_tried": "Added exact `ADV State Mutation: none` and `evidence-free findings are omitted` anchors; used `pnpm exec vitest run ...` for precise targeted verification.",
+            "strategy_label": "tighten-targeted-test-command",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-26T17:59:38.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-26T18:00:57.125Z"
+    },
+    {
+      "id": "tk-c848c1e8e3a2",
+      "title": "Run final targeted verification and readiness checks for /adv-optimizer",
+      "type": "verification",
+      "section": "Verification",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-06-26T17:43:09.477Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-e2b5d19af387"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [],
+        "verifies": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "SC4",
+          "SC5",
+          "SC6",
+          "SC7",
+          "SC8",
+          "SC9",
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-26T18:01:35.314Z",
+      "verification": "Post-review cleanup: removed duplicate ADV State Mutation line. Verified pnpm exec vitest run src/adv-optimizer-assets.test.ts src/manifest-doc-drift.test.ts passed (24 tests).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Final verification plus review cleanup complete. The command contract now has a single plain `ADV State Mutation: none` anchor. Targeted tests and static boundary checks passed; reviewer nit addressed without adding CLI runner, new agent, or mutation surface.",
+      "filesTouched": [
+        ".opencode/command/adv-optimizer.md"
+      ],
+      "touched_files": [
+        ".opencode/command/adv-optimizer.md"
+      ],
+      "checkpointSha": "b0c256c57a660533bf2c50ff144e5b19c6d5ace5",
+      "completedAt": "2026-06-26T18:12:26.500Z",
+      "completed_at": "2026-06-26T18:12:26.500Z",
+      "notes": "Post-review nit fixed: removed duplicate `ADV State Mutation` line. Verified optimizer asset and manifest-doc drift tests still pass (24 tests). Checkpoint commit b0c256c57a660533bf2c50ff144e5b19c6d5ace5.",
+      "error_recovery": {
+        "last_error": "Reviewer reported a harmless duplicate `ADV State Mutation: none` line as a nonblocking nit.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "Rerun reviewer after cleanup if acceptance requires READY verdict.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "Duplicate state-mutation line in command boundary.",
+            "diagnosis": "Asset-test anchor was added alongside existing bold line, creating redundant prose.",
+            "fix_tried": "Removed bold duplicate and reran optimizer asset + manifest-doc drift tests.",
+            "strategy_label": "post-review-nit-cleanup",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-26T18:12:00.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-26T18:12:48.066Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "addOptimizerCommand",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-leverage-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design leverage points for adding /adv-optimizer read-only utility command",
+      "sources": [
+        {
+          "label": "adv-tron command (prompt-only utility, dedicated worker, read-only boundary)",
+          "locator": ".opencode/command/adv-tron.md:1-84",
+          "summary": "Closest structural template: utility command, no CLI, spawns dedicated worker agent via Task tool with packet contract; read-only constraints + bounded findings + suggested next commands."
+        },
+        {
+          "label": "adv-improve command (utility, prompt-only, evidence-backed, degraded execution)",
+          "locator": ".opencode/command/adv-improve.md:1-123",
+          "summary": "Best fit for optimizer's evidence/proposal/degraded shape: Command Boundary, Exits (Report/Clarify/Partial), Target Resolution broad+scoped, evidence-required findings, Synthesis output, Context7/Exa fallback. Uses NO dedicated worker — orchestrator does scan inline."
+        },
+        {
+          "label": "adv-slop-scan command (explore scanner fan-out, no-nested-delegation contract)",
+          "locator": ".opencode/command/adv-slop-scan.md:100-136",
+          "summary": "Canonical first-level-only delegation boundary text and explore-scanner fan-out pattern; scanners do work inline, no sub-agents, no /adv-* invocation. Directly reusable for SC5."
+        },
+        {
+          "label": "manifest utility block",
+          "locator": "plugin/src/manifest.ts:377-423",
+          "summary": "Utility command registration shape: phase:'utility', requiresChangeId:false, prerequisites:[], successors:['adv-proposal','adv-task']. adv-tron entry (405-413) is exact template for SC2."
+        },
+        {
+          "label": "manifest.test.ts hard command-count assertion",
+          "locator": "plugin/src/manifest.test.ts:28-63",
+          "summary": "Asserts exactly 26 commands AND an explicit expectedCommands list. Adding optimizer REQUIRES bumping 26->27 in two places (toHaveLength + count) and appending 'adv-optimizer' to the list, else test fails."
+        },
+        {
+          "label": "manifest-doc-drift.test.ts (auto-covers new commands)",
+          "locator": "plugin/src/manifest-doc-drift.test.ts:98-246",
+          "summary": "Generic loops: requires every manifest command to have a command doc + README + ADV_INSTRUCTIONS table row with EXACT description match, and frontmatter description 5-14 words. Auto-enforces SC1/SC3 once optimizer is registered — no new test code needed for drift."
+        },
+        {
+          "label": "adv-improve-assets.test.ts (boundary/evidence/output test template)",
+          "locator": "plugin/src/adv-improve-assets.test.ts:26-189",
+          "summary": "Direct template for the optimizer-local asset test: Command Boundary section, Gate:None, no-ADV-state-mutation, forbids adv_change_create/adv_task_add/adv_gate_complete, Exits, evidence/output sections, degraded wording."
+        },
+        {
+          "label": "adv-tron-assets.test.ts (minimal existence+fallback test)",
+          "locator": "plugin/src/adv-tron-assets.test.ts:11-41",
+          "summary": "Minimal asset-test shape if optimizer reuses an existing worker instead of new agent: existence + skill-fallback wording check."
+        },
+        {
+          "label": "README + ADV_INSTRUCTIONS command tables",
+          "locator": "README.md:414-421, ADV_INSTRUCTIONS.md:146",
+          "summary": "Two doc tables that drift test enforces; optimizer row must be appended with exact manifest description (SC3)."
+        },
+        {
+          "label": "agents directory (no local explore agent; adv-researcher IS local)",
+          "locator": ".opencode/agents/ (adv-researcher.md, adv-tron.md present; no explore.md)",
+          "summary": "explore is a bundled/global OpenCode agent spawned by adv-review/adv-slop-scan without a repo-local file — so draft design's reuse of explore scanners is proven viable with zero new agent file. adv-researcher is repo-local and reusable for the best-practice/reference dimension."
+        }
+      ],
+      "architecture_assessment": "Draft design direction (prompt-only command, reuse existing explore scanners + optional adv-researcher, optimizer-local asset test, update existing manifest/doc tests, no new spec) is strongly supported by existing patterns and satisfies C1/C2/C3. adv-improve is the closest sibling (utility + evidence + degraded + proposal output, no dedicated worker), and adv-slop-scan supplies the verbatim no-nested-delegation contract. The single highest-payoff non-obvious leverage point is that manifest-doc-drift.test.ts AUTO-enforces SC1/SC3 (existence + README/ADV_INSTRUCTIONS exact-description match) for free once optimizer is registered, while manifest.test.ts has a HARD-CODED count (26) + explicit list that WILL fail unless updated — this is the most likely missed-step. No new spec is needed: optimizer is command-only behavior, not capability law (matches adv-tron/adv-improve which have no spec).",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "All candidates stay within approved agreement (SC1-SC9, C1-C5, DONT1-DONT5). No candidate adds a new user-facing AC or alters the agreement. STOP_WHEN not triggered."
+      },
+      "recommendation": "Adopt prompt-only command modeled on adv-improve's boundary/exits/evidence/degraded shape + adv-slop-scan's explore fan-out and no-nested-delegation contract. Register in manifest utility block as exact clone of adv-tron entry (successors adv-proposal+adv-task). CRITICAL: update manifest.test.ts count 26->27 and append 'adv-optimizer' to expectedCommands or the suite fails. Write optimizer-local asset test cloned from adv-improve-assets.test.ts (boundary/no-mutation/no-create-tools/evidence/output/degraded). Rely on manifest-doc-drift.test.ts generic loops for SC1/SC3 (just add README + ADV_INSTRUCTIONS rows). No new spec; no new agent (reuse explore + optionally adv-researcher).",
+      "follow_ups": [
+        "Design validator should confirm whether optimizer reuses explore scanners only or also adv-researcher for the best-practice/reference dimension (affects whether the asset test asserts a Task-tool spawn block like adv-tron vs inline-scan like adv-improve).",
+        "Confirm exact frontmatter description is 5-14 words (manifest-doc-drift caps it) and identical across manifest/frontmatter/README/ADV_INSTRUCTIONS."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addOptimizerCommand",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation for /adv-optimizer read-only utility command",
+      "sources": [
+        {
+          "label": "manifest.test.ts hard command-count assertion",
+          "locator": "plugin/src/manifest.test.ts:28-63",
+          "summary": "Asserts toHaveLength(26) AND an explicit expectedCommands list. Design Step 1 explicitly updates expected command list/count — correct; must bump 26->27 in both toHaveLength and the list, append 'adv-optimizer'."
+        },
+        {
+          "label": "manifest.ts utility block (adv-tron template)",
+          "locator": "plugin/src/manifest.ts:405-413",
+          "summary": "adv-tron entry is verbatim template for design D-registration: phase:'utility', requiresChangeId:false, prerequisites:[], successors:['adv-proposal','adv-task']. Design Step 3 matches exactly."
+        },
+        {
+          "label": "adv-improve command (closest sibling: utility + evidence + degraded + proposal output, no dedicated worker)",
+          "locator": ".opencode/command/adv-improve.md:21-113",
+          "summary": "Provides Command Boundary, Exits (Report/Clarify/Partial), evidence-required findings, synthesis output, Context7/Exa fallback, degraded annotation. Directly backs design SC4/SC6/SC7/SC8 sections and read-only boundary."
+        },
+        {
+          "label": "adv-slop-scan no-nested-delegation contract + explore fan-out",
+          "locator": ".opencode/command/adv-slop-scan.md:104-136",
+          "summary": "Verbatim first-level-only delegation boundary: scanners inline, no sub-agents, no /adv-* invocation, packet contract with workdir/target, timeout=>partial, all-fail=>deterministic-only. Backs design D2/SC5/SC8/DONT2/DONT5."
+        },
+        {
+          "label": "manifest-doc-drift.test.ts auto-enforcement",
+          "locator": "plugin/src/manifest-doc-drift.test.ts:98-246 (per prior researcher report, scope_key researcher:design-leverage-scout)",
+          "summary": "Generic loops auto-enforce SC1/SC3 (command doc + README + ADV_INSTRUCTIONS exact-description match, frontmatter 5-14 words) once optimizer is registered. Design DDC1 aligns; no new drift-test code needed."
+        }
+      ],
+      "architecture_assessment": "Design is sound and well-grounded in existing patterns. Prompt-only command (D1), worker reuse via explore + optional adv-researcher (D2), proposal-shaped output not slop report (D3), and structural safety via optimizer asset test + existing manifest/doc drift tests (D4) all map directly to proven siblings: adv-improve for boundary/evidence/degraded/proposal shape, adv-slop-scan for explore fan-out + no-nested-delegation, adv-tron for manifest utility registration. No new spec required — optimizer is command-only behavior, not capability law, consistent with adv-tron/adv-improve which have no spec. Constraints C1 (no new agent), C2 (no CLI), C3 (not duplicating slop-scan: optimizer outputs simplification proposal, slop-scan outputs detector findings), C4 (structural tests), C5 (worktree) are all satisfiable within the design. One material logical gap: design Step 1/Step 3 do not commit to whether the asset test asserts a Task-tool spawn block (adv-tron style) versus inline-scan (adv-improve style); this maps to DDC3 (worker packet) which presumes a spawn block, while adv-improve performs scans inline. The design should make D2's fan-out concrete enough that the DDC3 packet-contract test has a real target. This is a clarity caution, not a blocker.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "No spec-law conflict, no security/release blocker, no contract compromise. All design decisions stay within approved agreement (SC1-SC9, C1-C5, DONT1-DONT5). Verdict CAUTION due to one DDC3/D2 internal-consistency clarity gap, not a contract violation."
+      },
+      "recommendation": "VALIDATED with one CAUTION. The prompt-only design is the simplest viable approach and is strongly supported by adv-improve (boundary/evidence/degraded/proposal output), adv-slop-scan (explore fan-out + verbatim no-nested-delegation contract), and adv-tron (manifest utility registration). No materially simpler alternative exists short of dropping sub-agent fan-out entirely (which would weaken SC5/multi-perspective objective). No overlooked viable alternative — a CLI runner (C2) or dedicated agent (C1) would add scope the agreement explicitly defers. Resolve the single internal-consistency gap before planning: make D2 concrete about whether optimizer spawns a Task-tool worker packet (adv-tron style, satisfying DDC3's workdir/no-nested packet) or scans inline (adv-improve style); pick one so the DDC3 packet-contract asset test has a definite target. Also confirm the frontmatter description is exactly 5-14 words and byte-identical across manifest/frontmatter/README/ADV_INSTRUCTIONS (manifest-doc-drift enforces this).",
+      "follow_ups": [
+        "Design should pin D2: explore Task-tool spawn (packet-contract per DDC3) vs inline scan (adv-improve style). DDC3 currently presumes a worker packet; reconcile.",
+        "Confirm exact 5-14 word frontmatter description identical across manifest/frontmatter/README/ADV_INSTRUCTIONS (DDC1; manifest-doc-drift.test.ts enforces).",
+        "Planning must bump manifest.test.ts toHaveLength(26)->(27) and append 'adv-optimizer' to expectedCommands or the suite fails."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addOptimizerCommand",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addOptimizerCommand",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "NEEDS_WORK",
+      "blocking_findings": [],
+      "nonblocking_findings": [
+        {
+          "id": "review-nit-1",
+          "label": "nit",
+          "file": ".opencode/command/adv-optimizer.md",
+          "line": 20,
+          "what": "Command boundary states ADV state mutation twice: bold line 20 and duplicate plain line 22.",
+          "why": "Harmless but noisy; removing duplicate line 22 would keep command contract tighter.",
+          "fix": "Optional: delete duplicate plain `ADV State Mutation: none.` line."
+        }
+      ],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- plugin/src/adv-optimizer-assets.test.ts plugin/src/manifest.test.ts (failed: wrapper filters relative to plugin/, no test files found)",
+          "bin/oc-test targeted -- src/adv-optimizer-assets.test.ts src/manifest.test.ts"
+        ],
+        "results": "pass",
+        "evidence": "Path preflight OK for all in-scope files. Inspected agreement/design via adv_change_show and implementation/docs/tests via worktree reads. Corrected targeted wrapper invocation passed: src/adv-optimizer-assets.test.ts 7 tests + src/manifest.test.ts 40 tests, 47 passed. Known broader evidence from context: manifest-doc-drift and cli-surface-matrix tests passed in prior 66-test verify run."
+      },
+      "scope_drift": null,
+      "risks": [],
+      "required_main_agent_actions": [
+        "Optional cleanup: remove duplicate plain `ADV State Mutation: none.` line from .opencode/command/adv-optimizer.md line 22 if you want zero review nits."
+      ],
+      "required_follow_ups": [],
+      "consumer_warnings": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addOptimizerCommand",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addOptimizerCommand",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "test -e '.opencode/command/adv-optimizer.md' && echo OK || echo MISSING",
+          "git show --stat --oneline --decorate --no-renames '6b826fe6' -- '.opencode/command/adv-optimizer.md' && git show --stat --oneline --decorate --no-renames 'b0c256c5' -- '.opencode/command/adv-optimizer.md'",
+          "git diff '6b826fe6' 'b0c256c5' -- '.opencode/command/adv-optimizer.md'",
+          "grep pattern 'ADV State Mutation: none' in .opencode/command/adv-optimizer.md",
+          "bin/oc-test targeted -- plugin/src/adv-optimizer-assets.test.ts plugin/src/manifest.test.ts",
+          "bin/oc-test targeted -- src/adv-optimizer-assets.test.ts src/manifest.test.ts"
+        ],
+        "results": "pass",
+        "evidence": "Path preflight OK. Current .opencode/command/adv-optimizer.md line 20 contains single `ADV State Mutation: none.` boundary; grep found exactly 1 match. Diff 6b826fe6..b0c256c5 shows duplicate bold `**ADV State Mutation:** none.` line removed. Checkpoint b0c256c5 is HEAD. Initial test command used repo-root-prefixed plugin paths and found no tests; corrected oc-test invocation passed: src/adv-optimizer-assets.test.ts 7 tests, src/manifest.test.ts 40 tests, 47 passed."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Scoped cleanup review only; no broad review performed beyond obvious blocker check per OUT_OF_SCOPE."
+      ],
+      "required_main_agent_actions": [],
+      "required_follow_ups": [],
+      "consumer_warnings": []
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-M-Lnyc",
+      "type": "gotcha",
+      "content": "For targeted Vitest verification in this repo, `pnpm test -- <files>` can still trigger broad/unrelated test execution in some contexts; use `pnpm exec vitest run <files>` (or repo wrapper where appropriate) for precise file-scoped evidence when recording task-level GREEN results.",
+      "source_task": "tk-e2b5d19af387",
+      "recorded_at": "2026-06-26T18:01:08.013Z"
+    },
+    {
+      "id": "ws-mBMRK1",
+      "type": "gotcha",
+      "content": "Existing Markdown docs/tables in this repo may not be whole-file Prettier-normalized. Avoid running `prettier --write` over README/ADV_INSTRUCTIONS/docs matrix solely for a small row addition; it creates unrelated table churn. Prefer structural drift tests plus TS formatting, and keep Markdown edits minimal unless a change explicitly owns doc formatting.",
+      "source_task": "tk-c848c1e8e3a2",
+      "recorded_at": "2026-06-26T18:05:47.829Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-06-26T17:13:22.583Z",
+      "completed_by": "adv-proposal",
+      "approval_evidence": "User approved proposal in chat: \"approve\". Problem statement and scope persisted for /adv-optimizer command.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "7bb4721236d7cdf4b566a6caefade36d3283070ac4d58eaf42bfb28d2561b0ad",
+        "non_whitespace_chars": 2036,
+        "checked_at": "2026-06-26T17:11:32.141Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "started_at": "2026-06-26T17:32:13.635Z",
+      "completed_at": "2026-06-26T17:33:38.391Z",
+      "completed_by": "adv-discover",
+      "approval_evidence": "User approved agreement in chat: \"approve\". Agreement captures objectives, success criteria SC1-SC9, constraints C1-C5, and avoidances DONT1-DONT5. Contract minted with 19 items.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "d5391643b260916a4885da1dd5f042bd9cf0411e12a46de2cb1aef4f195c28ec",
+        "non_whitespace_chars": 3446,
+        "checked_at": "2026-06-26T17:11:32.142Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-06-26T17:41:27.924Z",
+      "completed_by": "adv-design",
+      "approval_evidence": "Design persisted. Leverage scout validated approach. Independent validator returned CAUTION on fan-out shape; design revised to pin first-level explore scanner fan-out with concrete packet. No unresolved conflict, contract compromise, or user-value tradeoff.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "2e338ca0c0f064b1965f95b7c894900c287cbcba749701ed069c28470a34536c",
+        "non_whitespace_chars": 7042,
+        "checked_at": "2026-06-26T17:11:32.143Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-06-26T17:49:49.599Z",
+      "completed_by": "adv-prep",
+      "approval_evidence": "User approved prep in chat: \"approve\". Task graph contains implementation task and dependent verification task, with contract refs mapped to SC1-SC9, C1-C5, and DONT1-DONT5. Validation passed with only intentional NO_DELTAS warning."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-06-26T18:06:48.722Z",
+      "completed_by": "adv-apply",
+      "approval_evidence": "All tasks done. Verification passed: targeted Vitest suite (66 tests), static optimizer boundary check, TS formatting check. Strict validation passed with only intentional NO_DELTAS warning because this is command-only behavior."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-06-26T18:19:23.114Z",
+      "completed_by": "adv-review",
+      "approval_evidence": "User approved acceptance in chat: \"approve\". Independent reviewer final verdict READY; contract review matrix has 19/19 pass/respected rows; executive summary persisted.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "53a626e1f6f7b63dc3b08699ee1a663fa8ebbbd59085b923afda44eefa7c0f44",
+        "non_whitespace_chars": 1388,
+        "checked_at": "2026-06-26T17:11:32.144Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "adhoc"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "d5391643b260916a4885da1dd5f042bd9cf0411e12a46de2cb1aef4f195c28ec",
+      "approvedAt": "2026-06-26T17:33:25.813Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "Command existence: `.opencode/command/adv-optimizer.md` exists with frontmatter `name: adv-optimizer` and a manifest comment declaring `requiresChangeId: false`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d5391643b260916a4885da1dd5f042bd9cf0411e12a46de2cb1aef4f195c28ec",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "Manifest registration: `plugin/src/manifest.ts` contains `adv-optimizer` with `phase: \"utility\"`, `requiresChangeId: false`, no gate, no prerequisites, and successors including `adv-proposal` and `adv-task`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d5391643b260916a4885da1dd5f042bd9cf0411e12a46de2cb1aef4f195c28ec",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "Documentation alignment: README and `ADV_INSTRUCTIONS.md` command tables include `/adv-optimizer` with exactly the manifest description.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d5391643b260916a4885da1dd5f042bd9cf0411e12a46de2cb1aef4f195c28ec",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC4",
+        "kind": "success_criterion",
+        "text": "Read-only boundary: command contract explicitly forbids code edits, ADV state mutation, agenda creation, task creation, and automatic deletion.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d5391643b260916a4885da1dd5f042bd9cf0411e12a46de2cb1aef4f195c28ec",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC5",
+        "kind": "success_criterion",
+        "text": "Delegation boundary: command contract explicitly allows only first-level worker agents and forbids scanner workers from spawning sub-agents or invoking `/adv-*` commands.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d5391643b260916a4885da1dd5f042bd9cf0411e12a46de2cb1aef4f195c28ec",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC6",
+        "kind": "success_criterion",
+        "text": "Evidence boundary: actionable findings require source evidence (`file:line`, symbol, metric, or cited source); evidence-free findings are omitted or marked non-actionable.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d5391643b260916a4885da1dd5f042bd9cf0411e12a46de2cb1aef4f195c28ec",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC7",
+        "kind": "success_criterion",
+        "text": "Proposal output: command contract requires an output section containing current state, ranked simplification opportunities, recommended long-term best-practice direction, risks, non-goals, and next ADV command.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d5391643b260916a4885da1dd5f042bd9cf0411e12a46de2cb1aef4f195c28ec",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC8",
+        "kind": "success_criterion",
+        "text": "Degraded execution: command contract defines partial-report behavior when some scanners fail/time out and deterministic-evidence-only behavior when all scanners fail.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d5391643b260916a4885da1dd5f042bd9cf0411e12a46de2cb1aef4f195c28ec",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC9",
+        "kind": "success_criterion",
+        "text": "Tests: targeted tests fail before implementation and pass after implementation for command presence, manifest count/alignment, frontmatter/manifest drift, doc-table drift, read-only boundary, no-nested-delegation boundary, and evidence/output requirements.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d5391643b260916a4885da1dd5f042bd9cf0411e12a46de2cb1aef4f195c28ec",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Do not create a new sub-agent unless design proves a dedicated worker is needed; use existing first-level agents where sufficient.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d5391643b260916a4885da1dd5f042bd9cf0411e12a46de2cb1aef4f195c28ec",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Do not add a CLI `bin/adv optimizer` runner in this change unless design proves deterministic runner scope is required for acceptance.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d5391643b260916a4885da1dd5f042bd9cf0411e12a46de2cb1aef4f195c28ec",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Do not duplicate `/adv-slop-scan`; optimizer must focus on simplification/refactor proposal synthesis, not slop-detector reporting.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d5391643b260916a4885da1dd5f042bd9cf0411e12a46de2cb1aef4f195c28ec",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Keep correctness structural: tests and manifest/doc drift checks must guard command registration and safety boundaries.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d5391643b260916a4885da1dd5f042bd9cf0411e12a46de2cb1aef4f195c28ec",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Implementation must happen in the ADV-managed `change/addOptimizerCommand` worktree.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d5391643b260916a4885da1dd5f042bd9cf0411e12a46de2cb1aef4f195c28ec",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "No auto-deletion of code based on heuristic/sub-agent judgment.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d5391643b260916a4885da1dd5f042bd9cf0411e12a46de2cb1aef4f195c28ec",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "No nested delegation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d5391643b260916a4885da1dd5f042bd9cf0411e12a46de2cb1aef4f195c28ec",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "No direct reads of ADV state files.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d5391643b260916a4885da1dd5f042bd9cf0411e12a46de2cb1aef4f195c28ec",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "No broad unrelated refactor while adding the command.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d5391643b260916a4885da1dd5f042bd9cf0411e12a46de2cb1aef4f195c28ec",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "No slash-command invocation from inside ADV orchestration.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d5391643b260916a4885da1dd5f042bd9cf0411e12a46de2cb1aef4f195c28ec",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-06-26T18:16:23.750Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "`.opencode/command/adv-optimizer.md` exists with `name: adv-optimizer`; manifest-doc drift tests passed.",
+          "notes": "Command asset and doc drift coverage verified."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "`plugin/src/manifest.ts` registers `adv-optimizer` as utility, requiresChangeId false, successors adv-proposal/adv-task; manifest tests passed.",
+          "notes": "No gate or prerequisites added."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "README and ADV_INSTRUCTIONS rows match manifest description; `manifest-doc-drift.test.ts` passed.",
+          "notes": "Exact description alignment verified."
+        },
+        {
+          "contractId": "SC4",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Command boundary states `ADV State Mutation: none` and forbids code edits, ADV mutation, agenda/task creation, and automatic deletion; optimizer asset test passed.",
+          "notes": "Post-review duplicate wording nit fixed."
+        },
+        {
+          "contractId": "SC5",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Command includes `No Nested Scanner Delegation`, first-level scanner packet, and bans sub-agent spawning plus `/adv-*`; optimizer asset test passed.",
+          "notes": "Delegation boundary pinned structurally."
+        },
+        {
+          "contractId": "SC6",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Command includes `Source Evidence Requirement`, requires file/symbol/metric/citation evidence, and separates low-confidence/user-review/actionable groups; optimizer asset test passed.",
+          "notes": "Evidence-free findings omitted before actionability sorting."
+        },
+        {
+          "contractId": "SC7",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Command defines `OPTIMIZER PROPOSAL` with Current State, Ranked Simplification Opportunities, Recommended Long-Term Direction, Risks, Non-Goals, and Next ADV Command; optimizer asset test passed.",
+          "notes": "Proposal-shaped output distinct from slop-scan."
+        },
+        {
+          "contractId": "SC8",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Command defines degraded execution for partial report, deterministic evidence only, and failed/timed-out scanners; optimizer asset test passed.",
+          "notes": "Coverage gaps surfaced explicitly."
+        },
+        {
+          "contractId": "SC9",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "RED failed on missing command; final targeted `pnpm exec vitest run src/adv-optimizer-assets.test.ts src/manifest.test.ts src/manifest-doc-drift.test.ts src/cli-surface-matrix.test.ts` passed 66 tests; cleanup rerun passed 24 tests.",
+          "notes": "Structural tests cover command, manifest, docs, CLI matrix, and safety boundaries."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Static check confirms `.opencode/agents/adv-optimizer.md` does not exist; command uses existing `explore`/optional `adv-researcher`.",
+          "notes": "No new sub-agent created."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Static check confirms `bin/adv` contains no optimizer surface.",
+          "notes": "No CLI runner added."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Command states it does not replace `/adv-slop-scan`; output owns proposal synthesis, not detector reporting.",
+          "notes": "Optimizer and slop-scan ownership separated."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Added optimizer asset tests and updated generic manifest/doc/CLI matrix tests; targeted suites passed.",
+          "notes": "Safety boundaries are test-backed."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Implementation and checkpoints ran in ADV worktree `/home/jon/.local/share/opencode/worktree/.../change/addOptimizerCommand`.",
+          "notes": "Trunk checkout not used for implementation edits."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Command explicitly forbids automatic deletion and says deletion candidates are recommendations for tracked follow-up review only.",
+          "notes": "No deletion behavior implemented."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Command includes `No Nested Scanner Delegation` and bans scanner workers from spawning additional sub-agents/delegates/workers.",
+          "notes": "Nested delegation forbidden."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No ADV state files were read directly; ADV state accessed through ADV tools during workflow.",
+          "notes": "Implementation touched repo files only."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Touched files limited to command/doc/test/manifest/CLI-matrix surfaces for optimizer; unrelated Markdown formatting churn was reverted.",
+          "notes": "No broad unrelated refactor retained."
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No slash commands were invoked inside orchestration; command contract also bans scanner workers from invoking `/adv-*`.",
+          "notes": "Workflow executed inline with tools."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [],
+  "documents": {
+    "proposal": "# Add optimizer command\n\n## Problem\nADV has reconnaissance (`/adv-tron`), improvement analysis (`/adv-improve`), and slop detection (`/adv-slop-scan`), but no focused optimizer command that asks sub-agents to identify bloated, overly verbose, overly complex, or under-optimized code and synthesize a complete simplification proposal.\n\n## Scope\n- Add `.opencode/command/adv-optimizer.md`.\n- Register `adv-optimizer` in `plugin/src/manifest.ts` as a read-only utility command.\n- Add/update command asset and manifest tests for command presence, metadata alignment, read-only boundary, first-level sub-agent limit, evidence requirements, and handoff toward tracked ADV work.\n- Update `.adv/specs/*` only if discovery/design determines the command is capability law rather than command-only behavior.\n\n## Out of Scope\n- Direct code modification by `/adv-optimizer`.\n- Automatic ADV change/task/agenda creation.\n- Deletion of code based only on heuristic or sub-agent opinion.\n- Replacing `/adv-slop-scan`, `/adv-improve`, or `/adv-tron`.\n\n## Intended Command Behavior\n`/adv-optimizer [target] [--json] [--depth light|standard|deep]` should:\n1. Resolve target: repo, path, symbol, or concept.\n2. Load project/spec context and relevant command boundaries.\n3. Run deterministic local evidence gathering where practical: structure, complexity, duplication, churn/test adjacency when available.\n4. Fan out to bounded first-level sub-agents for independent simplification scans.\n5. Reject evidence-free findings and deduplicate overlap.\n6. Emit a full simplification proposal: current-state evidence, ranked opportunities, recommended long-term best-practice direction, risks, explicit non-goals, and suggested next ADV command.\n\n## Error Handling\n- If target cannot be resolved: ask a focused clarification.\n- If some scanners fail or time out: return a partial report with explicit coverage gaps.\n- If all scanners fail: return deterministic evidence only, plus retry guidance.\n- If a finding lacks source evidence: omit it from actionable recommendations.\n\n## Acceptance Shape\n- `/adv-optimizer` exists as a command and appears in manifest surfaces.\n- Command contract requires source-backed findings and forbids mutation.\n- Command contract enforces no nested sub-agent delegation.\n- Tests prove command/manifest alignment and core safety boundaries.\n",
+    "problemStatement": "We need a dedicated ADV command that can proactively find unoptimized, bloated, overly verbose, or overly complex code and produce a full simplification proposal. Existing commands cover slop scanning, reconnaissance, and improvement analysis, but there is no focused optimizer workflow that coordinates sub-agents around simplification opportunities and turns findings into an evidence-backed, long-term best-practice proposal.",
+    "agreement": "# Agreement: Add optimizer command\n\n## Objective\nAdd `/adv-optimizer` as a read-only ADV utility command that coordinates bounded first-level sub-agent analysis to identify simplification opportunities in source code and produce a complete, evidence-backed optimization/refactor proposal.\n\n## Discovery Findings\n- Existing adjacent commands cover partial needs:\n  - `/adv-slop-scan` detects slop/deletion safety/detector coverage and already documents first-level-only scanner delegation.\n  - `/adv-improve` produces evidence-backed improvement analysis but is broad and writes `docs/*-prep.md` research packs.\n  - `/adv-tron` performs reconnaissance and suggestions but does not synthesize a simplification proposal.\n- Command registration has enforced drift surfaces: `plugin/src/manifest.ts`, `.opencode/command/*.md`, README/ADV command tables, and manifest/doc tests.\n- New command should be prompt-only initially; no CLI bridge unless a deterministic runner is added later.\n- `adv_change_validate` passed; warnings `NO_TASKS` and `NO_DELTAS` are expected before planning.\n- `adv_change_list` timed out twice despite healthy Temporal diagnostics, so related-work discovery used validation plus agenda sampling. No exact `/adv-optimizer` collision surfaced from gathered evidence.\n\n## Success Criteria\n- SC1: Command existence: `.opencode/command/adv-optimizer.md` exists with frontmatter `name: adv-optimizer` and a manifest comment declaring `requiresChangeId: false`.\n- SC2: Manifest registration: `plugin/src/manifest.ts` contains `adv-optimizer` with `phase: \"utility\"`, `requiresChangeId: false`, no gate, no prerequisites, and successors including `adv-proposal` and `adv-task`.\n- SC3: Documentation alignment: README and `ADV_INSTRUCTIONS.md` command tables include `/adv-optimizer` with exactly the manifest description.\n- SC4: Read-only boundary: command contract explicitly forbids code edits, ADV state mutation, agenda creation, task creation, and automatic deletion.\n- SC5: Delegation boundary: command contract explicitly allows only first-level worker agents and forbids scanner workers from spawning sub-agents or invoking `/adv-*` commands.\n- SC6: Evidence boundary: actionable findings require source evidence (`file:line`, symbol, metric, or cited source); evidence-free findings are omitted or marked non-actionable.\n- SC7: Proposal output: command contract requires an output section containing current state, ranked simplification opportunities, recommended long-term best-practice direction, risks, non-goals, and next ADV command.\n- SC8: Degraded execution: command contract defines partial-report behavior when some scanners fail/time out and deterministic-evidence-only behavior when all scanners fail.\n- SC9: Tests: targeted tests fail before implementation and pass after implementation for command presence, manifest count/alignment, frontmatter/manifest drift, doc-table drift, read-only boundary, no-nested-delegation boundary, and evidence/output requirements.\n\n## Constraints\n- C1: Do not create a new sub-agent unless design proves a dedicated worker is needed; use existing first-level agents where sufficient.\n- C2: Do not add a CLI `bin/adv optimizer` runner in this change unless design proves deterministic runner scope is required for acceptance.\n- C3: Do not duplicate `/adv-slop-scan`; optimizer must focus on simplification/refactor proposal synthesis, not slop-detector reporting.\n- C4: Keep correctness structural: tests and manifest/doc drift checks must guard command registration and safety boundaries.\n- C5: Implementation must happen in the ADV-managed `change/addOptimizerCommand` worktree.\n\n## Avoidances\n- DONT1: No auto-deletion of code based on heuristic/sub-agent judgment.\n- DONT2: No nested delegation.\n- DONT3: No direct reads of ADV state files.\n- DONT4: No broad unrelated refactor while adding the command.\n- DONT5: No slash-command invocation from inside ADV orchestration.\n",
+    "design": "# Design\n\n## Architecture Overview\nAdd `/adv-optimizer` as a prompt-only ADV utility command, modeled after existing command contracts rather than a new runtime subsystem.\n\nThe command is a read-only orchestration contract that:\n1. resolves a target repo/path/symbol/concept,\n2. gathers local structural evidence,\n3. fans out to bounded first-level `explore` scanner workers for independent simplification perspectives,\n4. optionally uses `adv-researcher` inline/sub-agent research only for best-practice/reference evidence when needed,\n5. rejects evidence-free recommendations,\n6. synthesizes a full simplification proposal, and\n7. hands off to `/adv-proposal` or `/adv-task` for tracked implementation.\n\nNo CLI runner, Temporal tool, new sub-agent, or spec delta is required for the first version.\n\n## Key Decisions\n\n### D1. Prompt-only command first\nUse `.opencode/command/adv-optimizer.md` plus manifest/docs/tests. Do not add `bin/adv optimizer`.\n\nRationale:\n- Agreement C2 says no CLI runner unless required.\n- Existing utility commands such as `/adv-improve` and `/adv-tron` prove prompt-only commands are supported.\n- A deterministic optimizer runner would be a larger capability requiring separate detector schemas and likely spec law.\n\n### D2. Use first-level `explore` scanner fan-out; no dedicated optimizer agent\nThe command owns orchestration and may spawn first-level `explore` scanners via the Task tool. Scanner prompts must include `WORKING DIRECTORY`, target/scope, expected output, and explicit bans on nested sub-agents and `/adv-*` slash commands. `adv-researcher` may be used only for a bounded best-practice/reference dimension when local findings need external validation.\n\nRationale:\n- Agreement SC5 requires a delegation boundary; a concrete Task-tool scanner packet makes that testable.\n- Agreement C1 forbids a new sub-agent unless proven necessary.\n- `/adv-slop-scan` already establishes single-level scanner delegation language.\n- `/adv-researcher` and `explore` cover best-practice and local-code scan needs without new agent contract overhead.\n\n### D3. Optimizer synthesizes proposals, not findings-only slop reports\nThe command should distinguish itself from `/adv-slop-scan` by producing a proposal-shaped simplification plan: current state, ranked opportunities, target architecture, risks, non-goals, and next ADV command.\n\nRationale:\n- Agreement C3 prohibits duplicating `/adv-slop-scan`.\n- `/adv-slop-scan` owns detector coverage and smell taxonomy; optimizer owns maintainability/refactor proposal synthesis.\n\n### D4. Structural safety via asset tests and existing drift tests\nUse one optimizer-specific asset test for SC4-SC8 and update existing manifest/doc tests for SC1-SC3 and SC9.\n\nRationale:\n- `manifest-doc-drift.test.ts` already enforces command doc, frontmatter, README, and ADV_INSTRUCTIONS drift.\n- `manifest.test.ts` has a hard-coded command count/list and voice constraints.\n- Optimizer-specific test can pin no-mutation, no-nested delegation, evidence, output, and degraded execution boundaries.\n\n## ADR Drafts\nNone. Decisions are local command-contract additions, not hard-to-reverse architecture choices.\n\n## Implementation Strategy\n\n1. Add RED tests:\n   - `plugin/src/adv-optimizer-assets.test.ts` asserting command exists and contains required safety/output sections.\n   - Update `plugin/src/manifest.test.ts` expected command list/count from 26 to 27.\n   - Existing `manifest-doc-drift.test.ts` should fail until command doc and doc tables align.\n2. Add command contract:\n   - `.opencode/command/adv-optimizer.md` with frontmatter description exactly matching manifest.\n   - Include target resolution, context loading, deterministic evidence gathering, first-level `explore` scanner fan-out, aggregation, report output, degraded execution, and constraints.\n   - Include a scanner prompt packet with `WORKING DIRECTORY`, `TARGET`, `SCOPE`, `EXPECTED OUTPUT`, and no-nested/no-slash-command bans.\n3. Register manifest entry:\n   - `adv-optimizer` in `COMMAND_MANIFEST`, `phase: \"utility\"`, `requiresChangeId: false`, `prerequisites: []`, `successors: [\"adv-proposal\", \"adv-task\"]`.\n   - Use description starting with an existing strong verb, e.g. `Analyze code simplification opportunities and propose optimizer changes`.\n4. Update docs tables:\n   - Add `/adv-optimizer [target]` row to `README.md` and `ADV_INSTRUCTIONS.md` with exact manifest description.\n   - Update ADV_INSTRUCTIONS command-vs-skill table if needed to classify command as inline/prompt-only or command-specific embedded protocol.\n5. Verify targeted suite through repo wrapper where appropriate.\n\n## LBP Analysis\nThis is the least-broad long-term approach because it adds a command-level orchestration contract without prematurely creating a new runtime tool, CLI subcommand, sub-agent, or spec capability.\n\nIndustry-aligned maintainability principles applied:\n- Keep behavior near owning command contract.\n- Reuse existing scanners rather than multiplying agent types.\n- Make safety boundaries test-backed.\n- Separate discovery/proposal synthesis from code modification.\n- Treat heuristics as advisory discovery signals, not correctness authority.\n\n## Affected Components\n- `.opencode/command/adv-optimizer.md` — new command contract.\n- `plugin/src/manifest.ts` — command registry.\n- `plugin/src/manifest.test.ts` — expected command list/count.\n- `plugin/src/adv-optimizer-assets.test.ts` — new asset test.\n- `README.md` — command table row.\n- `ADV_INSTRUCTIONS.md` — command table row and optional command binding table row.\n- `.opencode/token-budgets.json` — optional baseline if command token budget tracking is desired.\n\n## Design-Derived Criteria\n- DDC1: Command description must be 5-14 words, start with an allowed strong verb, and match exactly across manifest, command frontmatter, README, and ADV_INSTRUCTIONS.\n- DDC2: Optimizer command must explicitly state read-only behavior and forbid code edits, ADV mutations, agenda/task creation, and auto-deletion.\n- DDC3: Worker packet section must include `WORKING DIRECTORY`, target/scope, expected output, and explicit no-nested/no-slash-command instructions for first-level `explore` scanners.\n- DDC4: Report schema must separate actionable findings from low-confidence/user-review candidates.\n- DDC5: Test coverage must be structural enough that deleting any required safety phrase or output section fails a targeted test.\n\n## Risks / Mitigations\n- Risk: Command becomes duplicate of `/adv-slop-scan`.\n  - Mitigation: output is proposal-shaped and command text states detector reporting remains slop-scan-owned.\n- Risk: Worker prompts create nested delegation.\n  - Mitigation: copy single-level-only scanner contract pattern and test exact ban phrases.\n- Risk: Manifest/doc drift.\n  - Mitigation: rely on existing generic drift tests and update manifest hard-coded count/list.\n- Risk: Overbuilding with CLI or new agent.\n  - Mitigation: explicitly out of scope for this change; future deterministic runner can be a separate proposal if needed.\n\n## Design Leverage Scout\nScout attempted with `adv-researcher`; result `VALIDATED` with five candidates.\n\nAuto-adopted:\n- Use `/adv-improve` as prompt-only utility template.\n- Reuse `/adv-slop-scan` single-level delegation contract.\n- Clone `/adv-tron` manifest utility shape.\n- Update hard-coded `manifest.test.ts` command count/list.\n- Let generic `manifest-doc-drift.test.ts` enforce README/ADV/frontmatter drift; add one optimizer-local asset test for safety boundaries.\n\nSurfaced to user: none. No user-value tradeoff identified.\n\n## Validator Result\nValidator verdict: `CAUTION`.\n\nCaution resolved in this design revision:\n- Validator found D2/DDC3 did not pin whether optimizer used Task-tool scanner spawn or inline scan. Design now pins first-level `explore` scanner fan-out with a concrete worker packet, while keeping `adv-researcher` optional for best-practice/reference evidence.\n\nOther validator findings:\n- Prompt-only is the simplest viable path.\n- No spec-law conflict found.\n- CLI runner and dedicated agent were considered and correctly excluded by agreement constraints.\n",
+    "executiveSummary": "# Executive Summary: Add optimizer command\n\nAdded `/adv-optimizer` as a read-only ADV utility command for evidence-backed code simplification proposals.\n\n## What Changed\n- New command contract: `.opencode/command/adv-optimizer.md`.\n- Manifest registration: `adv-optimizer` as a utility command with no gate and no change-id requirement.\n- Documentation rows in README and `ADV_INSTRUCTIONS.md`.\n- CLI surface matrix row marking the command as agent-workflow-only.\n- New structural asset tests for optimizer command safety and output boundaries.\n- Manifest/doc drift tests updated via command count/list alignment.\n\n## Verified Outcomes\n- Command exists and is registered.\n- Command is read-only: no code edits, ADV mutations, agenda/task creation, automatic deletion, CLI runner, or dedicated optimizer agent.\n- Command enforces first-level scanner delegation only.\n- Command requires source-backed findings and separates actionable, user-review, and low-confidence recommendations.\n- Command emits an `OPTIMIZER PROPOSAL` shape with current state, ranked opportunities, long-term direction, risks, non-goals, and next ADV command.\n\n## Verification\n- RED: optimizer asset test failed before command existed.\n- GREEN/final: targeted Vitest suite passed: 66 tests across optimizer assets, manifest, manifest-doc drift, and CLI surface matrix.\n- Static boundary check passed: no optimizer agent, no `bin/adv optimizer`, no ADV mutation tool names in optimizer command.\n- Post-review cleanup passed: 24 targeted tests after removing duplicate state-mutation line.\n- Independent reviewer final verdict: READY.\n",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-06-26T18:16:23.750Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | Command existence: `.opencode/command/adv-optimizer.md` exists with frontmatter `name: adv-optimizer` and a manifest comment declaring `requiresChangeId: false`. | pass | `.opencode/command/adv-optimizer.md` exists with `name: adv-optimizer`; manifest-doc drift tests passed. |\n| SC2 | success_criterion | Manifest registration: `plugin/src/manifest.ts` contains `adv-optimizer` with `phase: \"utility\"`, `requiresChangeId: false`, no gate, no prerequisites, and successors including `adv-proposal` and `adv-task`. | pass | `plugin/src/manifest.ts` registers `adv-optimizer` as utility, requiresChangeId false, successors adv-proposal/adv-task; manifest tests passed. |\n| SC3 | success_criterion | Documentation alignment: README and `ADV_INSTRUCTIONS.md` command tables include `/adv-optimizer` with exactly the manifest description. | pass | README and ADV_INSTRUCTIONS rows match manifest description; `manifest-doc-drift.test.ts` passed. |\n| SC4 | success_criterion | Read-only boundary: command contract explicitly forbids code edits, ADV state mutation, agenda creation, task creation, and automatic deletion. | pass | Command boundary states `ADV State Mutation: none` and forbids code edits, ADV mutation, agenda/task creation, and automatic deletion; optimizer asset test passed. |\n| SC5 | success_criterion | Delegation boundary: command contract explicitly allows only first-level worker agents and forbids scanner workers from spawning sub-agents or invoking `/adv-*` commands. | pass | Command includes `No Nested Scanner Delegation`, first-level scanner packet, and bans sub-agent spawning plus `/adv-*`; optimizer asset test passed. |\n| SC6 | success_criterion | Evidence boundary: actionable findings require source evidence (`file:line`, symbol, metric, or cited source); evidence-free findings are omitted or marked non-actionable. | pass | Command includes `Source Evidence Requirement`, requires file/symbol/metric/citation evidence, and separates low-confidence/user-review/actionable groups; optimizer asset test passed. |\n| SC7 | success_criterion | Proposal output: command contract requires an output section containing current state, ranked simplification opportunities, recommended long-term best-practice direction, risks, non-goals, and next ADV command. | pass | Command defines `OPTIMIZER PROPOSAL` with Current State, Ranked Simplification Opportunities, Recommended Long-Term Direction, Risks, Non-Goals, and Next ADV Command; optimizer asset test passed. |\n| SC8 | success_criterion | Degraded execution: command contract defines partial-report behavior when some scanners fail/time out and deterministic-evidence-only behavior when all scanners fail. | pass | Command defines degraded execution for partial report, deterministic evidence only, and failed/timed-out scanners; optimizer asset test passed. |\n| SC9 | success_criterion | Tests: targeted tests fail before implementation and pass after implementation for command presence, manifest count/alignment, frontmatter/manifest drift, doc-table drift, read-only boundary, no-nested-delegation boundary, and evidence/output requirements. | pass | RED failed on missing command; final targeted `pnpm exec vitest run src/adv-optimizer-assets.test.ts src/manifest.test.ts src/manifest-doc-drift.test.ts src/cli-surface-matrix.test.ts` passed 66 tests; cleanup rerun passed 24 tests. |\n| C1 | constraint | Do not create a new sub-agent unless design proves a dedicated worker is needed; use existing first-level agents where sufficient. | respected | Static check confirms `.opencode/agents/adv-optimizer.md` does not exist; command uses existing `explore`/optional `adv-researcher`. |\n| C2 | constraint | Do not add a CLI `bin/adv optimizer` runner in this change unless design proves deterministic runner scope is required for acceptance. | respected | Static check confirms `bin/adv` contains no optimizer surface. |\n| C3 | constraint | Do not duplicate `/adv-slop-scan`; optimizer must focus on simplification/refactor proposal synthesis, not slop-detector reporting. | respected | Command states it does not replace `/adv-slop-scan`; output owns proposal synthesis, not detector reporting. |\n| C4 | constraint | Keep correctness structural: tests and manifest/doc drift checks must guard command registration and safety boundaries. | respected | Added optimizer asset tests and updated generic manifest/doc/CLI matrix tests; targeted suites passed. |\n| C5 | constraint | Implementation must happen in the ADV-managed `change/addOptimizerCommand` worktree. | respected | Implementation and checkpoints ran in ADV worktree `/home/jon/.local/share/opencode/worktree/.../change/addOptimizerCommand`. |\n| DONT1 | avoidance | No auto-deletion of code based on heuristic/sub-agent judgment. | respected | Command explicitly forbids automatic deletion and says deletion candidates are recommendations for tracked follow-up review only. |\n| DONT2 | avoidance | No nested delegation. | respected | Command includes `No Nested Scanner Delegation` and bans scanner workers from spawning additional sub-agents/delegates/workers. |\n| DONT3 | avoidance | No direct reads of ADV state files. | respected | No ADV state files were read directly; ADV state accessed through ADV tools during workflow. |\n| DONT4 | avoidance | No broad unrelated refactor while adding the command. | respected | Touched files limited to command/doc/test/manifest/CLI-matrix surfaces for optimizer; unrelated Markdown formatting churn was reverted. |\n| DONT5 | avoidance | No slash-command invocation from inside ADV orchestration. | respected | No slash commands were invoked inside orchestration; command contract also bans scanner workers from invoking `/adv-*`. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-06-26T17:12:06.133Z",
+      "contentHash": "7bb4721236d7cdf4b566a6caefade36d3283070ac4d58eaf42bfb28d2561b0ad",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-06-26T17:12:06.133Z",
+      "contentHash": "5f3a41e97d06f697cbaa764f4f9f4b233b5976cf8f71dc89be5322e3eb4e3442",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-06-26T17:33:18.038Z",
+      "contentHash": "d5391643b260916a4885da1dd5f042bd9cf0411e12a46de2cb1aef4f195c28ec",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-06-26T17:41:04.450Z",
+      "contentHash": "2e338ca0c0f064b1965f95b7c894900c287cbcba749701ed069c28470a34536c",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-06-26T18:16:45.424Z",
+      "contentHash": "53a626e1f6f7b63dc3b08699ee1a663fa8ebbbd59085b923afda44eefa7c0f44",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-06-26T18:19:23.114Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true
+}
