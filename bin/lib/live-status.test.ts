@@ -259,6 +259,24 @@ describe("visibility search-attribute status reader", () => {
     expect(summary?.epicId).toBe("addAuthEpic");
   });
 
+  test("decodes all worktree branch and path search-attribute values", () => {
+    const summary = buildSummaryFromSearchAttributes(
+      "withWorktrees",
+      {
+        AdvChangeTitle: ["With worktrees"],
+        AdvChangeStatus: ["active"],
+        AdvCurrentGate: ["execution"],
+        AdvLastSignalAt: ["2026-06-05T16:00:00.000Z"],
+        AdvWorktreeBranches: ["change/one", "", "change/two"],
+        AdvWorktreePaths: ["/tmp/wt/one", "  ", "/tmp/wt/two"],
+      },
+      now,
+    );
+
+    expect(summary?.worktreeBranches).toEqual(["change/one", "change/two"]);
+    expect(summary?.worktreePaths).toEqual(["/tmp/wt/one", "/tmp/wt/two"]);
+  });
+
   test("summariesFromVisibility maps executions, drops terminal-complete, sorts by activity desc", async () => {
     const summaries = await summariesFromVisibility(
       fakeVisibilityClient([

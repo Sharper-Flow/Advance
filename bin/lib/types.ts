@@ -54,6 +54,8 @@ export interface ChangeSummary {
   gateProgressStr: string;
   parentChangeId?: string;
   epicId?: string;
+  worktreeBranches?: string[];
+  worktreePaths?: string[];
 }
 
 export interface LiveStatusPayload {

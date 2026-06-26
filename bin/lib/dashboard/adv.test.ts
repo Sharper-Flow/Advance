@@ -27,11 +27,13 @@ const baseSummary: ChangeSummary & { worktreeBranches: string[] } = {
 };
 
 describe("dashboard ADV project reader", () => {
-  test("keeps worker-free base visible when ops enrichment fails", async () => {
+  test("routine state does not call per-change ops enrichment", async () => {
+    let opsCalls = 0;
     const snapshot = await readDashboardAdvProject(project, {
       resolveProjectId: async () => "project123",
       loadBaseSummaries: async () => [baseSummary],
       loadOpsChanges: async () => {
+        opsCalls += 1;
         throw new Error("worker unavailable");
       },
       now: () => new Date("2026-06-25T21:05:00.000Z"),
@@ -43,12 +45,17 @@ describe("dashboard ADV project reader", () => {
     expect(snapshot.changes[0]?.correlation_keys.branches).toEqual([
       "change/addLocalDashboard",
     ]);
-    expect(snapshot.degradedSources.map((source) => source.code)).toEqual([
-      "ADV_OPS_ENRICHMENT_UNAVAILABLE",
-    ]);
+    expect(snapshot.changes[0]?.correlation_keys.head_shas).toEqual([]);
+    expect(snapshot.degradedSources).toEqual([]);
+    expect(opsCalls).toBe(0);
   });
 
-  test("adds ops and worktree headSha enrichment when worker query succeeds", async () => {
+  test("uses Visibility-projected worktree branches and paths only", async () => {
+    const summary = {
+      ...baseSummary,
+      worktreeBranches: ["change/addLocalDashboard", "", "change/secondary"],
+      worktreePaths: ["/tmp/wt/add", "  ", "/tmp/wt/secondary"],
+    } satisfies ChangeSummary & { worktreeBranches: string[]; worktreePaths: string[] };
     const opsChange = {
       id: "addLocalDashboard",
       title: "Add local dashboard",
@@ -62,14 +69,22 @@ describe("dashboard ADV project reader", () => {
 
     const snapshot = await readDashboardAdvProject(project, {
       resolveProjectId: async () => "project123",
-      loadBaseSummaries: async () => [baseSummary],
+      loadBaseSummaries: async () => [summary],
       loadOpsChanges: async () => [opsChange],
       now: () => new Date("2026-06-25T21:05:00.000Z"),
     });
 
     expect(snapshot.degradedSources).toEqual([]);
-    expect(snapshot.changes[0]?.ops_followup).toEqual({ status: "complete" });
-    expect(snapshot.changes[0]?.ops_followup_links).toEqual([{ child_change_id: "child" }]);
-    expect(snapshot.changes[0]?.correlation_keys.head_shas).toEqual(["abc123"]);
+    expect(snapshot.changes[0]?.ops_followup).toBeUndefined();
+    expect(snapshot.changes[0]?.ops_followup_links).toBeUndefined();
+    expect(snapshot.changes[0]?.correlation_keys.branches).toEqual([
+      "change/addLocalDashboard",
+      "change/secondary",
+    ]);
+    expect(snapshot.changes[0]?.correlation_keys.paths).toEqual([
+      "/tmp/wt/add",
+      "/tmp/wt/secondary",
+    ]);
+    expect(snapshot.changes[0]?.correlation_keys.head_shas).toEqual([]);
   });
 });
