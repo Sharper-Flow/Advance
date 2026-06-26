@@ -12,6 +12,7 @@ import { describe, expect, test } from "vitest";
 import { existsSync, readFileSync, readdirSync } from "fs";
 import { join, resolve } from "path";
 import { ADV_TOOL_NAMES } from "./tool-registry";
+import { epicTools } from "./tools/epic";
 
 const REPO_ROOT = resolve(__dirname, "../..");
 
@@ -106,6 +107,10 @@ describe("ADV_INSTRUCTIONS.md Epic contract", () => {
     expect(instructions).toMatch(
       /adv_epic_link_change.*adv_epic_unlink_change.*adv_epic_move_change.*adv_epic_repair_membership/,
     );
+    expect(instructions).toMatch(/Product Epics[\s\S]{0,600}target_path/i);
+    expect(instructions).toMatch(
+      /adv_epic_link_change[\s\S]{0,300}target_path/i,
+    );
   });
 });
 
@@ -128,6 +133,35 @@ describe("ADV agent Epic tool allowlist and context loading", () => {
     expect(agent).toMatch(/Epic membership is optional/i);
     expect(agent).toMatch(/advisory/i);
     expect(agent).toMatch(/Do not add Jira-like/i);
+  });
+
+  test("does not describe Epics as current-repo-only in v1", () => {
+    expect(agent).not.toMatch(/Epics stay scoped to the current repo in v1/i);
+    expect(agent).not.toMatch(/current-repo-only/i);
+  });
+
+  test("documents product-scoped cross-project Epic membership workflow", () => {
+    expect(agent).toMatch(/Product Epics[\s\S]{0,700}target_path/i);
+    expect(agent).toMatch(
+      /create(?: or use)?[\s\S]{0,200}target-project ADV change[\s\S]{0,200}adv_epic_link_change[\s\S]{0,200}target_path/i,
+    );
+  });
+});
+
+describe("Epic tool descriptions describe target_path membership accurately", () => {
+  test.each([
+    ["adv_epic_link_change", epicTools.adv_epic_link_change.description],
+    ["adv_epic_unlink_change", epicTools.adv_epic_unlink_change.description],
+    ["adv_epic_move_change", epicTools.adv_epic_move_change.description],
+  ])("%s is not described as same-project-only", (_tool, description) => {
+    expect(description).not.toMatch(/same-project/i);
+    expect(description).toMatch(/target_path|target-project|cross-project/i);
+  });
+
+  test("adv_epic_repair_membership documents target routing", () => {
+    expect(epicTools.adv_epic_repair_membership.description).toMatch(
+      /target-path|target_path|cross-project/i,
+    );
   });
 });
 
@@ -226,5 +260,11 @@ describe("Advance Epics ADR", () => {
     expect(adr).toMatch(/project-level shared workflow/i);
     expect(adr).toMatch(/epic_membership/i);
     expect(adr).toMatch(/AdvEpicId/i);
+  });
+
+  test("does not contradict product-scoped cross-project Epic support", () => {
+    const adr = readRepoFile("docs/adr/0004-per-epic-workflow.md");
+    expect(adr).not.toMatch(/Cross-repo Epic membership is out of scope for v1/i);
+    expect(adr).not.toMatch(/future cross-repo Epic design/i);
   });
 });

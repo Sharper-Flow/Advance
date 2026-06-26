@@ -657,7 +657,7 @@ export const epicTools = {
 
   adv_epic_link_change: {
     description:
-      "Link an existing same-project ADV change as a new Epic entry and project compact epic_membership onto the child change.",
+      "Link an existing ADV change from the current project or a target_path project as a new Epic entry and project compact epic_membership onto the child change.",
     args: {
       epic_id: EPIC_ID_SCHEMA,
       change_id: z.string().min(1).describe("Existing ADV change ID to link."),
@@ -785,7 +785,7 @@ export const epicTools = {
 
   adv_epic_unlink_change: {
     description:
-      "Unlink a same-project change entry from an Epic after clearing the child epic_membership projection.",
+      "Unlink a current-project or target_path project change entry from an Epic after clearing the child epic_membership projection.",
     args: {
       epic_id: EPIC_ID_SCHEMA,
       entry_id: z.string().min(1).optional().describe("Entry ID to unlink."),
@@ -870,7 +870,7 @@ export const epicTools = {
 
   adv_epic_move_change: {
     description:
-      "Move a same-project change from one Epic to another, updating child epic_membership in between.",
+      "Move a current-project or target_path project change from one Epic to another, updating child epic_membership in between.",
     args: {
       from_epic_id: EPIC_ID_SCHEMA,
       to_epic_id: EPIC_ID_SCHEMA,

@@ -532,7 +532,7 @@ Uncertain? Omit. Legacy semantics safe.
 
 ### Epic Context
 
-Epics are **optional** initiative containers for related ADV changes and lightweight shell entries. They replace project-level `ROADMAP.md` as the primary ADV planning surface for initiative-level work, but they do not replace GitHub Project/stakeholder intake or make membership mandatory. Product Epics may span multiple ADV-enabled repos while preserving one compact membership projection per child change.
+Epics are **optional** initiative containers for related ADV changes and lightweight shell entries. They replace project-level `ROADMAP.md` as the primary ADV planning surface for initiative-level work, but they do not replace GitHub Project/stakeholder intake or make membership mandatory. Product Epics may span multiple ADV-enabled repos/projects while preserving one compact membership projection per child change through typed `target_path` membership tools.
 
 When a change has `epic_membership`:
 
@@ -542,7 +542,7 @@ When a change has `epic_membership`:
 4. Include Epic context in sub-agent prompts when it helps the worker understand initiative scope.
 5. If no Epic membership is present, render the change identically to the pre-Epic flow.
 
-Existing changes can be linked into, unlinked from, or moved between Epics only through `adv_epic_link_change`, `adv_epic_unlink_change`, and `adv_epic_move_change` with audit evidence. Use `adv_epic_repair_membership` for `projection_pending`, `projection_stale`, `projection_mismatch`, or `target_unreachable` states; default Epic views show bounded `member_status`, not full target-project traces.
+Existing changes can be linked into, unlinked from, or moved between Epics only through `adv_epic_link_change`, `adv_epic_unlink_change`, and `adv_epic_move_change` with audit evidence; use `target_path` when the child change lives in another ADV-enabled project. Use `adv_epic_repair_membership` for `projection_pending`, `projection_stale`, `projection_mismatch`, or `target_unreachable` states; default Epic views show bounded `member_status`, not full target-project traces. For cross-project shell-shaped work, create or use the target-project ADV change first, then link it into the owner Epic with `adv_epic_link_change target_path`; do not claim direct cross-project `adv_epic_promote_shell` creation unless that tool later gains structural target support.
 
 Avoidances:
 
