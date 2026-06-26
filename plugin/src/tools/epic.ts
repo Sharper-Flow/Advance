@@ -264,16 +264,14 @@ function linkedEntriesForRemovedScopeRepos(
       .filter((repoId) => !nextRepoIds.has(repoId)),
   );
   if (removedRepoIds.size === 0) return [];
-  return epic.entries.filter(
-    (entry) => {
-      if (entry.kind !== "change" || entry.membership_status === "unlinked") {
-        return false;
-      }
-      const repoId = entry.change_ref?.repo_id;
-      if (!repoId) return true;
-      return removedRepoIds.has(repoId);
-    },
-  );
+  return epic.entries.filter((entry) => {
+    if (entry.kind !== "change" || entry.membership_status === "unlinked") {
+      return false;
+    }
+    const repoId = entry.change_ref?.repo_id;
+    if (!repoId) return true;
+    return removedRepoIds.has(repoId);
+  });
 }
 
 function terminalSummaryStatusForChange(
@@ -1506,17 +1504,16 @@ export const epicTools = {
         const actor = merged_by ?? "agent";
         const movedChanges: ReturnType<typeof mapEpicEntry>[] = [];
         const copiedShells: ReturnType<typeof mapEpicEntry>[] = [];
+        const stagedMoves: Array<{
+          sourceEntry: ChangeEpicEntry;
+          changeId: string;
+          change: NonNullable<Awaited<ReturnType<typeof loadChange>>>;
+          childStore: Awaited<ReturnType<typeof resolveChildStore>>;
+        }> = [];
 
-        for (const shell of plan.uniqueShells) {
-          const copied = await store.epics.addShell(survivor_epic_id, {
-            entryId: shell.entry_id,
-            title: shell.title,
-            successHint: shell.success_hint,
-            order: shell.order,
-          });
-          copiedShells.push(mapEpicEntry(copied));
-        }
-
+        // Preflight every failure-prone child projection before mutating the
+        // survivor/source Epic workflows. This keeps merge execution all-or-none
+        // for projection mismatches and missing children in the common path.
         for (const sourceEntry of plan.uniqueChanges) {
           const changeId = getEpicEntryChangeId(sourceEntry);
           if (!changeId) continue;
@@ -1543,7 +1540,25 @@ export const epicTools = {
               current_membership: change.epic_membership,
             });
           }
+          stagedMoves.push({ sourceEntry, changeId, change, childStore });
+        }
 
+        for (const shell of plan.uniqueShells) {
+          const copied = await store.epics.addShell(survivor_epic_id, {
+            entryId: shell.entry_id,
+            title: shell.title,
+            successHint: shell.success_hint,
+            order: shell.order,
+          });
+          copiedShells.push(mapEpicEntry(copied));
+        }
+
+        for (const {
+          sourceEntry,
+          changeId,
+          change,
+          childStore,
+        } of stagedMoves) {
           const destEntry = requireChangeEntry(
             await store.epics.linkChange(survivor_epic_id, {
               changeId,

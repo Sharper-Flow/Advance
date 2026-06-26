@@ -1595,4 +1595,82 @@ describe("adv_epic_merge", () => {
     expect(parsed.code).toBe("MERGE_CONFLICTS_UNRESOLVED");
     expect(store.epics.markMerged).not.toHaveBeenCalled();
   });
+
+  test("preflights all child projections before mutating survivor", async () => {
+    const firstEntry = makeChangeEntry({
+      entry_id: "first-entry",
+      change_id: "change-2",
+      change_ref: { change_id: "change-2", project_id: "project-web" },
+      title: "First Change",
+      membership_status: "linked",
+      linked_at: "2026-06-25T00:00:00.000Z",
+      linked_by: "agent",
+      link_evidence: "linked",
+    });
+    const badEntry = makeChangeEntry({
+      entry_id: "bad-entry",
+      change_id: "change-bad",
+      change_ref: { change_id: "change-bad", project_id: "project-web" },
+      title: "Bad Projection",
+      membership_status: "linked",
+      linked_at: "2026-06-25T00:00:00.000Z",
+      linked_by: "agent",
+      link_evidence: "linked",
+    });
+    const store = makeStore();
+    store.epics.get = vi.fn(async (epicId: string) => ({
+      success: true,
+      data:
+        epicId === "sourceEpic"
+          ? makeEpic({
+              id: "sourceEpic",
+              version: 3,
+              entries: [firstEntry, badEntry],
+            })
+          : makeEpic({ id: "survivorEpic", version: 5, entries: [] }),
+    }));
+    store.changes.get = vi.fn(async (changeId: string) => ({
+      success: true,
+      data: {
+        id: changeId,
+        title: changeId,
+        status: "active",
+        gates: {},
+        tasks: [],
+        deltas: {},
+        wisdom: [],
+        created_at: "2026-06-25T00:00:00.000Z",
+        updated_at: "2026-06-25T00:00:00.000Z",
+        epic_membership:
+          changeId === "change-bad"
+            ? { epic_id: "otherEpic", entry_id: "other-entry" }
+            : {
+                epic_id: "sourceEpic",
+                entry_id: "first-entry",
+                order: 0,
+                title: "First Change",
+                linked_at: "2026-06-25T00:00:00.000Z",
+                source: "link_existing",
+              },
+      } as Change,
+    }));
+
+    const output = await epicTools.adv_epic_merge.execute(
+      {
+        source_epic_id: "sourceEpic",
+        survivor_epic_id: "survivorEpic",
+        expected_source_version: 3,
+        expected_survivor_version: 5,
+        evidence: "Merge duplicates.",
+      },
+      store,
+    );
+
+    const parsed = parseToolOutput(output);
+    expect(parsed.code).toBe("PROJECTION_MISMATCH");
+    expect(store.epics.linkChange).not.toHaveBeenCalled();
+    expect(store.changes.setEpicMembership).not.toHaveBeenCalled();
+    expect(store.epics.unlinkChange).not.toHaveBeenCalled();
+    expect(store.epics.markMerged).not.toHaveBeenCalled();
+  });
 });
