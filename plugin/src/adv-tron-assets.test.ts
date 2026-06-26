@@ -98,9 +98,9 @@ describe("adv-tron assets", () => {
     ]);
 
     for (const command of ROUTING_COMMANDS) {
-      expect(existsSync(join(REPO_ROOT, ".opencode/command", `${command}.md`))).toBe(
-        true,
-      );
+      expect(
+        existsSync(join(REPO_ROOT, ".opencode/command", `${command}.md`)),
+      ).toBe(true);
       expectAllTronSurfacesToContain(assets, [`/${command}`]);
     }
 
