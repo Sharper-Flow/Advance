@@ -157,6 +157,7 @@ Each workflow command has a defined phase goal. Canonical in `manifest.ts` (`pha
 | `/adv-triage`               | Triage all backlog sources, score features with WSJF, regenerate ROADMAP.md                          |
 | `/adv-improve`              | Suggest targeted improvements to existing specs or implementation                                    |
 | `/adv-tron [target]`        | Investigate codebase structure, hotspots, risks, and suggest follow-up agenda candidates             |
+| `/adv-optimizer [target]`   | Analyze code simplification opportunities and propose optimizer changes                              |
 
 ## Command Boundaries
 
@@ -992,7 +993,7 @@ Worker skill-load availability is permissive: guard explicit `skill: false`, not
 | User comparison skill                 | `adv-design` → `adv-user-intuit`                                                                                                                                                                | `orchestrator-only`         |
 | Shared skill                          | `adv-harden`, `adv-slop-scan` → `adv-slop-detection`                                                                                                                                            | `split`                     |
 | Dedicated agent + skill               | `adv-tron` → `adv-tron`                                                                                                                                                                         | `inlined-agent-methodology` |
-| Embedded methodology                  | `adv-discover`, `adv-prep`, `adv-apply`, `adv-review`; `adv-harden` keeps embedded harden guidance alongside shared `adv-slop-detection` scanner methodology                                    | —                           |
+| Embedded methodology                  | `adv-discover`, `adv-prep`, `adv-apply`, `adv-review`, `adv-optimizer`; `adv-harden` keeps embedded harden guidance alongside shared `adv-slop-detection` scanner methodology                    | —                           |
 | Dynamic discovery                     | `adv-discover`, `adv-research` (`skill("agent-{domain}")` placeholder only)                                                                                                                     | `orchestrator-only`         |
 
 > **Stale-reference note:** `adv-review-methodology`, `adv-harden-methodology`, and `global-verify` are not shipped command skills. Calls to `skill("adv-review-methodology")`, `skill("adv-apply-methodology")`, or `skill("global-verify")` are stale/hallucinated command references — use the command's embedded protocol instead. `prioritizer` remains an optional inline skill/protocol outside command skill loading; command files use the embedded Tradeoff Prioritizer Protocol instead of a command-level `skill("prioritizer")` reference.

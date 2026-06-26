@@ -411,6 +411,15 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
     prerequisites: [],
     successors: ["adv-proposal", "adv-task"],
   },
+  "adv-optimizer": {
+    name: "adv-optimizer",
+    description:
+      "Analyze code simplification opportunities and propose optimizer changes",
+    phase: "utility",
+    requiresChangeId: false,
+    prerequisites: [],
+    successors: ["adv-proposal", "adv-task"],
+  },
   "adv-triage": {
     name: "adv-triage",
     description:

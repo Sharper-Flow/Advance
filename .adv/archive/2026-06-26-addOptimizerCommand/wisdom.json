@@ -1,0 +1,19 @@
+{
+  "entries": [
+    {
+      "id": "ws-M-Lnyc",
+      "type": "gotcha",
+      "content": "For targeted Vitest verification in this repo, `pnpm test -- <files>` can still trigger broad/unrelated test execution in some contexts; use `pnpm exec vitest run <files>` (or repo wrapper where appropriate) for precise file-scoped evidence when recording task-level GREEN results.",
+      "source_task": "tk-e2b5d19af387",
+      "recorded_at": "2026-06-26T18:01:08.013Z"
+    },
+    {
+      "id": "ws-mBMRK1",
+      "type": "gotcha",
+      "content": "Existing Markdown docs/tables in this repo may not be whole-file Prettier-normalized. Avoid running `prettier --write` over README/ADV_INSTRUCTIONS/docs matrix solely for a small row addition; it creates unrelated table churn. Prefer structural drift tests plus TS formatting, and keep Markdown edits minimal unless a change explicitly owns doc formatting.",
+      "source_task": "tk-c848c1e8e3a2",
+      "recorded_at": "2026-06-26T18:05:47.829Z"
+    }
+  ],
+  "count": 2
+}
