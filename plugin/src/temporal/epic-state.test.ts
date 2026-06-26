@@ -8,6 +8,7 @@ import {
   applyEntriesReorderedToState,
   applyEntryTerminalSummaryToState,
   applyEpicArchivedToState,
+  applyEpicMergedToState,
   applyEpicScopeUpdatedToState,
   applyEpicCreatedToState,
   applyEpicUpdatedToState,
@@ -472,6 +473,65 @@ describe("epic-state", () => {
       expect(result.ok).toBe(false);
       if (!result.ok) expect(result.code).toBe("stale_version");
       expect(state.epic.epic_scope?.repos).toHaveLength(1);
+    });
+  });
+
+  describe("applyEpicMergedToState", () => {
+    it("marks an active source Epic as merged with no active next work", () => {
+      const state = makeState({
+        version: 2,
+        entries: [
+          {
+            kind: "shell" as const,
+            entry_id: "shell-1",
+            order: 0,
+            title: "Future work",
+            success_hint: "done",
+          },
+        ],
+      });
+
+      const result = applyEpicMergedToState(state, {
+        mergedInto: {
+          epic_id: "survivorEpic",
+          merged_at: "2026-06-24T00:02:00.000Z",
+          merged_by: "agent",
+          evidence: "Duplicate active Epic merged.",
+          moved_entry_count: 1,
+        },
+        expectedVersion: 2,
+        idempotencyKey: "merge-source-1",
+      });
+
+      expect(result.ok).toBe(true);
+      expect(state.status).toBe("merged");
+      expect(state.epic.merged_into?.epic_id).toBe("survivorEpic");
+      expect(state.epic.progress).toMatchObject({
+        status: "merged",
+        active_entries: 0,
+        next_entry_id: null,
+      });
+    });
+
+    it("rejects completed source Epics", () => {
+      const state = makeState({ version: 1 });
+      state.epic.progress.status = "completed";
+
+      const result = applyEpicMergedToState(state, {
+        mergedInto: {
+          epic_id: "survivorEpic",
+          merged_at: "2026-06-24T00:02:00.000Z",
+          merged_by: "agent",
+          evidence: "No active source mutation.",
+          moved_entry_count: 0,
+        },
+        expectedVersion: 1,
+        idempotencyKey: "merge-completed-source",
+      });
+
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.code).toBe("epic_not_active");
+      expect(state.status).toBe("active");
     });
   });
 

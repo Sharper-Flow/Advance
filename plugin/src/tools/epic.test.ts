@@ -59,6 +59,17 @@ function makeStore(epicOverrides?: Partial<Epic>): Store {
       list: vi.fn(async () => [epic]),
       update: vi.fn(async () => epic),
       updateScope: vi.fn(async () => epic),
+      markMerged: vi.fn(async () => ({
+        ...epic,
+        merged_into: {
+          epic_id: "survivorEpic",
+          merged_at: "2026-06-25T00:00:00.000Z",
+          merged_by: "agent",
+          evidence: "merged",
+          moved_entry_count: 1,
+        },
+        progress: { ...epic.progress, status: "merged" },
+      })),
       addShell: vi.fn(async () =>
         makeShellEntry({ entry_id: "shell-1", title: "Shell One" }),
       ),
@@ -1262,5 +1273,207 @@ describe("adv_epic_update_scope", () => {
       updatedBy: "agent",
       auditEvidence: "User approved scope expansion.",
     });
+  });
+});
+
+describe("adv_epic_merge", () => {
+  test("dry-run reports unique entries and duplicate-change conflicts", async () => {
+    const sourceEntry = makeChangeEntry({
+      entry_id: "source-entry",
+      change_id: "change-2",
+      change_ref: { change_id: "change-2", project_id: "project-web" },
+      title: "Source Change",
+      membership_status: "linked",
+      linked_at: "2026-06-25T00:00:00.000Z",
+      linked_by: "agent",
+      link_evidence: "linked",
+    });
+    const duplicateEntry = makeChangeEntry({
+      entry_id: "dup-entry",
+      change_id: "change-3",
+      change_ref: { change_id: "change-3", project_id: "project-web" },
+      title: "Duplicate Change",
+      membership_status: "linked",
+      linked_at: "2026-06-25T00:00:00.000Z",
+      linked_by: "agent",
+      link_evidence: "linked",
+    });
+    const store = makeStore();
+    store.epics.get = vi.fn(async (epicId: string) => ({
+      success: true,
+      data:
+        epicId === "sourceEpic"
+          ? makeEpic({
+              id: "sourceEpic",
+              entries: [sourceEntry, duplicateEntry],
+            })
+          : makeEpic({
+              id: "survivorEpic",
+              entries: [
+                makeChangeEntry({
+                  entry_id: "survivor-dup",
+                  change_id: "change-3",
+                  change_ref: {
+                    change_id: "change-3",
+                    project_id: "project-web",
+                  },
+                  title: "Duplicate Change",
+                  membership_status: "linked",
+                  linked_at: "2026-06-25T00:00:00.000Z",
+                  linked_by: "agent",
+                  link_evidence: "linked",
+                }),
+              ],
+            }),
+    }));
+
+    const output = await epicTools.adv_epic_merge.execute(
+      {
+        source_epic_id: "sourceEpic",
+        survivor_epic_id: "survivorEpic",
+        expected_source_version: 0,
+        expected_survivor_version: 0,
+        evidence: "Merge duplicates.",
+        dryRun: true,
+      },
+      store,
+    );
+
+    const parsed = parseToolOutput(output);
+    expect(parsed.success).toBe(true);
+    expect(parsed.dryRun).toBe(true);
+    expect(parsed.plan.unique_changes).toHaveLength(1);
+    expect(parsed.plan.conflicts).toEqual([
+      expect.objectContaining({
+        kind: "duplicate_change",
+        source_entry_id: "dup-entry",
+        change_id: "change-3",
+      }),
+    ]);
+    expect(store.epics.markMerged).not.toHaveBeenCalled();
+  });
+
+  test("executes unique local merge and finalizes source after projections", async () => {
+    const sourceEntry = makeChangeEntry({
+      entry_id: "source-entry",
+      change_id: "change-2",
+      change_ref: { change_id: "change-2", project_id: "project-web" },
+      title: "Source Change",
+      membership_status: "linked",
+      linked_at: "2026-06-25T00:00:00.000Z",
+      linked_by: "agent",
+      link_evidence: "linked",
+    });
+    const store = makeStore();
+    store.changes.get = vi.fn(async () => ({
+      success: true,
+      data: {
+        id: "change-2",
+        title: "Source Change",
+        status: "active",
+        gates: {},
+        tasks: [],
+        deltas: {},
+        wisdom: [],
+        created_at: "2026-06-25T00:00:00.000Z",
+        updated_at: "2026-06-25T00:00:00.000Z",
+        epic_membership: {
+          epic_id: "sourceEpic",
+          entry_id: "source-entry",
+          order: 0,
+          title: "Source Change",
+          linked_at: "2026-06-25T00:00:00.000Z",
+          source: "link_existing",
+        },
+      } as Change,
+    }));
+    store.epics.get = vi.fn(async (epicId: string) => ({
+      success: true,
+      data:
+        epicId === "sourceEpic"
+          ? makeEpic({ id: "sourceEpic", version: 3, entries: [sourceEntry] })
+          : makeEpic({ id: "survivorEpic", version: 5, entries: [] }),
+    }));
+    store.epics.linkChange = vi.fn(async () =>
+      makeChangeEntry({
+        entry_id: "merged-change-2",
+        change_id: "change-2",
+        change_ref: { change_id: "change-2", project_id: "project-web" },
+        title: "Source Change",
+        membership_status: "projection_pending",
+        linked_at: "2026-06-25T00:00:00.000Z",
+        linked_by: "agent",
+        link_evidence: "Merge duplicates.",
+      }),
+    );
+
+    const output = await epicTools.adv_epic_merge.execute(
+      {
+        source_epic_id: "sourceEpic",
+        survivor_epic_id: "survivorEpic",
+        expected_source_version: 3,
+        expected_survivor_version: 5,
+        evidence: "Merge duplicates.",
+      },
+      store,
+    );
+
+    const parsed = parseToolOutput(output);
+    expect(parsed.success).toBe(true);
+    expect(store.epics.linkChange).toHaveBeenCalledWith(
+      "survivorEpic",
+      expect.objectContaining({ changeId: "change-2" }),
+    );
+    expect(store.changes.setEpicMembership).toHaveBeenCalledWith(
+      "change-2",
+      expect.objectContaining({
+        expectedCurrent: { epic_id: "sourceEpic", entry_id: "source-entry" },
+      }),
+    );
+    expect(store.epics.unlinkChange).toHaveBeenCalledWith(
+      "sourceEpic",
+      "source-entry",
+      "Merge duplicates.",
+    );
+    expect(store.epics.markMerged).toHaveBeenCalledWith(
+      "sourceEpic",
+      expect.objectContaining({ expectedVersion: 4 }),
+    );
+  });
+
+  test("rejects unresolved merge conflicts before mutation", async () => {
+    const duplicateEntry = makeChangeEntry({
+      entry_id: "dup-entry",
+      change_id: "change-3",
+      change_ref: { change_id: "change-3", project_id: "project-web" },
+      title: "Duplicate Change",
+      membership_status: "linked",
+      linked_at: "2026-06-25T00:00:00.000Z",
+      linked_by: "agent",
+      link_evidence: "linked",
+    });
+    const store = makeStore();
+    store.epics.get = vi.fn(async (epicId: string) => ({
+      success: true,
+      data:
+        epicId === "sourceEpic"
+          ? makeEpic({ id: "sourceEpic", entries: [duplicateEntry] })
+          : makeEpic({ id: "survivorEpic", entries: [duplicateEntry] }),
+    }));
+
+    const output = await epicTools.adv_epic_merge.execute(
+      {
+        source_epic_id: "sourceEpic",
+        survivor_epic_id: "survivorEpic",
+        expected_source_version: 0,
+        expected_survivor_version: 0,
+        evidence: "Merge duplicates.",
+      },
+      store,
+    );
+
+    const parsed = parseToolOutput(output);
+    expect(parsed.code).toBe("MERGE_CONFLICTS_UNRESOLVED");
+    expect(store.epics.markMerged).not.toHaveBeenCalled();
   });
 });

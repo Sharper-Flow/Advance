@@ -20,6 +20,7 @@ import type {
   EntriesReorderedSignalPayload,
   EntryTerminalSummarySignalPayload,
   EpicArchivedSignalPayload,
+  EpicMergedSignalPayload,
   EpicScopeUpdatedSignalPayload,
 } from "../types";
 import { EpicStatusSchema } from "../types";
@@ -46,6 +47,7 @@ export interface EpicMutationFailure {
     | "shell_not_found"
     | "already_promoted"
     | "entry_already_exists"
+    | "epic_not_active"
     | "epic_archived";
   message: string;
 }
@@ -61,6 +63,20 @@ function setLastSignalAt(state: EpicWorkflowState, at: string): void {
 
 function isArchived(state: EpicWorkflowState): boolean {
   return state.status === "archived";
+}
+
+function isClosedForMutation(state: EpicWorkflowState): boolean {
+  return (
+    isArchived(state) || state.status === "merged" || !!state.epic.merged_into
+  );
+}
+
+function closedForMutationFailure(): EpicMutationFailure {
+  return {
+    ok: false,
+    code: "epic_not_active",
+    message: "Epic is not active",
+  };
 }
 
 function bumpVersion(epic: Epic): void {
@@ -166,9 +182,7 @@ export function applyEpicUpdatedToState(
   state: EpicWorkflowState,
   payload: EpicUpdatedSignalPayload,
 ): EpicMutationResult<{ version: number }> {
-  if (isArchived(state)) {
-    return { ok: false, code: "epic_archived", message: "Epic is archived" };
-  }
+  if (isClosedForMutation(state)) return closedForMutationFailure();
 
   const idempotency = checkIdempotency(state, payload.idempotencyKey);
   if (idempotency) return idempotency;
@@ -191,9 +205,7 @@ export function applyEpicScopeUpdatedToState(
   state: EpicWorkflowState,
   payload: EpicScopeUpdatedSignalPayload,
 ): EpicMutationResult<{ version: number }> {
-  if (isArchived(state)) {
-    return { ok: false, code: "epic_archived", message: "Epic is archived" };
-  }
+  if (isClosedForMutation(state)) return closedForMutationFailure();
 
   const idempotency = checkIdempotency(state, payload.idempotencyKey);
   if (idempotency) return idempotency;
@@ -216,9 +228,7 @@ export function applyShellAddedToState(
   state: EpicWorkflowState,
   payload: ShellAddedSignalPayload,
 ): EpicMutationResult<{ entryId: string }> {
-  if (isArchived(state)) {
-    return { ok: false, code: "epic_archived", message: "Epic is archived" };
-  }
+  if (isClosedForMutation(state)) return closedForMutationFailure();
 
   const idempotency = checkIdempotency(state, payload.idempotencyKey);
   if (idempotency) return idempotency;
@@ -253,9 +263,7 @@ export function applyShellPromotedToState(
   state: EpicWorkflowState,
   payload: ShellPromotedSignalPayload,
 ): EpicMutationResult<{ entryId: string; changeId: string }> {
-  if (isArchived(state)) {
-    return { ok: false, code: "epic_archived", message: "Epic is archived" };
-  }
+  if (isClosedForMutation(state)) return closedForMutationFailure();
 
   const idempotency = checkIdempotency(state, payload.idempotencyKey);
   if (idempotency) return idempotency;
@@ -351,9 +359,7 @@ export function applyChangeLinkedToState(
   state: EpicWorkflowState,
   payload: ChangeLinkedSignalPayload,
 ): EpicMutationResult<{ entryId: string }> {
-  if (isArchived(state)) {
-    return { ok: false, code: "epic_archived", message: "Epic is archived" };
-  }
+  if (isClosedForMutation(state)) return closedForMutationFailure();
 
   const idempotency = checkIdempotency(state, payload.idempotencyKey);
   if (idempotency) return idempotency;
@@ -404,9 +410,7 @@ export function applyChangeProjectionStatusUpdatedToState(
   state: EpicWorkflowState,
   payload: ChangeProjectionStatusUpdatedSignalPayload,
 ): EpicMutationResult<{ entryId: string }> {
-  if (isArchived(state)) {
-    return { ok: false, code: "epic_archived", message: "Epic is archived" };
-  }
+  if (isClosedForMutation(state)) return closedForMutationFailure();
 
   const idempotency = checkIdempotency(state, payload.idempotencyKey);
   if (idempotency) return idempotency;
@@ -445,9 +449,7 @@ export function applyChangeUnlinkedToState(
   state: EpicWorkflowState,
   payload: ChangeUnlinkedSignalPayload,
 ): EpicMutationResult<void> {
-  if (isArchived(state)) {
-    return { ok: false, code: "epic_archived", message: "Epic is archived" };
-  }
+  if (isClosedForMutation(state)) return closedForMutationFailure();
 
   const idempotency = checkIdempotency(state, payload.idempotencyKey);
   if (idempotency) return idempotency;
@@ -478,9 +480,7 @@ export function applyEntriesReorderedToState(
   state: EpicWorkflowState,
   payload: EntriesReorderedSignalPayload,
 ): EpicMutationResult<{ version: number }> {
-  if (isArchived(state)) {
-    return { ok: false, code: "epic_archived", message: "Epic is archived" };
-  }
+  if (isClosedForMutation(state)) return closedForMutationFailure();
 
   const idempotency = checkIdempotency(state, payload.idempotencyKey);
   if (idempotency) return idempotency;
@@ -529,9 +529,7 @@ export function applyEntryTerminalSummaryToState(
   state: EpicWorkflowState,
   payload: EntryTerminalSummarySignalPayload,
 ): EpicMutationResult<void> {
-  if (isArchived(state)) {
-    return { ok: false, code: "epic_archived", message: "Epic is archived" };
-  }
+  if (isClosedForMutation(state)) return closedForMutationFailure();
 
   const idempotency = checkIdempotency(state, payload.idempotencyKey);
   if (idempotency) return idempotency;
@@ -565,6 +563,39 @@ export function applyEntryTerminalSummaryToState(
   recomputeEpicProgress(state);
 
   return { ok: true, value: undefined };
+}
+
+export function applyEpicMergedToState(
+  state: EpicWorkflowState,
+  payload: EpicMergedSignalPayload,
+): EpicMutationResult<{ version: number }> {
+  if (isClosedForMutation(state)) return closedForMutationFailure();
+  if (state.epic.progress.status === "completed") {
+    return {
+      ok: false,
+      code: "epic_not_active",
+      message: "Completed Epics cannot be merged as active sources",
+    };
+  }
+
+  const idempotency = checkIdempotency(state, payload.idempotencyKey);
+  if (idempotency) return idempotency;
+
+  const version = checkVersion(state, payload.expectedVersion);
+  if (version) return version;
+
+  state.status = "merged";
+  state.epic.merged_into = payload.mergedInto;
+  bumpVersion(state.epic);
+  recordIdempotency(
+    state,
+    payload.idempotencyKey,
+    payload.mergedInto.merged_at,
+  );
+  setLastSignalAt(state, payload.mergedInto.merged_at);
+  recomputeEpicProgress(state);
+
+  return { ok: true, value: { version: state.epic.version } };
 }
 
 export function applyEpicArchivedToState(
@@ -634,6 +665,19 @@ export function recomputeEpicProgress(
     (entry) =>
       entry.kind === "change" && entry.terminal_summary?.status == null,
   ).length;
+
+  if (state.status === "merged" || state.epic.merged_into) {
+    const summary: EpicProgressSummary = {
+      status: EpicStatusSchema.enum.merged,
+      total_entries: total,
+      completed_entries: completed,
+      active_entries: 0,
+      next_entry_id: null,
+      updated_at: new Date().toISOString(),
+    };
+    state.epic.progress = summary;
+    return summary;
+  }
 
   let next_entry_id: string | null = null;
   if (state.status !== "archived") {

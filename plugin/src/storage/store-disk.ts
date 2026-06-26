@@ -952,6 +952,9 @@ export async function createDiskStore(
       updateScope: async () => {
         throw new Error("Epics require the Temporal store backend.");
       },
+      markMerged: async () => {
+        throw new Error("Epics require the Temporal store backend.");
+      },
       addShell: async () => {
         throw new Error("Epics require the Temporal store backend.");
       },

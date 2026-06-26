@@ -117,6 +117,7 @@ export const EPIC_WORKFLOW_SIGNAL_NAMES = {
   epicCreated: "adv.epic.epicCreated",
   epicUpdated: "adv.epic.epicUpdated",
   epicScopeUpdated: "adv.epic.epicScopeUpdated",
+  epicMerged: "adv.epic.epicMerged",
   shellAdded: "adv.epic.shellAdded",
   shellPromoted: "adv.epic.shellPromoted",
   changeLinked: "adv.epic.changeLinked",
@@ -311,7 +312,7 @@ export interface EpicSignalRejection {
 export interface EpicWorkflowState extends EpicWorkflowInput {
   id: string;
   /** Epic lifecycle status tracked by the workflow. */
-  status: "active" | "archived";
+  status: "active" | "archived" | "merged";
   /** Authoritative Epic record. */
   epic: Epic;
   /**

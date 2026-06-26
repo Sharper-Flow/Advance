@@ -40,6 +40,7 @@ import type {
   EpicMembershipSetSignalPayload,
   EpicArchivedSignalPayload,
   EpicCreatedSignalPayload,
+  EpicMergedSignalPayload,
   EpicScopeUpdatedSignalPayload,
   EpicUpdatedSignalPayload,
   ExecutiveSummaryUpdatedSignalPayload,
@@ -308,6 +309,9 @@ export const epicUpdatedSignal = wf.defineSignal<[EpicUpdatedSignalPayload]>(
 export const epicScopeUpdatedSignal = wf.defineSignal<
   [EpicScopeUpdatedSignalPayload]
 >(EPIC_WORKFLOW_SIGNAL_NAMES.epicScopeUpdated);
+export const epicMergedSignal = wf.defineSignal<[EpicMergedSignalPayload]>(
+  EPIC_WORKFLOW_SIGNAL_NAMES.epicMerged,
+);
 export const shellAddedSignal = wf.defineSignal<[ShellAddedSignalPayload]>(
   EPIC_WORKFLOW_SIGNAL_NAMES.shellAdded,
 );

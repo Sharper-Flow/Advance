@@ -11,6 +11,7 @@ import { createEpicOps } from "./epics";
 import type { StoreDeps } from "./shared";
 import {
   epicCreatedSignal,
+  epicMergedSignal,
   epicScopeUpdatedSignal,
   epicUpdatedSignal,
   shellAddedSignal,
@@ -171,6 +172,31 @@ describe("createEpicOps", () => {
       updatedBy: "agent",
       auditEvidence: "User approved product scope.",
       idempotencyKey: "epic-scope-update|addAuthEpic|1",
+    });
+  });
+
+  test("markMerged fires epicMerged with survivor pointer", async () => {
+    const { deps, queryMock, signalMock } = setup();
+    const epic = makeEpic({ version: 2 });
+    queryMock.mockResolvedValue(makeState(epic));
+
+    const ops = createEpicOps(deps);
+    await ops.markMerged("addAuthEpic", {
+      mergedInto: {
+        epic_id: "survivorEpic",
+        merged_at: "2026-06-24T00:02:00.000Z",
+        merged_by: "agent",
+        evidence: "Duplicate active Epic merged.",
+        moved_entry_count: 2,
+      },
+      expectedVersion: 2,
+    });
+
+    const call = signalMock.mock.calls.find((c) => c[0] === epicMergedSignal);
+    expect(call?.[1]).toMatchObject({
+      expectedVersion: 2,
+      mergedInto: { epic_id: "survivorEpic", moved_entry_count: 2 },
+      idempotencyKey: "epic-merged|addAuthEpic|survivorEpic|2",
     });
   });
 

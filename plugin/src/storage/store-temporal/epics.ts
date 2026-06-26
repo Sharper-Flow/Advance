@@ -3,6 +3,7 @@ import type { Epic } from "../../types";
 import { ensureEpicWorkflowStarted } from "../../temporal/workflow-start";
 import {
   epicCreatedSignal,
+  epicMergedSignal,
   epicScopeUpdatedSignal,
   epicUpdatedSignal,
   shellAddedSignal,
@@ -39,6 +40,7 @@ export interface EpicMutationError {
     | "shell_not_found"
     | "already_promoted"
     | "entry_already_exists"
+    | "epic_not_active"
     | "epic_archived"
     | "temporal_unavailable"
     | "signal_rejected";
@@ -126,6 +128,12 @@ function codeFromRejectionMessage(message: string): EpicMutationError["code"] {
     return "already_promoted";
   if (/entry_already_exists|Entry already exists/i.test(message))
     return "entry_already_exists";
+  if (
+    /epic_not_active|Epic is not active|Completed Epics cannot be merged/i.test(
+      message,
+    )
+  )
+    return "epic_not_active";
   if (/epic_archived|Epic is archived/i.test(message)) return "epic_archived";
   return "signal_rejected";
 }
@@ -329,6 +337,38 @@ export function createEpicOps(deps: StoreDeps): Store["epics"] {
       const updated = await queryEpic(epicId);
       if (!updated) {
         throw new Error(`Epic disappeared during scope update: ${epicId}`);
+      }
+      return updated;
+    },
+
+    markMerged: async (epicId, { mergedInto, expectedVersion }) => {
+      await assertEpicExists(epicId);
+      const handle = getEpicHandle(epicId);
+
+      const payload = {
+        mergedInto,
+        expectedVersion,
+        idempotencyKey: idempotencyKey(
+          "epic-merged",
+          epicId,
+          mergedInto.epic_id,
+          String(expectedVersion),
+        ),
+      };
+
+      await fireEpicSignal(
+        handle,
+        "epicMerged",
+        mergedInto.merged_at,
+        epicMergedSignal,
+        payload,
+      );
+
+      const updated = await queryEpic(epicId);
+      if (!updated) {
+        throw new Error(
+          `Epic disappeared during merge finalization: ${epicId}`,
+        );
       }
       return updated;
     },

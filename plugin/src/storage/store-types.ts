@@ -350,6 +350,13 @@ export interface Store {
         auditEvidence: string;
       },
     ) => Promise<Epic>;
+    markMerged: (
+      epicId: string,
+      input: {
+        mergedInto: NonNullable<Epic["merged_into"]>;
+        expectedVersion: number;
+      },
+    ) => Promise<Epic>;
     addShell: (
       epicId: string,
       input: {

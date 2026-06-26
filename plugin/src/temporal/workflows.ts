@@ -88,6 +88,7 @@ import {
   applyEntryTerminalSummaryToState,
   applyEpicArchivedToState,
   applyEpicCreatedToState,
+  applyEpicMergedToState,
   applyEpicScopeUpdatedToState,
   applyEpicUpdatedToState,
   applyShellAddedToState,
@@ -419,6 +420,9 @@ const epicUpdatedSignal = wf.defineSignal<
 const epicScopeUpdatedSignal = wf.defineSignal<
   [import("../types").EpicScopeUpdatedSignalPayload]
 >(EPIC_WORKFLOW_SIGNAL_NAMES.epicScopeUpdated);
+const epicMergedSignal = wf.defineSignal<
+  [import("../types").EpicMergedSignalPayload]
+>(EPIC_WORKFLOW_SIGNAL_NAMES.epicMerged);
 const shellAddedSignal = wf.defineSignal<
   [import("../types").ShellAddedSignalPayload]
 >(EPIC_WORKFLOW_SIGNAL_NAMES.shellAdded);
@@ -1809,6 +1813,13 @@ export async function epicWorkflow(input: EpicWorkflowInput): Promise<void> {
     signalAsync("epicScopeUpdated", (payload) => {
       const result = applyEpicScopeUpdatedToState(state, payload);
       handleMutationResult("epicScopeUpdated", result);
+    }),
+  );
+  wf.setHandler(
+    epicMergedSignal,
+    signalAsync("epicMerged", (payload) => {
+      const result = applyEpicMergedToState(state, payload);
+      handleMutationResult("epicMerged", result);
     }),
   );
   wf.setHandler(
