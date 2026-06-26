@@ -1,0 +1,1416 @@
+{
+  "id": "addLocalDashboard",
+  "title": "Add local dashboard",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-06-25T19:39:15.632Z",
+  "tasks": [
+    {
+      "id": "tk-e028d2492893",
+      "title": "Create dashboard config and typed state model",
+      "type": "code",
+      "section": "Dashboard foundation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-06-25T21:47:02.889Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed",
+        "frontend": "false",
+        "frontend_rationale": "Typed config/state parser and tests only; no HTML/CSS/JS dashboard surface."
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC5",
+          "AC7",
+          "C1"
+        ],
+        "verifies": [
+          "AC1",
+          "AC5",
+          "AC7"
+        ],
+        "respects": [
+          "DONT6",
+          "OOS3"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-25T21:52:34.550Z",
+      "verification": "RED tr_mqu1h0me_279c7d92: `bun test bin/lib/dashboard/config.test.ts` failed because `./config` module did not exist. GREEN tr_mqu1k3k8_41c2e63c: same command passed (4 tests, 13 assertions). Implemented dashboard config parser/types and sanitizer; one semantic retry fixed residual `token` label redaction.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "bin/lib/dashboard/config.test.ts",
+        "bin/lib/dashboard/config.ts",
+        "bin/lib/dashboard/types.ts"
+      ],
+      "touched_files": [
+        "bin/lib/dashboard/config.test.ts",
+        "bin/lib/dashboard/config.ts",
+        "bin/lib/dashboard/types.ts"
+      ],
+      "checkpointSha": "1f5e7e75fae5e5cdaae9a16fbc823e7ad146a090",
+      "completedAt": "2026-06-25T21:56:06.745Z",
+      "completed_at": "2026-06-25T21:56:06.745Z"
+    },
+    {
+      "id": "tk-36f317d03cfc",
+      "title": "Implement authenticated conditional GitHub REST reader",
+      "type": "code",
+      "section": "Dashboard data sources",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-06-25T21:47:26.891Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed",
+        "frontend": "false",
+        "frontend_rationale": "Backend GitHub REST client only; no HTML/CSS/JS dashboard surface."
+      },
+      "contract_refs": {
+        "implements": [
+          "SC2",
+          "AC5",
+          "AC7",
+          "C2",
+          "C5"
+        ],
+        "verifies": [
+          "AC5",
+          "AC7",
+          "DONT6"
+        ],
+        "respects": [
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT6",
+          "OOS1",
+          "OOS2",
+          "OOS4"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-25T21:56:45.167Z",
+      "verification": "RED tr_mqu1mm6t_c88d1575: `bun test bin/lib/dashboard/github.test.ts` failed because `./github` module did not exist. GREEN tr_mqu1pmmq_3c85c3ff: same command passed (4 tests, 19 assertions). VERIFY tr_mqu1pv8i_972c8a2d: config+github dashboard tests passed (8 tests, 32 assertions). Implemented authenticated GET-only GitHub client, ETag 304 cache, token-provider seam, sanitized degraded results, and distinct primary vs secondary rate-limit metadata.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "bin/lib/dashboard/github.test.ts",
+        "bin/lib/dashboard/github.ts",
+        "bin/lib/dashboard/types.ts"
+      ],
+      "touched_files": [
+        "bin/lib/dashboard/github.test.ts",
+        "bin/lib/dashboard/github.ts",
+        "bin/lib/dashboard/types.ts"
+      ],
+      "checkpointSha": "097e2c0a261ed9613c11943e0d0f03a8398d4083",
+      "completedAt": "2026-06-25T22:00:36.298Z",
+      "completed_at": "2026-06-25T22:00:36.298Z"
+    },
+    {
+      "id": "tk-49659d940909",
+      "title": "Build ADV project reader with worker-free base and degradable ops enrichment",
+      "type": "code",
+      "section": "Dashboard data sources",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-06-25T21:47:52.038Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed",
+        "frontend": "false",
+        "frontend_rationale": "Backend ADV/Temporal reader only; no HTML/CSS/JS dashboard surface."
+      },
+      "contract_refs": {
+        "implements": [
+          "SC2",
+          "SC4",
+          "AC1",
+          "AC2",
+          "AC4",
+          "AC5",
+          "C3",
+          "C5",
+          "C6"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC4",
+          "AC5"
+        ],
+        "respects": [
+          "DONT1",
+          "DONT4",
+          "DONT6",
+          "OOS4"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-25T22:01:19.880Z",
+      "verification": "RED tr_mqu1ts0c_4677e552: `bun test bin/lib/dashboard/adv.test.ts` failed because `./adv` module did not exist. GREEN tr_mqu1vo15_aa4e96b3: same command passed (3 tests, 11 assertions). VERIFY tr_mqu1vunz_393c5001: config+github+adv dashboard tests passed (11 tests, 43 assertions). Implemented worker-free ADV project reader with degradable ops enrichment, visibility worktree branch/path extraction, and ops/headSha correlation keys.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "bin/lib/dashboard/adv.test.ts",
+        "bin/lib/dashboard/adv.ts",
+        "bin/lib/live-status.ts",
+        "bin/lib/types.ts"
+      ],
+      "touched_files": [
+        "bin/lib/dashboard/adv.test.ts",
+        "bin/lib/dashboard/adv.ts",
+        "bin/lib/live-status.ts",
+        "bin/lib/types.ts"
+      ],
+      "checkpointSha": "2014d6f0a3f54bd92d8317abbea1ffdbfda8aa31",
+      "completedAt": "2026-06-25T22:05:15.358Z",
+      "completed_at": "2026-06-25T22:05:15.358Z"
+    },
+    {
+      "id": "tk-a7cd3ac6367b",
+      "title": "Implement structural correlation and attention lanes",
+      "type": "code",
+      "section": "Dashboard correlation",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-06-25T21:48:12.704Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed",
+        "frontend": "false",
+        "frontend_rationale": "Pure backend classification/correlation logic only; no HTML/CSS/JS dashboard surface."
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC3",
+          "AC2",
+          "AC3",
+          "AC4",
+          "C3",
+          "C4",
+          "C6"
+        ],
+        "verifies": [
+          "AC2",
+          "AC3",
+          "AC4"
+        ],
+        "respects": [
+          "DONT5",
+          "DONT6"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-25T22:05:50.486Z",
+      "verification": "RED tr_mqu1yk0a_7be39fe7: `bun test bin/lib/dashboard/correlation.test.ts bin/lib/dashboard/attention.test.ts` failed because `./correlation` and `./attention` modules did not exist. GREEN tr_mqu21j5s_693c9f0a: same tests passed (3 tests, 9 assertions). VERIFY tr_mqu21rbh_f08d95e0: full dashboard module set passed so far (14 tests, 52 assertions). Implemented structural branch/SHA/ops correlation, explicit evidence strings, ambiguity/no-match unlinked reasons, and attention/running/linked/unlinked lane classification preserving separate source states.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "bin/lib/dashboard/attention.test.ts",
+        "bin/lib/dashboard/attention.ts",
+        "bin/lib/dashboard/correlation.test.ts",
+        "bin/lib/dashboard/correlation.ts"
+      ],
+      "touched_files": [
+        "bin/lib/dashboard/attention.test.ts",
+        "bin/lib/dashboard/attention.ts",
+        "bin/lib/dashboard/correlation.test.ts",
+        "bin/lib/dashboard/correlation.ts"
+      ],
+      "checkpointSha": "8ffc80d1fb676d6e4daeaaa9133b0883de043766",
+      "completedAt": "2026-06-25T22:09:55.211Z",
+      "completed_at": "2026-06-25T22:09:55.211Z"
+    },
+    {
+      "id": "tk-07993da8f12c",
+      "title": "Serve read-only dashboard API and local HTTP routes",
+      "type": "code",
+      "section": "Dashboard server",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-06-25T21:48:37.655Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-e028d2492893"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-36f317d03cfc"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-49659d940909"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-a7cd3ac6367b"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required",
+        "frontend": "false",
+        "frontend_rationale": "Backend HTTP route/state-composition work; UI rendering and visual frontend are isolated in a separate task."
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC2",
+          "SC4",
+          "AC1",
+          "AC5",
+          "AC6",
+          "AC7"
+        ],
+        "verifies": [
+          "AC1",
+          "AC5",
+          "AC6",
+          "AC7"
+        ],
+        "respects": [
+          "DONT1",
+          "DONT2",
+          "DONT6",
+          "OOS2",
+          "OOS3"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-25T22:10:48.853Z",
+      "verification": "RED tr_mqu24j1q_481b7d03: `bun test bin/lib/dashboard/server.test.ts` failed because `./server` module did not exist. GREEN tr_mqu26c2q_581f8b2b: same command passed (3 tests, 13 assertions). VERIFY tr_mqu26l2e_f6e0e6a7: all dashboard module tests passed (17 tests, 65 assertions). Implemented state composition, GET-only route handler, JSON `/api/state`, placeholder HTML route, source degradation composition, and loopback host guard.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "bin/lib/dashboard/server.test.ts",
+        "bin/lib/dashboard/server.ts"
+      ],
+      "touched_files": [
+        "bin/lib/dashboard/server.test.ts",
+        "bin/lib/dashboard/server.ts"
+      ],
+      "checkpointSha": "0311bee125f75e95cc60966de7a5b15fe2727ff6",
+      "completedAt": "2026-06-25T22:13:35.455Z",
+      "completed_at": "2026-06-25T22:13:35.455Z"
+    },
+    {
+      "id": "tk-15d5e16e4468",
+      "title": "Implement minimal browser dashboard UI",
+      "type": "code",
+      "section": "Dashboard UI",
+      "status": "done",
+      "priority": 5,
+      "created_at": "2026-06-25T21:49:03.103Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-07993da8f12c"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed",
+        "frontend": "true",
+        "surface_type": "dashboard"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC6",
+          "AC7"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC6",
+          "AC7"
+        ],
+        "respects": [
+          "C3",
+          "C4",
+          "C6",
+          "DONT1",
+          "DONT2",
+          "DONT5",
+          "DONT6",
+          "OOS2"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-25T22:14:12.140Z",
+      "verification": "RED tr_mqu28dlz_a35354a3: `bun test bin/lib/dashboard/ui.test.ts` failed because `./ui` module did not exist. GREEN tr_mqu2bhyu_1189048e: same command passed (2 tests, 25 assertions) after one semantic retry to add static lane anchors. VERIFY tr_mqu2bp6k_ad4d8ed0: UI+server tests passed (5 tests, 38 assertions). Implemented static read-only dashboard HTML/JS with project lanes, evidence/degraded/source-state rendering, polling cadence, and no mutation controls.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "bin/lib/dashboard/server.ts",
+        "bin/lib/dashboard/ui.test.ts",
+        "bin/lib/dashboard/ui.ts"
+      ],
+      "touched_files": [
+        "bin/lib/dashboard/server.ts",
+        "bin/lib/dashboard/ui.test.ts",
+        "bin/lib/dashboard/ui.ts"
+      ],
+      "checkpointSha": "3c25d71b7bd6e264914ca9d8a3a641595439a76f",
+      "completedAt": "2026-06-25T22:17:36.028Z",
+      "completed_at": "2026-06-25T22:17:36.028Z"
+    },
+    {
+      "id": "tk-3f53def60733",
+      "title": "Wire `adv dashboard` CLI dispatch, help, and usage docs",
+      "type": "code",
+      "section": "CLI and docs",
+      "status": "done",
+      "priority": 6,
+      "created_at": "2026-06-25T21:49:24.416Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-07993da8f12c"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed",
+        "frontend": "false",
+        "frontend_rationale": "CLI dispatch/help/docs wiring; browser UI itself is in the frontend task."
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC6",
+          "AC7",
+          "C1",
+          "C2"
+        ],
+        "verifies": [
+          "AC1",
+          "AC6",
+          "AC7"
+        ],
+        "respects": [
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT6",
+          "OOS1",
+          "OOS2",
+          "OOS3"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-25T22:18:31.833Z",
+      "verification": "RED tr_mqu2e0os_13d88aee: `bun test bin/adv.test.ts` failed because dashboard CLI was absent. GREEN tr_mqu2he39_aa28ac6d: same command passed (14 tests, 40 assertions) after adding dashboard dispatch and one parser retry for global `--no-color`. VERIFY tr_mqu2hpv8_32e48c0e: CLI+dashboard config/server/UI tests passed (23 tests, 91 assertions). Implemented `adv dashboard` help/parser/config validation/loopback guard/server startup and README usage docs.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "README.md",
+        "bin/adv",
+        "bin/adv.test.ts"
+      ],
+      "touched_files": [
+        "README.md",
+        "bin/adv",
+        "bin/adv.test.ts"
+      ],
+      "checkpointSha": "ca7c792295eddcaa737182439a551df24552abe1",
+      "completedAt": "2026-06-25T22:22:17.303Z",
+      "completed_at": "2026-06-25T22:22:17.303Z"
+    },
+    {
+      "id": "tk-5115eda9e14c",
+      "title": "Run integrated dashboard verification and acceptance preview proof",
+      "type": "verification",
+      "section": "Integrated verification",
+      "status": "done",
+      "priority": 7,
+      "created_at": "2026-06-25T21:49:49.734Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-e028d2492893"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-36f317d03cfc"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-49659d940909"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-a7cd3ac6367b"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-07993da8f12c"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-15d5e16e4468"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-3f53def60733"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "inline_required",
+        "frontend": "false",
+        "frontend_rationale": "Cross-cutting verification and preview proof; frontend implementation already structurally marked on UI task."
+      },
+      "contract_refs": {
+        "implements": [],
+        "verifies": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "SC4",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7",
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "DONT6"
+        ],
+        "respects": [
+          "OOS1",
+          "OOS2",
+          "OOS3",
+          "OOS4"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-25T22:23:12.288Z",
+      "verification": "Design-polish correction from user feedback: referenced OSS dashboard patterns (summary cards, badge hierarchy, balanced spacing/type) and updated static UI with project summary cards, lane headers/counts, larger next-gate badge, and no ADV status field. Verification: targeted dashboard/bin tests passed tr_mqu5jiu1_40ff60a1 (26/26); full bin tests passed tr_mqu5jxmz_cd244e73 (136/136); live preview at http://127.0.0.1:18765/ returned page/API 200 with project-stats/lane-head/gate-badge/Next gate present and ADV status fragment absent; git diff --check passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "bin/lib/dashboard/ui.test.ts",
+        "bin/lib/dashboard/ui.ts"
+      ],
+      "touched_files": [
+        "bin/lib/dashboard/ui.test.ts",
+        "bin/lib/dashboard/ui.ts"
+      ],
+      "checkpointSha": "0fd8655c459b5997df33edb3cc1d1ca8b594a725",
+      "completedAt": "2026-06-25T23:48:39.626Z",
+      "completed_at": "2026-06-25T23:48:39.626Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "addLocalDashboard",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-leverage-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design leverage/simplification scout for local dashboard",
+      "sources": [
+        {
+          "label": "bin/lib/live-status.ts",
+          "locator": "/home/jon/dev/advance/bin/lib/live-status.ts:65-111,306-395",
+          "summary": "listLiveChangeStates uses worker-backed getState query; normalizeWorkflowState (65-84) drops ops fields. loadLiveSummaries (377-395) is the worker-FREE Visibility path that bin/adv status actually uses."
+        },
+        {
+          "label": "bin/lib/types.ts",
+          "locator": "/home/jon/dev/advance/bin/lib/types.ts:28-71",
+          "summary": "ChangeRecord and ChangeSummary types carry NO ops_followup or ops_followup_links fields; CLI never surfaces ops/links today."
+        },
+        {
+          "label": "plugin/src/temporal/contracts.ts + workflows.ts",
+          "locator": "/home/jon/dev/advance/plugin/src/temporal/contracts.ts:454-543; workflows.ts:571,1584-1585",
+          "summary": "getState query returns full ChangeWorkflowState incl ops_followup/ops_followup_links AND a worktrees registry with branch+headSha+integration status."
+        },
+        {
+          "label": "plugin/src/temporal/search-attributes.ts",
+          "locator": "/home/jon/dev/advance/plugin/src/temporal/search-attributes.ts:206-207",
+          "summary": "Worktree branches are exported as AdvWorktreeBranches Visibility search attribute — change/{id} branch is available worker-free for GitHub correlation."
+        },
+        {
+          "label": "bin/adv",
+          "locator": "/home/jon/dev/advance/bin/adv:260-391",
+          "summary": "Flat subcommand if-ladder dispatch; adding `dashboard` follows existing status/roadmap/slop-scan pattern. No GitHub client / gh-auth / ETag code exists anywhere in repo (grep returned 0)."
+        },
+        {
+          "label": "GitHub REST best-practices (official docs)",
+          "locator": "https://docs.github.com/en/rest/using-the-rest-api/best-practices-for-using-the-rest-api",
+          "summary": "304 via If-None-Match does NOT count against primary rate limit ONLY when authenticated. Exceeding primary limit → 403/429 with x-ratelimit-remaining:0; retry after x-ratelimit-reset (epoch). Retry-After is the secondary-limit signal."
+        }
+      ],
+      "architecture_assessment": "Design is sound and simplicity-aligned: extends existing Bun CLI, reuses project-id resolution and Temporal client, keeps read-only + 127.0.0.1 bind, structural-only correlation. Two reuse claims need tightening. (1) The design says reuse listLiveChangeStates for ops/links — accurate at the Temporal layer (getState returns them) but it silently shifts the dashboard onto the WORKER-BACKED getState path, abandoning the deliberately worker-free Visibility path that current `adv status` uses (live-status.ts:191-199 documents this was intentional), and requires extending normalizeWorkflowState + ChangeRecord/ChangeSummary types which today drop all ops fields. (2) The strongest under-used leverage: the change/{id} branch + headSha needed for GitHub correlation already exist as the worktrees registry (contracts.ts:502-543) AND as the AdvWorktreeBranches Visibility search attribute — so branch/SHA correlation keys are obtainable worker-free, decoupling correlation from the worker-dependent getState. GitHub plane is fully greenfield (zero existing client) = largest net-new risk surface; conditional-request design matches official docs but auth is load-bearing for the 304-free-of-rate-limit guarantee.",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "No contract-compromising or security/release blocker. Cautions: (a) worker-dependency regression risk if dashboard switches to getState; (b) type/normalizer extension is mandatory, not free reuse; (c) GitHub 304-rate-limit exemption requires authenticated requests (DONT6 token-never-logged must hold across the new fetch client); (d) primary-limit reset (x-ratelimit-reset) and secondary-limit (Retry-After) are distinct and both need handling."
+      },
+      "recommendation": "Adopt worktrees-registry/AdvWorktreeBranches as the worker-free source for change/{id} branch+headSha correlation keys (auto-adopt). Make ADV-plane degradation explicit: prefer the worker-free Visibility path for liveness, and treat getState (for ops_followup/links + tasks) as a best-effort enrichment that degrades to 'ops unknown' per C5/SC4 when no live worker — do NOT make whole-dashboard liveness depend on getState. Surface to user: whether v1 ops_followup/links visibility is required (forces worker dependency) or deferrable (keeps worker-free liveness). Keep GitHub client minimal: serialized fetch, ETag store keyed per endpoint, authenticated headers mandatory, handle x-ratelimit-reset (primary) and Retry-After (secondary) separately.",
+      "follow_ups": [
+        "Confirm with user/design owner: is per-change ops_followup/ops_followup_links visibility in-scope for v1 (worker-backed) or enrichment-only (worker-free degrade)?",
+        "Design task must extend bin/lib/types.ts ChangeRecord/ChangeSummary + normalizeWorkflowState to carry ops fields IF ops visibility is v1-required.",
+        "Add explicit test for token never appearing in /api/state JSON or logs (DONT6) given greenfield GitHub fetch client."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addLocalDashboard",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation for local dashboard",
+      "sources": [
+        {
+          "label": "live-status.ts worker-free Visibility path",
+          "locator": "/home/jon/dev/advance/bin/lib/live-status.ts:191-199,86-111",
+          "summary": "Worker-free Visibility read path (search attributes via client.workflow.list) supplies active changes/gates/branches without a live per-project worker; listLiveChangeStates uses worker-backed getState query path separately."
+        },
+        {
+          "label": "search-attributes.ts AdvWorktreeBranches",
+          "locator": "/home/jon/dev/advance/plugin/src/temporal/search-attributes.ts:202-214",
+          "summary": "Active worktree branches/paths exported as AdvWorktreeBranches/AdvWorktreePaths Visibility search attributes — change/{id} correlation keys obtainable worker-free."
+        },
+        {
+          "label": "types.ts + normalizeWorkflowState ops gap",
+          "locator": "/home/jon/dev/advance/bin/lib/types.ts:28-55; bin/lib/live-status.ts:65-84",
+          "summary": "ChangeRecord/ChangeSummary carry NO ops_followup/ops_followup_links; normalizeWorkflowState drops ops fields. Ops enrichment requires type+normalizer extension, not free reuse."
+        },
+        {
+          "label": "GitHub REST best-practices (official docs)",
+          "locator": "https://docs.github.com/en/rest/using-the-rest-api/best-practices-for-using-the-rest-api",
+          "summary": "Confirms design: authenticated requests, serial not concurrent, retry-after then x-ratelimit-remaining:0 / x-ratelimit-reset (UTC epoch), if-none-match 304 free of primary limit ONLY when authenticated. Design matches verbatim."
+        }
+      ],
+      "architecture_assessment": "Design is correct and at the simplicity floor for the objectives. It extends the existing Bun CLI subcommand ladder (no new runtime/service), binds 127.0.0.1, is GET-only with no mutation routes, and uses direct fetch (no SDK). Liveness correctly rides the worker-free Temporal Visibility path; getState-backed ops_followup/ops-evidence is correctly scoped as OPTIONAL degradable enrichment so worker absence never blanks the dashboard. Correlation keys (change/{id} branch via AdvWorktreeBranches, worktree head SHA, PR ref/SHA/number, workflow run head_branch/head_sha/pull_requests, deployment ref/sha/environment) are all structural and worker-free, satisfying AC2/AC3 and C3/C4. GitHub deployment vs ADV ops separation honored (AC4/C6). GitHub read strategy matches official best-practices exactly. Two non-blocking conditions: (1) token redaction (DONT6) is load-bearing for both secret safety and the 304 rate-limit exemption; (2) ops visibility for v1 requires explicit ChangeRecord/ChangeSummary + normalizeWorkflowState extension — real work, not free reuse.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "No contract-compromising or security/release blocker. No registered specs exist (adv_spec list returns []), so no spec-law contradiction. Cautions are planning-phase tasking items, not design defects: (a) ChangeRecord/ChangeSummary/normalizeWorkflowState must be extended IF v1 surfaces ops_followup/ops_followup_links; (b) authenticated headers must be mandatory in the greenfield fetch client to preserve both DONT6 and the 304-free-of-primary-limit guarantee."
+      },
+      "recommendation": "VALIDATED. Proceed to planning. Task explicitly: (1) greenfield GitHub fetch client must mandate authenticated headers (GITHUB_TOKEN or gh auth token) and include a test asserting no token appears in /api/state JSON or logs; (2) if v1 surfaces ops_followup/ops-evidence, task the ChangeRecord/ChangeSummary + normalizeWorkflowState extension as degradable enrichment that never blanks worker-free liveness; (3) GitHub rate handling must treat retry-after (secondary) and x-ratelimit-reset (primary, UTC epoch) as distinct signals per official docs.",
+      "follow_ups": [
+        "Planning: extend bin/lib/types.ts ChangeRecord/ChangeSummary + normalizeWorkflowState to carry ops fields IF v1 ops visibility is required (else keep enrichment-only worker-free degrade).",
+        "Planning: add explicit test that token never appears in /api/state JSON or server logs (DONT6) for greenfield GitHub fetch client.",
+        "Planning: ensure rate handling distinguishes retry-after (secondary limit) from x-ratelimit-reset (primary limit, UTC epoch seconds)."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addLocalDashboard",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addLocalDashboard",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [
+        {
+          "file": "bin/lib/dashboard/correlation.ts",
+          "summary": "Made GitHub Actions workflow conclusion the displayed/correlated status before generic status/state so completed failed CI runs surface as failure and enter attention semantics.",
+          "verification": "bun test bin/lib/dashboard/*.test.ts bin/dashboard-cli.test.ts: 24 pass, 0 fail; added workflow conclusion regression test."
+        },
+        {
+          "file": "bin/lib/dashboard/correlation.test.ts",
+          "summary": "Added regression coverage for completed workflow runs using conclusion=failure as visible status.",
+          "verification": "bun test bin/lib/dashboard/*.test.ts bin/dashboard-cli.test.ts: 24 pass, 0 fail."
+        },
+        {
+          "file": "bin/lib/dashboard/ui.ts",
+          "summary": "Rendered each item status in dashboard lane cards, preserving escaped output, so ADV ops and GitHub activity statuses are visible separately from evidence/source_states.",
+          "verification": "bun test bin/lib/dashboard/*.test.ts bin/dashboard-cli.test.ts: 24 pass, 0 fail; UI shell test checks Status label is present."
+        },
+        {
+          "file": "bin/lib/dashboard/ui.test.ts",
+          "summary": "Updated UI shell coverage for the newly visible Status field and generic source-state rendering.",
+          "verification": "bun test bin/lib/dashboard/*.test.ts bin/dashboard-cli.test.ts: 24 pass, 0 fail."
+        },
+        {
+          "file": "README.md",
+          "summary": "Aligned dashboard example config with AC1 by showing two explicit local projects instead of one.",
+          "verification": "git diff --check passed; dashboard tests unchanged and passing."
+        }
+      ],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "git diff --check",
+          "bun test bin/lib/dashboard/*.test.ts bin/dashboard-cli.test.ts"
+        ],
+        "results": "pass",
+        "evidence": "Path preflight OK for all changed files. git diff --check passed. Targeted Bun dashboard/bin suite passed: 24 pass, 0 fail, 105 expect() calls across 8 files. Reviewed GET-only/read-only enforcement, secret redaction, rate-limit degradation, thrown reader containment, structural correlation ambiguity, source-state separation, dashboard UI evidence, docs, and tests."
+      },
+      "scope_drift": null,
+      "risks": [
+        "No live GitHub/Temporal integration exercised in this review; dashboard data-source behavior verified with deterministic mocked Bun tests.",
+        "No browser-driven visual session was run; review used static HTML inspection and UI shell tests."
+      ],
+      "required_main_agent_actions": [
+        "Note: first submit attempt using packet TASK anchor `change-review` failed because that is not an existing ADV task ID; report persisted as change-scoped review summary instead."
+      ],
+      "required_follow_ups": [],
+      "consumer_warnings": [
+        {
+          "kind": "consumer_failure",
+          "message": "Initial task-scoped REVIEWER_REPORT submit failed with INVALID_TASK_ANCHOR for TASK `change-review`; valid ADV task anchors were implementation tasks, so reviewer resubmitted as change-scoped review:acceptance."
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addLocalDashboard",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addLocalDashboard",
+      "scope": {
+        "kind": "change",
+        "scope_key": "scanner-bundle:review"
+      },
+      "agent": "adv-scanner-bundle",
+      "phase": "review",
+      "scanner_count": 3,
+      "dimensions": [
+        "contract-traceability",
+        "correctness-edge-cases",
+        "security",
+        "tests-tdd-evidence",
+        "scope-conformance"
+      ],
+      "summary": "Acceptance review scanners plus adv-reviewer found no remaining blockers. Security/read-only passed. Contract scanner flagged AC7 last-success and source-stall gaps; remediation added last-success freshness text, degraded-source last-success rendering, bounded per-reader timeouts, final state sanitization, workflow conclusion status, UI status rendering, and two-project README example. Verification: bun test bin/lib/dashboard/*.test.ts bin/dashboard-cli.test.ts passed (tr_mqu4puld_79f896f3); bun test bin/ passed (tr_mqu4q832_26a6da2a); git diff --check passed.",
+      "findings": [
+        {
+          "scanner": "security",
+          "severity": "info",
+          "summary": "Security and read-only surface passed: token material sanitized at reader boundaries, final state sanitized, GET-only routes, loopback default, escaped HTML, no mutation controls.",
+          "evidence": [
+            {
+              "label": "security scanner",
+              "locator": "sub-agent ses_0fef075e7ffeXzXFdmpRSAMIpe",
+              "summary": "No blocking security issues; optional final-state sanitize adopted."
+            }
+          ]
+        },
+        {
+          "scanner": "contract",
+          "severity": "info",
+          "summary": "Contract gaps remediated: AC7 last successful refresh and C5 source-stall containment now implemented with tests.",
+          "evidence": [
+            {
+              "label": "verification",
+              "locator": "adv_run_test tr_mqu4puld_79f896f3; tr_mqu4q832_26a6da2a",
+              "summary": "Targeted dashboard tests passed 25/25; full bin tests passed 135/135."
+            }
+          ]
+        },
+        {
+          "scanner": "reviewer",
+          "severity": "info",
+          "summary": "Reviewer remediation added workflow conclusion status, visible item status, README two-project config, and persisted READY report.",
+          "evidence": [
+            {
+              "label": "adv-reviewer",
+              "locator": "sub-agent ses_0fef0765dffe3KPRXiuyJnkWE6",
+              "summary": "Verdict READY; no remaining blocking findings after reviewer changes."
+            }
+          ]
+        }
+      ],
+      "follow_ups": [
+        "During harden, verify whether review-remediation commits need a dedicated checkpoint/commit before archive if branch must be clean."
+      ],
+      "consumer_warnings": []
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-06-25T19:47:57.739Z",
+      "completed_by": "agent",
+      "approval_evidence": "Proposal approved by command-as-approval: user invoked /adv-discover addlocaldashboard after inline proposal handoff. Proposal reflects screenshot clarification that one project Actions page is too noisy and required dashboard must cover all active local projects.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "f2e773db66f77c9982292772cbc11c935339d5b0308adaf036b82dbdd8a8f668",
+        "non_whitespace_chars": 6131,
+        "checked_at": "2026-06-25T19:39:15.671Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-06-25T20:04:27.262Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery completed: findings recorded, mandatory clarification round resolved, agreement persisted, ChangeContract minted with 27 items. User approved success/acceptance criteria by replying `approve`.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "1c9efcdb47a15989dcc4ccee88f90b3a771232adf53e1b20e5ef6fcfaf39ef62",
+        "non_whitespace_chars": 4802,
+        "checked_at": "2026-06-25T19:39:15.672Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-06-25T20:15:43.623Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design completed. Architecture: adv dashboard local Bun server, explicit config, worker-free ADV base plane plus degradable ops enrichment, authenticated conditional GitHub REST, structural correlation, project-first lanes, read-only GET-only UI. Design leverage scout attempted/submitted; independent validator returned VALIDATED.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "acafcb97ce72ded44784d5d42c29acdaf391c89d7c2d8589ab1bef22306118d2",
+        "non_whitespace_chars": 9067,
+        "checked_at": "2026-06-25T19:39:15.673Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-06-25T21:51:45.079Z",
+      "completed_by": "agent",
+      "approval_evidence": "Planning approved by command-as-approval: user invoked exact continuation command `/adv-apply addlocaldashboard` after prep vision. Task graph has 8 tasks covering config/model, GitHub reader, ADV reader, correlation/lanes, server/API, UI, CLI/docs, and integrated verification. Strict validation passed with warning only: no spec deltas."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-06-25T22:34:27.835Z",
+      "completed_by": "agent",
+      "approval_evidence": "Execution complete: 8/8 tasks done. Implemented local read-only dashboard CLI/server/UI/data model. Verification: bin suite passed (tr_mqu2jku7_0fe260d6), preview proof passed with local 127.0.0.1 server and GET-only checks (tr_mqu2k9z7), pnpm run check passed (tr_mqu2leox), full suite passed on rerun after isolated Temporal transient rerun (tr_mqu2qm2y; targeted transient proof tr_mqu2ok9a), pnpm run build passed (tr_mqu2r6q7). Validation has stale FILE_OVERLAP ledger warning/error for bin/lib/live-status.ts, bin/lib/types.ts, bin/adv.test.ts; actual git diff against trunk no longer includes those files after overlap repair commit 0230baaa."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-06-26T00:05:32.901Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved acceptance with exact reply `approve` after live preview/design corrections. Acceptance evidence: targeted dashboard/bin tests tr_mqu5jiu1_40ff60a1 passed 26/26; full bin tests tr_mqu5jxmz_cd244e73 passed 136/136; live preview http://127.0.0.1:18765/ returned GET / and /api/state 200 with project stats, lane headers, large next-gate badge, no ADV status fragment, and linked ADV changes for configured projects; contract matrix 27/27 pass/respected.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "046411870946c56bff740e3a1aab3e341e9357b85e41d9c194496c9964f866b8",
+        "non_whitespace_chars": 2483,
+        "checked_at": "2026-06-25T19:39:15.674Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "cross_project_origin": {
+    "source_project": "toolbox",
+    "source_path": "/home/jon/toolbox",
+    "linked_at": "2026-06-25T19:39:14.203Z"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "1c9efcdb47a15989dcc4ccee88f90b3a771232adf53e1b20e5ef6fcfaf39ef62",
+      "approvedAt": "2026-06-25T20:04:14.983Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "User can identify which configured active local projects need attention from one local dashboard within the configured 30–60 second refresh cadence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1c9efcdb47a15989dcc4ccee88f90b3a771232adf53e1b20e5ef6fcfaf39ef62",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "User can see running GitHub PR/merge/CI/deployment activity and ADV ops/change state per configured project without opening each project’s GitHub Actions page.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1c9efcdb47a15989dcc4ccee88f90b3a771232adf53e1b20e5ef6fcfaf39ef62",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "User can trace linked GitHub/ops items back to an ADV change when structural evidence exists, and can see unlinked activity separately when it does not.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1c9efcdb47a15989dcc4ccee88f90b3a771232adf53e1b20e5ef6fcfaf39ef62",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC4",
+        "kind": "success_criterion",
+        "text": "Source failures degrade per project/source and do not blank the whole dashboard.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1c9efcdb47a15989dcc4ccee88f90b3a771232adf53e1b20e5ef6fcfaf39ef62",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "Given an explicit config with at least two local projects, when the dashboard loads, then it renders one section per configured project with source freshness/degraded status.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1c9efcdb47a15989dcc4ccee88f90b3a771232adf53e1b20e5ef6fcfaf39ef62",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Given GitHub or ops activity can be linked by branch, PR, SHA, deployment ref, environment, or ADV evidence, when the item appears, then the dashboard shows the associated ADV change and the evidence used.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1c9efcdb47a15989dcc4ccee88f90b3a771232adf53e1b20e5ef6fcfaf39ef62",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Given GitHub or ops activity cannot be confidently linked to an ADV change, when it appears, then it is shown in a separate unlinked lane for that project.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1c9efcdb47a15989dcc4ccee88f90b3a771232adf53e1b20e5ef6fcfaf39ef62",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Given GitHub CI/deployment state and ADV ops evidence both exist but disagree, when rendered, then both states are visible separately without overwriting one another.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1c9efcdb47a15989dcc4ccee88f90b3a771232adf53e1b20e5ef6fcfaf39ef62",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Given one configured repo/source has auth, rate-limit, or source-read failure, when the dashboard refreshes, then that repo/source shows degraded status and other projects still render.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1c9efcdb47a15989dcc4ccee88f90b3a771232adf53e1b20e5ef6fcfaf39ef62",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Given dashboard v1 is open, then no rerun, approve, merge, deploy, cancel, archive, or other mutation control is available.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1c9efcdb47a15989dcc4ccee88f90b3a771232adf53e1b20e5ef6fcfaf39ef62",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "Given dashboard refresh is enabled, then visible data is refreshed within the configured 30–60 second cadence or marked stale/degraded with last successful refresh time.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1c9efcdb47a15989dcc4ccee88f90b3a771232adf53e1b20e5ef6fcfaf39ef62",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Use explicit project configuration as the first source of truth for active local projects.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1c9efcdb47a15989dcc4ccee88f90b3a771232adf53e1b20e5ef6fcfaf39ef62",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Use local authentication and local operator context where feasible, such as existing GitHub CLI credentials.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1c9efcdb47a15989dcc4ccee88f90b3a771232adf53e1b20e5ef6fcfaf39ef62",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Correlation must be explicit and explainable: branch names, PR refs, SHAs, deployment refs, environment names, or ADV evidence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1c9efcdb47a15989dcc4ccee88f90b3a771232adf53e1b20e5ef6fcfaf39ef62",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Missing or ambiguous correlation must be surfaced as unknown, not guessed as fact.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1c9efcdb47a15989dcc4ccee88f90b3a771232adf53e1b20e5ef6fcfaf39ef62",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Refresh and GitHub reads must be lightweight enough for local multi-repo use and must visibly degrade under auth, rate-limit, or partial-source failure.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1c9efcdb47a15989dcc4ccee88f90b3a771232adf53e1b20e5ef6fcfaf39ef62",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C6",
+        "kind": "constraint",
+        "text": "The dashboard must preserve per-source truth when GitHub deployment state and ADV ops evidence disagree.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1c9efcdb47a15989dcc4ccee88f90b3a771232adf53e1b20e5ef6fcfaf39ef62",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not mutate ADV state or GitHub state from dashboard v1.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1c9efcdb47a15989dcc4ccee88f90b3a771232adf53e1b20e5ef6fcfaf39ef62",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not add rerun, approve, merge, deploy, cancel, archive, or other write controls in v1.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1c9efcdb47a15989dcc4ccee88f90b3a771232adf53e1b20e5ef6fcfaf39ef62",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not require provider-specific deployment APIs such as Vercel, Fly, Render, or cloud provider integrations for v1 usefulness.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1c9efcdb47a15989dcc4ccee88f90b3a771232adf53e1b20e5ef6fcfaf39ef62",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not introduce a hosted multi-user service, OAuth application, or external dashboard backend unless design proves local-only is infeasible.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1c9efcdb47a15989dcc4ccee88f90b3a771232adf53e1b20e5ef6fcfaf39ef62",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "Do not hide unlinked GitHub activity that is in scope for a configured project; place it in the separate unlinked lane.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1c9efcdb47a15989dcc4ccee88f90b3a771232adf53e1b20e5ef6fcfaf39ef62",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT6",
+        "kind": "avoidance",
+        "text": "Do not expose secrets, tokens, or private auth material in dashboard output or persisted config.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1c9efcdb47a15989dcc4ccee88f90b3a771232adf53e1b20e5ef6fcfaf39ef62",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "Direct provider-specific deployment API integrations.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1c9efcdb47a15989dcc4ccee88f90b3a771232adf53e1b20e5ef6fcfaf39ef62",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "Dashboard write actions or mutation controls.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1c9efcdb47a15989dcc4ccee88f90b3a771232adf53e1b20e5ef6fcfaf39ef62",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "Long-term portfolio analytics, trend reporting, or historical audit database beyond current status visibility.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1c9efcdb47a15989dcc4ccee88f90b3a771232adf53e1b20e5ef6fcfaf39ef62",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS4",
+        "kind": "out_of_scope",
+        "text": "Replacing GitHub Actions, GitHub Deployments, ADV gates, or ADV ops evidence as sources of truth.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1c9efcdb47a15989dcc4ccee88f90b3a771232adf53e1b20e5ef6fcfaf39ef62",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-06-25T23:28:07Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Preview proof at http://127.0.0.1:18767 returned GET / 200 and /api/state 200 with project_ids [advance, toolbox], refresh_seconds 45. Tests: bin dashboard targeted tr_mqu4puld_79f896f3; full bin tr_mqu4q832_26a6da2a.",
+          "notes": "One local dashboard shows configured project sections within 30–60s cadence."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "GitHub/ADV sources and lanes implemented in server/correlation/attention; full bin tests passed tr_mqu4q832_26a6da2a. Preview API returned two project cards with degraded source counts isolated per project.",
+          "notes": "Shows running/linked/unlinked/degraded project activity without using GitHub Actions page."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "correlation.test covers structural branch/SHA/evidence links and unknown/ambiguous unlinked lane; targeted tests passed tr_mqu4puld_79f896f3.",
+          "notes": "Links require structural evidence; missing/ambiguous stays unlinked."
+        },
+        {
+          "contractId": "SC4",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "server.test covers thrown reader failures and bounded reader stalls; targeted tests passed tr_mqu4puld_79f896f3.",
+          "notes": "Per-source failure degrades without blanking other projects."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Preview proof returned schema_version 1, project_count 2, project_ids [advance, toolbox]. server.test 'composes projects independently' passed in tr_mqu4puld_79f896f3.",
+          "notes": "Two explicit config projects render independently with source degradation metadata."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "correlation.test verifies branch and SHA evidence strings; server.test verifies deployment.ref and ops.environment+completion_signal evidence. Targeted tests passed tr_mqu4puld_79f896f3.",
+          "notes": "Linked items show ADV change and evidence used."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "correlation.test verifies no structural match and ambiguous structural match are unlinked; attention tests verify unlinked lane. Full bin tests passed tr_mqu4q832_26a6da2a.",
+          "notes": "Unknown GitHub/ops activity appears in unlinked lane."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "server.test 'keeps GitHub deployment status and ADV ops evidence separately visible' verifies deployment source_states.github_deployment=failure and ops status=success remain separate. Passed tr_mqu4puld_79f896f3.",
+          "notes": "Separate source truth preserved."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "server.test covers thrown ADV/GitHub failures, no secret leakage, and GITHUB_READ_TIMEOUT without blocking toolbox project. github.test covers auth/rate-limit degraded results. Tests passed tr_mqu4puld_79f896f3 and tr_mqu4q832_26a6da2a.",
+          "notes": "Auth, rate-limit, read failure, and stalled reader degrade per source/project."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "server.test verifies POST /api/state returns 405 allow GET. ui.test verifies no mutation controls. Full bin tests passed tr_mqu4q832_26a6da2a.",
+          "notes": "Dashboard v1 is read-only."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "config tests enforce 30–60s refresh; ui renders lastSuccessfulRefreshAt on failed refresh and degraded source last_success_at when supplied; preview API returned refresh_seconds 45. Targeted tests passed tr_mqu4puld_79f896f3.",
+          "notes": "Refresh cadence and stale/degraded last-success evidence implemented after review remediation."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "parseDashboardConfig requires explicit projects and no discovery magic; README config example has two explicit projects. Full bin tests passed tr_mqu4q832_26a6da2a.",
+          "notes": "Explicit config is source of truth."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "GitHub client token provider uses GITHUB_TOKEN or gh auth token locally; no OAuth app or hosted auth. github tests passed in tr_mqu4puld_79f896f3.",
+          "notes": "Local operator auth context used."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "correlation output includes evidence strings for branch, sha, deployment ref, and ops environment/completion signal. Tests passed tr_mqu4puld_79f896f3.",
+          "notes": "Correlation explicit and explainable."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "correlation.test covers no match and ambiguous structural match as unlinked reasons. Full bin tests passed tr_mqu4q832_26a6da2a.",
+          "notes": "Unknown/ambiguous surfaced, not guessed."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "GitHub ETag/rate-limit tests, per-source degradation tests, and bounded reader stall test passed. Evidence: tr_mqu4puld_79f896f3.",
+          "notes": "Lightweight reads, rate-aware behavior, and source timeout containment."
+        },
+        {
+          "contractId": "C6",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "server.test verifies GitHub deployment failure and ADV ops success remain separately visible. Passed tr_mqu4puld_79f896f3.",
+          "notes": "Per-source truth preserved when states disagree."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Only GET / and GET /api/state routes; POST returns 405. No ADV/GitHub mutation client calls. Tests passed tr_mqu4puld_79f896f3.",
+          "notes": "No ADV or GitHub state mutation."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "ui.test forbids rerun, approve, merge, deploy, cancel, archive controls; server rejects non-GET. Full bin tests passed tr_mqu4q832_26a6da2a.",
+          "notes": "No write controls."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Implementation uses GitHub REST deployments only; no Vercel/Fly/Render/cloud provider dependencies. Diff review and tests passed.",
+          "notes": "No provider-specific deployment API required."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Local Bun.serve CLI; default host 127.0.0.1 and non-loopback requires explicit --allow-network-host. server.test passed tr_mqu4puld_79f896f3.",
+          "notes": "No hosted service/OAuth/external backend."
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Unlinked lane tests cover unmatched and ambiguous activity. Full bin tests passed tr_mqu4q832_26a6da2a.",
+          "notes": "Unlinked activity remains visible."
+        },
+        {
+          "contractId": "DONT6",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "sanitizeDashboardState redacts token-like strings and secret keys; GitHub/server tests assert no token leak from degraded or thrown errors; final dashboard state is sanitized. Tests passed tr_mqu4puld_79f896f3.",
+          "notes": "Secrets not exposed in output or persisted config."
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No provider-specific deployment integration; GitHub deployments only. Review diff and full bin tests passed.",
+          "notes": "Provider APIs out of scope."
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "No mutation routes or controls; server 405 for POST; ui no-control test passed tr_mqu4puld_79f896f3.",
+          "notes": "Write actions out of scope."
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No dashboard database or historical audit store added; state generated from current ADV/GitHub reads. Diff review and tests passed.",
+          "notes": "No analytics/history DB."
+        },
+        {
+          "contractId": "OOS4",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Dashboard reads GitHub/ADV sources and preserves them; it does not replace GitHub Actions, deployments, ADV gates, or ops evidence. Tests verify source separation.",
+          "notes": "Sources of truth preserved."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "Given an explicit config with at least two local projects, when the dashboard loads, then it renders one section per configured project with source freshness/degraded status.",
+    "Given GitHub or ops activity can be linked by branch, PR, SHA, deployment ref, environment, or ADV evidence, when the item appears, then the dashboard shows the associated ADV change and the evidence used.",
+    "Given GitHub or ops activity cannot be confidently linked to an ADV change, when it appears, then it is shown in a separate unlinked lane for that project.",
+    "Given GitHub CI/deployment state and ADV ops evidence both exist but disagree, when rendered, then both states are visible separately without overwriting one another.",
+    "Given one configured repo/source has auth, rate-limit, or source-read failure, when the dashboard refreshes, then that repo/source shows degraded status and other projects still render.",
+    "Given dashboard v1 is open, then no rerun, approve, merge, deploy, cancel, archive, or other mutation control is available.",
+    "Given dashboard refresh is enabled, then visible data is refreshed within the configured 30–60 second cadence or marked stale/degraded with last successful refresh time."
+  ],
+  "documents": {
+    "proposal": "# Add local dashboard\n\n## Why\n\nAdvance lacks a low-cost, read-only local dashboard that shows active ADV changes, GitHub PR/merge/CI activity, and deployment/ops signals together across a configurable repo list. Operators currently have to inspect ADV state, GitHub Actions, PRs, deployment surfaces, and ops evidence separately, making it harder to quickly answer “what is running?” and “what needs attention?”\n\nThe current pain is visible even for one project: a single GitHub Actions page can contain many workflow rows across archive flows, auto-merge, PR gates, deploy workflows, staging promotion, failed runs, in-progress runs, branch labels, and timestamps. The user needs a combined view across all active local projects instead of repeating that inspection project-by-project.\n\n## What Changes\n\n- Add a local dashboard capability for observing ADV and GitHub operational state in one place.\n- Show active ADV changes alongside related GitHub PR, merge, CI, deployment, and ops signals.\n- Support a configurable repo list so the dashboard can observe all active local projects, not only the current repository.\n- Emphasize attention and activity views: items running now, items stuck or failed, and items needing human/operator action.\n- Keep first version read-only.\n\n## User Outcomes\n\n- User can open one local page and see active ADV work, running GitHub activity, and deployment/ops state without checking multiple tools or browser tabs.\n- User can quickly identify failed, stuck, stale, or blocked work that needs attention across all active local projects.\n- User can understand which ADV change a GitHub PR, workflow run, merge state, deployment, or ops signal is associated with when a reliable correlation exists.\n- User can monitor multiple configured repositories from one local dashboard.\n- User can rely on a lightweight refresh cadence suitable for CI and deployment visibility without managing a hosted service.\n\n## Affected Code\n\n- Advance read-only state surfaces for active changes, WIP state, status, ops follow-ups, and operational evidence.\n- GitHub read integration for PRs, merge state, Actions workflow runs, deployments, and deployment statuses.\n- Local dashboard runtime, configuration, and presentation layer.\n- Documentation for configuring observed repositories and interpreting correlation/attention states.\n\n## Scope\n\n### In Scope\n\n- Read-only local web dashboard for status visibility.\n- Configurable repo list for GitHub/ADV observation across active local projects.\n- ADV change tracking visibility for active changes, WIP state, and relevant ops follow-ups/evidence.\n- GitHub PR, merge, CI/workflow-run, deployment, and deployment-status visibility.\n- Correlation from GitHub activity back to ADV changes where there is reliable branch, PR, SHA, ref, or recorded evidence.\n- Attention-oriented grouping for failed, stuck, blocked, stale, pending, or actively running items.\n- 30–60 second refresh target.\n\n### Out of Scope\n\n- Write actions such as rerun, approve, merge, deploy, cancel, or archive from the dashboard.\n- Direct provider-specific deployment APIs such as Vercel, Fly, Render, or cloud provider integrations.\n- Hosted multi-user service, OAuth application, or external dashboard backend unless discovery proves local-only is infeasible.\n- Replacing GitHub Actions, GitHub Deployments, ADV gates, or ADV ops evidence as sources of truth.\n- Long-term portfolio analytics, trend reporting, or historical audit database beyond what is needed for current status visibility.\n\n### Must Not\n\n- Must not mutate ADV state or GitHub state from the dashboard.\n- Must not infer correctness from heuristics when structural IDs or source-backed evidence are available.\n- Must not require provider-specific deployment integrations for v1 usefulness.\n- Must not expose secrets, tokens, or private auth material in dashboard output or persisted config.\n\n## Constraints\n\n- Use local authentication and local operator context where feasible, such as existing GitHub CLI credentials.\n- Correlation must be explicit and explainable: branch names, PR refs, SHAs, deployment refs, environment names, or ADV evidence.\n- Refresh should be lightweight enough for local use across configured repos.\n- Missing or ambiguous correlation should be surfaced as unknown, not guessed as fact.\n\n## Impact\n\n- Improves operator visibility across ADV, GitHub CI/merge state, deployments, and ops follow-ups.\n- Creates a reusable observability surface for ongoing Advance work without adding write authority.\n- May require new read-only adapters, response schemas, configuration, and documentation.\n\n## Risks\n\n- GitHub API rate limits or auth failures may make some repositories partially visible.\n- Correlating workflow runs and deployments to ADV changes may be incomplete when branch, PR, SHA, or deployment metadata is missing.\n- Multi-repo refresh could become noisy or expensive if the dashboard does not prioritize attention states.\n- Deployment status may be fragmented when repositories do not use GitHub Deployments or ADV ops evidence consistently.\n\n## Context\n\n- Prior ideation selected a local web page as the preferred surface.\n- Primary decisions optimized for “what needs attention” and “what is running.”\n- User requested configurable repo list support and later clarified the view must cover all active local projects.\n- User explicitly avoided write actions and provider-specific deployment APIs in v1.\n- User provided screenshot evidence that one GitHub Actions project is already too noisy to monitor manually.\n\n## Discovery Findings\n\n### Skills Considered\n\n- `adv-ci-release`: loaded; relevant for GitHub Actions/release/deployment conventions and CI-gated release patterns.\n- `adv-frontend-review`: noted for later review because the change has a browser-visible local dashboard surface; not loaded for discovery.\n- `customize-opencode`: not applicable; this change is Advance product work, not OpenCode configuration.\n- Pending-review scan: no pending skill frontmatter found; one documentation example mentions `review_status: \"pending\"` only.\n- Skill gap: no reusable local-operations-dashboard skill exists; no new skill created because evidence and scope are specific enough for this discovery and broader methodology is not yet reusable.\n\n### Extends\n\n- No `temp/*.md` brainstorm artifacts found.\n- `docs/adv-slop-scan-prep.md` is tangentially relevant: it notes enterprise dashboards solve portfolio governance, not immediate local command determinism. New finding: this change needs immediate operational status across active local projects, not code-quality trend governance.\n- Relevant archived-work list surfaced `addOpsFollowUpTraceability`, `improveAdvLatency`, `readCliStatusVisibility`, `reduceWorkflowNoise`, and `rewriteStatusCli`; archived detail readback was unavailable from this cross-project session, so discovery used live specs/code instead of direct archive artifacts.\n- New finding: GitHub REST workflow runs embed `pull_requests[]` and `head_sha`, and deployment statuses have explicit states, so v1 can correlate without provider-specific deployment APIs.\n\n### Conflict Scan\n\n- Active related changes: `addCiWaitAgent` is adjacent (CI wait worker) but not the same scope; no direct local-dashboard duplicate found.\n- Archived related work: status/latency/ops-follow-up changes inform read-model boundaries; no active blocker found.\n- `adv_change_validate` could not validate the cross-project target from toolbox because the tool has no target_path argument and current-project lookup returned `WorkflowNotFoundError`; this is recorded as tooling friction, not a proposal conflict.\n- Agenda overlap: `ADV target_path artifact update not visible in snapshot` was observed and directly matched the earlier artifact readback inconsistency; no dashboard-specific agenda item found.\n\n### Current State\n\n- `adv_wip_state` already returns active changes, worktrees, peer sessions, poisoned workflows, warnings, compact ops follow-up annotations, and compact outbound ops links from one read-only aggregator (`plugin/src/tools/backlog.ts`).\n- Summary read models include ops follow-up state in `store-temporal/changes.ts` and compact helpers in `ops-followup-readback.ts`.\n- Ops evidence is append-only and records environment, action, status, summary, next step, and completion signal (`ops-evidence.ts`).\n- `adv_status` already has summary/health/hygiene/changing views and bounded-output requirements; it is not a multi-repo GitHub/CI/deploy dashboard.\n- GitHub Actions workflow-runs API supports listing runs by repo and filtering by status, branch, event, head_sha; responses include `pull_requests[]` and `head_sha`.\n- GitHub deployments/statuses API exposes deployment ref/SHA/environment and status states such as `error`, `failure`, `inactive`, `in_progress`, `queued`, `pending`, and `success`.\n- Current Advance repo has `gh` auth available and live workflow run/PR APIs respond; `Sharper-Flow/Advance` has no GitHub Deployments entries at sample time.\n- `oc-ci-wait` already has local GitHub API client logic for workflow runs, PR head SHA, check-runs, combined statuses, retry-after/rate-limit handling, and local state artifacts.\n\n### Edge Cases\n\n- Multi-project source: missing config, stale repo path, repo without ADV state, repo without GitHub remote, one repo auth failure while others succeed.\n- GitHub fetch: rate limit, secondary throttle, 404 for private repo/insufficient scope, pagination truncation, workflow runs with no PR metadata.\n- Correlation: branch renamed/deleted, force-pushed PR, squash merge SHA mismatch, deployment ref not matching branch, scheduled workflow on `main` not tied to any ADV change.\n- Deployment/ops: repo with no GitHub Deployments, deployment success but ADV ops evidence failed, ADV evidence complete but GitHub deployment pending, environment name mismatch.\n- UI/attention: many active projects, many unlinked rows, stale long-running workflow, partial-source failure should not blank the whole dashboard.\n\n### Open Design Questions\n\n- Data-plane shape. Trust model: agent. Blast radius: wrong model causes duplication and rate-limit churn. Alternatives: new aggregate tool, reuse `adv_wip_state`, or shell out to existing commands. Recommendation: start from existing read surfaces and add only needed GitHub/dashboard adapter.\n- GitHub client strategy. Trust model: agent. Blast radius: bad strategy exhausts API budget or hides failed state. Alternatives: `gh api`, Octokit, existing `oc-ci-wait` reuse, webhooks. Recommendation: authenticated read-only REST with conditional requests/rate-limit handling; decide implementation in design.\n- Project list source. Trust model: user. Blast radius: wrong default misses projects or over-scans. User decision: explicit config first.\n- Deployment truth. Trust model: user. Blast radius: false “deployed” signals. User decision: show GitHub Deployments and ADV ops evidence separately when both exist/disagree.\n- Attention grouping. Trust model: user. Blast radius: user misses work needing action. User decision: group by active project first, then attention states inside project.\n- Unlinked activity. Trust model: user. Blast radius: hidden GitHub activity creates blind spots. User decision: separate unlinked lane.\n\n### Draft Spec Deltas\n\n- `rq-localDashConfig01`: Given configured local projects, when the dashboard loads, then each configured project is queried independently and partial failures are shown per project.\n- `rq-localDashAttention01`: Given project data includes failed, blocked, stale, running, and unknown items, when the dashboard renders, then items are grouped by project and attention state is visible without opening GitHub.\n- `rq-localDashCorrelation01`: Given GitHub items expose branch, PR, SHA, ref, deployment environment, or ADV evidence, when a structural match exists, then the dashboard links the item to the ADV change and shows the evidence used.\n- `rq-localDashUnlinked01`: Given a GitHub item cannot be confidently linked, when it is in scope for a configured repo, then it appears in a separate unlinked lane with the missing-correlation reason.\n- `rq-localDashDeployOps01`: Given GitHub deployment state and ADV ops evidence both exist, when they differ, then the dashboard shows both separately rather than forcing one truth value.\n- `rq-localDashReadOnly01`: Given the dashboard is open, when the user interacts with it, then no ADV or GitHub mutation is available from v1.\n- `rq-localDashRefresh01`: Given the dashboard refreshes every 30–60 seconds, when rate limits/auth/source failures occur, then the affected source is degraded visibly and other sources continue to render.\n\n### Related Pattern Scan\n\n- Similar status aggregation exists in `adv_wip_state`, `adv_status`, worktree/session visibility, and `oc-ci-wait` CI polling. Pattern: bounded read-only aggregators with source-specific warnings, not one all-or-nothing read.\n- Similar anti-pattern found: broad dashboard products and enterprise quality dashboards can overrun the immediate local-determinism goal; keep v1 narrow.\n- No same-scope local dashboard implementation found in Advance.\n\n### Completeness Verification\n\n- Problem completeness: high confidence. Screenshot plus proposal show the full problem is cross-project operational fragmentation, not merely a noisy Actions page.\n- Solution-scope completeness: medium-high confidence. Scope includes ADV state, GitHub PR/Actions/Deployments, ADV ops evidence, explicit project config, unlinked lane, and partial failures; provider-specific APIs and write actions are deliberately out of scope.\n- Sole-entry claim status: no sole-chokepoint claim made. Dashboard is a read-only aggregation over multiple sources.\n- Secondary surfaces: GitHub PRs/actions/deployments in scope; ADV active changes/ops evidence in scope; provider deploy APIs out of scope; historical analytics out of scope; unlinked GitHub activity in scope via separate lane.\n- Reproduction finding classification: screenshot/current workflow noise classified as `broken_capability` gap in observability, not a failed existing dashboard capability.\n\n### LBP Check\n\n- Best low-cost direction: read-only local dashboard with explicit project config, existing ADV read surfaces, authenticated GitHub REST, conditional requests, serialized/budgeted fetches, and per-source degradation.\n- External alternatives checked: GitHub-native Actions UI is per-repo and noisy; PR Radar covers PR/deployment status but not ADV; GitHub tracker/gh-dashboard cover GitHub data but not ADV; Helios/Snorlx/GitVisor trend toward hosted/self-hosted operational platforms with broader scope than v1.\n- GitHub docs advise authenticated requests, avoiding uncontrolled polling/concurrency, respecting retry headers/rate-limit reset, and using conditional requests where possible. This supports 30–60s local refresh only if bounded and cached.\n- Scout auto-adoptions: use `adv_wip_state` as initial ADV plane, use authenticated conditional GitHub REST with rate-limit handling, and correlate PR/runs using native `pull_requests[]`/`head_sha` before extra joins.\n- Scout surfaced for design: whether to reuse `oc-ci-wait` code/state for CI checks and whether required-check rollup should delegate to `gh pr checks --json` or direct APIs.\n\n### Recommended Objectives\n\n1. Provide one local read-only dashboard for all explicitly configured active local projects.\n2. Show per-project ADV active changes, GitHub PR/merge/Actions activity, GitHub deployments, and ADV ops evidence in one place.\n3. Group dashboard content by active project first, then by attention/running/unlinked lanes.\n4. Correlate GitHub items to ADV changes only when structural evidence exists; show unlinked activity separately otherwise.\n5. Keep GitHub deployment state and ADV ops evidence separate when they disagree.\n6. Refresh at a lightweight 30–60 second cadence with per-source degradation and rate-limit-aware behavior.\n7. Preserve v1 as read-only: no rerun, approve, merge, deploy, cancel, or archive actions.\n\n### AMBIGUITY ANALYSIS\n\nCoverage: B:C F:C S:P M:P\n\n- S1 ADVISORY Completion Signals: exact freshness/rate-budget thresholds beyond the 30–60 second refresh target remain to be firmed in design.\n  Evidence: \"30–60 second refresh target.\"\n  Reason: discovery can state user-visible refresh behavior; request budgeting implementation belongs in design.\n- M1 ADVISORY Missing Information: exact config schema for local projects is not chosen.\n  Evidence: \"Observed repositories: configurable active local project list; exact config shape and project discovery are discovery items.\"\n  Reason: user chose explicit config first; concrete schema is a design decision.\n\nTrigger evaluation: no CRITICAL findings; no HIGH findings; discovery may proceed.\n\n## Clarify Resolution Log\n\n- Lineage confirmed: cross-project origin from toolbox is expected.\n- Project source: explicit config first.\n- Deployment disagreement: show GitHub deployment status and ADV ops evidence separately.\n- Attention organization: group by active project first.\n- Unlinked activity: show in separate unlinked lane.\n",
+    "problemStatement": "Advance lacks a low-cost, read-only local dashboard that shows active ADV changes, GitHub PR/merge/CI activity, and deployment/ops signals together across a configurable repo list. Operators currently have to inspect ADV state, GitHub Actions, PRs, deployment surfaces, and ops evidence separately, making it harder to quickly answer “what is running?” and “what needs attention?” The problem compounds across active local projects because each project can already have a noisy Actions/deploy/merge view on its own.",
+    "agreement": "# Agreement\n\n## Objectives\n\n1. Provide one local read-only dashboard for all explicitly configured active local projects.\n2. Show per-project ADV active changes, GitHub PR/merge/Actions activity, GitHub deployments, and ADV ops evidence in one place.\n3. Group dashboard content by active project first, then by attention/running/unlinked lanes.\n4. Correlate GitHub items to ADV changes only when structural evidence exists; show unlinked activity separately otherwise.\n5. Keep GitHub deployment state and ADV ops evidence separate when both exist or disagree.\n6. Refresh at a lightweight 30–60 second cadence with per-source degradation and rate-limit-aware behavior.\n7. Preserve v1 as read-only: no rerun, approve, merge, deploy, cancel, or archive actions.\n\n## Success Criteria\n\n- SC1: User can identify which configured active local projects need attention from one local dashboard within the configured 30–60 second refresh cadence.\n- SC2: User can see running GitHub PR/merge/CI/deployment activity and ADV ops/change state per configured project without opening each project’s GitHub Actions page.\n- SC3: User can trace linked GitHub/ops items back to an ADV change when structural evidence exists, and can see unlinked activity separately when it does not.\n- SC4: Source failures degrade per project/source and do not blank the whole dashboard.\n\n## Acceptance Criteria\n\n- AC1: Given an explicit config with at least two local projects, when the dashboard loads, then it renders one section per configured project with source freshness/degraded status.\n- AC2: Given GitHub or ops activity can be linked by branch, PR, SHA, deployment ref, environment, or ADV evidence, when the item appears, then the dashboard shows the associated ADV change and the evidence used.\n- AC3: Given GitHub or ops activity cannot be confidently linked to an ADV change, when it appears, then it is shown in a separate unlinked lane for that project.\n- AC4: Given GitHub CI/deployment state and ADV ops evidence both exist but disagree, when rendered, then both states are visible separately without overwriting one another.\n- AC5: Given one configured repo/source has auth, rate-limit, or source-read failure, when the dashboard refreshes, then that repo/source shows degraded status and other projects still render.\n- AC6: Given dashboard v1 is open, then no rerun, approve, merge, deploy, cancel, archive, or other mutation control is available.\n- AC7: Given dashboard refresh is enabled, then visible data is refreshed within the configured 30–60 second cadence or marked stale/degraded with last successful refresh time.\n\n## Constraints\n\n- C1: Use explicit project configuration as the first source of truth for active local projects.\n- C2: Use local authentication and local operator context where feasible, such as existing GitHub CLI credentials.\n- C3: Correlation must be explicit and explainable: branch names, PR refs, SHAs, deployment refs, environment names, or ADV evidence.\n- C4: Missing or ambiguous correlation must be surfaced as unknown, not guessed as fact.\n- C5: Refresh and GitHub reads must be lightweight enough for local multi-repo use and must visibly degrade under auth, rate-limit, or partial-source failure.\n- C6: The dashboard must preserve per-source truth when GitHub deployment state and ADV ops evidence disagree.\n\n## Avoidances\n\n- DONT1: Do not mutate ADV state or GitHub state from dashboard v1.\n- DONT2: Do not add rerun, approve, merge, deploy, cancel, archive, or other write controls in v1.\n- DONT3: Do not require provider-specific deployment APIs such as Vercel, Fly, Render, or cloud provider integrations for v1 usefulness.\n- DONT4: Do not introduce a hosted multi-user service, OAuth application, or external dashboard backend unless design proves local-only is infeasible.\n- DONT5: Do not hide unlinked GitHub activity that is in scope for a configured project; place it in the separate unlinked lane.\n- DONT6: Do not expose secrets, tokens, or private auth material in dashboard output or persisted config.\n\n## Out of Scope\n\n- OOS1: Direct provider-specific deployment API integrations.\n- OOS2: Dashboard write actions or mutation controls.\n- OOS3: Long-term portfolio analytics, trend reporting, or historical audit database beyond current status visibility.\n- OOS4: Replacing GitHub Actions, GitHub Deployments, ADV gates, or ADV ops evidence as sources of truth.\n\n## Preview Applicability\n\nvisual_surface: true\n\nRationale: The change delivers a browser-visible local dashboard page. Review must include preview reachability and browser-visible evidence before acceptance.\n\n## Decisions\n\n### User Decisions\n\n- Cross-project origin from toolbox is expected.\n- “All active local projects” uses explicit configuration first.\n- Deployment disagreements show GitHub deployment state and ADV ops evidence separately.\n- Attention layout groups by active project first.\n- GitHub/ops activity that cannot be confidently linked to an ADV change appears in a separate unlinked lane.\n\n### Agent Decisions (LBP)\n\n- Start from existing read-only ADV surfaces such as `adv_wip_state` and ops follow-up readbacks rather than inventing a new ADV state authority in discovery.\n- Use authenticated, conditional, rate-limit-aware GitHub read behavior as the likely design direction; concrete implementation remains design-owned.\n- Prefer structural correlation evidence (`change/*` branch, PR ref, SHA, deployment ref/environment, ADV evidence) over heuristic text matching.\n\n## Deferred Questions\n\nNone.\n\n## Sign-Off\n\nAcceptance criteria and success criteria approved by user reply `approve` on 2026-06-25 during `/adv-discover addLocalDashboard`.\n",
+    "design": "# Design\n\n## Architecture Overview\n\nAdd `adv dashboard` to the existing Bun CLI as a read-only local web server. The server binds to `127.0.0.1` by default, reads an explicit v1 dashboard config, builds a per-project status snapshot from ADV + GitHub read sources, and serves a static single-page dashboard plus a JSON state endpoint.\n\n```text\nadv dashboard --config <path> [--port <port>]\n  ├─ config loader + schema validator\n  ├─ ADV project reader per configured path\n  │   ├─ worker-free Visibility summary for base change/gate/branch keys\n  │   └─ optional worker-backed getState enrichment for ops_followup/evidence\n  ├─ GitHub REST reader per configured repo\n  │   ├─ open PRs\n  │   ├─ recent/running workflow runs\n  │   ├─ deployments\n  │   └─ deployment statuses\n  ├─ correlation + attention classifier\n  └─ Bun.serve routes\n      ├─ GET /          static HTML/JS dashboard\n      └─ GET /api/state schema_version:1 JSON snapshot\n```\n\nThe browser UI polls `/api/state` at the configured cadence. The server owns all external reads and token handling; the page receives only sanitized status data and external URLs.\n\n## Key Decisions\n\n### KD1 — Ship as `adv dashboard` local CLI server\n\nUse the existing zero-dependency Bun CLI surface instead of an OpenCode panel, hosted app, or separate service.\n\nRationale:\n\n- `bin/adv` already provides a read-only terminal client, JSON output, Bun runtime, and Temporal status helpers.\n- The agreement requires a local page, not a hosted service.\n- Bun has first-class `Bun.serve()` support for static routes, JSON routes, and file responses.\n\nTradeoff: browser UI assets become part of the CLI package. Mitigation: keep v1 UI small and static; no frontend build pipeline unless design pressure appears later.\n\n### KD2 — Explicit config first\n\nDefine a schema-versioned config as the source of truth for observed local projects.\n\nExample shape:\n\n```json\n{\n  \"schema_version\": 1,\n  \"refresh_seconds\": 45,\n  \"projects\": [\n    {\n      \"id\": \"advance\",\n      \"label\": \"Advance\",\n      \"path\": \"/home/jon/dev/advance\",\n      \"github\": { \"owner\": \"Sharper-Flow\", \"repo\": \"Advance\" }\n    }\n  ]\n}\n```\n\nRules:\n\n- `schema_version` must be `1`.\n- `refresh_seconds` must be accepted only in the 30–60 second range.\n- Each project must have stable `id`, display `label`, absolute local `path`, and GitHub owner/repo.\n- Invalid projects degrade independently instead of aborting the whole dashboard.\n- Support `--config <path>` and a test env override for fixtures.\n\n### KD3 — Two-tier ADV read plane\n\nUse worker-free Visibility/search-attribute data as the base ADV plane, and use worker-backed `getState` only as ops enrichment.\n\nBase plane:\n\n- project id resolution from project path\n- active changes from Temporal Visibility\n- current gate/status/last activity\n- branch keys from `AdvWorktreeBranches`\n- worktree registry `headSha` where available\n\nOps enrichment:\n\n- full change state via existing `listLiveChangeStates` / `getState` path when worker is serviceable\n- `ops_followup`, `ops_followup_links`, and evidence counts/status when available\n- if worker-backed ops enrichment fails, mark the ADV ops source degraded while still rendering base ADV and GitHub state\n\nRationale:\n\n- Existing `adv_status` deliberately has worker-free warm paths; dashboard must not make the whole page depend on live worker queries.\n- Agreement requires ops visibility, so ops is not omitted; it degrades as a source when unavailable.\n\n### KD4 — Authenticated conditional GitHub REST client\n\nImplement a minimal read-only GitHub client in the CLI process.\n\nAuth source order:\n\n1. `GITHUB_TOKEN` when set.\n2. `gh auth token` at process start when `gh` is available.\n3. degraded GitHub source with clear remediation when no token exists.\n\nRequest rules:\n\n- Use `Authorization: Bearer <token>`, `Accept: application/vnd.github+json`, and GitHub API version headers.\n- Cache `ETag` per endpoint and send `If-None-Match`; reuse cached body on `304 Not Modified`.\n- Fetch serially or with a small bounded queue per project to avoid secondary limits.\n- Respect `Retry-After` for secondary limits and `X-RateLimit-Reset` when remaining is zero.\n- Never log, persist, return, or render token material.\n\nEndpoints:\n\n- `GET /repos/{owner}/{repo}/pulls?state=open&per_page=100`\n- `GET /repos/{owner}/{repo}/actions/runs?per_page=100`\n- `GET /repos/{owner}/{repo}/deployments?per_page=30`\n- `GET /repos/{owner}/{repo}/deployments/{deployment_id}/statuses?per_page=1`\n\n### KD5 — Structural correlation only\n\nCorrelate items using explicit source fields; never title-text similarity as authority.\n\nAccepted evidence kinds:\n\n- ADV change branch `change/{changeId}`\n- worktree branch and head SHA\n- PR head ref / head SHA / PR number\n- workflow run `head_branch`, `head_sha`, `pull_requests[]`\n- deployment `ref`, `sha`, `environment`\n- ADV ops evidence environment/action/completion signal when present\n\nOutput each link with an evidence string such as `branch: change/addLocalDashboard`, `run.head_sha = PR.head.sha`, or `deployment.sha = PR.head.sha`.\n\nIf no confident match exists, put the item in that project’s unlinked lane with a reason.\n\n### KD6 — Preserve separate source truth\n\nDo not merge GitHub deployment state and ADV ops evidence into one status when they differ. The project card shows both source states side-by-side and highlights disagreement as an attention item.\n\n### KD7 — Read-only UI by construction\n\nThe UI renders project sections, lanes, labels, timestamps, evidence strings, degraded-source messages, and links. It does not render mutation controls. The server exposes only `GET /` and `GET /api/state`; no write routes.\n\n## ADR Drafts\n\nNone required. Decisions are local and reversible; no hard-to-reverse surprising tradeoff requires ADR treatment now.\n\n## Implementation Strategy\n\n1. Add dashboard types and config parser under `bin/lib/dashboard/`.\n2. Add GitHub client with fixture-friendly fetch seam, ETag cache, token redaction, rate-limit/degraded result types.\n3. Extend CLI status types/normalizers only as needed for dashboard state; do not break existing `adv status` output.\n4. Add ADV project reader that combines worker-free Visibility summary with optional worker-backed ops enrichment.\n5. Add correlation/attention classifier as pure functions with fixture tests.\n6. Add Bun server routes and static HTML/JS UI.\n7. Add `adv dashboard` dispatcher help, CLI tests, and docs.\n8. Add smoke tests for `/api/state`, static page, degraded sources, and read-only UI strings.\n\n## LBP Analysis\n\nThis is the lowest-boring-power design:\n\n- no hosted service\n- no new auth app\n- no provider-specific deployment APIs\n- no write API surface\n- no database/event store in v1\n- no frontend framework/build pipeline unless later evidence proves necessary\n- uses existing CLI/Temporal/GitHub primitives\n- isolates rate/auth failures per source and project\n\nExternal alternatives are broader than the agreement: PR Radar/GitHub tracker-style tools do not know ADV, while Helios/Snorlx/GitVisor-style tools trend toward operational platforms with persistence, OAuth/apps, queues, or write controls.\n\n## Affected Components\n\n- `bin/adv` — add `dashboard` subcommand, help, and route startup.\n- `bin/lib/dashboard/config.ts` — schema-versioned config parser and validation.\n- `bin/lib/dashboard/github.ts` — authenticated conditional REST client.\n- `bin/lib/dashboard/adv.ts` — per-project ADV reader.\n- `bin/lib/dashboard/correlation.ts` — structural matching and evidence output.\n- `bin/lib/dashboard/attention.ts` — project-first lanes and state ordering.\n- `bin/lib/dashboard/server.ts` — `Bun.serve` routes.\n- `bin/lib/dashboard/ui.ts` or static asset — minimal HTML/JS UI.\n- `bin/lib/types.ts` / `bin/lib/live-status.ts` — narrow type extensions for branch/SHA/ops enrichment if needed.\n- Docs/README/SETUP — config and usage.\n\n## Design-Derived Criteria\n\n- DDC1: `adv dashboard` binds to `127.0.0.1` by default and must require explicit opt-in for any non-loopback host.\n- DDC2: Config and `/api/state` responses include `schema_version: 1`.\n- DDC3: GitHub auth token material is never persisted, logged, returned from `/api/state`, or rendered in the page.\n- DDC4: A single project/source failure must produce a degraded entry and must not prevent other configured projects from rendering.\n- DDC5: GitHub requests use authenticated conditional requests when a token is available and respect both `Retry-After` and `X-RateLimit-Reset` signals.\n- DDC6: Correlation output includes the evidence kind/value used or an explicit unlinked reason.\n- DDC7: The server exposes no mutation HTTP routes in v1.\n- DDC8: Ops evidence enrichment failure degrades only the ops/ADV enrichment source, not the base project card.\n\n## Risks / Mitigations\n\n- Risk: worker-backed ops enrichment could make dashboard flaky. Mitigation: base state from Visibility; ops enrichment source degrades independently.\n- Risk: GitHub polling triggers rate limits. Mitigation: authenticated conditional requests, serial/bounded fetches, stale markers, rate-limit backoff.\n- Risk: config grows into discovery magic. Mitigation: explicit config first; auto-discovery only as future suggestion tooling.\n- Risk: correlation false positives. Mitigation: structural evidence only; unlinked lane for unknowns.\n- Risk: UI accidentally gains mutation affordances. Mitigation: GET-only server, no mutation routes, tests forbidding mutation-control labels/routes.\n\n## Design Leverage Scout\n\n- Candidates considered: 5.\n- Auto-adopted: worker-free branch/SHA correlation keys; explicit type/normalizer extension cost; GitHub plane treated as greenfield; conditional request/rate-limit nuance.\n- Surfaced and resolved in design: ops/links remain v1-required, but as worker-backed enrichment with independent degradation rather than page-wide dependency.\n- Scout report submitted by `adv-researcher`.\n\n## Validator Result\n\nVALIDATED.\n\nFindings:\n\n- Correctness: pass — design solves project-first dashboard visibility, structural correlation, unlinked lane, separate deployment/ops truth, source degradation, and read-only v1.\n- Simplicity: pass — no simpler approach achieves ADV+GitHub+ops visibility without losing agreement scope.\n- Spec-law compliance: pass — no conflicting spec requirement found; worker-free base plane aligns with existing CLI status architecture.\n- Alternatives: pass — broader external dashboards do not cover ADV and exceed v1 scope.\n\nValidator recommendation: proceed to planning. Planning must include token-redaction/authenticated-header tests, ops enrichment as degradable extension, and distinct handling for `Retry-After` versus `X-RateLimit-Reset`.\n",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\n\nDelivered a local read-only `adv dashboard` web view that combines configured ADV projects, GitHub PR/Actions/deployment state, and ADV ops evidence with structural linking, visible polished ADV change cards, unlinked lanes, per-source degradation, and refresh freshness.\n\n## Verdict\n\nAPPROVED\n\n## What Was Built\n\n1. Dashboard config parser and typed state model with schema_version 1, explicit projects, refresh bounds, and secret redaction.\n2. Authenticated conditional GitHub REST reader with ETag handling, rate-limit degradation, GET-only requests, and token-safe degraded results.\n3. ADV project reader with worker-free base state and degradable ops enrichment.\n4. Structural correlation and attention lanes for linked, running, attention, and unlinked activity.\n5. Polished ADV change items in the linked lane with title, change id, and prominent next-gate badge; the low-value ADV status field was removed from ADV cards.\n6. Project summary stat cards, lane headers/counts, improved spacing, typography, card hierarchy, responsive behavior, and balanced dark-mode styling inspired by OSS dashboard patterns while preserving static no-build implementation.\n7. Read-only local HTTP server with GET `/`, GET `/api/state`, loopback default, and mutation-method rejection.\n8. Minimal browser UI with project sections, lane rendering, evidence strings for correlated external items, status/source-state rendering where useful, single-lane degraded-source messages, refresh cadence, and last-success freshness on stale refresh.\n9. `adv dashboard` CLI wiring plus README usage/config documentation.\n10. Integrated verification and review remediation for source-stall containment, workflow conclusion status, visible item status, two-project docs, final state sanitization, screenshot-discovered missing ADV-change rendering, screenshot-discovered redundant UI noise, and final dashboard visual polish.\n\n## What Was Verified\n\n- Verdict: APPROVED with 0 remaining blockers/issues after acceptance review and screenshot/design corrections.\n- Tests: targeted dashboard/bin tests passed (`tr_mqu5jiu1_40ff60a1`, 26/26); full `bun test bin/` passed (`tr_mqu5jxmz_cd244e73`, 136/136); earlier execution suite/check/build evidence also passed (`tr_mqu2leox`, `tr_mqu2qm2y`, `tr_mqu2r6q7`).\n- Review: adv-reviewer returned READY; scanner bundle persisted security/contract/scope review with no remaining blockers.\n- Preview URL: live at `http://127.0.0.1:18765/`; reachability verified with GET `/` 200 and GET `/api/state` 200. Latest live HTML proof has project stat cards, lane headers, large next-gate badge, and no ADV status fragment; API still returns projects `advance` and `toolbox` with linked ADV changes.\n- Contract matrix: 27/27 required rows passed/respected; 0 failed/violated/unknown.\n\n## Remaining Concerns\n\nNone.\n",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-06-25T23:28:07Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | User can identify which configured active local projects need attention from one local dashboard within the configured 30–60 second refresh cadence. | pass | Preview proof at http://127.0.0.1:18767 returned GET / 200 and /api/state 200 with project_ids [advance, toolbox], refresh_seconds 45. Tests: bin dashboard targeted tr_mqu4puld_79f896f3; full bin tr_mqu4q832_26a6da2a. |\n| SC2 | success_criterion | User can see running GitHub PR/merge/CI/deployment activity and ADV ops/change state per configured project without opening each project’s GitHub Actions page. | pass | GitHub/ADV sources and lanes implemented in server/correlation/attention; full bin tests passed tr_mqu4q832_26a6da2a. Preview API returned two project cards with degraded source counts isolated per project. |\n| SC3 | success_criterion | User can trace linked GitHub/ops items back to an ADV change when structural evidence exists, and can see unlinked activity separately when it does not. | pass | correlation.test covers structural branch/SHA/evidence links and unknown/ambiguous unlinked lane; targeted tests passed tr_mqu4puld_79f896f3. |\n| SC4 | success_criterion | Source failures degrade per project/source and do not blank the whole dashboard. | pass | server.test covers thrown reader failures and bounded reader stalls; targeted tests passed tr_mqu4puld_79f896f3. |\n| AC1 | acceptance_criterion | Given an explicit config with at least two local projects, when the dashboard loads, then it renders one section per configured project with source freshness/degraded status. | pass | Preview proof returned schema_version 1, project_count 2, project_ids [advance, toolbox]. server.test 'composes projects independently' passed in tr_mqu4puld_79f896f3. |\n| AC2 | acceptance_criterion | Given GitHub or ops activity can be linked by branch, PR, SHA, deployment ref, environment, or ADV evidence, when the item appears, then the dashboard shows the associated ADV change and the evidence used. | pass | correlation.test verifies branch and SHA evidence strings; server.test verifies deployment.ref and ops.environment+completion_signal evidence. Targeted tests passed tr_mqu4puld_79f896f3. |\n| AC3 | acceptance_criterion | Given GitHub or ops activity cannot be confidently linked to an ADV change, when it appears, then it is shown in a separate unlinked lane for that project. | pass | correlation.test verifies no structural match and ambiguous structural match are unlinked; attention tests verify unlinked lane. Full bin tests passed tr_mqu4q832_26a6da2a. |\n| AC4 | acceptance_criterion | Given GitHub CI/deployment state and ADV ops evidence both exist but disagree, when rendered, then both states are visible separately without overwriting one another. | pass | server.test 'keeps GitHub deployment status and ADV ops evidence separately visible' verifies deployment source_states.github_deployment=failure and ops status=success remain separate. Passed tr_mqu4puld_79f896f3. |\n| AC5 | acceptance_criterion | Given one configured repo/source has auth, rate-limit, or source-read failure, when the dashboard refreshes, then that repo/source shows degraded status and other projects still render. | pass | server.test covers thrown ADV/GitHub failures, no secret leakage, and GITHUB_READ_TIMEOUT without blocking toolbox project. github.test covers auth/rate-limit degraded results. Tests passed tr_mqu4puld_79f896f3 and tr_mqu4q832_26a6da2a. |\n| AC6 | acceptance_criterion | Given dashboard v1 is open, then no rerun, approve, merge, deploy, cancel, archive, or other mutation control is available. | pass | server.test verifies POST /api/state returns 405 allow GET. ui.test verifies no mutation controls. Full bin tests passed tr_mqu4q832_26a6da2a. |\n| AC7 | acceptance_criterion | Given dashboard refresh is enabled, then visible data is refreshed within the configured 30–60 second cadence or marked stale/degraded with last successful refresh time. | pass | config tests enforce 30–60s refresh; ui renders lastSuccessfulRefreshAt on failed refresh and degraded source last_success_at when supplied; preview API returned refresh_seconds 45. Targeted tests passed tr_mqu4puld_79f896f3. |\n| C1 | constraint | Use explicit project configuration as the first source of truth for active local projects. | respected | parseDashboardConfig requires explicit projects and no discovery magic; README config example has two explicit projects. Full bin tests passed tr_mqu4q832_26a6da2a. |\n| C2 | constraint | Use local authentication and local operator context where feasible, such as existing GitHub CLI credentials. | respected | GitHub client token provider uses GITHUB_TOKEN or gh auth token locally; no OAuth app or hosted auth. github tests passed in tr_mqu4puld_79f896f3. |\n| C3 | constraint | Correlation must be explicit and explainable: branch names, PR refs, SHAs, deployment refs, environment names, or ADV evidence. | respected | correlation output includes evidence strings for branch, sha, deployment ref, and ops environment/completion signal. Tests passed tr_mqu4puld_79f896f3. |\n| C4 | constraint | Missing or ambiguous correlation must be surfaced as unknown, not guessed as fact. | respected | correlation.test covers no match and ambiguous structural match as unlinked reasons. Full bin tests passed tr_mqu4q832_26a6da2a. |\n| C5 | constraint | Refresh and GitHub reads must be lightweight enough for local multi-repo use and must visibly degrade under auth, rate-limit, or partial-source failure. | respected | GitHub ETag/rate-limit tests, per-source degradation tests, and bounded reader stall test passed. Evidence: tr_mqu4puld_79f896f3. |\n| C6 | constraint | The dashboard must preserve per-source truth when GitHub deployment state and ADV ops evidence disagree. | respected | server.test verifies GitHub deployment failure and ADV ops success remain separately visible. Passed tr_mqu4puld_79f896f3. |\n| DONT1 | avoidance | Do not mutate ADV state or GitHub state from dashboard v1. | respected | Only GET / and GET /api/state routes; POST returns 405. No ADV/GitHub mutation client calls. Tests passed tr_mqu4puld_79f896f3. |\n| DONT2 | avoidance | Do not add rerun, approve, merge, deploy, cancel, archive, or other write controls in v1. | respected | ui.test forbids rerun, approve, merge, deploy, cancel, archive controls; server rejects non-GET. Full bin tests passed tr_mqu4q832_26a6da2a. |\n| DONT3 | avoidance | Do not require provider-specific deployment APIs such as Vercel, Fly, Render, or cloud provider integrations for v1 usefulness. | respected | Implementation uses GitHub REST deployments only; no Vercel/Fly/Render/cloud provider dependencies. Diff review and tests passed. |\n| DONT4 | avoidance | Do not introduce a hosted multi-user service, OAuth application, or external dashboard backend unless design proves local-only is infeasible. | respected | Local Bun.serve CLI; default host 127.0.0.1 and non-loopback requires explicit --allow-network-host. server.test passed tr_mqu4puld_79f896f3. |\n| DONT5 | avoidance | Do not hide unlinked GitHub activity that is in scope for a configured project; place it in the separate unlinked lane. | respected | Unlinked lane tests cover unmatched and ambiguous activity. Full bin tests passed tr_mqu4q832_26a6da2a. |\n| DONT6 | avoidance | Do not expose secrets, tokens, or private auth material in dashboard output or persisted config. | respected | sanitizeDashboardState redacts token-like strings and secret keys; GitHub/server tests assert no token leak from degraded or thrown errors; final dashboard state is sanitized. Tests passed tr_mqu4puld_79f896f3. |\n| OOS1 | out_of_scope | Direct provider-specific deployment API integrations. | respected | No provider-specific deployment integration; GitHub deployments only. Review diff and full bin tests passed. |\n| OOS2 | out_of_scope | Dashboard write actions or mutation controls. | respected | No mutation routes or controls; server 405 for POST; ui no-control test passed tr_mqu4puld_79f896f3. |\n| OOS3 | out_of_scope | Long-term portfolio analytics, trend reporting, or historical audit database beyond current status visibility. | respected | No dashboard database or historical audit store added; state generated from current ADV/GitHub reads. Diff review and tests passed. |\n| OOS4 | out_of_scope | Replacing GitHub Actions, GitHub Deployments, ADV gates, or ADV ops evidence as sources of truth. | respected | Dashboard reads GitHub/ADV sources and preserves them; it does not replace GitHub Actions, deployments, ADV gates, or ops evidence. Tests verify source separation. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-06-25T20:00:06.879Z",
+      "contentHash": "fc27e12b13357d6a50ac02fcb8b6aff4e12071a3a3e40e5395d921fc0b5750a1",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-06-25T19:47:44.300Z",
+      "contentHash": "d430ad24426ded8b63de6b74f8904e15aacef2906850122b799b15862dfe784b",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-06-25T20:04:06.664Z",
+      "contentHash": "1c9efcdb47a15989dcc4ccee88f90b3a771232adf53e1b20e5ef6fcfaf39ef62",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-06-25T20:15:21.088Z",
+      "contentHash": "acafcb97ce72ded44784d5d42c29acdaf391c89d7c2d8589ab1bef22306118d2",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-06-25T23:49:09.899Z",
+      "contentHash": "046411870946c56bff740e3a1aab3e341e9357b85e41d9c194496c9964f866b8",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-06-26T00:05:32.901Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d"
+}

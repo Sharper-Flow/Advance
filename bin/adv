@@ -11,6 +11,7 @@
 
 import { join } from "path";
 import { parseArgs } from "node:util";
+import { readFile } from "fs/promises";
 
 import { listChanges } from "./lib/changes";
 import {
@@ -28,6 +29,11 @@ import {
 import { readSnapshotFile, renderRoadmap, roadmapJson } from "./lib/roadmap";
 import { runSlopScan } from "./lib/slop-scan/scan";
 import { renderSlopScanReport } from "./lib/slop-scan/render";
+import { parseDashboardConfig } from "./lib/dashboard/config";
+import {
+  createDashboardHandler,
+  normalizeDashboardServerOptions,
+} from "./lib/dashboard/server";
 import {
   buildLiveStatusFailure,
   buildLiveStatusPayloadFromSummaries,
@@ -194,6 +200,90 @@ async function runSlopScanCommand(
   return 0;
 }
 
+async function runDashboard(argv: string[]): Promise<number> {
+  let values: Record<string, unknown>;
+  try {
+    const parsed = parseArgs({
+      args: argv,
+      options: {
+        config: { type: "string" },
+        port: { type: "string" },
+        host: { type: "string" },
+        "allow-network-host": { type: "boolean" },
+        "no-color": { type: "boolean" },
+      },
+      allowPositionals: false,
+      strict: true,
+    });
+    values = parsed.values as Record<string, unknown>;
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    process.stderr.write(`dashboard: ${msg}\n`);
+    return 2;
+  }
+
+  const configPath = typeof values.config === "string" ? values.config : "";
+  if (!configPath) {
+    process.stderr.write("dashboard: --config is required\n");
+    return 2;
+  }
+
+  let port = 8765;
+  if (values.port !== undefined) {
+    const parsedPort = Number(values.port);
+    if (!Number.isInteger(parsedPort) || parsedPort < 1 || parsedPort > 65535) {
+      process.stderr.write(`dashboard: invalid --port "${values.port}"\n`);
+      return 2;
+    }
+    port = parsedPort;
+  }
+
+  let configRaw: unknown;
+  try {
+    configRaw = JSON.parse(await readFile(configPath, "utf-8"));
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    process.stderr.write(`dashboard: failed to read config: ${msg}\n`);
+    return 2;
+  }
+
+  const parsedConfig = parseDashboardConfig(configRaw);
+  if (!parsedConfig.ok) {
+    process.stderr.write(
+      `dashboard: invalid config\n${parsedConfig.errors.map((error) => `- ${error.path}: ${error.message}`).join("\n")}\n`,
+    );
+    return 2;
+  }
+
+  let serverOptions: ReturnType<typeof normalizeDashboardServerOptions>;
+  try {
+    serverOptions = normalizeDashboardServerOptions({
+      host: typeof values.host === "string" ? values.host : undefined,
+      port,
+      allowNetworkHost: Boolean(values["allow-network-host"]),
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    process.stderr.write(`dashboard: ${msg}\n`);
+    return 2;
+  }
+
+  const bun = (globalThis as any).Bun;
+  if (!bun || typeof bun.serve !== "function") {
+    process.stderr.write("dashboard: Bun.serve unavailable\n");
+    return 2;
+  }
+
+  const handler = createDashboardHandler({ config: parsedConfig.config });
+  const server = bun.serve({
+    hostname: serverOptions.host,
+    port: serverOptions.port,
+    fetch: handler,
+  });
+  process.stdout.write(`adv dashboard listening at http://${server.hostname}:${server.port}\n`);
+  return await new Promise<number>(() => undefined);
+}
+
 function runHelp(): number {
   process.stdout.write(
     `adv — ADV (Advance) status CLI
@@ -203,6 +293,7 @@ USAGE:
 
 SUBCOMMANDS:
   status      (default)  Show active changes table
+  dashboard            Run local read-only ADV/GitHub dashboard
   roadmap              Show prioritized backlog from file snapshot
   slop-scan            Run deterministic slop scanner
 
@@ -219,11 +310,18 @@ FLAGS (roadmap only):
       --priority {critical|high|medium|low}
                           Filter bugs to a single priority tier
 
+FLAGS (dashboard only):
+      --config <path>      Dashboard config JSON (schema_version 1)
+      --port <N>           Local port (default: 8765)
+      --host <host>        Bind host (default: 127.0.0.1)
+      --allow-network-host Explicitly allow non-loopback host
+
 EXIT CODES:
   0  Success
   1  Not in a git repo, git failure, or unknown command
   2  Live Temporal status unavailable (status)
      Roadmap snapshot missing (roadmap)
+     Dashboard config/server error (dashboard)
 
 DOCS:
   https://github.com/Sharper-Flow/Advance
@@ -384,6 +482,10 @@ async function main(argv: string[]): Promise<number> {
       (slopValues.json as boolean) ?? false,
       slopPositionals[0] ?? ".",
     );
+  }
+
+  if (subcommand === "dashboard") {
+    return runDashboard(argv.slice(1));
   }
 
   process.stderr.write(`unknown command: ${subcommand}. See adv --help\n`);
