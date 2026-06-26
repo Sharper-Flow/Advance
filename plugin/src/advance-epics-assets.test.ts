@@ -69,9 +69,13 @@ describe("/adv-epic command contract", () => {
   test("command file exists and declares no change-id gate", () => {
     expect(existsSync(commandPath)).toBe(true);
     const content = readRepoFile(".opencode/command/adv-epic.md");
+    const frontmatter = content.match(/^---\n([\s\S]*?)\n---/)?.[1] ?? "";
 
-    expect(content).toContain("name: adv-epic");
-    expect(content).toContain("requiresChangeId: false");
+    expect(frontmatter).toContain("name: adv-epic");
+    expect(frontmatter).toContain(
+      "description: Gather Epic goals before typed creation",
+    );
+    expect(frontmatter).toContain("requiresChangeId: false");
     expect(content).toMatch(/\*\*Gate:\*\*\s*None|Gate:\s*None/i);
   });
 

@@ -1,6 +1,7 @@
 ---
 name: adv-epic
 description: Gather Epic goals before typed creation
+requiresChangeId: false
 ---
 
 <!-- manifest: adv-epic · requiresChangeId: false · scope: reads[specs, epics, changes, backlog] · creates[epic] · modifies[epic] -->
