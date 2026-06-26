@@ -23,6 +23,9 @@ import type {
   AgreementUpdatedSignalPayload,
   ArchiveRequestedSignalPayload,
   ChangeCancelledSignalPayload,
+  ChangeLinkedSignalPayload,
+  ChangeProjectionStatusUpdatedSignalPayload,
+  ChangeUnlinkedSignalPayload,
   ConformanceLockedSignalPayload,
   ConformanceOverriddenSignalPayload,
   ConformanceVerdictSignalPayload,
@@ -31,6 +34,13 @@ import type {
   ContractSetSignalPayload,
   DesignConcernDispositionedSignalPayload,
   DesignUpdatedSignalPayload,
+  EntriesReorderedSignalPayload,
+  EntryTerminalSummarySignalPayload,
+  EpicMembershipClearedSignalPayload,
+  EpicMembershipSetSignalPayload,
+  EpicArchivedSignalPayload,
+  EpicCreatedSignalPayload,
+  EpicUpdatedSignalPayload,
   ExecutiveSummaryUpdatedSignalPayload,
   GateAwaitingApprovalSignalPayload,
   GateCompletedSignalPayload,
@@ -44,6 +54,8 @@ import type {
   ProposalUpdatedSignalPayload,
   Phase9StatusUpdatedSignalPayload,
   ReflectionRecordedSignalPayload,
+  ShellAddedSignalPayload,
+  ShellPromotedSignalPayload,
   SubagentReportSubmittedSignalPayload,
   TaskAddedSignalPayload,
   TaskAssignedSignalPayload,
@@ -63,11 +75,14 @@ import type {
   ChangeWorkflowBootstrapState,
   ChangeWorkflowState,
   CrossProjectCoordinationUpdatedSignalPayload,
+  EpicWorkflowState,
 } from "./contracts";
 import {
   CHANGE_WORKFLOW_COMPAT_QUERY_NAMES,
   CHANGE_WORKFLOW_QUERY_NAMES,
   CHANGE_WORKFLOW_SIGNAL_NAMES,
+  EPIC_WORKFLOW_QUERY_NAMES,
+  EPIC_WORKFLOW_SIGNAL_NAMES,
 } from "./contracts";
 
 export const changeBootstrapQuery =
@@ -254,6 +269,12 @@ export const opsFollowupLinkAddedSignal = wf.defineSignal<
 export const opsEvidenceAppendedSignal = wf.defineSignal<
   [OpsEvidenceAppendedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.opsEvidenceAppended);
+export const epicMembershipSetSignal = wf.defineSignal<
+  [EpicMembershipSetSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.epicMembershipSet);
+export const epicMembershipClearedSignal = wf.defineSignal<
+  [EpicMembershipClearedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.epicMembershipCleared);
 export const updateArtifactMetadataSignal = wf.defineSignal<
   [
     {
@@ -268,3 +289,42 @@ export const archiveChangeSignal = wf.defineSignal(
 export const closeChangeSignal = wf.defineSignal<
   [import("../types").ChangeClosure]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.closeChange);
+
+// Epic workflow bindings
+export const getEpicStateQuery = wf.defineQuery<EpicWorkflowState>(
+  EPIC_WORKFLOW_QUERY_NAMES.getState,
+);
+export const getEpicQuery = wf.defineQuery<EpicWorkflowState["epic"]>(
+  EPIC_WORKFLOW_QUERY_NAMES.getEpic,
+);
+
+export const epicCreatedSignal = wf.defineSignal<[EpicCreatedSignalPayload]>(
+  EPIC_WORKFLOW_SIGNAL_NAMES.epicCreated,
+);
+export const epicUpdatedSignal = wf.defineSignal<[EpicUpdatedSignalPayload]>(
+  EPIC_WORKFLOW_SIGNAL_NAMES.epicUpdated,
+);
+export const shellAddedSignal = wf.defineSignal<[ShellAddedSignalPayload]>(
+  EPIC_WORKFLOW_SIGNAL_NAMES.shellAdded,
+);
+export const shellPromotedSignal = wf.defineSignal<
+  [ShellPromotedSignalPayload]
+>(EPIC_WORKFLOW_SIGNAL_NAMES.shellPromoted);
+export const changeLinkedSignal = wf.defineSignal<[ChangeLinkedSignalPayload]>(
+  EPIC_WORKFLOW_SIGNAL_NAMES.changeLinked,
+);
+export const changeProjectionStatusUpdatedSignal = wf.defineSignal<
+  [ChangeProjectionStatusUpdatedSignalPayload]
+>(EPIC_WORKFLOW_SIGNAL_NAMES.changeProjectionStatusUpdated);
+export const changeUnlinkedSignal = wf.defineSignal<
+  [ChangeUnlinkedSignalPayload]
+>(EPIC_WORKFLOW_SIGNAL_NAMES.changeUnlinked);
+export const entriesReorderedSignal = wf.defineSignal<
+  [EntriesReorderedSignalPayload]
+>(EPIC_WORKFLOW_SIGNAL_NAMES.entriesReordered);
+export const entryTerminalSummarySignal = wf.defineSignal<
+  [EntryTerminalSummarySignalPayload]
+>(EPIC_WORKFLOW_SIGNAL_NAMES.entryTerminalSummary);
+export const epicArchivedSignal = wf.defineSignal<[EpicArchivedSignalPayload]>(
+  EPIC_WORKFLOW_SIGNAL_NAMES.epicArchived,
+);

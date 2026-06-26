@@ -16,12 +16,16 @@ import {
   CHANGE_WORKFLOW_COMPAT_QUERY_NAMES,
   CHANGE_WORKFLOW_QUERY_NAMES,
   CHANGE_WORKFLOW_SIGNAL_NAMES,
+  EPIC_WORKFLOW_QUERY_NAMES,
+  EPIC_WORKFLOW_SIGNAL_NAMES,
   resolveHistoryThresholds,
   shouldContinueAsNewFromInfo,
   type ChangeWorkflowState,
   type ChangeWorkflowBootstrapState,
   type ChangeWorkflowInput,
   type CrossProjectCoordinationUpdatedSignalPayload,
+  type EpicWorkflowInput,
+  type EpicWorkflowState,
 } from "./contracts";
 import {
   applyAcceptanceCriteriaSetToState,
@@ -37,6 +41,8 @@ import {
   applyCrossProjectCoordinationUpdatedToState,
   applyAcceptanceUpdatedToState,
   applyDesignUpdatedToState,
+  applyEpicMembershipClearedToState,
+  applyEpicMembershipSetToState,
   applyExecutiveSummaryUpdatedToState,
   applyGateAwaitingApprovalToState,
   applyGateCompletedToState,
@@ -74,6 +80,21 @@ import {
   normalizeChangeLifecycleState,
   updateArtifactMetadataInChangeState,
 } from "./change-state";
+import {
+  applyChangeLinkedToState,
+  applyChangeProjectionStatusUpdatedToState,
+  applyChangeUnlinkedToState,
+  applyEntriesReorderedToState,
+  applyEntryTerminalSummaryToState,
+  applyEpicArchivedToState,
+  applyEpicCreatedToState,
+  applyEpicUpdatedToState,
+  applyShellAddedToState,
+  applyShellPromotedToState,
+  buildEpicSeedState,
+  createEpicWorkflowState,
+  recordEpicSignalRejectionToState,
+} from "./epic-state";
 
 type WriteChangeProjectionActivityResult =
   | { ok: true; path: string }
@@ -359,6 +380,12 @@ const opsFollowupLinkAddedSignal = wf.defineSignal<
 const opsEvidenceAppendedSignal = wf.defineSignal<
   [import("../types").OpsEvidenceAppendedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.opsEvidenceAppended);
+const epicMembershipSetSignal = wf.defineSignal<
+  [import("../types").EpicMembershipSetSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.epicMembershipSet);
+const epicMembershipClearedSignal = wf.defineSignal<
+  [import("../types").EpicMembershipClearedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.epicMembershipCleared);
 const updateArtifactMetadataSignal = wf.defineSignal<
   [
     {
@@ -374,6 +401,44 @@ const closeChangeSignal = wf.defineSignal<[import("../types").ChangeClosure]>(
   CHANGE_WORKFLOW_SIGNAL_NAMES.closeChange,
 );
 // Update definitions removed — signal-only architecture (R1.1)
+
+// Epic workflow signal/query definitions
+const getEpicStateQuery = wf.defineQuery<EpicWorkflowState>(
+  EPIC_WORKFLOW_QUERY_NAMES.getState,
+);
+const getEpicQuery = wf.defineQuery<EpicWorkflowState["epic"]>(
+  EPIC_WORKFLOW_QUERY_NAMES.getEpic,
+);
+const epicCreatedSignal = wf.defineSignal<
+  [import("../types").EpicCreatedSignalPayload]
+>(EPIC_WORKFLOW_SIGNAL_NAMES.epicCreated);
+const epicUpdatedSignal = wf.defineSignal<
+  [import("../types").EpicUpdatedSignalPayload]
+>(EPIC_WORKFLOW_SIGNAL_NAMES.epicUpdated);
+const shellAddedSignal = wf.defineSignal<
+  [import("../types").ShellAddedSignalPayload]
+>(EPIC_WORKFLOW_SIGNAL_NAMES.shellAdded);
+const shellPromotedSignal = wf.defineSignal<
+  [import("../types").ShellPromotedSignalPayload]
+>(EPIC_WORKFLOW_SIGNAL_NAMES.shellPromoted);
+const changeLinkedSignal = wf.defineSignal<
+  [import("../types").ChangeLinkedSignalPayload]
+>(EPIC_WORKFLOW_SIGNAL_NAMES.changeLinked);
+const changeProjectionStatusUpdatedSignal = wf.defineSignal<
+  [import("../types").ChangeProjectionStatusUpdatedSignalPayload]
+>(EPIC_WORKFLOW_SIGNAL_NAMES.changeProjectionStatusUpdated);
+const changeUnlinkedSignal = wf.defineSignal<
+  [import("../types").ChangeUnlinkedSignalPayload]
+>(EPIC_WORKFLOW_SIGNAL_NAMES.changeUnlinked);
+const entriesReorderedSignal = wf.defineSignal<
+  [import("../types").EntriesReorderedSignalPayload]
+>(EPIC_WORKFLOW_SIGNAL_NAMES.entriesReordered);
+const entryTerminalSummarySignal = wf.defineSignal<
+  [import("../types").EntryTerminalSummarySignalPayload]
+>(EPIC_WORKFLOW_SIGNAL_NAMES.entryTerminalSummary);
+const epicArchivedSignal = wf.defineSignal<
+  [import("../types").EpicArchivedSignalPayload]
+>(EPIC_WORKFLOW_SIGNAL_NAMES.epicArchived);
 
 function deriveInvestmentReportFromState(state: ChangeWorkflowState): {
   taskCounts: {
@@ -564,6 +629,9 @@ export async function changeWorkflow(
     }
     if (input.seedState.ops_followup_links) {
       state.ops_followup_links = [...input.seedState.ops_followup_links];
+    }
+    if (input.seedState.epic_membership) {
+      state.epic_membership = input.seedState.epic_membership;
     }
   }
 
@@ -1447,6 +1515,18 @@ export async function changeWorkflow(
     ),
   );
   wf.setHandler(
+    epicMembershipSetSignal,
+    signalMutation("epicMembershipSet", (payload) =>
+      applyEpicMembershipSetToState(state, payload),
+    ),
+  );
+  wf.setHandler(
+    epicMembershipClearedSignal,
+    signalMutation("epicMembershipCleared", (payload) =>
+      applyEpicMembershipClearedToState(state, payload),
+    ),
+  );
+  wf.setHandler(
     archiveChangeSignal,
     signalAsync(
       "archiveChange",
@@ -1583,6 +1663,7 @@ export async function changeWorkflow(
       signal_rejections_total: state.signal_rejections_total,
       ops_followup: state.ops_followup,
       ops_followup_links: state.ops_followup_links,
+      epic_membership: state.epic_membership,
     },
   };
   await wf.condition(wf.allHandlersFinished);
@@ -1595,4 +1676,213 @@ export async function changeWorkflow(
  */
 function shouldContinueAsNew(threshold: number): boolean {
   return shouldContinueAsNewFromInfo(wf.workflowInfo(), threshold);
+}
+
+/**
+ * Per-Epic Temporal workflow: signal/query-only state holder for an Epic.
+ *
+ * Boundaries:
+ *   - One workflow per Epic (workflow ID `adv/epic/{projectId}/{epicId}`).
+ *   - No child workflow orchestration.
+ *   - No project singleton aggregation.
+ *   - Workflow-safe imports only.
+ *
+ * Continue-as-new:
+ *   - Preserves the Epic record, idempotency ledger, terminal status, and
+ *     bounded rejection log via seedState.
+ *   - Drains in-flight handlers with `wf.allHandlersFinished` before rotating.
+ */
+export async function epicWorkflow(input: EpicWorkflowInput): Promise<void> {
+  const workflowEpoch = wf.workflowInfo().runStartTime.getTime();
+  let logicalTick = 0;
+  const workflowNow = (): string =>
+    new Date(workflowEpoch + logicalTick++).toISOString();
+
+  const state = createEpicWorkflowState(input);
+  if (input.seedState) {
+    if (input.seedState.epic) {
+      state.epic = JSON.parse(JSON.stringify(input.seedState.epic));
+    }
+    if (input.seedState.status) {
+      state.status = input.seedState.status;
+    }
+    if (input.seedState.idempotencyLedger) {
+      state.idempotencyLedger = { ...input.seedState.idempotencyLedger };
+    }
+    if (input.seedState.lastSignalAt) {
+      state.lastSignalAt = input.seedState.lastSignalAt;
+    }
+    if (input.seedState.rejections) {
+      state.rejections = [...input.seedState.rejections];
+    }
+  }
+
+  wf.setHandler(getEpicStateQuery, () => state);
+  wf.setHandler(getEpicQuery, () => state.epic);
+
+  const signalAsync = <Args extends unknown[]>(
+    signalName: string,
+    handler: (...args: Args) => void | Promise<void>,
+  ): ((...args: Args) => void | Promise<void>) => {
+    const rejectSignal = (args: Args, err: unknown): void => {
+      if (
+        err instanceof wf.CancelledFailure ||
+        err instanceof wf.TemporalFailure
+      ) {
+        throw err;
+      }
+      recordEpicSignalRejectionToState(state, {
+        signalName,
+        error: err,
+        payload: args.length === 1 ? args[0] : args,
+        rejectedAt: workflowNow(),
+      });
+      const rejections = state.rejections ?? [];
+      const latest = rejections[rejections.length - 1];
+      wf.log.warn("epic-signal-rejected", {
+        signalName,
+        epicId: state.epicId,
+        errorMessage: latest?.errorMessage ?? String(err),
+      });
+    };
+
+    return (...args: Args) => {
+      try {
+        const result = handler(...args);
+        if (
+          result &&
+          typeof result === "object" &&
+          "then" in result &&
+          typeof result.then === "function"
+        ) {
+          return Promise.resolve(result).catch((err: unknown) =>
+            rejectSignal(args, err),
+          );
+        }
+      } catch (err) {
+        rejectSignal(args, err);
+      }
+    };
+  };
+
+  const signalMutation = <Payload>(
+    signalName: string,
+    handler: (payload: Payload) => EpicWorkflowState,
+  ): ((payload: Payload) => void) =>
+    signalAsync(signalName, (payload: Payload) => {
+      handler(payload);
+    });
+
+  const handleMutationResult = <T>(
+    signalName: string,
+    result: import("./epic-state").EpicMutationResult<T>,
+  ): void => {
+    if (!result.ok) {
+      recordEpicSignalRejectionToState(state, {
+        signalName,
+        error: new Error(result.message),
+        payload: undefined,
+        rejectedAt: workflowNow(),
+      });
+    }
+  };
+
+  wf.setHandler(
+    epicCreatedSignal,
+    signalMutation("epicCreated", (payload) =>
+      applyEpicCreatedToState(state, payload),
+    ),
+  );
+  wf.setHandler(
+    epicUpdatedSignal,
+    signalAsync("epicUpdated", (payload) => {
+      const result = applyEpicUpdatedToState(state, payload);
+      handleMutationResult("epicUpdated", result);
+    }),
+  );
+  wf.setHandler(
+    shellAddedSignal,
+    signalAsync("shellAdded", (payload) => {
+      const result = applyShellAddedToState(state, payload);
+      handleMutationResult("shellAdded", result);
+    }),
+  );
+  wf.setHandler(
+    shellPromotedSignal,
+    signalAsync("shellPromoted", (payload) => {
+      const result = applyShellPromotedToState(state, payload);
+      handleMutationResult("shellPromoted", result);
+    }),
+  );
+  wf.setHandler(
+    changeLinkedSignal,
+    signalAsync("changeLinked", (payload) => {
+      const result = applyChangeLinkedToState(state, payload);
+      handleMutationResult("changeLinked", result);
+    }),
+  );
+  wf.setHandler(
+    changeProjectionStatusUpdatedSignal,
+    signalAsync("changeProjectionStatusUpdated", (payload) => {
+      const result = applyChangeProjectionStatusUpdatedToState(state, payload);
+      handleMutationResult("changeProjectionStatusUpdated", result);
+    }),
+  );
+  wf.setHandler(
+    changeUnlinkedSignal,
+    signalAsync("changeUnlinked", (payload) => {
+      const result = applyChangeUnlinkedToState(state, payload);
+      handleMutationResult("changeUnlinked", result);
+    }),
+  );
+  wf.setHandler(
+    entriesReorderedSignal,
+    signalAsync("entriesReordered", (payload) => {
+      const result = applyEntriesReorderedToState(state, payload);
+      handleMutationResult("entriesReordered", result);
+    }),
+  );
+  wf.setHandler(
+    entryTerminalSummarySignal,
+    signalAsync("entryTerminalSummary", (payload) => {
+      const result = applyEntryTerminalSummaryToState(state, payload);
+      handleMutationResult("entryTerminalSummary", result);
+    }),
+  );
+  wf.setHandler(
+    epicArchivedSignal,
+    signalMutation("epicArchived", (payload) =>
+      applyEpicArchivedToState(state, payload),
+    ),
+  );
+
+  const thresholds = resolveHistoryThresholds();
+
+  await wf.condition(() => {
+    if (state.status === "archived") return true;
+    if (shouldContinueAsNew(thresholds.changeHistoryThreshold)) return true;
+    return false;
+  });
+
+  if (state.status === "archived") {
+    wf.log.info("epic:completing", {
+      epicId: state.epicId,
+      status: state.status,
+      reason: "terminal_status_detected",
+    });
+    await wf.condition(wf.allHandlersFinished);
+    return;
+  }
+
+  const seed: EpicWorkflowInput = {
+    projectId: input.projectId,
+    epicId: input.epicId,
+    title: input.title,
+    narrative: input.narrative,
+    initializedAt: input.initializedAt,
+    searchAttributesEnabled: input.searchAttributesEnabled,
+    seedState: buildEpicSeedState(state),
+  };
+  await wf.condition(wf.allHandlersFinished);
+  await wf.continueAsNew<typeof epicWorkflow>(seed);
 }

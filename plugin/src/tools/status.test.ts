@@ -344,6 +344,30 @@ describe("Status Tools", () => {
       expect(followRec).toContain(parentParsed.changeId);
     });
 
+    test("active changes include compact Epic annotation", async () => {
+      const { changeTools } = await import("./change");
+      await changeTools.adv_change_create.execute(
+        {
+          summary: "Epic member change",
+          epic_id: "addAuthEpic",
+          entry_id: "en-001",
+          epic_order: 0,
+          epic_title: "Add OAuth",
+        },
+        store,
+      );
+
+      const result = await statusTools.adv_status.execute(
+        { view: "changes" },
+        store,
+      );
+      const parsed = parseToolOutput(result);
+
+      expect(parsed.formatted.activeSection).toContain("addAuthEpic");
+      const recent = parsed.changes.recent as Array<{ epic?: { id: string } }>;
+      expect(recent[0]?.epic?.id).toBe("addAuthEpic");
+    });
+
     test("stale pre-execution change keeps one canonical next-gate action", async () => {
       const gates = createDefaultGates();
       for (const gateId of ["proposal", "discovery", "design"] as const) {

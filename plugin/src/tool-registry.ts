@@ -51,6 +51,7 @@ import { projectMetadataTools } from "./tools/project-metadata";
 import { conformanceTools } from "./tools/conformance";
 import { advWorktreeTools } from "./tools/adv-worktree";
 import { advSessionTools } from "./tools/adv-session";
+import { epicTools } from "./tools/epic";
 type ToolArgsSchema = Record<string, z.ZodTypeAny>;
 type ToolExecute<TArgs> = (
   args: TArgs,
@@ -332,6 +333,55 @@ export function createToolMap(
     adv_change_forget: bindTool(
       changeTools.adv_change_forget,
       "adv_change_forget",
+      store,
+    ),
+
+    // Epic Tools
+    adv_epic_create: bindTool(
+      epicTools.adv_epic_create,
+      "adv_epic_create",
+      store,
+    ),
+    adv_epic_show: bindTool(epicTools.adv_epic_show, "adv_epic_show", store),
+    adv_epic_list: bindTool(epicTools.adv_epic_list, "adv_epic_list", store),
+    adv_epic_update: bindTool(
+      epicTools.adv_epic_update,
+      "adv_epic_update",
+      store,
+    ),
+    adv_epic_add_shell: bindTool(
+      epicTools.adv_epic_add_shell,
+      "adv_epic_add_shell",
+      store,
+    ),
+    adv_epic_promote_shell: bindTool(
+      epicTools.adv_epic_promote_shell,
+      "adv_epic_promote_shell",
+      store,
+    ),
+    adv_epic_link_change: bindTool(
+      epicTools.adv_epic_link_change,
+      "adv_epic_link_change",
+      store,
+    ),
+    adv_epic_unlink_change: bindTool(
+      epicTools.adv_epic_unlink_change,
+      "adv_epic_unlink_change",
+      store,
+    ),
+    adv_epic_move_change: bindTool(
+      epicTools.adv_epic_move_change,
+      "adv_epic_move_change",
+      store,
+    ),
+    adv_epic_repair_membership: bindTool(
+      epicTools.adv_epic_repair_membership,
+      "adv_epic_repair_membership",
+      store,
+    ),
+    adv_epic_reorder: bindTool(
+      epicTools.adv_epic_reorder,
+      "adv_epic_reorder",
       store,
     ),
 
@@ -803,6 +853,17 @@ export const ADV_TOOL_NAMES: readonly string[] = [
   "adv_change_update_issues",
   "adv_change_reenter",
   "adv_change_forget",
+  "adv_epic_create",
+  "adv_epic_show",
+  "adv_epic_list",
+  "adv_epic_update",
+  "adv_epic_add_shell",
+  "adv_epic_promote_shell",
+  "adv_epic_link_change",
+  "adv_epic_unlink_change",
+  "adv_epic_move_change",
+  "adv_epic_repair_membership",
+  "adv_epic_reorder",
   "adv_followup_promote",
   "adv_ops_evidence_add",
   "adv_contract_mint",

@@ -91,7 +91,7 @@ Read gate state from the included snapshot or inspect `gates` field on the respo
 
 **Step 4:** Verify target-project contribution workflow used ADV tools with `target_path`: target reads via `snapshot-ok`, target mutations via `temporal-required`, and untrusted mutations include `target_confirmed` plus `confirmationEvidence`.
 ### Extract Context
-From change data: affected files, spec scenarios, task completion evidence, and `change.contract` if present.
+From change data: affected files, spec scenarios, task completion evidence, `change.contract` if present, and `epic_membership` if present (load compact Epic context with `adv_epic_show epic_id: {epic_id}` and include it in sub-agent prompts).
 ### Worktree Context
 `pwd` → record as `{workdir}`. Include `WORKING DIRECTORY: {workdir}` in every sub-agent prompt. Critical in worktrees — sub-agents inherit default project root, not worktree path.
 
@@ -160,6 +160,7 @@ CONTRACT ITEMS:
 TASK EVIDENCE SUMMARY:
   - {task-id}: {title} | {status} | type: {type} | evidence_policy: {evidence_policy} | tdd: {phase}
   - ...
+EPIC CONTEXT: {if epic_membership present: Epic id/title/entry order/title; otherwise "none"}
 EXPECTED OUTPUT: {dimension-specific JSON schema}
 ```
 

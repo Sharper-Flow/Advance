@@ -22,6 +22,8 @@ const SIGNAL_SEARCH_ATTRIBUTE_NAMES = [
   // rq-backlogCoord01 — single-value Keyword indexing the per-change claim
   // on a GitHub Project issue. Does not consume a KeywordList slot.
   "AdvBacklogIssueNumber",
+  // rq-epicTemporalConstraints01 — single-value Keyword indexing the per-change Epic.
+  "AdvEpicId",
 ] as const;
 
 const SIGNAL_REQUIRED_SEARCH_ATTRIBUTES = [
@@ -38,6 +40,8 @@ const SIGNAL_REQUIRED_SEARCH_ATTRIBUTES = [
   { name: "AdvWorktreePaths", type: "KeywordList", typeCode: 7 },
   // rq-backlogCoord01 — added by agenticBacklogCoordination v1.
   { name: "AdvBacklogIssueNumber", type: "Keyword", typeCode: 2 },
+  // rq-epicTemporalConstraints01 — added by advance-epics v1.
+  { name: "AdvEpicId", type: "Keyword", typeCode: 2 },
 ] as const;
 
 describe("temporal observability helpers", () => {
@@ -67,6 +71,29 @@ describe("temporal observability helpers", () => {
       AdvAffectedProjects: ["proj1"],
       AdvCurrentGate: ["execution"],
     });
+  });
+
+  it("includes AdvEpicId when epicId is provided", () => {
+    const attrs = buildTemporalSearchAttributes({
+      projectId: "proj1",
+      changeId: "chg1",
+      changeStatus: "active",
+      activeGate: "execution",
+      epicId: "addAuthEpic",
+    });
+
+    expect(attrs.AdvEpicId).toEqual(["addAuthEpic"]);
+  });
+
+  it("omits AdvEpicId when epicId is not provided", () => {
+    const attrs = buildTemporalSearchAttributes({
+      projectId: "proj1",
+      changeId: "chg1",
+      changeStatus: "active",
+      activeGate: "execution",
+    });
+
+    expect(attrs.AdvEpicId).toBeUndefined();
   });
 
   it("declares required ADV search attributes with server types", () => {
@@ -138,6 +165,7 @@ describe("temporal observability helpers", () => {
       "AdvWorktreeBranches",
       "AdvWorktreePaths",
       "AdvBacklogIssueNumber",
+      "AdvEpicId",
     ]);
     expect(result.wrongType).toEqual([
       {
@@ -215,6 +243,7 @@ describe("temporal observability helpers", () => {
         AdvWorktreeBranches: 7,
         AdvWorktreePaths: 7,
         AdvBacklogIssueNumber: 2,
+        AdvEpicId: 2,
       },
     });
     expect(result).toEqual({
@@ -231,6 +260,7 @@ describe("temporal observability helpers", () => {
         { name: "AdvWorktreeBranches", type: "KeywordList", typeCode: 7 },
         { name: "AdvWorktreePaths", type: "KeywordList", typeCode: 7 },
         { name: "AdvBacklogIssueNumber", type: "Keyword", typeCode: 2 },
+        { name: "AdvEpicId", type: "Keyword", typeCode: 2 },
       ],
       skipped: [
         { name: "AdvChangeId", type: "Keyword", typeCode: 2 },

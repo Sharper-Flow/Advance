@@ -25,6 +25,8 @@ import {
   contractReviewMatrixSetSignal,
   contractSetSignal,
   designUpdatedSignal,
+  epicMembershipClearedSignal,
+  epicMembershipSetSignal,
   executiveSummaryUpdatedSignal,
   gateAwaitingApprovalSignal,
   gateCompletedSignal,
@@ -175,6 +177,46 @@ async function queryState(
 ): Promise<ChangeWorkflowState> {
   return await handle.query(getChangeStateQuery);
 }
+
+describe("changeWorkflow Epic membership signals", () => {
+  it("sets and clears epic_membership projection through signals", async () => {
+    await withSignalWorker("epic-membership", async (handle) => {
+      await handle.signal(epicMembershipSetSignal, {
+        membership: {
+          epic_id: "productAuthEpic",
+          entry_id: "en-001",
+          order: 2,
+          title: "Add OAuth",
+          linked_at: "2026-06-25T00:01:00.000Z",
+          epic_project_id: "project-web",
+          repo_id: "pokeedge-web",
+          source: "link_existing",
+        },
+        setAt: "2026-06-25T00:01:00.000Z",
+      });
+
+      let state = await queryState(handle);
+      expect(state.epic_membership).toEqual({
+        epic_id: "productAuthEpic",
+        entry_id: "en-001",
+        order: 2,
+        title: "Add OAuth",
+        linked_at: "2026-06-25T00:01:00.000Z",
+        epic_project_id: "project-web",
+        repo_id: "pokeedge-web",
+        source: "link_existing",
+      });
+
+      await handle.signal(epicMembershipClearedSignal, {
+        expected: { epic_id: "productAuthEpic", entry_id: "en-001" },
+        clearedAt: "2026-06-25T00:02:00.000Z",
+      });
+
+      state = await queryState(handle);
+      expect(state.epic_membership).toBeUndefined();
+    });
+  });
+});
 
 async function waitForGateStatus(
   handle: WorkflowHandle<typeof import("./workflows").changeWorkflow>,

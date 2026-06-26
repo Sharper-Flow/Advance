@@ -55,6 +55,34 @@ export {
 } from "./specs";
 
 // =============================================================================
+// Epics
+// =============================================================================
+export {
+  EpicStatusSchema,
+  type EpicStatus,
+  EpicEntryKindSchema,
+  type EpicEntryKind,
+  EpicScopeRepoSchema,
+  type EpicScopeRepo,
+  EpicScopeSchema,
+  type EpicScope,
+  ShellPromotionProvenanceSchema,
+  type ShellPromotionProvenance,
+  EpicProgressSummarySchema,
+  type EpicProgressSummary,
+  EpicChangeRefSchema,
+  type EpicChangeRef,
+  EpicMembershipStatusSchema,
+  type EpicMembershipStatus,
+  EpicEntrySchema,
+  type EpicEntry,
+  EpicSchema,
+  type Epic,
+  EpicMembershipSchema,
+  type EpicMembership,
+} from "./epics";
+
+// =============================================================================
 // Tasks
 // =============================================================================
 export {

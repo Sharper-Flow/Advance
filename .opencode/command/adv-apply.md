@@ -370,7 +370,7 @@ Ask via `question` tool: Provide hint (Recommended), Take over task, Void contra
 
 Load context in two tiers:
 
-**Phase start (once):** `adv_change_show` → load full change context including proposal, design, gates, and task summary.
+**Phase start (once):** `adv_change_show` → load full change context including proposal, design, gates, task summary, and `epic_membership`. If `epic_membership` is present, load compact Epic context with `adv_epic_show epic_id: {epic_id}` and include it in sub-agent packets.
 
 **Per task:**
 
@@ -508,6 +508,7 @@ AFFECTED FILES: {file list from task description — use VERIFIED paths from Pha
 PROJECT STRUCTURE: {brief ls or glob output showing relevant directories/files in workdir — populated during Phase 0.1 path verification}
 DESIGN EXCERPT: {relevant section if task references design}
 ACCEPTANCE CRITERIA: {criteria relevant to this task}
+EPIC CONTEXT: {if epic_membership present: Epic id/title/entry order/title; otherwise "none"}
 EXPECTED OUTPUT: implement the task, run tests, call adv_subagent_report_submit with ENGINEER_REPORT per .opencode/agents/adv-engineer.md
 ```
 
@@ -553,6 +554,7 @@ AFFECTED FILES: {file list from task description — use VERIFIED paths from Pha
 PROJECT STRUCTURE: {brief ls or glob output showing relevant directories/files in workdir — populated during Phase 0.1 path verification}
 DESIGN EXCERPT: {relevant section if task references design}
 ACCEPTANCE CRITERIA: {criteria relevant to this task}
+EPIC CONTEXT: {if epic_membership present: Epic id/title/entry order/title; otherwise "none"}
 EXPECTED OUTPUT: implement the UI/component task, run tests, call adv_subagent_report_submit with DESIGNER_REPORT per .opencode/agents/adv-designer.md
 ```
 

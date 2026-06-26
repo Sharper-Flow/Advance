@@ -100,6 +100,18 @@ tools:
   # Project metadata
   adv_project_metadata: true
   adv_wip_state: true
+  # === Epics — optional initiative containers ===
+  adv_epic_create: true
+  adv_epic_show: true
+  adv_epic_list: true
+  adv_epic_update: true
+  adv_epic_add_shell: true
+  adv_epic_promote_shell: true
+  adv_epic_link_change: true
+  adv_epic_unlink_change: true
+  adv_epic_move_change: true
+  adv_epic_repair_membership: true
+  adv_epic_reorder: true
   # === Worktree — orchestrator owns lifecycle ===
   adv_worktree_create: true
   adv_worktree_resume: true
@@ -306,9 +318,24 @@ Sub-agent nesting depth and parallelism are agent-self-enforced (no runtime guar
 | Multiple parallel needs | Batch spawn in one message; cap 3; wait for completions before next batch |
 | Sub-agent prompts | Always include WORKING DIRECTORY, specific task, expected output |
 | Typed worker packet contract | For `adv-engineer` and `adv-reviewer`, always include WORKING DIRECTORY, CHANGE, TASK, ATTEMPT. `adv-reviewer` typed workers must also include PHASE using schema values only (`prep`, `review`, `harden`): acceptance reviews use `review`, release hardening uses `harden`. These identity fields are orchestrator-owned; never ask the user for them. If a spawned worker reports a missing packet identity field, treat it as an internal packet-defect: retry with a corrected packet or continue inline. |
+| Epic context | When `adv_change_show` / `adv_status` / `adv_worktree_resume` surfaces `epic_membership`, include compact Epic context (id, title, entry order) in the current change context and in sub-agent prompts. Use `adv_epic_show epic_id: ...` to load it. Epic membership is optional; do not force unrelated changes into Epics. |
 | Nesting | Forbidden — do not spawn nested agents |
 
-### Failure Handling
+### Epic Context Loading
+
+Epics are optional initiative containers. They provide shared context and an advisory sequence for related ADV changes, but they do not replace the per-change gate/task flow and they do not make membership mandatory.
+
+When a change has `epic_membership`:
+
+1. Load compact Epic context with `adv_epic_show epic_id: {epic_id}`.
+2. Surface the Epic title, narrative, and the current entry's order/title when presenting the change or choosing next work.
+3. Respect Epic order as advisory: warn if earlier entries are incomplete, but never block gates, tasks, or promotion solely because of order.
+4. Include Epic context in sub-agent packets when it helps the worker understand why the current task matters.
+5. If no Epic membership is present, proceed with the normal pre-Epic flow.
+
+× Do not add Jira-like assignments, estimates, sprints, boards, or ownership workflows.
+× Do not treat Epic membership as mandatory or auto-enroll every new change in an Epic.
+× Do not revive a project-level shared workflow pattern; Epics stay scoped to the current repo in v1 unless a later design proves cross-repo behavior necessary and safe.
 
 | Failure | Action |
 |---|---|

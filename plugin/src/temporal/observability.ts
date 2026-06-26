@@ -250,6 +250,7 @@ export function buildTemporalSearchAttributes(input: {
   worktreeBranches?: string[];
   worktreePaths?: string[];
   backlogIssueNumber?: number;
+  epicId?: string;
   doomLoopActive?: boolean;
 }): Record<string, unknown[]> {
   const attrs: Record<string, unknown[]> = {};
@@ -290,6 +291,9 @@ export function buildTemporalSearchAttributes(input: {
   }
   if (input.backlogIssueNumber !== undefined) {
     attrs.AdvBacklogIssueNumber = [String(input.backlogIssueNumber)];
+  }
+  if (input.epicId !== undefined) {
+    attrs.AdvEpicId = [input.epicId];
   }
 
   return attrs;

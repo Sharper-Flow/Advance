@@ -13,6 +13,8 @@ import {
   archiveChangeSignal,
   closeChangeSignal,
   designUpdatedSignal,
+  epicMembershipClearedSignal,
+  epicMembershipSetSignal,
   executiveSummaryUpdatedSignal,
   problemStatementUpdatedSignal,
   proposalUpdatedSignal,
@@ -33,11 +35,30 @@ import { createLogger } from "../../utils/debug-log";
 import { isWorkflowCompletedError } from "../../temporal/recovery-classification";
 import { listChangeWorkflowIds } from "../../temporal/list-change-workflows";
 import type { ChangeSummary } from "../store-temporal-memo";
+import type {
+  ChangeWorkflowState,
+  SignalRejection,
+} from "../../temporal/contracts";
 
 const logger = createLogger("store-temporal-changes");
 
 function computeContentHash(content: string): string {
   return createHash("sha256").update(content).digest("hex");
+}
+
+function latestSignalRejection(
+  state: ChangeWorkflowState,
+  signalName: string,
+  since: string,
+): SignalRejection | undefined {
+  const rejections = state.signal_rejections ?? [];
+  for (let i = rejections.length - 1; i >= 0; i--) {
+    const rejection = rejections[i];
+    if (rejection.signalName === signalName && rejection.rejectedAt >= since) {
+      return rejection;
+    }
+  }
+  return undefined;
 }
 
 /**
@@ -128,6 +149,7 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
       const capability = options?.capability;
       const artifacts = options?.artifacts ?? {};
       const initialMetadata = options?.initialMetadata;
+      const epicMembership = initialMetadata?.epic_membership;
 
       // Layer 1 size validation (KD-8 layer 1). Fails fast before any
       // disk write or signal fires. Layer 2 (signal-handler state-mutation
@@ -199,6 +221,7 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
             // first read sees it; lazy migration (A4) covers legacy changes
             // that pre-date this field.
             worktree_auto_managed: true,
+            ...(epicMembership ? { epic_membership: epicMembership } : {}),
           },
         });
       } catch (err) {
@@ -411,6 +434,7 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
           completedTasks: change.tasks.filter((task) => task.status === "done")
             .length,
           fast_follow_of: change.fast_follow_of,
+          epic_membership: change.epic_membership,
         })),
       };
     },
@@ -432,6 +456,63 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
       // signal has already succeeded by the time we get here.
       invalidateChange(changeId);
       await dualWriteAfterMutation(changeId);
+    },
+    setEpicMembership: async (
+      changeId,
+      { membership, expectedCurrent, setAt },
+    ) => {
+      const recordedAt = setAt ?? new Date().toISOString();
+      invalidateChange(changeId);
+      await runTemporal(async () =>
+        (await getGuardedChangeHandle(input, changeId)).signal(
+          epicMembershipSetSignal,
+          {
+            membership,
+            ...(expectedCurrent ? { expectedCurrent } : {}),
+            setAt: recordedAt,
+          },
+        ),
+      );
+      const state = (await runTemporal(async () =>
+        (await getGuardedChangeHandle(input, changeId)).query(changeStateQuery),
+      )) as ChangeWorkflowState;
+      const rejection = latestSignalRejection(
+        state,
+        "epicMembershipSet",
+        recordedAt,
+      );
+      if (rejection) throw new Error(rejection.errorMessage);
+      indexTasksFromState(state);
+      updateOverlay(changeId, { epic_membership: state.epic_membership });
+      const change = setCachedChange(state);
+      emitChangeSummarySignal(changeId, state);
+      await dualWriteAfterMutation(changeId);
+      return change;
+    },
+    clearEpicMembership: async (changeId, { expected, clearedAt }) => {
+      const recordedAt = clearedAt ?? new Date().toISOString();
+      invalidateChange(changeId);
+      await runTemporal(async () =>
+        (await getGuardedChangeHandle(input, changeId)).signal(
+          epicMembershipClearedSignal,
+          { expected, clearedAt: recordedAt },
+        ),
+      );
+      const state = (await runTemporal(async () =>
+        (await getGuardedChangeHandle(input, changeId)).query(changeStateQuery),
+      )) as ChangeWorkflowState;
+      const rejection = latestSignalRejection(
+        state,
+        "epicMembershipCleared",
+        recordedAt,
+      );
+      if (rejection) throw new Error(rejection.errorMessage);
+      indexTasksFromState(state);
+      updateOverlay(changeId, { epic_membership: state.epic_membership });
+      const change = setCachedChange(state);
+      emitChangeSummarySignal(changeId, state);
+      await dualWriteAfterMutation(changeId);
+      return change;
     },
     close: async (changeId: string, closure: ChangeClosure) => {
       // Layer C1 (rq-archiveRetirement01-followon for closed class):
@@ -821,6 +902,7 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
         fast_follow_of?: Change["fast_follow_of"];
         ops_followup?: Change["ops_followup"];
         ops_followup_links?: Change["ops_followup_links"];
+        epic_membership?: Change["epic_membership"];
       };
 
       const rows: SummaryRow[] = [];
@@ -841,6 +923,7 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
             fast_follow_of: cached.fast_follow_of,
             ops_followup: cached.ops_followup,
             ops_followup_links: cached.ops_followup_links,
+            epic_membership: cached.epic_membership,
           });
           continue;
         }
@@ -859,6 +942,7 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
             fast_follow_of: summary.fast_follow_of,
             ops_followup: summary.ops_followup,
             ops_followup_links: summary.ops_followup_links,
+            epic_membership: summary.epic_membership,
           });
           continue;
         }
@@ -882,6 +966,7 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
               fast_follow_of: change.fast_follow_of,
               ops_followup: change.ops_followup,
               ops_followup_links: change.ops_followup_links,
+              epic_membership: change.epic_membership,
             });
           }
         } catch (err) {

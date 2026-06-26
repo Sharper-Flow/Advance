@@ -39,6 +39,14 @@ export interface ContextSnapshotInput {
   touchedFilesCount?: number;
   /** Doom-loop budget proximity indicator (e.g. "⚠ 2/3 budget") */
   errorBudgetProximity?: string;
+  /** Compact Epic membership context for child changes (no full Epic hydration) */
+  epicMembership?: {
+    epic_id: string;
+    entry_id: string;
+    order: number;
+    title: string;
+    linked_at: string;
+  };
 }
 
 type SnapshotTaskLike = {
@@ -74,6 +82,7 @@ type SnapshotChangeLike = {
   title: string;
   tasks: SnapshotTaskLike[];
   wisdom?: SnapshotWisdomLike[];
+  epic_membership?: ContextSnapshotInput["epicMembership"];
 };
 
 export function countUserOutcomes(proposalText?: string): number | undefined {
@@ -179,6 +188,7 @@ export function buildChangeContextSnapshot({
     wisdomByType,
     touchedFilesCount,
     errorBudgetProximity,
+    epicMembership: change.epic_membership,
   });
 }
 
@@ -280,6 +290,7 @@ export function formatContextSnapshot(input: ContextSnapshotInput): string {
     wisdomByType,
     touchedFilesCount,
     errorBudgetProximity,
+    epicMembership,
   } = input;
 
   const gateProgress = formatGateProgress(input.gates);
@@ -324,8 +335,13 @@ export function formatContextSnapshot(input: ContextSnapshotInput): string {
   // Build content lines — budget management to stay within 10 lines
   const lines: string[] = [`CONTEXT: ${displayChangeId}`, title];
 
+  if (epicMembership) {
+    lines.push(`Epic: ${epicMembership.epic_id} · ${epicMembership.title}`);
+  } else {
+    lines.push("");
+  }
+
   lines.push(
-    "",
     `Gates: ${gateProgress}`,
     errorBudgetProximity ?? `Outcomes: ${userOutcomeCount ?? "?"} items`,
     taskLine,

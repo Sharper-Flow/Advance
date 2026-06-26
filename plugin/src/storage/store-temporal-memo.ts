@@ -18,6 +18,7 @@
 import type {
   ChangeLifecycleState,
   ChangeStatus,
+  EpicMembership,
   FastFollowOf,
 } from "../types";
 import type { OpsFollowupLink, OpsFollowupProfile } from "../types/changes";
@@ -65,6 +66,8 @@ export interface ChangeSummary {
   ops_followup?: OpsFollowupProfile;
   /** Outbound ops follow-up links when this change has promoted follow-ups. */
   ops_followup_links?: OpsFollowupLink[];
+  /** Optional Epic membership projection for bounded list/status annotation. */
+  epic_membership?: EpicMembership;
 }
 
 export interface MemoStats {

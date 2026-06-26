@@ -86,6 +86,7 @@ export interface StatusInput {
     title: string;
     minutesSinceActivity: number;
     parent_change_id?: string;
+    epic?: { id: string; title: string; entry_id: string };
   }>;
   archivedCount: number;
   recommendations: string[];
@@ -372,7 +373,10 @@ export function formatStatusOutput(input: StatusInput): FormattedStatus {
     const mins = c.minutesSinceActivity;
     const timeLabel =
       mins < 60 ? `${mins}m ago` : `${Math.floor(mins / 60)}h ago`;
-    const label = c.parent_change_id ? `↳ ${c.id}` : c.id;
+    const epicTag = c.epic ? ` [${c.epic.id}]` : "";
+    const label = c.parent_change_id
+      ? `↳ ${c.id}${epicTag}`
+      : `${c.id}${epicTag}`;
     return `${emoji} ${label} (${timeLabel})`;
   });
 

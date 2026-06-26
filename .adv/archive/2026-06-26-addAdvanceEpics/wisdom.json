@@ -1,0 +1,103 @@
+{
+  "entries": [
+    {
+      "id": "ws-Ajtdc6",
+      "type": "gotcha",
+      "content": "Epic workflows can be one-per-entity without reviving the retired project shared workflow pattern, but design/tests must make the boundary explicit: no project singleton aggregation, no child workflow orchestration, workflow-safe imports only, and Visibility/query surfaces for cross-change lookup.",
+      "source_task": "tk-0267904f70de",
+      "recorded_at": "2026-06-25T03:03:46.727Z"
+    },
+    {
+      "id": "ws-OamhJ3",
+      "type": "pattern",
+      "content": "For cross-change Epic membership lookup, mirror the backlog claim pattern: store a compact optional projection on each child change, index it via a single-value Temporal Keyword (`AdvEpicId`), and query Visibility by project + Epic ID rather than hydrating all changes.",
+      "source_task": "tk-e3348d587e70",
+      "recorded_at": "2026-06-25T03:33:11.942Z"
+    },
+    {
+      "id": "ws-oTZ423",
+      "type": "gotcha",
+      "content": "Adding new MCP tools requires updating not only tool implementation/registry but also frozen tool-name snapshots and CLI surface matrix coverage; otherwise asset/bridge contract tests fail even when tool behavior is correct.",
+      "source_task": "tk-7e840db50eb4",
+      "recorded_at": "2026-06-25T04:15:49.614Z"
+    },
+    {
+      "id": "ws-J3KcDK",
+      "type": "gotcha",
+      "content": "When using repo-local `bin/oc-test targeted`, run it from the repo root and pass plugin test filters as `src/...` paths because the wrapper invokes Vitest with `plugin/` as cwd. Passing `plugin/src/...` yields 'No test files found'.",
+      "source_task": "tk-04e7a2173097",
+      "recorded_at": "2026-06-25T04:51:22.707Z"
+    },
+    {
+      "id": "ws-D2ky2S",
+      "type": "gotcha",
+      "content": "Epic store reads must not auto-start missing Epic workflows: auto-start hides stale child links and missing-Epic recovery bugs. Create should eagerly start, but get/list should return null for missing workflows and mutations should emit typed `epic_not_found`.",
+      "source_task": "tk-1982a3aeaa30",
+      "recorded_at": "2026-06-25T05:14:03.648Z"
+    },
+    {
+      "id": "ws-nDNfU8",
+      "type": "pattern",
+      "content": "When adding a new ADV workflow concept, update orchestration allowlists, typed-worker packet guidance, command context-loading instructions, CLI/asset contract tests, and source-of-truth docs together; otherwise runtime behavior and agent contracts drift.",
+      "source_task": "tk-47f9160672b6",
+      "recorded_at": "2026-06-25T05:32:29.102Z"
+    },
+    {
+      "id": "ws-gVVn3l",
+      "type": "gotcha",
+      "content": "Adding or reordering ADV Temporal search attributes requires updating all pinned test fixtures in `service.test.ts`, `service-reconnect.test.ts`, and `observability.test.ts`; full-suite failures can also surface stale exact spec-version pins and missing rq-* citation coverage after spec bumps.",
+      "source_task": "tk-66a08b2f5c97",
+      "recorded_at": "2026-06-25T05:55:25.408Z"
+    },
+    {
+      "id": "ws-Jhl4xq",
+      "type": "gotcha",
+      "content": "When adding backward-compatible schemas that make a formerly-required field optional (legacy `change_id` plus new `change_ref`), update hot-path formatters and type guards in the same task; TypeScript will surface old assumptions as `string | undefined`, and public schema artifacts must be regenerated before schema-registry tests pass.",
+      "source_task": "tk-7d03eafdd849",
+      "recorded_at": "2026-06-25T20:11:22.063Z"
+    },
+    {
+      "id": "ws-UjT384",
+      "type": "pattern",
+      "content": "For change-workflow projection signals, keep the full contract aligned in one slice: signal payload schema, signal-name constant, client message binding, workflow local binding/handler, pure state helper, message-surface fixture, and search-attribute tests. Existing signalMutation success path already upserts AdvEpicId when state.epic_membership changes.",
+      "source_task": "tk-4af9c75a5196",
+      "recorded_at": "2026-06-25T22:04:05.175Z"
+    },
+    {
+      "id": "ws-t-PPwn",
+      "type": "gotcha",
+      "content": "Same-project Epic link/unlink/move must mutate the child change through Store.changes APIs, not only the Epic workflow. Keeping Epic entry state and child epic_membership projection in sync requires explicit expected identity checks on clear/move; otherwise unlink can erase the wrong projection or move can silently overwrite another Epic membership.",
+      "source_task": "tk-e7549ee678a1",
+      "recorded_at": "2026-06-25T22:22:33.707Z"
+    },
+    {
+      "id": "ws-ofU62M",
+      "type": "pattern",
+      "content": "Cross-project Epic membership routing should keep the Epic workflow owner-local and route only child projection mutations through `withTargetPathStore`; link/move entries need explicit `changeProjectId`, `repoId`, and `targetPath` refs so the owner Epic can represent product-scope membership without mutating untrusted targets silently.",
+      "source_task": "tk-cfaab7c29934",
+      "recorded_at": "2026-06-25T22:40:25.466Z"
+    },
+    {
+      "id": "ws-JDsb5L",
+      "type": "pattern",
+      "content": "Epic repair/status surface work needs both mutation and presentation paths in one verified slice: member_status mapping in map/compact output, workflow/store membership-status signal, tool registry/allowlist/title surfaces, and targeted tests for repair modes plus CLI bridge contract.",
+      "source_task": "tk-8dfa0ebf9767",
+      "recorded_at": "2026-06-25T23:14:25.732Z"
+    },
+    {
+      "id": "ws-W2n8ze",
+      "type": "gotcha",
+      "content": "Spec/docs asset tasks can look green before new scope is actually locked: update both .adv/specs JSON and docs/specs markdown, then strengthen asset tests to assert the new rq-* IDs and ADV_INSTRUCTIONS/tool-matrix wording so future changes cannot drift silently.",
+      "source_task": "tk-6edec80ed965",
+      "recorded_at": "2026-06-25T23:21:07.196Z"
+    },
+    {
+      "id": "ws-toBej_",
+      "type": "success",
+      "content": "Epic integrated verification can be bounded but high-confidence by combining the Epic-focused targeted matrix (types, state, workflow, visibility, store, tools, assets, registry), `pnpm run check`, and repo-local `bin/oc-test full`; this catches both focused retrofit regressions and wider repo contract drift.",
+      "source_task": "tk-00c0cbcc9c4d",
+      "recorded_at": "2026-06-25T23:25:50.027Z"
+    }
+  ],
+  "count": 14
+}

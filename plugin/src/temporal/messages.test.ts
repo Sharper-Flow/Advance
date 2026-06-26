@@ -24,6 +24,8 @@ import {
   ContractReviewMatrixSetSignalPayloadSchema,
   ContractSetSignalPayloadSchema,
   DesignUpdatedSignalPayloadSchema,
+  EpicMembershipClearedSignalPayloadSchema,
+  EpicMembershipSetSignalPayloadSchema,
   ExecutiveSummaryUpdatedSignalPayloadSchema,
   GateAwaitingApprovalSignalPayloadSchema,
   GateCompletedSignalPayloadSchema,
@@ -94,6 +96,8 @@ const designSignalKeys = [
   "opsFollowupSeeded",
   "opsFollowupLinkAdded",
   "opsEvidenceAppended",
+  "epicMembershipSet",
+  "epicMembershipCleared",
   "updateArtifactMetadata",
   "archiveChange",
   "closeChange",
@@ -109,11 +113,11 @@ const designQueryKeys = [
 ] as const;
 
 describe("change workflow message contract", () => {
-  it("defines the 44 signal surface", () => {
+  it("defines the 46 signal surface", () => {
     const surfacedKeys = Object.keys(CHANGE_WORKFLOW_SIGNAL_NAMES);
 
     expect(surfacedKeys).toEqual([...designSignalKeys]);
-    expect(surfacedKeys).toHaveLength(44);
+    expect(surfacedKeys).toHaveLength(46);
 
     for (const key of designSignalKeys) {
       expect(CHANGE_WORKFLOW_SIGNAL_NAMES[key]).toBe(`adv.change.${key}`);
@@ -425,6 +429,29 @@ describe("change workflow message contract", () => {
             summary: "migration started",
           },
           appendedAt: timestamp,
+        },
+      ],
+      [
+        EpicMembershipSetSignalPayloadSchema,
+        {
+          membership: {
+            epic_id: "productAuthEpic",
+            entry_id: "en-001",
+            order: 0,
+            title: "Add OAuth",
+            linked_at: timestamp,
+            epic_project_id: "project-web",
+            repo_id: "pokeedge-web",
+            source: "link_existing",
+          },
+          setAt: timestamp,
+        },
+      ],
+      [
+        EpicMembershipClearedSignalPayloadSchema,
+        {
+          expected: { epic_id: "productAuthEpic", entry_id: "en-001" },
+          clearedAt: timestamp,
         },
       ],
       [

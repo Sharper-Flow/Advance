@@ -243,6 +243,22 @@ describe("visibility search-attribute status reader", () => {
     expect(summary?.lastActivityAt).toBe("2026-06-05T15:00:00.000Z");
   });
 
+  test("carries epicId from AdvEpicId search attribute", () => {
+    const summary = buildSummaryFromSearchAttributes(
+      "epicMember",
+      {
+        AdvChangeTitle: ["Epic member"],
+        AdvChangeStatus: ["active"],
+        AdvLifecycleState: ["open"],
+        AdvCurrentGate: ["execution"],
+        AdvLastSignalAt: ["2026-06-05T16:00:00.000Z"],
+        AdvEpicId: ["addAuthEpic"],
+      },
+      now,
+    );
+    expect(summary?.epicId).toBe("addAuthEpic");
+  });
+
   test("summariesFromVisibility maps executions, drops terminal-complete, sorts by activity desc", async () => {
     const summaries = await summariesFromVisibility(
       fakeVisibilityClient([

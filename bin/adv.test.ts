@@ -113,8 +113,9 @@ describe("adv roadmap dispatcher", () => {
     );
     expect(exitCode).toBe(0);
     const parsed = JSON.parse(stdout);
-    expect(parsed.active_change_annotation).toBe("unavailable_cli_file_mode");
-    expect(parsed.features).toHaveLength(1);
+      expect(parsed.active_change_annotation).toBe("unavailable_cli_file_mode");
+      expect(parsed.epic_annotation).toBe("unavailable_cli_file_mode");
+      expect(parsed.features).toHaveLength(1);
   });
 
   test("invalid --kind exits 2", async () => {

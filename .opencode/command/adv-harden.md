@@ -84,6 +84,8 @@ All release-owned dimensions must be checked or marked N/A with evidence. Skippi
 
 `adv_change_show changeId: <target> include: { snapshot: true }` — returns change + rendered gate snapshot in one call. The included `gates` field is sufficient for the prerequisite check below.
 
+If the change has `epic_membership`, load compact Epic context with `adv_epic_show epic_id: {epic_id}` and include it in sub-agent prompts. Epic order is advisory; do not block harden due to incomplete earlier Epic entries.
+
 ### Gate Prerequisite Check
 
 Inspect `gates.acceptance.status` on the loaded change. Fall back to `adv_gate_status changeId: {change-id}` only when a fresh structured breakdown is needed.
@@ -241,8 +243,9 @@ CONTRACT PROOF:
   - contract.reviewMatrix: {passed}/{total} required rows passed/respected
   - unresolved: {fail|violated|unknown rows}
 TASK EVIDENCE SUMMARY:
-  - {task-id}: {title} | {status} | tdd: {phase}
+  - {task-id}: {title} | {status} | type: {type} | evidence_policy: {evidence_policy} | tdd: {phase}
   - ...
+EPIC CONTEXT: {if epic_membership present: Epic id/title/entry order/title; otherwise "none"}
 EXPECTED OUTPUT: {dimension-specific JSON schema}
 ```
 

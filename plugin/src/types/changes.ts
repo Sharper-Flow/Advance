@@ -20,6 +20,7 @@ import {
 import { DeltaSchema } from "./specs";
 import { WisdomEntrySchema } from "./wisdom";
 import { GatesSchema, GateIdSchema } from "./gates";
+import { EpicMembershipSchema } from "./epics";
 export {
   ContractEvidencePolicySchema,
   type ContractEvidencePolicy,
@@ -862,6 +863,13 @@ export const ChangeSchema = z
      * Optional for backward compatibility; additive and idempotent by link id.
      */
     ops_followup_links: z.array(OpsFollowupLinkSchema).optional(),
+
+    /**
+     * Optional Epic membership projection for child changes.
+     * V1: a change may belong to zero or one Epic. Enables fast Epic context
+     * loading and Visibility lookup via AdvEpicId search attribute.
+     */
+    epic_membership: EpicMembershipSchema.optional(),
   })
   .passthrough(); // Allow extra fields for forward/backward compatibility
 

@@ -62,6 +62,10 @@ export function buildChangeWorkflowId(
   return `${CHANGE_WORKFLOW_PREFIX}${projectId}/${changeId}`;
 }
 
+export function buildEpicWorkflowId(projectId: string, epicId: string): string {
+  return `adv/epic/${projectId}/${epicId}`;
+}
+
 export interface TemporalClientBundle {
   address: string;
   namespace: string;

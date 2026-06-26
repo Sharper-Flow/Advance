@@ -782,6 +782,9 @@ describe("deploy-local.sh", () => {
 
     test("canonical ADV prompt stays under the safe compression ceiling", () => {
       const lines = advAgent.split(/\r?\n/).length;
+      // Ceiling raised from 368 → 400 after adding Epic tools to the canonical
+      // allowlist, Epic context-loading instructions, and lifecycle-state
+      // invariant guidance to the canonical ADV agent.
       // Ceiling raised from 368 → 371 after documenting the change-lifecycle
       // state invariant in the canonical ADV prompt.
       // Ceiling raised from 365 → 368 after adding compact adv-temporal-repair
@@ -800,7 +803,7 @@ describe("deploy-local.sh", () => {
       // Ceiling raised from 371 → 372 after addDesignQualityGates shipped
       // adv_design_concern_disposition and we added it to the allowlists.
       // Re-ratchet here once the prompt has been audited for excess.
-      expect(lines).toBeLessThanOrEqual(372);
+      expect(lines).toBeLessThanOrEqual(400);
     });
 
     test("canonical ADV prompt keeps safety-critical markers", () => {

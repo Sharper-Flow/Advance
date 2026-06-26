@@ -107,6 +107,17 @@ If neither field is present → skip this phase (local change, normal flow).
 
 > **Gate requirement:** Lineage MUST be validated and confirmed by user before proceeding to agreement. This prevents stale or misdirected follow-up changes from being adopted blindly.
 
+#### Epic Membership
+
+If `adv_change_show` reveals `epic_membership`:
+
+1. Load compact Epic context with `adv_epic_show epic_id: {epic_id}`.
+2. Record the Epic title, current entry order, and entry title in the discovery findings.
+3. Use the Epic narrative to inform objectives and acceptance criteria, but do not let Epic order override user-confirmed scope.
+4. Epic membership is optional; if it is missing, continue the normal flow.
+
+> **Constraint:** Epic order is advisory. Warn if earlier entries are incomplete, but never block agreement or discovery gate completion solely because of order.
+
 ---
 
 ## Phase 1.5: Skill Discovery + Gap-Triggered Creation

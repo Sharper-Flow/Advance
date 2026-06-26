@@ -75,6 +75,8 @@ If `change.contract` exists, load it as planning input. Contract items are the o
 
 Then `adv_spec action: "list"` + `adv_spec action: "show"` for each affected capability.
 
+**Epic context:** if the change has `epic_membership`, load compact Epic context with `adv_epic_show epic_id: {epic_id}`. Consider Epic entry order as advisory when sequencing tasks, but do not hard-block later tasks or gates because of order.
+
 Stop if discovery or design gates are incomplete. `/adv-prep` analyzes validated design decisions — it must not backfill pre-implementation gates.
 
 If change has tasks marked `done`, treat as draft implementation — run full gap analysis, add reconciliation tasks where gaps found. × Do NOT rubber-stamp completed tasks.

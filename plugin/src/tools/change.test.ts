@@ -199,6 +199,17 @@ function createMockStore(
       reopenFrom: vi.fn(),
     },
     status: vi.fn(),
+    epics: {
+      create: vi.fn(),
+      get: vi.fn(async () => ({ success: true, data: null })),
+      list: vi.fn(async () => []),
+      update: vi.fn(),
+      addShell: vi.fn(),
+      promoteShell: vi.fn(),
+      linkChange: vi.fn(),
+      unlinkChange: vi.fn(),
+      reorder: vi.fn(),
+    },
   } as unknown as Store;
 }
 
@@ -1086,6 +1097,45 @@ describe("change tools — signal-driven lifecycle", () => {
         },
       ]);
     });
+    test("exposes compact Epic annotation from listSummary", async () => {
+      const store = createMockStore();
+      store.changes.listSummary = vi.fn().mockResolvedValue({
+        changes: [
+          {
+            id: "summary-epic",
+            title: "Summary Epic",
+            status: "active",
+            created_at: "2026-01-01T00:00:00Z",
+            lastActivityAt: "2026-01-01T01:00:00Z",
+            taskCount: 0,
+            completedTasks: 0,
+            epic_membership: {
+              epic_id: "addAuthEpic",
+              entry_id: "en-001",
+              order: 0,
+              title: "Add OAuth",
+              linked_at: "2026-01-01T00:00:00Z",
+            },
+          },
+        ],
+        hydrationStats: {
+          totalIds: 1,
+          fromMemo: 0,
+          fromCache: 0,
+          fromHydration: 1,
+        },
+      });
+
+      const result = await changeTools.adv_change_list.execute({}, store);
+      const parsed = JSON.parse(result);
+      const c = parsed.changes[0];
+      expect(c.epic).toEqual({
+        id: "addAuthEpic",
+        title: "Add OAuth",
+        entry_id: "en-001",
+      });
+      expect(store.epics.get).not.toHaveBeenCalled();
+    });
   });
 
   describe("adv_change_update", () => {
@@ -1267,6 +1317,31 @@ describe("change tools — signal-driven lifecycle", () => {
         await rm(tempRoot, { recursive: true, force: true });
       }
     });
+    test("include.snapshot renders compact Epic context line without hydrating Epic", async () => {
+      const store = createMockStore({
+        id: "epicChild",
+        title: "Epic child change",
+        epic_membership: {
+          epic_id: "addAuthEpic",
+          entry_id: "en-001",
+          order: 0,
+          title: "Add OAuth",
+          linked_at: "2026-06-24T00:00:00.000Z",
+        },
+      });
+
+      const result = await changeTools.adv_change_show.execute(
+        { changeId: "epicChild", include: { snapshot: true } },
+        store,
+      );
+      const parsed = JSON.parse(result);
+      expect(parsed._contextSnapshot).toEqual(expect.any(String));
+      expect(parsed._contextSnapshot).toContain("Epic:");
+      expect(parsed._contextSnapshot).toContain("addAuthEpic");
+      expect(parsed._contextSnapshot).toContain("Add OAuth");
+      // Default hot path must not call Epic store hydration.
+      expect(store.epics.get).not.toHaveBeenCalled();
+    });
   });
 
   describe("adv_change_create", () => {
@@ -1312,6 +1387,49 @@ describe("change tools — signal-driven lifecycle", () => {
           origin: expect.anything(),
         }),
       );
+    });
+    test("seeds epic_membership into create initialMetadata", async () => {
+      const store = createMockStore({ id: "epicMember" });
+      vi.mocked(store.changes.create).mockResolvedValueOnce({
+        changeId: "epicMember",
+        path: "/tmp/test/.adv/changes/epicMember/proposal.md",
+      });
+      const claimChecker = vi.fn().mockResolvedValue([]);
+
+      const result = await changeTools.adv_change_create.execute(
+        {
+          summary: "Epic member change",
+          epic_id: "addAuthEpic",
+          entry_id: "entry-1",
+          epic_order: 2,
+          epic_title: "Epic Entry One",
+        },
+        store,
+        undefined,
+        { claimChecker, claimRaceCheckMs: 0 },
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.epic_membership).toEqual({
+        epic_id: "addAuthEpic",
+        entry_id: "entry-1",
+        order: 2,
+        title: "Epic Entry One",
+        linked_at: expect.any(String),
+      });
+      expect(store.changes.create).toHaveBeenCalledWith("Epic member change", {
+        capability: undefined,
+        artifacts: {},
+        initialMetadata: {
+          epic_membership: {
+            epic_id: "addAuthEpic",
+            entry_id: "entry-1",
+            order: 2,
+            title: "Epic Entry One",
+            linked_at: expect.any(String),
+          },
+        },
+      });
     });
   });
 

@@ -378,6 +378,9 @@ export async function createDiskStore(
           ...(initialMetadata?.scope_repos !== undefined
             ? { scope_repos: initialMetadata.scope_repos }
             : {}),
+          ...(initialMetadata?.epic_membership !== undefined
+            ? { epic_membership: initialMetadata.epic_membership }
+            : {}),
         } as Change;
         await saveChange(paths.changes, change);
 
@@ -525,6 +528,30 @@ export async function createDiskStore(
       // (which does cache) can satisfy the contract.
       refresh: async (_changeId: string): Promise<void> => {
         // intentional no-op
+      },
+      setEpicMembership: async (changeId, { membership }) => {
+        const result = await loadChange(paths.changes, changeId);
+        if (!result.success || !result.data) return null;
+        result.data.epic_membership = membership;
+        await saveChange(paths.changes, result.data);
+        return result.data;
+      },
+      clearEpicMembership: async (changeId, { expected }) => {
+        const result = await loadChange(paths.changes, changeId);
+        if (!result.success || !result.data) return null;
+        const current = result.data.epic_membership;
+        if (
+          !current ||
+          current.epic_id !== expected.epic_id ||
+          current.entry_id !== expected.entry_id
+        ) {
+          throw new Error(
+            `Cannot clear Epic membership: current projection does not match expected Epic ${expected.epic_id} entry ${expected.entry_id}`,
+          );
+        }
+        delete result.data.epic_membership;
+        await saveChange(paths.changes, result.data);
+        return result.data;
       },
     },
 
@@ -902,6 +929,43 @@ export async function createDiskStore(
           },
         ];
         await saveChange(paths.changes, result.data);
+      },
+    },
+
+    // -------------------------------------------------------------------
+    // Epics — disk-only backend does not persist Epic state. Temporal store
+    // overrides this with workflow-backed Epic operations.
+    // -------------------------------------------------------------------
+    epics: {
+      create: async () => {
+        throw new Error("Epics require the Temporal store backend.");
+      },
+      get: async () =>
+        ({
+          success: true,
+          data: null,
+        }) as LoadResult<null>,
+      list: async () => [],
+      update: async () => {
+        throw new Error("Epics require the Temporal store backend.");
+      },
+      addShell: async () => {
+        throw new Error("Epics require the Temporal store backend.");
+      },
+      promoteShell: async () => {
+        throw new Error("Epics require the Temporal store backend.");
+      },
+      linkChange: async () => {
+        throw new Error("Epics require the Temporal store backend.");
+      },
+      unlinkChange: async () => {
+        throw new Error("Epics require the Temporal store backend.");
+      },
+      setEntryMembershipStatus: async () => {
+        throw new Error("Epics require the Temporal store backend.");
+      },
+      reorder: async () => {
+        throw new Error("Epics require the Temporal store backend.");
       },
     },
 

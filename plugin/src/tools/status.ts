@@ -639,6 +639,13 @@ async function enrichRecentChangeStatus(
 
   Object.assign(rc, {
     parent_change_id: changeResult.data.fast_follow_of?.parent_change_id,
+    epic: changeResult.data.epic_membership
+      ? {
+          id: changeResult.data.epic_membership.epic_id,
+          title: changeResult.data.epic_membership.title,
+          entry_id: changeResult.data.epic_membership.entry_id,
+        }
+      : undefined,
     _contextSnapshot: isPrimary
       ? buildChangeContextSnapshot(snapshotInput)
       : buildChangeContextTicker(snapshotInput),
@@ -1736,6 +1743,11 @@ export const statusTools = {
                   title: c.title,
                   minutesSinceActivity: c.minutesSinceActivity,
                   parent_change_id: c.parent_change_id,
+                  epic: (
+                    c as {
+                      epic?: { id: string; title: string; entry_id: string };
+                    }
+                  ).epic,
                 })),
                 archivedCount: status.changes.byStatus.archived ?? 0,
                 recommendations: status.recommendations,

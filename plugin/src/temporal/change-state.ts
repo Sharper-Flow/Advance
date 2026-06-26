@@ -25,6 +25,8 @@ import type {
   GateInProgressSignalPayload,
   GateReenteredSignalPayload,
   GateStuckSignalPayload,
+  EpicMembershipClearedSignalPayload,
+  EpicMembershipSetSignalPayload,
   OpsEvidenceAppendedSignalPayload,
   OpsFollowupLinkAddedSignalPayload,
   OpsFollowupSeededSignalPayload,
@@ -169,6 +171,7 @@ export function changeSeedStateFromChange(
     signal_rejections_total: safeChange.signal_rejections_total,
     ops_followup: safeChange.ops_followup,
     ops_followup_links: safeChange.ops_followup_links,
+    epic_membership: safeChange.epic_membership,
   };
 }
 
@@ -285,6 +288,78 @@ export function applyOpsEvidenceAppendedToState(
     updated_at: payload.appendedAt,
   };
   setLastSignalAt(state, payload.appendedAt);
+  return state;
+}
+
+function epicMembershipIdentity(
+  membership: NonNullable<ChangeWorkflowState["epic_membership"]>,
+) {
+  return {
+    epic_id: membership.epic_id,
+    entry_id: membership.entry_id,
+  };
+}
+
+function epicMembershipMatches(
+  membership: NonNullable<ChangeWorkflowState["epic_membership"]>,
+  expected: { epic_id: string; entry_id: string },
+): boolean {
+  return (
+    membership.epic_id === expected.epic_id &&
+    membership.entry_id === expected.entry_id
+  );
+}
+
+export function applyEpicMembershipSetToState(
+  state: ChangeWorkflowState,
+  payload: EpicMembershipSetSignalPayload,
+): ChangeWorkflowState {
+  const current = state.epic_membership;
+  if (current) {
+    const sameTarget = epicMembershipMatches(current, {
+      epic_id: payload.membership.epic_id,
+      entry_id: payload.membership.entry_id,
+    });
+    const expectedMatches = payload.expectedCurrent
+      ? epicMembershipMatches(current, payload.expectedCurrent)
+      : false;
+    const moveAllowed = payload.membership.source === "move" && expectedMatches;
+
+    if (!sameTarget && !moveAllowed) {
+      const currentIdentity = epicMembershipIdentity(current);
+      throw new Error(
+        `Cannot set Epic membership: change already belongs to Epic ${currentIdentity.epic_id} entry ${currentIdentity.entry_id}`,
+      );
+    }
+  } else if (payload.membership.source === "move" && payload.expectedCurrent) {
+    throw new Error(
+      `Cannot move Epic membership: expected current Epic ${payload.expectedCurrent.epic_id} entry ${payload.expectedCurrent.entry_id}, but change has no Epic membership`,
+    );
+  }
+
+  state.epic_membership = payload.membership;
+  setLastSignalAt(state, payload.setAt);
+  return state;
+}
+
+export function applyEpicMembershipClearedToState(
+  state: ChangeWorkflowState,
+  payload: EpicMembershipClearedSignalPayload,
+): ChangeWorkflowState {
+  const current = state.epic_membership;
+  if (!current) {
+    throw new Error(
+      `Cannot clear Epic membership: expected Epic ${payload.expected.epic_id} entry ${payload.expected.entry_id}, but change has no Epic membership`,
+    );
+  }
+  if (!epicMembershipMatches(current, payload.expected)) {
+    throw new Error(
+      `Cannot clear Epic membership: current Epic ${current.epic_id} entry ${current.entry_id} does not match expected Epic ${payload.expected.epic_id} entry ${payload.expected.entry_id}`,
+    );
+  }
+
+  delete state.epic_membership;
+  setLastSignalAt(state, payload.clearedAt);
   return state;
 }
 
