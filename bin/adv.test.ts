@@ -62,6 +62,8 @@ describe("adv dispatcher metadata", () => {
     const { exitCode, stdout } = await runAdv(["--help"]);
     expect(exitCode).toBe(0);
     expect(stdout).toContain("USAGE:");
+    expect(stdout).toContain("epic list");
+    expect(stdout).toContain("status, roadmap, slop-scan, or epic list");
     expect(stdout.match(/--json/g)).toHaveLength(1);
   });
 
@@ -179,6 +181,58 @@ describe("adv slop-scan dispatcher", () => {
     expect(parsed.scope.languages).toContain("typescript");
     expect(parsed.coverage.detectors.length).toBeGreaterThan(0);
     expect(parsed.summary.total).toBe(parsed.findings.length);
+  });
+});
+
+describe("adv epic list dispatcher", () => {
+  test("--json outputs live Temporal Epic list payload", async () => {
+    const tmp = mkdtempSync(join(tmpdir(), "adv-epic-list-"));
+    const initProc = Bun.spawn(
+      ["git", "-c", "init.defaultBranch=trunk", "init", "--quiet"],
+      { cwd: tmp },
+    );
+    await initProc.exited;
+    const commitProc = Bun.spawn(
+      ["git", ...GIT_TEST_IDENTITY, "commit", "--allow-empty", "-m", "init"],
+      { cwd: tmp },
+    );
+    await commitProc.exited;
+
+    const { exitCode, stdout } = await runAdv(["epic", "list", "--json"], tmp);
+
+    expect(exitCode).toBe(0);
+    const parsed = JSON.parse(stdout);
+    expect(parsed.source).toBe("temporal");
+    expect(parsed.live).toBe(true);
+    expect(parsed.stale).toBe(false);
+    expect(typeof parsed.project_id).toBe("string");
+    expect(Array.isArray(parsed.epics)).toBe(true);
+  });
+
+  test("non-json mode exits 2 with guidance", async () => {
+    const { exitCode, stderr } = await runAdv(["epic", "list"]);
+    expect(exitCode).toBe(2);
+    expect(stderr).toContain("--json");
+  });
+
+  test("unknown nested command exits 2", async () => {
+    const { exitCode, stderr } = await runAdv(["epic", "create", "demo"]);
+    expect(exitCode).toBe(2);
+    expect(stderr).toContain("unknown command");
+  });
+
+  test("outside git repo fails closed with JSON metadata", async () => {
+    const tmp = mkdtempSync(join(tmpdir(), "adv-epic-list-nongit-"));
+    const { exitCode, stdout } = await runAdv(["epic", "list", "--json"], tmp);
+
+    expect(exitCode).not.toBe(0);
+    const parsed = JSON.parse(stdout);
+    expect(parsed.source).toBe("temporal");
+    expect(parsed.live).toBe(false);
+    expect(parsed.stale).toBe(false);
+    expect(parsed.project_id).toBeNull();
+    expect(parsed.epics).toEqual([]);
+    expect(parsed.error).toContain("not in a git repo");
   });
 });
 

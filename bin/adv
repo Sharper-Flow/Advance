@@ -52,6 +52,11 @@ import {
   QUERY_TIMEOUT_MS,
   loadLiveSummaries,
 } from "./lib/live-status";
+import {
+  buildLiveEpicListFailure,
+  buildLiveEpicListPayload,
+  loadLiveEpicIds,
+} from "./lib/epic-list";
 
 // =============================================================================
 // Constants
@@ -209,6 +214,74 @@ async function runSlopScanCommand(
   else
     process.stdout.write(renderSlopScanReport(report, shouldUseColor(noColor)));
   return 0;
+}
+
+async function runEpicListCommand(json: boolean): Promise<number> {
+  const now = new Date();
+  if (!json) {
+    process.stderr.write("epic list: --json is required. Use `adv epic list --json`.\n");
+    return 2;
+  }
+
+  const projectId = await resolveProjectId(process.cwd());
+  if (!projectId) {
+    process.stdout.write(
+      emitJson(
+        buildLiveEpicListFailure(
+          null,
+          new Error("not in a git repo (or git unavailable)"),
+          now,
+        ),
+      ) + "\n",
+    );
+    return 1;
+  }
+
+  const rawTimeout = Number(process.env.ADV_STATUS_TIMEOUT_MS);
+  const timeoutMs =
+    Number.isFinite(rawTimeout) && rawTimeout > 0
+      ? rawTimeout
+      : QUERY_TIMEOUT_MS;
+
+  try {
+    const ids = await loadLiveEpicIds(projectId, timeoutMs);
+    process.stdout.write(
+      emitJson(buildLiveEpicListPayload(ids, { projectId, now })) + "\n",
+    );
+    return 0;
+  } catch (err) {
+    process.stdout.write(
+      emitJson(buildLiveEpicListFailure(projectId, err, now)) + "\n",
+    );
+    return 2;
+  }
+}
+
+async function runEpic(argv: string[]): Promise<number> {
+  const nested = argv[0];
+  if (nested !== "list") {
+    process.stderr.write(`epic: unknown command: ${nested ?? ""}. Use epic list.\n`);
+    return 2;
+  }
+
+  let values: Record<string, unknown>;
+  try {
+    const parsed = parseArgs({
+      args: argv.slice(1),
+      options: {
+        json: { type: "boolean" },
+      },
+      allowPositionals: false,
+      strict: true,
+    });
+    values = parsed.values as Record<string, unknown>;
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    process.stderr.write(`epic list: ${msg}\n`);
+    return 2;
+  }
+
+  return runEpicListCommand((values.json as boolean) ?? false);
 }
 
 async function runDashboard(argv: string[]): Promise<number> {
@@ -466,12 +539,13 @@ SUBCOMMANDS:
   dashboard doctor      Check dashboard user service health
   roadmap              Show prioritized backlog from file snapshot
   slop-scan            Run deterministic slop scanner
+  epic list            Show live Epic IDs from Temporal Visibility
 
 FLAGS (global):
   -h, --help              Show this help
   -v, --version           Print version
       --no-color          Disable ANSI colors (also: NO_COLOR=1)
-      --json              Output JSON for status, roadmap, or slop-scan
+      --json              Output JSON for status, roadmap, slop-scan, or epic list
 
 FLAGS (roadmap only):
       --kind {bug|feature|all}
@@ -495,6 +569,7 @@ EXIT CODES:
   1  Not in a git repo, git failure, or unknown command
   2  Live Temporal status unavailable (status)
      Roadmap snapshot missing (roadmap)
+     Epic list unavailable (epic list)
      Dashboard config/server error (dashboard)
 
 DOCS:
@@ -656,6 +731,10 @@ async function main(argv: string[]): Promise<number> {
       (slopValues.json as boolean) ?? false,
       slopPositionals[0] ?? ".",
     );
+  }
+
+  if (subcommand === "epic") {
+    return runEpic(argv.slice(1));
   }
 
   if (subcommand === "dashboard") {
