@@ -1340,6 +1340,7 @@ New changes start directly in the 7-gate model.
 | `/adv-status`             | Project overview                                                          |
 | `/adv-idea`               | Explore rough ideas before drafting a proposal                            |
 | `/adv-problem`            | Triage issues before fixing or drafting a proposal                        |
+| `/adv-epic`               | Create Epics with goal-first workflow                                     |
 | `/adv-proposal <summary>` | Extract problem statement and confirm with user                           |
 | `/adv-discover <id>`      | Gather context, identify objectives, and confirm agreement                |
 | `/adv-design <id>`        | Validate architecture decisions, produce strategy, and present for review |
