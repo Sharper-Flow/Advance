@@ -1,0 +1,12 @@
+{
+  "entries": [
+    {
+      "id": "ws-LXZe9r",
+      "type": "pattern",
+      "content": "For dashboard/API polling surfaces, keep the pure state-builder function separate from a server-lifetime state provider. Wire handlers to one provider instance at server startup so tests can assert TTL caching and in-flight Promise coalescing without hiding direct builder behavior.",
+      "source_task": "tk-9dcd9f1741fa",
+      "recorded_at": "2026-06-26T01:36:39.036Z"
+    }
+  ],
+  "count": 1
+}
