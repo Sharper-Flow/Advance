@@ -34,6 +34,16 @@ export interface DashboardApiState {
   projects: DashboardProjectState[];
 }
 
+export interface DashboardChangeDetail {
+  schema_version: 1;
+  generated_at: string;
+  project: Pick<DashboardProjectState, "id" | "label" | "path" | "project_id">;
+  change: DashboardProjectState["changes"][number];
+  command: string;
+  deeper: unknown | null;
+  degradedSources: DashboardDegradedSource[];
+}
+
 export interface DashboardStateDeps {
   now?: () => Date;
   readerTimeoutMs?: number;
@@ -281,6 +291,11 @@ function withTimeout<T>(
 export interface DashboardHandlerOptions {
   config: DashboardConfig;
   stateBuilder?: () => Promise<DashboardApiState>;
+  detailReader?: (
+    project: DashboardProjectState,
+    change: DashboardProjectState["changes"][number],
+  ) => Promise<unknown>;
+  detailReadTimeoutMs?: number;
   html?: string;
 }
 
@@ -301,6 +316,23 @@ export function createDashboardHandler(options: DashboardHandlerOptions) {
       const state = await stateBuilder();
       return Response.json(state);
     }
+    const apiDetail = parseDetailPath(url.pathname, "/api/change");
+    if (apiDetail) {
+      const detail = await buildChangeDetail(
+        stateBuilder,
+        apiDetail.projectId,
+        apiDetail.changeId,
+        options.detailReader,
+        options.detailReadTimeoutMs ?? 5_000,
+      );
+      if (!detail) return Response.json({ error: "change not found" }, { status: 404 });
+      return Response.json(detail);
+    }
+    if (parseDetailPath(url.pathname, "/change")) {
+      return new Response(options.html ?? defaultDashboardHtml(), {
+        headers: { "content-type": "text/html; charset=utf-8" },
+      });
+    }
     if (url.pathname === "/") {
       return new Response(options.html ?? defaultDashboardHtml(), {
         headers: { "content-type": "text/html; charset=utf-8" },
@@ -308,6 +340,82 @@ export function createDashboardHandler(options: DashboardHandlerOptions) {
     }
     return new Response("Not Found", { status: 404 });
   };
+}
+
+function parseDetailPath(
+  pathname: string,
+  prefix: "/api/change" | "/change",
+): { projectId: string; changeId: string } | null {
+  const prefixParts = prefix.split("/").filter(Boolean);
+  const parts = pathname.split("/").filter(Boolean);
+  if (parts.length !== prefixParts.length + 2) return null;
+  if (!prefixParts.every((part, index) => parts[index] === part)) return null;
+  const projectId = safeDecodePathPart(parts[prefixParts.length]);
+  const changeId = safeDecodePathPart(parts[prefixParts.length + 1]);
+  if (!projectId || !changeId) return null;
+  return { projectId, changeId };
+}
+
+function safeDecodePathPart(value: string | undefined): string | null {
+  if (!value) return null;
+  try {
+    const decoded = decodeURIComponent(value).trim();
+    return decoded.length > 0 ? decoded : null;
+  } catch {
+    return null;
+  }
+}
+
+async function buildChangeDetail(
+  stateBuilder: () => Promise<DashboardApiState>,
+  projectId: string,
+  changeId: string,
+  detailReader: DashboardHandlerOptions["detailReader"],
+  timeoutMs: number,
+): Promise<DashboardChangeDetail | null> {
+  const state = await stateBuilder();
+  const project = state.projects.find(
+    (candidate) => candidate.id === projectId || candidate.project_id === projectId,
+  );
+  if (!project) return null;
+  const change = project.changes.find((candidate) => candidate.id === changeId);
+  if (!change) return null;
+
+  let deeper: unknown | null = null;
+  const degradedSources = [...project.degradedSources];
+  if (detailReader) {
+    try {
+      deeper = await withTimeout(
+        detailReader(project, change),
+        timeoutMs,
+        () => new Error("ADV_DETAIL_READ_TIMEOUT"),
+      );
+    } catch (error) {
+      const timedOut = error instanceof Error && error.message === "ADV_DETAIL_READ_TIMEOUT";
+      degradedSources.push({
+        source: "adv",
+        code: timedOut ? "ADV_DETAIL_READ_TIMEOUT" : "ADV_DETAIL_READ_FAILED",
+        message: timedOut
+          ? "ADV detail read timed out; compact detail remains visible."
+          : "ADV detail read failed; compact detail remains visible.",
+      });
+    }
+  }
+
+  return sanitizeDashboardState({
+    schema_version: 1,
+    generated_at: state.generated_at,
+    project: {
+      id: project.id,
+      label: project.label,
+      path: project.path,
+      project_id: project.project_id,
+    },
+    change,
+    command: `adv_change_show(changeId: ${JSON.stringify(change.id)})`,
+    deeper,
+    degradedSources,
+  });
 }
 
 export interface DashboardServerOptions {

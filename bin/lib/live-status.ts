@@ -234,6 +234,19 @@ function searchAttributeString(
   return str.length > 0 ? str : undefined;
 }
 
+function searchAttributeStrings(
+  attrs: Record<string, unknown> | null | undefined,
+  key: string,
+): string[] | undefined {
+  if (!attrs) return undefined;
+  const raw = attrs[key];
+  const values = Array.isArray(raw) ? raw : raw === undefined ? [] : [raw];
+  const strings = values
+    .map((value) => (value instanceof Date ? value.toISOString() : String(value).trim()))
+    .filter((value) => value.length > 0);
+  return strings.length > 0 ? strings : undefined;
+}
+
 /**
  * Synthesize a 7-gate map from the `AdvCurrentGate` search attribute.
  * Gates before the current gate are `done`; the current gate and later
@@ -298,6 +311,8 @@ export function buildSummaryFromSearchAttributes(
     firstIncompleteGate: incomplete,
     gateProgressStr: buildGateProgress(gates),
     epicId: searchAttributeString(attrs, "AdvEpicId"),
+    worktreeBranches: searchAttributeStrings(attrs, "AdvWorktreeBranches"),
+    worktreePaths: searchAttributeStrings(attrs, "AdvWorktreePaths"),
   };
 }
 
