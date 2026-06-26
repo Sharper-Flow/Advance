@@ -1,0 +1,1430 @@
+{
+  "id": "hardenDashboardReads",
+  "title": "Harden dashboard reads",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-06-26T18:52:25.047Z",
+  "tasks": [
+    {
+      "id": "tk-b56c22828fd1",
+      "title": "Add durable dashboard worker-free read law",
+      "type": "docs",
+      "section": "Spec law",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-06-26T19:19:42.370Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "inline_required",
+        "frontend": "false"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC5",
+          "C7",
+          "C8"
+        ],
+        "verifies": [
+          "AC1",
+          "AC3",
+          "AC8",
+          "AC9"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "C7",
+          "C8",
+          "C9",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "static_check",
+      "assignedTo": "agent",
+      "started_at": "2026-06-26T19:24:14.958Z",
+      "verification": "RED: bin/oc-test targeted -- src/cli-bridge-contract.test.ts failed on missing rq-dashboardWorkerFree01. GREEN: same targeted test passed (19 tests). VERIFY: pnpm run schemas:check passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".adv/specs/advance-meta/spec.json",
+        "docs/specs/advance-meta.md",
+        "plugin/src/cli-bridge-contract.test.ts"
+      ],
+      "touched_files": [
+        ".adv/specs/advance-meta/spec.json",
+        "docs/specs/advance-meta.md",
+        "plugin/src/cli-bridge-contract.test.ts"
+      ],
+      "checkpointSha": "101fb48b2af3e03f702ddbebe130d80e0cddf984",
+      "completedAt": "2026-06-26T19:32:00.229Z",
+      "completed_at": "2026-06-26T19:32:00.229Z"
+    },
+    {
+      "id": "tk-dd41082e9e6a",
+      "title": "Make routine dashboard summaries Visibility-only",
+      "type": "code",
+      "section": "Worker-free model",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-06-26T19:20:07.444Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required",
+        "frontend": "false"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "AC1",
+          "AC2",
+          "AC3",
+          "C7",
+          "C8"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "C7",
+          "C8",
+          "C9",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-26T19:32:51.945Z",
+      "verification": "RED: bun test bin/lib/dashboard/adv.test.ts bin/lib/live-status.test.ts failed on routine ops enrichment call and missing Visibility worktree arrays. GREEN: same command passed (20 tests). VERIFY: bun test bin/lib/dashboard bin/lib/live-status.test.ts passed (59 tests). Static search: no dashboard loadLiveStatus/getState routine references found.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "bin/lib/dashboard/adv.test.ts",
+        "bin/lib/dashboard/adv.ts",
+        "bin/lib/live-status.test.ts",
+        "bin/lib/live-status.ts",
+        "bin/lib/types.ts"
+      ],
+      "touched_files": [
+        "bin/lib/dashboard/adv.test.ts",
+        "bin/lib/dashboard/adv.ts",
+        "bin/lib/live-status.test.ts",
+        "bin/lib/live-status.ts",
+        "bin/lib/types.ts"
+      ],
+      "checkpointSha": "aeff90d27af8022f4526ef4c2b3ce77f9d864b53",
+      "completedAt": "2026-06-26T19:38:56.832Z",
+      "completed_at": "2026-06-26T19:38:56.832Z"
+    },
+    {
+      "id": "tk-89f1416b45fb",
+      "title": "Add bounded read-only ADV detail route",
+      "type": "code",
+      "section": "Detail backend",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-06-26T19:20:35.723Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required",
+        "frontend": "false"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC2",
+          "SC3",
+          "AC4",
+          "AC5",
+          "AC8",
+          "C1",
+          "C2",
+          "C4",
+          "C6",
+          "C9"
+        ],
+        "verifies": [
+          "AC4",
+          "AC5",
+          "AC8"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "C7",
+          "C8",
+          "C9",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-26T19:39:31.646Z",
+      "verification": "RED: bun test bin/lib/dashboard/server.test.ts failed on missing detail API/page routes. GREEN: same server test passed (11 tests). VERIFY: bun test bin/lib/dashboard bin/lib/live-status.test.ts passed (62 tests).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "bin/lib/dashboard/server.test.ts",
+        "bin/lib/dashboard/server.ts"
+      ],
+      "touched_files": [
+        "bin/lib/dashboard/server.test.ts",
+        "bin/lib/dashboard/server.ts"
+      ],
+      "checkpointSha": "d33588750e5befdcfe184a75466ac4aa78fb61bd",
+      "completedAt": "2026-06-26T19:44:04.477Z",
+      "completed_at": "2026-06-26T19:44:04.477Z"
+    },
+    {
+      "id": "tk-d028f5ee489b",
+      "title": "Implement clickable cards, two-level detail UI, and source-health context",
+      "type": "code",
+      "section": "Dashboard UI",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-06-26T19:21:01.235Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-dd41082e9e6a"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-89f1416b45fb"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed",
+        "frontend": "true"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC2",
+          "SC3",
+          "SC4",
+          "SC5",
+          "AC4",
+          "AC6",
+          "AC7",
+          "AC8",
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5"
+        ],
+        "verifies": [
+          "AC4",
+          "AC6",
+          "AC7",
+          "AC8"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "C7",
+          "C8",
+          "C9",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-26T19:44:42.254Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "hardenDashboardReads",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/hardenDashboardReads",
+          "task_id": "tk-d028f5ee489b",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-d028f5ee489b"
+          },
+          "agent": "adv-designer",
+          "status": "complete",
+          "files_touched": [
+            "bin/lib/dashboard/ui.ts",
+            "bin/lib/dashboard/ui.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "bun test bin/lib/dashboard/ui.test.ts",
+              "exit_code": 0,
+              "summary": "12 pass / 0 fail (118 expect). RED→GREEN: clickable local detail links, detail-mode fetch of /api/change, compact detail fields, deeper disclosure, source-health context, escaping/safeUrl/no-mutation."
+            },
+            {
+              "command": "bun test bin/lib/dashboard bin/lib/live-status.test.ts",
+              "exit_code": 0,
+              "summary": "68 pass / 0 fail across 9 files. No regressions in server/attention/correlation/live-status."
+            },
+            {
+              "command": "grep -c 'change.json|agreement.md|proposal.md|.jsonl' bin/lib/dashboard/ui.ts",
+              "exit_code": 1,
+              "summary": "0 matches — no raw ADV state-file links rendered."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Thread projectId from render scope into itemHtml/advChangeHtml/changeStatusHtml/groupHtml/sourceDetailsHtml rather than embedding project id on every lane item",
+              "why": "Lane item types (ChangeStatusLaneItem/AdvChangeLaneItem) carry changeId but no project id; render() already iterates state.projects so project.id is available at render time. Avoids touching backend item shapes (attention.ts) — keeps change UI-only."
+            },
+            {
+              "what": "Build detail links via changeDetailHref using encodeURIComponent on both project id and change id, prefixed '/change/'",
+              "why": "Same-origin local route the server already serves; encoding makes the path safe; escapeHtml on the resulting href prevents attribute injection. No external links, no target=_blank for detail."
+            },
+            {
+              "what": "Render deeper context as escaped JSON inside <pre> within a <details> disclosure, only when detail.deeper != null",
+              "why": "deeper is unknown/arbitrary shape from the read model; escaping as text (never raw HTML) prevents injection while staying read-only and collapsed by default."
+            },
+            {
+              "what": "sourceHealthHtml reads affected/project/repo and remediation/message defensively with fallbacks; labels block 'Source health' and surfaces source+code+last_success_at",
+              "why": "DashboardDegradedSource only guarantees source/code/message/last_success_at; optional affected/remediation fields render when present without crashing. Framed as source-health (not ADV change failure) per task requirement."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Scanned all itemHtml dispatch callers (renderLane, sourceDetailsHtml, groupHtml) and updated every call site to the new projectId-threaded signature consistently; verified no other dispatcher of adv_change/adv_change_status/group exists in ui.ts. Updated two pre-existing ui.test.ts assertions that pinned the old single-arg dispatch lines.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Dashboard UI now: (1) ADV cards (adv_change + adv_change_status) link to same-origin /change/{projectId}/{changeId} via escaped, encoded local href; (2) same HTML shell renders detail mode — on a /change/ path it fetches /api/change/{projectId}/{changeId} (GET) instead of /api/state and renders compact read-only fields (title/id/project/next gate/progress/status/lastActivity/branches/paths/copyable adv_change_show command), with deeper context in a <details> disclosure when present; (3) detail degradedSources render as Source-health cards (source/code/affected/remediation/last_success_at), explicitly not framed as ADV change failure. Read-only preserved: no rerun/merge/approve/deploy/archive/cancel controls, no forms/POST, escaping + safeUrl kept, no raw ADV state-file links. UI verified deterministically via bun tests; no browser/Playwright run (string-template render, no live server needed for these assertions).",
+            "suggested_next_action": "Proceed to acceptance/review for hardenDashboardReads; optionally add a live server smoke (open /change/<pid>/<cid>) if browser evidence is desired, but unit coverage already verifies fetch target, render shape, and safety invariants."
+          },
+          "design_dimensions": {
+            "component_correctness": "pass",
+            "semantic_html_a11y": "pass",
+            "responsive_behavior": "pass",
+            "visual_polish": "pass",
+            "site_design_consistency": "pass",
+            "finer_details": "pass",
+            "notes": "Detail link uses <a> with visible focus-visible underline (keyboard reachable); detail page uses semantic <h2>, <dl>/<dt>/<dd> grid, <ul> for branch/path lists, and <details>/<summary> disclosures for deeper context and source-health. Reused existing design tokens (--accent/--warning/--surface/--border) and card/disclosure idioms so detail view matches the dashboard. Detail card constrained to 60rem max-width with overflow-x scroll on code/pre blocks for narrow viewports. Degraded sources visually distinct (warning-tinted source-health card) and clearly labeled as source health, not change failure."
+          },
+          "neighboring_recommendations": [],
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bun test bin/lib/dashboard/ui.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bun test bin/lib/dashboard bin/lib/live-status.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: grep -c 'change.json|agreement.md|proposal.md|.jsonl' bin/lib/dashboard/ui.ts"
+            }
+          ]
+        }
+      ],
+      "verification": "Designer worker implemented UI and reported no blockers. GREEN: bun test bin/lib/dashboard/ui.test.ts passed (12 tests). VERIFY: bun test bin/lib/dashboard bin/lib/live-status.test.ts passed (68 tests).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "bin/lib/dashboard/ui.test.ts",
+        "bin/lib/dashboard/ui.ts"
+      ],
+      "touched_files": [
+        "bin/lib/dashboard/ui.test.ts",
+        "bin/lib/dashboard/ui.ts"
+      ],
+      "checkpointSha": "ad59f42b340b881e8a170e742f7ff5cb1dbd1b76",
+      "completedAt": "2026-06-26T19:50:47.451Z",
+      "completed_at": "2026-06-26T19:50:47.451Z"
+    },
+    {
+      "id": "tk-e5f6374dad34",
+      "title": "Verify dashboard read hardening end-to-end",
+      "type": "verification",
+      "section": "Verification",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-06-26T19:21:25.579Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-b56c22828fd1"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-dd41082e9e6a"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-89f1416b45fb"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-d028f5ee489b"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "inline_required",
+        "frontend": "false"
+      },
+      "contract_refs": {
+        "implements": [],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7",
+          "AC8",
+          "AC9",
+          "SC1",
+          "SC2",
+          "SC3",
+          "SC4",
+          "SC5"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "C7",
+          "C8",
+          "C9",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-26T19:51:19.490Z",
+      "verification": "VERIFY: bun test bin/lib/dashboard bin/lib/live-status.test.ts passed (68 tests). VERIFY: bin/oc-test targeted -- src/cli-bridge-contract.test.ts passed (19 tests). VERIFY: pnpm run schemas:check passed. Static check: no loadLiveStatus/getState references under bin/lib/dashboard. Git tree clean before completion.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "ad59f42b340b881e8a170e742f7ff5cb1dbd1b76",
+      "completedAt": "2026-06-26T19:53:07.802Z",
+      "completed_at": "2026-06-26T19:53:07.802Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "hardenDashboardReads",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:discovery-opportunity-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Dashboard Temporal read-path hardening + safe click-through opportunity scout",
+      "sources": [
+        {
+          "label": "Temporal docs — Query Workflows by Search Attributes (ListWorkflow)",
+          "locator": "https://github.com/temporalio/documentation/blob/main/docs/develop/go/platform/observability.mdx",
+          "summary": "ListWorkflow with a search-attribute Query is a server-side Visibility read returning matching executions; no per-workflow query and no worker required. Validates the Visibility-first read-model target."
+        },
+        {
+          "label": "Temporal docs — Send a Query to a Workflow (TS handle.query)",
+          "locator": "https://github.com/temporalio/documentation/blob/main/docs/develop/typescript/workflows/message-passing.mdx",
+          "summary": "WorkflowHandle.query requires a Worker online to process the query. Authoritative confirmation that loadLiveStatus per-change getState queries couple the dashboard to a live per-project worker — the anti-pattern the proposal targets."
+        },
+        {
+          "label": "bin/lib/live-status.ts loadLiveStatus / listLiveChangeStates",
+          "locator": "bin/lib/live-status.ts:87-112,400-417",
+          "summary": "Per-change fan-out: lists IDs then loops getHandle(id).query(getState) per change (O(changes) worker queries). This is the ops-enrichment path readDashboardAdvProject calls."
+        },
+        {
+          "label": "bin/lib/live-status.ts buildSummaryFromSearchAttributes",
+          "locator": "bin/lib/live-status.ts:265-302",
+          "summary": "Worker-free Visibility summary builder. Reads AdvLifecycleState/CurrentGate/Title/Status/LastSignalAt/CreatedAt/EpicId but does NOT read AdvWorktreeBranches/AdvWorktreePaths."
+        },
+        {
+          "label": "plugin/src/temporal/search-attributes.ts",
+          "locator": "plugin/src/temporal/search-attributes.ts:27-28,206-215",
+          "summary": "AdvWorktreeBranches and AdvWorktreePaths (KeywordList) are already upserted to Visibility from active worktrees. They are available worker-free but currently unused by the dashboard summary path."
+        },
+        {
+          "label": "bin/lib/dashboard/adv.ts mergeAdvChange + correlation keys",
+          "locator": "bin/lib/dashboard/adv.ts:64-99,120-130",
+          "summary": "correlation_keys.branches merges summary.worktreeBranches with ops-path worktree branches; correlation_keys.head_shas comes ONLY from ops-path worktrees[].headSha. ops_followup/ops_followup_links also ops-path only."
+        },
+        {
+          "label": "bin/lib/dashboard/adv.test.ts fixture",
+          "locator": "bin/lib/dashboard/adv.test.ts:14-49",
+          "summary": "Test injects worktreeBranches onto the summary fixture, but production buildSummaryFromSearchAttributes never populates it — so today branch correlation in prod depends on the worker query path."
+        },
+        {
+          "label": "bin/lib/dashboard/server.ts route handler",
+          "locator": "bin/lib/dashboard/server.ts:287-311",
+          "summary": "createDashboardHandler routes only GET / and GET /api/state; rejects non-GET. No per-change detail route exists. Loopback-only host enforced (normalizeDashboardServerOptions)."
+        },
+        {
+          "label": "bin/lib/live-status.ts firstSearchAttribute",
+          "locator": "bin/lib/live-status.ts:216-235",
+          "summary": "searchAttributeString collapses KeywordList to element [0]. Promoting multi-branch AdvWorktreeBranches into the summary needs an array-aware reader, not searchAttributeString."
+        }
+      ],
+      "architecture_assessment": "Proposal thesis is validated by authoritative Temporal docs: handle.query needs a live Worker; ListWorkflow over Visibility search attributes is server-side and worker-free. The remaining worker-coupled path is readDashboardAdvProject's loadOpsChanges ?? loadLiveStatus (live-status.ts:64-66), which fans out one getState query per change. The boring, by-the-book fix is to source what the dashboard needs from Visibility search attributes that ADV already upserts. Crucially, AdvWorktreeBranches/AdvWorktreePaths are ALREADY promoted (search-attributes.ts:214-215) but buildSummaryFromSearchAttributes ignores them — so branch correlation can move to the worker-free path with no new promoted attributes and no schema change. The genuine trade-off needing a decision: head_shas and ops_followup/ops_followup_links have NO Visibility attribute today, so fully deleting loadLiveStatus from routine refresh drops head-SHA correlation and ops lane evidence unless (a) new search attributes are promoted, or (b) those are demoted to a bounded, explicit user-triggered detail query — which the proposal's Discovery Agenda explicitly lists as an acceptable target. For click-through, the proposal already permits a bounded explicit user-triggered query for details; a read-only GET /api/change/:id route reusing one getState query is the safe, minimal shape, staying within loopback + read-only + no-mutation constraints.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "No contract/security/release blocker. One decision is needed from orchestrator/user (head_shas + ops lane evidence fate when removing routine per-change fan-out) — captured as a surface candidate, not a blocker. Note firstSearchAttribute/searchAttributeString collapse KeywordList to [0]; promoting branches needs an array-aware reader to avoid silently dropping multi-worktree branches."
+      },
+      "recommendation": "AUTO-ADOPT: populate worktreeBranches (and optionally worktreePaths) in buildSummaryFromSearchAttributes from the already-upserted AdvWorktreeBranches/AdvWorktreePaths KeywordList via a new array-aware search-attribute reader (do not reuse searchAttributeString, which keeps only element 0). This removes the only routine reliance on loadLiveStatus for branch correlation, is schema-neutral, and aligns adv.test.ts's existing expectation with production. SURFACE to user/orchestrator: decide the fate of head_shas + ops_followup/ops_followup_links on routine refresh — either (1) promote a head-SHA/ops search attribute so they stay worker-free, or (2) demote them to a bounded explicit user-triggered detail query (GET /api/change/:id, read-only, loopback, one getState). For click-through, implement that same bounded read-only detail route rather than enriching every refresh. REJECT scope creep into removing loadLiveStatus entirely without first resolving head_shas/ops fate.",
+      "follow_ups": [
+        "Scope anchors (TASK_SCOPE/IN_SCOPE/etc.) were present in packet; no missing-anchor warning.",
+        "ScoutCandidate rows (<=5) — summary | evidence | payoff | risk | contract_tie | recommended_fate | route: (1) Promote AdvWorktreeBranches/AdvWorktreePaths into Visibility summary | live-status.ts:265-302 ignores attrs already set at search-attributes.ts:214-215; adv.test.ts:26 already expects worktreeBranches | removes routine worker-query dependency for branch correlation, schema-neutral | low; needs array-aware reader because searchAttributeString collapses KeywordList to [0] (live-status.ts:216-235) | ties to 'must not rely on per-change workflow query fan-out for routine refresh' | fix-now | route=auto-adopt. (2) Bounded read-only detail route GET /api/change/:id | server.ts:287-311 routes only //api/state, rejects non-GET; proposal Discovery Agenda permits 'bounded explicit user-triggered query for details' | satisfies safe click-through user outcome without per-refresh fan-out | low-medium; one getState query per click needs live worker, must degrade gracefully when worker absent | ties to 'safe read-only navigation path from ADV cards' + 'must not add mutation controls' | fix-now | route=surface (confirm shape: detail page vs copyable command/path block). (3) Resolve head_shas + ops lane evidence fate before deleting loadLiveStatus | adv.ts:97 head_shas and adv.ts:93-94 ops_followup are ops-path only; no Visibility attr exists | prevents silent loss of CI/deploy/ops correlation | medium; either new promoted search attrs or demotion to detail query | ties to 'preserve degraded behavior' + GitHub source correlation integration unknown | needs-decision | route=surface. (4) Array-aware KeywordList search-attribute reader | searchAttributeString (live-status.ts:226-235) returns only first element | correctness for multi-worktree changes; reusable by epic/branch readers | low | ties to structural-correctness; prevents heuristic single-branch assumption | fix-now | route=auto-adopt (bundle with candidate 1). (5) Keep degraded_source (GitHub 401) distinct from ADV attention | server.ts:104-113 already pushes github degraded separately; attention lanes consume degradedSources | preserves the observed-bug fix where 401 showed as 'needs attention' | low; already structurally separated, just add/keep test coverage | ties to 'keep GitHub degraded-source cards distinct from ADV change attention' | verify-only | route=reject-as-new-work (already satisfied; cover with test in execution)."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "hardenDashboardReads",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-leverage-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design leverage scout — worker-free dashboard reads, KeywordList projection, read-only detail route",
+      "sources": [
+        {
+          "label": "Temporal TS SDK docs — typed search attributes (Context7 /temporalio/sdk-typescript)",
+          "locator": "https://github.com/temporalio/sdk-typescript/blob/main/sdk-typescript/packages/test/src/test-typed-search-attributes.ts",
+          "summary": "KeywordList typed value is a native string[] (value: ['typed','keywords']). Confirms AdvWorktreeBranches/AdvWorktreePaths arrive as arrays; the design needs an array-aware reader, not a bespoke binary decoder."
+        },
+        {
+          "label": "bin/lib/live-status.ts firstSearchAttribute/searchAttributeString",
+          "locator": "bin/lib/live-status.ts:216-235",
+          "summary": "firstSearchAttribute ALREADY array-detects and collapses to element [0]; searchAttributeString wraps it. A 5-line array-returning sibling (return the whole filtered string[]) is all that's needed — not a new 'KeywordList decoder' module."
+        },
+        {
+          "label": "bin/lib/dashboard/adv.ts readDashboardAdvProject ops-enrichment seam",
+          "locator": "bin/lib/dashboard/adv.ts:59-73,84-104",
+          "summary": "loadOpsChanges ?? loadLiveStatus is ALREADY wrapped in try/catch that degrades to ADV_OPS_ENRICHMENT_UNAVAILABLE. mergeAdvChange already reads summary.worktreeBranches (line 96, 102-105). The injection seam + degradation the design wants mostly EXISTS; the change is removing the routine default + populating summary branches upstream."
+        },
+        {
+          "label": "plugin/src/temporal/observability.ts buildSearchAttributes",
+          "locator": "plugin/src/temporal/observability.ts:282-291",
+          "summary": "AdvWorktreeBranches/AdvWorktreePaths are upserted (sorted string[]). Singleton Keyword attrs are also array-wrapped ([input.changeStatus]) — which is why legacy Record reads collapse to [0]. Multi-element KeywordList is the only case needing array-aware reads."
+        },
+        {
+          "label": "bin/lib/live-status.ts listLiveChangeStates single-change query",
+          "locator": "bin/lib/live-status.ts:87-112,400-417",
+          "summary": "The per-change getHandle(id).query(getState) lives in a loop. A detail route can reuse exactly ONE iteration of this for a single change — the canonical bounded worker-coupled read — instead of authoring a new query path."
+        },
+        {
+          "label": "bin/lib/dashboard/config.ts sanitizeDashboardState + ui.ts inline escapeHtml/safeUrl",
+          "locator": "bin/lib/dashboard/config.ts:181-197 ; bin/lib/dashboard/ui.ts:103-104,201-204",
+          "summary": "sanitizeDashboardState recursively strips token-like material (config.test.ts:101). escapeHtml/safeUrl exist ONLY as inline functions inside the client HTML string — not importable server helpers. Detail API must route through sanitizeDashboardState; detail HTML must reuse the same inline escape pattern."
+        },
+        {
+          "label": "bin/lib/dashboard/server.ts createDashboardHandler",
+          "locator": "bin/lib/dashboard/server.ts:287-311,319-327",
+          "summary": "Handler rejects non-GET (405) before routing, serves only / and /api/state, loopback enforced. A GET /change/... or /api/change/... clause slots in here with zero new safety scaffolding."
+        }
+      ],
+      "architecture_assessment": "The draft design is directionally correct and contract-aligned, but overstates the amount of NEW surface required — three of its planks are mostly already-present seams. (1) 'Add a KeywordList decoder in live-status.ts': over-scoped. firstSearchAttribute (live-status.ts:216-224) already array-detects; the minimal, boring fix is a sibling searchAttributeStringList(attrs,key) returning the full filtered string[], then setting summary.worktreeBranches/worktreePaths in buildSummaryFromSearchAttributes (live-status.ts:288-301). Temporal docs confirm KeywordList values are native string[], so no payload/binary decoding is involved. (2) 'Remove routine loadLiveStatus ops enrichment': the try/catch degradation (adv.ts:64-71) and the loadOpsChanges injection seam (adv.ts:36,65) ALREADY exist, and mergeAdvChange already merges summary.worktreeBranches (adv.ts:96). The real change is narrow: stop defaulting loadOpsChanges to loadLiveStatus on routine refresh (make ops enrichment opt-in/absent) and rely on the now-populated summary branches — reuse the existing sentinel seam for the 'no fan-out' test rather than inventing one. (3) Detail route: the bounded one-change read should be a single reuse of listLiveChangeStates' inner getHandle(id).query(getState) (live-status.ts:99-108), not a new query path; compact level draws from the /api/state snapshot already in hand. Safety is free: GET-only + loopback gate already sit in createDashboardHandler; sanitizeDashboardState already redacts secrets; escapeHtml/safeUrl already exist but ONLY inline in ui.ts — the detail page must reuse that same inline pattern, and the detail JSON must pass through sanitizeDashboardState. Net: the design's user value is achievable with markedly less new code than the draft implies; the leverage is in reusing existing seams (injection point, degradation path, single-change query, sanitizer, GET/loopback gate) rather than building parallel mechanisms.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "No contract/security/release blocker. Two design-shaping recommendations for the orchestrator before planning: (a) scope the KeywordList work as a small array-aware reader, not a decoder module — avoids inventing parallel decoding; (b) head_shas + ops_followup/ops_followup_links have NO Visibility attribute, so removing routine loadLiveStatus drops head-SHA + ops-lane correlation from routine cards unless demoted to the detail route's bounded one-change read (recommended) or promoted as new search attrs (heavier, hits the 3-KeywordList dev-server cap noted at search-attributes.ts:6-12). The agreement already permits user-triggered bounded detail reads, so demotion is the boring path."
+      },
+      "recommendation": "Before validation/planning, tighten the design along existing seams: (1) Replace 'KeywordList decoder' with a 5-line array-aware searchAttributeStringList reader beside firstSearchAttribute; populate summary.worktreeBranches/worktreePaths in buildSummaryFromSearchAttributes. (2) Frame the loadLiveStatus removal as 'drop the routine default for loadOpsChanges + rely on summary branches', reusing the existing try/catch degradation and injection sentinel for the no-fan-out test. (3) Implement the detail route by reusing ONE iteration of listLiveChangeStates' single-change getState query for expandable depth, compact level from the /api/state snapshot; gate it through the existing GET-only + loopback handler and pass its JSON through sanitizeDashboardState, reusing ui.ts inline escapeHtml/safeUrl for HTML. (4) Demote head_shas + ops_followup correlation to the bounded detail read rather than promoting new KeywordList search attrs (dev-server cap is 3, already full).",
+      "follow_ups": [
+        "All packet anchors (TASK_SCOPE/IN_SCOPE/OUT_OF_SCOPE/DONE_WHEN/STOP_WHEN/VERIFICATION) present; no missing-anchor warning.",
+        "ScoutCandidate rows (<=5) — summary | evidence | payoff | risk | contract_tie | recommended_fate | route | notes:",
+        "(1) Array-aware search-attribute reader instead of a new KeywordList decoder | evidence: firstSearchAttribute already array-detects+collapses to [0] (live-status.ts:216-224); Temporal docs confirm KeywordList = native string[] | payoff: ~5 LOC vs a decoder module; removes the only routine worker dependency for branch correlation; schema-neutral | risk: low — must NOT reuse searchAttributeString (drops elements 2..n) | contract_tie: AC2 'branch/path decoded from Visibility without worker queries' | recommended_fate: fix-now (fold into design) | route: auto-adopt | notes: name it searchAttributeStringList; set summary.worktreeBranches+worktreePaths in buildSummaryFromSearchAttributes (live-status.ts:288-301).",
+        "(2) Reuse existing ops-enrichment seam + degradation rather than new wiring | evidence: try/catch -> ADV_OPS_ENRICHMENT_UNAVAILABLE and loadOpsChanges injection already exist (adv.ts:36,64-71); mergeAdvChange already merges summary.worktreeBranches (adv.ts:96) | payoff: the 'no routine fan-out' AC is mostly a default-removal + upstream populate, not new code | risk: low — ensure routine path no longer defaults loadOpsChanges to loadLiveStatus | contract_tie: AC1 'routine refresh does not call per-change getState' + AC3 'base cards remain on enrichment loss' | recommended_fate: fix-now | route: auto-adopt | notes: drive the no-fan-out test via the existing loadOpsChanges sentinel/default path.",
+        "(3) Detail route reuses ONE single-change getState iteration | evidence: listLiveChangeStates loops getHandle(id).query(getState) (live-status.ts:99-108); handler already GET-only+loopback (server.ts:287-311,319-327) | payoff: bounded expandable depth with no new query path; compact level free from /api/state snapshot | risk: low-med — query needs a live worker; must degrade to copyable adv_change_show(changeId) per AC5 | contract_tie: AC4 read-only compact+expandable detail; AC5 detail degrades w/ copyable command; AC8 GET-only/no-mutation | recommended_fate: fix-now | route: surface (confirm path shape: /change/:projectId/:changeId page vs /api/change/:id JSON+client render).",
+        "(4) Demote head_shas + ops_followup correlation to the detail read | evidence: head_shas (adv.ts:97) + ops_followup (adv.ts:93-94) are ops-path only; NO Visibility attr; dev-server KeywordList cap is 3 and already full (search-attributes.ts:6-12,22-28) | payoff: keeps routine refresh worker-free without silently losing CI/deploy correlation; avoids hitting the attribute cap | risk: medium — these fields vanish from routine cards; acceptable since agreement permits bounded user-triggered detail reads | contract_tie: AC3 optional enrichment omitted/degraded without fan-out; Avoidance 'no per-change fan-out for routine summary' | recommended_fate: needs-decision | route: surface (demote-to-detail recommended over promoting new search attrs).",
+        "(5) Route detail JSON through sanitizeDashboardState; reuse ui.ts inline escapeHtml/safeUrl | evidence: sanitizeDashboardState redacts token-like material recursively (config.ts:181-197; config.test.ts:101); escapeHtml/safeUrl exist ONLY inline in the client HTML string (ui.ts:103-104,201-204), not as server imports | payoff: secret-safe + XSS-safe detail surface with zero new safety primitives | risk: low — easy to forget the sanitize pass on a new response path; inline-only escape means detail HTML must duplicate the same pattern, not import | contract_tie: AC7 escape HTML/suppress unsafe URLs/no secrets | recommended_fate: fix-now | route: auto-adopt | notes: add a test asserting the detail path output passes through sanitizeDashboardState and contains no token-like strings."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "hardenDashboardReads",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation: harden dashboard reads (worker-free Visibility + click-through detail)",
+      "sources": [
+        {
+          "label": "Spec rq-statusCliWorkerFree01 (advance-meta)",
+          "locator": "adv_spec show advance-meta",
+          "summary": "Established ADV law: status table must build active-change rows from Temporal Visibility search attributes worker-free, NOT per-change getState query (which needs live worker). Design directly mirrors this for /api/state. Strong precedent."
+        },
+        {
+          "label": "bin/lib/live-status.ts:87-112 listLiveChangeStates",
+          "locator": "/home/jon/dev/advance/bin/lib/live-status.ts",
+          "summary": "Confirms current anti-pattern: loops change IDs and issues per-change workflow.query(getState). This is the fan-out the design removes from routine /api/state path."
+        },
+        {
+          "label": "bin/lib/live-status.ts:216-235 firstSearchAttribute/searchAttributeString",
+          "locator": "/home/jon/dev/advance/bin/lib/live-status.ts",
+          "summary": "Existing helper already does Array.isArray(value) handling, proving KeywordList attrs arrive as JS arrays. searchAttributeStringList extension is a trivial, low-risk addition."
+        },
+        {
+          "label": "bin/lib/dashboard/adv.ts:59-104 readDashboardAdvProject",
+          "locator": "/home/jon/dev/advance/bin/lib/dashboard/adv.ts",
+          "summary": "Confirms default path: loadBase=loadLiveSummaries then loadOps=loadLiveStatus fan-out. Merge already reads summary.worktreeBranches (line 96-104), so projecting AdvWorktreeBranches into ChangeSummary is wiring an existing consumer."
+        },
+        {
+          "label": "Temporal TS SDK typed search attributes",
+          "locator": "context7 /temporalio/sdk-typescript",
+          "summary": "KEYWORD_LIST value type is string[] (e.g. ['typed','keywords']). Validates design claim that KeywordList decodes to array values in list results; no custom decoder module needed."
+        },
+        {
+          "label": "AdvWorktreeBranches/AdvWorktreePaths registration",
+          "locator": "grep .adv/archive + docs/specs",
+          "summary": "Both confirmed as registered KeywordList search attributes (refactorChangeWorkflowsSignal T15), upserted by change workflows. No new search attrs required for branches/paths."
+        }
+      ],
+      "architecture_assessment": "Design is a by-the-book read-model split that extends an already-ratified ADV pattern (rq-statusCliWorkerFree01) from the CLI status table to the dashboard /api/state path. Every load-bearing technical claim verified against actual code: the getState fan-out exists and is the right target to remove; KeywordList attrs already arrive as arrays and the existing helper already array-handles; worktree branch/path search attributes already exist and are registered; the dashboard merge already consumes summary.worktreeBranches. The detail-route split (user-triggered, single-change bounded read, locally degraded, independent from /api/state) is the canonical CQRS-style summary-vs-detail separation and satisfies every avoidance. Deferring new ops/head-SHA search attributes until need is proven is correct YAGNI-aligned restraint that avoids widening a small Temporal search-attribute surface. No simpler equivalent exists that still satisfies the worker-free + preserve-context + read-only constraints together. No spec contradiction found.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "VALIDATED. Two non-blocking cautions worth confirming in prep, neither a design defect: (1) AC3 'degraded' wording vs design decision-3 'omit' wording for ops/head-SHA — design omits these from routine cards rather than rendering an explicit degraded marker; reconcile whether AC3's 'omitted OR degraded' is satisfied by silent omission or whether a lightweight 'not loaded' marker is expected, to avoid an acceptance-matrix ambiguity. (2) Recorded clarify finding CLARIFY_ASSUMPTION_HEAVY on auth model is correctly neutralized by the agreement constraint 'no GitHub authentication model change' + local-only/loopback GET-only posture; no new auth surface is introduced, so the click-through detail route inherits the existing same-origin loopback trust boundary — confirm the detail route reuses the same loopback/GET-only guard rather than introducing a new bind."
+      },
+      "recommendation": "Proceed to planning. The design is correct, simple, and spec-aligned: it generalizes the existing worker-free Visibility law (rq-statusCliWorkerFree01) to the dashboard and removes a verified per-change getState fan-out while preserving card context via already-registered worktree KeywordList attributes that the merge layer already expects. No major alternative was overlooked — promoting ops/head-SHA to new search attributes was correctly rejected as premature, and a full read-model persistence rewrite would be overengineering for this scope. During prep, (a) add a regression test with a sentinel loadOps that fails if invoked on the default /api/state path (design already calls for this), (b) reconcile AC3 'omitted vs degraded' wording for ops/head-SHA so the acceptance matrix is unambiguous, and (c) assert the new detail route reuses the existing loopback + GET-only + safeUrl/escapeHtml guards rather than adding a new server binding. Consider an explicit spec-law update in advance-meta extending the worker-free routine-refresh law to the dashboard surface, so the new /api/state contract is durably enforced, not only test-enforced.",
+      "follow_ups": [
+        "Prep: confirm AC3 acceptance wording — silent omission vs explicit 'not loaded' degraded marker for ops/head-SHA on routine cards.",
+        "Prep: assert detail route /change + /api/change reuse existing loopback + GET-only 405 + safeUrl/escapeHtml guards (no new bind, no new auth surface).",
+        "Prep: add sentinel loadOps regression test ensuring default /api/state never triggers getState fan-out.",
+        "Optional: extend advance-meta spec with a dashboard worker-free routine-refresh law so the /api/state contract is spec-enforced, not only test-enforced."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "hardenDashboardReads",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/hardenDashboardReads",
+      "task_id": "tk-d028f5ee489b",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-d028f5ee489b"
+      },
+      "agent": "adv-designer",
+      "status": "complete",
+      "files_touched": [
+        "bin/lib/dashboard/ui.ts",
+        "bin/lib/dashboard/ui.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "bun test bin/lib/dashboard/ui.test.ts",
+          "exit_code": 0,
+          "summary": "12 pass / 0 fail (118 expect). RED→GREEN: clickable local detail links, detail-mode fetch of /api/change, compact detail fields, deeper disclosure, source-health context, escaping/safeUrl/no-mutation."
+        },
+        {
+          "command": "bun test bin/lib/dashboard bin/lib/live-status.test.ts",
+          "exit_code": 0,
+          "summary": "68 pass / 0 fail across 9 files. No regressions in server/attention/correlation/live-status."
+        },
+        {
+          "command": "grep -c 'change.json|agreement.md|proposal.md|.jsonl' bin/lib/dashboard/ui.ts",
+          "exit_code": 1,
+          "summary": "0 matches — no raw ADV state-file links rendered."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Thread projectId from render scope into itemHtml/advChangeHtml/changeStatusHtml/groupHtml/sourceDetailsHtml rather than embedding project id on every lane item",
+          "why": "Lane item types (ChangeStatusLaneItem/AdvChangeLaneItem) carry changeId but no project id; render() already iterates state.projects so project.id is available at render time. Avoids touching backend item shapes (attention.ts) — keeps change UI-only."
+        },
+        {
+          "what": "Build detail links via changeDetailHref using encodeURIComponent on both project id and change id, prefixed '/change/'",
+          "why": "Same-origin local route the server already serves; encoding makes the path safe; escapeHtml on the resulting href prevents attribute injection. No external links, no target=_blank for detail."
+        },
+        {
+          "what": "Render deeper context as escaped JSON inside <pre> within a <details> disclosure, only when detail.deeper != null",
+          "why": "deeper is unknown/arbitrary shape from the read model; escaping as text (never raw HTML) prevents injection while staying read-only and collapsed by default."
+        },
+        {
+          "what": "sourceHealthHtml reads affected/project/repo and remediation/message defensively with fallbacks; labels block 'Source health' and surfaces source+code+last_success_at",
+          "why": "DashboardDegradedSource only guarantees source/code/message/last_success_at; optional affected/remediation fields render when present without crashing. Framed as source-health (not ADV change failure) per task requirement."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Scanned all itemHtml dispatch callers (renderLane, sourceDetailsHtml, groupHtml) and updated every call site to the new projectId-threaded signature consistently; verified no other dispatcher of adv_change/adv_change_status/group exists in ui.ts. Updated two pre-existing ui.test.ts assertions that pinned the old single-arg dispatch lines.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Dashboard UI now: (1) ADV cards (adv_change + adv_change_status) link to same-origin /change/{projectId}/{changeId} via escaped, encoded local href; (2) same HTML shell renders detail mode — on a /change/ path it fetches /api/change/{projectId}/{changeId} (GET) instead of /api/state and renders compact read-only fields (title/id/project/next gate/progress/status/lastActivity/branches/paths/copyable adv_change_show command), with deeper context in a <details> disclosure when present; (3) detail degradedSources render as Source-health cards (source/code/affected/remediation/last_success_at), explicitly not framed as ADV change failure. Read-only preserved: no rerun/merge/approve/deploy/archive/cancel controls, no forms/POST, escaping + safeUrl kept, no raw ADV state-file links. UI verified deterministically via bun tests; no browser/Playwright run (string-template render, no live server needed for these assertions).",
+        "suggested_next_action": "Proceed to acceptance/review for hardenDashboardReads; optionally add a live server smoke (open /change/<pid>/<cid>) if browser evidence is desired, but unit coverage already verifies fetch target, render shape, and safety invariants."
+      },
+      "design_dimensions": {
+        "component_correctness": "pass",
+        "semantic_html_a11y": "pass",
+        "responsive_behavior": "pass",
+        "visual_polish": "pass",
+        "site_design_consistency": "pass",
+        "finer_details": "pass",
+        "notes": "Detail link uses <a> with visible focus-visible underline (keyboard reachable); detail page uses semantic <h2>, <dl>/<dt>/<dd> grid, <ul> for branch/path lists, and <details>/<summary> disclosures for deeper context and source-health. Reused existing design tokens (--accent/--warning/--surface/--border) and card/disclosure idioms so detail view matches the dashboard. Detail card constrained to 60rem max-width with overflow-x scroll on code/pre blocks for narrow viewports. Degraded sources visually distinct (warning-tinted source-health card) and clearly labeled as source health, not change failure."
+      },
+      "neighboring_recommendations": [],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bun test bin/lib/dashboard/ui.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bun test bin/lib/dashboard bin/lib/live-status.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: grep -c 'change.json|agreement.md|proposal.md|.jsonl' bin/lib/dashboard/ui.ts"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "hardenDashboardReads",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/hardenDashboardReads",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "Path preflight for listed focus files via test -e",
+          "Diff inspection: git diff --stat/name-only 40620c4db80be9efa74f0009f43299d02f0b5cec..ad59f42b340b881e8a170e742f7ff5cb1dbd1b76",
+          "Static search: no getState or loadLiveStatus( references under bin/lib/dashboard",
+          "bun test bin/lib/dashboard/server.test.ts bin/lib/dashboard/ui.test.ts bin/lib/live-status.test.ts",
+          "bin/oc-test targeted -- src/cli-bridge-contract.test.ts",
+          "pnpm run schemas:check"
+        ],
+        "results": "pass",
+        "evidence": "Preflight found all focus paths present. Diff review confirmed /api/state uses readDashboardAdvProject -> loadLiveSummaries/summariesFromVisibility-derived summaries, decodes AdvWorktreeBranches/AdvWorktreePaths into correlation keys, omits ops/head-SHA enrichment on routine refresh, and exposes only GET state/detail routes. Static search found no getState/loadLiveStatus fan-out under bin/lib/dashboard. Focused verification passed: bun dashboard/live-status subset 41/41 pass; cli-bridge contract 19/19 pass through bin/oc-test; schemas:check exited 0."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Review did not re-run the full 68-test dashboard directory aggregate because targeted subset plus primary evidence covered the changed acceptance surfaces.",
+        "Detail deeper context is optional/injected; current handler safely returns compact detail plus adv_change_show command when no deeper reader is provided."
+      ],
+      "required_main_agent_actions": [],
+      "required_follow_ups": [],
+      "consumer_warnings": []
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-06-26T18:56:30.329Z",
+      "completed_by": "agent",
+      "approval_evidence": "Proposal approved by explicit user reply `approve` after completed proposal summary. Problem: dashboard should stay read-only and Temporal-safe while making ADV cards inspectable. Scope includes dashboard read-path hardening and safe click-through details.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "5b5694c2c1d5331a7f1c31ae1d4fdb55f55d757ece5baa3de764a4cdbabdb7fb",
+        "non_whitespace_chars": 5104,
+        "checked_at": "2026-06-26T18:52:25.079Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-06-26T19:08:14.535Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery complete. Agreement persisted after explicit criteria approval (`approve`). Contract minted with 28 items. User decisions: local detail page, two-level detail, more specific degraded-source context. LBP: routine /api/state must be Visibility/read-model based with no per-change workflow query fan-out.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "0b717733fa924a3e6bc5ef1010c00a6381fe20b240ca55b34c7cfcbe51ca2421",
+        "non_whitespace_chars": 4636,
+        "checked_at": "2026-06-26T18:52:25.080Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-06-26T19:18:36.143Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design complete and independently validated. Architecture: `/api/state` worker-free Visibility/read-model routine path; user-triggered local detail route with bounded one-change read/degraded fallback; project existing `AdvWorktreeBranches`/`AdvWorktreePaths`; source-health details stay separate from ADV failures. Validator verdict VALIDATED with prep-only cautions.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "c58d77cb51ceb82528d9f3e118f919d69334c2384820ddf9dfa0ba6645ad7351",
+        "non_whitespace_chars": 9631,
+        "checked_at": "2026-06-26T18:52:25.081Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-06-26T19:23:40.630Z",
+      "completed_by": "agent",
+      "approval_evidence": "Task graph approved by explicit user reply `approve`. Five tasks cover spec law, worker-free Visibility summaries, bounded read-only detail route, clickable/two-level UI + source-health context, and end-to-end verification. Contract refs cover AC1-AC9, SC1-SC5, C1-C9, DONT1-DONT5."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-06-26T19:53:36.454Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 5 planned tasks completed with checkpoint evidence. Verification: dashboard suite 68 pass, cli-bridge spec-law 19 pass, schemas:check pass, static no-fanout check found no loadLiveStatus/getState references under bin/lib/dashboard. Head ad59f42b340b881e8a170e742f7ff5cb1dbd1b76."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-06-26T20:39:52.799Z",
+      "completed_by": "user",
+      "approval_evidence": "User accepted delivered work via reply `aprpove` at acceptance checkpoint. Acceptance evidence: dashboard suite 68 pass; cli-bridge spec-law 19 pass; schemas:check pass; static no-fanout check; reviewer verdict READY; contract review matrix 28/28 pass/respected.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "ffd5bb6a05e116ae81eb44f082351aed827e5c0f8e356635c5628af911ec55c9",
+        "non_whitespace_chars": 1242,
+        "checked_at": "2026-06-26T18:52:25.082Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "discovery",
+    "source_artifact": "user-feedback:dashboard-temporal-audit-click-through"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "0b717733fa924a3e6bc5ef1010c00a6381fe20b240ca55b34c7cfcbe51ca2421",
+      "approvedAt": "2026-06-26T19:08:02.741Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "Routine dashboard refresh is worker-free for ADV summary state.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0b717733fa924a3e6bc5ef1010c00a6381fe20b240ca55b34c7cfcbe51ca2421",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "ADV cards open a local read-only detail view.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0b717733fa924a3e6bc5ef1010c00a6381fe20b240ca55b34c7cfcbe51ca2421",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "Detail view has two levels: compact default + expandable deeper context.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0b717733fa924a3e6bc5ef1010c00a6381fe20b240ca55b34c7cfcbe51ca2421",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC4",
+        "kind": "success_criterion",
+        "text": "Source degradation is specific and actionable, not a cryptic ADV-change-looking card.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0b717733fa924a3e6bc5ef1010c00a6381fe20b240ca55b34c7cfcbe51ca2421",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC5",
+        "kind": "success_criterion",
+        "text": "Existing dashboard behavior remains local-only, read-only, bounded, cached/coalesced, and secret-safe.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0b717733fa924a3e6bc5ef1010c00a6381fe20b240ca55b34c7cfcbe51ca2421",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "Given `/api/state` builds ADV summary cards, when Temporal Visibility is reachable, then routine refresh does not call per-change workflow `getState` queries.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0b717733fa924a3e6bc5ef1010c00a6381fe20b240ca55b34c7cfcbe51ca2421",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Given a change has `AdvWorktreeBranches` or `AdvWorktreePaths` Visibility attributes, when dashboard summaries are built, then branch/path data is decoded from Visibility without worker queries.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0b717733fa924a3e6bc5ef1010c00a6381fe20b240ca55b34c7cfcbe51ca2421",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Given optional ops/head-SHA enrichment is unavailable from Visibility/read-model state, when `/api/state` renders, then base ADV cards remain visible and optional enrichment is omitted or degraded without per-change query fan-out.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0b717733fa924a3e6bc5ef1010c00a6381fe20b240ca55b34c7cfcbe51ca2421",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Given a user clicks an ADV card, when the local detail route opens, then it shows compact change context by default and expandable deeper context without mutation controls.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0b717733fa924a3e6bc5ef1010c00a6381fe20b240ca55b34c7cfcbe51ca2421",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Given a detail route needs richer state than Visibility provides, when that read fails or times out, then the detail page degrades with a clear message and copyable inspection command instead of crashing or blocking `/api/state`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0b717733fa924a3e6bc5ef1010c00a6381fe20b240ca55b34c7cfcbe51ca2421",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Given GitHub or ADV source reads fail, when the dashboard renders, then source-health degradation shows source, affected repo/project, code, specific context/remediation, and last-success info when known, without being presented as an ADV change failure.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0b717733fa924a3e6bc5ef1010c00a6381fe20b240ca55b34c7cfcbe51ca2421",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "Given dashboard HTML renders links, commands, source data, or errors, when values contain unsafe URLs, markup, or token-like content, then unsafe URLs are suppressed, HTML is escaped, and secrets/tokens are not displayed.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0b717733fa924a3e6bc5ef1010c00a6381fe20b240ca55b34c7cfcbe51ca2421",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC8",
+        "kind": "acceptance_criterion",
+        "text": "Given non-GET requests hit dashboard state/detail routes, when the server handles them, then they are rejected and no ADV/GitHub/Temporal mutation path exists.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0b717733fa924a3e6bc5ef1010c00a6381fe20b240ca55b34c7cfcbe51ca2421",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC9",
+        "kind": "acceptance_criterion",
+        "text": "Given dashboard tests run, when targeted dashboard suites complete, then worker-free routine refresh, Visibility branch/path projection, detail route degradation, source-health context, and read-only/no-secret constraints are covered.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0b717733fa924a3e6bc5ef1010c00a6381fe20b240ca55b34c7cfcbe51ca2421",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Local-only dashboard.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0b717733fa924a3e6bc5ef1010c00a6381fe20b240ca55b34c7cfcbe51ca2421",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Read-only dashboard; no mutation controls.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0b717733fa924a3e6bc5ef1010c00a6381fe20b240ca55b34c7cfcbe51ca2421",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "No tokens or secrets displayed.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0b717733fa924a3e6bc5ef1010c00a6381fe20b240ca55b34c7cfcbe51ca2421",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "No direct raw ADV state-file reads or links.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0b717733fa924a3e6bc5ef1010c00a6381fe20b240ca55b34c7cfcbe51ca2421",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "No GitHub authentication model change.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0b717733fa924a3e6bc5ef1010c00a6381fe20b240ca55b34c7cfcbe51ca2421",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C6",
+        "kind": "constraint",
+        "text": "Read failures degrade affected source/detail surface instead of crashing the whole dashboard.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0b717733fa924a3e6bc5ef1010c00a6381fe20b240ca55b34c7cfcbe51ca2421",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C7",
+        "kind": "constraint",
+        "text": "Routine refresh must not rely on per-change workflow query fan-out.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0b717733fa924a3e6bc5ef1010c00a6381fe20b240ca55b34c7cfcbe51ca2421",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C8",
+        "kind": "constraint",
+        "text": "Routine summary state must not require a live local worker when Temporal Visibility can provide needed state.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0b717733fa924a3e6bc5ef1010c00a6381fe20b240ca55b34c7cfcbe51ca2421",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C9",
+        "kind": "constraint",
+        "text": "Preserve bounded refresh/cache/coalescing behavior.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0b717733fa924a3e6bc5ef1010c00a6381fe20b240ca55b34c7cfcbe51ca2421",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not add signals, updates, task mutations, archive controls, rerun controls, merge controls, or deploy controls.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0b717733fa924a3e6bc5ef1010c00a6381fe20b240ca55b34c7cfcbe51ca2421",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not use per-change workflow query fan-out for ordinary refresh summary state.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0b717733fa924a3e6bc5ef1010c00a6381fe20b240ca55b34c7cfcbe51ca2421",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not expose secrets, tokens, raw auth errors with sensitive content, or raw state-file paths as primary navigation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0b717733fa924a3e6bc5ef1010c00a6381fe20b240ca55b34c7cfcbe51ca2421",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not make `/api/state` depend on a live local worker for base ADV cards.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0b717733fa924a3e6bc5ef1010c00a6381fe20b240ca55b34c7cfcbe51ca2421",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "Do not turn source-health degradation into an ADV change failure card.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0b717733fa924a3e6bc5ef1010c00a6381fe20b240ca55b34c7cfcbe51ca2421",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-06-26T19:56:00.000Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "bun test bin/lib/dashboard bin/lib/live-status.test.ts passed (68 tests); static search found no loadLiveStatus/getState under bin/lib/dashboard.",
+          "notes": "Routine ADV summaries now use Visibility/read-model path."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "bin/lib/dashboard/ui.test.ts covered local detail links; server detail route tests passed in dashboard suite.",
+          "notes": "ADV cards link to /change/{projectId}/{changeId}."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "UI tests cover compact detail fields and deeper <details> rendering; dashboard suite passed.",
+          "notes": "Detail view renders compact default and expandable deeper JSON context."
+        },
+        {
+          "contractId": "SC4",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "UI tests cover Source health renderer with source/code/affected/remediation/last_success_at and absence of ADV failure phrasing.",
+          "notes": "Degradation presented as source-health."
+        },
+        {
+          "contractId": "SC5",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Server/UI tests cover GET-only routes, loopback defaults, cache/coalescing, escaping/safe URLs, no mutation controls, no token/raw state links.",
+          "notes": "Existing safety behavior preserved."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "bin/lib/dashboard/adv.test.ts asserts routine state does not call loadOpsChanges; static search no getState/loadLiveStatus under bin/lib/dashboard.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "bin/lib/live-status.test.ts asserts AdvWorktreeBranches and AdvWorktreePaths decode all non-blank values from Visibility attrs.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "bin/lib/dashboard/adv.test.ts asserts base card remains visible, no degraded ops enrichment card, ops/head_shas omitted/empty without fan-out.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "bin/lib/dashboard/server.test.ts and ui.test.ts cover local detail route/page and compact + expandable detail rendering without mutation controls.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "bin/lib/dashboard/server.test.ts covers bounded detailReader timeout returning ADV_DETAIL_READ_TIMEOUT with compact detail still visible and command present.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "bin/lib/dashboard/ui.test.ts covers source-health fields and not presenting degradation as ADV change failure.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "UI/server tests assert safeUrl/escape behavior, no token text, no change.json/agreement.md raw links.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC8",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "bin/lib/dashboard/server.test.ts rejects POST to /api/change with 405 allow GET; existing server tests cover GET-only state routes.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC9",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Final verification: dashboard suite 68 pass; cli-bridge spec-law 19 pass; schemas:check pass; reviewer verdict READY.",
+          "notes": ""
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "normalizeDashboardServerOptions still defaults to 127.0.0.1 and requires explicit non-loopback opt-in; server tests pass.",
+          "notes": ""
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "UI tests assert no mutation controls/form/POST control text; server rejects non-GET mutation attempts.",
+          "notes": ""
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "sanitizeDashboardState remains in use; tests assert token-like strings absent from state/detail output.",
+          "notes": ""
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Detail command uses adv_change_show; UI tests assert no change.json/agreement.md raw state links.",
+          "notes": ""
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No GitHub auth code/model changes in reviewed diff; reviewer verdict READY.",
+          "notes": ""
+        },
+        {
+          "contractId": "C6",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Server tests cover project/source read containment and detail timeout degradation; dashboard suite passed.",
+          "notes": ""
+        },
+        {
+          "contractId": "C7",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Static search under bin/lib/dashboard found no loadLiveStatus/getState; routine reader removed default ops fan-out.",
+          "notes": ""
+        },
+        {
+          "contractId": "C8",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "live-status Visibility summary tests and dashboard routine no-ops-call tests passed.",
+          "notes": ""
+        },
+        {
+          "contractId": "C9",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Existing createDashboardStateProvider cache/coalescing tests still pass in dashboard suite.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Reviewed diff adds read-only GET UI/routes only; no signals/updates/task/archive/rerun/merge/deploy controls.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No routine dashboard getState/loadLiveStatus fan-out references found; reviewer confirmed.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Tests assert token/raw ADV state path strings absent; sanitizeDashboardState used for detail response.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Routine reader uses loadLiveSummaries Visibility path and tests assert no ops/query call.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "UI tests assert source-health phrasing and absence of ADV change failure wording for degraded sources.",
+          "notes": ""
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "Given `/api/state` builds ADV summary cards, when Temporal Visibility is reachable, then routine refresh does not call per-change workflow `getState` queries.",
+    "Given a change has `AdvWorktreeBranches` or `AdvWorktreePaths` Visibility attributes, when dashboard summaries are built, then branch/path data is decoded from Visibility without worker queries.",
+    "Given optional ops/head-SHA enrichment is unavailable from Visibility/read-model state, when `/api/state` renders, then base ADV cards remain visible and optional enrichment is omitted or degraded without per-change query fan-out.",
+    "Given a user clicks an ADV card, when the local detail route opens, then it shows compact change context by default and expandable deeper context without mutation controls.",
+    "Given a detail route needs richer state than Visibility provides, when that read fails or times out, then the detail page degrades with a clear message and copyable inspection command instead of crashing or blocking `/api/state`.",
+    "Given GitHub or ADV source reads fail, when the dashboard renders, then source-health degradation shows source, affected repo/project, code, specific context/remediation, and last-success info when known, without being presented as an ADV change failure.",
+    "Given dashboard HTML renders links, commands, source data, or errors, when values contain unsafe URLs, markup, or token-like content, then unsafe URLs are suppressed, HTML is escaped, and secrets/tokens are not displayed.",
+    "Given non-GET requests hit dashboard state/detail routes, when the server handles them, then they are rejected and no ADV/GitHub/Temporal mutation path exists.",
+    "Given dashboard tests run, when targeted dashboard suites complete, then worker-free routine refresh, Visibility branch/path projection, detail route degradation, source-health context, and read-only/no-secret constraints are covered."
+  ],
+  "documents": {
+    "proposal": "# Harden dashboard reads\n\n## Why\n\nThe local ADV dashboard has become useful as a live read-only view, but two related gaps remain:\n\n1. Temporal safety: base ADV dashboard state uses Temporal Visibility, but ops enrichment still depends on per-change workflow state queries through the `loadLiveStatus` path. That can make dashboard refreshes worker-dependent and scale with the number of changes.\n2. Navigation: ADV cards show useful status but do not provide a safe way to inspect the underlying change context from the dashboard.\n\nThe intended outcome is a dashboard that remains local/read-only while following Temporal read-model best practices and giving users a safe inspection path for ADV changes.\n\n## What Changes\n\n- Audit and adjust the dashboard ADV data path so refreshes do not rely on per-change workflow query fan-out for routine state.\n- Preserve degraded behavior when optional enrichment cannot be read.\n- Add a safe read-only navigation path from ADV cards to change details or local inspection context.\n- Keep GitHub degraded-source cards distinct from ADV change attention cards.\n\n## User Outcomes\n\n- Users can trust the dashboard not to add avoidable load or worker coupling to Temporal.\n- Users can click an ADV card to inspect more context for that change without leaving the local read-only dashboard model.\n- Users can distinguish real ADV/change attention from temporary source degradation such as GitHub HTTP 401.\n- Dashboard remains fast, local, and non-mutating as active change counts grow.\n\n## Affected Code\n\n- `bin/lib/live-status.ts`\n- `bin/lib/dashboard/adv.ts`\n- `bin/lib/dashboard/server.ts`\n- `bin/lib/dashboard/ui.ts`\n- `bin/lib/dashboard/*test.ts`\n- Potentially `bin/adv` if dashboard routes or config surface need wiring\n\n## Related Repositories\n\n- Current repository only: `/home/jon/dev/advance`\n- PokeEdge/PokeEdge-Web remain observed dashboard targets, not implementation targets for this change.\n\n## Constraints\n\n- Local-only dashboard.\n- Read-only dashboard; no mutation controls.\n- No tokens or secrets displayed.\n- No direct raw ADV state-file reads or links.\n- No authentication model change; existing GitHub token/CLI auth behavior remains out of scope except for safe degraded display.\n- Read failures must degrade the affected source/detail surface instead of crashing the whole dashboard; no rollback flow is needed for read-only presentation changes.\n- Avoid Temporal anti-patterns: dashboard refresh should not require per-change workflow query fan-out, unbounded polling, or a live worker for ordinary summary state.\n- Preserve bounded refresh/cache/coalescing behavior.\n\n## Impact\n\n- Improves reliability and scalability of the local dashboard.\n- Reduces chance that dashboard UI reads are confused with workflow orchestration authority.\n- Adds discoverability for ADV change context while preserving ADV state access boundaries.\n\n## Context\n\nObserved facts from the current dashboard audit:\n\n- Base status summaries are produced from Temporal Visibility search attributes in `summariesFromVisibility` / `loadLiveSummaries`.\n- Dashboard state provider caches/coalesces `/api/state` refreshes and the browser refreshes at bounded intervals.\n- `readDashboardAdvProject` still attempts ops enrichment with `loadOpsChanges ?? loadLiveStatus`, which is the remaining per-change workflow query path.\n- The screenshot `Needs attention` item was a `degraded_source` from GitHub HTTP 401, not an ADV change; later refresh cleared it.\n- `adv_status` timed out during preflight, while `adv_change_list` and Temporal diagnostics succeeded. Diagnostic reported server reachable, local worker not running, peer workers serviceable.\n\n## Discovery Findings\n\n### Discovery Checklist\n\n| Step | Result | Reason |\n|---|---|---|\n| Skill Discovery | PASS | Considered `adv-arch-detection`, default lgrep guidance, and Temporal docs. Loaded `adv-arch-detection`; no new skill needed. |\n| Prior Research Extension | PASS | Cited `docs/repo-improve-prep.md`; added new dashboard-specific findings around indirect worker-query enrichment and unused worktree Visibility attrs. |\n| Conflict & Related-Work Scan | PASS with degraded related-list | `adv_change_validate` passed with expected `NO_TASKS`/`NO_DELTAS` warnings. `adv_change_list includeArchived` timed out twice; known related archived dashboard changes were inspected directly. Agenda includes overlapping `Optimize adv-status for large WIP sets`. |\n| Edge Case Investigation | PASS | Edge cases captured for Temporal read path, click-through, and degraded source UX. |\n| Design Question Depth | PASS | Questions annotated and resolved or carried to design. |\n| Draft Spec Delta Shapes | PASS | Draft spec delta proposed for worker-free dashboard routine refresh. |\n| Related Pattern Scan | PASS | Found similar worker-free status CLI law and perf research pack; no other dashboard routine query fan-out found beyond `readDashboardAdvProject` enrichment. |\n| LBP Check | PASS | Visibility/read-model routine refresh + bounded on-demand detail read is long-term best practice. |\n| Completeness Verification | PASS | Problem includes Temporal safety, card inspection, and degraded-source clarity; secondary surfaces classified. |\n\n### Skills Considered\n\n- `adv-arch-detection`: matched architecture inconsistency / P33 boundary audit. Loaded and applied conceptually: deterministic evidence first, heuristic findings only with file refs.\n- `lgrep`: already always-on; used for exact code surface search rather than broad glob-first exploration.\n- `adv-worktree`: not loaded; worktree behavior is detail metadata only, not core workflow.\n- No skill gap created; Temporal/dashboard read-model guidance is covered by code evidence + Temporal docs + existing project specs.\n\n### Extends\n\n- `docs/repo-improve-prep.md`: prior research already identifies Visibility-first status paths as sound and full hydration/query-heavy status paths as anti-patterns. New finding: local dashboard base summaries follow this direction, but `readDashboardAdvProject` indirectly reintroduces per-change `getState` fan-out through `loadLiveStatus` for optional ops/worktree enrichment.\n- Archived `reframeDashboardStatus`: established current dashboard lanes are ADV-change centered and unmatched source remains secondary.\n- Archived `improveDashboardCards`: established cards now show gate progress and sort by completed gates.\n\n### Conflict Scan\n\n- `adv_change_validate`: passed; warnings `NO_TASKS` and `NO_DELTAS` expected pre-discovery.\n- `adv_change_list includeArchived`: timed out twice, likely same hot-read scale issue implicated by the change. Known related dashboard changes inspected directly: `reframeDashboardStatus`, `improveDashboardCards`.\n- Agenda: relevant overlap `ag-Pu9AaBst` / “Optimize adv-status for large WIP sets”; related to read-path performance but scoped to `adv_status`, not dashboard.\n- Scout added agenda notes for branch/path Visibility projection and ops/head-sha fate.\n\n### Current State\n\n- `bin/lib/live-status.ts` has two paths:\n  - `loadLiveSummaries` → `summariesFromVisibility` → server-side Visibility attrs, worker-free.\n  - `loadLiveStatus` → `listLiveChangeStates` → per-workflow `getState` query fan-out.\n- `bin/lib/dashboard/adv.ts` calls `loadBaseSummaries` first, then optional `loadOpsChanges ?? loadLiveStatus`; failure degrades as `ADV_OPS_ENRICHMENT_UNAVAILABLE` while base cards remain visible.\n- `plugin/src/temporal/search-attributes.ts` already upserts `AdvWorktreeBranches` and `AdvWorktreePaths` from non-deleted worktrees.\n- `buildSummaryFromSearchAttributes` currently ignores `AdvWorktreeBranches`/`AdvWorktreePaths`; `searchAttributeString` only reads the first value and is not suitable for KeywordList multi-values.\n- `bin/lib/dashboard/adv.test.ts` already has a fixture expecting `worktreeBranches` on `ChangeSummary`, but production does not populate it from Visibility.\n- Dashboard server currently serves only `/` and `/api/state`, rejects non-GET, binds loopback by default, and tests cache/coalesce `/api/state`.\n- UI cards are rendered from client-side HTML strings with safe URL allowlisting and escaping.\n\n### Edge Cases\n\nTemporal/read path:\n- No local worker or worker query handler unavailable: routine `/api/state` must still render from Visibility or degrade clearly.\n- Many active changes: refresh must not issue one workflow query per change.\n- `RESOURCE_EXHAUSTED` or query buffer pressure: SDK retries can amplify latency if dashboard fans out queries.\n- Multi-worktree changes: KeywordList attrs need array-aware decoding, not first-value collapse.\n- Missing or stale Visibility attrs: dashboard should degrade or omit optional detail, not infer false source correlation.\n\nClick-through/detail:\n- Unknown change id or project id: detail route returns bounded not-found/degraded state, not crash.\n- Detail read timeout: detail page shows compact fallback and copyable inspection command.\n- Raw state paths: must not link directly to external ADV state files.\n- Detail route must remain GET-only and not add controls.\n\nDegraded source UX:\n- GitHub HTTP 401: show source, affected repo, auth context/remediation, and last successful refresh if available.\n- Per-project failure: only affected project shows degradation.\n- Degraded source must not be mistaken for an ADV change requiring gate/action work.\n\n### Open Design Questions\n\n1. Final detail-read source\n   - Trust model: agent-owned technical choice.\n   - Blast radius: too much detail can reintroduce worker coupling; too little detail makes click-through unhelpful.\n   - Alternatives: Visibility-only detail, bounded on-demand `getState`, or no detail. Recommendation: routine refresh stays Visibility-only; detail route may use a bounded one-change read only after explicit user click and degrades safely.\n\n2. Ops/head-sha fate\n   - Trust model: agent-owned unless user requires ops fields in dashboard cards.\n   - Blast radius: removing per-refresh ops query can drop optional ops/head-sha enrichment; preserving it recreates fan-out.\n   - Alternatives: promote ops/head-sha to Visibility/read model, fetch only on detail route, or omit from dashboard. Recommendation: no per-refresh query; use existing branch/path Visibility now, and make deeper ops/head-sha detail best-effort on click.\n\n3. Degraded-source placement/context\n   - Trust model: user-facing, user answered.\n   - Blast radius: cryptic degraded card looks like a change failure; hidden source failures make dashboard misleading.\n   - Alternatives: Needs attention card, project header only, or source-health/detail card. Resolution: show more specific/detailed context and distinguish it from ADV change attention.\n\n4. Card click target/depth\n   - Trust model: user-facing, user answered.\n   - Blast radius: wrong target interrupts local dashboard workflow or violates state boundaries.\n   - Alternatives: local detail page, command panel, source links first. Resolution: local detail page with two levels: compact default plus expandable detail.\n\n### Draft Spec Deltas\n\nProposed target: `advance-meta` or a new dashboard-local spec if design finds dashboard behavior warrants its own capability.\n\n- `rq-dashboardWorkerFree01` — Dashboard routine refresh uses worker-free read model.\n  - Given the local dashboard requests `/api/state`, when Temporal Visibility is reachable, then ADV change summary cards are built without per-change workflow `getState` queries.\n  - Given optional enrichment is unavailable from Visibility/read model, when `/api/state` renders, then optional enrichment is omitted or degraded without hiding base ADV cards.\n  - Given the dashboard provides click-through change details, when a detail route needs richer state, then any worker-dependent read is bounded, one-change scoped, user-triggered, and degrades visibly.\n\n### Related Pattern Scan\n\n- `rq-statusCliWorkerFree01` already requires `adv status` to build active rows from Visibility search attributes instead of per-change workflow queries.\n- `plugin/src/cli-bridge-contract.test.ts` checks CLI direct use of `loadLiveStatus`, but dashboard imports `loadLiveStatus` indirectly through `readDashboardAdvProject` and is not covered by the same no-fanout law.\n- `loadLiveStatus(` appears only in `bin/lib/live-status.ts`; the dashboard path uses it through the default `loadOpsChanges` dependency, so the issue is localized.\n- `AdvWorktreeBranches`/`AdvWorktreePaths` are already registered/upserted and used by worktree tools, so projecting them into `ChangeSummary` is a same-pattern correction.\n\n### LBP Check\n\n- Best practice: routine dashboard refresh should use server-side Visibility/read-model data, not live workflow queries per row.\n- Temporal docs evidence: Workflow queries are read-only but execute through workflow query RPC and can be rejected/unavailable; SDK retries `RESOURCE_EXHAUSTED`/`UNAVAILABLE`, so fan-out can amplify latency under pressure. Visibility search attributes are server-side list/query metadata and are the correct basis for summary dashboards.\n- Chosen direction: Visibility/read-model for `/api/state`; one-change bounded best-effort detail read only after user click if design needs richer data.\n- External alternatives: skipped; this is internal Temporal/dashboard architecture with no viable external service/library decision.\n\n### Discovery Opportunity Scout\n\n- Trigger: run — architecture/read-model change with Temporal correctness risk.\n- Candidates considered: 5.\n- Auto-adopted: populate `worktreeBranches`/`worktreePaths` in `buildSummaryFromSearchAttributes` from existing `AdvWorktreeBranches`/`AdvWorktreePaths` using array-aware decoding.\n- User-surfaced/resolved: click target and detail depth; user selected local detail page and two-level detail.\n- Design-carry: ops/head-sha enrichment should not remain in routine refresh; design decides whether to promote fields to Visibility or make them best-effort detail-only.\n\n### Completeness Verification\n\nProblem-completeness:\n- The full problem is broader than the single screenshot card: it includes worker-coupled routine dashboard reads, missing safe change inspection, and unclear degraded-source context.\n- Confidence: high; evidence spans proposal, live dashboard behavior, Temporal read code, server routes, and prior dashboard changes.\n\nSolution-scope:\n- The full intended solution is not “remove one function call.” It needs a routine-refresh read-model guarantee, safe detail route, and source-health UX.\n- Sole-entry claim: routine dashboard state is served through `createDashboardStateProvider` / `buildDashboardState` for `/api/state`; verified from `bin/lib/dashboard/server.ts` and tests. Static HTML route `/` has no state read.\n- Secondary surfaces:\n  - `adv status` CLI: out of scope; already governed by `rq-statusCliWorkerFree01`.\n  - GitHub reader: in scope only for degraded-source display clarity, not auth model changes.\n  - Dashboard detail route: in scope, but user-triggered and not routine refresh.\n\n### AMBIGUITY ANALYSIS\n\nCoverage: B:C F:C S:C M:C\n\nNo blocking ambiguity findings.\n\nAdvisory note: exact detail-field set is design-owned; user has approved local detail page + two-level detail outcome, so this is not a discovery blocker.\n\n## Scope\n\n### In Scope\n\n- Dashboard ADV read-path audit and refinement.\n- Removing, replacing, or gating per-change workflow query fan-out from routine dashboard refresh.\n- Read-only ADV card click-through/details for local inspection.\n- Dashboard tests covering Temporal-read behavior, degraded behavior, and click-through safety.\n\n### Out of Scope\n\n- Mutation actions from the dashboard.\n- Hosted dashboard service.\n- Changes to PokeEdge or PokeEdge-Web application code.\n- Bulk redesign of all ADV persistence or workflow internals.\n- Raw external ADV state-file browsing from dashboard links.\n- GitHub authentication model changes.\n\n### Must Not\n\n- Must not add signals, updates, task mutations, archive controls, rerun controls, merge controls, or deploy controls.\n- Must not rely on per-change workflow query fan-out for ordinary refresh summary state.\n- Must not expose secrets, tokens, raw auth errors with sensitive content, or raw state-file paths as primary navigation.\n- Must not make the dashboard depend on a live local worker when Temporal Visibility can provide the needed summary state.",
+    "problemStatement": "The local ADV dashboard needs to remain a safe read-only live view while avoiding Temporal anti-patterns and making ADV cards inspectable. Today the base state uses Visibility, but optional ops enrichment still has a per-change workflow query path, and cards do not provide a safe click-through path to change context.",
+    "agreement": "# Agreement\n\n## Objectives\n\n1. Make routine dashboard ADV summary refresh worker-free and Visibility/read-model based.\n2. Preserve useful ADV card context while removing per-change workflow query fan-out from `/api/state`.\n3. Add read-only ADV card click-through to a local detail view.\n4. Improve degraded-source context so source failures are specific and not confused with ADV change failures.\n5. Preserve local-only, read-only, no-secret dashboard behavior.\n\n## Success Criteria\n\n1. Routine dashboard refresh is worker-free for ADV summary state.\n2. ADV cards open a local read-only detail view.\n3. Detail view has two levels: compact default + expandable deeper context.\n4. Source degradation is specific and actionable, not a cryptic ADV-change-looking card.\n5. Existing dashboard behavior remains local-only, read-only, bounded, cached/coalesced, and secret-safe.\n\n## Acceptance Criteria\n\n1. Given `/api/state` builds ADV summary cards, when Temporal Visibility is reachable, then routine refresh does not call per-change workflow `getState` queries.\n2. Given a change has `AdvWorktreeBranches` or `AdvWorktreePaths` Visibility attributes, when dashboard summaries are built, then branch/path data is decoded from Visibility without worker queries.\n3. Given optional ops/head-SHA enrichment is unavailable from Visibility/read-model state, when `/api/state` renders, then base ADV cards remain visible and optional enrichment is omitted or degraded without per-change query fan-out.\n4. Given a user clicks an ADV card, when the local detail route opens, then it shows compact change context by default and expandable deeper context without mutation controls.\n5. Given a detail route needs richer state than Visibility provides, when that read fails or times out, then the detail page degrades with a clear message and copyable inspection command instead of crashing or blocking `/api/state`.\n6. Given GitHub or ADV source reads fail, when the dashboard renders, then source-health degradation shows source, affected repo/project, code, specific context/remediation, and last-success info when known, without being presented as an ADV change failure.\n7. Given dashboard HTML renders links, commands, source data, or errors, when values contain unsafe URLs, markup, or token-like content, then unsafe URLs are suppressed, HTML is escaped, and secrets/tokens are not displayed.\n8. Given non-GET requests hit dashboard state/detail routes, when the server handles them, then they are rejected and no ADV/GitHub/Temporal mutation path exists.\n9. Given dashboard tests run, when targeted dashboard suites complete, then worker-free routine refresh, Visibility branch/path projection, detail route degradation, source-health context, and read-only/no-secret constraints are covered.\n\n## Constraints\n\n1. Local-only dashboard.\n2. Read-only dashboard; no mutation controls.\n3. No tokens or secrets displayed.\n4. No direct raw ADV state-file reads or links.\n5. No GitHub authentication model change.\n6. Read failures degrade affected source/detail surface instead of crashing the whole dashboard.\n7. Routine refresh must not rely on per-change workflow query fan-out.\n8. Routine summary state must not require a live local worker when Temporal Visibility can provide needed state.\n9. Preserve bounded refresh/cache/coalescing behavior.\n\n## Avoidances\n\n1. Do not add signals, updates, task mutations, archive controls, rerun controls, merge controls, or deploy controls.\n2. Do not use per-change workflow query fan-out for ordinary refresh summary state.\n3. Do not expose secrets, tokens, raw auth errors with sensitive content, or raw state-file paths as primary navigation.\n4. Do not make `/api/state` depend on a live local worker for base ADV cards.\n5. Do not turn source-health degradation into an ADV change failure card.\n\n## Preview Applicability\n\nvisual_surface: true\n\nRationale: The change affects the browser-visible local dashboard UI, including card links/detail pages and source-health display.\n\n## Decisions\n\n### User Decisions\n\n- Question: What should clicking an ADV card open?\n  - User choice: Local detail page.\n  - Why it matters: defines navigation outcome and avoids raw state-file links.\n- Question: How much detail should the local ADV change page show by default?\n  - User choice: Two levels.\n  - Why it matters: compact default avoids noise while expandable detail preserves inspection depth.\n- Question: When source reads fail, where/how should degradation show?\n  - User choice: More specific and detailed context.\n  - Why it matters: cryptic `GITHUB_HTTP_401` cards are not actionable and can be mistaken for ADV change failures.\n\n### Agent Decisions (LBP)\n\n- Routine `/api/state` should use Temporal Visibility/read-model data only for ADV summaries.\n- `AdvWorktreeBranches` and `AdvWorktreePaths` should be decoded from existing Visibility KeywordList attrs with array-aware parsing.\n- Optional ops/head-SHA enrichment should not remain a per-refresh worker-query dependency; design may promote fields to read model or make deeper details best-effort/on-demand.\n- One-change detail reads, if needed, must be user-triggered, bounded, read-only, and degraded independently from `/api/state`.\n- Existing dashboard safe URL, HTML escaping, and GET-only server patterns remain the safety baseline.\n\n## Deferred Questions\n\nNone.\n\n## Sign-Off\n\nCriteria approved by user reply `approve` during discovery checkpoint.",
+    "design": "# Design\n\n## Architecture Overview\n\nThe dashboard read model splits into two paths:\n\n1. **Routine summary path** — `/api/state`\n   - Uses Temporal Visibility/search-attribute summaries only for ADV cards.\n   - Does not call per-change workflow `getState` queries.\n   - Provides enough data for cards, lane placement, branches, worktree paths, source correlation, and safe click links.\n\n2. **User-triggered detail path** — `/change/{projectId}/{changeId}` + `/api/change/{projectId}/{changeId}`\n   - Opens from an ADV card click.\n   - Compact default view comes from the same read-model shape.\n   - Expandable deeper context may use one bounded read of that single change when available.\n   - Failure degrades only the detail panel/page and never blocks `/api/state`.\n\nThis preserves a worker-free dashboard refresh while still allowing richer inspection after explicit user action.\n\n## Key Decisions\n\n### 1. Remove routine ops enrichment fan-out from `/api/state`\n\n`readDashboardAdvProject` currently calls `loadBaseSummaries` and then attempts `loadOpsChanges ?? loadLiveStatus`. `loadLiveStatus` lists change workflows then queries each workflow's `getState`. That is safe as a read, but it is wrong for a dashboard refresh because it scales with change count and requires a worker.\n\nDecision: routine dashboard summaries use `loadLiveSummaries`/Visibility only. Optional ops/head-SHA enrichment is not fetched during `/api/state` refresh.\n\nRationale:\n- Matches `rq-statusCliWorkerFree01` direction already established for `adv status`.\n- Avoids SDK retry amplification under `RESOURCE_EXHAUSTED`/`UNAVAILABLE`.\n- Keeps `/api/state` usable when no local worker is polling.\n\n### 2. Project existing worktree Visibility attrs into summaries\n\n`AdvWorktreeBranches` and `AdvWorktreePaths` already exist and are upserted by change workflows. Production summaries currently ignore them.\n\nDecision: add a small array-aware search-attribute helper next to `searchAttributeString`, then project:\n\n- `worktreeBranches?: string[]`\n- `worktreePaths?: string[]`\n\ninto `ChangeSummary` from `AdvWorktreeBranches` / `AdvWorktreePaths`.\n\nRationale:\n- No new Temporal search attributes required.\n- No decoder module needed; Temporal SDK exposes KeywordList as `string[]`/array values in list results.\n- Existing dashboard merge logic already looks for `summary.worktreeBranches`.\n\n### 3. Demote ops/head-SHA detail to explicit detail read\n\n`head_shas`, `ops_followup`, and `ops_followup_links` do not currently have Visibility attrs. Adding more KeywordList attrs now risks overusing a small search-attribute surface and is not required for routine card correctness.\n\nDecision: routine cards omit or mark these as unavailable. If detail needs them, fetch them only through a bounded one-change read on the detail route.\n\nRationale:\n- Keeps routine refresh worker-free.\n- Preserves deeper inspection when worker/query path is available.\n- Avoids widening Temporal search-attribute schema before proving sustained need.\n\n### 4. Implement detail as local read-only page + JSON API\n\nADV cards link to `/change/{projectId}/{changeId}`. The route serves the same dashboard HTML shell or a detail-focused HTML shell. The client fetches `/api/change/{projectId}/{changeId}`.\n\nDetail JSON contains:\n- compact base fields: id, title, lifecycle/status, gate, progress, last activity\n- branch/worktree paths from Visibility\n- latest linked source summaries already available from the dashboard model when possible\n- optional deeper fields when bounded one-change read succeeds\n- degraded detail status when richer read fails/times out\n- copyable command: `adv_change_show(changeId: \"{id}\")`\n\nNo direct raw ADV state path is linked.\n\n### 5. Source-health degradation is a first-class source-health card\n\nCurrent degraded cards can appear in Needs attention and look like ADV failures. The source-health display needs more context.\n\nDecision: render degraded source items with explicit context:\n- source: github/adv\n- affected repo or project label/path\n- code\n- user-readable explanation\n- remediation\n- last successful refresh if available\n\nThey remain separate from `adv_change_status` cards and cannot be mistaken for an ADV gate/action failure.\n\n## ADR Drafts\n\nNone. Decisions are important but not hard-to-reverse enough to require an ADR; they are localized to dashboard read architecture and can be revised by later dashboard changes.\n\n## Implementation Strategy\n\n1. **Visibility projection first**\n   - Add `searchAttributeStringList` helper in `bin/lib/live-status.ts`.\n   - Extend `ChangeSummary` type to include optional `worktreeBranches` and `worktreePaths` if not already typed.\n   - Decode `AdvWorktreeBranches` and `AdvWorktreePaths` in `buildSummaryFromSearchAttributes`.\n   - Add tests for multi-value KeywordList decoding.\n\n2. **Remove routine fan-out**\n   - Change `readDashboardAdvProject` so default routine path does not call `loadLiveStatus`/`loadOpsChanges`.\n   - Keep injection seams for tests if useful, but default must be worker-free.\n   - Add a regression test with a sentinel `loadOpsChanges` that fails if invoked during normal summary read.\n\n3. **Adjust dashboard change model**\n   - Carry `worktreePaths` into `DashboardAdvChange`.\n   - Keep correlation branches from `summary.worktreeBranches`.\n   - Treat `head_shas` as empty unless read-model/detail supplies it.\n\n4. **Add detail API/page**\n   - Add GET route parsing for `/change/{projectId}/{changeId}` and `/api/change/{projectId}/{changeId}`.\n   - Reject non-GET with existing 405 pattern.\n   - Use cached/read-model data for compact detail.\n   - Add optional bounded single-change read helper for deeper data, not list+fan-out.\n   - On timeout/failure, return degraded detail with copyable `adv_change_show` command.\n\n5. **Update UI**\n   - Make ADV cards anchors or clickable cards linking to local detail page.\n   - Add detail rendering with compact default and expandable deeper context.\n   - Render source-health degradation with source/project/repo/remediation context.\n   - Preserve `safeUrl`, `escapeHtml`, and no mutation controls.\n\n6. **Verification**\n   - Targeted `bun test bin/lib/dashboard bin/lib/live-status.test.ts`.\n   - Static/source check that routine dashboard default path no longer references `loadLiveStatus` or calls `getState` via dashboard read.\n   - Live restart verification after archive: `/` and `/api/state` 200, detail route 200 for at least one visible card.\n\n## LBP Analysis\n\nThe best long-term shape is a read-model dashboard:\n\n- Summary refresh reads server-side Visibility metadata.\n- Detail view may use richer reads only after explicit click.\n- Optional details degrade locally and never reduce base dashboard availability.\n\nThis aligns with existing ADV architecture:\n- `adv status` already has a worker-free Visibility requirement.\n- Change workflows already upsert worktree branches/paths.\n- Dashboard server already has GET-only/loopback and cache/coalescing seams.\n- UI already has escaping and safe URL helpers.\n\nIt avoids overengineering:\n- No new service.\n- No new auth model.\n- No broad persistence rewrite.\n- No new search attributes until ops/head-SHA need is proven.\n\n## Affected Components\n\n- `bin/lib/live-status.ts`\n  - Add array-aware search attribute reader.\n  - Project worktree branches/paths into summaries.\n  - Add one-change read helper only if detail route needs richer state.\n\n- `bin/lib/types.ts`\n  - Extend `ChangeSummary` with optional worktree branch/path fields if needed.\n\n- `bin/lib/dashboard/adv.ts`\n  - Remove default ops fan-out from routine project read.\n  - Carry worktree paths.\n  - Keep base ADV cards visible when optional fields are absent.\n\n- `bin/lib/dashboard/server.ts`\n  - Add detail route/API routing.\n  - Keep GET-only rejection for state/detail paths.\n  - Keep cache/coalescing for `/api/state`; detail reads are separate and bounded.\n\n- `bin/lib/dashboard/ui.ts`\n  - Link cards to detail page.\n  - Render two-level detail view.\n  - Improve source-health degraded cards.\n\n- `bin/lib/dashboard/*test.ts`, `bin/lib/live-status.test.ts`\n  - Add worker-free, branch/path, detail degradation, and safety coverage.\n\n- `.adv/specs/advance-meta/spec.json` and docs mirror if needed\n  - Add dashboard-specific worker-free/read-only routine refresh law or extend existing status CLI worker-free law.\n\n## Design-Derived Criteria\n\n1. Routine dashboard `/api/state` path must not call `loadLiveStatus`, `listLiveChangeStates`, or workflow `query(getState)` by default.\n2. KeywordList decoding must preserve all string values and drop only blank/non-string values.\n3. Detail route richer read must be scoped to one `(projectId, changeId)` and bounded by the existing dashboard/read timeout budget.\n4. Detail route failure must not invalidate cached `/api/state` or project cards.\n5. Detail route and state route must reject non-GET requests.\n6. Source-health cards must include enough context to identify source and affected project/repo without exposing secret-bearing raw errors.\n7. Card links must be local same-origin paths; external source links remain limited to `http:`/`https:` via `safeUrl`.\n\n## Risks / Mitigations\n\n- Risk: removing ops enrichment hides useful ops/head-SHA information.\n  - Mitigation: detail route can fetch deeper state on demand; routine cards stay correct without it.\n\n- Risk: direct detail route reload lacks cached source correlation.\n  - Mitigation: detail API can rebuild compact state through same read-model path and filter one change; richer data is optional.\n\n- Risk: `AdvWorktreeBranches`/`AdvWorktreePaths` absent for older workflows.\n  - Mitigation: absence yields empty branches/paths; source correlation remains conservative and does not infer fuzzy matches.\n\n- Risk: source-health details leak raw auth/token strings.\n  - Mitigation: keep sanitized error codes/messages; tests assert token-like strings absent.\n\n- Risk: spec surface is currently CLI-status-specific, not dashboard-specific.\n  - Mitigation: add or extend spec law during implementation if design/prep confirms dashboard worker-free behavior should be durable beyond tests.\n\n## Design Leverage Scout\n\n- Candidates considered: 5.\n- Auto-adopted: array-aware `searchAttributeStringList` next to existing helper; project existing `AdvWorktreeBranches`/`AdvWorktreePaths`; reuse existing dashboard injection/degraded seams; reuse GET-only/loopback/sanitization helpers.\n- Surfaced/resolved: head-SHA/ops fate — demote to detail-only unless future evidence warrants new search attrs.\n- Rejected/deferred: new decoder module and new Temporal search attributes for ops/head-SHA in this change.\n\n## Validator Result\n\nValidator: VALIDATED.\n\nFindings:\n- Correctness: design solves all objectives; load-bearing claims verified in code and Temporal docs.\n- Simplicity: simplest viable path; no new attrs, decoder module, service, or auth model.\n- Spec-law compliance: extends `rq-statusCliWorkerFree01` pattern; no contradiction.\n- Alternatives: new ops/head-SHA search attrs and full read-model rewrite considered and rejected as premature.\n\nPrep cautions:\n- Reconcile AC3 wording (`omitted or degraded`) with design wording so acceptance matrix is unambiguous.\n- Confirm detail route reuses existing loopback, GET-only, safe URL, and escaping guards.",
+    "executiveSummary": "# Executive Summary\n\nHardened the local ADV dashboard read path so routine `/api/state` refreshes use Temporal Visibility/read-model summaries instead of per-change workflow `getState` fan-out. ADV cards now expose safe local click-through detail pages with compact context, optional expandable deeper data, bounded one-change detail degradation, and copyable `adv_change_show` inspection commands.\n\nKey outcomes:\n- Added durable spec law `rq-dashboardWorkerFree01` plus docs mirror and contract test coverage.\n- Decoded `AdvWorktreeBranches` and `AdvWorktreePaths` from Visibility into dashboard summaries.\n- Removed routine ops/head-SHA enrichment fan-out from dashboard ADV reads; base cards remain visible when optional enrichment is unavailable.\n- Added read-only detail API/page routes: `/api/change/{projectId}/{changeId}` and `/change/{projectId}/{changeId}`.\n- Updated dashboard UI for local detail links, compact/deeper detail rendering, and source-health degradation cards.\n- Preserved local-only/read-only/no-secret/no-raw-state-link constraints.\n\nVerification:\n- `bun test bin/lib/dashboard bin/lib/live-status.test.ts` — 68 pass.\n- `bin/oc-test targeted -- src/cli-bridge-contract.test.ts` — 19 pass.\n- `pnpm run schemas:check` — pass.\n- Static source check — no `loadLiveStatus` or `getState` references under `bin/lib/dashboard`.\n- Independent acceptance reviewer verdict — READY, no findings.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-06-26T19:56:00.000Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | Routine dashboard refresh is worker-free for ADV summary state. | pass | bun test bin/lib/dashboard bin/lib/live-status.test.ts passed (68 tests); static search found no loadLiveStatus/getState under bin/lib/dashboard. |\n| SC2 | success_criterion | ADV cards open a local read-only detail view. | pass | bin/lib/dashboard/ui.test.ts covered local detail links; server detail route tests passed in dashboard suite. |\n| SC3 | success_criterion | Detail view has two levels: compact default + expandable deeper context. | pass | UI tests cover compact detail fields and deeper <details> rendering; dashboard suite passed. |\n| SC4 | success_criterion | Source degradation is specific and actionable, not a cryptic ADV-change-looking card. | pass | UI tests cover Source health renderer with source/code/affected/remediation/last_success_at and absence of ADV failure phrasing. |\n| SC5 | success_criterion | Existing dashboard behavior remains local-only, read-only, bounded, cached/coalesced, and secret-safe. | pass | Server/UI tests cover GET-only routes, loopback defaults, cache/coalescing, escaping/safe URLs, no mutation controls, no token/raw state links. |\n| AC1 | acceptance_criterion | Given `/api/state` builds ADV summary cards, when Temporal Visibility is reachable, then routine refresh does not call per-change workflow `getState` queries. | pass | bin/lib/dashboard/adv.test.ts asserts routine state does not call loadOpsChanges; static search no getState/loadLiveStatus under bin/lib/dashboard. |\n| AC2 | acceptance_criterion | Given a change has `AdvWorktreeBranches` or `AdvWorktreePaths` Visibility attributes, when dashboard summaries are built, then branch/path data is decoded from Visibility without worker queries. | pass | bin/lib/live-status.test.ts asserts AdvWorktreeBranches and AdvWorktreePaths decode all non-blank values from Visibility attrs. |\n| AC3 | acceptance_criterion | Given optional ops/head-SHA enrichment is unavailable from Visibility/read-model state, when `/api/state` renders, then base ADV cards remain visible and optional enrichment is omitted or degraded without per-change query fan-out. | pass | bin/lib/dashboard/adv.test.ts asserts base card remains visible, no degraded ops enrichment card, ops/head_shas omitted/empty without fan-out. |\n| AC4 | acceptance_criterion | Given a user clicks an ADV card, when the local detail route opens, then it shows compact change context by default and expandable deeper context without mutation controls. | pass | bin/lib/dashboard/server.test.ts and ui.test.ts cover local detail route/page and compact + expandable detail rendering without mutation controls. |\n| AC5 | acceptance_criterion | Given a detail route needs richer state than Visibility provides, when that read fails or times out, then the detail page degrades with a clear message and copyable inspection command instead of crashing or blocking `/api/state`. | pass | bin/lib/dashboard/server.test.ts covers bounded detailReader timeout returning ADV_DETAIL_READ_TIMEOUT with compact detail still visible and command present. |\n| AC6 | acceptance_criterion | Given GitHub or ADV source reads fail, when the dashboard renders, then source-health degradation shows source, affected repo/project, code, specific context/remediation, and last-success info when known, without being presented as an ADV change failure. | pass | bin/lib/dashboard/ui.test.ts covers source-health fields and not presenting degradation as ADV change failure. |\n| AC7 | acceptance_criterion | Given dashboard HTML renders links, commands, source data, or errors, when values contain unsafe URLs, markup, or token-like content, then unsafe URLs are suppressed, HTML is escaped, and secrets/tokens are not displayed. | pass | UI/server tests assert safeUrl/escape behavior, no token text, no change.json/agreement.md raw links. |\n| AC8 | acceptance_criterion | Given non-GET requests hit dashboard state/detail routes, when the server handles them, then they are rejected and no ADV/GitHub/Temporal mutation path exists. | pass | bin/lib/dashboard/server.test.ts rejects POST to /api/change with 405 allow GET; existing server tests cover GET-only state routes. |\n| AC9 | acceptance_criterion | Given dashboard tests run, when targeted dashboard suites complete, then worker-free routine refresh, Visibility branch/path projection, detail route degradation, source-health context, and read-only/no-secret constraints are covered. | pass | Final verification: dashboard suite 68 pass; cli-bridge spec-law 19 pass; schemas:check pass; reviewer verdict READY. |\n| C1 | constraint | Local-only dashboard. | respected | normalizeDashboardServerOptions still defaults to 127.0.0.1 and requires explicit non-loopback opt-in; server tests pass. |\n| C2 | constraint | Read-only dashboard; no mutation controls. | respected | UI tests assert no mutation controls/form/POST control text; server rejects non-GET mutation attempts. |\n| C3 | constraint | No tokens or secrets displayed. | respected | sanitizeDashboardState remains in use; tests assert token-like strings absent from state/detail output. |\n| C4 | constraint | No direct raw ADV state-file reads or links. | respected | Detail command uses adv_change_show; UI tests assert no change.json/agreement.md raw state links. |\n| C5 | constraint | No GitHub authentication model change. | respected | No GitHub auth code/model changes in reviewed diff; reviewer verdict READY. |\n| C6 | constraint | Read failures degrade affected source/detail surface instead of crashing the whole dashboard. | respected | Server tests cover project/source read containment and detail timeout degradation; dashboard suite passed. |\n| C7 | constraint | Routine refresh must not rely on per-change workflow query fan-out. | respected | Static search under bin/lib/dashboard found no loadLiveStatus/getState; routine reader removed default ops fan-out. |\n| C8 | constraint | Routine summary state must not require a live local worker when Temporal Visibility can provide needed state. | respected | live-status Visibility summary tests and dashboard routine no-ops-call tests passed. |\n| C9 | constraint | Preserve bounded refresh/cache/coalescing behavior. | respected | Existing createDashboardStateProvider cache/coalescing tests still pass in dashboard suite. |\n| DONT1 | avoidance | Do not add signals, updates, task mutations, archive controls, rerun controls, merge controls, or deploy controls. | respected | Reviewed diff adds read-only GET UI/routes only; no signals/updates/task/archive/rerun/merge/deploy controls. |\n| DONT2 | avoidance | Do not use per-change workflow query fan-out for ordinary refresh summary state. | respected | No routine dashboard getState/loadLiveStatus fan-out references found; reviewer confirmed. |\n| DONT3 | avoidance | Do not expose secrets, tokens, raw auth errors with sensitive content, or raw state-file paths as primary navigation. | respected | Tests assert token/raw ADV state path strings absent; sanitizeDashboardState used for detail response. |\n| DONT4 | avoidance | Do not make `/api/state` depend on a live local worker for base ADV cards. | respected | Routine reader uses loadLiveSummaries Visibility path and tests assert no ops/query call. |\n| DONT5 | avoidance | Do not turn source-health degradation into an ADV change failure card. | respected | UI tests assert source-health phrasing and absence of ADV change failure wording for degraded sources. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-06-26T19:06:18.302Z",
+      "contentHash": "8981cc1f7d4743234eac57b7a09a34c714b6adeb22750f78c0e532bd5df81f1f",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-06-26T18:52:25.094Z",
+      "contentHash": "7c919a654405a3366e82c0d18b3d0a9f08f2efe333f2dbee74b280f4d43798e8",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-06-26T19:07:53.812Z",
+      "contentHash": "0b717733fa924a3e6bc5ef1010c00a6381fe20b240ca55b34c7cfcbe51ca2421",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-06-26T19:18:21.535Z",
+      "contentHash": "c58d77cb51ceb82528d9f3e118f919d69334c2384820ddf9dfa0ba6645ad7351",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-06-26T20:01:02.842Z",
+      "contentHash": "ffd5bb6a05e116ae81eb44f082351aed827e5c0f8e356635c5628af911ec55c9",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-06-26T20:39:52.799Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_ASSUMPTION_HEAVY",
+      "severity": "warning",
+      "message": "Proposal references authentication/authorization without specifying the model. What auth mechanism will be used?",
+      "recorded_at": "2026-06-26T18:56:30.333Z"
+    }
+  ],
+  "worktree_auto_managed": true
+}
