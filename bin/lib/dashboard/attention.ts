@@ -11,15 +11,17 @@ export interface AttentionInput {
 }
 
 export interface AttentionLanes {
-  attention: DashboardLaneItem[];
-  active: DashboardLaneItem[];
-  unmatched: DashboardLaneItem[];
-  inventory: DashboardLaneItem[];
+  needs_attention: Array<ChangeStatusLaneItem | DegradedLaneItem>;
+  running: ChangeStatusLaneItem[];
+  ready_landed: ChangeStatusLaneItem[];
+  backlog: ChangeStatusLaneItem[];
+  unmatched_source: DashboardLaneItem[];
 }
 
 export type DashboardLaneItem =
   | ProjectedSourceLaneItem
   | AdvChangeLaneItem
+  | ChangeStatusLaneItem
   | DegradedLaneItem
   | SummaryLaneItem
   | GroupedLaneItem;
@@ -55,6 +57,33 @@ export interface AdvChangeLaneItem {
   };
 }
 
+export interface ChangeStatusLaneItem {
+  kind: "adv_change_status";
+  changeId: string;
+  title: string;
+  status: string;
+  gate: string;
+  progress: string;
+  latest: {
+    overall: "attention" | "running" | "ready_landed" | "backlog" | "unknown";
+    pr?: SourceStatusSummary;
+    ci?: SourceStatusSummary;
+    deployment?: SourceStatusSummary;
+  };
+  sources: {
+    prs: ProjectedSourceLaneItem[];
+    workflow_runs: ProjectedSourceLaneItem[];
+    deployments: ProjectedSourceLaneItem[];
+  };
+  metadata?: LaneCardMetadata[];
+}
+
+export interface SourceStatusSummary extends LaneCardFields {
+  kind: "pull" | "workflow_run" | "deployment";
+  title: string;
+  status?: string;
+}
+
 export interface DegradedLaneItem {
   kind: "degraded_source";
   source: DashboardDegradedSource["source"];
@@ -83,14 +112,6 @@ export interface GroupedLaneItem {
 }
 
 export function buildAttentionLanes(input: AttentionInput): AttentionLanes {
-  const active: DashboardLaneItem[] = [];
-  const inventory: DashboardLaneItem[] = [];
-  for (const change of input.changes) {
-    const item = advChangeItem(change);
-    if (isDashboardActionableAdvStatus(change.status)) active.push(item);
-    else inventory.push(item);
-  }
-
   const degradedItems = input.degradedSources.map(
     (source): DegradedLaneItem => ({
       kind: "degraded_source",
@@ -99,37 +120,67 @@ export function buildAttentionLanes(input: AttentionInput): AttentionLanes {
       message: source.message,
     }),
   );
-  const attention: DashboardLaneItem[] = [...degradedItems];
-  const unmatched: DashboardLaneItem[] = [];
-  const successfulHistory = new Map<string, ProjectedSourceLaneItem[]>();
+
+  const changes = buildChangeStatusItems(input);
+  const unmatched = buildUnmatchedSource(input);
+
+  return {
+    needs_attention: [
+      ...degradedItems,
+      ...changes.filter((item) => item.latest.overall === "attention"),
+    ],
+    running: changes.filter((item) => item.latest.overall === "running"),
+    ready_landed: changes.filter((item) => item.latest.overall === "ready_landed"),
+    backlog: changes.filter(
+      (item) =>
+        item.latest.overall === "backlog" || item.latest.overall === "unknown",
+    ),
+    unmatched_source: unmatched,
+  };
+}
+
+interface ChangeStatusAccumulator {
+  change: DashboardAdvChange;
+  prs: ProjectedSourceLaneItem[];
+  workflow_runs: ProjectedSourceLaneItem[];
+  deployments: ProjectedSourceLaneItem[];
+}
+
+function buildChangeStatusItems(input: AttentionInput): ChangeStatusLaneItem[] {
+  const byChange = new Map<string, ChangeStatusAccumulator>();
+  for (const change of input.changes) {
+    byChange.set(change.id, { change, prs: [], workflow_runs: [], deployments: [] });
+  }
 
   for (const raw of input.linked) {
     const item = projectSourceItem(raw, input.github);
-    if (isSuccessfulHistory(item)) collectSuccessfulHistory(successfulHistory, item);
-    else if (isAttentionStatus(item)) attention.unshift(item);
-    else if (isRunningStatus(item) || isOpenStatus(item)) active.push(item);
-    else inventory.push(item);
+    const accumulator = byChange.get(raw.changeId);
+    if (!accumulator) continue;
+    if (item.kind === "pull") accumulator.prs.push(item);
+    else if (item.kind === "workflow_run") accumulator.workflow_runs.push(item);
+    else if (item.kind === "deployment") accumulator.deployments.push(item);
   }
 
+  return [...byChange.values()].map(changeStatusItem);
+}
+
+function buildUnmatchedSource(input: AttentionInput): DashboardLaneItem[] {
+  const unmatched: DashboardLaneItem[] = [];
+  const successfulHistory = new Map<string, ProjectedSourceLaneItem[]>();
   for (const raw of input.unlinked) {
     const item = projectSourceItem(raw, input.github);
     if (isSuccessfulHistory(item)) collectSuccessfulHistory(successfulHistory, item);
-    else if (isAttentionStatus(item)) attention.unshift(item);
-    else if (isRunningStatus(item)) active.push(item);
     else unmatched.push(item);
   }
 
   const historySummary = new Map<string, number>();
   for (const members of successfulHistory.values()) {
-    if (members.length > 1) {
-      inventory.push(sourceGroup(members));
-      continue;
-    }
-    increment(historySummary, summaryKey(members[0]!));
+    if (members.length > 1) unmatched.push(sourceGroup(members));
+    else increment(historySummary, summaryKey(members[0]!));
   }
 
   for (const [key, count] of historySummary) {
-    inventory.push({
+    unmatched.push({
       kind: "summary",
       title: `${count} ${key} item${count === 1 ? "" : "s"} summarized`,
       status: "success_history",
@@ -137,12 +188,136 @@ export function buildAttentionLanes(input: AttentionInput): AttentionLanes {
     });
   }
 
+  return sortUnmatched(groupSourceItems(unmatched));
+}
+
+function changeStatusItem(accumulator: ChangeStatusAccumulator): ChangeStatusLaneItem {
+  const latestPr = latestItemOrUndefined(accumulator.prs);
+  const latestCi = latestBySourceIdentity(accumulator.workflow_runs, workflowIdentity);
+  const latestDeployment = latestBySourceIdentity(
+    accumulator.deployments,
+    deploymentIdentity,
+  );
+  const latestWorkflowItems = [...latestCi.values()];
+  const latestDeploymentItems = [...latestDeployment.values()];
+  const latestSources = [...latestWorkflowItems, ...latestDeploymentItems];
+  const overall = overallStatus(latestSources);
+  const selectedWorkflow = representativeSource(latestWorkflowItems, overall);
+  const selectedDeployment = representativeSource(latestDeploymentItems, overall);
+
   return {
-    attention: groupSourceItems(attention),
-    active: groupSourceItems(active.sort(activeSort)),
-    unmatched: sortUnmatched(groupSourceItems(unmatched)),
-    inventory: summarizeDraftInventory(groupSourceItems(inventory)),
+    kind: "adv_change_status",
+    changeId: accumulator.change.id,
+    title: accumulator.change.title,
+    status: accumulator.change.status,
+    gate: accumulator.change.firstIncompleteGate ?? "complete",
+    progress: accumulator.change.gateProgressStr,
+    latest: {
+      overall,
+      pr: latestPr ? sourceSummary(latestPr) : undefined,
+      ci: selectedWorkflow ? sourceSummary(selectedWorkflow) : undefined,
+      deployment: selectedDeployment ? sourceSummary(selectedDeployment) : undefined,
+    },
+    sources: {
+      prs: accumulator.prs,
+      workflow_runs: accumulator.workflow_runs,
+      deployments: accumulator.deployments,
+    },
+    metadata: compactMetadata([
+      { label: "Gate", value: accumulator.change.firstIncompleteGate ?? "complete" },
+      { label: "Status", value: accumulator.change.status },
+    ]),
   };
+}
+
+function representativeSource(
+  items: ProjectedSourceLaneItem[],
+  overall: ChangeStatusLaneItem["latest"]["overall"],
+): ProjectedSourceLaneItem | undefined {
+  if (overall === "attention") {
+    return latestItemOrUndefined(items.filter(isAttentionStatus));
+  }
+  if (overall === "running") {
+    return latestItemOrUndefined(items.filter(isRunningStatus));
+  }
+  if (overall === "ready_landed") {
+    return latestItemOrUndefined(items.filter(isReadyStatus));
+  }
+  return latestItemOrUndefined(items);
+}
+
+function overallStatus(
+  latestSources: ProjectedSourceLaneItem[],
+): ChangeStatusLaneItem["latest"]["overall"] {
+  if (latestSources.some(isAttentionStatus)) return "attention";
+  if (latestSources.some(isRunningStatus)) return "running";
+  if (latestSources.some(isReadyStatus)) return "ready_landed";
+  return "backlog";
+}
+
+function sourceSummary(item: ProjectedSourceLaneItem): SourceStatusSummary {
+  return {
+    kind: item.kind as SourceStatusSummary["kind"],
+    title: item.title ?? item.kind,
+    status: item.status,
+    url: item.url,
+    updated_at: latestTimestamp(item) ?? item.updated_at,
+    metadata: item.metadata,
+  };
+}
+
+function latestBySourceIdentity(
+  items: ProjectedSourceLaneItem[],
+  identityFor: (item: ProjectedSourceLaneItem) => string,
+): Map<string, ProjectedSourceLaneItem> {
+  const latest = new Map<string, ProjectedSourceLaneItem>();
+  for (const item of items) {
+    const key = identityFor(item);
+    const existing = latest.get(key);
+    if (!existing || compareSourceRecency(item, existing) > 0) latest.set(key, item);
+  }
+  return latest;
+}
+
+function workflowIdentity(item: ProjectedSourceLaneItem): string {
+  const source = record(item.item);
+  const workflow =
+    stringOrNumberField(source, "workflow_id") ??
+    stringField(source, "name") ??
+    item.title ??
+    "workflow_run";
+  const branch = stringField(source, "head_branch") ?? metadataValue(item.metadata, "Branch") ?? "";
+  return `${workflow}\u0000${branch}`;
+}
+
+function deploymentIdentity(item: ProjectedSourceLaneItem): string {
+  const source = record(item.item);
+  const environment = stringField(source, "environment") ?? item.title ?? "deployment";
+  const ref = stringField(source, "ref") ?? metadataValue(item.metadata, "Ref") ?? "";
+  return `${environment}\u0000${ref}`;
+}
+
+function compareSourceRecency(
+  a: ProjectedSourceLaneItem,
+  b: ProjectedSourceLaneItem,
+): number {
+  const aTimestamp = latestTimestamp(a);
+  const bTimestamp = latestTimestamp(b);
+  if (isIsoLikeTimestamp(aTimestamp) && !isIsoLikeTimestamp(bTimestamp)) return 1;
+  if (!isIsoLikeTimestamp(aTimestamp) && isIsoLikeTimestamp(bTimestamp)) return -1;
+  if (!isIsoLikeTimestamp(aTimestamp) || !isIsoLikeTimestamp(bTimestamp)) return 0;
+  return aTimestamp! > bTimestamp! ? 1 : aTimestamp! < bTimestamp! ? -1 : 0;
+}
+
+function latestTimestamp(item: ProjectedSourceLaneItem): string | undefined {
+  const source = record(item.item);
+  const candidates = [
+    stringField(source, "run_started_at"),
+    stringField(source, "created_at"),
+    stringField(source, "updated_at"),
+    item.updated_at,
+  ].filter(isIsoLikeTimestamp);
+  return candidates.sort().at(-1);
 }
 
 function advChangeItem(change: DashboardAdvChange): AdvChangeLaneItem {
@@ -283,6 +458,10 @@ function isRunningStatus(item: { status?: string }): boolean {
   );
 }
 
+function isReadyStatus(item: { status?: string }): boolean {
+  return /^(success|skipped|inactive|success_history)$/i.test(item.status ?? "");
+}
+
 function isOpenStatus(item: { status?: string }): boolean {
   return /^open$/i.test(item.status ?? "");
 }
@@ -382,6 +561,12 @@ function latestItem<T extends { updated_at?: string }>(items: T[]): T {
   }, items[0]!);
 }
 
+function latestItemOrUndefined<T extends { updated_at?: string }>(
+  items: T[],
+): T | undefined {
+  return items.length > 0 ? latestItem(items) : undefined;
+}
+
 function isGroupableSourceItem(
   item: DashboardLaneItem,
 ): item is ProjectedSourceLaneItem {
@@ -472,4 +657,14 @@ function numberField(
 ): number | undefined {
   const value = record?.[key];
   return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+}
+
+function stringOrNumberField(
+  record: Record<string, unknown> | undefined,
+  key: string,
+): string | undefined {
+  const value = record?.[key];
+  if (typeof value === "string" && value.trim().length > 0) return value.trim();
+  if (typeof value === "number" && Number.isFinite(value)) return String(value);
+  return undefined;
 }
