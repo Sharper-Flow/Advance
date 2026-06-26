@@ -55,7 +55,7 @@ const EXPECTED_GATE_AFFINITY: Record<WorkflowStep, string> = {
 
 // rq-delDefaults03: forbidden agent names
 const PHANTOM_AGENTS = ["librarian", "mechanic", "prioritizer"];
-const PRIMARY_AGENTS = ["adv", "plan", "build", "adv-atc"];
+const PRIMARY_AGENTS = ["adv", "plan", "build"];
 
 // Known global agents (built into OpenCode, not in .opencode/agents/).
 const GLOBAL_AGENTS = new Set(["explore", "general"]);

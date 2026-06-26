@@ -297,31 +297,6 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
       gates: ["proposal", "discovery", "design", "planning"],
     },
   },
-  "adv-atc": {
-    name: "adv-atc",
-    description:
-      "Execute autonomous ROADMAP pipeline, deferring HITL to GitHub issues, stop only on safety boundaries",
-    phase: "advanced",
-    requiresChangeId: false,
-    prerequisites: [],
-    successors: ["adv-archive"],
-    scope: {
-      creates: [],
-      reads: ["specs", "proposal", "roadmap", "codebase"],
-      modifies: ["proposal"],
-      gates: [
-        "proposal",
-        "discovery",
-        "design",
-        "planning",
-        "execution",
-        "acceptance",
-      ],
-    },
-    phaseGoal:
-      "Execute a full change pipeline autonomously, deferring HITL moments to GitHub issues while preserving all safety boundaries.",
-  },
-
   // ---- Post-Implementation ----
   "adv-review": {
     name: "adv-review",

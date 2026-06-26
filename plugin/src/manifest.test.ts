@@ -6,6 +6,8 @@
  */
 
 import { describe, test, expect } from "vitest";
+import { existsSync } from "node:fs";
+import { join, resolve } from "node:path";
 import {
   COMMAND_MANIFEST,
   getCommandDef,
@@ -14,6 +16,8 @@ import {
   type GateId,
 } from "./manifest";
 
+const REPO_ROOT = resolve(__dirname, "../..");
+
 describe("Command Manifest", () => {
   test("exports COMMAND_MANIFEST as a non-empty record", () => {
     expect(COMMAND_MANIFEST).toBeDefined();
@@ -21,7 +25,7 @@ describe("Command Manifest", () => {
     expect(Object.keys(COMMAND_MANIFEST).length).toBeGreaterThan(0);
   });
 
-  test("contains all 27 ADV commands", () => {
+  test("contains all 26 ADV commands", () => {
     const expectedCommands = [
       "adv-status",
       "adv-roadmap",
@@ -45,7 +49,6 @@ describe("Command Manifest", () => {
       "adv-improve",
       "adv-slop-scan",
       "adv-task",
-      "adv-atc",
       "adv-tron",
       "adv-reflect",
       "adv-cleanup",
@@ -55,7 +58,8 @@ describe("Command Manifest", () => {
     for (const cmd of expectedCommands) {
       expect(COMMAND_MANIFEST).toHaveProperty(cmd);
     }
-    expect(Object.keys(COMMAND_MANIFEST)).toHaveLength(27);
+    expect(COMMAND_MANIFEST).not.toHaveProperty("adv-atc");
+    expect(Object.keys(COMMAND_MANIFEST)).toHaveLength(26);
   });
 
   test("every command has required fields", () => {
@@ -76,6 +80,15 @@ describe("Command Manifest", () => {
     );
     expect(COMMAND_MANIFEST["adv-arch-scan"].description).toBe(
       "Scan architecture stack packs, coverage, and heuristic fallbacks",
+    );
+  });
+
+  test("adv-atc source assets are removed", () => {
+    expect(existsSync(join(REPO_ROOT, ".opencode/command/adv-atc.md"))).toBe(
+      false,
+    );
+    expect(existsSync(join(REPO_ROOT, ".opencode/agents/adv-atc.md"))).toBe(
+      false,
     );
   });
 
@@ -305,14 +318,13 @@ describe("Command Manifest", () => {
 
     test("no two commands claim the same gate as sole primary owner", () => {
       // Build a map of gate -> commands that own it
-      // Orchestrator commands (adv-task, adv-atc) are exempt — they
+      // Orchestrator commands (adv-task) are exempt — they
       // intentionally cross gate boundaries to drive multi-phase workflows.
       const gateOwners = new Map<string, string[]>();
       for (const [name, def] of Object.entries(COMMAND_MANIFEST)) {
         if (!def.scope) continue;
         // Orchestrator commands exempt — they intentionally cross boundaries
         if (name === "adv-task") continue;
-        if (name === "adv-atc") continue;
         for (const gate of def.scope.gates) {
           const owners = gateOwners.get(gate) ?? [];
           owners.push(name);
@@ -364,16 +376,8 @@ describe("Command Manifest", () => {
       ]);
     });
 
-    test("adv-atc scope gates cover all autonomous gates", () => {
-      const def = getCommandDef("adv-atc");
-      expect(def!.scope!.gates).toEqual([
-        "proposal",
-        "discovery",
-        "design",
-        "planning",
-        "execution",
-        "acceptance",
-      ]);
+    test("adv-atc is not a supported manifest command", () => {
+      expect(getCommandDef("adv-atc")).toBeUndefined();
     });
   });
 
@@ -390,7 +394,6 @@ describe("Command Manifest", () => {
       "adv-harden",
       "adv-archive",
       "adv-reflect",
-      "adv-atc",
     ] as const;
 
     // Non-workflow commands should NOT have phaseGoal
@@ -484,8 +487,6 @@ describe("Command Manifest", () => {
           "Promote the change from contract to law: apply spec deltas, capture wisdom, clean up.",
         "adv-reflect":
           "Synthesize post-completion learnings into a durable reflection artifact for process improvement.",
-        "adv-atc":
-          "Execute a full change pipeline autonomously, deferring HITL moments to GitHub issues while preserving all safety boundaries.",
       };
 
       for (const [name, goal] of Object.entries(expectedGoals)) {

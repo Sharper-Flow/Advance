@@ -14,7 +14,6 @@
  *   - `adv`        (top-level orchestrator)
  *   - `plan`       (top-level planning agent)
  *   - `build`      (top-level build agent)
- *   - `adv-atc`    (autonomous pipeline agent)
  *
  * Historical references in CHANGELOG.md, docs/archive/, and .adv/specs/_archive/
  * are explicitly out of scope per agreement DONT1.
@@ -38,7 +37,7 @@ type Phantom = (typeof PHANTOMS)[number];
  * routing targets. Per rq-delDefaults06, these agents are user-selectable
  * top-level agents, not spawnable workers.
  */
-const PRIMARIES = ["adv", "plan", "build", "adv-atc"] as const;
+const PRIMARIES = ["adv", "plan", "build"] as const;
 type Primary = (typeof PRIMARIES)[number];
 
 interface PatternSpec {
@@ -277,8 +276,7 @@ describe("primary agent routing prevention", () => {
           `Primary agents must never be used as sub-agent targets per rq-delDefaults06:\n` +
           `  adv      → top-level orchestrator (mode: primary)\n` +
           `  plan     → top-level planning agent (mode: primary)\n` +
-          `  build    → top-level build agent (mode: primary)\n` +
-          `  adv-atc  → autonomous pipeline agent (mode: primary)\n\n` +
+          `  build    → top-level build agent (mode: primary)\n\n` +
           `Findings:\n${formatPrimaryFindings(findings)}`;
         throw new Error(message);
       }
@@ -288,6 +286,6 @@ describe("primary agent routing prevention", () => {
 
   test("PRIMARIES list matches design delegation defaults", () => {
     // Pin the primary list so the test can't be silently weakened.
-    expect(PRIMARIES).toEqual(["adv", "plan", "build", "adv-atc"]);
+    expect(PRIMARIES).toEqual(["adv", "plan", "build"]);
   });
 });
