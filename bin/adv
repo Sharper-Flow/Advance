@@ -47,6 +47,7 @@ import {
 // =============================================================================
 
 const VERSION = "0.1.0";
+const DASHBOARD_PORT_IN_USE_EXIT_CODE = 75;
 
 // =============================================================================
 // Subcommands
@@ -275,13 +276,30 @@ async function runDashboard(argv: string[]): Promise<number> {
   }
 
   const handler = createDashboardHandler({ config: parsedConfig.config });
-  const server = bun.serve({
-    hostname: serverOptions.host,
-    port: serverOptions.port,
-    fetch: handler,
-  });
+  let server: { hostname: string; port: number };
+  try {
+    server = bun.serve({
+      hostname: serverOptions.host,
+      port: serverOptions.port,
+      fetch: handler,
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    if (isAddressInUseError(message)) {
+      process.stderr.write(
+        `dashboard: port ${serverOptions.port} is already in use on ${serverOptions.host}; stop the existing process or choose an explicit --port for a manual preview\n`,
+      );
+      return DASHBOARD_PORT_IN_USE_EXIT_CODE;
+    }
+    process.stderr.write(`dashboard: failed to start server: ${message}\n`);
+    return 2;
+  }
   process.stdout.write(`adv dashboard listening at http://${server.hostname}:${server.port}\n`);
   return await new Promise<number>(() => undefined);
+}
+
+function isAddressInUseError(message: string): boolean {
+  return /EADDRINUSE|address already in use|Failed to start server/i.test(message);
 }
 
 function runHelp(): number {

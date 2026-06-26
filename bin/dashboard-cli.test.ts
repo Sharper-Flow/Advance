@@ -61,4 +61,38 @@ describe("adv dashboard dispatcher", () => {
     expect(exitCode).toBe(2);
     expect(stderr).toContain("non-loopback");
   });
+
+  test("fails loudly with a distinct exit code when fixed port is occupied", async () => {
+    const tmp = mkdtempSync(join(tmpdir(), "adv-dashboard-"));
+    const configPath = join(tmp, "dashboard.json");
+    await writeFile(
+      configPath,
+      JSON.stringify({
+        schema_version: 1,
+        refresh_seconds: 45,
+        projects: [
+          {
+            id: "advance",
+            label: "Advance",
+            path: "/repo/advance",
+            github: { owner: "Sharper-Flow", repo: "Advance" },
+          },
+        ],
+      }),
+    );
+    const occupied = Bun.serve({
+      hostname: "127.0.0.1",
+      port: 8765,
+      fetch: () => new Response("occupied"),
+    });
+    try {
+      const { exitCode, stderr } = await runAdv(["dashboard", "--config", configPath]);
+
+      expect(exitCode).toBe(75);
+      expect(stderr).toContain("port 8765 is already in use");
+      expect(stderr).not.toContain("ghp_");
+    } finally {
+      occupied.stop(true);
+    }
+  });
 });

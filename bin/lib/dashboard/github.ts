@@ -23,6 +23,24 @@ export type GitHubDashboardResult =
 
 export type GitHubTokenProvider = () => Promise<string | null>;
 
+export interface GhCliTokenExecResult {
+  exitCode: number;
+  stdout: string;
+  stderr: string;
+}
+
+export type GhCliTokenExec = () => Promise<GhCliTokenExecResult>;
+
+export interface GhCliTokenProviderOptions {
+  exec?: GhCliTokenExec;
+  timeoutMs?: number;
+}
+
+export interface DefaultGitHubTokenProviderOptions {
+  env?: NodeJS.ProcessEnv | Record<string, string | undefined>;
+  ghCliTokenProvider?: GitHubTokenProvider;
+}
+
 interface CacheEntry {
   etag?: string;
   body: unknown;
@@ -53,10 +71,39 @@ export function createEnvTokenProvider(env: NodeJS.ProcessEnv = process.env): Gi
   };
 }
 
+export function createGhCliTokenProvider(
+  options: GhCliTokenProviderOptions = {},
+): GitHubTokenProvider {
+  const timeoutMs = options.timeoutMs ?? 2500;
+  const exec = options.exec ?? (() => execGhAuthToken(timeoutMs));
+  return async () => {
+    try {
+      const result = await withTimeout(
+        exec(),
+        timeoutMs + 100,
+        () => new Error("GH_AUTH_TOKEN_TIMEOUT"),
+      );
+      if (result.exitCode !== 0) return null;
+      const token = result.stdout.trim().split(/\s+/)[0] ?? "";
+      return token.length > 0 ? token : null;
+    } catch {
+      return null;
+    }
+  };
+}
+
+export function createDefaultGitHubTokenProvider(
+  options: DefaultGitHubTokenProviderOptions = {},
+): GitHubTokenProvider {
+  const envProvider = createEnvTokenProvider(options.env as NodeJS.ProcessEnv | undefined);
+  const ghProvider = options.ghCliTokenProvider ?? createGhCliTokenProvider();
+  return async () => (await envProvider()) ?? (await ghProvider());
+}
+
 export function createGitHubDashboardClient(
   options: GitHubDashboardClientOptions = {},
 ): GitHubDashboardClient {
-  const tokenProvider = options.tokenProvider ?? createEnvTokenProvider();
+  const tokenProvider = options.tokenProvider ?? createDefaultGitHubTokenProvider();
   const fetcher = options.fetcher ?? fetch;
   const now = options.now ?? (() => new Date());
   const endpoints = options.endpoints ?? DEFAULT_ENDPOINTS;
@@ -86,7 +133,7 @@ export function createGitHubDashboardClient(
       const fetchedAt = now().toISOString();
       const token = await tokenProvider();
       if (!token) {
-        return degraded("GITHUB_AUTH_UNAVAILABLE", "GitHub authentication unavailable.", fetchedAt);
+        return authUnavailable(fetchedAt);
       }
 
       try {
@@ -172,6 +219,66 @@ function failureToResult(error: unknown, fetchedAt: string): GitHubDashboardResu
 
 function degraded(code: string, message: string, fetchedAt: string): GitHubDashboardResult {
   return { ok: false, degraded: { source: "github", code, message }, fetched_at: fetchedAt };
+}
+
+function authUnavailable(fetchedAt: string): GitHubDashboardResult {
+  return {
+    ok: false,
+    degraded: {
+      source: "github",
+      code: "GITHUB_AUTH_UNAVAILABLE",
+      message: "GitHub authentication unavailable.",
+      setup: {
+        title: "Connect GitHub locally",
+        message: "Run GitHub CLI login or set GITHUB_TOKEN for pull request, Actions, and deployment data.",
+        commands: ["gh auth login"],
+        env_vars: ["GITHUB_TOKEN"],
+      },
+    },
+    fetched_at: fetchedAt,
+  };
+}
+
+async function execGhAuthToken(timeoutMs: number): Promise<GhCliTokenExecResult> {
+  const bun = (globalThis as any).Bun;
+  if (!bun || typeof bun.spawn !== "function") {
+    return { exitCode: 1, stdout: "", stderr: "Bun.spawn unavailable" };
+  }
+  const proc = bun.spawn(["gh", "auth", "token"], {
+    stdout: "pipe",
+    stderr: "pipe",
+    env: process.env,
+  });
+  let timedOut = false;
+  const timer = setTimeout(() => {
+    timedOut = true;
+    if (typeof proc.kill === "function") proc.kill();
+  }, timeoutMs);
+  try {
+    const [stdout, stderr, exitCode] = await Promise.all([
+      new Response(proc.stdout).text(),
+      new Response(proc.stderr).text(),
+      proc.exited,
+    ]);
+    return { exitCode: timedOut ? 124 : exitCode, stdout, stderr };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function withTimeout<T>(
+  promise: Promise<T>,
+  timeoutMs: number,
+  timeoutError: () => Error,
+): Promise<T> {
+  if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) return promise;
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeout = setTimeout(() => reject(timeoutError()), timeoutMs);
+  });
+  return Promise.race([promise, timeoutPromise]).finally(() => {
+    if (timeout !== undefined) clearTimeout(timeout);
+  });
 }
 
 function isDegradedSource(error: unknown): error is DashboardDegradedSource {

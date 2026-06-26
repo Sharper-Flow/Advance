@@ -4,6 +4,7 @@ import { parseDashboardConfig } from "./config";
 import {
   buildDashboardState,
   createDashboardHandler,
+  createDashboardStateProvider,
   normalizeDashboardServerOptions,
 } from "./server";
 
@@ -253,6 +254,34 @@ describe("dashboard server state", () => {
     expect(page.status).toBe(200);
     expect(await page.text()).toContain("Dashboard");
     expect(post.status).toBe(405);
+  });
+
+  test("caches and coalesces /api/state refreshes for one refresh interval", async () => {
+    let calls = 0;
+    let nowMs = Date.parse("2026-06-25T22:00:00.000Z");
+    const provider = createDashboardStateProvider(config(), {
+      now: () => new Date(nowMs),
+      stateBuilder: async () => {
+        calls++;
+        await Promise.resolve();
+        return {
+          schema_version: 1,
+          generated_at: new Date(nowMs).toISOString(),
+          refresh_seconds: 45,
+          projects: [],
+        };
+      },
+    });
+
+    await Promise.all([provider(), provider(), provider()]);
+    expect(calls).toBe(1);
+
+    await provider();
+    expect(calls).toBe(1);
+
+    nowMs += 46_000;
+    await Promise.all([provider(), provider()]);
+    expect(calls).toBe(2);
   });
 
   test("defaults to loopback and requires explicit opt-in for non-loopback host", () => {
