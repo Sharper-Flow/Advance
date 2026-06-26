@@ -199,8 +199,8 @@
           "given": ["The delegation matrix defines its 9 steps"],
           "when": "Matrix scope is evaluated",
           "then": [
-            "research, tron, slop-scan, audit, improve, cleanup, clarify, status, validate, roadmap, task, idea, problem, atc are NOT in the matrix",
-            "These commands define delegation rules in their own command files"
+            "research, tron, slop-scan, audit, improve, cleanup, clarify, status, validate, roadmap, task, idea, and problem are NOT in the matrix",
+            "These supported utility commands define delegation rules in their own command files"
           ]
         }
       ]
