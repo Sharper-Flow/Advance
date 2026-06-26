@@ -310,8 +310,18 @@ describe("dashboard server state", () => {
           deployments:
             project.id === "advance"
               ? [
-                  { id: 10, environment: "production", ref: "main" },
-                  { id: 11, environment: "production", ref: "main" },
+                  {
+                    id: 10,
+                    environment: "production",
+                    ref: "main",
+                    updated_at: "2026-06-25T20:00:00Z",
+                  },
+                  {
+                    id: 11,
+                    environment: "production",
+                    ref: "main",
+                    updated_at: "2026-06-25T21:00:00Z",
+                  },
                 ]
               : [],
           deployment_statuses:

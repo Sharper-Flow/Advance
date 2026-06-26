@@ -278,4 +278,64 @@ describe("dashboard attention lanes", () => {
       collapsedByDefault: true,
     });
   });
+
+  test("groups duplicate successful source history by title and branch", () => {
+    const lanes = buildAttentionLanes({
+      github: { owner: "Sharper-Flow", repo: "PokeEdge" },
+      changes: [],
+      linked: [],
+      unlinked: [
+        {
+          kind: "workflow_run",
+          reason: "no structural match",
+          status: "success",
+          item: {
+            name: "PR Gate",
+            html_url: "https://github.com/Sharper-Flow/PokeEdge/actions/runs/1",
+            head_branch: "change/sameBranch",
+            updated_at: "2026-06-25T16:31:44Z",
+          },
+        },
+        {
+          kind: "workflow_run",
+          reason: "no structural match",
+          status: "success",
+          item: {
+            name: "PR Gate",
+            html_url: "https://github.com/Sharper-Flow/PokeEdge/actions/runs/2",
+            head_branch: "change/sameBranch",
+            updated_at: "2026-06-25T17:22:39Z",
+          },
+        },
+        {
+          kind: "workflow_run",
+          reason: "no structural match",
+          status: "success",
+          item: {
+            name: "PR Gate",
+            html_url: "https://github.com/Sharper-Flow/PokeEdge/actions/runs/3",
+            head_branch: "change/otherBranch",
+            updated_at: "2026-06-25T18:00:00Z",
+          },
+        },
+      ],
+      degradedSources: [],
+    });
+
+    expect(lanes.inventory[0]).toMatchObject({
+      kind: "group",
+      groupKind: "workflow_run",
+      title: "PR Gate",
+      status: "success",
+      count: 2,
+      latestUpdatedAt: "2026-06-25T17:22:39Z",
+      metadata: expect.arrayContaining([
+        { label: "Branch", value: "change/sameBranch" },
+      ]),
+    });
+    expect(lanes.inventory[1]).toMatchObject({
+      kind: "summary",
+      title: "1 success workflow_run item summarized",
+    });
+  });
 });

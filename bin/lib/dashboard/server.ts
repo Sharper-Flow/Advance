@@ -163,7 +163,7 @@ function withDeploymentSourceStates(
     return {
       ...item,
       updated_at:
-        stringField(item, "updated_at") ?? stringField(deploymentStatus, "updated_at"),
+        stringField(deploymentStatus, "updated_at") ?? stringField(item, "updated_at"),
       source_states: {
         ...record(item.source_states),
         github_deployment: status,

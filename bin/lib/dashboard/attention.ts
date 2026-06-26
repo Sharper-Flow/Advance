@@ -101,11 +101,11 @@ export function buildAttentionLanes(input: AttentionInput): AttentionLanes {
   );
   const attention: DashboardLaneItem[] = [...degradedItems];
   const unmatched: DashboardLaneItem[] = [];
-  const historySummary = new Map<string, number>();
+  const successfulHistory = new Map<string, ProjectedSourceLaneItem[]>();
 
   for (const raw of input.linked) {
     const item = projectSourceItem(raw, input.github);
-    if (isSuccessfulHistory(item)) increment(historySummary, summaryKey(item));
+    if (isSuccessfulHistory(item)) collectSuccessfulHistory(successfulHistory, item);
     else if (isAttentionStatus(item)) attention.unshift(item);
     else if (isRunningStatus(item) || isOpenStatus(item)) active.push(item);
     else inventory.push(item);
@@ -113,10 +113,19 @@ export function buildAttentionLanes(input: AttentionInput): AttentionLanes {
 
   for (const raw of input.unlinked) {
     const item = projectSourceItem(raw, input.github);
-    if (isSuccessfulHistory(item)) increment(historySummary, summaryKey(item));
+    if (isSuccessfulHistory(item)) collectSuccessfulHistory(successfulHistory, item);
     else if (isAttentionStatus(item)) attention.unshift(item);
     else if (isRunningStatus(item)) active.push(item);
     else unmatched.push(item);
+  }
+
+  const historySummary = new Map<string, number>();
+  for (const members of successfulHistory.values()) {
+    if (members.length > 1) {
+      inventory.push(sourceGroup(members));
+      continue;
+    }
+    increment(historySummary, summaryKey(members[0]!));
   }
 
   for (const [key, count] of historySummary) {
@@ -291,6 +300,16 @@ function summaryKey(item: { kind: string; status?: string }): string {
 
 function increment(counts: Map<string, number>, key: string): void {
   counts.set(key, (counts.get(key) ?? 0) + 1);
+}
+
+function collectSuccessfulHistory(
+  grouped: Map<string, ProjectedSourceLaneItem[]>,
+  item: ProjectedSourceLaneItem,
+): void {
+  const key = groupKey(item);
+  const existing = grouped.get(key);
+  if (existing) existing.push(item);
+  else grouped.set(key, [item]);
 }
 
 function groupSourceItems(items: DashboardLaneItem[]): DashboardLaneItem[] {
