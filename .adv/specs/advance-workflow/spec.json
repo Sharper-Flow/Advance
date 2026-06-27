@@ -3140,7 +3140,7 @@
     {
       "id": "rq-acceptancePreviewUrl01",
       "title": "Front-End Acceptance Preview URL",
-      "body": "/adv-discover MUST capture preview applicability for each change as visual_surface: true, false, or unknown with rationale. /adv-review MUST surface a Preview URL line before the acceptance Inline Approval prompt. For changes with visual_surface true or implementation evidence of front-end, browser-visible, or visual-output work, the Preview URL line MUST include a user-facing dev-environment URL and reachability evidence. Preview URLs MUST target visual output only, MUST be sanitized before durable recording, and MUST NOT point at internal services, dashboards, databases, admin panels, CI systems, Temporal UI, or other non-visual infrastructure. A bare unverified URL MUST NOT satisfy acceptance proof. Acceptable reachability evidence is bounded to agent-observed dev-server output, CI/deploy log URL assignment, user-confirmed URL, or browser-open evidence for the intended visual surface; agents MUST NOT perform arbitrary HTTP probing of untrusted URLs to satisfy this requirement. Missing URL, missing reachability evidence, unknown applicability, or visual-surface drift MUST block acceptance before user sign-off. Non-visual changes MAY use Preview URL: not_applicable with rationale. Durable preview proof MUST be represented through contract review evidence and included in acceptance or executive-summary evidence; generated acceptance.md remains projection-only and MUST NOT be hand-edited as authoritative proof. Archived preview URLs are point-in-time evidence and MUST include verification context rather than being treated as maintained current URLs.",
+      "body": "/adv-discover MUST capture preview applicability for each change as visual_surface: true, false, or unknown with rationale and preview_expectation fields for exact route, data-state expectation, viewport expectation, and rationale. /adv-review MUST surface a Preview URL line before the acceptance Inline Approval prompt. For changes with visual_surface true or implementation evidence of front-end, browser-visible, or visual-output work, the Preview URL line MUST include a user-facing dev-environment URL and preview proof for the exact route/path and affected state/data source the user will open. Preview proof MUST include verification method, result/status, hydration/readiness signal or fallback rationale, reviewed timestamp/context, and viewport context; runnable visual surfaces MUST include a 375px width viewport check or documented project equivalent unless unavailable with rationale. Preview URLs MUST target visual output only, MUST be sanitized before durable recording, and MUST NOT point at internal services, dashboards, databases, admin panels, CI systems, Temporal UI, or other non-visual infrastructure. A bare unverified URL MUST NOT satisfy acceptance proof. URL-source evidence such as agent-observed dev-server output, CI/deploy URL assignment, or user-confirmed URL may establish where a URL came from, but is insufficient by itself for visual preview proof; browser-open evidence or equivalent reviewed visual-surface evidence is required for the intended visual surface when runnable. Fixture/mock URLs or seeded sample states MUST be explicitly labeled as fixture/mock evidence and MUST NOT be presented as user-facing live preview proof unless the approved agreement allows that state. Stale/cache/error-page evidence MUST NOT pass acceptance; /adv-review MUST require fresh-session, cache-busted, or equivalent freshness context when stale, cached, or error-page state is suspected. Agents MUST NOT perform arbitrary HTTP probing of untrusted URLs to satisfy this requirement. Missing URL, missing exact route proof, missing hydration/readiness evidence, missing required viewport evidence, unknown applicability, visual-surface drift, fixture/mock evidence presented as live, stale/cache/error-page proof, or missing matrix evidence MUST block acceptance before user sign-off. Non-visual changes MAY use Preview URL: not_applicable with rationale. Durable preview proof MUST be represented through contract review evidence and included in acceptance or executive-summary evidence; generated acceptance.md remains projection-only and MUST NOT be hand-edited as authoritative proof. Archived preview URLs are point-in-time evidence and MUST include verification context rather than being treated as maintained current URLs.",
       "priority": "must",
       "tags": ["workflow", "acceptance", "preview-url", "front-end"],
       "scenarios": [
@@ -3152,19 +3152,22 @@
           "then": [
             "The agreement records visual_surface as true, false, or unknown",
             "The agreement records rationale for the preview applicability value",
+            "The agreement records preview_expectation fields for exact_route_required, data_state_expectation, viewport_expectation, and rationale",
             "visual_surface unknown is carried forward as an acceptance blocker until clarified"
           ]
         },
         {
           "id": "rq-acceptancePreviewUrl01.2",
-          "title": "Applicable visual work shows reachable preview before acceptance",
+          "title": "Applicable visual work shows exact-route preview before acceptance",
           "given": [
             "A change has visual_surface true or implementation evidence of front-end, browser-visible, or visual-output work"
           ],
           "when": "/adv-review presents the acceptance summary before the Inline Approval prompt",
           "then": [
             "The summary includes Preview URL: {url}",
-            "The summary includes reachability evidence with verification method, result, and reviewed timestamp or equivalent context",
+            "The summary includes exact route/path and affected state/data source for the preview the user will open",
+            "The summary includes verification method, result, hydration/readiness evidence or fallback rationale, reviewed timestamp or equivalent context, and viewport context including 375px width or documented project equivalent when runnable",
+            "Fixture/mock preview evidence is explicitly labeled and is not presented as user-facing live proof unless allowed by the agreement",
             "The contract review evidence records the preview proof"
           ]
         },
@@ -3174,11 +3177,24 @@
           "given": [
             "A change requires preview proof because visual_surface is true or visual-output work is detected"
           ],
-          "when": "No dev-environment URL or reachability evidence is available",
+          "when": "No dev-environment URL, exact route proof, hydration/readiness evidence, required viewport evidence, or freshness evidence is available",
+          "then": [
+            "/adv-review reports Preview URL: blocked with a concrete reason and remediation hint",
+            "The acceptance checkpoint is not presented",
+            "The acceptance gate remains pending"
+          ]
+        },
+        {
+          "id": "rq-acceptancePreviewUrl01.6",
+          "title": "URL-source-only and stale evidence do not satisfy visual proof",
+          "given": [
+            "A change requires preview proof because visual_surface is true or visual-output work is detected"
+          ],
+          "when": "Only URL-source evidence, fixture/mock evidence presented as live, or stale/cache/error-page evidence is available",
           "then": [
             "/adv-review reports Preview URL: blocked with a concrete reason",
             "The acceptance checkpoint is not presented",
-            "The acceptance gate remains pending"
+            "The contract review evidence does not mark visual preview proof as passing"
           ]
         },
         {

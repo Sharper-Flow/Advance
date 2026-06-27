@@ -590,10 +590,17 @@ describe("thin-command shape enforcement", () => {
       "utf8",
     );
 
-    expect(workflowSpec.requirements.map((rq) => rq.id)).toContain(
-      "rq-acceptancePreviewUrl01",
-    );
+    const previewRequirement = workflowSpec.requirements.find(
+      (rq) => rq.id === "rq-acceptancePreviewUrl01",
+    ) as { body?: string; scenarios?: Array<{ then?: string[] }> } | undefined;
+    expect(previewRequirement).toBeDefined();
     expect(workflowDoc).toContain("Front-End Acceptance Preview URL");
+    expect(previewRequirement?.body).toContain("exact route");
+    expect(previewRequirement?.body).toContain("hydration/readiness");
+    expect(previewRequirement?.body).toContain("375px");
+    expect(previewRequirement?.body).toContain("fixture/mock");
+    expect(previewRequirement?.body).toContain("stale/cache/error-page");
+    expect(previewRequirement?.body).toContain("URL-source evidence");
 
     expect(discover).toContain("visual_surface");
     expect(discover).toContain("true|false|unknown");
