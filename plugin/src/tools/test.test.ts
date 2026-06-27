@@ -218,7 +218,7 @@ describe("test tools — simplified adv_run_test", () => {
     );
 
     const parsed = JSON.parse(result);
-    expect(performance.now() - startedAt).toBeLessThan(1_500);
+    expect(performance.now() - startedAt).toBeLessThan(800);
     expect(parsed.passed).toBe(true);
     expect(parsed.evidenceRecording).toMatchObject({
       status: "degraded",

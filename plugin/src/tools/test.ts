@@ -33,7 +33,7 @@ import { getChangeHandle } from "./_adapters";
 export const DEFAULT_TEST_TIMEOUT_MS = 30_000;
 export const DEFAULT_TEST_MAX_BUFFER = 10 * 1024 * 1024;
 const DEFAULT_OUTPUT_MAX_LENGTH = 2000;
-const TEST_RUN_RECORDING_TIMEOUT_MS = 1000;
+const TEST_RUN_RECORDING_TIMEOUT_MS = 300;
 const TRUNCATION_SUFFIX = "... (truncated)";
 const ADV_RUN_TEST_PHASES = ["red", "green", "verify"] as const;
 type AdvRunTestPhase = (typeof ADV_RUN_TEST_PHASES)[number];
