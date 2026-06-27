@@ -471,7 +471,7 @@ EXPECTED OUTPUT: return ScoutCandidate rows and call adv_subagent_report_submit 
   - **Success Criteria**
   - **Constraints**
   - **Avoidances / rejected approaches**
-  - **Preview applicability** — record preview applicability as `visual_surface: true|false|unknown` plus rationale. Use `true` when the change affects front-end, browser-visible, or any visual output; `false` when no visual output can be affected; `unknown` when uncertainty remains. `unknown` carries forward as an acceptance blocker until clarified.
+  - **Preview applicability** — record preview applicability as `visual_surface: true|false|unknown` plus rationale. Use `true` when the change affects front-end, browser-visible, or any visual output; `false` when no visual output can be affected; `unknown` when uncertainty remains. Also record `preview_expectation` with `exact_route_required`, `data_state_expectation` (`live|fixture_allowed|mock_allowed|not_applicable|unknown`), `viewport_expectation` (`375px|required_project_equivalent|not_applicable|unknown`), and rationale. `unknown` carries forward as an acceptance blocker until clarified.
   - **Open questions**
 - Agreement sign-off uses the **Inline Approval prompt (Tier A)** at Phase 4.5.1 (AC checkpoint) and Phase 4.6 (Persist Agreement). Phase 4.5 (Open Question Resolution Loop) keeps the `question` tool — that is a non-checkpoint clarification round.
 

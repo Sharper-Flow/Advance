@@ -605,11 +605,20 @@ describe("thin-command shape enforcement", () => {
     expect(discover).toContain("visual_surface");
     expect(discover).toContain("true|false|unknown");
     expect(discover).toContain("preview applicability");
+    expect(discover).toContain("preview_expectation");
+    expect(discover).toContain("exact_route_required");
+    expect(discover).toContain("data_state_expectation");
+    expect(discover).toContain("viewport_expectation");
 
     expect(review).toContain("Preview URL");
     expect(review).toContain("reachability evidence");
     expect(review).toContain("contract.reviewMatrix");
     expect(review).toContain("`live` | `visual_surface: true`");
+    expect(review).toContain("exact-route/state/hydration/viewport/freshness proof");
+    expect(review).toContain("URL-source-only evidence");
+    expect(review).toContain("fixture/mock presented as live");
+    expect(review).toContain("stale/error/cached preview");
+    expect(review).toContain("375px");
     expect(review).toContain("Preview URL: not_applicable");
     expect(review).toContain("Preview URL: blocked");
     expect(review).toContain("Do not fabricate URLs");

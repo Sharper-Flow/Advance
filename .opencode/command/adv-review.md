@@ -527,9 +527,9 @@ Before acceptance summary or acceptance approval prompt, determine the preview s
 
 | State | Required evidence | Acceptance effect |
 |---|---|---|
-| `live` | `visual_surface: true` or visual-output work detected; `Preview URL: {url}` sanitized for durable evidence; reachability evidence with verification method, result/status, and reviewed timestamp/context; matching `contract.reviewMatrix` evidence | Acceptance may proceed |
+| `live` | `visual_surface: true` or visual-output work detected; `Preview URL: {url}` sanitized for durable evidence; exact-route/state/hydration/viewport/freshness proof with verification method, result/status, reviewed timestamp/context, 375px or documented project-equivalent viewport when runnable, and matching `contract.reviewMatrix` evidence | Acceptance may proceed |
 | `not_applicable` | `visual_surface: false`; no front-end, browser-visible, or visual-output work detected; rationale recorded in `contract.reviewMatrix` | Acceptance may proceed |
-| `blocked` | `visual_surface: unknown`, visual-output drift, missing URL, missing reachability evidence, or missing matrix evidence | Stop before acceptance checkpoint |
+| `blocked` | `visual_surface: unknown`, visual-output drift, missing URL, URL-source-only evidence, missing exact-route proof, missing hydration/readiness proof, missing required viewport proof, fixture/mock presented as live, stale/error/cached preview, or missing matrix evidence | Stop before acceptance checkpoint |
 
 Rules:
 
@@ -539,7 +539,10 @@ Rules:
 - Valid preview URLs target user-facing visual output only. Internal services, CI dashboards, databases, admin panels, Temporal UI, and other non-visual infrastructure URLs are invalid.
 - Do not fabricate URLs. A bare unverified URL is insufficient.
 - Sanitize URLs before recording durable evidence: strip token, key, session, and auth query parameters; record origin + path + non-sensitive params only.
-- Acceptable reachability evidence: agent-observed dev-server output, CI/deploy log URL assignment, user-confirmed URL, or browser-open evidence for the intended visual surface. Do not perform arbitrary HTTP probing of untrusted URLs to satisfy this requirement.
+- URL-source evidence (agent-observed dev-server output, CI/deploy log URL assignment, or user-confirmed URL) establishes where the URL came from; URL-source-only evidence is insufficient for visual proof.
+- Legacy reachability evidence is URL provenance only unless paired with exact-route visual proof.
+- For runnable visual surfaces, acceptable proof includes browser-open evidence or equivalent reviewed visual-surface evidence for the exact route/path and affected state/data source the user will open, after hydration/readiness when applicable, with viewport context including 375px width or documented project equivalent unless unavailable with rationale.
+- Fixture/mock preview evidence must be explicitly labeled and must not be presented as user-facing live proof unless allowed by the agreement. A stale/error/cached preview requires fresh-session, cache-busted, or equivalent freshness evidence before it can pass. Do not perform arbitrary HTTP probing of untrusted URLs to satisfy this requirement.
 - `blocked` requires a concrete reason and remediation hint. Produce the acceptance summary with `Preview URL: blocked`, but do not present the acceptance approval prompt or complete the acceptance gate.
 - The acceptance summary MUST include `Preview URL: {url}`, `Preview URL: not_applicable`, or `Preview URL: blocked` before the user acceptance prompt.
 
@@ -548,7 +551,7 @@ Using `agreement.md`, produce:
 1. **Delivered work summary**
 2. **Acceptance Criteria checklist**
 3. **Constraints respected / avoidances honored**
-4. **Preview URL** — report `live`, `not_applicable`, or `blocked` state from Preview URL Proof. For `live`, include URL + reachability evidence. For `not_applicable`, include rationale. For `blocked`, stop before asking for acceptance.
+4. **Preview URL** — report `live`, `not_applicable`, or `blocked` state from Preview URL Proof. For `live`, include URL + exact-route/state/hydration/viewport/freshness proof. For `not_applicable`, include rationale. For `blocked`, stop before asking for acceptance.
 5. **Outstanding caveats**
 
 Keep concise; user-facing.
@@ -574,7 +577,7 @@ Before acceptance prompt, persist durable executive summary:
     ## What Was Verified
      - Verdict: {verdict} with {N} findings ({severity breakdown})
      - Tests: {pass/fail summary}
-     - Preview URL: {sanitized url + reachability evidence + verification timestamp | not_applicable + rationale | blocked + reason}
+     - Preview URL: {sanitized url + exact-route/state/hydration/viewport/freshness proof + verification timestamp | not_applicable + rationale | blocked + reason}
      - Contract matrix: {required rows passed/respected, if contract exists}
 
    ## Remaining Concerns
