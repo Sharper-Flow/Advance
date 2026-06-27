@@ -4951,13 +4951,27 @@ export const changeTools = {
         }
 
         const results = candidates.map((b) => {
-          const deletion = deleteChangeBranch(mainCheckout, b.changeId);
-          return {
-            changeId: b.changeId,
-            branch: b.branch,
-            mergeProof: b.mergeProof,
-            ...deletion,
-          };
+          try {
+            const deletion = deleteChangeBranch(mainCheckout, b.changeId);
+            return {
+              changeId: b.changeId,
+              branch: b.branch,
+              mergeProof: b.mergeProof,
+              ...deletion,
+            };
+          } catch (error) {
+            return {
+              changeId: b.changeId,
+              branch: b.branch,
+              mergeProof: b.mergeProof,
+              localDeleted: false,
+              remoteDeleted: false,
+              blocked: {
+                reason: "DELETE_FAILED",
+                detail: error instanceof Error ? error.message : String(error),
+              },
+            };
+          }
         });
 
         const summary = {

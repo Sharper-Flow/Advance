@@ -342,6 +342,54 @@ describe("adv_archive_repair", () => {
     });
   });
 
+  test("cleanup_merged reports per-branch blocked results when branch deletion throws", async () => {
+    const store = createMockStore();
+    mocks.detectArchivedMergedBranches.mockReturnValueOnce({
+      status: "ok",
+      branches: [
+        {
+          changeId: "merged-a",
+          branch: "change/merged-a",
+          localSha: "aaa",
+          mergeProof: { kind: "tree-identical", trunkCommitSha: "trunk-aaa" },
+        },
+        {
+          changeId: "merged-b",
+          branch: "change/merged-b",
+          localSha: "bbb",
+          mergeProof: { kind: "patch-equivalent" },
+        },
+      ],
+    });
+    mocks.deleteChangeBranch
+      .mockImplementationOnce(() => {
+        throw new Error("delete timed out");
+      })
+      .mockReturnValueOnce({ localDeleted: true, remoteDeleted: true });
+
+    const result = await changeTools.adv_archive_repair.execute(
+      { action: "cleanup_merged" },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(true);
+    expect(parsed.results).toHaveLength(2);
+    expect(parsed.results[0]).toMatchObject({
+      changeId: "merged-a",
+      branch: "change/merged-a",
+      localDeleted: false,
+      remoteDeleted: false,
+      blocked: { reason: "DELETE_FAILED" },
+    });
+    expect(parsed.results[1]).toMatchObject({
+      changeId: "merged-b",
+      localDeleted: true,
+      remoteDeleted: true,
+    });
+    expect(parsed.summary).toMatchObject({ failed: 1, deleted: 1 });
+  });
+
   test("cleanup_merged filters non-archived changes", async () => {
     const store = createMockStore([
       archivedChange("X"),
