@@ -1123,7 +1123,120 @@ export const epicTools = {
             code: "CHANGE_NOT_FOUND",
           });
         }
-        if (change.epic_membership) return changeAlreadyInEpic(change);
+
+        const requestedEntryId = entry_id ?? change.epic_membership?.entry_id;
+
+        if (change.epic_membership) {
+          const membership = change.epic_membership;
+          if (
+            membership.epic_id !== epic_id ||
+            membership.entry_id !== requestedEntryId
+          ) {
+            return changeAlreadyInEpic(change);
+          }
+
+          const currentEpic = await loadEpic(store, epic_id);
+          if (!currentEpic) return epicNotFound(epic_id);
+
+          const parentEntry = findChangeEntry(currentEpic, {
+            entryId: membership.entry_id,
+          });
+          const parentChangeId = parentEntry
+            ? getEpicEntryChangeId(parentEntry)
+            : undefined;
+
+          if (!parentEntry) {
+            const entry = requireChangeEntry(
+              await store.epics.linkChange(epic_id, {
+                entryId: membership.entry_id,
+                changeId: change_id,
+                title: title ?? change.title,
+                order,
+                linkedBy: linked_by ?? "agent",
+                linkEvidence: link_evidence,
+                changeProjectId: childStore.context?.projectId,
+                repoId: repo_id ?? membership.repo_id,
+                targetPath: childStore.context?.root,
+              }),
+            );
+            const rebuiltMembership = membershipFromChangeEntry(
+              epic_id,
+              entry,
+              title ?? change.title,
+              "link_existing",
+            );
+            await childStore.store.changes.setEpicMembership(change_id, {
+              membership: rebuiltMembership,
+              setAt: rebuiltMembership.linked_at,
+            });
+            const output = formatToolOutput({
+              success: true,
+              rebuilt: true,
+              entry: mapEpicEntry(entry),
+              epic_membership: rebuiltMembership,
+            });
+            return maybeAppendTargetContext(output, childStore.context);
+          }
+
+          if (parentChangeId && parentChangeId !== change_id && entry_id) {
+            const changeRef = childStore.context
+              ? {
+                  change_id: change_id,
+                  project_id: childStore.context.projectId,
+                  ...((repo_id ?? membership.repo_id)
+                    ? { repo_id: repo_id ?? membership.repo_id }
+                    : {}),
+                  target_path: childStore.context.root,
+                }
+              : undefined;
+            const retargetedEntry = requireChangeEntry(
+              await store.epics.retargetChange(epic_id, {
+                entryId: membership.entry_id,
+                fromChangeId: parentChangeId,
+                toChangeId: change_id,
+                title: title ?? change.title,
+                ...(changeRef ? { changeRef } : {}),
+                retargetEvidence: link_evidence,
+              }),
+            );
+            const retargetedMembership = membershipFromChangeEntry(
+              epic_id,
+              retargetedEntry,
+              title ?? change.title,
+              "link_existing",
+            );
+            await childStore.store.changes.setEpicMembership(change_id, {
+              membership: retargetedMembership,
+              setAt: retargetedMembership.linked_at,
+            });
+            const output = formatToolOutput({
+              success: true,
+              retargeted: true,
+              repaired: true,
+              entry: mapEpicEntry(retargetedEntry),
+              epic_membership: retargetedMembership,
+            });
+            return maybeAppendTargetContext(output, childStore.context);
+          }
+
+          const refreshedMembership = membershipFromChangeEntry(
+            epic_id,
+            parentEntry,
+            title ?? change.title,
+            "link_existing",
+          );
+          await childStore.store.changes.setEpicMembership(change_id, {
+            membership: refreshedMembership,
+            setAt: refreshedMembership.linked_at,
+          });
+          const output = formatToolOutput({
+            success: true,
+            idempotent: true,
+            entry: mapEpicEntry(parentEntry),
+            epic_membership: refreshedMembership,
+          });
+          return maybeAppendTargetContext(output, childStore.context);
+        }
 
         const currentEpic = await loadEpic(store, epic_id);
         if (!currentEpic) return epicNotFound(epic_id);

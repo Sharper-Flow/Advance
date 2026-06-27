@@ -822,6 +822,187 @@ describe("adv_epic_link_change", () => {
     expect(store.epics.linkChange).not.toHaveBeenCalled();
     expect(store.changes.setEpicMembership).not.toHaveBeenCalled();
   });
+
+  test("rebuilds parent Epic entry when child has exact membership but parent entry is missing", async () => {
+    const store = makeStore();
+    store.changes.get = vi.fn(async () => ({
+      success: true,
+      data: {
+        id: "change-2",
+        title: "Linked Change",
+        status: "active",
+        gates: {},
+        tasks: [],
+        created_at: "2026-06-25T00:00:00.000Z",
+        updated_at: "2026-06-25T00:00:00.000Z",
+        epic_membership: {
+          epic_id: "addAuthEpic",
+          entry_id: "entry-2",
+          order: 4,
+          title: "Linked Change",
+          linked_at: "2026-06-25T00:00:00.000Z",
+        },
+      } as Change,
+    }));
+    store.epics.linkChange = vi.fn(async () =>
+      makeChangeEntry({
+        entry_id: "entry-2",
+        change_id: "change-2",
+        title: "Linked Change",
+        order: 4,
+        membership_status: "projection_pending",
+        linked_at: "2026-06-25T00:00:00.000Z",
+      }),
+    );
+
+    const output = await epicTools.adv_epic_link_change.execute(
+      {
+        epic_id: "addAuthEpic",
+        change_id: "change-2",
+        link_evidence: "Retry after parent entry lost.",
+      },
+      store,
+    );
+
+    const parsed = parseToolOutput(output);
+    expect(parsed.success).toBe(true);
+    expect(parsed.rebuilt).toBe(true);
+    expect(store.epics.linkChange).toHaveBeenCalledWith(
+      "addAuthEpic",
+      expect.objectContaining({
+        entryId: "entry-2",
+        changeId: "change-2",
+        title: "Linked Change",
+        linkEvidence: "Retry after parent entry lost.",
+      }),
+    );
+    expect(store.changes.setEpicMembership).toHaveBeenCalledWith(
+      "change-2",
+      expect.objectContaining({
+        membership: expect.objectContaining({
+          epic_id: "addAuthEpic",
+          entry_id: "entry-2",
+          order: 4,
+          title: "Linked Change",
+        }),
+      }),
+    );
+    expect(store.epics.retargetChange).not.toHaveBeenCalled();
+  });
+
+  test("retargets stale parent entry when child has exact membership and explicit entry_id matches", async () => {
+    const store = makeStore({
+      entries: [
+        makeChangeEntry({
+          entry_id: "entry-2",
+          change_id: "change-old",
+          title: "Old Change",
+          order: 4,
+          membership_status: "projection_stale",
+        }),
+      ],
+    });
+    store.changes.get = vi.fn(async () => ({
+      success: true,
+      data: {
+        id: "change-2",
+        title: "Linked Change",
+        status: "active",
+        gates: {},
+        tasks: [],
+        created_at: "2026-06-25T00:00:00.000Z",
+        updated_at: "2026-06-25T00:00:00.000Z",
+        epic_membership: {
+          epic_id: "addAuthEpic",
+          entry_id: "entry-2",
+          order: 4,
+          title: "Linked Change",
+          linked_at: "2026-06-25T00:00:00.000Z",
+        },
+      } as Change,
+    }));
+    store.epics.retargetChange = vi.fn(async () =>
+      makeChangeEntry({
+        entry_id: "entry-2",
+        change_id: "change-2",
+        title: "Linked Change",
+        order: 4,
+        membership_status: "linked",
+        linked_at: "2026-06-25T00:00:00.000Z",
+      }),
+    );
+
+    const output = await epicTools.adv_epic_link_change.execute(
+      {
+        epic_id: "addAuthEpic",
+        change_id: "change-2",
+        entry_id: "entry-2",
+        link_evidence: "Repair stale parent entry.",
+      },
+      store,
+    );
+
+    const parsed = parseToolOutput(output);
+    expect(parsed.success).toBe(true);
+    expect(parsed.retargeted).toBe(true);
+    expect(store.epics.retargetChange).toHaveBeenCalledWith(
+      "addAuthEpic",
+      expect.objectContaining({
+        entryId: "entry-2",
+        fromChangeId: "change-old",
+        toChangeId: "change-2",
+        title: "Linked Change",
+        retargetEvidence: "Repair stale parent entry.",
+      }),
+    );
+    expect(store.epics.linkChange).not.toHaveBeenCalled();
+  });
+
+  test("rejects when child membership mismatches requested Epic or entry", async () => {
+    const store = makeStore();
+    store.changes.get = vi.fn(async () => ({
+      success: true,
+      data: {
+        id: "change-2",
+        title: "Linked Change",
+        status: "active",
+        gates: {},
+        tasks: [],
+        created_at: "2026-06-25T00:00:00.000Z",
+        updated_at: "2026-06-25T00:00:00.000Z",
+        epic_membership: {
+          epic_id: "addAuthEpic",
+          entry_id: "entry-3",
+          order: 4,
+          title: "Linked Change",
+          linked_at: "2026-06-25T00:00:00.000Z",
+        },
+      } as Change,
+    }));
+
+    const output = await epicTools.adv_epic_link_change.execute(
+      {
+        epic_id: "addAuthEpic",
+        change_id: "change-2",
+        entry_id: "entry-2",
+        link_evidence: "User grouped existing work.",
+      },
+      store,
+    );
+
+    const parsed = parseToolOutput(output);
+    expect(parsed.code).toBe("CHANGE_ALREADY_IN_EPIC");
+    expect(parsed.current_membership).toEqual({
+      epic_id: "addAuthEpic",
+      entry_id: "entry-3",
+      order: 4,
+      title: "Linked Change",
+      linked_at: "2026-06-25T00:00:00.000Z",
+    });
+    expect(store.epics.linkChange).not.toHaveBeenCalled();
+    expect(store.epics.retargetChange).not.toHaveBeenCalled();
+    expect(store.changes.setEpicMembership).not.toHaveBeenCalled();
+  });
 });
 
 describe("adv_epic_unlink_change", () => {
