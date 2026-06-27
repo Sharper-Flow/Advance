@@ -28,6 +28,8 @@ import type {
   BulkCloseResult,
   Epic,
   EpicEntry,
+  EpicChangeRef,
+  EpicMembershipStatus,
 } from "../types";
 import type { ProjectPaths, LoadResult } from "./json";
 import type { ProductContext } from "./product-context";
@@ -384,6 +386,19 @@ export interface Store {
         changeProjectId?: string;
         repoId?: string;
         targetPath?: string;
+      },
+    ) => Promise<EpicEntry>;
+    retargetChange: (
+      epicId: string,
+      input: {
+        entryId: string;
+        fromChangeId: string;
+        toChangeId: string;
+        title?: string;
+        changeRef?: EpicChangeRef;
+        membershipStatus?: EpicMembershipStatus;
+        retargetedBy?: string;
+        retargetEvidence?: string;
       },
     ) => Promise<EpicEntry>;
     unlinkChange: (

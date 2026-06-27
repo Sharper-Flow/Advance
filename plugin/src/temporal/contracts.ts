@@ -121,6 +121,7 @@ export const EPIC_WORKFLOW_SIGNAL_NAMES = {
   shellAdded: "adv.epic.shellAdded",
   shellPromoted: "adv.epic.shellPromoted",
   changeLinked: "adv.epic.changeLinked",
+  changeRetargeted: "adv.epic.changeRetargeted",
   changeProjectionStatusUpdated: "adv.epic.changeProjectionStatusUpdated",
   changeUnlinked: "adv.epic.changeUnlinked",
   entriesReordered: "adv.epic.entriesReordered",

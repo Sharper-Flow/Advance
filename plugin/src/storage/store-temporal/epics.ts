@@ -10,6 +10,7 @@ import {
   shellPromotedSignal,
   changeLinkedSignal,
   changeProjectionStatusUpdatedSignal,
+  changeRetargetedSignal,
   changeUnlinkedSignal,
   entriesReorderedSignal,
   entryTerminalSummarySignal,
@@ -42,6 +43,8 @@ export interface EpicMutationError {
     | "entry_already_exists"
     | "epic_not_active"
     | "epic_archived"
+    | "retarget_source_mismatch"
+    | "retarget_duplicate_target"
     | "temporal_unavailable"
     | "signal_rejected";
   message: string;
@@ -128,6 +131,10 @@ function codeFromRejectionMessage(message: string): EpicMutationError["code"] {
     return "already_promoted";
   if (/entry_already_exists|Entry already exists/i.test(message))
     return "entry_already_exists";
+  if (/retarget_source_mismatch|Retarget source mismatch/i.test(message))
+    return "retarget_source_mismatch";
+  if (/retarget_duplicate_target|Target change already linked/i.test(message))
+    return "retarget_duplicate_target";
   if (
     /epic_not_active|Epic is not active|Completed Epics cannot be merged/i.test(
       message,
@@ -488,6 +495,58 @@ export function createEpicOps(deps: StoreDeps): Store["epics"] {
       const entry = epic?.entries.find((e) => e.entry_id === finalEntryId);
       if (!entry) {
         throw new Error(`Change entry not found after link: ${finalEntryId}`);
+      }
+      return entry;
+    },
+
+    retargetChange: async (
+      epicId,
+      {
+        entryId,
+        fromChangeId,
+        toChangeId,
+        title,
+        changeRef,
+        membershipStatus,
+        retargetedBy,
+        retargetEvidence,
+      },
+    ) => {
+      await assertEpicExists(epicId);
+      const handle = getEpicHandle(epicId);
+
+      const retargetedAt = new Date().toISOString();
+      const payload = {
+        entryId,
+        fromChangeId,
+        toChangeId,
+        ...(title !== undefined ? { title } : {}),
+        ...(changeRef ? { changeRef } : {}),
+        ...(membershipStatus ? { membershipStatus } : {}),
+        retargetedBy: retargetedBy ?? "agent",
+        retargetEvidence: retargetEvidence ?? "",
+        idempotencyKey: idempotencyKey(
+          "retarget-change",
+          epicId,
+          entryId,
+          fromChangeId,
+          toChangeId,
+        ),
+        retargetedAt,
+      };
+
+      await fireEpicSignal(
+        handle,
+        "changeRetargeted",
+        retargetedAt,
+        changeRetargetedSignal,
+        payload,
+      );
+
+      const epic = await queryEpic(epicId);
+      const entry = epic?.entries.find((e) => e.entry_id === entryId);
+      if (!entry) {
+        throw new Error(`Change entry not found after retarget: ${entryId}`);
       }
       return entry;
     },

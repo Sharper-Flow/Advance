@@ -244,6 +244,14 @@ const EpicChangeEntrySchema = z
         completed_at: z.string(),
       })
       .optional(),
+    /** Retarget audit: previous child change ID before a retarget operation. */
+    retargeted_from_change_id: z.string().optional(),
+    /** Retarget audit: ISO8601 timestamp of retarget. */
+    retargeted_at: z.string().optional(),
+    /** Retarget audit: identity that performed the retarget. */
+    retargeted_by: z.string().optional(),
+    /** Retarget audit: evidence/rationale for the retarget. */
+    retarget_evidence: z.string().optional(),
   })
   .superRefine((entry, ctx) => {
     if (!entry.change_id && !entry.change_ref) {

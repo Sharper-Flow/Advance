@@ -603,6 +603,27 @@ export type EpicMembershipClearedSignalPayload = z.infer<
 >;
 
 /**
+ * Retarget an existing Epic change entry from one child change ID to another.
+ * Preserves entry_id and order; updates the child reference, membership status,
+ * and retarget audit fields atomically.
+ */
+export const ChangeRetargetedSignalPayloadSchema = z.object({
+  entryId: z.string().min(1),
+  fromChangeId: z.string().min(1),
+  toChangeId: z.string().min(1),
+  changeRef: EpicChangeRefSchema.optional(),
+  title: z.string().min(1).optional(),
+  membershipStatus: EpicMembershipStatusSchema.optional(),
+  retargetedBy: z.string().min(1),
+  retargetEvidence: z.string().min(1),
+  idempotencyKey: z.string().min(1),
+  retargetedAt: IsoTimestampSchema,
+});
+export type ChangeRetargetedSignalPayload = z.infer<
+  typeof ChangeRetargetedSignalPayloadSchema
+>;
+
+/**
  * Unlink a change entry from the Epic. The entry is removed; this is not
  * idempotent beyond missing-entry tolerance.
  */
