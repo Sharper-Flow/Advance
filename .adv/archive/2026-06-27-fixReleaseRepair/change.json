@@ -1,0 +1,1332 @@
+{
+  "id": "fixReleaseRepair",
+  "title": "Fix release repair",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-06-26T22:01:15.319Z",
+  "tasks": [
+    {
+      "id": "tk-16f8661e8103",
+      "title": "Add release-repair recovery spec law",
+      "type": "docs",
+      "section": "Spec Law",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-06-27T18:44:09.107Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "C1",
+          "C2",
+          "C3"
+        ],
+        "verifies": [
+          "AC8"
+        ],
+        "respects": [
+          "DONT2",
+          "DONT3",
+          "DONT6",
+          "OOS3"
+        ]
+      },
+      "evidence_policy": "static_check",
+      "assignedTo": "agent",
+      "started_at": "2026-06-27T18:52:24.231Z",
+      "verification": "Added rq-releaseRepairRecovery01 to advance-workflow spec JSON and docs mirror with completed/poisoned recovery, generic failure rejection, and blocker-preservation scenarios. Verified with pnpm run schemas:check (exit 0, runId tr_mqwpybqj_60c243be).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".adv/specs/advance-workflow/spec.json",
+        "docs/specs/advance-workflow.md"
+      ],
+      "touched_files": [
+        ".adv/specs/advance-workflow/spec.json",
+        "docs/specs/advance-workflow.md"
+      ],
+      "checkpointSha": "84bc03d0291414c5bcfebf55600f3a7fa3f6c38c",
+      "completedAt": "2026-06-27T18:54:33.117Z",
+      "completed_at": "2026-06-27T18:54:33.117Z"
+    },
+    {
+      "id": "tk-04d6ce1181a0",
+      "title": "Expose design-concern tool in live warrant surface",
+      "type": "code",
+      "section": "Warrant Surface",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-06-27T18:45:06.443Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC7",
+          "C3"
+        ],
+        "verifies": [
+          "AC7",
+          "AC8"
+        ],
+        "respects": [
+          "DONT6",
+          "OOS3"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-27T18:55:07.800Z",
+      "verification": "RED run tr_mqwq1672_1da1c21f: surface test failed because adv_design_concern_disposition was absent from getToolSurface. GREEN run tr_mqwq1ylj_9a06d232: bin/oc-test targeted -- src/tool-registry.surface.test.ts passed (5 tests). Added designConcernTools to getToolSurface and surface assertions for target_path/recoveryMode/recoveryEvidence/recoveryReason.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tool-registry.surface.test.ts",
+        "plugin/src/tool-registry.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tool-registry.surface.test.ts",
+        "plugin/src/tool-registry.ts"
+      ],
+      "checkpointSha": "17ad048991f3c1179d62a8e33714391e99359408",
+      "completedAt": "2026-06-27T18:57:23.702Z",
+      "completed_at": "2026-06-27T18:57:23.702Z"
+    },
+    {
+      "id": "tk-7754055a590d",
+      "title": "Characterize design-concern recovery behavior",
+      "type": "code",
+      "section": "Design Concern Recovery",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-06-27T18:45:06.509Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "C2",
+          "C3"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC8"
+        ],
+        "respects": [
+          "DONT1",
+          "DONT2",
+          "DONT4",
+          "DONT6",
+          "OOS3"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-27T18:58:31.682Z",
+      "verification": "RED run tr_mqwq4k7k_f08adbcb: design-concern recovery test failed because recovered/recoveryMode marker was absent. GREEN run tr_mqwq52e1_036ada30: bin/oc-test targeted -- src/tools/design-concern.test.ts src/tools/_recovery-writers.test.ts passed (22 tests). Recovery success now returns _recoveryMutation, recovered:true, recoveryMode, and reconciliation warning; tests also cover blank recoveryReason.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/design-concern.test.ts",
+        "plugin/src/tools/design-concern.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/design-concern.test.ts",
+        "plugin/src/tools/design-concern.ts"
+      ],
+      "checkpointSha": "7e47fb6210d7490a70e1bca8d7a3dd88893bfa81",
+      "completedAt": "2026-06-27T18:59:49.149Z",
+      "completed_at": "2026-06-27T18:59:49.149Z"
+    },
+    {
+      "id": "tk-c7a54e188084",
+      "title": "Characterize release gate and status repair invariants",
+      "type": "code",
+      "section": "Release Repair Invariants",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-06-27T18:45:08.321Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC4",
+          "AC5",
+          "AC6",
+          "C1",
+          "C5"
+        ],
+        "verifies": [
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC8"
+        ],
+        "respects": [
+          "DONT2",
+          "DONT3",
+          "DONT5",
+          "OOS1",
+          "OOS3"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-27T19:00:31.375Z",
+      "verification": "RED run tr_mqwq8i7o_510847a4: gate/status repair tests failed because recovered:true marker was absent from recovery responses. GREEN run tr_mqwq99ag_5ba6cb00: bin/oc-test targeted -- src/tools/gate.test.ts src/tools/gate.release-enforcement.test.ts src/tools/change.status-repair.test.ts passed (50 tests). Gate and status repair recovery success now includes recovered:true while retaining existing _recoveryMutation/readback/finalization blocker behavior.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/change.status-repair.test.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/gate.test.ts",
+        "plugin/src/tools/gate.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/change.status-repair.test.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/gate.test.ts",
+        "plugin/src/tools/gate.ts"
+      ],
+      "checkpointSha": "7a40ce01b6f35ea91670956596e0d6a4e58a3306",
+      "completedAt": "2026-06-27T19:03:07.331Z",
+      "completed_at": "2026-06-27T19:03:07.331Z"
+    },
+    {
+      "id": "tk-2f1c090d9d0d",
+      "title": "Run final targeted verification for release repair",
+      "type": "verification",
+      "section": "Verification",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-06-27T18:45:49.410Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-16f8661e8103"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-04d6ce1181a0"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-7754055a590d"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-c7a54e188084"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [],
+        "verifies": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7",
+          "AC8",
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5"
+        ],
+        "respects": [
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "DONT6",
+          "OOS1",
+          "OOS2",
+          "OOS3",
+          "OOS4"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-27T19:03:48.689Z",
+      "verification": "Acceptance review remediation: gate recovery now rejects imprecise recoveryEvidence via isPreciseWorkflowRecoveryEvidence; status repair now requires non-empty recoveryReason and precise completed/poisoned/phase9 failed approvalEvidence before disk projection. Verified bin/oc-test targeted -- src/tools/gate.test.ts src/tools/change.status-repair.test.ts (43 passed), broader release-repair suite (80 passed), pnpm run check passed, pnpm run build passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/change.status-repair.test.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/gate.test.ts",
+        "plugin/src/tools/gate.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/change.status-repair.test.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/gate.test.ts",
+        "plugin/src/tools/gate.ts"
+      ],
+      "checkpointSha": "018be8648f54e91afc30e05a2b5eefb0a0ab9e8b",
+      "completedAt": "2026-06-27T19:32:16.763Z",
+      "completed_at": "2026-06-27T19:32:16.763Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixReleaseRepair",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixReleaseRepair",
+          "task_id": "tk-2f1c090d9d0d",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-2f1c090d9d0d"
+          },
+          "agent": "adv-reviewer",
+          "phase": "harden",
+          "verdict": "READY",
+          "blocking_findings": [],
+          "nonblocking_findings": [
+            {
+              "id": "harden-praise-1",
+              "label": "praise",
+              "file": "plugin/src/tools/change.ts",
+              "line": 5234,
+              "what": "Status repair now requires non-blank recoveryReason and precise completed/poisoned/phase9 failure evidence before disk projection.",
+              "why": "Release repair authorization is structural and fail-closed before mutation.",
+              "fix": "n/a"
+            },
+            {
+              "id": "harden-praise-2",
+              "label": "praise",
+              "file": "plugin/src/tools/gate.ts",
+              "line": 430,
+              "what": "Gate recovery rejects imprecise recovery evidence before recovered gate projection.",
+              "why": "Prevents generic operator notes from authorizing poisoned-history release/acceptance repair.",
+              "fix": "n/a"
+            }
+          ],
+          "changes_made": [],
+          "wisdom_candidates": [],
+          "verification": {
+            "tests_run": [
+              "bin/oc-test targeted -- src/tools/gate.test.ts src/tools/change.status-repair.test.ts src/tools/design-concern.test.ts src/tool-registry.surface.test.ts",
+              "git diff --check origin/trunk...HEAD",
+              "git status --short"
+            ],
+            "results": "pass",
+            "evidence": "Path preflight OK for all affected files. Reviewed diff across spec/docs/tool/test surfaces. Targeted harden verification: 4 test files passed, 57 tests passed. Whitespace check produced no output. Final git status --short produced no output (clean). Orchestrator-provided prior evidence: broader targeted suites passed (43 and 80 tests), pnpm run check passed, pnpm run build passed."
+          },
+          "scope_drift": null,
+          "risks": [
+            "Live OpenCode tool behavior still follows deployed dist until build/deploy/restart; pnpm run build evidence is present, but live MCP validation requires fresh session per repo source-vs-dist caveat."
+          ],
+          "required_main_agent_actions": [
+            "No harden blockers found; proceed with release/archive workflow. If live MCP behavior must be validated before archive, deploy/restart plugin runtime per AGENTS.md source-vs-dist caveat."
+          ],
+          "required_follow_ups": [],
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/gate.test.ts src/tools/change.status-repair.test.ts src/tools/design-concern.test.ts src/tool-registry.surface.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: git diff --check origin/trunk...HEAD"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: git status --short"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "fixReleaseRepair",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-leverage-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Release-repair recovery design leverage scout",
+      "sources": [
+        {
+          "label": "design-concern.ts (live tool)",
+          "locator": "plugin/src/tools/design-concern.ts:1-280",
+          "summary": "adv_design_concern_disposition ALREADY implements full recovery: recoveryMode/recoveryEvidence/recoveryReason args, recoveryEvidenceError() precise-evidence gating, accepted_debt excluded by enum, dryRun preview, signal-first with classifyCompletedOrPoisonedRecovery fallback to saveRecoveredDesignConcernDisposition, _recoveryMutation:true + RECOVERY_RECONCILIATION_WARNING marker. AC1/AC2/AC3 appear already satisfied in code."
+        },
+        {
+          "label": "_recovery-writers.ts",
+          "locator": "plugin/src/tools/_recovery-writers.ts:202-233",
+          "summary": "saveRecoveredDesignConcernDisposition already exists with latest-wins (taskId,concernKey) filter + recovery_audit{reason,evidence,recovered_at}, disk-direct saveChange (no store.changes.save reroute through completed workflow)."
+        },
+        {
+          "label": "change-state.ts canonical apply",
+          "locator": "plugin/src/temporal/change-state.ts:1102-1121",
+          "summary": "applyDesignConcernDispositionedToState latest-wins filter (lines 1107-1110) is byte-parity with recovery writer filter (lines 210-216). Design's 'same latest-wins semantics' claim is VERIFIED, not aspirational."
+        },
+        {
+          "label": "tool-registry.ts getToolSurface",
+          "locator": "plugin/src/tool-registry.ts:798-831, 413-415, 871",
+          "summary": "CONFIRMED AC7 GAP: groups[] array (lines 799-823) does NOT include designConcernTools. Tool is bound (line 413) and in ADV_TOOL_NAMES (871) but its args are absent from the warrant surface. tool:adv_design_concern_disposition#* warrants currently fail-closed at contract mint."
+        },
+        {
+          "label": "gate.ts release recovery",
+          "locator": "plugin/src/tools/gate.ts:204,401,491,1175,1326",
+          "summary": "getReleaseFinalizationBlocker + completeGateViaRecovery already exist; release recovery is acceptance/release-scoped with readiness/blocker gating. AC4 surfaces already present."
+        },
+        {
+          "label": "change.ts status repair",
+          "locator": "plugin/src/tools/change.ts:1757,5430",
+          "summary": "verifyStatusRepairReadAfterWrite already exists and is wired into status repair. AC5 read-after-write surface already present."
+        },
+        {
+          "label": "tool-registry.surface.test.ts",
+          "locator": "plugin/src/tool-registry.surface.test.ts:1-50",
+          "summary": "Live-surface test exists but only asserts adv_change_status_repair#target_path present + adv_change_archive#target_path absent. NO assertion for adv_design_concern_disposition args — AC7 needs a new test row."
+        },
+        {
+          "label": "advance-workflow spec.json",
+          "locator": ".adv/specs/advance-workflow/spec.json:610-663",
+          "summary": "rq-archiveRecoveryConsistency01 exists as law (status repair). rq-releaseRepairRecovery01 does NOT exist yet — design's proposed spec delta is genuinely net-new."
+        }
+      ],
+      "architecture_assessment": "The draft design is architecturally SOUND and matches established ADV recovery conventions (typed disk-direct writers behind assertRecoveryAuthorization, signal-first then classifyCompletedOrPoisonedRecovery, precise-evidence gating, _recoveryMutation markers). It mirrors the proven contract/task/gate recovery tools — boring and consistent, which is correct. CRITICAL LEVERAGE FINDING: the design narrates the design-concern recovery surfaces (AC1/AC2/AC3) and release/status surfaces (AC4/AC5) as work to build, but they are ALREADY FULLY IMPLEMENTED in design-concern.ts, _recovery-writers.ts, gate.ts, and change.ts. The only genuinely net-new work is: (1) AC7 warrant-surface coverage (add designConcernTools to getToolSurface groups[] — a one-line change), (2) a new surface-test assertion, (3) the rq-releaseRepairRecovery01 spec delta, and (4) characterization tests confirming the existing AC1-AC6 behavior. Treating AC1-AC6 as build-from-scratch risks redundant reimplementation and merge churn; treating them as verify-and-characterize is the high-leverage path.",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "No contract/security/release blockers. CAUTION: design draft framing over-scopes implementation. Recommend planning reclassify most AC1-AC6 tasks as verification/characterization (evidence_policy: test/review) rather than code, and concentrate code effort on the single real gap (AC7 getToolSurface groups[] + test) and the spec delta. This is a scope-precision concern, not a design-soundness concern."
+      },
+      "recommendation": "Adopt the design's architectural seam (it correctly reuses existing recovery conventions). At planning, split tasks by true fate: (a) AC7 code task — add designConcernTools to getToolSurface() groups[] array in tool-registry.ts:799-823 (one line) + add surface-test assertion for adv_design_concern_disposition#{target_path,recoveryMode,recoveryEvidence,recoveryReason}; (b) spec task — add rq-releaseRepairRecovery01 to advance-workflow spec, retain rq-archiveRecoveryConsistency01 for status repair; (c) verification tasks (NOT new code) for AC1-AC6 — characterization tests proving design-concern.ts recovery, _recovery-writers latest-wins audit parity, gate.ts release blocker, change.ts status repair readback already behave per AC. Run via bin/oc-test targeted per AC8. Do NOT reimplement saveRecoveredDesignConcernDisposition / recoveryEvidenceError / completeGateViaRecovery — they exist and are parity-correct.",
+      "follow_ups": [
+        "Confirm at planning whether AC1-AC6 tests already exist (design-concern.test.ts, _recovery-writers.test.ts, gate.release-enforcement.test.ts, gate.test.ts seen in grep) cover each AC, to avoid redundant test authoring.",
+        "Verify the deploy-local allowlist note (deploy-local.test.ts:808) does not require a parallel allowlist edit when adding designConcernTools to getToolSurface.",
+        "TASK_SCOPE anchors were present and complete; no packet-defect warning needed."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixReleaseRepair",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation for release-repair recovery",
+      "sources": [
+        {
+          "label": "tool-registry.ts getToolSurface",
+          "locator": "plugin/src/tool-registry.ts:798-831, 37, 414",
+          "summary": "AC7 GAP CONFIRMED: groups[] (799-823) omits designConcernTools. Tool already imported (line 37) and bound to tool map (line 414); only the warrant surface entry is missing. Design one-line fix is precise and low-risk (no new import/cycle)."
+        },
+        {
+          "label": "_recovery-writers.ts saveRecoveredDesignConcernDisposition",
+          "locator": "plugin/src/tools/_recovery-writers.ts:202-233",
+          "summary": "Recovery writer exists: assertRecoveryAuthorization gate, latest-wins (taskId,concernKey) filter (210-216), recovery_audit{reason,evidence,recovered_at}, disk-direct saveChange (avoids routing through completed workflow). Matches Decision 2."
+        },
+        {
+          "label": "change-state.ts applyDesignConcernDispositionedToState",
+          "locator": "plugin/src/temporal/change-state.ts:1102-1121",
+          "summary": "Canonical signal apply uses identical latest-wins filter (1107-1110) as recovery writer (210-216). Design same-latest-wins-semantics claim VERIFIED parity, not aspirational."
+        },
+        {
+          "label": "gate.ts release recovery",
+          "locator": "plugin/src/tools/gate.ts:204,401,491,1175,1326",
+          "summary": "getReleaseFinalizationBlocker + completeGateViaRecovery exist; release recovery acceptance/release-scoped with blocker/readiness gating (AC4 surfaces present). Supports chain-verification-not-reimplementation (Decision 3)."
+        },
+        {
+          "label": "change.ts status repair readback",
+          "locator": "plugin/src/tools/change.ts:1757,5430",
+          "summary": "verifyStatusRepairReadAfterWrite exists and wired into status repair (AC5 read-after-write surface present)."
+        },
+        {
+          "label": "tool-registry.surface.test.ts",
+          "locator": "plugin/src/tool-registry.surface.test.ts:1-50",
+          "summary": "Live-surface test exists, asserts adv_change_status_repair#target_path present + adv_change_archive#target_path absent. No assertion for adv_design_concern_disposition args; AC7 needs new test row, matching design DDC."
+        },
+        {
+          "label": "advance-workflow spec.json",
+          "locator": ".adv/specs/advance-workflow/spec.json:610-663",
+          "summary": "rq-archiveRecoveryConsistency01 exists (status repair law). rq-releaseRepairRecovery01 does NOT exist; design proposed spec delta is genuinely net-new and non-duplicative."
+        }
+      ],
+      "architecture_assessment": "Design is architecturally sound and consistent with established ADV recovery conventions. All four bounded surfaces are real and verified: (1) design-concern disposition recovery uses signal-first then audited projection fallback (Decision 1); (2) typed recovery writer with authorization + latest-wins + recovery_audit is the sole disk-projection seam (Decision 2, verified parity with canonical apply); (3) release gate recovery and status repair invariants already exist and are correctly treated as verify-and-characterize, not reimplement (Decision 3); (4) AC7 warrant-surface repair is a genuine one-line coverage omission, not a runtime registration change. Design reuses proven recovery machinery (boring, consistent) rather than inventing a new mechanism, satisfying simplicity bias. Net-new code correctly scoped to: getToolSurface groups[] addition + surface-test assertion + rq-releaseRepairRecovery01 spec delta + characterization tests for AC1-AC6. No spec-law contradictions found; design preserves all structural blockers and adds a focused law rather than weakening any.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "No contract/security/release blockers. No spec-law conflict. Design claims independently verified against source. One scope-precision caution: AC1-AC6 already implemented, so design narration of those surfaces is verification work not build-from-scratch; design already adopts this framing (Decision 3), so framing is internally consistent. Recommend planning encode AC1-AC6 as verification/characterization tasks (evidence_policy test/review) and concentrate code on AC7 + spec delta to avoid redundant reimplementation."
+      },
+      "recommendation": "VALIDATED. Design solves all objectives with a boring, convention-consistent approach: reuses existing typed-recovery-writer + signal-first model rather than inventing a new repair mechanism, keeps recovery opt-in/audited/invariant-preserving, isolates the only genuine net-new code to a one-line getToolSurface fix (AC7), a new surface-test assertion, and a focused rq-releaseRepairRecovery01 spec law. Latest-wins parity, release-finalization blocker, status-repair readback, and warrant-surface omission all independently verified in source. Single caution is scope-precision (AC1-AC6 already exist; plan them as characterization not build), which design already reflects in Decision 3. No simpler equivalent approach overlooked, no viable alternative missing; a generic disk-projection fallback was correctly rejected as it would violate DONT2/OOS3.",
+      "follow_ups": [
+        "At planning, confirm existing tests (design-concern.test.ts, _recovery-writers.test.ts, gate release tests) already cover AC1-AC6 to avoid redundant test authoring.",
+        "Verify no parallel deploy-local allowlist edit is needed when adding designConcernTools to getToolSurface (scout flagged deploy-local.test.ts:808)."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixReleaseRepair",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixReleaseRepair",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "BLOCKED",
+      "blocking_findings": [
+        {
+          "id": "recovery-auth-1",
+          "label": "blocker",
+          "file": "plugin/src/tools/gate.ts",
+          "line": 434,
+          "what": "Acceptance/release gate recovery requires recoveryEvidence to be non-blank, but does not validate that caller-supplied recoveryEvidence is precise completed-workflow or poisoned-history evidence.",
+          "why": "docs/specs/advance-workflow.md rq-releaseRepairRecovery01 requires blank, imprecise, or generic recovery evidence to fail closed. design-concern recovery implements this via isPreciseWorkflowRecoveryEvidence, but adv_gate_complete recovery only checks trim(), so an imprecise audit string can still reach completeGateViaRecovery after a completed/poisoned signal/query failure.",
+          "fix": "Add precise evidence validation for gate recoveryEvidence before completeGateViaRecovery writes/saves, and add negative tests for imprecise acceptance/release recovery evidence."
+        },
+        {
+          "id": "recovery-auth-2",
+          "label": "blocker",
+          "file": "plugin/src/tools/change.ts",
+          "line": 5337,
+          "what": "adv_change_status_repair accepts any non-empty approvalEvidence and has no separate recovery reason/precise recovery evidence validation before disk-projection status repair.",
+          "why": "rq-releaseRepairRecovery01 and AC5 require explicit audited recovery metadata and precise completed/poisoned/wedged-state proof. Current status repair rejects blank evidence but accepts generic strings like \"evidence\" in tests, so imprecise recovery evidence can authorize an archive status flip as long as gates and bundle checks pass.",
+          "fix": "Validate approvalEvidence (or split into recoveryEvidence/recoveryReason fields) against precise wedged/completed/poisoned evidence, require non-empty recovery reason, and add failing tests for generic/imprecise status-repair evidence."
+        }
+      ],
+      "nonblocking_findings": [
+        {
+          "id": "tests-1",
+          "label": "suggestion",
+          "file": "plugin/src/tools/change.status-repair.test.ts",
+          "line": 312,
+          "what": "Several status-repair tests use generic approvalEvidence values such as \"evidence\".",
+          "why": "Those fixtures mask the missing precision validation and make rq-releaseRepairRecovery01.2 harder to enforce structurally once fixed.",
+          "fix": "Update status-repair test fixtures to use precise wedged-state evidence except in explicit rejection tests."
+        }
+      ],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- plugin/src/tools/design-concern.test.ts plugin/src/tools/gate.test.ts plugin/src/tools/change.status-repair.test.ts plugin/src/tool-registry.surface.test.ts plugin/src/cli-bridge-contract.test.ts",
+          "bin/oc-test targeted -- src/tools/design-concern.test.ts src/tools/gate.test.ts src/tools/change.status-repair.test.ts src/tool-registry.surface.test.ts src/cli-bridge-contract.test.ts",
+          "bin/oc-test targeted -- src/tools/design-concern.test.ts src/tools/gate.test.ts src/tools/gate.release-enforcement.test.ts src/tools/change.status-repair.test.ts src/tool-registry.surface.test.ts src/cli-bridge-contract.test.ts",
+          "git status --short"
+        ],
+        "results": "pass",
+        "evidence": "Initial targeted command with repo-root-prefixed paths failed with 'No test files found' because bin/oc-test runs from plugin/. Corrected scoped command passed 5 files / 73 tests. Broader release-repair command including gate.release-enforcement passed 6 files / 83 tests. git status --short returned clean."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Targeted tests pass but do not include negative coverage for imprecise gate recoveryEvidence or imprecise status-repair approvalEvidence, leaving rq-releaseRepairRecovery01.2 partially unenforced.",
+        "No files changed during review."
+      ],
+      "required_main_agent_actions": [
+        "Fix recovery-auth-1: add precise evidence validation + negative tests for acceptance/release gate recovery evidence.",
+        "Fix recovery-auth-2: require precise wedged/completed/poisoned status-repair evidence and non-empty recovery reason, or reconcile the spec/agreement if status repair is intentionally exempt.",
+        "Rerun targeted release-repair tests, schemas:check, pnpm run check, and pnpm run build after remediation."
+      ],
+      "required_follow_ups": [],
+      "consumer_warnings": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixReleaseRepair",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixReleaseRepair",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "test -e referenced release-repair files",
+          "git diff --stat origin/trunk...HEAD && bin/oc-test targeted -- src/tools/gate.test.ts src/tools/change.status-repair.test.ts",
+          "bin/oc-test targeted -- src/tool-registry.surface.test.ts src/tools/design-concern.test.ts src/tools/_recovery-writers.test.ts src/tools/gate.release-enforcement.test.ts src/tools/gate.test.ts src/tools/change.status-repair.test.ts",
+          "git status --short"
+        ],
+        "results": "pass",
+        "evidence": "Path preflight OK. Reviewed gate.ts completeGateViaRecovery: missing audit fields checked, recoveryEvidence must satisfy isPreciseWorkflowRecoveryEvidence before any recovery projection, and audited writer receives caller recoveryReason/evidence. Reviewed change.ts adv_change_status_repair: non-empty approvalEvidence and recoveryReason required; approvalEvidence must be precise completed-workflow/poisoned-history evidence or phase9_status.failed before repair; recoveryReason returned and propagated in targetRepairPacket. Reviewed tests covering imprecise gate evidence, missing status-repair recoveryReason, imprecise status-repair evidence, read-after-write, target packet, and live surface. Targeted rerun: 43/43 passed. Broader release-repair surface rerun: 80/80 passed. git status clean. Requested scope_key acceptance-review is not accepted by current report schema; submitted structurally valid review:acceptance equivalent."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Requested report scope_key `acceptance-review` is not accepted by current REVIEWER_REPORT schema; persisted as `review:acceptance`."
+      ],
+      "required_main_agent_actions": [],
+      "required_follow_ups": [],
+      "consumer_warnings": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixReleaseRepair",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixReleaseRepair",
+      "task_id": "tk-2f1c090d9d0d",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-2f1c090d9d0d"
+      },
+      "agent": "adv-reviewer",
+      "phase": "harden",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [
+        {
+          "id": "harden-praise-1",
+          "label": "praise",
+          "file": "plugin/src/tools/change.ts",
+          "line": 5234,
+          "what": "Status repair now requires non-blank recoveryReason and precise completed/poisoned/phase9 failure evidence before disk projection.",
+          "why": "Release repair authorization is structural and fail-closed before mutation.",
+          "fix": "n/a"
+        },
+        {
+          "id": "harden-praise-2",
+          "label": "praise",
+          "file": "plugin/src/tools/gate.ts",
+          "line": 430,
+          "what": "Gate recovery rejects imprecise recovery evidence before recovered gate projection.",
+          "why": "Prevents generic operator notes from authorizing poisoned-history release/acceptance repair.",
+          "fix": "n/a"
+        }
+      ],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/tools/gate.test.ts src/tools/change.status-repair.test.ts src/tools/design-concern.test.ts src/tool-registry.surface.test.ts",
+          "git diff --check origin/trunk...HEAD",
+          "git status --short"
+        ],
+        "results": "pass",
+        "evidence": "Path preflight OK for all affected files. Reviewed diff across spec/docs/tool/test surfaces. Targeted harden verification: 4 test files passed, 57 tests passed. Whitespace check produced no output. Final git status --short produced no output (clean). Orchestrator-provided prior evidence: broader targeted suites passed (43 and 80 tests), pnpm run check passed, pnpm run build passed."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Live OpenCode tool behavior still follows deployed dist until build/deploy/restart; pnpm run build evidence is present, but live MCP validation requires fresh session per repo source-vs-dist caveat."
+      ],
+      "required_main_agent_actions": [
+        "No harden blockers found; proceed with release/archive workflow. If live MCP behavior must be validated before archive, deploy/restart plugin runtime per AGENTS.md source-vs-dist caveat."
+      ],
+      "required_follow_ups": [],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/gate.test.ts src/tools/change.status-repair.test.ts src/tools/design-concern.test.ts src/tool-registry.surface.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: git diff --check origin/trunk...HEAD"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: git status --short"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixReleaseRepair",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixReleaseRepair",
+      "scope": {
+        "kind": "change",
+        "scope_key": "scanner-bundle:harden"
+      },
+      "agent": "adv-scanner-bundle",
+      "phase": "harden",
+      "scanner_count": 1,
+      "dimensions": [
+        "test-coverage",
+        "ai-slop-maintainability",
+        "documentation-hygiene",
+        "cleanup-readiness",
+        "production-readiness",
+        "deployment-readiness"
+      ],
+      "summary": "Harden READY: coverage/TDD, slop/maintainability, docs, cleanup, production, and deployment readiness passed. No blockers/high findings; no files changed. Verification: targeted harden suite 57 tests passed; git diff --check clean; git status clean.",
+      "findings": [],
+      "follow_ups": [
+        "Live OpenCode tool behavior requires build/deploy/restart before validating deployed MCP behavior in-session."
+      ],
+      "consumer_warnings": []
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-06-27T18:18:06.984Z",
+      "completed_by": "adv",
+      "approval_evidence": "User approved proposal problem framing: \"approve\". Proposal artifact updated with scope, user outcomes, affected code, discovery agenda, and ambiguity scan; no critical B/F/S findings.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "badcbe65e0d61519a27503110edf4a55ae4ceaacf13f2f0839a8d139862b3028",
+        "non_whitespace_chars": 5729,
+        "checked_at": "2026-06-26T22:01:15.394Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-06-27T18:33:09.478Z",
+      "completed_by": "adv",
+      "approval_evidence": "User approved discovery criteria/agreement with reply: \"approve\". Agreement persisted and ChangeContract minted (26 items). Discovery findings recorded in proposal; no blocking ambiguity remains.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "31c6d87d7ef4ceed2e644eb3045772accaa17986c8c22db68bb0491c2a6749d1",
+        "non_whitespace_chars": 5707,
+        "checked_at": "2026-06-26T22:01:15.395Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-06-27T18:41:52.332Z",
+      "completed_by": "adv",
+      "approval_evidence": "Design recorded. Leverage scout completed; independent validator returned VALIDATED with one scope-precision caution already integrated: AC1–AC6 are characterization/verification, net-new code is AC7 warrant surface plus spec delta. No unresolved conflict or contract-compromise risk.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "23a305f031fde346d5d7d2b79a6ed8196a9dbcda02d95fe44643490f2347a850",
+        "non_whitespace_chars": 7994,
+        "checked_at": "2026-06-26T22:01:15.396Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-06-27T18:51:02.548Z",
+      "completed_by": "adv",
+      "approval_evidence": "User approved prep plan with reply: \"approve\". Task graph contains 5 tasks: spec law, warrant surface repair, design-concern recovery characterization, release/status repair invariant characterization, and final targeted verification. Worktree resumed at /home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixReleaseRepair."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-06-27T19:13:53.872Z",
+      "completed_by": "adv",
+      "approval_evidence": "All 5 planned tasks completed with checkpoints. Final targeted release-repair verification passed (runId tr_mqwqaunu_ea200a60, 77 tests). schemas:check passed (tr_mqwqb2ot_d296b9e1). Post-check remediation formatted drift; pnpm run check passed; pnpm run build passed. ADV validation passed with non-blocking NO_DELTAS warning."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-06-27T19:49:33.034Z",
+      "completed_by": "user:jon",
+      "approval_evidence": "User accepted delivered work with reply: \"approve\". Acceptance proof persisted before approval: executive-summary artifact present with content hash; contract review matrix has 26 rows passed/respected and 0 failing rows; review attempt 2 READY; preview URL not_applicable because visual_surface=false.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "f262d8ee32ecd8be4d4247db6245f0869f5401e18c33187dbf04c19d55246a51",
+        "non_whitespace_chars": 1516,
+        "checked_at": "2026-06-26T22:01:15.397Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "cross_project_origin": {
+    "source_project": "pokeedge",
+    "source_path": "/home/jon/dev/pokeedge",
+    "source_change_id": "addPaddleSubscriptions",
+    "linked_at": "2026-06-26T22:01:14.922Z"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "31c6d87d7ef4ceed2e644eb3045772accaa17986c8c22db68bb0491c2a6749d1",
+      "approvedAt": "2026-06-27T18:32:50.256Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "Maintainers can recover a completed/poisoned release-repair wedge through approved ADV tools, without direct ADV external-state file edits.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "31c6d87d7ef4ceed2e644eb3045772accaa17986c8c22db68bb0491c2a6749d1",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "Normal active workflows preserve structural design-quality, release-finalization, and archive-status enforcement.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "31c6d87d7ef4ceed2e644eb3045772accaa17986c8c22db68bb0491c2a6749d1",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "Recovery success paths expose auditable metadata or warnings so operators can distinguish recovery projection from normal signal mutation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "31c6d87d7ef4ceed2e644eb3045772accaa17986c8c22db68bb0491c2a6749d1",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "Calling `adv_design_concern_disposition` on an active workflow fires `designConcernDispositionedSignal`, refreshes change state, and does not call disk-projection recovery.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "31c6d87d7ef4ceed2e644eb3045772accaa17986c8c22db68bb0491c2a6749d1",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "When normal design-concern signaling fails with completed/poisoned workflow evidence and `recoveryMode: \"poisoned_history\"` includes non-empty `recoveryEvidence` and `recoveryReason`, the tool records a typed latest-wins disposition with recovery audit metadata and returns an explicit recovery marker/warning.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "31c6d87d7ef4ceed2e644eb3045772accaa17986c8c22db68bb0491c2a6749d1",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Design-concern recovery rejects blank/imprecise recovery evidence, blank recovery reason, unknown task IDs, generic signal failures, and unsupported disposition verbs including `accepted_debt`; no disk projection write occurs.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "31c6d87d7ef4ceed2e644eb3045772accaa17986c8c22db68bb0491c2a6749d1",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Release gate recovery through `adv_gate_complete` remains limited to acceptance/release recovery, requires explicit compatibility/recovery audit fields, respects prior-gate/task/readiness checks, and blocks release recovery when branch/PR/default-branch finalization proof is missing.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "31c6d87d7ef4ceed2e644eb3045772accaa17986c8c22db68bb0491c2a6749d1",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "tool:adv_gate_complete#compatibilityReason",
+          "tool:adv_gate_complete#recoveryEvidence",
+          "tool:adv_gate_complete#recoveryReason"
+        ]
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "`adv_change_status_repair` succeeds only when all seven gates are done and an archive bundle exists; non-dry-run success performs read-after-write verification and reports archived status with recovery metadata.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "31c6d87d7ef4ceed2e644eb3045772accaa17986c8c22db68bb0491c2a6749d1",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "tool:adv_change_status_repair#changeId",
+          "tool:adv_change_status_repair#approvedByUser"
+        ]
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Target-path release repair preserves existing trust rules: untrusted target mutation requires target confirmation, and supported dry-runs remain non-mutating.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "31c6d87d7ef4ceed2e644eb3045772accaa17986c8c22db68bb0491c2a6749d1",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "tool:adv_change_status_repair#target_path",
+          "tool:adv_gate_complete#target_path"
+        ]
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "The live contract-warrant surface exposes `adv_design_concern_disposition` argument keys, including `target_path`, `recoveryMode`, `recoveryEvidence`, and `recoveryReason`, so future contracts can warrant the tool directly.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "31c6d87d7ef4ceed2e644eb3045772accaa17986c8c22db68bb0491c2a6749d1",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC8",
+        "kind": "acceptance_criterion",
+        "text": "Targeted tests for design-concern recovery, recovery writers, release-gate recovery, status repair, and warrant-surface coverage pass through `bin/oc-test targeted` or the plugin test wrapper.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "31c6d87d7ef4ceed2e644eb3045772accaa17986c8c22db68bb0491c2a6749d1",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Specs remain law: archive still requires all seven gates and structural blockers resolved.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "31c6d87d7ef4ceed2e644eb3045772accaa17986c8c22db68bb0491c2a6749d1",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Recovery must be opt-in and audited; generic failures must not write disk projection.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "31c6d87d7ef4ceed2e644eb3045772accaa17986c8c22db68bb0491c2a6749d1",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Correctness must be structural: Zod/tool schema validation, typed dispositions/gate/status state, explicit evidence classification, deterministic tests, and readback checks.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "31c6d87d7ef4ceed2e644eb3045772accaa17986c8c22db68bb0491c2a6749d1",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Runtime source edits may need rebuild/deploy/restart for live OpenCode tool behavior; in-session validation must use source tests.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "31c6d87d7ef4ceed2e644eb3045772accaa17986c8c22db68bb0491c2a6749d1",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Target-path mutation trust rules remain unchanged.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "31c6d87d7ef4ceed2e644eb3045772accaa17986c8c22db68bb0491c2a6749d1",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not bypass `DesignConcernDispositionSchema`, task-existence validation, gate readiness, or status-repair invariants.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "31c6d87d7ef4ceed2e644eb3045772accaa17986c8c22db68bb0491c2a6749d1",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not treat generic signal errors as recoverable without completed/poisoned workflow evidence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "31c6d87d7ef4ceed2e644eb3045772accaa17986c8c22db68bb0491c2a6749d1",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not weaken design-quality or release-finalization structural blockers for normal active workflows.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "31c6d87d7ef4ceed2e644eb3045772accaa17986c8c22db68bb0491c2a6749d1",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not add `accepted_debt` or any equivalent debt-acceptance disposition.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "31c6d87d7ef4ceed2e644eb3045772accaa17986c8c22db68bb0491c2a6749d1",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "Do not mutate untrusted target projects without existing target-path confirmation rules.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "31c6d87d7ef4ceed2e644eb3045772accaa17986c8c22db68bb0491c2a6749d1",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT6",
+        "kind": "avoidance",
+        "text": "Do not revive direct ADV external-state file reads/writes outside typed recovery writer helpers.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "31c6d87d7ef4ceed2e644eb3045772accaa17986c8c22db68bb0491c2a6749d1",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "Broad redesign of Temporal workflow completion, archive finalization, or gate status storage.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "31c6d87d7ef4ceed2e644eb3045772accaa17986c8c22db68bb0491c2a6749d1",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "Modifying the originating `pokeedge` change state except through later explicit operator repair steps.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "31c6d87d7ef4ceed2e644eb3045772accaa17986c8c22db68bb0491c2a6749d1",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "Adding generic disk-projection fallback for unrelated ADV tool failures.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "31c6d87d7ef4ceed2e644eb3045772accaa17986c8c22db68bb0491c2a6749d1",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS4",
+        "kind": "out_of_scope",
+        "text": "Reworking worktree cleanup, Epic projection, reflection, or status WIP performance changes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "31c6d87d7ef4ceed2e644eb3045772accaa17986c8c22db68bb0491c2a6749d1",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-06-27T19:38:39.940Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Typed ADV tools now cover release-repair recovery paths; no direct external-state file edit path added. Review attempt 2 READY.",
+          "notes": "Maintainer recovery remains through adv_design_concern_disposition, adv_gate_complete, and adv_change_status_repair."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Targeted release-repair suite passed: 80 tests across tool-registry.surface, design-concern, _recovery-writers, gate.release-enforcement, gate, change.status-repair.",
+          "notes": "Normal signal/readiness paths remain covered."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Recovery responses include _recoveryMutation/recovered/reconciliation warning or recoveryReason metadata; reviewer verified auth blockers resolved.",
+          "notes": "Explicit recovery markers distinguish projection from normal mutation."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "design-concern tests passed in targeted suite; active workflow path uses designConcernDispositionedSignal + cache refresh and does not call recovery writer.",
+          "notes": "Covered by src/tools/design-concern.test.ts."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "design-concern recovery tests passed; completed/poisoned path writes latest-wins disposition with recovery audit and returns recovery marker/warning.",
+          "notes": "Covered by src/tools/design-concern.test.ts and _recovery-writers.test.ts."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "design-concern tests reject blank/imprecise evidence, blank reason, unknown task IDs, generic failures, and accepted_debt by schema/validation.",
+          "notes": "No disk projection on rejected cases."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "gate tests and gate.release-enforcement tests passed; remediation added imprecise recoveryEvidence rejection and preserves readiness/finalization blockers.",
+          "notes": "Reviewer findings recovery-auth-1 resolved."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "change.status-repair tests passed; status repair gates on all gates done + archive bundle, requires precise evidence + recoveryReason, verifies read-after-write, returns recovered metadata.",
+          "notes": "Reviewer findings recovery-auth-2 resolved."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "change.status-repair target_path tests passed; target repair keeps confirmation/serviceability rules and dry-run remains non-mutating.",
+          "notes": "Target repair packet now carries recoveryReason."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "tool-registry.surface test passed; getToolSurface exposes adv_design_concern_disposition args target_path, recoveryMode, recoveryEvidence, recoveryReason.",
+          "notes": "Live session also has adv_design_concern_disposition tool available."
+        },
+        {
+          "contractId": "AC8",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Final targeted release-repair suite passed: 80 tests. pnpm run check passed. pnpm run build passed.",
+          "notes": "Earlier 77-test suite expanded to 80 after remediation."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Gate/status repair still require all gates, readiness/finalization proof, and status readback before archived reporting.",
+          "notes": "No structural blockers weakened."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Recovery paths now fail closed for generic/imprecise evidence and require explicit audit reason/evidence before projection.",
+          "notes": "Validated by new gate/status tests."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Validation is structural: Zod enums, typed recovery writers, precise evidence classifier, gate readiness checks, readback verification, deterministic tests.",
+          "notes": "No heuristic-only correctness authority added."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Source behavior verified with targeted tests, pnpm run check, and pnpm run build; live runtime reload/deploy remains required for deployed tool-code behavior.",
+          "notes": "Matches repository source-vs-dist reload constraint."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Target-path tests passed; untrusted target mutation still requires target_confirmed and confirmationEvidence via target store routing.",
+          "notes": "No trust-rule bypass added."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "DesignConcernDispositionSchema, task-existence validation, gate readiness, and status-repair invariants remain in code paths.",
+          "notes": "Reviewer READY after remediation."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Generic/imprecise failures rejected by design-concern, gate, and status repair tests; no projection mutation on rejected cases.",
+          "notes": "New tests cover gate/status imprecision."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Gate release-enforcement and readiness tests passed; normal active workflow signal/readiness behavior preserved.",
+          "notes": "No blocker weakening observed."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "DESIGN_CONCERN_DISPOSITIONS excludes accepted_debt; tests verify unsupported disposition verbs are rejected.",
+          "notes": "No debt-acceptance alias added."
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Target project mutation tests passed with target_confirmed/confirmationEvidence requirements intact.",
+          "notes": "Dry-run remains non-mutating."
+        },
+        {
+          "contractId": "DONT6",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Recovery writes stay behind typed _recovery-writers helpers; no direct ADV external-state read/write path added.",
+          "notes": "Status/gate/design recovery use typed helpers."
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No broad redesign of Temporal workflow completion, archive finalization, or gate status storage; changes are validation/metadata/test scoped.",
+          "notes": "Diff limited to spec/docs/tool tests/tool validation."
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Originating pokeedge state was not mutated.",
+          "notes": "Only current Advance repo worktree changed."
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "No generic disk-projection fallback added; new tests reject generic/imprecise recovery evidence.",
+          "notes": "Recovery remains release-repair specific."
+        },
+        {
+          "contractId": "OOS4",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No worktree cleanup, Epic projection, reflection, or status WIP performance changes made.",
+          "notes": "One formatter-only touch in cli-bridge contract test from check remediation; no behavior scope expansion."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "Calling `adv_design_concern_disposition` on an active workflow fires `designConcernDispositionedSignal`, refreshes change state, and does not call disk-projection recovery.",
+    "When normal design-concern signaling fails with completed/poisoned workflow evidence and `recoveryMode: \"poisoned_history\"` includes non-empty `recoveryEvidence` and `recoveryReason`, the tool records a typed latest-wins disposition with recovery audit metadata and returns an explicit recovery marker/warning.",
+    "Design-concern recovery rejects blank/imprecise recovery evidence, blank recovery reason, unknown task IDs, generic signal failures, and unsupported disposition verbs including `accepted_debt`; no disk projection write occurs.",
+    "Release gate recovery through `adv_gate_complete` remains limited to acceptance/release recovery, requires explicit compatibility/recovery audit fields, respects prior-gate/task/readiness checks, and blocks release recovery when branch/PR/default-branch finalization proof is missing.",
+    "`adv_change_status_repair` succeeds only when all seven gates are done and an archive bundle exists; non-dry-run success performs read-after-write verification and reports archived status with recovery metadata.",
+    "Target-path release repair preserves existing trust rules: untrusted target mutation requires target confirmation, and supported dry-runs remain non-mutating.",
+    "The live contract-warrant surface exposes `adv_design_concern_disposition` argument keys, including `target_path`, `recoveryMode`, `recoveryEvidence`, and `recoveryReason`, so future contracts can warrant the tool directly.",
+    "Targeted tests for design-concern recovery, recovery writers, release-gate recovery, status repair, and warrant-surface coverage pass through `bin/oc-test targeted` or the plugin test wrapper."
+  ],
+  "documents": {
+    "proposal": "# Fix release repair\n\n## Cross-Project Origin\n\nThis change was created as a follow-up from **pokeedge**.\n\n| Field | Value |\n|-------|-------|\n| Source project | pokeedge |\n| Source path | `/home/jon/dev/pokeedge` |\n| Source change | addPaddleSubscriptions |\n\nUser confirmed this origin is correct during discovery.\n\n## Why\n\nA completed/archived ADV change can become wedged when release repair requires structural state mutations after the workflow is already completed or poisoned. The observed failure path is a design-quality concern fixed during acceptance but not dispositioned; normal `adv_design_concern_disposition` writes fail with completed-workflow errors, `adv_gate_complete` remains blocked by `DESIGN_CONCERN_UNRESOLVED`, and `adv_change_archive` refuses incomplete gates.\n\n## Problem Statement\n\nCompleted/archived ADV workflows can become unrecoverable when release repair must record audited structural state after workflow completion. Normal signal mutation cannot mutate the completed workflow, while release/archive readiness still consults unresolved design concern, gate, and archive-status state.\n\n## What Changes\n\nAdd or verify a safe, audited release-repair recovery path so already-completed/poisoned workflows can project the specific missing release-repair state from source-of-truth evidence: design-concern disposition, release-gate recovery, and archive status repair. Normal active workflow enforcement remains unchanged.\n\n## User Outcomes\n\n- Maintainers can recover an already-completed ADV change wedged during release repair without direct ADV state-file edits.\n- Normal active ADV changes continue to enforce design-quality concerns, release finalization, and archive invariants structurally.\n- Recovery attempts provide explicit audit metadata/warnings instead of silently weakening release readiness.\n- Callers get clear success/error results that distinguish normal signal mutation from recovery projection.\n\n## Affected Code\n\n- `plugin/src/tools/design-concern.ts` — design-concern disposition recovery args, validation, normal signal path, completed/poisoned recovery fallback.\n- `plugin/src/tools/gate.ts` — acceptance/release poisoned-history gate recovery boundaries and release finalization blockers.\n- `plugin/src/tools/change.ts` — `adv_change_status_repair` archive-status repair invariants/readback.\n- `plugin/src/tools/_recovery-writers.ts` — disk-projection recovery writers and audit metadata.\n- `plugin/src/temporal/recovery-classification.ts` / `plugin/src/tools/recovery-probe.ts` — completed/poisoned workflow evidence classification.\n- `plugin/src/tools/design-concern.test.ts`, `plugin/src/tools/gate.release-enforcement.test.ts`, `plugin/src/tools/change.status-repair.test.ts`, `plugin/src/tools/_recovery-writers.test.ts` — targeted coverage.\n- Public schema/registry surfaces if tool argument contracts change.\n\n## Related Repositories\n\n- Primary repo: `advance`.\n- Origin repo context: `pokeedge` only as reproduction/provenance; implementation belongs in `advance`.\n\n## Scope\n\n### In Scope\n\n- Add or verify audited `poisoned_history` recovery for `adv_design_concern_disposition` when normal signal mutation fails because the workflow is completed or poisoned.\n- Verify release-gate recovery remains structural: only acceptance/release recovery, required audit fields, prior-gate/task/readiness checks, and release finalization proof.\n- Verify `adv_change_status_repair` remains structural: all seven gates done, archive bundle present, dry-run safe, write read-after-write verified.\n- Preserve active-workflow normal behavior: fire normal signals, refresh caches, and keep existing typed schema validation.\n- Require non-blank, precise recovery evidence and rationale for recovery modes.\n- Reject recovery when evidence is generic/unrelated to completed or poisoned workflow state.\n- Add or preserve targeted tests covering normal path, completed/poisoned recovery, blank/invalid recovery metadata, unsupported disposition verbs, release proof blockers, and status-repair readback.\n- Validate through targeted test command routed through the repository test wrapper.\n\n### Out of Scope\n\n- Changing release gate readiness to ignore unresolved design concerns.\n- Adding `accepted_debt` or any equivalent debt-acceptance disposition.\n- Broad redesign of Temporal workflow completion, archive finalization, or gate status storage.\n- Modifying the originating `pokeedge` change state except through later explicit operator repair steps.\n- Adding generic disk-projection fallback for unrelated ADV tool failures.\n- Reviving direct ADV external-state file reads/writes outside typed recovery writer helpers.\n\n### Must Not\n\n- Must not bypass `DesignConcernDispositionSchema`, task-existence validation, gate readiness, or status-repair invariants.\n- Must not treat generic signal errors as recoverable without completed/poisoned workflow evidence.\n- Must not weaken design-quality or release-finalization structural blockers for normal active workflows.\n- Must not mutate untrusted target projects without existing target-path confirmation rules.\n\n## Constraints\n\n- Specs are law: archive still requires all seven gates and structural blockers resolved.\n- Recovery must be opt-in and audited.\n- Tool correctness should remain structural: enum/schema validation, explicit evidence classification, deterministic tests, readback checks.\n- Runtime source edits require unit/integration verification in-session; live deployed tool validation may require rebuild/deploy/restart if plugin behavior changes.\n\n## Impact\n\n- Reduces irrecoverable ADV release-repair wedges after completed workflows.\n- Keeps release safety intact because recovery records missing typed state instead of skipping blockers.\n- Aligns design-concern recovery with existing gate/status recovery patterns.\n\n## Context\n\nObserved trigger from PokeEdge `addPaddleSubscriptions`: `adv_change_show` reported archived while `adv_gate_status` reported release pending; concern `tk-78aff6d2649b` / `neighbor:0` was fixed in acceptance evidence; `adv_design_concern_disposition dryRun` passed; write failed with `workflow execution already completed` / `WorkflowNotFoundError`.\n\n## Discovery Findings\n\n### Discovery Checklist\n\n| Step | Result | Reason |\n|---|---|---|\n| Skills Considered | PASS | Loaded `adv-agent-tool-contracts`; tool argument/recovery contract change is central. |\n| Extends | PASS | No prior research pack found; cross-project PokeEdge origin confirmed by user. |\n| Conflict Scan | PASS-with-warning | `adv_change_validate` passed with expected pre-prep warnings `NO_TASKS` and `NO_DELTAS`; `adv_change_list includeArchived` timed out, while in-flight list showed related repair changes; agenda scan surfaced high-priority release/archive repair items. |\n| Edge Cases | PASS | Covered completed workflow, poisoned workflow, generic signal failure, blank evidence, invalid disposition, release proof missing, archive bundle missing/readback stale. |\n| Open Design Questions | PASS | User resolved scope: all release repair; output: audited success marker. Technical choices are agent-resolved. |\n| Draft Spec Deltas | PASS | Existing `advance-workflow` law covers archive recovery/status repair; design-concern recovery may require a focused new requirement if tests reveal no existing law anchors it. |\n| Related Pattern Scan | PASS | Similar recovery writers exist for task, gate, artifact metadata, change status; design-concern writer now follows same disk-direct audited pattern. |\n| LBP Check | PASS | Long-term best practice is typed, explicit, audited recovery at narrow tool boundaries; no external solution applies. |\n| Completeness Verification | PASS | Scope expanded from one symptom to full release-repair chain: disposition → release gate → status repair. |\n\n### Skills Considered\n\n- `adv-agent-tool-contracts`: matched. Recovery args and agent-callable tool schemas must remain explicit, preflight-safe, and tested.\n- `adv-cleanup`, `adv-worktree`, `adv-ci-release`: considered but not loaded; adjacent but not core to release-repair mutation contract.\n\n### Extends\n\n- Cross-project origin: PokeEdge `addPaddleSubscriptions`. New finding: Advance already has adjacent gate/status recovery surfaces, so the design-concern fix should align with them rather than invent a separate repair model.\n- Prior research packs: none found for this narrow internal bugfix.\n\n### Conflict Scan\n\n- `adv_change_validate fixReleaseRepair strict:true` passed. Warnings: `NO_TASKS`, `NO_DELTAS` expected before planning/spec-delta decision.\n- Related active changes include `fixWedgedWorktreeCleanup`, `fixEpicProjections`, `optimizeStatusWip`, and `addReflectionReader`; none directly supersede this release-repair scope.\n- Agenda overlap: `Audit PR archive finalization wedge`, `Fix archive timeout on archived release`, and related recovery/status items should inform design but do not block this change.\n\n### Current State\n\n- `plugin/src/tools/design-concern.ts` already exposes recovery fields, validates precise recovery evidence/reason, keeps normal `fireSignalAndRefresh`, and falls back to `saveRecoveredDesignConcernDisposition` only when `classifyCompletedOrPoisonedRecovery` allows it.\n- `plugin/src/tools/_recovery-writers.ts` has disk-direct audited writers for gate completion, artifact metadata, change status, and design-concern disposition.\n- `plugin/src/tools/gate.ts` supports poisoned-history recovery only for acceptance/release, requires audit fields, checks tasks/readiness, and calls release finalization blockers before release recovery.\n- `plugin/src/tools/change.ts` implements `adv_change_status_repair` with all-gates-done + archive-bundle-present invariants and read-after-write verification.\n- Spec law `rq-archiveRecoveryConsistency01` covers archive finalization/status repair; design-concern recovery may need explicit law if current spec coverage is insufficient.\n\n### Edge Cases\n\n- Completed workflow: signal fails with `WorkflowNotFoundError` / `workflow execution already completed`; recovery may write disk projection only with explicit audit evidence.\n- Poisoned workflow: nondeterminism/TMPRL evidence may authorize recovery after classifier/probe confirms it.\n- Generic signal failure: task queue outage or transient Temporal failure must not trigger disk projection.\n- Blank/weak recovery evidence: reject before signaling/writing.\n- Duplicate disposition for same `(taskId, concernKey)`: latest-wins replacement, not duplicate append.\n- Release gate recovery before branch/PR/default-branch proof: block with release handoff/finalization response.\n- Status repair with missing archive bundle or incomplete gates: block; no status flip.\n- Target-project repair without confirmation: fail closed or emit same-project recovery packet where supported.\n\n### Open Design Questions\n\n- Scope boundary — user-resolved: cover all release repair, not only design concern disposition.\n  - Trust model: user outcome.\n  - Blast radius: determines whether planning covers gate/status repair tests too.\n  - Alternatives: design concerns only / evidence-first minimum / all release repair. Chosen: all release repair.\n- Caller-visible outcome — user-resolved: audited success marker.\n  - Trust model: user/operator outcome.\n  - Blast radius: affects return shape assertions and operator usability.\n  - Alternatives: silent normal success / audited marker / archive-ready proof. Chosen: audited marker.\n- Technical boundary — agent-resolved: keep disk-projection writes behind typed recovery writers and classifier evidence, not ad hoc filesystem mutation.\n  - Trust model: agent/spec.\n  - Blast radius: persistence correctness and replay safety.\n  - Alternatives: ignore blockers, direct file edits, generic recovery fallback. Rejected.\n\n### Draft Spec Deltas\n\nCandidate if existing law proves insufficient:\n\n- `rq-releaseRepairRecovery01` — Release repair recovery must be explicit, typed, audited, and invariant-preserving.\n  - Given an ADV change workflow is completed or poisoned and normal release-repair mutation cannot signal the workflow,\n  - When a recovery-capable release-repair tool is called with precise completed/poisoned evidence and a non-empty recovery reason,\n  - Then it records only the missing typed state through an audited recovery writer and returns explicit recovery metadata/warning.\n  - And when the failure is generic or evidence is blank/imprecise, no projection write occurs.\n\nExisting law retained:\n\n- `rq-archiveRecoveryConsistency01` already governs archive finalization/status repair structural proof and readback consistency.\n\n### Related Pattern Scan\n\n- `saveRecoveredGateCompletion`, `saveRecoveredArtifactMetadata`, `saveRecoveredChangeStatus`, `saveRecoveredTaskMutation`, `saveRecoveredTaskAdd` provide adjacent audited recovery writer patterns.\n- `completeGateViaRecovery` already centralizes acceptance/release gate recovery and release-finalization blocking.\n- `adv_change_status_repair` already models status-only repair after archive bundle proof.\n- No same-pattern need found outside release-repair/recovery tools during discovery.\n\n### Completeness Verification\n\n- Problem completeness: initial symptom was missing design-concern disposition; full problem is release repair after completed/poisoned workflow. Confidence: high after inspecting design-concern, gate, status-repair, and recovery-writer surfaces.\n- Solution-scope completeness: intended solution should verify the complete release-repair chain, but still use narrow existing tool boundaries. Confidence: medium-high; planning should include tests for all three surfaces.\n- Sole-entry claim: downgraded. Discovery does not claim a single universal recovery entrypoint; it scopes three explicit tool surfaces.\n- Secondary surfaces: task/artifact recovery writers are adjacent existing patterns, out of scope unless directly broken by release-repair tests.\n\n### LBP Check\n\nBest direction: structural, explicit recovery at narrow tool boundaries.\n\n- Prefer Zod/tool args, typed disposition/gate/status state, recovery evidence classifiers, and deterministic tests.\n- Avoid heuristic error-text-only mutation where possible; use classifier/probe and structural invariants.\n- No external library/tool alternative applies; this is internal Temporal/workflow state repair.\n\n### Recommended Objectives\n\n1. Preserve normal active-workflow behavior for design concern disposition, release gate completion, and status repair.\n2. Add/verify completed-or-poisoned recovery for design-concern disposition with explicit audit metadata.\n3. Verify release gate recovery remains proof-gated by finalization/readiness invariants.\n4. Verify archive status repair remains bundle/gate/readback-gated.\n5. Ensure all recovery success paths return visible audited recovery metadata/warnings.\n6. Add focused tests for recovery success, rejected generic failures, invalid evidence, and invariant blockers.\n\n### AMBIGUITY ANALYSIS — no blocking ambiguity findings\n\nCoverage: B:C F:C S:C M:C\n\nAdvisory M1 HIGH: Scope expanded during discovery from design-concern-only to all release repair.\n  Evidence: user selected `All release repair`.\n  Reason: resolved by updating scope, objectives, and draft criteria before agreement.\n\n## Draft Agreement Criteria\n\n### Success Criteria\n\n1. Maintainers can recover a completed/poisoned release-repair wedge through approved ADV tools, without direct ADV external-state file edits.\n2. Normal active workflows preserve structural design-quality, release-finalization, and archive-status enforcement.\n3. Recovery success paths expose auditable metadata or warnings so operators can distinguish recovery projection from normal signal mutation.\n\n### Acceptance Criteria\n\n1. Calling `adv_design_concern_disposition` on an active workflow fires `designConcernDispositionedSignal`, refreshes change state, and does not call disk-projection recovery. [warrant: tool:adv_design_concern_disposition]\n2. When normal design-concern signaling fails with completed/poisoned workflow evidence and `recoveryMode: \"poisoned_history\"` includes non-empty `recoveryEvidence` and `recoveryReason`, the tool records a typed latest-wins disposition with recovery audit metadata and returns an explicit recovery marker/warning. [warrant: tool:adv_design_concern_disposition#recoveryMode, tool:adv_design_concern_disposition#recoveryEvidence, tool:adv_design_concern_disposition#recoveryReason]\n3. Design-concern recovery rejects blank/imprecise recovery evidence, blank recovery reason, unknown task IDs, generic signal failures, and unsupported disposition verbs including `accepted_debt`; no disk projection write occurs for those cases. [warrant: tool:adv_design_concern_disposition]\n4. Release gate recovery through `adv_gate_complete` remains limited to acceptance/release recovery, requires explicit compatibility/recovery audit fields, respects prior-gate/task/readiness checks, and blocks release recovery when branch/PR/default-branch finalization proof is missing. [warrant: tool:adv_gate_complete#compatibilityReason, tool:adv_gate_complete#recoveryEvidence, tool:adv_gate_complete#recoveryReason]\n5. `adv_change_status_repair` succeeds only when all seven gates are done and an archive bundle exists; non-dry-run success performs read-after-write verification and reports archived status with recovery metadata. [warrant: tool:adv_change_status_repair]\n6. Target-path release repair preserves existing trust rules: untrusted target mutation requires target confirmation, and supported dry-runs remain non-mutating. [warrant: tool:adv_change_status_repair#target_path, tool:adv_design_concern_disposition#target_path, tool:adv_gate_complete#target_path]\n7. Targeted tests for design-concern recovery, recovery writers, release-gate recovery, and status repair pass through `bin/oc-test targeted` or the plugin test wrapper.\n",
+    "problemStatement": "Completed/archived ADV workflows can become unrecoverable when structural design concern disposition must be recorded after workflow completion. Normal signal mutation cannot mutate the completed workflow, while release/archive readiness still consults unresolved design concern state and remains blocked.",
+    "agreement": "# Agreement\n\n## Objectives\n\n1. Preserve normal active-workflow behavior for design concern disposition, release gate completion, and archive status repair.\n2. Add or verify completed/poisoned workflow recovery for release-repair state that cannot be recorded through normal workflow signals.\n3. Keep recovery explicit, typed, audited, and invariant-preserving.\n4. Ensure callers can distinguish recovery projection from normal signal mutation through visible metadata or warnings.\n5. Prove behavior with focused tests for success paths, rejected recovery inputs, generic failures, and release/status invariants.\n6. Repair live contract-warrant surface coverage for the design-concern disposition tool if missing, so future agreements can warrant it structurally.\n\n## Success Criteria\n\n- SC1: Maintainers can recover a completed/poisoned release-repair wedge through approved ADV tools, without direct ADV external-state file edits.\n- SC2: Normal active workflows preserve structural design-quality, release-finalization, and archive-status enforcement.\n- SC3: Recovery success paths expose auditable metadata or warnings so operators can distinguish recovery projection from normal signal mutation.\n\n## Acceptance Criteria\n\n- AC1: Calling `adv_design_concern_disposition` on an active workflow fires `designConcernDispositionedSignal`, refreshes change state, and does not call disk-projection recovery.\n- AC2: When normal design-concern signaling fails with completed/poisoned workflow evidence and `recoveryMode: \"poisoned_history\"` includes non-empty `recoveryEvidence` and `recoveryReason`, the tool records a typed latest-wins disposition with recovery audit metadata and returns an explicit recovery marker/warning.\n- AC3: Design-concern recovery rejects blank/imprecise recovery evidence, blank recovery reason, unknown task IDs, generic signal failures, and unsupported disposition verbs including `accepted_debt`; no disk projection write occurs.\n- AC4: Release gate recovery through `adv_gate_complete` remains limited to acceptance/release recovery, requires explicit compatibility/recovery audit fields, respects prior-gate/task/readiness checks, and blocks release recovery when branch/PR/default-branch finalization proof is missing. [warrant: tool:adv_gate_complete#compatibilityReason, tool:adv_gate_complete#recoveryEvidence, tool:adv_gate_complete#recoveryReason]\n- AC5: `adv_change_status_repair` succeeds only when all seven gates are done and an archive bundle exists; non-dry-run success performs read-after-write verification and reports archived status with recovery metadata. [warrant: tool:adv_change_status_repair#changeId, tool:adv_change_status_repair#approvedByUser]\n- AC6: Target-path release repair preserves existing trust rules: untrusted target mutation requires target confirmation, and supported dry-runs remain non-mutating. [warrant: tool:adv_change_status_repair#target_path, tool:adv_gate_complete#target_path]\n- AC7: The live contract-warrant surface exposes `adv_design_concern_disposition` argument keys, including `target_path`, `recoveryMode`, `recoveryEvidence`, and `recoveryReason`, so future contracts can warrant the tool directly.\n- AC8: Targeted tests for design-concern recovery, recovery writers, release-gate recovery, status repair, and warrant-surface coverage pass through `bin/oc-test targeted` or the plugin test wrapper.\n\n## Constraints\n\n- C1: Specs remain law: archive still requires all seven gates and structural blockers resolved.\n- C2: Recovery must be opt-in and audited; generic failures must not write disk projection.\n- C3: Correctness must be structural: Zod/tool schema validation, typed dispositions/gate/status state, explicit evidence classification, deterministic tests, and readback checks.\n- C4: Runtime source edits may need rebuild/deploy/restart for live OpenCode tool behavior; in-session validation must use source tests.\n- C5: Target-path mutation trust rules remain unchanged.\n\n## Avoidances\n\n- DONT1: Do not bypass `DesignConcernDispositionSchema`, task-existence validation, gate readiness, or status-repair invariants.\n- DONT2: Do not treat generic signal errors as recoverable without completed/poisoned workflow evidence.\n- DONT3: Do not weaken design-quality or release-finalization structural blockers for normal active workflows.\n- DONT4: Do not add `accepted_debt` or any equivalent debt-acceptance disposition.\n- DONT5: Do not mutate untrusted target projects without existing target-path confirmation rules.\n- DONT6: Do not revive direct ADV external-state file reads/writes outside typed recovery writer helpers.\n\n## Out of Scope\n\n- OOS1: Broad redesign of Temporal workflow completion, archive finalization, or gate status storage.\n- OOS2: Modifying the originating `pokeedge` change state except through later explicit operator repair steps.\n- OOS3: Adding generic disk-projection fallback for unrelated ADV tool failures.\n- OOS4: Reworking worktree cleanup, Epic projection, reflection, or status WIP performance changes.\n\n## Preview Applicability\n\nvisual_surface: false\n\nRationale: Change affects ADV CLI/MCP tool behavior and tests only; no frontend, browser-visible UI, or visual output surface is in scope.\n\n## Decisions\n\n### User Decisions\n\n- Origin validated: user confirmed the cross-project PokeEdge `addPaddleSubscriptions` origin is correct.\n- Scope boundary: user selected `All release repair`, expanding agreement from design-concern-only to the release-repair chain: design concern disposition, release gate recovery, and status repair.\n- Caller-visible outcome: user selected `Audited success marker`, requiring recovery success to be distinguishable from normal signal mutation.\n\n### Agent Decisions (LBP)\n\n- Keep disk-projection writes behind typed recovery writer helpers, not ad hoc filesystem operations.\n- Reuse completed/poisoned workflow evidence classifiers/probes instead of adding independent heuristic parsing.\n- Preserve release readiness and archive invariants; recovery writes missing state rather than skipping blockers.\n- Treat `rq-archiveRecoveryConsistency01` as existing law for status repair; evaluate whether design-concern recovery needs a focused spec delta during design/planning.\n- Live warrant surface currently does not resolve `adv_design_concern_disposition`; include that registry coverage repair in this change rather than weakening contract minting.\n\n## Deferred Questions\n\nNone.\n\n## Sign-Off\n\nUser approved criteria and agreement checkpoint with reply: `approve`.",
+    "design": "# Design\n\n## Architecture Overview\n\nUse existing ADV release-repair recovery architecture; do not invent a new repair mechanism.\n\nFour bounded surfaces:\n\n1. **Design-concern disposition recovery** — `adv_design_concern_disposition` stays signal-first for active workflows. `recoveryMode: \"poisoned_history\"` may write projection only after completed/poisoned workflow evidence is classified.\n2. **Recovery writer layer** — disk-projection mutations stay behind typed helpers in `plugin/src/tools/_recovery-writers.ts`, with required authorization reason/evidence and latest-wins semantics for `(taskId, concernKey)`.\n3. **Release gate/status repair** — existing `adv_gate_complete` release recovery and `adv_change_status_repair` keep the safety boundary: prior gates/tasks/readiness, release finalization proof, archive bundle proof, and read-after-write verification.\n4. **Contract warrant surface repair** — `getToolSurface()` must include `designConcernTools` so `adv_design_concern_disposition` args can be warranted by future agreements.\n\n## Key Decisions\n\n### Decision 1 — Keep recovery signal-first, then audited projection fallback\n\nNormal behavior remains `fireSignalAndRefresh(...)` with `designConcernDispositionedSignal`. Recovery writes occur only after normal signaling fails and `classifyCompletedOrPoisonedRecovery(...)` proves completed or poisoned workflow state.\n\n### Decision 2 — Use typed recovery writers as the only disk-projection write seam\n\n`saveRecoveredDesignConcernDisposition` remains the write path. It requires authorization, replaces prior disposition for the same `(taskId, concernKey)`, records `recovery_audit`, and uses disk-direct `saveChange` because completed workflows cannot be mutated through Temporal.\n\n### Decision 3 — Treat release repair as chain verification, not broad reimplementation\n\nDiscovery broadened scope to all release repair. Design interprets that as verifying the full release-repair chain, not rewriting implemented recovery code:\n\n- design concern disposition recovery,\n- acceptance/release gate recovery,\n- archive status repair,\n- warrant-surface repair.\n\n### Decision 4 — Add focused spec law for release-repair recovery\n\nExisting `rq-archiveRecoveryConsistency01` covers archive finalization/status repair. Add focused `rq-releaseRepairRecovery01` for typed release-repair recovery generally: opt-in mode, precise completed/poisoned evidence, typed state writes, audit metadata, and generic-failure rejection.\n\n### Decision 5 — Fix warrant surface registry coverage\n\n`adv_design_concern_disposition` is imported and bound in `tool-registry.ts`, but `designConcernTools` is omitted from `getToolSurface()` groups. Add it and assert representative args are exposed.\n\n## ADR Drafts\n\nNone. Decisions extend existing recovery conventions and are not hard-to-reverse standalone ADR material.\n\n## Implementation Strategy\n\n1. **Spec delta**\n   - Add `rq-releaseRepairRecovery01` to `.adv/specs/advance-workflow/spec.json`.\n   - Mirror `docs/specs/advance-workflow.md` if spec docs are maintained manually/generated in repo.\n   - Include scenarios for completed/poisoned recovery and generic-failure rejection.\n\n2. **Warrant surface repair**\n   - Add `designConcernTools` to `getToolSurface()` `groups[]` in `plugin/src/tool-registry.ts`.\n   - Extend `plugin/src/tool-registry.surface.test.ts` for `adv_design_concern_disposition` args: `target_path`, `recoveryMode`, `recoveryEvidence`, `recoveryReason`.\n\n3. **Characterization tests for existing recovery behavior**\n   - `plugin/src/tools/design-concern.test.ts`: signal-first normal path, completed/poisoned recovery, generic failure rejection, precise evidence/reason validation, unknown task rejection, `accepted_debt` rejection, `_recoveryMutation`/warning return.\n   - `plugin/src/tools/_recovery-writers.test.ts`: latest-wins disposition + `recovery_audit` + disk-direct save.\n   - `plugin/src/tools/gate.release-enforcement.test.ts`: release recovery remains finalization-proof gated and audit-required.\n   - `plugin/src/tools/change.status-repair.test.ts`: gates/bundle/readback invariants and recovery marker.\n\n4. **Verification**\n   - Run targeted tests through wrapper: `bin/oc-test targeted -- plugin/src/tool-registry.surface.test.ts plugin/src/tools/design-concern.test.ts plugin/src/tools/_recovery-writers.test.ts plugin/src/tools/gate.release-enforcement.test.ts plugin/src/tools/change.status-repair.test.ts`.\n   - Run schema/spec checks if spec/schema artifacts change.\n\n## LBP Analysis\n\nBest long-term path: structural recovery, not heuristic release bypass.\n\n- Typed tool args and schemas define recovery input shape.\n- `isPreciseWorkflowRecoveryEvidence` and `classifyCompletedOrPoisonedRecovery` own evidence classification.\n- Recovery writers own disk-projection mutation and audit metadata.\n- Gate/status repair invariants remain independent checks.\n- Tests characterize existing behavior and the new warrant-surface fix.\n\nRejected alternatives:\n\n- Ignore unresolved design concerns after acceptance — weakens blockers.\n- Generic disk fallback around every failing signal — conflates transient failure with completed/poisoned recovery.\n- Hand-edit PokeEdge state only — fixes one incident while preserving systemic wedge.\n\n## Affected Components\n\n- `plugin/src/tool-registry.ts` — add `designConcernTools` to live warrant-surface group list.\n- `plugin/src/tool-registry.surface.test.ts` — assert `adv_design_concern_disposition` args are exposed.\n- `plugin/src/tools/design-concern.ts` — characterization/no-op unless tests expose missing metadata/evidence handling.\n- `plugin/src/tools/_recovery-writers.ts` — characterization/no-op unless tests expose audit/latest-wins gaps.\n- `plugin/src/tools/gate.ts` — no behavior change expected unless tests expose release proof bypass.\n- `plugin/src/tools/change.ts` — no behavior change expected unless tests expose readback/status marker gap.\n- `.adv/specs/advance-workflow/spec.json` and `docs/specs/advance-workflow.md` — focused spec law + mirror.\n\n## Design-Derived Criteria\n\n- DDC1: `getToolSurface().get(\"adv_design_concern_disposition\")` includes `target_path`, `recoveryMode`, `recoveryEvidence`, and `recoveryReason`.\n- DDC2: Design-concern recovery success returns `_recoveryMutation: true` and a reconciliation warning.\n- DDC3: Generic signal failures in design-concern disposition do not call `saveRecoveredDesignConcernDisposition`.\n- DDC4: Release gate recovery tests prove finalization proof remains required.\n- DDC5: Status repair tests prove read-after-write verification gates success.\n- DDC6: Spec delta contains at least one Given/When/Then scenario for completed/poisoned recovery and one for generic-failure rejection.\n\n## Risks / Mitigations\n\n- Risk: Planning overbuilds recovery code already present.\n  - Mitigation: Plan AC1–AC6 as characterization/guard tests first; implement only gaps.\n- Risk: Warrant surface fix is missed because runtime tool registration already works.\n  - Mitigation: Add live `getToolSurface()` assertion for `adv_design_concern_disposition` args.\n- Risk: New spec law duplicates `rq-archiveRecoveryConsistency01`.\n  - Mitigation: Scope new requirement to release-repair recovery generally and leave status repair governed by existing law.\n- Risk: Evidence classification remains partly text-based.\n  - Mitigation: Centralize on existing classifier/probe; do not add new call-site regexes.\n- Risk: Live OpenCode session cannot validate deployed tool behavior after source edits.\n  - Mitigation: Verify source through tests in-session; note rebuild/deploy/restart if live tool invocation is needed.\n\n## Design Leverage Scout\n\nResult: CAUTION on scope precision, design sound.\n\nAuto-adopted:\n\n1. Do not reimplement existing recovery — AC1–AC6 are mostly already implemented; characterize and guard them.\n2. AC7 is the true net-new code gap — `getToolSurface()` omits `designConcernTools`.\n3. Add focused spec law — `rq-releaseRepairRecovery01` is missing; `rq-archiveRecoveryConsistency01` already covers status repair.\n\nRejected/deferred:\n\n- Rewriting recovery writer semantics — rejected; parity already exists.\n- Expanding beyond release repair into generic recovery — rejected by agreement constraints.\n\n## Validator Result\n\nValidator: VALIDATED.\n\nFindings:\n\n- Correctness: pass. Recovery writer has auth gate, latest-wins filter, recovery audit, and disk-direct save. Gate/status surfaces exist.\n- Simplicity: pass. No materially simpler approach; real net-new code is the warrant-surface addition, surface test, spec law, and characterization tests.\n- Spec-law compliance: pass. Existing `rq-archiveRecoveryConsistency01` covers status repair; proposed `rq-releaseRepairRecovery01` is non-duplicative.\n- Scope precision: caution. AC1–AC6 already exist; plan them as verification/characterization, not build-from-scratch.\n- Alternatives: pass. No viable better seam found; `designConcernTools` is imported/bound but absent from warrant surface groups.\n\nRecommendation: proceed to planning. No unresolved conflict or contract-compromise risk.",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\n\nRelease-repair recovery now has explicit, typed, audited recovery handling across design-concern disposition, release gate recovery, and archive status repair while preserving normal workflow paths and structural blockers.\n\n## Verdict\n\nAPPROVED\n\n## What Was Built\n\n1. Added `rq-releaseRepairRecovery01` to the advance-workflow spec and docs mirror.\n2. Exposed `adv_design_concern_disposition` in the live contract-warrant surface with recovery and target-path argument keys.\n3. Characterized and tightened design-concern completed/poisoned recovery: typed latest-wins disposition, recovery audit metadata, and explicit recovery markers/warnings.\n4. Characterized and tightened release-gate and status-repair recovery invariants: precise recovery evidence, recovery reason, gate/readiness/finalization proof, archive-bundle proof, target-path trust, and read-after-write verification.\n5. Completed final release-repair verification and review remediation for precision checks.\n\n## What Was Verified\n\n- Verdict: APPROVED / READY after acceptance review attempt 2; prior blockers `recovery-auth-1` and `recovery-auth-2` resolved.\n- Tests: targeted release-repair suite passed (80 tests); focused gate/status suite passed (43 tests); `pnpm run check` passed; `pnpm run build` passed.\n- Preview URL: not_applicable — agreement declares `visual_surface: false`; this is MCP/tool behavior and tests only, with no frontend, browser-visible UI, or visual output.\n- Contract matrix: 26 required rows passed/respected; 0 failed/violated/unknown.\n\n## Remaining Concerns\n\n- Source-vs-dist reload constraint: deployed OpenCode runtime needs rebuild/deploy/restart before live tool behavior reflects source changes.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-06-27T19:38:39.940Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | Maintainers can recover a completed/poisoned release-repair wedge through approved ADV tools, without direct ADV external-state file edits. | pass | Typed ADV tools now cover release-repair recovery paths; no direct external-state file edit path added. Review attempt 2 READY. |\n| SC2 | success_criterion | Normal active workflows preserve structural design-quality, release-finalization, and archive-status enforcement. | pass | Targeted release-repair suite passed: 80 tests across tool-registry.surface, design-concern, _recovery-writers, gate.release-enforcement, gate, change.status-repair. |\n| SC3 | success_criterion | Recovery success paths expose auditable metadata or warnings so operators can distinguish recovery projection from normal signal mutation. | pass | Recovery responses include _recoveryMutation/recovered/reconciliation warning or recoveryReason metadata; reviewer verified auth blockers resolved. |\n| AC1 | acceptance_criterion | Calling `adv_design_concern_disposition` on an active workflow fires `designConcernDispositionedSignal`, refreshes change state, and does not call disk-projection recovery. | pass | design-concern tests passed in targeted suite; active workflow path uses designConcernDispositionedSignal + cache refresh and does not call recovery writer. |\n| AC2 | acceptance_criterion | When normal design-concern signaling fails with completed/poisoned workflow evidence and `recoveryMode: \"poisoned_history\"` includes non-empty `recoveryEvidence` and `recoveryReason`, the tool records a typed latest-wins disposition with recovery audit metadata and returns an explicit recovery marker/warning. | pass | design-concern recovery tests passed; completed/poisoned path writes latest-wins disposition with recovery audit and returns recovery marker/warning. |\n| AC3 | acceptance_criterion | Design-concern recovery rejects blank/imprecise recovery evidence, blank recovery reason, unknown task IDs, generic signal failures, and unsupported disposition verbs including `accepted_debt`; no disk projection write occurs. | pass | design-concern tests reject blank/imprecise evidence, blank reason, unknown task IDs, generic failures, and accepted_debt by schema/validation. |\n| AC4 | acceptance_criterion | Release gate recovery through `adv_gate_complete` remains limited to acceptance/release recovery, requires explicit compatibility/recovery audit fields, respects prior-gate/task/readiness checks, and blocks release recovery when branch/PR/default-branch finalization proof is missing. | pass | gate tests and gate.release-enforcement tests passed; remediation added imprecise recoveryEvidence rejection and preserves readiness/finalization blockers. |\n| AC5 | acceptance_criterion | `adv_change_status_repair` succeeds only when all seven gates are done and an archive bundle exists; non-dry-run success performs read-after-write verification and reports archived status with recovery metadata. | pass | change.status-repair tests passed; status repair gates on all gates done + archive bundle, requires precise evidence + recoveryReason, verifies read-after-write, returns recovered metadata. |\n| AC6 | acceptance_criterion | Target-path release repair preserves existing trust rules: untrusted target mutation requires target confirmation, and supported dry-runs remain non-mutating. | pass | change.status-repair target_path tests passed; target repair keeps confirmation/serviceability rules and dry-run remains non-mutating. |\n| AC7 | acceptance_criterion | The live contract-warrant surface exposes `adv_design_concern_disposition` argument keys, including `target_path`, `recoveryMode`, `recoveryEvidence`, and `recoveryReason`, so future contracts can warrant the tool directly. | pass | tool-registry.surface test passed; getToolSurface exposes adv_design_concern_disposition args target_path, recoveryMode, recoveryEvidence, recoveryReason. |\n| AC8 | acceptance_criterion | Targeted tests for design-concern recovery, recovery writers, release-gate recovery, status repair, and warrant-surface coverage pass through `bin/oc-test targeted` or the plugin test wrapper. | pass | Final targeted release-repair suite passed: 80 tests. pnpm run check passed. pnpm run build passed. |\n| C1 | constraint | Specs remain law: archive still requires all seven gates and structural blockers resolved. | respected | Gate/status repair still require all gates, readiness/finalization proof, and status readback before archived reporting. |\n| C2 | constraint | Recovery must be opt-in and audited; generic failures must not write disk projection. | respected | Recovery paths now fail closed for generic/imprecise evidence and require explicit audit reason/evidence before projection. |\n| C3 | constraint | Correctness must be structural: Zod/tool schema validation, typed dispositions/gate/status state, explicit evidence classification, deterministic tests, and readback checks. | respected | Validation is structural: Zod enums, typed recovery writers, precise evidence classifier, gate readiness checks, readback verification, deterministic tests. |\n| C4 | constraint | Runtime source edits may need rebuild/deploy/restart for live OpenCode tool behavior; in-session validation must use source tests. | respected | Source behavior verified with targeted tests, pnpm run check, and pnpm run build; live runtime reload/deploy remains required for deployed tool-code behavior. |\n| C5 | constraint | Target-path mutation trust rules remain unchanged. | respected | Target-path tests passed; untrusted target mutation still requires target_confirmed and confirmationEvidence via target store routing. |\n| DONT1 | avoidance | Do not bypass `DesignConcernDispositionSchema`, task-existence validation, gate readiness, or status-repair invariants. | respected | DesignConcernDispositionSchema, task-existence validation, gate readiness, and status-repair invariants remain in code paths. |\n| DONT2 | avoidance | Do not treat generic signal errors as recoverable without completed/poisoned workflow evidence. | respected | Generic/imprecise failures rejected by design-concern, gate, and status repair tests; no projection mutation on rejected cases. |\n| DONT3 | avoidance | Do not weaken design-quality or release-finalization structural blockers for normal active workflows. | respected | Gate release-enforcement and readiness tests passed; normal active workflow signal/readiness behavior preserved. |\n| DONT4 | avoidance | Do not add `accepted_debt` or any equivalent debt-acceptance disposition. | respected | DESIGN_CONCERN_DISPOSITIONS excludes accepted_debt; tests verify unsupported disposition verbs are rejected. |\n| DONT5 | avoidance | Do not mutate untrusted target projects without existing target-path confirmation rules. | respected | Target project mutation tests passed with target_confirmed/confirmationEvidence requirements intact. |\n| DONT6 | avoidance | Do not revive direct ADV external-state file reads/writes outside typed recovery writer helpers. | respected | Recovery writes stay behind typed _recovery-writers helpers; no direct ADV external-state read/write path added. |\n| OOS1 | out_of_scope | Broad redesign of Temporal workflow completion, archive finalization, or gate status storage. | respected | No broad redesign of Temporal workflow completion, archive finalization, or gate status storage; changes are validation/metadata/test scoped. |\n| OOS2 | out_of_scope | Modifying the originating `pokeedge` change state except through later explicit operator repair steps. | respected | Originating pokeedge state was not mutated. |\n| OOS3 | out_of_scope | Adding generic disk-projection fallback for unrelated ADV tool failures. | respected | No generic disk-projection fallback added; new tests reject generic/imprecise recovery evidence. |\n| OOS4 | out_of_scope | Reworking worktree cleanup, Epic projection, reflection, or status WIP performance changes. | respected | No worktree cleanup, Epic projection, reflection, or status WIP performance changes made. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-06-27T18:27:11.178Z",
+      "contentHash": "0b25fbacc7985391725440db477643a4abaa92b02c9489da7d0b67aa200ff436",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-06-27T18:17:59.873Z",
+      "contentHash": "b38d0fe03ec50b73a8291cfc069008b2de23a6b5941b4cff1c132046cd09bc9b",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-06-27T18:32:43.713Z",
+      "contentHash": "31c6d87d7ef4ceed2e644eb3045772accaa17986c8c22db68bb0491c2a6749d1",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-06-27T18:41:33.799Z",
+      "contentHash": "23a305f031fde346d5d7d2b79a6ed8196a9dbcda02d95fe44643490f2347a850",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-06-27T19:39:02.231Z",
+      "contentHash": "f262d8ee32ecd8be4d4247db6245f0869f5401e18c33187dbf04c19d55246a51",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-06-27T19:57:25.004Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_MISSING_ERROR_HANDLING",
+      "severity": "warning",
+      "message": "Proposal describes behavior that could fail but doesn't mention error handling or rollback. What happens when things go wrong?",
+      "recorded_at": "2026-06-27T18:12:57.404Z",
+      "resolved": true,
+      "resolved_at": "2026-06-27T18:18:52.494Z"
+    }
+  ]
+}

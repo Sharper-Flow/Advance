@@ -325,6 +325,7 @@ describe("gate tools — signal-driven lifecycle", () => {
       const parsed = JSON.parse(result);
       expect(parsed.success).toBe(true);
       expect(parsed._recoveryMutation).toBe(true);
+      expect(parsed.recovered).toBe(true);
       expect(parsed.reconciliationWarning).toContain("not healed");
       expect(store.changes.save).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -377,6 +378,42 @@ describe("gate tools — signal-driven lifecycle", () => {
         "recoveryReason",
         "priorApprovalEvidence",
       ]);
+      expect(store.changes.save).not.toHaveBeenCalled();
+    });
+
+    test("poisoned-history acceptance recovery rejects imprecise recovery evidence", async () => {
+      const gates = {
+        proposal: { status: "done" },
+        discovery: { status: "done" },
+        design: { status: "done" },
+        planning: { status: "done" },
+        execution: { status: "done" },
+        acceptance: { status: "pending" },
+        release: { status: "pending" },
+      } as import("../types").Gates;
+      const store = createMockStore({
+        gates,
+        change: { gates } as Partial<import("../types").Change>,
+      });
+      mocks.querySignal.mockRejectedValueOnce(
+        new Error("TMPRL1100: Nondeterminism error"),
+      );
+
+      const result = await gateTools.adv_gate_complete.execute(
+        {
+          changeId: "test-change",
+          gateId: "acceptance",
+          completedBy: "agent",
+          compatibilityReason: "legacy replay lacks contract proof",
+          recoveryReason: "acceptance gate recovery after poisoned workflow",
+          recoveryEvidence: "generic operator note",
+          priorApprovalEvidence: "Prior user acceptance approval: approve",
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.error).toContain("must cite precise");
       expect(store.changes.save).not.toHaveBeenCalled();
     });
 
@@ -878,6 +915,7 @@ describe("gate tools — signal-driven lifecycle", () => {
       const parsed = JSON.parse(result);
       expect(parsed.success).toBe(true);
       expect(parsed._recoveryMutation).toBe(true);
+      expect(parsed.recovered).toBe(true);
       expect(parsed.reconciliationWarning).toContain("not healed");
       expect(describeMock).toHaveBeenCalled();
       expect(store.changes.save).toHaveBeenCalledWith(

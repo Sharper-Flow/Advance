@@ -18,6 +18,15 @@ describe("getToolSurface (live surface)", () => {
     );
   });
 
+  test("exposes design-concern recovery args for contract warrants", () => {
+    const args = surface.get("adv_design_concern_disposition");
+    expect(args).toBeDefined();
+    expect(args?.has("target_path")).toBe(true);
+    expect(args?.has("recoveryMode")).toBe(true);
+    expect(args?.has("recoveryEvidence")).toBe(true);
+    expect(args?.has("recoveryReason")).toBe(true);
+  });
+
   test("does NOT expose adv_change_archive#target_path (the AC6 defect surface)", () => {
     expect(surface.has("adv_change_archive")).toBe(true);
     expect(surface.get("adv_change_archive")?.has("target_path")).toBe(false);

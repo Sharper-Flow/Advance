@@ -804,6 +804,7 @@ export function getToolSurface(): Map<string, Set<string>> {
     followupTools,
     opsEvidenceTools,
     contractTools,
+    designConcernTools,
     taskTools,
     subagentReportTools,
     wisdomTools,

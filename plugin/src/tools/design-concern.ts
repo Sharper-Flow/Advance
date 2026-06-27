@@ -157,6 +157,8 @@ async function executeDisposition(
       disposition,
     );
   } catch (signalError) {
+    // rq-releaseRepairRecovery01: release-repair recovery must remain explicit,
+    // typed, audited, and gated on completed/poisoned workflow evidence.
     if (args.recoveryMode === "poisoned_history") {
       const { recover } = await classifyCompletedOrPoisonedRecovery(
         handle,
@@ -177,6 +179,8 @@ async function executeDisposition(
           changeId: args.changeId,
           disposition,
           _recoveryMutation: true,
+          recovered: true,
+          recoveryMode: args.recoveryMode,
           reconciliationWarning: RECOVERY_RECONCILIATION_WARNING,
           ...proj,
         });
