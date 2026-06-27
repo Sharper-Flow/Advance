@@ -9,6 +9,10 @@ const mocks = vi.hoisted(() => ({
   withTargetPathStore: vi.fn(),
 }));
 
+const STATUS_REPAIR_EVIDENCE = "WorkflowNotFoundError + operator approved";
+const STATUS_REPAIR_REASON =
+  "archive bundle was written but workflow status remained non-archived";
+
 vi.mock("../archive", async () => {
   const actual =
     await vi.importActual<typeof import("../archive")>("../archive");
@@ -146,7 +150,8 @@ describe("adv_change_status_repair", () => {
       {
         changeId: "wedgedChange",
         approvedByUser: true,
-        approvalEvidence: "WorkflowNotFoundError + operator approved",
+        approvalEvidence: STATUS_REPAIR_EVIDENCE,
+        recoveryReason: STATUS_REPAIR_REASON,
       },
       store,
     );
@@ -160,7 +165,7 @@ describe("adv_change_status_repair", () => {
     expect(mocks.saveRecoveredChangeStatus).toHaveBeenCalledTimes(1);
     const call = mocks.saveRecoveredChangeStatus.mock.calls[0][0];
     expect(call.status).toBe("archived");
-    expect(call.authorization.reason).toBe("operator_status_repair");
+    expect(call.authorization.reason).toBe(STATUS_REPAIR_REASON);
     expect(call.authorization.evidence).toContain("WorkflowNotFoundError");
     expect(parsed.readback).toMatchObject({
       showStatus: "archived",
@@ -186,7 +191,8 @@ describe("adv_change_status_repair", () => {
       {
         changeId: "wedgedChange",
         approvedByUser: true,
-        approvalEvidence: "WorkflowNotFoundError + operator approved",
+        approvalEvidence: STATUS_REPAIR_EVIDENCE,
+        recoveryReason: STATUS_REPAIR_REASON,
       },
       store,
     );
@@ -213,7 +219,8 @@ describe("adv_change_status_repair", () => {
       {
         changeId: "wedgedChange",
         approvedByUser: true,
-        approvalEvidence: "WorkflowNotFoundError + operator approved",
+        approvalEvidence: STATUS_REPAIR_EVIDENCE,
+        recoveryReason: STATUS_REPAIR_REASON,
       },
       store,
     );
@@ -251,7 +258,8 @@ describe("adv_change_status_repair", () => {
       {
         changeId: "wedgedChange",
         approvedByUser: true,
-        approvalEvidence: "WorkflowNotFoundError + operator approved",
+        approvalEvidence: STATUS_REPAIR_EVIDENCE,
+        recoveryReason: STATUS_REPAIR_REASON,
         target_path: "/target/project",
         target_confirmed: true,
         confirmationEvidence: "user approved target mutation",
@@ -287,7 +295,8 @@ describe("adv_change_status_repair", () => {
       {
         changeId: "wedgedChange",
         approvedByUser: true,
-        approvalEvidence: "WorkflowNotFoundError + operator approved",
+        approvalEvidence: STATUS_REPAIR_EVIDENCE,
+        recoveryReason: STATUS_REPAIR_REASON,
         target_path: "/target/project",
         target_confirmed: true,
         confirmationEvidence: "user approved target mutation",
@@ -304,7 +313,8 @@ describe("adv_change_status_repair", () => {
       args: {
         changeId: "wedgedChange",
         approvedByUser: true,
-        approvalEvidence: "WorkflowNotFoundError + operator approved",
+        approvalEvidence: STATUS_REPAIR_EVIDENCE,
+        recoveryReason: STATUS_REPAIR_REASON,
       },
     });
   });
@@ -316,7 +326,8 @@ describe("adv_change_status_repair", () => {
       {
         changeId: "wedgedChange",
         approvedByUser: true,
-        approvalEvidence: "evidence",
+        approvalEvidence: STATUS_REPAIR_EVIDENCE,
+        recoveryReason: STATUS_REPAIR_REASON,
         dryRun: true,
       },
       store,
@@ -336,7 +347,8 @@ describe("adv_change_status_repair", () => {
       {
         changeId: "wedgedChange",
         approvedByUser: true,
-        approvalEvidence: "evidence",
+        approvalEvidence: STATUS_REPAIR_EVIDENCE,
+        recoveryReason: STATUS_REPAIR_REASON,
       },
       store,
     );
@@ -356,7 +368,8 @@ describe("adv_change_status_repair", () => {
       {
         changeId: "wedgedChange",
         approvedByUser: true,
-        approvalEvidence: "evidence",
+        approvalEvidence: STATUS_REPAIR_EVIDENCE,
+        recoveryReason: STATUS_REPAIR_REASON,
       },
       store,
     );
@@ -375,7 +388,8 @@ describe("adv_change_status_repair", () => {
       {
         changeId: "wedgedChange",
         approvedByUser: true,
-        approvalEvidence: "evidence",
+        approvalEvidence: STATUS_REPAIR_EVIDENCE,
+        recoveryReason: STATUS_REPAIR_REASON,
       },
       store,
     );
@@ -403,6 +417,42 @@ describe("adv_change_status_repair", () => {
     expect(mocks.saveRecoveredChangeStatus).not.toHaveBeenCalled();
   });
 
+  test("requires non-empty recoveryReason", async () => {
+    const store = createMockStore(wedgedChange());
+
+    const result = await changeTools.adv_change_status_repair.execute(
+      {
+        changeId: "wedgedChange",
+        approvedByUser: true,
+        approvalEvidence: STATUS_REPAIR_EVIDENCE,
+        recoveryReason: "   ",
+      },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.error).toContain("recoveryReason is required");
+    expect(mocks.saveRecoveredChangeStatus).not.toHaveBeenCalled();
+  });
+
+  test("requires precise status repair evidence", async () => {
+    const store = createMockStore(wedgedChange());
+
+    const result = await changeTools.adv_change_status_repair.execute(
+      {
+        changeId: "wedgedChange",
+        approvedByUser: true,
+        approvalEvidence: "operator approved generic repair",
+        recoveryReason: STATUS_REPAIR_REASON,
+      },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.error).toContain("must cite precise");
+    expect(mocks.saveRecoveredChangeStatus).not.toHaveBeenCalled();
+  });
+
   test("returns not-found for unknown change", async () => {
     const store = createMockStore(wedgedChange());
 
@@ -410,7 +460,8 @@ describe("adv_change_status_repair", () => {
       {
         changeId: "doesNotExist",
         approvedByUser: true,
-        approvalEvidence: "evidence",
+        approvalEvidence: STATUS_REPAIR_EVIDENCE,
+        recoveryReason: STATUS_REPAIR_REASON,
       },
       store,
     );
@@ -442,7 +493,8 @@ describe("adv_change_status_repair", () => {
       {
         changeId: "wedgedChange",
         approvedByUser: true,
-        approvalEvidence: "WorkflowNotFoundError + operator approved",
+        approvalEvidence: STATUS_REPAIR_EVIDENCE,
+        recoveryReason: STATUS_REPAIR_REASON,
       },
       store,
     );

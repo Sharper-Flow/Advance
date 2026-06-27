@@ -60,6 +60,8 @@ import {
 } from "./ops-followup-readback";
 
 const logger = createLogger("change");
+const STATUS_REPAIR_PHASE9_EVIDENCE_RE =
+  /phase9_status\s*(?::|=|\.)\s*failed|phase9 status failed|phase9_status\.failed/i;
 
 function subagentReportTaskId(
   report: ScopedSubagentReport,
@@ -5289,6 +5291,12 @@ export const changeTools = {
         .describe(
           "Audited evidence: cite the wedged-state proof (e.g. WorkflowNotFoundError / phase9_status.failed) and operator approval.",
         ),
+      recoveryReason: z
+        .string()
+        .optional()
+        .describe(
+          "Required non-blank rationale for status repair recovery; explains why disk-projection status repair is appropriate.",
+        ),
       dryRun: z
         .boolean()
         .optional()
@@ -5319,6 +5327,7 @@ export const changeTools = {
         changeId,
         approvedByUser: _approvedByUser,
         approvalEvidence,
+        recoveryReason,
         dryRun,
         target_path,
         target_confirmed,
@@ -5327,6 +5336,7 @@ export const changeTools = {
         changeId: string;
         approvedByUser: true;
         approvalEvidence: string;
+        recoveryReason?: string;
         dryRun?: boolean;
         target_path?: string;
         target_confirmed?: true;
@@ -5334,11 +5344,33 @@ export const changeTools = {
       },
       store: Store,
     ) => {
-      if (!approvalEvidence || approvalEvidence.trim().length === 0) {
+      const evidence = approvalEvidence?.trim() ?? "";
+      if (evidence.length === 0) {
         return formatToolOutput({
           error: "approvalEvidence is required for change status repair",
           changeId,
           hint: "Cite the wedged-state evidence (WorkflowNotFoundError / phase9_status.failed) and operator approval.",
+        });
+      }
+      const reason = recoveryReason?.trim() ?? "";
+      if (reason.length === 0) {
+        return formatToolOutput({
+          error: "recoveryReason is required for change status repair",
+          changeId,
+          hint: "Explain why disk-projection status repair is appropriate for this wedged release state.",
+        });
+      }
+      const { isPreciseWorkflowRecoveryEvidence } =
+        await import("../temporal/recovery-classification");
+      if (
+        !isPreciseWorkflowRecoveryEvidence(evidence) &&
+        !STATUS_REPAIR_PHASE9_EVIDENCE_RE.test(evidence)
+      ) {
+        return formatToolOutput({
+          error:
+            "approvalEvidence must cite precise completed-workflow, poisoned-history, or phase9_status.failed evidence for change status repair",
+          changeId,
+          hint: "Examples: WorkflowNotFoundError, WorkflowExecutionAlreadyCompleted, TMPRL1100, WorkflowTaskFailedCauseNonDeterministicError, or phase9_status.failed.",
         });
       }
 
@@ -5406,6 +5438,7 @@ export const changeTools = {
             toStatus: "archived",
             archivePath: bundlePath,
             message: `Would flip ${changeId} status ${fromStatus} → archived (all gates done, bundle present).`,
+            recoveryReason: reason,
           });
         }
 
@@ -5416,8 +5449,8 @@ export const changeTools = {
             store: activeStore,
             change,
             authorization: {
-              reason: "operator_status_repair",
-              evidence: approvalEvidence.trim(),
+              reason,
+              evidence,
             },
             status: "archived",
           });
@@ -5455,6 +5488,7 @@ export const changeTools = {
           readback: readback.readback,
           _recoveryMutation: true,
           recovered: true,
+          recoveryReason: reason,
           ...(projectContext ? { _projectContext: projectContext } : {}),
           message: `Repaired ${changeId} status → archived (disk-projection). adv_reflect can now run.`,
         });
@@ -5488,6 +5522,7 @@ export const changeTools = {
                 changeId,
                 approvedByUser: true,
                 approvalEvidence,
+                recoveryReason,
                 ...(dryRun ? { dryRun } : {}),
               },
             },

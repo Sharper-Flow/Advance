@@ -84,7 +84,10 @@ import {
 } from "../temporal/activities";
 import { changeToWorkflowState } from "../temporal/change-state";
 import type { ChangeWorkflowState } from "../temporal/contracts";
-import { RECOVERY_RECONCILIATION_WARNING } from "../temporal/recovery-classification";
+import {
+  isPreciseWorkflowRecoveryEvidence,
+  RECOVERY_RECONCILIATION_WARNING,
+} from "../temporal/recovery-classification";
 import {
   classifyCompletedOrPoisonedRecovery,
   workflowHasPoisonedRecoveryEvidence,
@@ -450,6 +453,14 @@ async function completeGateViaRecovery(input: {
   const recoveryReason = input.recoveryReason?.trim() ?? "";
   const recoveryEvidence = input.recoveryEvidence?.trim() ?? "";
   const priorApprovalEvidence = input.priorApprovalEvidence?.trim();
+  if (!isPreciseWorkflowRecoveryEvidence(recoveryEvidence)) {
+    return formatToolOutput({
+      error: `poisoned-history ${input.gateId} recoveryEvidence must cite precise poisoned-history or completed-workflow evidence`,
+      changeId: input.changeId,
+      gateId: input.gateId,
+      ...(input.extraPayload ?? {}),
+    });
+  }
   if (!canCompleteGate(input.gates, input.gateId)) {
     const blockedBy = GATE_ORDER.slice(
       0,
