@@ -1,0 +1,19 @@
+{
+  "entries": [
+    {
+      "id": "ws-gOD0y_",
+      "type": "gotcha",
+      "content": "When updating advance-meta spec deltas, mirror `docs/specs/advance-meta.md` manually with the same version/updated date because no generate:docs script exists; `schemas:check` only verifies JSON schemas, not spec markdown mirrors. Broad deploy-local.test can fail unrelated canonical prompt ceiling checks, so pair focused asset tests with schemas:check for spec-only task evidence.",
+      "source_task": "tk-8db3db642aee",
+      "recorded_at": "2026-06-27T21:27:28.655Z"
+    },
+    {
+      "id": "ws-AZsmSA",
+      "type": "pattern",
+      "content": "Probe-cache timeout behavior is only structurally useful when provider closures thread `{ signal }` into cancellable adapters. `lru-cache` can bound/stale-return ignored signals, but provider-level cancellation still needs explicit options (`net` socket abort, child_process execFile signal) to avoid background work after status timeouts.",
+      "source_task": "tk-8aeb1c7da539",
+      "recorded_at": "2026-06-27T21:36:52.171Z"
+    }
+  ],
+  "count": 2
+}
