@@ -26,6 +26,7 @@
 | `/adv-arch-scan` | `mcp+cli-additive` | Stack-pack phase scan; additive CLI JSON output |
 | `/adv-triage` | `agent-workflow-only` | Regenerates mirrors from GitHub Project; HITL-scoped |
 | `/adv-cleanup` | `agent-workflow-only` | Dry-run / approval-gated mutation; HITL-scoped |
+| `/adv-coordinate` | `agent-workflow-only` | Epic-set audit and approval-gated typed-tool mutation; HITL-scoped |
 | `/adv-reflect` | `agent-workflow-only` | Post-archive synthesis; agent workflow only |
 | `/adv-tron` | `agent-workflow-only` | Codebase reconnaissance; agent interpretation required |
 | `/adv-optimizer` | `agent-workflow-only` | Simplification proposal synthesis; agent interpretation required |
