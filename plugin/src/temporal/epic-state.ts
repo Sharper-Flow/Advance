@@ -473,11 +473,10 @@ export function applyChangeRetargetedToState(
   }
   const currentChangeId = entryChangeId(entry);
 
-  // Idempotent retry: the entry already reflects this retarget.
-  if (
-    currentChangeId === payload.toChangeId &&
-    entry.retargeted_from_change_id === payload.fromChangeId
-  ) {
+  // Idempotent retry: the entry already targets the requested child. Preserve
+  // original retarget audit instead of rewriting retargeted_from_change_id to
+  // the current child ID on same-target retries.
+  if (currentChangeId === payload.toChangeId) {
     return {
       ok: true,
       value: { entryId: entry.entry_id, changeId: payload.toChangeId },

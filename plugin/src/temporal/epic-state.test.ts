@@ -1088,6 +1088,54 @@ describe("epic-state", () => {
       ).toBe("change-b");
       expect(first).toEqual(second);
     });
+
+    it("is idempotent when retry source equals already-retargeted target", () => {
+      const state = makeState();
+      applyChangeLinkedToState(state, {
+        entryId: "entry-1",
+        changeId: "change-a",
+        title: "Original",
+        membershipStatus: "linked",
+        linkedBy: "agent",
+        idempotencyKey: "link-1",
+        linkedAt: "2026-06-24T00:01:00.000Z",
+      });
+
+      applyChangeRetargetedToState(state, {
+        entryId: "entry-1",
+        fromChangeId: "change-a",
+        toChangeId: "change-b",
+        membershipStatus: "projection_pending",
+        retargetedBy: "agent",
+        retargetEvidence: "Original retarget evidence.",
+        idempotencyKey: "retarget-a-b",
+        retargetedAt: "2026-06-24T00:02:00.000Z",
+      });
+
+      const result = applyChangeRetargetedToState(state, {
+        entryId: "entry-1",
+        fromChangeId: "change-b",
+        toChangeId: "change-b",
+        membershipStatus: "linked",
+        retargetedBy: "agent",
+        retargetEvidence: "Retry evidence must not replace audit.",
+        idempotencyKey: "retarget-b-b",
+        retargetedAt: "2026-06-24T00:03:00.000Z",
+      });
+
+      expect(result).toMatchObject({
+        ok: true,
+        value: { entryId: "entry-1", changeId: "change-b" },
+      });
+      const entry = state.epic.entries[0];
+      expect(entry.kind === "change" && entry.change_id).toBe("change-b");
+      expect(entry.kind === "change" && entry.retargeted_from_change_id).toBe(
+        "change-a",
+      );
+      expect(entry.kind === "change" && entry.retarget_evidence).toBe(
+        "Original retarget evidence.",
+      );
+    });
   });
 
   describe("buildEpicSeedState", () => {

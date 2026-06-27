@@ -958,6 +958,83 @@ describe("adv_epic_link_change", () => {
     expect(store.epics.linkChange).not.toHaveBeenCalled();
   });
 
+  test("retargets stale parent entry from exact child membership when entry_id is omitted", async () => {
+    const store = makeStore({
+      entries: [
+        makeChangeEntry({
+          entry_id: "entry-2",
+          change_id: "change-old",
+          title: "Old Change",
+          order: 4,
+          membership_status: "projection_stale",
+        }),
+      ],
+    });
+    store.changes.get = vi.fn(async () => ({
+      success: true,
+      data: {
+        id: "change-2",
+        title: "Linked Change",
+        status: "active",
+        gates: {},
+        tasks: [],
+        created_at: "2026-06-25T00:00:00.000Z",
+        updated_at: "2026-06-25T00:00:00.000Z",
+        epic_membership: {
+          epic_id: "addAuthEpic",
+          entry_id: "entry-2",
+          order: 4,
+          title: "Linked Change",
+          linked_at: "2026-06-25T00:00:00.000Z",
+        },
+      } as Change,
+    }));
+    store.epics.retargetChange = vi.fn(async () =>
+      makeChangeEntry({
+        entry_id: "entry-2",
+        change_id: "change-2",
+        title: "Linked Change",
+        order: 4,
+        membership_status: "linked",
+        linked_at: "2026-06-25T00:00:00.000Z",
+      }),
+    );
+
+    const output = await epicTools.adv_epic_link_change.execute(
+      {
+        epic_id: "addAuthEpic",
+        change_id: "change-2",
+        link_evidence: "Repair stale parent entry from child projection.",
+      },
+      store,
+    );
+
+    const parsed = parseToolOutput(output);
+    expect(parsed.success).toBe(true);
+    expect(parsed.retargeted).toBe(true);
+    expect(store.epics.retargetChange).toHaveBeenCalledWith(
+      "addAuthEpic",
+      expect.objectContaining({
+        entryId: "entry-2",
+        fromChangeId: "change-old",
+        toChangeId: "change-2",
+        title: "Linked Change",
+        retargetEvidence: "Repair stale parent entry from child projection.",
+      }),
+    );
+    expect(store.epics.linkChange).not.toHaveBeenCalled();
+    expect(store.changes.setEpicMembership).toHaveBeenCalledWith(
+      "change-2",
+      expect.objectContaining({
+        membership: expect.objectContaining({
+          epic_id: "addAuthEpic",
+          entry_id: "entry-2",
+          title: "Linked Change",
+        }),
+      }),
+    );
+  });
+
   test("rejects when child membership mismatches requested Epic or entry", async () => {
     const store = makeStore();
     store.changes.get = vi.fn(async () => ({
@@ -1564,6 +1641,69 @@ describe("adv_epic_repair_membership", () => {
           entry_id: "entry-2",
           order: 3,
           title: "Original Title",
+        }),
+      }),
+    );
+  });
+
+  test("retarget_stale_entry is idempotent when entry already targets requested change", async () => {
+    const store = makeStore({
+      entries: [
+        makeChangeEntry({
+          entry_id: "entry-2",
+          change_id: "change-new",
+          title: "Original Title",
+          order: 3,
+          membership_status: "linked",
+          retargeted_from_change_id: "change-2",
+          retarget_evidence: "Original retarget evidence.",
+        }),
+      ],
+    });
+    store.changes.get = vi.fn(async (changeId: string) => ({
+      success: true,
+      data: {
+        id: changeId,
+        title: "New Target Change",
+        status: "active",
+        gates: {},
+        tasks: [],
+        deltas: {},
+        wisdom: [],
+        created_at: "2026-06-25T00:00:00.000Z",
+        updated_at: "2026-06-25T00:00:00.000Z",
+        epic_membership: {
+          epic_id: "addAuthEpic",
+          entry_id: "entry-2",
+          order: 3,
+          title: "Original Title",
+          linked_at: "2026-06-25T00:00:00.000Z",
+        },
+      } as Change,
+    }));
+
+    const output = await epicTools.adv_epic_repair_membership.execute(
+      {
+        epic_id: "addAuthEpic",
+        entry_id: "entry-2",
+        mode: "retarget_stale_entry",
+        new_change_id: "change-new",
+        evidence: "Retry same retarget after projection repair.",
+      },
+      store,
+    );
+    const parsed = parseToolOutput(output);
+
+    expect(parsed.success).toBe(true);
+    expect(parsed.idempotent).toBe(true);
+    expect(parsed.entry.change_id).toBe("change-new");
+    expect(store.epics.retargetChange).not.toHaveBeenCalled();
+    expect(store.changes.setEpicMembership).toHaveBeenCalledWith(
+      "change-new",
+      expect.objectContaining({
+        membership: expect.objectContaining({
+          epic_id: "addAuthEpic",
+          entry_id: "entry-2",
         }),
       }),
     );

@@ -1178,7 +1178,7 @@ export const epicTools = {
             return maybeAppendTargetContext(output, childStore.context);
           }
 
-          if (parentChangeId && parentChangeId !== change_id && entry_id) {
+          if (parentChangeId && parentChangeId !== change_id) {
             const changeRef = childStore.context
               ? {
                   change_id: change_id,
@@ -1196,6 +1196,7 @@ export const epicTools = {
                 toChangeId: change_id,
                 title: title ?? change.title,
                 ...(changeRef ? { changeRef } : {}),
+                retargetedBy: linked_by ?? "agent",
                 retargetEvidence: link_evidence,
               }),
             );
@@ -1906,6 +1907,43 @@ export const epicTools = {
               code: "PROJECTION_MISMATCH",
               current_membership: targetChange.epic_membership,
             });
+          }
+          if (finalChangeId === new_change_id) {
+            const terminalStatus = terminalSummaryStatusForChange(
+              targetChange.status,
+            );
+            if (terminalStatus) {
+              return formatToolOutput({
+                success: true,
+                idempotent: true,
+                repaired: true,
+                entry_id: entry.entry_id,
+                change_id: new_change_id,
+                entry: mapEpicEntry(entry),
+                member_status: memberStatusForEntry(entry),
+              });
+            }
+            const membership = membershipFromChangeEntry(
+              epic_id,
+              entry,
+              entry.title ?? targetChange.title,
+              "link_existing",
+            );
+            await childStore.store.changes.setEpicMembership(new_change_id, {
+              membership,
+              setAt: membership.linked_at,
+            });
+            const output = formatToolOutput({
+              success: true,
+              idempotent: true,
+              repaired: true,
+              entry_id: entry.entry_id,
+              change_id: new_change_id,
+              entry: mapEpicEntry(entry),
+              epic_membership: membership,
+              member_status: memberStatusForEntry(entry),
+            });
+            return maybeAppendTargetContext(output, childStore.context);
           }
           const changeRef = childStore.context
             ? {
