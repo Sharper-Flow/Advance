@@ -1920,6 +1920,7 @@ export const statusTools = {
                 })),
                 archivedCount: status.changes.byStatus.archived ?? 0,
                 recommendations: status.recommendations,
+                recommendationSummary,
                 temporalAlive: !!temporalHealth?.server_alive,
                 temporalHealth: temporalHealth
                   ? {

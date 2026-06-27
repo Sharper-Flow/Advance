@@ -164,6 +164,57 @@ describe("tool-formatters", () => {
       expect(result.healthSection).toBeDefined();
     });
 
+    it("renders compact grouped next actions before flat recommendations", () => {
+      const result = formatStatusOutput({
+        specCount: 1,
+        requirementCount: 1,
+        activeChanges: [],
+        archivedCount: 0,
+        recommendations: ["legacy flat recommendation"],
+        temporalAlive: true,
+        recommendationSummary: {
+          total: 4,
+          omitted: 1,
+          drilldown: {
+            changes: 'adv_status view:"changes"',
+            hygiene: 'adv_status view:"hygiene"',
+          },
+          groups: [
+            {
+              kind: "health",
+              total: 2,
+              omitted: 1,
+              shown: [
+                {
+                  title: "Temporal search attributes not verified",
+                  detail: "required attributes may be missing",
+                  action: "run registration",
+                },
+              ],
+            },
+            {
+              kind: "stale",
+              total: 2,
+              omitted: 0,
+              shown: [
+                {
+                  title: "Stale change `foo`",
+                  detail: "last activity 3h ago",
+                  action: "resume work",
+                },
+              ],
+            },
+          ],
+        },
+      });
+
+      expect(result.nextActionsSection).toContain("## Next Actions");
+      expect(result.nextActionsSection).toContain("health: 2");
+      expect(result.nextActionsSection).toContain("Temporal search attributes");
+      expect(result.nextActionsSection).toContain("+1 omitted");
+      expect(result.nextActionsSection).toContain('adv_status view:"hygiene"');
+    });
+
     it("formats OpenCode session debt diagnostics", () => {
       const result = formatStatusOutput({
         specCount: 1,

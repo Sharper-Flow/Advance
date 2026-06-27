@@ -40,6 +40,7 @@ export interface FormattedStatus {
   specsSection: string;
   activeSection: string;
   archivedSection: string;
+  nextActionsSection: string;
   recommendationsList: string[];
   healthSection: string;
   worktreeSection: string;
@@ -90,6 +91,17 @@ export interface StatusInput {
   }>;
   archivedCount: number;
   recommendations: string[];
+  recommendationSummary?: {
+    total: number;
+    omitted: number;
+    drilldown: { changes: string; hygiene: string };
+    groups: Array<{
+      kind: string;
+      total: number;
+      omitted: number;
+      shown: Array<{ title: string; detail: string; action: string }>;
+    }>;
+  };
   temporalAlive: boolean;
   worktreeCensus?: {
     total: number;
@@ -344,6 +356,32 @@ export function formatTaskReadyOutput(
   };
 }
 
+function formatNextActionsSection(
+  summary: StatusInput["recommendationSummary"],
+): string {
+  if (!summary || summary.total === 0 || summary.groups.length === 0) {
+    return "## Next Actions\n(none)";
+  }
+
+  const lines = [`## Next Actions`, `${summary.total} recommendation(s)`];
+  for (const group of summary.groups) {
+    const suffix = group.omitted > 0 ? ` (+${group.omitted} omitted)` : "";
+    lines.push(`- ${group.kind}: ${group.total}${suffix}`);
+    for (const item of group.shown) {
+      lines.push(
+        `  - ${truncate(item.title, 72)} — ${truncate(item.detail, 72)} — ${truncate(item.action, 72)}`,
+      );
+    }
+  }
+  if (summary.omitted > 0) {
+    lines.push(`… ${summary.omitted} hidden across groups`);
+  }
+  lines.push(
+    `Drill down: ${summary.drilldown.changes}; ${summary.drilldown.hygiene}`,
+  );
+  return lines.join("\n");
+}
+
 /**
  * Format status output for display.
  */
@@ -386,6 +424,9 @@ export function formatStatusOutput(input: StatusInput): FormattedStatus {
       : "## Active Changes\n(none)";
 
   const archivedSection = `## Archived\n${input.archivedCount} total`;
+  const nextActionsSection = formatNextActionsSection(
+    input.recommendationSummary,
+  );
   const healthLines = [
     `Temporal: ${input.temporalAlive ? "server alive ✓" : "server down ✗"}`,
   ];
@@ -529,6 +570,7 @@ export function formatStatusOutput(input: StatusInput): FormattedStatus {
     specsSection,
     activeSection,
     archivedSection,
+    nextActionsSection,
     recommendationsList: input.recommendations,
     healthSection,
     worktreeSection,
