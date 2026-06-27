@@ -964,6 +964,9 @@ export async function createDiskStore(
       linkChange: async () => {
         throw new Error("Epics require the Temporal store backend.");
       },
+      retargetChange: async () => {
+        throw new Error("Epics require the Temporal store backend.");
+      },
       unlinkChange: async () => {
         throw new Error("Epics require the Temporal store backend.");
       },

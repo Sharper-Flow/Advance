@@ -16,6 +16,7 @@ import type {
   ShellAddedSignalPayload,
   ChangeLinkedSignalPayload,
   ChangeProjectionStatusUpdatedSignalPayload,
+  ChangeRetargetedSignalPayload,
   ChangeUnlinkedSignalPayload,
   EntriesReorderedSignalPayload,
   EntryTerminalSummarySignalPayload,
@@ -48,7 +49,9 @@ export interface EpicMutationFailure {
     | "already_promoted"
     | "entry_already_exists"
     | "epic_not_active"
-    | "epic_archived";
+    | "epic_archived"
+    | "retarget_source_mismatch"
+    | "retarget_duplicate_target";
   message: string;
 }
 
@@ -443,6 +446,125 @@ export function applyChangeProjectionStatusUpdatedToState(
   recomputeEpicProgress(state);
 
   return { ok: true, value: { entryId: payload.entryId } };
+}
+
+export function applyChangeRetargetedToState(
+  state: EpicWorkflowState,
+  payload: ChangeRetargetedSignalPayload,
+): EpicMutationResult<{ entryId: string; changeId: string }> {
+  if (isClosedForMutation(state)) return closedForMutationFailure();
+
+  const index = findEntryIndex(state, payload.entryId);
+  if (index === -1) {
+    return {
+      ok: false,
+      code: "entry_not_found",
+      message: `Entry not found: ${payload.entryId}`,
+    };
+  }
+
+  const entry = state.epic.entries[index];
+  if (entry.kind !== "change") {
+    return {
+      ok: false,
+      code: "entry_not_found",
+      message: `Entry is not a linked change: ${payload.entryId}`,
+    };
+  }
+  const currentChangeId = entryChangeId(entry);
+
+  // Idempotent retry: the entry already targets the requested child. Preserve
+  // original retarget audit instead of rewriting retargeted_from_change_id to
+  // the current child ID on same-target retries.
+  if (currentChangeId === payload.toChangeId) {
+    if (!hasIdempotencyKey(state, payload.idempotencyKey)) {
+      recordIdempotency(
+        state,
+        payload.idempotencyKey,
+        payload.retargetedAt,
+        "idempotent",
+      );
+      setLastSignalAt(state, payload.retargetedAt);
+    }
+    return {
+      ok: true,
+      value: { entryId: entry.entry_id, changeId: payload.toChangeId },
+    };
+  }
+
+  const idempotency = checkIdempotency(state, payload.idempotencyKey);
+  if (idempotency) return idempotency;
+
+  if (currentChangeId !== payload.fromChangeId) {
+    return {
+      ok: false,
+      code: "retarget_source_mismatch",
+      message: `Retarget source mismatch: entry ${payload.entryId} is ${currentChangeId}, expected ${payload.fromChangeId}`,
+    };
+  }
+
+  const duplicateTarget = state.epic.entries.find(
+    (e) =>
+      e.entry_id !== payload.entryId && entryChangeId(e) === payload.toChangeId,
+  );
+  if (duplicateTarget) {
+    return {
+      ok: false,
+      code: "retarget_duplicate_target",
+      message: `Target change already linked to Epic: ${payload.toChangeId}`,
+    };
+  }
+
+  const updated: EpicEntry = { ...entry };
+
+  if (payload.changeRef) {
+    updated.change_ref = {
+      ...payload.changeRef,
+      change_id: payload.toChangeId,
+    };
+    delete (updated as { change_id?: string }).change_id;
+  } else if (updated.change_ref) {
+    updated.change_ref = {
+      ...updated.change_ref,
+      change_id: payload.toChangeId,
+    };
+  } else {
+    updated.change_id = payload.toChangeId;
+  }
+
+  if (payload.title !== undefined) updated.title = payload.title;
+  if (payload.membershipStatus !== undefined) {
+    updated.membership_status = payload.membershipStatus;
+  }
+
+  updated.retargeted_from_change_id = payload.fromChangeId;
+  updated.retargeted_at = payload.retargetedAt;
+  updated.retargeted_by = payload.retargetedBy;
+  updated.retarget_evidence = payload.retargetEvidence;
+
+  // change_ref entries require linked_at/linked_by; ensure they exist when
+  // converting from a legacy change_id-only entry.
+  if (updated.change_ref) {
+    if (!updated.linked_at) updated.linked_at = payload.retargetedAt;
+    if (!updated.linked_by) updated.linked_by = payload.retargetedBy;
+    if (!updated.link_evidence)
+      updated.link_evidence = payload.retargetEvidence;
+    if (!updated.title) updated.title = payload.title ?? payload.toChangeId;
+    if (!updated.membership_status)
+      updated.membership_status = "projection_pending";
+  }
+
+  state.epic.entries[index] = updated;
+
+  bumpVersion(state.epic);
+  recordIdempotency(state, payload.idempotencyKey, payload.retargetedAt);
+  setLastSignalAt(state, payload.retargetedAt);
+  recomputeEpicProgress(state);
+
+  return {
+    ok: true,
+    value: { entryId: updated.entry_id, changeId: payload.toChangeId },
+  };
 }
 
 export function applyChangeUnlinkedToState(

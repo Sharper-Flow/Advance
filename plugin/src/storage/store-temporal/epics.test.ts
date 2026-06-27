@@ -17,6 +17,7 @@ import {
   shellAddedSignal,
   shellPromotedSignal,
   changeLinkedSignal,
+  changeRetargetedSignal,
   changeUnlinkedSignal,
   entriesReorderedSignal,
   getEpicStateQuery,
@@ -350,6 +351,91 @@ describe("createEpicOps", () => {
         expectedVersion: 2,
         idempotencyKey: "reorder|addAuthEpic|2|entry-1",
       }),
+    );
+  });
+
+  test("retargetChange fires changeRetargeted signal and returns updated entry", async () => {
+    const { deps, queryMock, signalMock } = setup();
+    const epic = makeEpic({
+      entries: [
+        {
+          kind: "change",
+          entry_id: "entry-1",
+          order: 0,
+          change_id: "change-a",
+          title: "Original",
+          membership_status: "linked",
+          linked_at: "2026-06-24T00:01:00.000Z",
+          linked_by: "agent",
+        },
+      ],
+    });
+    queryMock.mockResolvedValue(makeState(epic));
+
+    const ops = createEpicOps(deps);
+    const entry = await ops.retargetChange("addAuthEpic", {
+      entryId: "entry-1",
+      fromChangeId: "change-a",
+      toChangeId: "change-b",
+      title: "Retargeted",
+      membershipStatus: "projection_pending",
+      retargetedBy: "agent",
+      retargetEvidence: "Stale parent retargeted to reachable child.",
+    });
+
+    expect(entry.kind).toBe("change");
+    expect(signalMock).toHaveBeenCalledWith(
+      changeRetargetedSignal,
+      expect.objectContaining({
+        entryId: "entry-1",
+        fromChangeId: "change-a",
+        toChangeId: "change-b",
+        membershipStatus: "projection_pending",
+      }),
+    );
+  });
+
+  test("retargetChange throws retarget_source_mismatch when workflow records rejection", async () => {
+    const { deps, queryMock, signalMock } = setup();
+    const epic = makeEpic({
+      entries: [
+        {
+          kind: "change",
+          entry_id: "entry-1",
+          order: 0,
+          change_id: "change-a",
+          title: "Original",
+          membership_status: "linked",
+          linked_at: "2026-06-24T00:01:00.000Z",
+          linked_by: "agent",
+        },
+      ],
+    });
+    queryMock.mockResolvedValue({
+      ...makeState(epic),
+      rejections: [
+        {
+          signalName: "changeRetargeted",
+          errorMessage:
+            "Retarget source mismatch: expected change-a, found change-a but request says change-wrong",
+          rejectedAt: "2999-01-01T00:00:00.000Z",
+        },
+      ],
+    });
+
+    const ops = createEpicOps(deps);
+    await expect(
+      ops.retargetChange("addAuthEpic", {
+        entryId: "entry-1",
+        fromChangeId: "change-wrong",
+        toChangeId: "change-b",
+        retargetedBy: "agent",
+        retargetEvidence: "Evidence",
+      }),
+    ).rejects.toMatchObject({ code: "retarget_source_mismatch" });
+    expect(signalMock).toHaveBeenCalledWith(
+      changeRetargetedSignal,
+      expect.anything(),
     );
   });
 
