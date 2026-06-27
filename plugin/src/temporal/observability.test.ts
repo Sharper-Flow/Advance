@@ -46,9 +46,7 @@ const SIGNAL_REQUIRED_SEARCH_ATTRIBUTES = [
 
 describe("temporal observability helpers", () => {
   it("exports stable search attribute keys", () => {
-    expect(ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES).not.toHaveProperty(
-      "projectId",
-    );
+    expect(ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES).not.toHaveProperty("projectId");
     expect(ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES.affectedProjects).toBe(
       "AdvAffectedProjects",
     );

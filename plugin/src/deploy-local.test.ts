@@ -741,7 +741,9 @@ describe("deploy-local.sh", () => {
       );
       expect(latencyBench).toBeDefined();
       expect(latencyBench?.body).toContain("p95");
-      expect(latencyBench?.body).toContain("MUST NOT fabricate a TemporalClientBundle");
+      expect(latencyBench?.body).toContain(
+        "MUST NOT fabricate a TemporalClientBundle",
+      );
       expect(latencyBench?.scenarios?.map((s) => s.id)).toContain(
         "rq-advLatencyBench01.3",
       );

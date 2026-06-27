@@ -329,12 +329,11 @@ async function canReachAddress(
 
     const socket = net.createConnection({ host, port: Number(port) });
     let settled = false;
-    let timeout: NodeJS.Timeout | undefined;
 
     const finish = (result: boolean) => {
       if (settled) return;
       settled = true;
-      if (timeout) clearTimeout(timeout);
+      clearTimeout(timeout);
       options.signal?.removeEventListener("abort", onAbort);
       socket.removeAllListeners();
       socket.destroy();
@@ -342,6 +341,10 @@ async function canReachAddress(
     };
 
     const onAbort = () => finish(false);
+    const timeout = setTimeout(() => {
+      finish(false);
+    }, timeoutMs);
+    timeout.unref();
 
     socket.unref();
     socket.setTimeout(timeoutMs);
@@ -349,11 +352,6 @@ async function canReachAddress(
     socket.once("timeout", () => finish(false));
     socket.once("error", () => finish(false));
     options.signal?.addEventListener("abort", onAbort, { once: true });
-
-    timeout = setTimeout(() => {
-      finish(false);
-    }, timeoutMs);
-    timeout.unref();
   });
 }
 

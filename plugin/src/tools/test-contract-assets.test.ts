@@ -50,7 +50,9 @@ describe("adv_run_test contract assets", () => {
       (entry) => entry.id === "rq-advRunTestLatency01.4",
     );
     expect(recording).toBeDefined();
-    expect(recording!.then?.join("\n")).toContain("recorded, degraded, or not_applicable");
+    expect(recording!.then?.join("\n")).toContain(
+      "recorded, degraded, or not_applicable",
+    );
     expect(recording!.then?.join("\n")).toContain("not swallowed silently");
   });
 
