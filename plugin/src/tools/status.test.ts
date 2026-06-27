@@ -1265,6 +1265,15 @@ Vague in-flight work.
             { length: 15 },
             (_, index) => `recommendation-${index + 1}`,
           ),
+          recommendation_items: Array.from({ length: 15 }, (_, index) => ({
+            kind: index % 2 === 0 ? "stale" : "clarify",
+            priority: index % 2 === 0 ? "medium" : "high",
+            changeId: `change-${index + 1}`,
+            title: `recommendation-${index + 1}`,
+            detail: "high-WIP fixture",
+            action: 'adv_status view:"changes"',
+            source: index % 2 === 0 ? "recency" : "clarify",
+          })),
         }));
         const getSpy = vi.spyOn(store.changes, "get");
 
@@ -1282,6 +1291,16 @@ Vague in-flight work.
           "additional recommendation(s) omitted from summary view",
         );
         expect(parsed.recommendations_omitted).toBe(5);
+        expect(parsed.recommendation_summary).toMatchObject({
+          total: 15,
+          omitted: expect.any(Number),
+        });
+        expect(parsed.recommendation_groups).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({ kind: "clarify", total: 7 }),
+            expect.objectContaining({ kind: "stale", total: 8 }),
+          ]),
+        );
       });
 
       test("changes view keeps full recent-change drilldown uncapped", async () => {

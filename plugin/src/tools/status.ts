@@ -84,8 +84,10 @@ import {
   type PendingDeleteSummary,
 } from "./worktree/state";
 import {
+  buildStatusRecommendationGroups,
   statusRecommendationToString,
   type StatusRecommendationItem,
+  type StatusRecommendationSummary,
 } from "./status-recommendations";
 
 // =============================================================================
@@ -155,6 +157,9 @@ const MISSING_PROJECT_ID_CACHE_KEY = "__current_project__";
 // and bound output recommendations with omitted-count metadata.
 const STATUS_SUMMARY_RECENT_LIMIT = 10;
 const STATUS_SUMMARY_RECOMMENDATION_LIMIT = 10;
+const STATUS_DETAILED_RECOMMENDATION_LIMIT = 50;
+const STATUS_SUMMARY_RECOMMENDATION_GROUP_LIMIT = 2;
+const STATUS_DETAILED_RECOMMENDATION_GROUP_LIMIT = 5;
 
 interface StatusSummaryOmissions {
   recentChanges: number;
@@ -876,19 +881,29 @@ async function loadMigrationStatus(_store: Store) {
   return null;
 }
 
-function capSummaryRecommendations(status: {
-  recommendations: string[];
-}): number {
+function capRecommendations(
+  status: { recommendations: string[] },
+  limit: number,
+  label: string,
+): number {
   const omitted = Math.max(
     0,
-    status.recommendations.length - STATUS_SUMMARY_RECOMMENDATION_LIMIT,
+    status.recommendations.length - limit,
   );
   if (omitted === 0) return 0;
   status.recommendations = [
-    ...status.recommendations.slice(0, STATUS_SUMMARY_RECOMMENDATION_LIMIT),
-    `… ${omitted} additional recommendation(s) omitted from summary view — use view:"changes", view:"hygiene", or view:"health" for details.`,
+    ...status.recommendations.slice(0, limit),
+    `… ${omitted} additional recommendation(s) omitted from ${label} view — use view:"changes", view:"hygiene", or view:"health" for details.`,
   ];
   return omitted;
+}
+
+function capSummaryRecommendations(status: { recommendations: string[] }): number {
+  return capRecommendations(
+    status,
+    STATUS_SUMMARY_RECOMMENDATION_LIMIT,
+    "summary",
+  );
 }
 
 const STATUS_BOOTSTRAP_RETRY_DELAY_MS = 50;
@@ -1125,6 +1140,10 @@ export function applyStatusView(
     | undefined;
   const worktreeCensus = full.worktree_census as { total?: number } | undefined;
   const specs = full.specs as { count?: number } | undefined;
+  const recommendationSummary = full.recommendation_summary as
+    | StatusRecommendationSummary
+    | undefined;
+  const recommendationGroups = full.recommendation_groups;
 
   switch (view) {
     case "summary": {
@@ -1141,6 +1160,10 @@ export function applyStatusView(
           : {}),
       };
       projection.recommendations = full.recommendations ?? [];
+      if (recommendationSummary) {
+        projection.recommendation_summary = recommendationSummary;
+        projection.recommendation_groups = recommendationGroups;
+      }
       if (statusSummaryOmissions?.recommendations) {
         projection.recommendations_omitted =
           statusSummaryOmissions.recommendations;
@@ -1177,6 +1200,10 @@ export function applyStatusView(
       // Recommendations array is small and useful for next-step routing
       // even when callers ask for the diagnostic view.
       projection.recommendations = full.recommendations ?? [];
+      if (recommendationSummary) {
+        projection.recommendation_summary = recommendationSummary;
+        projection.recommendation_groups = recommendationGroups;
+      }
       // Metrics counters (AC6).
       if (full.metrics) projection.metrics = full.metrics;
       projection.plugin_runtime = full.plugin_runtime;
@@ -1187,10 +1214,18 @@ export function applyStatusView(
     case "changes": {
       projection.changes = full.changes;
       projection.recommendations = full.recommendations ?? [];
+      if (recommendationSummary) {
+        projection.recommendation_summary = recommendationSummary;
+        projection.recommendation_groups = recommendationGroups;
+      }
       break;
     }
     case "hygiene": {
       projection.recommendations = full.recommendations ?? [];
+      if (recommendationSummary) {
+        projection.recommendation_summary = recommendationSummary;
+        projection.recommendation_groups = recommendationGroups;
+      }
       projection.opencode_session_debt = full.opencode_session_debt;
       projection.project_metadata = full.project_metadata;
       projection._healthSnapshot = full._healthSnapshot;
@@ -1796,9 +1831,25 @@ export const statusTools = {
             }
           }
 
+          const recommendationSummary = buildStatusRecommendationGroups(
+            (status as StatusRecommendationCarrier).recommendation_items ?? [],
+            {
+              perGroup:
+                view === "summary"
+                  ? STATUS_SUMMARY_RECOMMENDATION_GROUP_LIMIT
+                  : STATUS_DETAILED_RECOMMENDATION_GROUP_LIMIT,
+            },
+          );
+
           if (view === "summary") {
             summaryOmissions.recommendations =
               capSummaryRecommendations(status);
+          } else {
+            summaryOmissions.recommendations = capRecommendations(
+              status,
+              STATUS_DETAILED_RECOMMENDATION_LIMIT,
+              view,
+            );
           }
 
           let snapshotHealth: SnapshotHealthSnapshot | undefined;
@@ -1979,6 +2030,8 @@ export const statusTools = {
             _healthSnapshot: healthSnapshot,
             archived_branch_hygiene: archivedBranchHygiene,
             status_summary_omissions: summaryOmissions,
+            recommendation_summary: recommendationSummary,
+            recommendation_groups: recommendationSummary.groups,
             // AC6: in-memory counters surfaced via view: "health".
             // Counters reset on plugin init (JC-1).
             metrics: getMetrics(),
