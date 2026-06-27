@@ -37,6 +37,7 @@ describe("adv_run_test contract assets", () => {
     expect(requirement!.body).toContain("durationMs");
     expect(requirement!.body).toContain("outputBytesSeen");
     expect(requirement!.body).toContain("outputBytesRetained");
+    expect(requirement!.body).toContain("typed evidence-recording status");
     expect(requirement!.body).toContain("adv_run_test.v1");
 
     const scenario = requirement!.scenarios?.find(
@@ -44,6 +45,13 @@ describe("adv_run_test contract assets", () => {
     );
     expect(scenario).toBeDefined();
     expect(scenario!.then?.join("\n")).toContain("legacy fields remain");
+
+    const recording = requirement!.scenarios?.find(
+      (entry) => entry.id === "rq-advRunTestLatency01.4",
+    );
+    expect(recording).toBeDefined();
+    expect(recording!.then?.join("\n")).toContain("recorded, degraded, or not_applicable");
+    expect(recording!.then?.join("\n")).toContain("not swallowed silently");
   });
 
   test("tdd-contract spec defines phase as descriptive metadata", () => {
