@@ -32,6 +32,7 @@ describe("Advance Epics spec documentation", () => {
       "rq-epicEntity01",
       "rq-epicEntries01",
       "rq-epicCreateCommand01",
+      "rq-epicCoordinateCommand01",
       "rq-epicPromotion01",
       "rq-epicOrderAdvisory01",
       "rq-epicNextWork01",
@@ -63,9 +64,69 @@ describe("Advance Epics spec documentation", () => {
     ).toBe(true);
     expect(
       spec.requirements.some(
+        (r: { id: string }) => r.id === "rq-epicCoordinateCommand01",
+      ),
+    ).toBe(true);
+    expect(
+      spec.requirements.some(
         (r: { id: string }) => r.id === "rq-epicArchiveSync01",
       ),
     ).toBe(true);
+  });
+});
+
+describe("/adv-coordinate command contract", () => {
+  const commandPath = join(REPO_ROOT, ".opencode/command/adv-coordinate.md");
+
+  test("command file exists and declares no gate", () => {
+    expect(existsSync(commandPath)).toBe(true);
+    const content = readRepoFile(".opencode/command/adv-coordinate.md");
+    const frontmatter = content.match(/^---\n([\s\S]*?)\n---/)?.[1] ?? "";
+
+    expect(frontmatter).toContain("name: adv-coordinate");
+    expect(frontmatter).toContain(
+      "description: Audit Epic alignment, sequencing, and membership health",
+    );
+    expect(content).toMatch(/\*\*Gate:\*\*\s*None|Gate:\s*None/i);
+  });
+
+  test("uses typed Epic reads before proposing durable actions", () => {
+    const content = readRepoFile(".opencode/command/adv-coordinate.md");
+
+    expect(content).toContain("adv_epic_list");
+    expect(content).toContain("adv_epic_show");
+    expect(content).toMatch(/read-first|inventory/i);
+    expect(content).toMatch(/alignment/i);
+    expect(content).toMatch(/sequencing/i);
+    expect(content).toMatch(/membership health|health/i);
+  });
+
+  test("approval-gates typed Epic mutations", () => {
+    const content = readRepoFile(".opencode/command/adv-coordinate.md");
+
+    expect(content).toContain("adv_epic_update");
+    expect(content).toContain("adv_epic_reorder");
+    expect(content).toContain("adv_epic_repair_membership");
+    expect(content).toContain("expected_version");
+    expect(content).toContain("evidence");
+    expect(content).toMatch(/approval-gated|after approval|explicit approval/i);
+  });
+
+  test("preserves Epic optional membership and advisory order", () => {
+    const content = readRepoFile(".opencode/command/adv-coordinate.md");
+
+    expect(content).toMatch(/Epic membership remains optional/i);
+    expect(content).toMatch(/advisory/i);
+    expect(content).toMatch(/never block|MUST NOT block|must not block/i);
+    expect(content).toMatch(/target_unreachable/i);
+  });
+
+  test("does not introduce direct state edits or CLI mutation verbs", () => {
+    const content = readRepoFile(".opencode/command/adv-coordinate.md");
+
+    expect(content).not.toMatch(/read ADV state files directly/i);
+    expect(content).not.toMatch(/edit ADV state files directly/i);
+    expect(content).not.toMatch(/bin\/adv epic (create|update|reorder|repair|delete|remove)/i);
   });
 });
 
