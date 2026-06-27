@@ -1298,6 +1298,28 @@ describe.skipIf(!isLinux)("shared pending-delete drain", () => {
     ).not.toContain(branch);
   });
 
+  it("returns a typed blocker when missing-registry terminal state read times out", async () => {
+    const branch = "change/terminal-timeout";
+    const wtPath = addWorktree(repoRoot, branch);
+    const deps = createDrainDeps(wtPath);
+    deps.registry = [];
+    deps.signalTimeoutMs = 5;
+    deps.store = {
+      changes: {
+        get: vi.fn(() => new Promise(() => {})),
+        refresh: vi.fn(async () => undefined),
+      },
+    } as any;
+
+    const result = await advWorktreeDelete(branch, {}, deps);
+
+    expect(result).toMatchObject({
+      ok: false,
+      error: "INTEGRATION_REQUIRED",
+      reason: "temporal_read_timeout",
+    });
+  });
+
   it("manual cleanup discovers terminal change worktrees before draining", async () => {
     const branch = "change/discovered-archived";
     const wtPath = addWorktree(repoRoot, branch);

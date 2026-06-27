@@ -139,6 +139,7 @@ type WorktreeSignalResult = { ok: true } | { ok: false; warning: string };
  * rq-worktreeBoundedCleanup02 AC5.
  */
 const DEFAULT_WORKTREE_SIGNAL_TIMEOUT_MS = 5_000;
+const DEFAULT_CHANGE_STATUS_READ_TIMEOUT_MS = 1_500;
 
 async function fireWorktreeSignal(
   projectDir: string,
@@ -192,6 +193,36 @@ async function fireWorktreeSignal(
         : `Worktree notification failed: ${err instanceof Error ? err.message : String(err)}`;
     appendDebugLog("worktree", warning);
     return { ok: false, warning };
+  }
+}
+
+async function readChangeStatusWithCleanupTimeout(
+  store: Store,
+  changeId: string,
+  timeoutMs = DEFAULT_CHANGE_STATUS_READ_TIMEOUT_MS,
+): Promise<
+  | { ok: true; status: string | undefined }
+  | { ok: false; reason: "temporal_read_timeout" | "temporal_read_failed"; error: unknown }
+> {
+  try {
+    const loaded = await withTimeout(
+      store.changes.get(changeId),
+      timeoutMs,
+      `Timed out reading change status for ${changeId}`,
+    );
+    return {
+      ok: true,
+      status: loaded.success && loaded.data ? loaded.data.status : undefined,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      reason:
+        error instanceof TimeoutError
+          ? "temporal_read_timeout"
+          : "temporal_read_failed",
+      error,
+    };
   }
 }
 
@@ -1704,10 +1735,21 @@ async function verifyMissingRegistryChangeBranchIntegration(
     };
   }
 
+  const loadedStatus = await readChangeStatusWithCleanupTimeout(
+    deps.store,
+    changeId,
+    deps.signalTimeoutMs ?? DEFAULT_CHANGE_STATUS_READ_TIMEOUT_MS,
+  );
+  if (!loadedStatus.ok) {
+    return {
+      ok: false,
+      reason: loadedStatus.reason,
+      hint: `Failed to verify terminal state for change ${changeId}: ${loadedStatus.reason}. Retaining worktree for retry.`,
+    };
+  }
+
   try {
-    const loaded = await deps.store.changes.get(changeId);
-    const status =
-      loaded.success && loaded.data ? loaded.data.status : undefined;
+    const status = loadedStatus.status;
     if (status !== "archived" && status !== "closed") {
       const prIntegration = await verifyPrMergedChangeBranchIntegration(
         branch,
@@ -2377,8 +2419,18 @@ async function discoverTerminalCleanupCandidates(
 
     let status: string | undefined;
     try {
-      const loaded = await deps.store.changes.get(changeId);
-      status = loaded.success && loaded.data ? loaded.data.status : undefined;
+      const loaded = await readChangeStatusWithCleanupTimeout(
+        deps.store,
+        changeId,
+        deps.signalTimeoutMs ?? DEFAULT_CHANGE_STATUS_READ_TIMEOUT_MS,
+      );
+      if (loaded.ok) {
+        status = loaded.status;
+      } else {
+        deps.log.warn(
+          `[worktree] Skipping terminal cleanup discovery for ${branch} during ${trigger} — change state unavailable: ${loaded.reason}`,
+        );
+      }
     } catch (error) {
       deps.log.warn(
         `[worktree] Skipping terminal cleanup discovery for ${branch} during ${trigger} — change state unavailable: ${error instanceof Error ? error.message : String(error)}`,
