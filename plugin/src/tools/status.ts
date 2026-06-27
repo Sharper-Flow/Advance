@@ -183,7 +183,10 @@ function pushStatusRecommendation(
 ): void {
   recommendationArray(target).push(statusRecommendationToString(item));
   if (!Array.isArray(target)) {
-    target.recommendation_items = [...(target.recommendation_items ?? []), item];
+    target.recommendation_items = [
+      ...(target.recommendation_items ?? []),
+      item,
+    ];
   }
 }
 
@@ -783,8 +786,8 @@ function appendRecencyRecommendation(
     const label =
       hours >= 24 ? `${Math.floor(hours / 24)}d ago` : `${hours}h ago`;
     const message = nextGate
-        ? `⏰ Stale change \`${changeId}\` (last activity ${label}, ${rc.completedTasks}/${rc.taskCount} tasks done) — resume from listed \`${nextGate}\` gate action`
-        : `⏰ Stale change \`${changeId}\` (last activity ${label}, ${rc.completedTasks}/${rc.taskCount} tasks done) — review current gate status before resuming`;
+      ? `⏰ Stale change \`${changeId}\` (last activity ${label}, ${rc.completedTasks}/${rc.taskCount} tasks done) — resume from listed \`${nextGate}\` gate action`
+      : `⏰ Stale change \`${changeId}\` (last activity ${label}, ${rc.completedTasks}/${rc.taskCount} tasks done) — review current gate status before resuming`;
     pushStatusRecommendation(recommendations, {
       kind: "stale",
       priority: "medium",
@@ -806,8 +809,8 @@ function appendRecencyRecommendation(
     const isSelfOwned =
       Boolean(currentSessionId) && rc.workerSessionId === currentSessionId;
     const message = isSelfOwned
-        ? `🔥 Change \`${changeId}\` is hot (active ${minutesSinceActivity}m ago) — you are the active worker`
-        : `🔥 Change \`${changeId}\` is hot (active ${minutesSinceActivity}m ago) — likely in-flight by another agent`;
+      ? `🔥 Change \`${changeId}\` is hot (active ${minutesSinceActivity}m ago) — you are the active worker`
+      : `🔥 Change \`${changeId}\` is hot (active ${minutesSinceActivity}m ago) — likely in-flight by another agent`;
     pushStatusRecommendation(recommendations, {
       kind: "next_gate",
       priority: "low",
@@ -815,7 +818,9 @@ function appendRecencyRecommendation(
       gateId: nextGate,
       title: `Hot change \`${changeId}\``,
       detail: `active ${minutesSinceActivity}m ago`,
-      action: isSelfOwned ? "continue active work" : "coordinate with peer worker",
+      action: isSelfOwned
+        ? "continue active work"
+        : "coordinate with peer worker",
       source: "recency",
       minutesSinceActivity,
       message,
@@ -886,10 +891,7 @@ function capRecommendations(
   limit: number,
   label: string,
 ): number {
-  const omitted = Math.max(
-    0,
-    status.recommendations.length - limit,
-  );
+  const omitted = Math.max(0, status.recommendations.length - limit);
   if (omitted === 0) return 0;
   status.recommendations = [
     ...status.recommendations.slice(0, limit),
@@ -898,7 +900,9 @@ function capRecommendations(
   return omitted;
 }
 
-function capSummaryRecommendations(status: { recommendations: string[] }): number {
+function capSummaryRecommendations(status: {
+  recommendations: string[];
+}): number {
   return capRecommendations(
     status,
     STATUS_SUMMARY_RECOMMENDATION_LIMIT,
@@ -1351,7 +1355,8 @@ function pushQueueServiceabilityRecommendations(input: {
         priority: "high",
         title: `Stale Temporal queue \`${sq.queue}\``,
         detail: `${sq.running_count} Running workflow(s) older than 5 min with no local poller`,
-        action: 'See docs/temporal-recovery.md § "Stale `adv/change/*` and `adv/project/*` workflows"',
+        action:
+          'See docs/temporal-recovery.md § "Stale `adv/change/*` and `adv/project/*` workflows"',
         source: "health",
         message,
       });
@@ -1368,7 +1373,8 @@ function pushQueueServiceabilityRecommendations(input: {
       priority: "high",
       title: "Suspect legacy worker.lock",
       detail: "queue serviceability is unproven",
-      action: "explicit approval is required for reclaim, or restart the owning OpenCode session",
+      action:
+        "explicit approval is required for reclaim, or restart the owning OpenCode session",
       source: "health",
       message,
     });

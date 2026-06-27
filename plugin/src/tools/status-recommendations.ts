@@ -110,7 +110,10 @@ export function buildStatusRecommendationGroups(
   limits: StatusRecommendationGroupLimits,
 ): StatusRecommendationSummary {
   const perGroup = Math.max(1, Math.floor(limits.perGroup));
-  const byKind = new Map<StatusRecommendationKind, StatusRecommendationItem[]>();
+  const byKind = new Map<
+    StatusRecommendationKind,
+    StatusRecommendationItem[]
+  >();
 
   for (const item of items) {
     const existing = byKind.get(item.kind) ?? [];
