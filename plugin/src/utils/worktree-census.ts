@@ -16,6 +16,10 @@ export interface WorktreeCensus {
   stale: Array<{ path: string; branch: string; lastActivity: string }>;
 }
 
+export interface WorktreeCensusOptions {
+  signal?: AbortSignal;
+}
+
 const SEVEN_DAYS_MS = 7 * 86400_000;
 const MAX_WORKTREE_LIST_BUFFER = 10 * 1024 * 1024;
 
@@ -33,6 +37,7 @@ const GIT_EXTRA_ENV = {
  */
 export async function getWorktreeCensus(
   repoRoot: string,
+  options: WorktreeCensusOptions = {},
 ): Promise<WorktreeCensus | null> {
   try {
     const stdout = await new Promise<string>((resolve, reject) => {
@@ -43,6 +48,7 @@ export async function getWorktreeCensus(
           timeout: 5000,
           maxBuffer: MAX_WORKTREE_LIST_BUFFER,
           env: { ...process.env, ...GIT_EXTRA_ENV },
+          signal: options.signal,
         },
         (err, out) => {
           if (err) reject(err);

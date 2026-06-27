@@ -900,6 +900,19 @@ Vague in-flight work.
       );
     });
 
+    test("status probe fetches forward AbortSignal to cancellable providers", async () => {
+      await statusTools.adv_status.execute({ view: "health" }, store);
+
+      expect(mockGetTemporalHealth).toHaveBeenCalledWith(
+        undefined,
+        expect.objectContaining({ signal: expect.any(AbortSignal) }),
+      );
+      expect(mockGetWorktreeCensus).toHaveBeenCalledWith(
+        store.paths.root,
+        expect.objectContaining({ signal: expect.any(AbortSignal) }),
+      );
+    });
+
     test("does not emit debt recommendation for live-only blank rows", async () => {
       mockScanOpenCodeSessionDebt.mockResolvedValueOnce({
         available: true,
