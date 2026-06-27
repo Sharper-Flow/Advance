@@ -1,0 +1,1889 @@
+{
+  "id": "fixEpicProjections",
+  "title": "Fix epic projections",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-06-27T01:19:37.980Z",
+  "tasks": [
+    {
+      "id": "tk-6d5013d0bddf",
+      "title": "Add atomic Epic retarget workflow primitive",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-06-27T18:34:05.629Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC2",
+          "AC3",
+          "SC1",
+          "SC2"
+        ],
+        "verifies": [
+          "AC2",
+          "AC3"
+        ],
+        "respects": [
+          "C1",
+          "C4",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-27T18:40:15.379Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixEpicProjections",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixEpicProjections",
+          "task_id": "tk-6d5013d0bddf",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-6d5013d0bddf"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/types/signals.ts",
+            "plugin/src/types/epics.ts",
+            "plugin/src/temporal/contracts.ts",
+            "plugin/src/temporal/messages.ts",
+            "plugin/src/temporal/epic-state.ts",
+            "plugin/src/temporal/workflows.ts",
+            "plugin/src/storage/store-types.ts",
+            "plugin/src/storage/store-temporal/epics.ts",
+            "plugin/src/storage/store-disk.ts",
+            "plugin/src/temporal/epic-state.test.ts",
+            "plugin/src/storage/store-temporal/epics.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "bin/oc-test targeted -- src/temporal/epic-state.test.ts src/storage/store-temporal/epics.test.ts",
+              "exit_code": 0,
+              "summary": "Focused tests pass (66 tests) after implementing retarget primitive."
+            },
+            {
+              "command": "bin/oc-test targeted -- src/temporal/epic-state.test.ts src/storage/store-temporal/epics.test.ts src/temporal/workflow-bundle-boundary.test.ts",
+              "exit_code": 0,
+              "summary": "Workflow bundle boundary tests pass alongside Epic retarget tests (72 tests)."
+            },
+            {
+              "command": "pnpm run typecheck && pnpm run lint && pnpm run schemas:check",
+              "exit_code": 0,
+              "summary": "Typecheck, lint, and schema drift check pass."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Added retarget audit fields to EpicChangeEntry schema",
+              "why": "Reducer must persist retargeted_at/by/evidence/from_change_id while keeping change_ref entry validation intact."
+            },
+            {
+              "what": "Made retarget idempotent by matching current child + retargeted_from_change_id before source-mismatch check",
+              "why": "Retry with same payload must succeed even though entry no longer matches fromChangeId."
+            },
+            {
+              "what": "Updated change_ref entries during retarget by preserving project/repo/target_path and backfilling required linked_* fields",
+              "why": "Schema requires title/membership_status/linked_at/linked_by when change_ref is present; legacy change_id-only entries need safe conversion."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [
+            "`pnpm run format:check` reports pre-existing formatting issues in `src/cli-bridge-contract.test.ts` and `src/tools/change.ts` (unchanged by this task).",
+            "`adv_epic_repair_membership` tool modes remain unimplemented per OUT_OF_SCOPE."
+          ],
+          "required_follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Added matching typed rejection-code handling and tests for retarget_source_mismatch / retarget_duplicate_target in storage layer.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Atomic Epic parent retarget primitive is wired end-to-end: typed payload/schema, signal definition, workflow handler, pure reducer, Store interface, temporal store method, and disk stub. RED tests proved missing primitive; GREEN tests pass. Workflow bundle boundary remains clean. Pre-existing prettier drift in two untouched files blocks `pnpm run format:check` but touched files are formatted.",
+            "suggested_next_action": "Proceed to implement adv_epic_repair_membership tool modes using new retargetChange primitive."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/temporal/epic-state.test.ts src/storage/store-temporal/epics.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/temporal/epic-state.test.ts src/storage/store-temporal/epics.test.ts src/temporal/workflow-bundle-boundary.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run typecheck && pnpm run lint && pnpm run schemas:check"
+            }
+          ]
+        }
+      ],
+      "verification": "adv_run_test green tr_mqwpv73b_129d3e7b passed: bin/oc-test targeted -- src/temporal/epic-state.test.ts src/storage/store-temporal/epics.test.ts src/temporal/workflow-bundle-boundary.test.ts (72 tests). Worker also reported typecheck/lint/schemas:check passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added atomic Epic retarget primitive across typed payloads, Epic workflow signal names/messages, workflow handler, pure Epic reducer, Temporal store operation, Store interface, disk compatibility stub, and focused reducer/store tests. Reducer preserves entry identity/order, updates child reference/status/audit fields, rejects source mismatch and duplicate target, and supports idempotent retry.",
+      "filesTouched": [
+        "plugin/src/storage/store-disk.ts",
+        "plugin/src/storage/store-temporal/epics.test.ts",
+        "plugin/src/storage/store-temporal/epics.ts",
+        "plugin/src/storage/store-types.ts",
+        "plugin/src/temporal/contracts.ts",
+        "plugin/src/temporal/epic-state.test.ts",
+        "plugin/src/temporal/epic-state.ts",
+        "plugin/src/temporal/messages.ts",
+        "plugin/src/temporal/workflows.ts",
+        "plugin/src/types/epics.ts",
+        "plugin/src/types/signals.ts"
+      ],
+      "touched_files": [
+        "plugin/src/storage/store-disk.ts",
+        "plugin/src/storage/store-temporal/epics.test.ts",
+        "plugin/src/storage/store-temporal/epics.ts",
+        "plugin/src/storage/store-types.ts",
+        "plugin/src/temporal/contracts.ts",
+        "plugin/src/temporal/epic-state.test.ts",
+        "plugin/src/temporal/epic-state.ts",
+        "plugin/src/temporal/messages.ts",
+        "plugin/src/temporal/workflows.ts",
+        "plugin/src/types/epics.ts",
+        "plugin/src/types/signals.ts"
+      ],
+      "checkpointSha": "f780740cef1cb17c0e91712dff3952551884e235",
+      "completedAt": "2026-06-27T18:52:16.613Z",
+      "completed_at": "2026-06-27T18:52:16.613Z",
+      "notes": "Completed. Checkpoint f780740cef1cb17c0e91712dff3952551884e235. Verification run tr_mqwpv73b_129d3e7b passed 72 focused tests including workflow bundle boundary.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "updatedAt": "2026-06-27T18:52:34.985Z"
+    },
+    {
+      "id": "tk-fa2036cc51dd",
+      "title": "Implement parent-only Epic repair modes",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-06-27T18:34:42.066Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-6d5013d0bddf"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC5",
+          "SC1",
+          "SC2",
+          "SC3"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC5"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-27T18:53:09.892Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixEpicProjections",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixEpicProjections",
+          "task_id": "tk-fa2036cc51dd",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-fa2036cc51dd"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/tools/epic.ts",
+            "plugin/src/tools/epic.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "bin/oc-test targeted -- src/tools/epic.test.ts src/temporal/epic-state.test.ts src/storage/store-temporal/epics.test.ts",
+              "exit_code": 0,
+              "summary": "111 tests passed across 3 files"
+            },
+            {
+              "command": "pnpm run typecheck",
+              "exit_code": 0,
+              "summary": "TypeScript typecheck passed"
+            },
+            {
+              "command": "pnpm run lint",
+              "exit_code": 0,
+              "summary": "ESLint passed"
+            },
+            {
+              "command": "pnpm run schemas:check",
+              "exit_code": 0,
+              "summary": "JSON schema drift check passed"
+            },
+            {
+              "command": "bin/oc-test smoke",
+              "exit_code": 1,
+              "summary": "Smoke gate failed only on pre-existing prettier formatting issues in src/cli-bridge-contract.test.ts and src/tools/change.ts; schemas:check, typecheck, test-isolation, lockfile-policy, and lint passed"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Added execute-level evidence validation for all repair modes",
+              "why": "Unit tests call execute directly and bypass SDK/preflight validation; ensures blank evidence is rejected for remove/retarget per AC5"
+            },
+            {
+              "what": "Branch remove_stale_entry and retarget_stale_entry before stale-child loadChange(finalChangeId)",
+              "why": "Parent-only modes must not require or perform child mutation per DDC1 and AC1"
+            },
+            {
+              "what": "Retarget dry-run emits preview without loading target change",
+              "why": "Matches DDC5 skip-signals requirement and the RED test expectation that no child store reads occur in dry-run"
+            },
+            {
+              "what": "Used 'link_existing' membership source for retargeted child projection",
+              "why": "EpicMembership source enum lacks a retarget value; link_existing is the closest existing semantic for an existing change being linked into an Epic entry"
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "No same-pattern fixes required beyond the adv_epic_repair_membership tool; existing sync/clear/mark modes left untouched and verified green.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Implemented parent-only Epic repair modes remove_stale_entry and retarget_stale_entry in adv_epic_repair_membership. Remove unlinks the parent entry without child reads/mutations. Retarget loads only the target child, refuses conflicting membership before parent mutation, calls retargetChange, then sets/refreshes target child membership or terminal summary. Added evidence validation and 8 new tests; all targeted tests pass. Smoke gate only fails on pre-existing prettier issues in unrelated files.",
+            "suggested_next_action": "Review diff and proceed to next task (adv_epic_link_change recovery) or run full test suite in a fresh session."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/epic.test.ts src/temporal/epic-state.test.ts src/storage/store-temporal/epics.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run typecheck"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run lint"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run schemas:check"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test smoke"
+            }
+          ]
+        }
+      ],
+      "verification": "adv_run_test green tr_mqwqesvd_8a97b229 passed: bin/oc-test targeted -- src/tools/epic.test.ts src/temporal/epic-state.test.ts src/storage/store-temporal/epics.test.ts (111 tests). Worker also reported typecheck/lint/schemas:check passed; smoke failed only pre-existing format issues in untouched files.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Implemented `remove_stale_entry` and `retarget_stale_entry` repair modes. Removal branches before stale-child load and calls parent unlink. Retarget validates `new_change_id`, loads only target child, refuses conflicting membership before parent mutation, calls `retargetChange`, and sets/refreshes target child membership/terminal status. Existing sync/clear/mark/terminal behavior remains covered by tests.",
+      "filesTouched": [
+        "plugin/src/tools/epic.test.ts",
+        "plugin/src/tools/epic.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/epic.test.ts",
+        "plugin/src/tools/epic.ts"
+      ],
+      "checkpointSha": "7b699b0eb959ee4ad40a1f698b3840e54ef199c0",
+      "completedAt": "2026-06-27T19:07:22.546Z",
+      "completed_at": "2026-06-27T19:07:22.546Z",
+      "notes": "Completed. Checkpoint 7b699b0eb959ee4ad40a1f698b3840e54ef199c0. Verification run tr_mqwqesvd_8a97b229 passed 111 focused tests.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "updatedAt": "2026-06-27T19:07:39.426Z"
+    },
+    {
+      "id": "tk-161465ec46e6",
+      "title": "Implement Epic link recovery for matching child membership",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-06-27T18:35:10.921Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-6d5013d0bddf"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC4",
+          "SC4"
+        ],
+        "verifies": [
+          "AC4"
+        ],
+        "respects": [
+          "C1",
+          "C3",
+          "C4",
+          "DONT1",
+          "DONT2",
+          "DONT4",
+          "DONT5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-27T19:08:04.373Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixEpicProjections",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixEpicProjections",
+          "task_id": "tk-161465ec46e6",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-161465ec46e6"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/tools/epic.ts",
+            "plugin/src/tools/epic.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "../bin/oc-test targeted -- src/tools/epic.test.ts src/temporal/epic-state.test.ts src/storage/store-temporal/epics.test.ts",
+              "exit_code": 0,
+              "summary": "All 114 tests pass across the three required test files"
+            },
+            {
+              "command": "pnpm run typecheck && pnpm run lint",
+              "exit_code": 0,
+              "summary": "TypeScript and ESLint pass for plugin/src"
+            },
+            {
+              "command": "pnpm prettier --check src/tools/epic.ts src/tools/epic.test.ts",
+              "exit_code": 0,
+              "summary": "Touched files conform to Prettier formatting"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Moved the change.epic_membership check after verifying an exact epic_id + entry_id match, then reconciling the parent Epic entry before returning CHANGE_ALREADY_IN_EPIC",
+              "why": "Matches AC4/SC4: a child with exact membership but a missing or stale parent should repair the parent instead of being rejected"
+            },
+            {
+              "what": "Rebuilt missing parent entries with store.epics.linkChange using the preserved membership.entry_id",
+              "why": "linkChange accepts a stable entryId, so the parent entry can be recreated with the same ID the child already projects"
+            },
+            {
+              "what": "Retargeted stale parent entries with store.epics.retargetChange only when the caller explicitly passes entry_id",
+              "why": "Avoids surprising mutation when the caller only supplied epic_id + change_id; explicit entry_id signals repair intent"
+            },
+            {
+              "what": "Passed title defaulting to change.title into retargetChange, not only when provided by the caller",
+              "why": "Keeps the retargeted entry title consistent with the rebuilt-entry path and the existing repair primitive behavior"
+            },
+            {
+              "what": "Preserved CHANGE_ALREADY_IN_EPIC for any membership that does not match both epic_id and entry_id",
+              "why": "Maintains existing behavior for unrelated-Epic membership and adds typed refusal for same-Epic/different-entry mismatch"
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [
+            "Pre-existing Prettier formatting issues in src/cli-bridge-contract.test.ts and src/tools/change.ts cause `bin/oc-test smoke` / `pnpm run check` to fail; resolve outside this task scope."
+          ],
+          "required_main_agent_actions": [],
+          "related_scan": "Scanned plugin/src for other early-return change.epic_membership patterns; adv_epic_link_change was the only site and is now handled.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "adv_epic_link_change now repairs parent Epic entries for children with exact epic_membership: missing parents are rebuilt via linkChange and stale parents are retargeted via retargetChange when entry_id is explicitly supplied. Mismatched membership still returns CHANGE_ALREADY_IN_EPIC. All targeted tests, typecheck, lint, and Prettier checks for touched files pass. `bin/oc-test smoke` fails only due to pre-existing formatting issues in unrelated files.",
+            "suggested_next_action": "Run `bin/oc-test smoke` after formatting the pre-existing files, or proceed to the next task in fixEpicProjections"
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: ../bin/oc-test targeted -- src/tools/epic.test.ts src/temporal/epic-state.test.ts src/storage/store-temporal/epics.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run typecheck && pnpm run lint"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm prettier --check src/tools/epic.ts src/tools/epic.test.ts"
+            }
+          ]
+        }
+      ],
+      "verification": "adv_run_test green tr_mqwqsa79_27e14abd passed: bin/oc-test targeted -- src/tools/epic.test.ts src/temporal/epic-state.test.ts src/storage/store-temporal/epics.test.ts (114 tests). Worker also reported typecheck/lint and prettier check for touched files passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Updated `adv_epic_link_change` to reconcile exact matching child `epic_membership` before rejecting. Missing parent is rebuilt through `linkChange`; stale parent with explicit entry intent retargets through `retargetChange`; mismatched `epic_id` or `entry_id` returns current-membership output with no mutation. Added tests for rebuild, retarget, and mismatch refusal.",
+      "filesTouched": [
+        "plugin/src/tools/epic.test.ts",
+        "plugin/src/tools/epic.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/epic.test.ts",
+        "plugin/src/tools/epic.ts"
+      ],
+      "checkpointSha": "87a02a1c6b42a3e21ff46c3aace47c8679c87a6f",
+      "completedAt": "2026-06-27T19:17:52.139Z",
+      "completed_at": "2026-06-27T19:17:52.139Z",
+      "notes": "Completed. Checkpoint 87a02a1c6b42a3e21ff46c3aace47c8679c87a6f. Verification run tr_mqwqsa79_27e14abd passed 114 focused tests.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "updatedAt": "2026-06-27T19:18:08.492Z"
+    },
+    {
+      "id": "tk-15533bb043cc",
+      "title": "Update Epic repair schemas and documentation checks",
+      "type": "docs",
+      "section": "Validation",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-06-27T18:35:35.881Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-fa2036cc51dd"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-161465ec46e6"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "C4",
+          "C5"
+        ],
+        "verifies": [
+          "AC6"
+        ],
+        "respects": [
+          "DONT6",
+          "OOS1",
+          "OOS2"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "static_check",
+      "assignedTo": "agent",
+      "started_at": "2026-06-27T19:18:41.665Z",
+      "verification": "adv_run_test verify tr_mqwqtyz0_123fad52 passed: pnpm run schemas:check plus Prettier check for touched Epic repair files.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Verified schema artifacts are current and touched Epic repair files conform to Prettier. No documentation/schema update was required beyond implementation already present. Unrelated Epic warrant-surface issue remains out of scope as planned.",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "87a02a1c6b42a3e21ff46c3aace47c8679c87a6f",
+      "completedAt": "2026-06-27T19:19:09.444Z",
+      "completed_at": "2026-06-27T19:19:09.444Z",
+      "notes": "Completed. No code changes needed. Verification run tr_mqwqtyz0_123fad52 passed schemas:check and Prettier check for touched files.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "updatedAt": "2026-06-27T19:19:24.295Z"
+    },
+    {
+      "id": "tk-dccf41ac015c",
+      "title": "Run integrated Epic repair verification",
+      "type": "verification",
+      "section": "Verification",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-06-27T18:36:17.340Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-fa2036cc51dd"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-161465ec46e6"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-15533bb043cc"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "SC1",
+          "SC2",
+          "SC3",
+          "SC4",
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "DONT6"
+        ],
+        "respects": [
+          "OOS1",
+          "OOS2"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-27T19:20:07.454Z",
+      "verification": "Acceptance review remediation verified: tr_mqwrmq13_97b30e3a passed 117 focused Epic tests; tr_mqwrmxd9_a480e29c passed typecheck, lint, schemas:check.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/temporal/epic-state.test.ts",
+        "plugin/src/temporal/epic-state.ts",
+        "plugin/src/tools/epic.test.ts",
+        "plugin/src/tools/epic.ts"
+      ],
+      "touched_files": [
+        "plugin/src/temporal/epic-state.test.ts",
+        "plugin/src/temporal/epic-state.ts",
+        "plugin/src/tools/epic.test.ts",
+        "plugin/src/tools/epic.ts"
+      ],
+      "checkpointSha": "e30261255f48d99a22a22739aea66c8cf0ff215e",
+      "completedAt": "2026-06-27T19:41:56.062Z",
+      "completed_at": "2026-06-27T19:41:56.062Z",
+      "notes": "Completed. Verification run tr_mqwqw1xt_2f73f31b passed 120 focused tests, workflow bundle boundary, typecheck, lint, and schemas:check.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "updatedAt": "2026-06-27T19:21:02.932Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "fixEpicProjections",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:discovery-opportunity-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Epic parent-only projection repair — missed opportunities and leverage points",
+      "sources": [
+        {
+          "label": "advance-epics spec rq-epicMembershipRepair01",
+          "locator": ".adv/specs (adv_spec advance-epics)",
+          "summary": "Repair MUST surface deterministic membership status (projection_pending/projection_stale/target_unreachable) with an explicit repair path; link/unlink/move/repair require audit evidence and update child epic_membership only when child project is reachable. Already mandates the exact behavior the change needs — no new spec requirement, just close the implementation gap."
+        },
+        {
+          "label": "advance-epics spec rq-epicOnePerChange01",
+          "locator": ".adv/specs (adv_spec advance-epics)",
+          "summary": "One-Epic-per-change invariant; epic_membership single optional object. Constrains retarget/removal so a removed/retargeted parent entry must not orphan or duplicate child membership."
+        },
+        {
+          "label": "epic.ts repair execute body",
+          "locator": "plugin/src/tools/epic.ts:1749-1760",
+          "summary": "resolveChildStore + loadChange(finalChangeId) runs for all non-mark_target_unreachable modes; missing child returns CHANGE_NOT_FOUND (1755-1759) BEFORE any parent mutation — the fatal blocker. Note: loadChange returns null on store failure (244-246), so this is a CHANGE_NOT_FOUND path, not a thrown WorkflowNotFound."
+        },
+        {
+          "label": "epic.ts mark_target_unreachable mode",
+          "locator": "plugin/src/tools/epic.ts:1719-1747",
+          "summary": "Existing mode performs parent-only repair via store.epics.setEntryMembershipStatus WITHOUT loading the child. Proves the parent-only pattern already works and is the template for new removal/retarget modes."
+        },
+        {
+          "label": "epic.ts adv_epic_unlink_change",
+          "locator": "plugin/src/tools/epic.ts:1245-1257",
+          "summary": "clearEpicMembership(finalChangeId) on child runs before store.epics.unlinkChange (parent). If child workflow missing, clearEpicMembership throws/fails first, blocking parent unlink."
+        },
+        {
+          "label": "epic.ts adv_epic_link_change CHANGE_ALREADY_IN_EPIC",
+          "locator": "plugin/src/tools/epic.ts:1124",
+          "summary": "Returns changeAlreadyInEpic immediately when child has epic_membership, before reconciling against a stale/missing parent entry — the recovery gap for child-membership-vs-parent-mismatch."
+        },
+        {
+          "label": "epic.ts clearMissingEpicProjection",
+          "locator": "plugin/src/tools/epic.ts:333-423",
+          "summary": "Handles missing-EPIC clear_stale_projection but still calls loadChange(367) and returns CHANGE_NOT_FOUND(368-373) if child missing — so even the missing-Epic path cannot clear when BOTH epic and child are gone."
+        },
+        {
+          "label": "store-temporal/epics.ts parent-only signals",
+          "locator": "plugin/src/storage/store-temporal/epics.ts:495-551",
+          "summary": "unlinkChange and setEntryMembershipStatus fire Epic-workflow-only signals (changeUnlinked, changeProjectionStatusUpdated); never dereference child. Removal/status repair needs NO new store signal. grep confirms NO retarget/setEntryChangeRef signal exists anywhere in store or temporal/ — retarget requires a new workflow signal."
+        }
+      ],
+      "architecture_assessment": "The blocker is purely in the tool layer (epic.ts), not the store/workflow layer. store-temporal/epics.ts already exposes parent-only signals (unlinkChange, setEntryMembershipStatus) and the existing mark_target_unreachable repair mode already mutates the parent entry without touching the child — so the cleanest fix is to gate child dereference behind reachability and route stale-child cases through the already-proven parent-only signal path, rather than introducing a new parallel mechanism. Removal of a stale parent entry reuses the existing unlinkChange signal (zero new workflow surface). Retarget is materially heavier: no retarget/setEntryChangeRef signal exists, so it needs a new typed workflow signal + projection logic + schema + bundle-boundary care. The spec (rq-epicMembershipRepair01) already requires deterministic repair statuses and an explicit repair path, so this is closing an implementation gap, not expanding scope.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "No contradictory evidence. All four required repair cases (missing child, retarget, removal, evidence refusal) map to existing structural surfaces except retarget which needs a new signal. One-Epic-per-change invariant (rq-epicOnePerChange01) is the key correctness guard for removal/retarget."
+      },
+      "recommendation": "Adopt now: (1) reachability-gated child dereference in repair + unlink so a missing child becomes typed evidence (not CHANGE_NOT_FOUND) and routes to parent-only repair via existing unlinkChange/setEntryMembershipStatus signals; (2) parent-only stale-entry removal mode reusing unlinkChange; (3) link_change recovery for child-already-in-Epic vs stale parent before CHANGE_ALREADY_IN_EPIC at line 1124. Design around / consider deferring retarget-to-reachable-child as a distinct sub-scope because it requires a NEW workflow signal (none exists) — confirm with orchestrator whether retarget is in this change or a fast-follow. Surface: clearMissingEpicProjection also needs the both-missing (epic+child gone) case handled. All modes must enforce one-Epic-per-change and require audit evidence per spec.",
+      "follow_ups": [
+        "Confirm with orchestrator: is retarget-to-reachable-child in-scope for this change (needs new workflow signal + schema + bundle-boundary review) or a fast-follow?",
+        "Run pnpm run schemas:generate + schemas:check if EpicRepairModeSchema gains new modes (public JSON schema drift gate).",
+        "Add bundle-boundary check (workflow-bundle-boundary.test.ts) review if any new signal is added to temporal/ for retarget.",
+        "Reproduction fixture: PokeEdge shape (Epic cardIdentity / entry identity-uuid-scripts / stale child completeUuidPrimaryOperationalScripts / real child completeUuidPrimaryOperational) — mirror in epic.test.ts.",
+        "TASK_SCOPE anchors were present in packet; no scope warning needed."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixEpicProjections",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-leverage-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Leverage points for Epic parent-only projection repair design",
+      "sources": [
+        {
+          "label": "epic.ts mark_target_unreachable repair mode",
+          "locator": "plugin/src/tools/epic.ts:1719-1747",
+          "summary": "Existing parent-only repair: dryRun preview + store.epics.setEntryMembershipStatus WITHOUT loadChange. Exact structural template for new remove_stale_entry/retarget_stale_entry modes; copy its shape, including the dryRun branch before mutation."
+        },
+        {
+          "label": "epic.ts child-dereference blocker",
+          "locator": "plugin/src/tools/epic.ts:1749-1760",
+          "summary": "resolveChildStore + loadChange(finalChangeId) runs for ALL non-mark_target_unreachable modes and returns CHANGE_NOT_FOUND before any parent mutation. This single block is the entire blocker; new modes must branch BEFORE line 1749, like mark_target_unreachable does."
+        },
+        {
+          "label": "epic-state.ts applyChangeProjectionStatusUpdatedToState",
+          "locator": "plugin/src/temporal/epic-state.ts:409-446",
+          "summary": "In-place entry rewrite: spreads existing entry, mutates ONE field (membership_status), preserving entry_id/order/title. A changeRetargeted apply is a near-clone mutating change_id/change_ref/title/status instead. Confirms draft's atomic-signal choice is the by-the-book pattern and validates rejecting unlink+link."
+        },
+        {
+          "label": "epic-state.ts applyChangeUnlinkedToState",
+          "locator": "plugin/src/temporal/epic-state.ts:448-477",
+          "summary": "Removal = splice + bumpVersion + recomputeEpicProgress, fully idempotent (missing index returns ok). Parent-only removal needs ZERO new workflow surface — reuse store.epics.unlinkChange/changeUnlinkedSignal directly."
+        },
+        {
+          "label": "advance-epics spec rq-epicMembershipRepair01",
+          "locator": "adv_spec advance-epics",
+          "summary": "Mandates typed tools, audit evidence, deterministic membership status (projection_pending/projection_stale/target_unreachable), explicit repair path, dry-run-before-mutate. Does NOT explicitly mandate RETARGET — retarget is an agreement-level user decision, so retarget is the only deferrable sub-scope if cost forces a cut."
+        },
+        {
+          "label": "EPIC_WORKFLOW_SIGNAL_NAMES + workflows.ts handlers",
+          "locator": "plugin/src/temporal/contracts.ts:116-129; plugin/src/temporal/workflows.ts:416-449",
+          "summary": "No changeRetargeted/setEntryChangeRef signal exists. Retarget requires NEW entry in contracts enum + messages.ts SignalDefinition + workflows.ts setHandler + epic-state apply + store method + bundle-boundary care — 5+ coordinated surfaces. Removal needs none of this."
+        },
+        {
+          "label": "epic.ts link_change CHANGE_ALREADY_IN_EPIC + idempotent rebuild",
+          "locator": "plugin/src/tools/epic.ts:1124-1149",
+          "summary": "Line 1124 returns changeAlreadyInEpic immediately. But lines 1126-1149 ALREADY contain idempotent rebuild logic (existingEntry → setEpicMembership) for the no-membership case. Link recovery should reorder: load epic + reconcile parent FIRST, then route exact-match-but-stale-parent through this existing rebuild path rather than a new mechanism."
+        },
+        {
+          "label": "epic.test.ts repair describe block + asset test",
+          "locator": "plugin/src/tools/epic.test.ts:930-1180; plugin/src/advance-epics-assets.test.ts:169-176",
+          "summary": "All repair modes tested via identical epicTools.adv_epic_repair_membership.execute pattern with dryRun variants — new-mode tests drop straight in. EpicRepairModeSchema is a LOCAL zod enum (epic.ts:485), NOT in schema-registry.ts, so adding modes likely does NOT trip schemas:check; but assets test (line 169-176) asserts tool doc ordering and MAY need an update."
+        }
+      ],
+      "architecture_assessment": "Draft design is structurally sound and well-aligned to existing patterns. Three of four AC cases (missing-child removal, link recovery, evidence refusal) ride entirely on EXISTING structural surfaces (unlinkChange signal, setEpicMembership rebuild, mark_target_unreachable template) with zero new workflow code. The single highest-leverage move is branching new parent-only modes BEFORE the loadChange block at epic.ts:1749, mirroring mark_target_unreachable. Retarget is the ONLY heavy sub-scope: it needs a fully new changeRetargeted workflow signal across 5+ coordinated surfaces (contracts enum, messages, workflows handler, epic-state apply, store method, bundle-boundary). The draft correctly models retarget as an in-place atomic signal (matching applyChangeProjectionStatusUpdatedToState) and correctly rejects unlink+link (gap-on-partial-failure). Spec mandates removal + deterministic status + audit + dry-run but NOT retarget, so retarget is the natural fast-follow cut-line if scope/cost pressure appears. Draft's plan to add 4 new optional args (new_change_id/new_title/new_repo_id/new_target_path) is reasonable but slightly over-specified; new_repo_id/new_target_path can derive from the reachable child's own record during the post-retarget membership refresh, reducing arg surface.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "No anti-patterns. Atomic retarget signal is the correct structural choice. Only watch-items: (1) keep new modes' dryRun branch BEFORE child dereference; (2) enforce one-Epic-per-change (rq-epicOnePerChange01) on retarget membership refresh; (3) verify advance-epics-assets.test.ts:169-176 doc-ordering expectation after adding modes; schemas:check is likely a non-issue since EpicRepairModeSchema is local, not registry-exported."
+      },
+      "recommendation": "Adopt draft as-is for removal + link-recovery (cheap, spec-mandated, reuses unlinkChange + existing link rebuild). For retarget: keep the atomic changeRetargeted signal design (do NOT downgrade to unlink+link), but explicitly flag it as the fast-follow cut-line since spec does not mandate it and it carries 5+ new coordinated surfaces. Trim retarget args: derive new_repo_id/new_target_path from the reachable child record instead of accepting them as inputs. Add the both-missing (epic+child gone) case to clearMissingEpicProjection. Verify asset-test doc ordering; skip schemas:generate unless a registry-exported schema actually changes.",
+      "follow_ups": [
+        "Confirm retarget in-scope vs fast-follow with orchestrator given 5+ new coordinated signal surfaces and no spec mandate.",
+        "Verify advance-epics-assets.test.ts:169-176 tool-doc-ordering regex after adding remove_stale_entry/retarget_stale_entry to docs.",
+        "Consider deriving new_repo_id/new_target_path from reachable child record to shrink retarget arg surface.",
+        "Cover both-missing (epic+child gone) case in clearMissingEpicProjection (epic.ts:333-423)."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixEpicProjections",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation: Epic phantom projection repair (remove/retarget modes + link recovery)",
+      "sources": [
+        {
+          "label": "Spec advance-epics rq-epicMembershipRepair01 (capability law)",
+          "locator": "adv_spec show advance-epics v1.4.0",
+          "summary": "Requires link/unlink/move/repair via typed tools only, audit evidence required, child epic_membership updated when reachable, cross-project target-path trust rules, deterministic typed statuses (projection_pending/projection_stale/target_unreachable) with explicit repair path, dry-run before mutation. Design AC1-AC6 map directly onto this requirement; warrant cited in contract."
+        },
+        {
+          "label": "Spec advance-epics rq-epicOnePerChange01 + rq-epicMembershipRepair01.2",
+          "locator": "adv_spec show advance-epics",
+          "summary": "One-Epic-per-change invariant; move preserves single membership. Design DONT4/OOS2 and 'exact membership match only' link recovery respect this; retarget preserves single entry rather than creating second membership."
+        },
+        {
+          "label": "Source plugin/src/tools/epic.ts:1719-1754",
+          "locator": "/home/jon/dev/advance/plugin/src/tools/epic.ts",
+          "summary": "Confirms root-cause: only mark_target_unreachable branches before loadChange(finalChangeId) at line 1754; all other modes dereference the (possibly missing) child first, returning CHANGE_NOT_FOUND and blocking parent-only repair. Design fix (branch new modes before stale-child loadChange) is precisely targeted."
+        },
+        {
+          "label": "Source plugin/src/tools/epic.ts:1117-1124 (adv_epic_link_change)",
+          "locator": "/home/jon/dev/advance/plugin/src/tools/epic.ts",
+          "summary": "Line 1124 returns changeAlreadyInEpic unconditionally when change.epic_membership is set, BEFORE loading parent Epic (line 1126) or checking entry staleness. Confirms AC4 gap: exact-match membership with stale/missing parent cannot trigger repair today."
+        },
+        {
+          "label": "Source plugin/src/storage/store-temporal/epics.ts:495 + temporal/epic-state.ts:358/448",
+          "locator": "/home/jon/dev/advance/plugin/src/storage/store-temporal/epics.ts, epic-state.ts",
+          "summary": "unlinkChange + setEntryMembershipStatus exist; retargetChange does NOT. Reducer/signal pattern (applyChangeLinkedToState/applyChangeUnlinkedToState + changeLinkedSignal/changeUnlinkedSignal wired in workflows.ts:1840-1856, messages.ts:321) is established. New changeRetargetedSignal/applyChangeRetargetedToState follows the identical signal+reducer pattern."
+        },
+        {
+          "label": "AGENTS.md — signal-driven change/Epic workflows; determinism",
+          "locator": "/home/jon/dev/advance/AGENTS.md",
+          "summary": "Workflows are signal-driven state holders (signals + queries; no defineUpdate). Workflow-bundle boundary enforced by workflow-bundle-boundary.test.ts. New retarget signal must stay in temporal/ + types.ts only; design 'Retarget signal replay surface; mitigate with workflow-safe modules and boundary tests' aligns with this constraint."
+        }
+      ],
+      "architecture_assessment": "Design is correct, minimal, and spec-compliant. (1) CORRECTNESS: Root-cause diagnosis verified in source — epic.ts:1754 loadChange runs for all modes except mark_target_unreachable, and link path epic.ts:1124 short-circuits to CHANGE_ALREADY_IN_EPIC before parent staleness check. Both gaps map to AC1/AC4. All 6 ACs and DDC1-DDC6 trace to rq-epicMembershipRepair01. (2) SIMPLICITY: Reuses unlinkChange for remove_stale_entry; only ONE new primitive (retargetChange/changeRetargetedSignal/applyChangeRetargetedToState). The atomic retarget vs unlink+link decision (DDC2) is justified, not over-engineered: AC2 demands entry ID/order/title preservation, which unlink+link would destroy — so atomic is the SIMPLER path to the required end-state, not added complexity. New signal/reducer mirrors the existing changeLinked/changeUnlinked pattern exactly. (3) SPEC-LAW: No contradiction found. Honors rq-epicOnePerChange01 (exact-match-only link recovery; no second membership), rq-epicMembershipRepair01 (typed tools, audit, deterministic statuses, dry-run), and AGENTS.md signal/query-only determinism (boundary-test mitigation noted). (4) ALTERNATIVES: 'safe unlink+link-preserve primitive' was explicitly considered and correctly rejected for non-atomicity/identity loss. No materially better viable alternative overlooked.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "Two minor non-blocking cautions for the implementer (not design defects): (a) AC3 mismatch refusal — ensure the retarget path checks target child B membership BEFORE the atomic parent signal fires (DDC4), since retarget loads a NEW child (B), not the stale child (A); confirm B-load happens after mode-branch but its mismatch guard precedes store.epics.retargetChange. (b) Link recovery race — design's risk note 'stealing child from another Epic; mitigate exact membership match only' is sound, but exact-match must compare BOTH epic_id AND entry_id (matching the clear_stale_projection guard at epic.ts:1778-1780) to avoid rebuilding the wrong parent entry. Both are already implied by DDC3/DDC4 and the stated risk mitigations; flagging for test coverage explicitness."
+      },
+      "recommendation": "VALIDATED — proceed to planning. Design solves all stated objectives with minimal new surface (one signal/reducer/store method + two tool branches) and is consistent with advance-epics spec laws and signal-driven workflow determinism. Ensure planning/RED tests explicitly cover: (1) retarget target-B membership-mismatch refusal fires before any parent signal (DDC4/AC3); (2) link recovery exact-match compares both epic_id AND entry_id; (3) workflow-bundle boundary test extended to the new changeRetargetedSignal module; (4) both-missing (A and B) deterministic output; plus the named regressions for mark_target_unreachable and terminal-summary sync (AC6).",
+      "follow_ups": [
+        "Implementer: add boundary-test assertion that changeRetargetedSignal/applyChangeRetargetedToState live only under temporal/ + types.ts (workflow-bundle-boundary.test.ts).",
+        "Implementer: RED test asserting retarget refuses on target-B membership mismatch with zero parent mutation (no signal fired).",
+        "Note: live tool behavior validation requires pnpm run build + deploy-local.sh --fix + session restart (source-vs-dist reload gotcha); in-session validation is unit/integration tests only."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixEpicProjections",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixEpicProjections",
+      "task_id": "tk-6d5013d0bddf",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-6d5013d0bddf"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/types/signals.ts",
+        "plugin/src/types/epics.ts",
+        "plugin/src/temporal/contracts.ts",
+        "plugin/src/temporal/messages.ts",
+        "plugin/src/temporal/epic-state.ts",
+        "plugin/src/temporal/workflows.ts",
+        "plugin/src/storage/store-types.ts",
+        "plugin/src/storage/store-temporal/epics.ts",
+        "plugin/src/storage/store-disk.ts",
+        "plugin/src/temporal/epic-state.test.ts",
+        "plugin/src/storage/store-temporal/epics.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "bin/oc-test targeted -- src/temporal/epic-state.test.ts src/storage/store-temporal/epics.test.ts",
+          "exit_code": 0,
+          "summary": "Focused tests pass (66 tests) after implementing retarget primitive."
+        },
+        {
+          "command": "bin/oc-test targeted -- src/temporal/epic-state.test.ts src/storage/store-temporal/epics.test.ts src/temporal/workflow-bundle-boundary.test.ts",
+          "exit_code": 0,
+          "summary": "Workflow bundle boundary tests pass alongside Epic retarget tests (72 tests)."
+        },
+        {
+          "command": "pnpm run typecheck && pnpm run lint && pnpm run schemas:check",
+          "exit_code": 0,
+          "summary": "Typecheck, lint, and schema drift check pass."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Added retarget audit fields to EpicChangeEntry schema",
+          "why": "Reducer must persist retargeted_at/by/evidence/from_change_id while keeping change_ref entry validation intact."
+        },
+        {
+          "what": "Made retarget idempotent by matching current child + retargeted_from_change_id before source-mismatch check",
+          "why": "Retry with same payload must succeed even though entry no longer matches fromChangeId."
+        },
+        {
+          "what": "Updated change_ref entries during retarget by preserving project/repo/target_path and backfilling required linked_* fields",
+          "why": "Schema requires title/membership_status/linked_at/linked_by when change_ref is present; legacy change_id-only entries need safe conversion."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [
+        "`pnpm run format:check` reports pre-existing formatting issues in `src/cli-bridge-contract.test.ts` and `src/tools/change.ts` (unchanged by this task).",
+        "`adv_epic_repair_membership` tool modes remain unimplemented per OUT_OF_SCOPE."
+      ],
+      "required_follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Added matching typed rejection-code handling and tests for retarget_source_mismatch / retarget_duplicate_target in storage layer.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Atomic Epic parent retarget primitive is wired end-to-end: typed payload/schema, signal definition, workflow handler, pure reducer, Store interface, temporal store method, and disk stub. RED tests proved missing primitive; GREEN tests pass. Workflow bundle boundary remains clean. Pre-existing prettier drift in two untouched files blocks `pnpm run format:check` but touched files are formatted.",
+        "suggested_next_action": "Proceed to implement adv_epic_repair_membership tool modes using new retargetChange primitive."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/temporal/epic-state.test.ts src/storage/store-temporal/epics.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/temporal/epic-state.test.ts src/storage/store-temporal/epics.test.ts src/temporal/workflow-bundle-boundary.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run typecheck && pnpm run lint && pnpm run schemas:check"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixEpicProjections",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixEpicProjections",
+      "task_id": "tk-fa2036cc51dd",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-fa2036cc51dd"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/tools/epic.ts",
+        "plugin/src/tools/epic.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "bin/oc-test targeted -- src/tools/epic.test.ts src/temporal/epic-state.test.ts src/storage/store-temporal/epics.test.ts",
+          "exit_code": 0,
+          "summary": "111 tests passed across 3 files"
+        },
+        {
+          "command": "pnpm run typecheck",
+          "exit_code": 0,
+          "summary": "TypeScript typecheck passed"
+        },
+        {
+          "command": "pnpm run lint",
+          "exit_code": 0,
+          "summary": "ESLint passed"
+        },
+        {
+          "command": "pnpm run schemas:check",
+          "exit_code": 0,
+          "summary": "JSON schema drift check passed"
+        },
+        {
+          "command": "bin/oc-test smoke",
+          "exit_code": 1,
+          "summary": "Smoke gate failed only on pre-existing prettier formatting issues in src/cli-bridge-contract.test.ts and src/tools/change.ts; schemas:check, typecheck, test-isolation, lockfile-policy, and lint passed"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Added execute-level evidence validation for all repair modes",
+          "why": "Unit tests call execute directly and bypass SDK/preflight validation; ensures blank evidence is rejected for remove/retarget per AC5"
+        },
+        {
+          "what": "Branch remove_stale_entry and retarget_stale_entry before stale-child loadChange(finalChangeId)",
+          "why": "Parent-only modes must not require or perform child mutation per DDC1 and AC1"
+        },
+        {
+          "what": "Retarget dry-run emits preview without loading target change",
+          "why": "Matches DDC5 skip-signals requirement and the RED test expectation that no child store reads occur in dry-run"
+        },
+        {
+          "what": "Used 'link_existing' membership source for retargeted child projection",
+          "why": "EpicMembership source enum lacks a retarget value; link_existing is the closest existing semantic for an existing change being linked into an Epic entry"
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "No same-pattern fixes required beyond the adv_epic_repair_membership tool; existing sync/clear/mark modes left untouched and verified green.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Implemented parent-only Epic repair modes remove_stale_entry and retarget_stale_entry in adv_epic_repair_membership. Remove unlinks the parent entry without child reads/mutations. Retarget loads only the target child, refuses conflicting membership before parent mutation, calls retargetChange, then sets/refreshes target child membership or terminal summary. Added evidence validation and 8 new tests; all targeted tests pass. Smoke gate only fails on pre-existing prettier issues in unrelated files.",
+        "suggested_next_action": "Review diff and proceed to next task (adv_epic_link_change recovery) or run full test suite in a fresh session."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/epic.test.ts src/temporal/epic-state.test.ts src/storage/store-temporal/epics.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run typecheck"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run lint"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run schemas:check"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test smoke"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixEpicProjections",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixEpicProjections",
+      "task_id": "tk-161465ec46e6",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-161465ec46e6"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/tools/epic.ts",
+        "plugin/src/tools/epic.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "../bin/oc-test targeted -- src/tools/epic.test.ts src/temporal/epic-state.test.ts src/storage/store-temporal/epics.test.ts",
+          "exit_code": 0,
+          "summary": "All 114 tests pass across the three required test files"
+        },
+        {
+          "command": "pnpm run typecheck && pnpm run lint",
+          "exit_code": 0,
+          "summary": "TypeScript and ESLint pass for plugin/src"
+        },
+        {
+          "command": "pnpm prettier --check src/tools/epic.ts src/tools/epic.test.ts",
+          "exit_code": 0,
+          "summary": "Touched files conform to Prettier formatting"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Moved the change.epic_membership check after verifying an exact epic_id + entry_id match, then reconciling the parent Epic entry before returning CHANGE_ALREADY_IN_EPIC",
+          "why": "Matches AC4/SC4: a child with exact membership but a missing or stale parent should repair the parent instead of being rejected"
+        },
+        {
+          "what": "Rebuilt missing parent entries with store.epics.linkChange using the preserved membership.entry_id",
+          "why": "linkChange accepts a stable entryId, so the parent entry can be recreated with the same ID the child already projects"
+        },
+        {
+          "what": "Retargeted stale parent entries with store.epics.retargetChange only when the caller explicitly passes entry_id",
+          "why": "Avoids surprising mutation when the caller only supplied epic_id + change_id; explicit entry_id signals repair intent"
+        },
+        {
+          "what": "Passed title defaulting to change.title into retargetChange, not only when provided by the caller",
+          "why": "Keeps the retargeted entry title consistent with the rebuilt-entry path and the existing repair primitive behavior"
+        },
+        {
+          "what": "Preserved CHANGE_ALREADY_IN_EPIC for any membership that does not match both epic_id and entry_id",
+          "why": "Maintains existing behavior for unrelated-Epic membership and adds typed refusal for same-Epic/different-entry mismatch"
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [
+        "Pre-existing Prettier formatting issues in src/cli-bridge-contract.test.ts and src/tools/change.ts cause `bin/oc-test smoke` / `pnpm run check` to fail; resolve outside this task scope."
+      ],
+      "required_main_agent_actions": [],
+      "related_scan": "Scanned plugin/src for other early-return change.epic_membership patterns; adv_epic_link_change was the only site and is now handled.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "adv_epic_link_change now repairs parent Epic entries for children with exact epic_membership: missing parents are rebuilt via linkChange and stale parents are retargeted via retargetChange when entry_id is explicitly supplied. Mismatched membership still returns CHANGE_ALREADY_IN_EPIC. All targeted tests, typecheck, lint, and Prettier checks for touched files pass. `bin/oc-test smoke` fails only due to pre-existing formatting issues in unrelated files.",
+        "suggested_next_action": "Run `bin/oc-test smoke` after formatting the pre-existing files, or proceed to the next task in fixEpicProjections"
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: ../bin/oc-test targeted -- src/tools/epic.test.ts src/temporal/epic-state.test.ts src/storage/store-temporal/epics.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run typecheck && pnpm run lint"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm prettier --check src/tools/epic.ts src/tools/epic.test.ts"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixEpicProjections",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixEpicProjections",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "BLOCKED",
+      "blocking_findings": [
+        {
+          "id": "functionality-1",
+          "label": "issue",
+          "file": "plugin/src/tools/epic.ts",
+          "line": 1181,
+          "what": "Link recovery retargets a stale parent entry only when caller explicitly supplies entry_id.",
+          "why": "AC4 covers exact matching child membership repair. In the normal retry path, requestedEntryId is derived from change.epic_membership.entry_id when entry_id is omitted, but line 1181 gates retargeting on the raw entry_id argument. A child whose membership exactly matches epic_id/entry_id while the parent entry points at stale change A falls through to the idempotent refresh path and rewrites child B's projection from the stale parent entry instead of retargeting the parent to B.",
+          "fix": "Treat the membership-derived requestedEntryId as sufficient for stale-parent retarget, e.g. remove the `&& entry_id` gate or check `requestedEntryId === membership.entry_id`; add a regression test for exact membership with omitted entry_id."
+        }
+      ],
+      "nonblocking_findings": [
+        {
+          "id": "tests-praise-1",
+          "label": "praise",
+          "file": "plugin/src/tools/epic.test.ts",
+          "line": 826,
+          "what": "Parent-missing rebuild and explicit-entry retarget coverage exercises the main recovery paths.",
+          "why": "Focused cases make parent-only repair behavior and projection mismatch refusal understandable.",
+          "fix": "n/a"
+        }
+      ],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- plugin/src/tools/epic.test.ts plugin/src/temporal/epic-state.test.ts plugin/src/storage/store-temporal/epics.test.ts",
+          "bin/oc-test targeted -- src/tools/epic.test.ts src/temporal/epic-state.test.ts src/storage/store-temporal/epics.test.ts"
+        ],
+        "results": "pass",
+        "evidence": "Path preflight OK for all affected files. First targeted test command used repo-root-prefixed paths while bin/oc-test runs inside plugin and found no files (exit 1). Corrected command passed: 3 files, 114 tests. Review covered design, functionality, complexity, tests, naming, comments, style, documentation, security, performance, error handling, consistency. Blocking finding is a contract traceability/test-gap issue despite current focused tests passing."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Existing tests cover explicit entry_id retarget but not the more common omitted-entry_id retry path derived from child epic_membership.",
+        "No code changes applied per review-only instruction."
+      ],
+      "required_main_agent_actions": [
+        "Fix plugin/src/tools/epic.ts stale-parent retarget condition so exact child membership repairs parent even when adv_epic_link_change omits entry_id.",
+        "Add regression coverage in plugin/src/tools/epic.test.ts for exact child membership + stale parent entry + omitted entry_id.",
+        "Rerun targeted Epic tests plus typecheck/lint/schema checks before accepting review."
+      ],
+      "required_follow_ups": [],
+      "consumer_warnings": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixEpicProjections",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixEpicProjections",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [
+        {
+          "file": "plugin/src/tools/epic.ts",
+          "summary": "Fixed adv_epic_link_change stale parent retarget path so exact child epic_membership.entry_id is sufficient repair intent even when caller omits entry_id; added linked_by fallback as retargetedBy audit. Added retarget_stale_entry same-target idempotent path that refreshes child projection without firing parent retarget mutation.",
+          "verification": "Red tests first failed for omitted entry_id retarget and same-target idempotency; green focused tests passed with 117 tests."
+        },
+        {
+          "file": "plugin/src/temporal/epic-state.ts",
+          "summary": "Made applyChangeRetargetedToState return idempotent success whenever entry already targets payload.toChangeId, preserving original retargeted_from_change_id and retarget_evidence instead of rewriting audit on b→b retries.",
+          "verification": "Reducer regression initially failed by rewriting retargeted_from_change_id; green focused tests passed after fix."
+        },
+        {
+          "file": "plugin/src/tools/epic.test.ts",
+          "summary": "Added regressions for link_change retarget using membership-derived entry_id and repair_membership same-target idempotency without store.epics.retargetChange.",
+          "verification": "bin/oc-test targeted -- src/tools/epic.test.ts src/temporal/epic-state.test.ts src/storage/store-temporal/epics.test.ts exited 0."
+        },
+        {
+          "file": "plugin/src/temporal/epic-state.test.ts",
+          "summary": "Added reducer regression proving a→b followed by b→b returns success and preserves original retarget audit.",
+          "verification": "bin/oc-test targeted -- src/tools/epic.test.ts src/temporal/epic-state.test.ts src/storage/store-temporal/epics.test.ts exited 0."
+        }
+      ],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/tools/epic.test.ts src/temporal/epic-state.test.ts (red, expected failures; exit 1)",
+          "bin/oc-test targeted -- src/tools/epic.test.ts src/temporal/epic-state.test.ts (intermediate; exit 1 before test assertion adjustment)",
+          "bin/oc-test targeted -- src/tools/epic.test.ts src/temporal/epic-state.test.ts src/storage/store-temporal/epics.test.ts (green; exit 0)",
+          "pnpm --dir plugin run typecheck && pnpm --dir plugin run lint && pnpm --dir plugin run schemas:check (exit 0)"
+        ],
+        "results": "pass",
+        "evidence": "Red observed: three expected regression failures before implementation. After fixes: focused Epic tests passed, 3 files / 117 tests. Typecheck, ESLint, and schemas:check all completed successfully. First submission using TASK review-remediation failed with INVALID_TASK_ANCHOR because that packet task is not a persisted ADV task anchor; resubmitted as change-scoped review report for durable recovery."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Context packet TASK value review-remediation is not a persisted ADV task anchor; durable report submitted under change scope review:acceptance after task-scoped submit was rejected."
+      ],
+      "required_main_agent_actions": [
+        "If task-scoped remediation evidence is required, reconcile the spawned packet TASK anchor with one of the persisted task IDs before acceptance aggregation."
+      ],
+      "required_follow_ups": [],
+      "consumer_warnings": [
+        {
+          "kind": "consumer_failure",
+          "message": "Task-scoped report submission for TASK review-remediation failed with INVALID_TASK_ANCHOR; durable report submitted using change scope review:acceptance."
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixEpicProjections",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixEpicProjections",
+      "scope": {
+        "kind": "change",
+        "scope_key": "scanner-bundle:review"
+      },
+      "agent": "adv-scanner-bundle",
+      "phase": "review",
+      "scanner_count": 2,
+      "dimensions": [
+        "contract-traceability-scope",
+        "correctness-edge-security"
+      ],
+      "summary": "Review scanners traced Epic repair contract coverage and found stale-parent/link recovery plus retarget retry idempotency issues. Acceptance remediation fixed both; follow-up verification passed 117 focused Epic tests plus typecheck/lint/schemas:check.",
+      "findings": [],
+      "follow_ups": [],
+      "consumer_warnings": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixEpicProjections",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixEpicProjections",
+      "scope": {
+        "kind": "change",
+        "scope_key": "scanner-bundle:harden"
+      },
+      "agent": "adv-scanner-bundle",
+      "phase": "harden",
+      "scanner_count": 3,
+      "dimensions": [
+        "production-deploy-readiness",
+        "residual-slop-maintainability",
+        "tests-docs-cleanup"
+      ],
+      "summary": "Release hardening scanners found no blockers/high. Medium retarget idempotency consistency and spec-doc gap were remediated inline; cleanup formatting drift fixed. Smoke, targeted Epic tests, typecheck, lint, schemas:check, and format:check pass.",
+      "findings": [
+        {
+          "scanner": "production_deployment_readiness",
+          "severity": "info",
+          "summary": "No release/deploy blockers or high findings. No migrations, env/config, external services, CI/CD, infra, or feature flag changes required.",
+          "evidence": [
+            {
+              "label": "production assessment",
+              "locator": "plugin/src/tools/epic.ts; plugin/src/temporal/workflows.ts; plugin/src/storage/store-disk.ts",
+              "summary": "Typed repair paths preserve Temporal-only workflow surface and disk stubs; no deployment changes."
+            }
+          ]
+        },
+        {
+          "scanner": "residual_slop_maintainability",
+          "severity": "suggestion",
+          "summary": "Retarget reducer idempotency-ledger inconsistency remediated with same-target ledger recording and duplicate-key guard for superseded retries.",
+          "evidence": [
+            {
+              "label": "fix",
+              "locator": "plugin/src/temporal/epic-state.ts",
+              "summary": "Added idempotency recording/check in applyChangeRetargetedToState."
+            },
+            {
+              "label": "test",
+              "locator": "plugin/src/temporal/epic-state.test.ts",
+              "summary": "Added superseded retry duplicate-key regression; targeted tests pass tr_mqwth46u_6f11d097."
+            }
+          ]
+        },
+        {
+          "scanner": "tests_docs_cleanup",
+          "severity": "suggestion",
+          "summary": "Spec docs did not name new parent-only removal/retarget repair scenarios; remediated in advance-epics spec and markdown mirror.",
+          "evidence": [
+            {
+              "label": "spec",
+              "locator": ".adv/specs/advance-epics/spec.json",
+              "summary": "Added rq-epicMembershipRepair01.4-.6 scenarios and body text for parent-only removal/retarget."
+            },
+            {
+              "label": "docs",
+              "locator": "docs/specs/advance-epics.md",
+              "summary": "Mirrored new scenarios."
+            }
+          ]
+        },
+        {
+          "scanner": "cleanup",
+          "severity": "info",
+          "summary": "Pre-existing formatting drift fixed in two files; smoke now passes.",
+          "evidence": [
+            {
+              "label": "format",
+              "locator": "plugin/src/cli-bridge-contract.test.ts; plugin/src/tools/change.ts",
+              "summary": "Prettier-only cleanup; smoke pass tr_mqwti9ew_658f56b8."
+            }
+          ]
+        }
+      ],
+      "follow_ups": [],
+      "consumer_warnings": []
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-06-27T18:05:47.947Z",
+      "completed_by": "adv-proposal",
+      "approval_evidence": "User approved proposal via chat reply: \"approve\".",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "ab7e7cd62defe9e97728b0faa4a3769d01e2426fdee149304eb07a28437aef42",
+        "non_whitespace_chars": 4417,
+        "checked_at": "2026-06-27T01:19:38.029Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-06-27T18:22:08.427Z",
+      "completed_by": "adv-discover",
+      "approval_evidence": "Discovery findings persisted; agreement approved by user reply \"approve\"; ChangeContract minted with 23 items.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "c28e505802d0ebd93a4ce1a3b53bfcc9cbc0fb089659dea6d06144071242b617",
+        "non_whitespace_chars": 4409,
+        "checked_at": "2026-06-27T01:19:38.030Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-06-27T18:32:15.005Z",
+      "completed_by": "adv-design",
+      "approval_evidence": "Design persisted; leverage scout completed; independent validator verdict VALIDATED with two non-blocking cautions carried into planning.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "c462e083bce541446f9a29e672d97cd0e97f69a776f3411997c68f0afa68d6bc",
+        "non_whitespace_chars": 8082,
+        "checked_at": "2026-06-27T01:19:38.031Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-06-27T18:38:59.051Z",
+      "completed_by": "adv-prep",
+      "approval_evidence": "User approved prep plan via chat reply: \"approve\". Task graph has 5 tasks in ADV worktree with contract refs and TDD intent assigned. Note: main-checkout validation displayed stale no-task projection; worktree change_show shows 5 tasks."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-06-27T19:21:30.756Z",
+      "completed_by": "adv-apply",
+      "approval_evidence": "All 5 planned tasks completed in ADV worktree. Verification tr_mqwqw1xt_2f73f31b passed 120 focused Epic tests + workflow bundle boundary, typecheck, lint, schemas:check. adv_change_validate strict passed with only NO_DELTAS warning."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-06-27T20:19:13.954Z",
+      "completed_by": "adv-review",
+      "approval_evidence": "User accepted delivered work via chat reply: \"approve\". Acceptance proof persisted before checkpoint: executive summary content hash 50457c0fa9e1035a95a34b9ce5c67ad291de1fd15f37a42d15210ecb885301c9; contract review matrix has 23 pass/respected/not_applicable rows; verification tr_mqwsurb2_731c28b7 and tr_mqwsvcz5_14aa3699 passed.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "50457c0fa9e1035a95a34b9ce5c67ad291de1fd15f37a42d15210ecb885301c9",
+        "non_whitespace_chars": 2126,
+        "checked_at": "2026-06-27T01:19:38.032Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "cross_project_origin": {
+    "source_project": "pokeedge",
+    "source_path": "/home/jon/dev/pokeedge",
+    "source_change_id": "addProviderAdapters",
+    "linked_at": "2026-06-27T01:19:37.889Z"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "c28e505802d0ebd93a4ce1a3b53bfcc9cbc0fb089659dea6d06144071242b617",
+      "approvedAt": "2026-06-27T18:22:01.930Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "Phantom-child Epic entries can be repaired through typed ADV tools, without direct ADV state-file edits.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c28e505802d0ebd93a4ce1a3b53bfcc9cbc0fb089659dea6d06144071242b617",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "Repair operations are audited: every parent-only remove/retarget records explicit evidence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c28e505802d0ebd93a4ce1a3b53bfcc9cbc0fb089659dea6d06144071242b617",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "Reachable child changes retain consistent `epic_membership` projections after repair.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c28e505802d0ebd93a4ce1a3b53bfcc9cbc0fb089659dea6d06144071242b617",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC4",
+        "kind": "success_criterion",
+        "text": "Link recovery restores stale/missing parent entries when the child already has exact matching Epic membership.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c28e505802d0ebd93a4ce1a3b53bfcc9cbc0fb089659dea6d06144071242b617",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "Given an Epic parent entry references a missing child workflow, `adv_epic_repair_membership` can remove that parent entry without loading or mutating the missing child.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c28e505802d0ebd93a4ce1a3b53bfcc9cbc0fb089659dea6d06144071242b617",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "spec:rq-epicMembershipRepair01"
+        ]
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Given an Epic parent entry references missing child A and operator provides reachable child B with audit evidence, the repair path retargets the parent entry to B while preserving entry ID/order/title where possible.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c28e505802d0ebd93a4ce1a3b53bfcc9cbc0fb089659dea6d06144071242b617",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "spec:rq-epicMembershipRepair01"
+        ]
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Given retarget target child B has mismatched `epic_membership`, repair refuses with typed mismatch output and performs no parent mutation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c28e505802d0ebd93a4ce1a3b53bfcc9cbc0fb089659dea6d06144071242b617",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "spec:rq-epicMembershipRepair01"
+        ]
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Given a child already has exact matching `epic_membership` but parent entry is stale/missing, `adv_epic_link_change` repairs/rebuilds the parent entry instead of returning only `CHANGE_ALREADY_IN_EPIC`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c28e505802d0ebd93a4ce1a3b53bfcc9cbc0fb089659dea6d06144071242b617",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "spec:rq-epicMembershipRepair01"
+        ]
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Given a stale parent entry is removed or retargeted, tests prove no unaudited mutation is accepted when evidence is blank or omitted.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c28e505802d0ebd93a4ce1a3b53bfcc9cbc0fb089659dea6d06144071242b617",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "spec:rq-epicMembershipRepair01"
+        ]
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Existing `mark_target_unreachable` and terminal-summary sync behavior still pass existing tests.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c28e505802d0ebd93a4ce1a3b53bfcc9cbc0fb089659dea6d06144071242b617",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "spec:rq-epicArchiveSync01"
+        ]
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "No unaudited disk projection or direct ADV state-file edits.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c28e505802d0ebd93a4ce1a3b53bfcc9cbc0fb089659dea6d06144071242b617",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Missing child workflow must be accepted as repair evidence for parent-only operations.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c28e505802d0ebd93a4ce1a3b53bfcc9cbc0fb089659dea6d06144071242b617",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Reachable target child workflows must keep compact `epic_membership` projection consistent with the parent Epic entry.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c28e505802d0ebd93a4ce1a3b53bfcc9cbc0fb089659dea6d06144071242b617",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Correctness must be structural: typed modes, schemas, state transitions, and tests; no prose-only or heuristic repair authority.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c28e505802d0ebd93a4ce1a3b53bfcc9cbc0fb089659dea6d06144071242b617",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Cross-project membership mutation must keep existing target-path trust rules.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c28e505802d0ebd93a4ce1a3b53bfcc9cbc0fb089659dea6d06144071242b617",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not silently retarget an Epic entry without explicit audit evidence and operator intent.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c28e505802d0ebd93a4ce1a3b53bfcc9cbc0fb089659dea6d06144071242b617",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not infer retargets from title similarity or other heuristics.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c28e505802d0ebd93a4ce1a3b53bfcc9cbc0fb089659dea6d06144071242b617",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not mutate a missing child workflow or fabricate child projection state.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c28e505802d0ebd93a4ce1a3b53bfcc9cbc0fb089659dea6d06144071242b617",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not change the one-Epic-per-change invariant.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c28e505802d0ebd93a4ce1a3b53bfcc9cbc0fb089659dea6d06144071242b617",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "Do not replace normal child-projection sync for reachable children.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c28e505802d0ebd93a4ce1a3b53bfcc9cbc0fb089659dea6d06144071242b617",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT6",
+        "kind": "avoidance",
+        "text": "Do not absorb unrelated duplicate/product-scope Epic cleanup unless required to verify this repair path.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c28e505802d0ebd93a4ce1a3b53bfcc9cbc0fb089659dea6d06144071242b617",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "Resolving unrelated duplicate/product-scope Epic issues unless required to verify this repair path.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c28e505802d0ebd93a4ce1a3b53bfcc9cbc0fb089659dea6d06144071242b617",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "Changing Epic order semantics or the one-Epic-per-change invariant.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c28e505802d0ebd93a4ce1a3b53bfcc9cbc0fb089659dea6d06144071242b617",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-06-27T19:43:10.000Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Review reports adv-reviewer attempts 1-2 plus scanner bundle show phantom-child Epic entries repaired via typed tools; no direct state-file edits. Source verified by tr_mqwrmq13_97b30e3a and tr_mqwrmxd9_a480e29c.",
+          "notes": "Initial review issue remediated and reverified."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Audit evidence required by tool-layer guard and tests; blank/omitted evidence rejected. Scanner trace: epic.ts evidence guard and AC5 tests.",
+          "notes": "Retarget audit retry bug fixed before matrix."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Retarget path refreshes reachable child membership; mismatch is refused before parent mutation. Verified by focused tests and review scanners.",
+          "notes": "Projection consistency issue from link recovery fixed in checkpoint e3026125."
+        },
+        {
+          "contractId": "SC4",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "adv_epic_link_change rebuilds/retargets parent entry from exact child membership; omitted-entry-id stale-parent case fixed and verified by new test.",
+          "notes": "AC4 blocker remediated."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "tr_mqwrmq13_97b30e3a passed focused Epic tests. Tests assert remove_stale_entry removes parent without store.changes.get/clearEpicMembership on missing child.",
+          "notes": "Parent-only removal covered."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "tr_mqwrmq13_97b30e3a passed focused Epic tests. Reducer/tool tests verify retarget preserves entry_id/order/title and audit fields; retry idempotency fix preserves original audit.",
+          "notes": "Retarget retry issue remediated."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "tr_mqwrmq13_97b30e3a passed focused Epic tests. Mismatched target child membership returns typed mismatch before store.epics.retargetChange.",
+          "notes": "No parent mutation on mismatch."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "tr_mqwrmq13_97b30e3a passed focused Epic tests including new omitted-entry-id stale-parent retarget regression; parent rebuild/retarget occurs instead of CHANGE_ALREADY_IN_EPIC.",
+          "notes": "Review blocker fixed."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "tr_mqwrmq13_97b30e3a passed focused Epic tests. Blank evidence tests for remove_stale_entry and retarget_stale_entry reject before mutation; schema requires min length.",
+          "notes": "Audit evidence required."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "tr_mqwrmq13_97b30e3a passed 117 focused tests including existing mark_target_unreachable and terminal-summary sync coverage.",
+          "notes": "Regression paths green."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "All writes route through Temporal-backed store.epics/store.changes APIs; store-disk retarget throws. No direct ADV state-file edits observed in diff/review.",
+          "notes": "C1 respected."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "remove_stale_entry branches before stale-child dereference and calls parent unlink only with operator evidence.",
+          "notes": "Missing child accepted as repair evidence for parent-only operations."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Retarget path validates target child membership and refreshes membership for reachable child; stale-parent link fallback issue fixed and reverified.",
+          "notes": "Reachable projection consistency preserved."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Typed Zod signal payloads, reducer state machine, store interface, Temporal signal handler, and focused tests own correctness; no heuristic repair authority used.",
+          "notes": "Structural correctness."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Child operations route through resolveChildStore/withTargetPathStore; target_path trust fields preserved. Review found no cross-project trust regression.",
+          "notes": "Cross-project trust preserved."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Retarget requires explicit repair mode or exact child membership/entry repair intent plus audit evidence; no silent unaudited retarget.",
+          "notes": "Audit required."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Review scanners found no fuzzy/title-similarity or heuristic target inference; title used only from explicit input or target change.",
+          "notes": "No heuristic retarget."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Parent-only removal never loads/mutates missing child; missing child projection is not fabricated.",
+          "notes": "Missing child untouched."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "One-Epic-per-change membership remains a single projection object; mismatched membership refused. No invariant changes in diff.",
+          "notes": "Invariant preserved."
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Existing sync_child_projection/clear_stale_projection/mark_target_unreachable remain and pass focused regression tests.",
+          "notes": "Normal sync not replaced."
+        },
+        {
+          "contractId": "DONT6",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Diff limited to Epic repair/link/state/store/types/tests; no duplicate/product-scope cleanup absorbed.",
+          "notes": "Scope contained."
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Out of scope by agreement; no unrelated duplicate/product-scope Epic cleanup implemented.",
+          "notes": "No action required."
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Out of scope by agreement; Epic order semantics and one-Epic-per-change invariant unchanged.",
+          "notes": "No action required."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "Given an Epic parent entry references a missing child workflow, `adv_epic_repair_membership` can remove that parent entry without loading or mutating the missing child.",
+    "Given an Epic parent entry references missing child A and operator provides reachable child B with audit evidence, the repair path retargets the parent entry to B while preserving entry ID/order/title where possible.",
+    "Given retarget target child B has mismatched `epic_membership`, repair refuses with typed mismatch output and performs no parent mutation.",
+    "Given a child already has exact matching `epic_membership` but parent entry is stale/missing, `adv_epic_link_change` repairs/rebuilds the parent entry instead of returning only `CHANGE_ALREADY_IN_EPIC`.",
+    "Given a stale parent entry is removed or retargeted, tests prove no unaudited mutation is accepted when evidence is blank or omitted.",
+    "Existing `mark_target_unreachable` and terminal-summary sync behavior still pass existing tests."
+  ],
+  "documents": {
+    "proposal": "# Fix Epic phantom projection repair\n\n## Why\n\nEpic parent entries can become unrecoverable when they reference a missing or phantom child change workflow. Current Epic repair/link/unlink paths attempt to dereference the stale child before applying parent repair, so `WorkflowNotFound` prevents recovery even when the real child change exists and carries matching `epic_membership`.\n\n## Problem Statement\n\nEpic repair must support audited parent-only repair for stale parent entries whose child workflow is missing, while preserving child projection consistency whenever the intended target child is reachable.\n\n## What Changes\n\nAdd a typed Epic repair capability for parent entries that are stale because their referenced child workflow is missing. The repair path should allow explicit operator intent to remove or retarget the parent entry without treating the missing stale child as a fatal blocker. Existing child-projection repair remains the normal path when the child workflow is reachable.\n\n## User Outcomes\n\n- Agents can repair Epics after typo or phantom change IDs without direct state-file edits.\n- Archived child changes can be represented correctly in Epic progress even when the parent row points at a stale child ID.\n- Stale parent projections no longer block link, unlink, or repair workflows.\n- Repair remains safe and auditable: no blind child mutation when the stale child is missing.\n\n## Scope\n\n### In Scope\n\n- Parent-only repair behavior for Epic entries that reference missing child workflows.\n- Explicit retarget of a stale parent entry to a reachable child with matching operator evidence.\n- Explicit removal of a stale parent entry when the referenced child workflow is missing.\n- Recovery path for child-already-in-Epic cases where child membership and parent entry disagree.\n- Tests covering phantom child, retarget, removal, and audit-evidence refusal.\n\n### Out of Scope\n\n- Heuristic title-based retargeting or dedupe.\n- Direct filesystem edits to ADV state.\n- Changing the one-Epic-per-change invariant.\n- Replacing normal child-projection sync for reachable children.\n- Resolving unrelated duplicate/product-scope Epic issues unless required to verify this repair path.\n\n### Must Not\n\n- Must not silently retarget an Epic entry without explicit audit evidence and operator intent.\n- Must not mutate a missing child workflow or fabricate child projection state.\n- Must not make `WorkflowNotFound` a fatal blocker for parent-only stale-entry repair.\n- Must not bypass typed tool/workflow mutation paths.\n\n## Affected Capability\n\n- `advance-epics` — specifically audited membership repair, product-aware change entries, and deterministic repair statuses such as `target_unreachable` and `projection_stale`.\n\n## Affected Code\n\nLikely areas for discovery/design validation:\n\n- Epic tool handlers: `adv_epic_repair_membership`, `adv_epic_unlink_change`, and possibly `adv_epic_link_change`.\n- Epic workflow/state projection logic.\n- Epic schemas/types for repair input/output if new operation shape is needed.\n- Tests around Epic membership repair and missing workflow errors.\n\n## Constraints\n\n- Missing child workflow must be accepted as repair evidence for parent-only operations.\n- Reachable target child workflows must keep compact `epic_membership` projection consistent with the parent Epic entry.\n- All repair mutations require audit evidence.\n- Correctness must be structural: typed modes, schemas, state transitions, and tests; no prose-only or heuristic repair authority.\n\n## Context\n\nThis change originated as a cross-project follow-up from PokeEdge `addProviderAdapters`. Observed reproduction shape:\n\n- Project: `/home/jon/dev/pokeedge`\n- Epic: `cardIdentity`\n- Entry: `identity-uuid-scripts`\n- Stale parent `change_id`: `completeUuidPrimaryOperationalScripts`\n- Real archived child: `completeUuidPrimaryOperational`\n- Existing tools fail because stale child workflow is missing before repair can mutate the parent entry.\n\nA later resume also found that new Epic scope/merge MCP callables existed in source/deployed registry but were unavailable in the running OpenCode session until plugin host restart. That is context for validation, not a requirement to solve in this change unless it blocks testing.\n\n## Discovery Agenda\n\n- Confirm exact Epic workflow signal/query boundaries for parent-entry mutation.\n- Confirm current `adv_epic_repair_membership` flow and where stale child dereference occurs.\n- Determine whether repair should be a new mode on `adv_epic_repair_membership` or a new typed tool operation.\n- Validate how `adv_epic_link_change` should recover when child membership already exists but parent entry is stale or missing.\n- Identify required schema changes and public JSON schema drift requirements.\n- Build fixture/reproduction tests mirroring the PokeEdge stale-parent/real-child mismatch.\n\n## Discovery Findings\n\n### Discovery Checklist\n\n| Step | Result | Evidence |\n| --- | --- | --- |\n| Skills Considered | PASS | Loaded `adv-agent-tool-contracts`; no new skill needed. |\n| Prior Research Extension | PASS | `temp/*.md` none. `docs/*-prep.md` files found are unrelated to Epic repair. |\n| Conflict Scan | PASS | `adv_change_validate` passed with expected pre-prep warnings `NO_TASKS` and `NO_DELTAS`; active-change scan found no direct duplicate; agenda has related high-priority Epic follow-ups (`Fix Epic cross-project guidance`, `Fix Epic tool warrant surface`) to coordinate. |\n| Edge Cases | PASS | Phantom child missing, real child archived, child already has matching membership, child has mismatched membership, target project unreachable, dry-run preview. |\n| Design Question Depth | PASS | Open technical choices captured below; user-facing questions answered in discovery. |\n| Draft Spec Deltas | PASS | Existing `rq-epicMembershipRepair01` covers most behavior; discovery recommends tightening parent-only phantom-child repair scenario. |\n| Related Pattern Scan | PASS | Similar child-first dereference in repair, unlink, and link recovery paths. |\n| LBP Check | PASS | Internal structural repair; no external-solution check needed. |\n| Completeness Verification | PASS | Problem is not only PokeEdge data; root issue is tool-layer child dereference before parent-only repair. |\n\n### Skills Considered\n\n- `adv-agent-tool-contracts`: loaded. Relevant because repair modes/tool args/audit evidence and tests must stay aligned.\n- `adv-worktree`: not loaded; discovery is read-only and code mutation has not started.\n- No domain skill gap found.\n\n### Extends\n\n- No prior research artifacts found for this Epic repair problem.\n- New finding: source inspection shows existing parent-only Epic workflow signals already support unlink/status mutation without child access, so the failure is mainly tool-layer ordering/capability shape.\n\n### Conflict Scan\n\n- `adv_change_validate fixEpicProjections`: passed. Warnings `NO_TASKS` and `NO_DELTAS` are expected before planning/spec-delta work.\n- `adv_change_list` active scan: no active duplicate change found. Some active drafts are unrelated.\n- `adv_change_list includeArchived` and `adv_status` timed out in this session; `adv_temporal_diagnose fixEpicProjections` reported Temporal healthy and change workflow reachable.\n- Agenda overlaps: `Fix Epic cross-project guidance` and `Fix Epic tool warrant surface` are adjacent. This change should coordinate with them but not absorb unrelated scope guidance or warrant-surface cleanup unless required for repair correctness.\n\n### Current State\n\n- `adv_epic_repair_membership` has modes `sync_child_projection`, `clear_stale_projection`, and `mark_target_unreachable`.\n- `mark_target_unreachable` mutates parent entry status without loading child.\n- Other repair paths load the child after locating the parent entry; missing child currently returns `CHANGE_NOT_FOUND` before parent repair can occur.\n- `adv_epic_unlink_change` clears child membership before calling `store.epics.unlinkChange`, so a missing child blocks parent-row removal.\n- `adv_epic_link_change` returns `CHANGE_ALREADY_IN_EPIC` before checking whether the parent entry is stale/missing and recoverable from matching child membership.\n- `store.epics.unlinkChange`, `store.epics.linkChange`, and `store.epics.setEntryMembershipStatus` are existing typed parent workflow signals and do not require child dereference by themselves.\n- `advance-epics` spec `rq-epicMembershipRepair01` already requires audited link/unlink/move/repair, deterministic partial statuses, target-path trust rules, and explicit repair paths.\n\n### Edge Cases\n\n- Phantom parent reference: parent entry references child A; child A workflow is missing; removal must still work with audit evidence.\n- Retarget reference: parent entry references missing child A; operator provides reachable child B; repair preserves entry identity/order/title where possible and rewrites child reference/status with audit evidence.\n- Existing child membership: child B already has matching `epic_membership` for the target Epic/entry; link recovery rebuilds/repairs parent instead of returning `CHANGE_ALREADY_IN_EPIC`.\n- Mismatched child membership: child B belongs to another Epic/entry; repair refuses with typed projection mismatch and no mutation.\n- Target unreachable: cross-project child store cannot be reached; parent status can still be marked `target_unreachable`, but retarget requiring child verification must not proceed.\n- Dry-run: parent-only removal/retarget previews exact mutation and evidence requirements without firing signals.\n\n### Open Design Questions\n\n1. Parent-only removal shape\n   - Trust model: agent-resolved from code/spec.\n   - Blast radius: low; existing `unlinkChange` parent signal exists.\n   - Alternatives: reorder tool to call parent unlink when child missing, or add new repair mode. Recommendation: allow parent-only stale-entry removal through typed repair semantics and keep child clearing as best-effort only when reachable.\n2. Retarget shape\n   - Trust model: joint; user answered `Preserve entry`.\n   - Blast radius: medium; no current parent retarget signal was found.\n   - Alternatives: new retarget signal, unlink+link with same entry ID, or remove-only. Recommendation: preserve original `entry_id`, order, and title where possible; design should choose safest structural mutation path.\n3. Link recovery shape\n   - Trust model: joint; user answered `Repair parent`.\n   - Blast radius: medium; affects idempotency and `CHANGE_ALREADY_IN_EPIC` behavior.\n   - Alternatives: auto-repair exact-match membership, typed repair-needed error, or current behavior. Recommendation: auto-repair parent when child membership exactly matches target Epic/entry and audit evidence is present; otherwise fail typed.\n\n### Draft Spec Deltas\n\n- `rq-epicMembershipRepair01.parentOnly`\n  - Given an Epic change entry references a missing child workflow,\n  - When an audited parent-only repair removes or retargets that entry,\n  - Then the Epic parent entry is mutated through typed Epic workflow state without dereferencing or mutating the missing child.\n- `rq-epicMembershipRepair01.linkRecovery`\n  - Given a child change already has `epic_membership` for an Epic/entry but the parent entry is stale or missing,\n  - When a caller links or repairs the child with matching audit evidence,\n  - Then the parent Epic is restored consistently or a typed mismatch error is returned.\n\n### Related Pattern Scan\n\n- `plugin/src/tools/epic.ts` repair path: child dereference before repair for non-`mark_target_unreachable` modes.\n- `plugin/src/tools/epic.ts` unlink path: child projection clear before parent unlink.\n- `plugin/src/tools/epic.ts` link path: child membership early return before parent reconciliation.\n- `plugin/src/tools/epic.ts` move path also requires reachable child; treat as out of current scope unless design finds parent retarget should share the same primitive.\n\n### Completeness Verification\n\n- Problem-completeness: high confidence. The PokeEdge failure is one reproduction of a broader repair-ordering bug: parent-only operations are blocked by stale child dereference.\n- Solution-scope: high confidence for repair/link/unlink. Retarget has a design choice because no existing direct retarget workflow signal was found.\n- Sole-entry claim: no sole-entry claim needed. Multiple tool paths share the pattern and are explicitly listed.\n- Secondary surfaces: move path is a secondary surface and is out of scope unless reused by a shared retarget primitive; archive backfill remains normal `sync_child_projection` behavior.\n\n### LBP Check\n\n- Best practice is structural repair through typed modes/signals, not filesystem edits or heuristic retargeting.\n- Existing parent-only workflow signals should be reused where they satisfy the invariant.\n- Retarget should be represented as a typed operation with explicit old child, new child, entry ID, and audit evidence; title similarity must not be an authority.\n- External-solution check skipped: this is internal ADV workflow/tool correctness, not a library/tool selection problem.\n\n### Discovery Opportunity Scout\n\n- Trigger: run; architecture/tool-contract repair with multiple adjacent paths.\n- Candidate adopted: route stale child through existing parent-only signals.\n- Candidate adopted: parent-only stale-entry removal should reuse `unlinkChange` when possible.\n- Candidate adopted: link recovery should happen before unconditional `CHANGE_ALREADY_IN_EPIC`.\n- Candidate surfaced/resolved by user: retarget should preserve the existing Epic entry.\n- Candidate surfaced: both-missing case in `clearMissingEpicProjection` should be handled or refused with deterministic typed output.\n\n### User Decisions\n\n- Retarget outcome: preserve same entry when possible.\n- Link recovery: repair parent when child membership exactly matches.\n- Phantom child mutation: allow audited remove or audited retarget; no inference.\n\n### Recommended Objectives\n\n1. Add audited parent-only stale-entry removal that does not load or mutate missing child workflows.\n2. Add audited stale-entry retarget that preserves entry identity/order/title where possible and verifies the new child when reachable.\n3. Update `adv_epic_link_change` recovery so exact matching child membership can rebuild/repair stale or missing parent entries.\n4. Preserve deterministic typed refusal for mismatched child membership, missing audit evidence, and unreachable target cases.\n5. Cover repair behavior with tests before implementation.\n\n### AMBIGUITY ANALYSIS\n\nCoverage: B:C F:C S:C M:C\n\nNo blocking ambiguity findings.\n",
+    "problemStatement": "Epic repair currently fails when an Epic parent entry references a missing child workflow. The tool stack treats `WorkflowNotFound` as fatal before it can remove or retarget the stale parent entry, leaving the Epic permanently stale even when the real child change exists and has matching `epic_membership`.",
+    "agreement": "# Agreement\n\n## Objectives\n\n1. Add audited parent-only stale-entry removal that does not load or mutate missing child workflows.\n2. Add audited stale-entry retarget that preserves entry identity/order/title where possible and verifies the new child when reachable.\n3. Update `adv_epic_link_change` recovery so exact matching child membership can rebuild/repair stale or missing parent entries.\n4. Preserve deterministic typed refusal for mismatched child membership, missing audit evidence, and unreachable target cases.\n5. Cover repair behavior with tests before implementation.\n\n## Success Criteria\n\n- SC1: Phantom-child Epic entries can be repaired through typed ADV tools, without direct ADV state-file edits.\n- SC2: Repair operations are audited: every parent-only remove/retarget records explicit evidence.\n- SC3: Reachable child changes retain consistent `epic_membership` projections after repair.\n- SC4: Link recovery restores stale/missing parent entries when the child already has exact matching Epic membership.\n\n## Acceptance Criteria\n\n- AC1: Given an Epic parent entry references a missing child workflow, `adv_epic_repair_membership` can remove that parent entry without loading or mutating the missing child. [warrant: spec:rq-epicMembershipRepair01]\n- AC2: Given an Epic parent entry references missing child A and operator provides reachable child B with audit evidence, the repair path retargets the parent entry to B while preserving entry ID/order/title where possible. [warrant: spec:rq-epicMembershipRepair01]\n- AC3: Given retarget target child B has mismatched `epic_membership`, repair refuses with typed mismatch output and performs no parent mutation. [warrant: spec:rq-epicMembershipRepair01]\n- AC4: Given a child already has exact matching `epic_membership` but parent entry is stale/missing, `adv_epic_link_change` repairs/rebuilds the parent entry instead of returning only `CHANGE_ALREADY_IN_EPIC`. [warrant: spec:rq-epicMembershipRepair01]\n- AC5: Given a stale parent entry is removed or retargeted, tests prove no unaudited mutation is accepted when evidence is blank or omitted. [warrant: spec:rq-epicMembershipRepair01]\n- AC6: Existing `mark_target_unreachable` and terminal-summary sync behavior still pass existing tests. [warrant: spec:rq-epicArchiveSync01]\n\n## Constraints\n\n- C1: No unaudited disk projection or direct ADV state-file edits.\n- C2: Missing child workflow must be accepted as repair evidence for parent-only operations.\n- C3: Reachable target child workflows must keep compact `epic_membership` projection consistent with the parent Epic entry.\n- C4: Correctness must be structural: typed modes, schemas, state transitions, and tests; no prose-only or heuristic repair authority.\n- C5: Cross-project membership mutation must keep existing target-path trust rules.\n\n## Avoidances\n\n- DONT1: Do not silently retarget an Epic entry without explicit audit evidence and operator intent.\n- DONT2: Do not infer retargets from title similarity or other heuristics.\n- DONT3: Do not mutate a missing child workflow or fabricate child projection state.\n- DONT4: Do not change the one-Epic-per-change invariant.\n- DONT5: Do not replace normal child-projection sync for reachable children.\n- DONT6: Do not absorb unrelated duplicate/product-scope Epic cleanup unless required to verify this repair path.\n\n## Out of Scope\n\n- OOS1: Resolving unrelated duplicate/product-scope Epic issues unless required to verify this repair path.\n- OOS2: Changing Epic order semantics or the one-Epic-per-change invariant.\n\n## Preview Applicability\n\nvisual_surface: false\n\nRationale: this change affects internal ADV MCP tools, Temporal workflow state, schemas, and tests. It has no browser-visible or visual output surface.\n\n## Decisions\n\n### User Decisions\n\n- Retarget outcome: preserve the same Epic entry when possible, including entry ID/order/title.\n- Link recovery: repair parent when child membership exactly matches.\n- Phantom child mutation: allow audited removal or audited retarget; never infer target heuristically.\n\n### Agent Decisions (LBP)\n\n- Parent-only stale-entry removal should use existing parent Epic workflow mutation semantics where possible (`unlinkChange`/status signals) rather than requiring child dereference.\n- Retarget should be a typed operation with old child, new child, entry ID, and audit evidence. Design will choose whether this is a new repair mode/signal or safe unlink+link-preserve primitive.\n- `adv_epic_link_change` recovery should happen before unconditional `CHANGE_ALREADY_IN_EPIC` when the child membership exactly matches the requested Epic/entry.\n- Existing `mark_target_unreachable` and terminal-summary sync paths are regression surfaces and must stay green.\n- Tool-name warrants for Epic tools were avoided because the live contract warrant surface currently omits `epicTools`; spec warrants provide structural authority for this agreement, and the known adjacent agenda item `Fix Epic tool warrant surface` remains separate.\n\n## Deferred Questions\n\nNone.\n\n## Sign-Off\n\nApproved by user reply: \"approve\" at the discovery criteria checkpoint.",
+    "design": "# Design\n\n## Architecture Overview\n\nRepair Epic phantom projections at the typed Epic tool/workflow boundary. Current failure is tool-layer ordering: stale child changes are dereferenced before parent-only Epic repair can mutate the parent entry. The fix is structural, not heuristic.\n\nDesign direction:\n\n1. Branch parent-only repair modes before stale-child dereference.\n2. Reuse existing Epic parent workflow signals for removal/status where possible.\n3. Add one atomic parent retarget workflow signal for preserving an existing entry while changing its child reference.\n4. Reconcile `adv_epic_link_change` before returning `CHANGE_ALREADY_IN_EPIC` when child membership exactly matches the intended Epic entry.\n5. Mutate child projections only when the child is reachable and has no conflicting membership or exact matching membership.\n\n## Key Decisions\n\n### KD1 — Parent-only stale removal reuses existing `unlinkChange`\n\nAdd `remove_stale_entry` mode to `adv_epic_repair_membership`. It locates the parent entry, verifies audit evidence, and calls `store.epics.unlinkChange` even when the referenced child workflow is missing.\n\nRationale:\n\n- `store.epics.unlinkChange` / `changeUnlinkedSignal` are parent Epic workflow mutations.\n- `applyChangeUnlinkedToState` already handles missing entries idempotently.\n- No new workflow surface is needed for removal.\n- Missing old child is repair evidence, not a blocker.\n\n### KD2 — Retarget uses one atomic parent workflow signal\n\nAdd `retarget_stale_entry` mode to `adv_epic_repair_membership`. Implement it with a new typed parent workflow/store operation, tentatively `store.epics.retargetChange`, backed by `changeRetargetedSignal` and `applyChangeRetargetedToState`.\n\nRationale:\n\n- User selected preserve-entry behavior.\n- Unlink+link is two signals and can leave a gap if interrupted.\n- Retarget must atomically update one existing entry's child reference/status/audit while preserving `entry_id` and `order`.\n\nReducer must reject missing/non-change entries, `fromChangeId` mismatch, duplicate `toChangeId` in another entry, and closed Epics.\n\n### KD3 — New repair modes branch before stale child load\n\n`mark_target_unreachable`, `remove_stale_entry`, and `retarget_stale_entry` must branch before the existing `resolveChildStore/loadChange(finalChangeId)` path. Existing `sync_child_projection` and `clear_stale_projection` keep reachable-child behavior.\n\n### KD4 — Retarget input surface stays small\n\nAdd only:\n\n- `new_change_id` — required for retarget mode\n- `new_title` — optional display-title override\n\nDerive project/repo/target identity from reachable child store context and existing parent entry where possible. Do not add `new_repo_id` / `new_target_path` unless implementation proves derivation impossible.\n\n### KD5 — Link recovery happens before unconditional `CHANGE_ALREADY_IN_EPIC`\n\nChange `adv_epic_link_change` flow:\n\n1. Load child.\n2. If no membership, use existing link path.\n3. If child membership exactly matches requested `epic_id` and effective `entry_id`, inspect parent Epic.\n4. If matching parent entry exists and references child, return idempotent success.\n5. If parent entry is missing, rebuild it with `linkChange` using membership entry/order/title and audit evidence.\n6. If parent entry exists but references another child, use retarget only for explicit repair intent.\n7. If membership belongs to another Epic/entry, return typed mismatch and mutate nothing.\n\n## Implementation Strategy\n\n### Slice 1 — RED tests\n\nAdd failing tests for:\n\n- `remove_stale_entry` removes parent when old child lookup fails / workflow missing.\n- `remove_stale_entry` dry-run previews parent removal and emits no signals.\n- `retarget_stale_entry` preserves entry ID/order/title and changes only child reference/status/audit fields.\n- retarget refuses mismatched target `epic_membership` before parent mutation.\n- blank/omitted evidence fails for remove/retarget.\n- `adv_epic_link_change` exact matching child membership repairs missing/stale parent instead of only `CHANGE_ALREADY_IN_EPIC`.\n- both-missing case returns deterministic typed output.\n- existing `mark_target_unreachable`, `sync_child_projection`, `clear_stale_projection`, and terminal-summary sync tests remain green.\n\n### Slice 2 — Retarget signal/store surface\n\nUpdate likely files:\n\n- `plugin/src/types/signals.ts`\n- `plugin/src/temporal/contracts.ts`\n- `plugin/src/temporal/messages.ts`\n- `plugin/src/temporal/epic-state.ts`\n- `plugin/src/temporal/workflows.ts`\n- `plugin/src/storage/store-types.ts`\n- `plugin/src/storage/store-temporal/epics.ts`\n- `plugin/src/storage/store-disk.ts` compatibility stub if interface requires it\n\nRetarget payload should include `entryId`, `fromChangeId`, `toChangeId`, optional `changeRef`, optional `title`, `membershipStatus`, `retargetedBy`, `retargetEvidence`, `idempotencyKey`, and `retargetedAt`.\n\n### Slice 3 — Tool repair branching\n\nIn `plugin/src/tools/epic.ts`:\n\n- Extend `EpicRepairModeSchema` with `remove_stale_entry` and `retarget_stale_entry`.\n- Add `new_change_id` and optional `new_title` args.\n- Branch new modes before stale child dereference.\n- For removal, call parent `unlinkChange`; clear old child projection only when reachable and matching.\n- For retarget, load/verify target child; refuse conflicting membership; call `retargetChange`; set/refresh target child membership or terminal summary.\n- Keep existing repair modes backward-compatible.\n\n### Slice 4 — Link recovery\n\nReplace early `changeAlreadyInEpic(change)` with exact-match recovery logic. Compare both `epic_id` and `entry_id`. Rebuild missing parent with `linkChange`; retarget stale parent only under explicit matching repair intent; otherwise return current typed mismatch/current membership output.\n\n### Slice 5 — Schema/checks\n\nRun schema generation/checks if public schema artifacts drift. Run targeted Epic tests first, then smoke/check as planned.\n\n## LBP Analysis\n\nPreferred long-term path: typed state-machine repair through Temporal workflow signals.\n\nRejected alternatives:\n\n- Direct ADV state edits — violates agreement and bypasses Temporal.\n- Title-similarity retarget — heuristic authority, explicitly forbidden.\n- Unlink+link retarget — non-atomic and can leave gaps.\n- Treat missing child as fatal — preserves current bug.\n\n## Affected Components\n\n- `plugin/src/tools/epic.ts`\n- `plugin/src/types/signals.ts`\n- `plugin/src/temporal/contracts.ts`\n- `plugin/src/temporal/messages.ts`\n- `plugin/src/temporal/epic-state.ts`\n- `plugin/src/temporal/workflows.ts`\n- `plugin/src/storage/store-types.ts`\n- `plugin/src/storage/store-temporal/epics.ts`\n- `plugin/src/storage/store-disk.ts`\n- tests under `plugin/src/tools`, `plugin/src/temporal`, and `plugin/src/storage/store-temporal`\n\n## Design-Derived Criteria\n\n- DDC1: Parent-only removal must not require successful stale-child `store.changes.get`.\n- DDC2: Retarget must be atomic at Epic workflow state level; no unlink+link retarget.\n- DDC3: Retarget reducer must reject duplicate target child IDs already present in another Epic entry.\n- DDC4: Tool path must refuse target child membership mismatch before parent mutation.\n- DDC5: Dry-run for remove/retarget must return planned parent mutation and skip all signals/child mutations.\n- DDC6: Existing `sync_child_projection`, `clear_stale_projection`, `mark_target_unreachable`, and terminal summary sync behavior must remain backward-compatible.\n\n## Risks / Mitigations\n\n| Risk | Mitigation |\n| --- | --- |\n| Retarget signal adds workflow replay surface | Keep changes in workflow-safe modules and update workflow-bundle boundary tests. |\n| Parent retarget succeeds but child projection set fails | Parent reports pending/stale status; rerun `sync_child_projection`; do not heuristic-rollback. |\n| Link recovery steals child from another Epic | Recover only on exact `epic_id` + `entry_id` match; otherwise typed mismatch. |\n| Schema drift | Run schema generation/checks when tool surface changes. |\n| Adjacent tool-warrant-surface bug distracts scope | Keep out of scope unless this change's tests require it; agreement uses spec warrants. |\n\n## Design Leverage Scout\n\n- Candidates considered: 5.\n- Auto-adopted: 5.\n  - Branch new modes before stale-child dereference.\n  - Reuse `unlinkChange` for parent-only removal.\n  - Keep atomic retarget signal.\n  - Reorder link recovery onto existing rebuild/idempotency path.\n  - Trim retarget args and cover both-missing deterministic output.\n- Surfaced to user: 0.\n- Inconclusive/skipped: none.\n\n## Validator Result\n\nVALIDATED.\n\nValidator evidence:\n\n- Root cause verified: `plugin/src/tools/epic.ts` loads the child for all repair modes except `mark_target_unreachable`.\n- Link gap verified: `adv_epic_link_change` returns `CHANGE_ALREADY_IN_EPIC` before parent staleness reconciliation.\n- `unlinkChange` exists and supports parent-only removal.\n- `retargetChange` does not exist and is correctly modeled as the one new primitive.\n- Design follows existing signal/reducer patterns and aligns with `rq-epicMembershipRepair01` and `rq-epicOnePerChange01`.\n\nNon-blocking cautions carried into planning:\n\n1. Retarget must guard target-child membership mismatch before firing parent signal.\n2. Link recovery exact-match must compare both `epic_id` and `entry_id`.",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\n\n`fixEpicProjections` delivers typed, audited Epic phantom-projection repair. Parent Epic entries that reference missing child workflows can now be removed or retargeted without direct ADV state-file edits, and exact child-membership link recovery can rebuild stale/missing parent entries.\n\n## Verdict\n\nAPPROVED\n\n## What Was Built\n\n1. Added atomic Epic retarget workflow primitive across signal types, Temporal workflow handling, reducer state, store interface, Temporal store implementation, disk compatibility stub, and reducer/store tests.\n2. Implemented `adv_epic_repair_membership` parent-only modes: `remove_stale_entry` and `retarget_stale_entry`, with audit evidence validation, dry-run behavior, target membership mismatch refusal, and reachable-child projection refresh.\n3. Updated `adv_epic_link_change` to repair exact matching child `epic_membership`: missing parent entries rebuild via `linkChange`; stale parent entries retarget via `retargetChange` when entry intent is explicit; mismatches remain non-mutating typed refusals.\n4. Verified schema/doc surfaces required no generated schema drift and touched Epic repair files were formatted.\n5. Ran integrated verification after review remediation.\n\n## What Was Verified\n\n- Verdict: APPROVED with prior review issues remediated; no unresolved blockers or issues remain in the contract review matrix.\n- Tests: `tr_mqwsurb2_731c28b7` passed `bin/oc-test targeted -- src/tools/epic.test.ts src/temporal/epic-state.test.ts src/storage/store-temporal/epics.test.ts src/temporal/workflow-bundle-boundary.test.ts` with 123 tests passing.\n- Static checks: `tr_mqwsvcz5_14aa3699` passed `pnpm run typecheck && pnpm run lint && pnpm run schemas:check`.\n- Preview URL: not_applicable — agreement declares `visual_surface: false`; implementation touches internal ADV MCP tools, Temporal workflow state, schemas, and tests only.\n- Contract matrix: 23 rows persisted; required criteria pass/respected, 0 fail, 0 violated, 0 unknown; out-of-scope rows marked not_applicable.\n- Change validation: strict validation passed with warning `NO_DELTAS` only.\n\n## Remaining Concerns\n\n- None blocking acceptance.\n- Release/harden caveat: earlier smoke run reported pre-existing formatting drift in unrelated files `src/cli-bridge-contract.test.ts` and `src/tools/change.ts`; not introduced by this change and not part of focused acceptance verification.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-06-27T19:43:10.000Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | Phantom-child Epic entries can be repaired through typed ADV tools, without direct ADV state-file edits. | pass | Review reports adv-reviewer attempts 1-2 plus scanner bundle show phantom-child Epic entries repaired via typed tools; no direct state-file edits. Source verified by tr_mqwrmq13_97b30e3a and tr_mqwrmxd9_a480e29c. |\n| SC2 | success_criterion | Repair operations are audited: every parent-only remove/retarget records explicit evidence. | pass | Audit evidence required by tool-layer guard and tests; blank/omitted evidence rejected. Scanner trace: epic.ts evidence guard and AC5 tests. |\n| SC3 | success_criterion | Reachable child changes retain consistent `epic_membership` projections after repair. | pass | Retarget path refreshes reachable child membership; mismatch is refused before parent mutation. Verified by focused tests and review scanners. |\n| SC4 | success_criterion | Link recovery restores stale/missing parent entries when the child already has exact matching Epic membership. | pass | adv_epic_link_change rebuilds/retargets parent entry from exact child membership; omitted-entry-id stale-parent case fixed and verified by new test. |\n| AC1 | acceptance_criterion | Given an Epic parent entry references a missing child workflow, `adv_epic_repair_membership` can remove that parent entry without loading or mutating the missing child. | pass | tr_mqwrmq13_97b30e3a passed focused Epic tests. Tests assert remove_stale_entry removes parent without store.changes.get/clearEpicMembership on missing child. |\n| AC2 | acceptance_criterion | Given an Epic parent entry references missing child A and operator provides reachable child B with audit evidence, the repair path retargets the parent entry to B while preserving entry ID/order/title where possible. | pass | tr_mqwrmq13_97b30e3a passed focused Epic tests. Reducer/tool tests verify retarget preserves entry_id/order/title and audit fields; retry idempotency fix preserves original audit. |\n| AC3 | acceptance_criterion | Given retarget target child B has mismatched `epic_membership`, repair refuses with typed mismatch output and performs no parent mutation. | pass | tr_mqwrmq13_97b30e3a passed focused Epic tests. Mismatched target child membership returns typed mismatch before store.epics.retargetChange. |\n| AC4 | acceptance_criterion | Given a child already has exact matching `epic_membership` but parent entry is stale/missing, `adv_epic_link_change` repairs/rebuilds the parent entry instead of returning only `CHANGE_ALREADY_IN_EPIC`. | pass | tr_mqwrmq13_97b30e3a passed focused Epic tests including new omitted-entry-id stale-parent retarget regression; parent rebuild/retarget occurs instead of CHANGE_ALREADY_IN_EPIC. |\n| AC5 | acceptance_criterion | Given a stale parent entry is removed or retargeted, tests prove no unaudited mutation is accepted when evidence is blank or omitted. | pass | tr_mqwrmq13_97b30e3a passed focused Epic tests. Blank evidence tests for remove_stale_entry and retarget_stale_entry reject before mutation; schema requires min length. |\n| AC6 | acceptance_criterion | Existing `mark_target_unreachable` and terminal-summary sync behavior still pass existing tests. | pass | tr_mqwrmq13_97b30e3a passed 117 focused tests including existing mark_target_unreachable and terminal-summary sync coverage. |\n| C1 | constraint | No unaudited disk projection or direct ADV state-file edits. | respected | All writes route through Temporal-backed store.epics/store.changes APIs; store-disk retarget throws. No direct ADV state-file edits observed in diff/review. |\n| C2 | constraint | Missing child workflow must be accepted as repair evidence for parent-only operations. | respected | remove_stale_entry branches before stale-child dereference and calls parent unlink only with operator evidence. |\n| C3 | constraint | Reachable target child workflows must keep compact `epic_membership` projection consistent with the parent Epic entry. | respected | Retarget path validates target child membership and refreshes membership for reachable child; stale-parent link fallback issue fixed and reverified. |\n| C4 | constraint | Correctness must be structural: typed modes, schemas, state transitions, and tests; no prose-only or heuristic repair authority. | respected | Typed Zod signal payloads, reducer state machine, store interface, Temporal signal handler, and focused tests own correctness; no heuristic repair authority used. |\n| C5 | constraint | Cross-project membership mutation must keep existing target-path trust rules. | respected | Child operations route through resolveChildStore/withTargetPathStore; target_path trust fields preserved. Review found no cross-project trust regression. |\n| DONT1 | avoidance | Do not silently retarget an Epic entry without explicit audit evidence and operator intent. | respected | Retarget requires explicit repair mode or exact child membership/entry repair intent plus audit evidence; no silent unaudited retarget. |\n| DONT2 | avoidance | Do not infer retargets from title similarity or other heuristics. | respected | Review scanners found no fuzzy/title-similarity or heuristic target inference; title used only from explicit input or target change. |\n| DONT3 | avoidance | Do not mutate a missing child workflow or fabricate child projection state. | respected | Parent-only removal never loads/mutates missing child; missing child projection is not fabricated. |\n| DONT4 | avoidance | Do not change the one-Epic-per-change invariant. | respected | One-Epic-per-change membership remains a single projection object; mismatched membership refused. No invariant changes in diff. |\n| DONT5 | avoidance | Do not replace normal child-projection sync for reachable children. | respected | Existing sync_child_projection/clear_stale_projection/mark_target_unreachable remain and pass focused regression tests. |\n| DONT6 | avoidance | Do not absorb unrelated duplicate/product-scope Epic cleanup unless required to verify this repair path. | respected | Diff limited to Epic repair/link/state/store/types/tests; no duplicate/product-scope cleanup absorbed. |\n| OOS1 | out_of_scope | Resolving unrelated duplicate/product-scope Epic issues unless required to verify this repair path. | not_applicable | Out of scope by agreement; no unrelated duplicate/product-scope Epic cleanup implemented. |\n| OOS2 | out_of_scope | Changing Epic order semantics or the one-Epic-per-change invariant. | not_applicable | Out of scope by agreement; Epic order semantics and one-Epic-per-change invariant unchanged. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-06-27T18:15:49.030Z",
+      "contentHash": "982f20b488c25a852db21aa5bcbaff76dbe4f28747a252743ad1c39fdcbbbe87",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-06-27T18:15:49.030Z",
+      "contentHash": "feec22b7a9bf2d8b36d3ad4bef4575b5e08800fb0fc4716dd8c63fc5d9dde403",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-06-27T18:21:55.577Z",
+      "contentHash": "c28e505802d0ebd93a4ce1a3b53bfcc9cbc0fb089659dea6d06144071242b617",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-06-27T18:32:04.305Z",
+      "contentHash": "c462e083bce541446f9a29e672d97cd0e97f69a776f3411997c68f0afa68d6bc",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-06-27T20:17:12.985Z",
+      "contentHash": "50457c0fa9e1035a95a34b9ce5c67ad291de1fd15f37a42d15210ecb885301c9",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-06-27T20:34:52.860Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d"
+}
