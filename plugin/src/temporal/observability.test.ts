@@ -46,14 +46,18 @@ const SIGNAL_REQUIRED_SEARCH_ATTRIBUTES = [
 
 describe("temporal observability helpers", () => {
   it("exports stable search attribute keys", () => {
-    expect(ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES.projectId).toBe("AdvProjectId");
+    expect(ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES).not.toHaveProperty(
+      "projectId",
+    );
+    expect(ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES.affectedProjects).toBe(
+      "AdvAffectedProjects",
+    );
     expect(ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES.changeId).toBe("AdvChangeId");
     expect(ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES.changeStatus).toBe(
       "AdvChangeStatus",
     );
-    expect(ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES.activeGate).toBe("AdvActiveGate");
-    expect(ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES.doomLoop).toBe(
-      "AdvDoomLoopActive",
+    expect(ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES.currentGate).toBe(
+      "AdvCurrentGate",
     );
   });
 

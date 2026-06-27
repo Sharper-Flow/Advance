@@ -2184,7 +2184,7 @@ The Temporal OperatorService search-attribute health check MUST use `listSearchA
 
 **Given:**
 - A Temporal connection with operatorService available
-- Search attributes AdvChangeId, AdvChangeStatus, AdvActiveGate, AdvProjectId, AdvDoomLoopActive are registered
+- Search attributes AdvChangeId, AdvChangeStatus, AdvLifecycleState, AdvChangeTitle, AdvAffectedProjects, AdvCurrentGate, AdvCurrentBucket, AdvLastSignalAt, AdvCreatedAt, AdvWorktreeBranches, AdvWorktreePaths, AdvBacklogIssueNumber, and AdvEpicId are registered
 
 **When:** checkAdvSearchAttributes is called
 

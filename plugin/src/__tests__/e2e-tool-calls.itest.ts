@@ -54,7 +54,7 @@ describe("P1.9 — E2E tool calls (real Temporal stack)", () => {
 
           try {
             // Initialize STSL against the test server. This registers
-            // ADV's custom search attributes (AdvProjectId, etc.)
+            // ADV's custom search attributes (AdvAffectedProjects, etc.)
             // which the workflow seed uses on start. Without this,
             // workflow.start fails with "search attribute is not
             // defined" on the test server (no shared state with prod).

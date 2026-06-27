@@ -318,13 +318,21 @@ Include the diagnostic snapshot, attempted actions, and exact last error.
 
 ADV change workflows start with custom Temporal search attributes:
 
-| Attribute           | Type      |
-| ------------------- | --------- |
-| `AdvProjectId`      | `Keyword` |
-| `AdvChangeId`       | `Keyword` |
-| `AdvChangeStatus`   | `Keyword` |
-| `AdvActiveGate`     | `Keyword` |
-| `AdvDoomLoopActive` | `Bool`    |
+| Attribute               | Type          |
+| ----------------------- | ------------- |
+| `AdvChangeId`           | `Keyword`     |
+| `AdvChangeStatus`       | `Keyword`     |
+| `AdvLifecycleState`     | `Keyword`     |
+| `AdvChangeTitle`        | `Keyword`     |
+| `AdvAffectedProjects`   | `KeywordList` |
+| `AdvCurrentGate`        | `Keyword`     |
+| `AdvCurrentBucket`      | `Keyword`     |
+| `AdvLastSignalAt`       | `Datetime`    |
+| `AdvCreatedAt`          | `Datetime`    |
+| `AdvWorktreeBranches`   | `KeywordList` |
+| `AdvWorktreePaths`      | `KeywordList` |
+| `AdvBacklogIssueNumber` | `Keyword`     |
+| `AdvEpicId`             | `Keyword`     |
 
 If these attributes are missing, change workflow starts may fail with generic errors such as:
 
@@ -356,7 +364,7 @@ and must be operator-driven.
 
 ```text
 [adv:stsl] ADV search attributes refused (wrong type): \
-  AdvProjectId (expected Keyword, got 1), \
+  AdvAffectedProjects (expected KeywordList, got 1), \
   AdvChangeId (expected Keyword, got 1), \
   ...
 [adv:stsl] Failed to register ADV search attributes (Visibility queries may fail)
@@ -380,11 +388,11 @@ Look for `search_attributes.wrongType.length > 0` in the output.
 2. Remove the wrong-type attributes via the Temporal CLI:
 
    ```bash
-   temporal operator search-attribute remove --name AdvProjectId --yes
    temporal operator search-attribute remove --name AdvChangeId --yes
    temporal operator search-attribute remove --name AdvChangeStatus --yes
-   temporal operator search-attribute remove --name AdvActiveGate --yes
-   temporal operator search-attribute remove --name AdvDoomLoopActive --yes
+   temporal operator search-attribute remove --name AdvLifecycleState --yes
+   temporal operator search-attribute remove --name AdvAffectedProjects --yes
+   temporal operator search-attribute remove --name AdvCurrentGate --yes
    ```
 
 3. Restart your OpenCode session. ADV's `initStsl` will re-register the
