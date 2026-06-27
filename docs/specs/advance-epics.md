@@ -1,6 +1,6 @@
 # Advance Epics
 
-> **Version:** 1.4.0
+> **Version:** 1.5.0
 > **Updated:** 2026-06-26
 
 ## Purpose
@@ -132,6 +132,66 @@ The `/adv-epic` command MUST guide users through creating or updating Epics with
 **Then:**
 - The Epic may be created with zero initial roadmap entries
 - Shell and linked-change additions remain available through typed Epic tools
+
+---
+
+### Epic Coordination Command Is Read-First and Approval-Gated
+
+**ID:** `rq-epicCoordinateCommand01` | **Priority:** **[MUST]**
+
+The `/adv-coordinate` command MUST inventory active Epics through typed reads before proposing durable mutations. It MUST report ownership-boundary, narrative accuracy, cross-Epic dependency, advisory sequencing, capstone placement, and membership-health findings while distinguishing evidence-backed facts from judgment calls. Epic order findings MUST remain advisory and MUST NOT block gates, tasks, promotion, or change progress. Narrative updates, reorders, and membership repairs MUST use typed Epic tools and require explicit user approval before mutation. The command MUST NOT introduce mandatory Epic membership, auto-enrollment, Jira-like planning primitives, direct ADV state edits, or CLI mutation verbs.
+
+**Tags:** `epics`, `command`, `coordination`, `approval`
+
+#### Scenarios
+
+**Coordination report reads before mutation** (`rq-epicCoordinateCommand01.1`)
+
+**Given:**
+- One or more active Epics exist
+
+**When:** `/adv-coordinate` prepares a coordination report
+
+**Then:**
+- Epics are inventoried through typed Epic reads before any mutation is proposed
+- The report covers alignment, narrative accuracy, dependencies, sequencing, capstone placement, and membership health
+- Evidence-backed facts are separated from judgment calls
+
+**Order findings remain advisory** (`rq-epicCoordinateCommand01.2`)
+
+**Given:**
+- A sequencing inversion is detected
+
+**When:** The coordination report recommends a reorder
+
+**Then:**
+- The reorder is presented as advisory
+- No gate, task, promotion, or change progress is blocked solely due to Epic order
+
+**Durable actions require approval and typed tools** (`rq-epicCoordinateCommand01.3`)
+
+**Given:**
+- Narrative edits, reorders, or membership repairs are proposed
+
+**When:** The user has not explicitly approved the proposed durable action
+
+**Then:**
+- No Epic mutation tool is executed
+- Approved mutations use typed Epic tools such as adv_epic_update, adv_epic_reorder, or adv_epic_repair_membership
+- Required expected_version and audit evidence fields are preserved
+
+**Coordination adds no new planning primitive** (`rq-epicCoordinateCommand01.4`)
+
+**Given:**
+- The `/adv-coordinate` command is implemented
+
+**When:** Command assets and CLI surfaces are inspected
+
+**Then:**
+- Epic membership remains optional and no change is auto-enrolled
+- Jira-like assignments, estimates, sprints, boards, and ownership workflows are absent
+- No CLI mutation verb is introduced for coordination
+- The command does not instruct agents to directly read or edit ADV state files
 
 ---
 
