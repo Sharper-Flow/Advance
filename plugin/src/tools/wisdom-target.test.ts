@@ -95,4 +95,38 @@ describe("wisdom target_path reads", () => {
       warning: expect.stringContaining("Read-only untrusted target_path"),
     });
   });
+
+  test("change-specific target_path wisdom reads disk snapshot without Temporal lookup", async () => {
+    const list = vi.fn(async () => [
+      {
+        id: "ws-target-change",
+        type: "pattern",
+        content: "target change wisdom",
+        recorded_at: "2026-01-01T00:00:00.000Z",
+      },
+    ]);
+    mocks.targetStore = {
+      paths: { root: "/target/project", wisdom: "/target/wisdom.jsonl" },
+      wisdom: {
+        listAll: vi.fn(async () => []),
+        search: vi.fn(async () => []),
+        list,
+      },
+    } as unknown as Store;
+
+    const output = await wisdomTools.adv_wisdom_list.execute(
+      { changeId: "target-change", target_path: "/target/project" },
+      { paths: { root: "/source/project" } } as unknown as Store,
+    );
+    const parsed = JSON.parse(output);
+
+    expect(list).toHaveBeenCalledWith("target-change");
+    expect(parsed.wisdom).toEqual([
+      expect.objectContaining({ id: "ws-target-change", type: "pattern" }),
+    ]);
+    expect(parsed._projectContext).toMatchObject({
+      stateMode: "snapshot",
+      warning: expect.stringContaining("Read-only untrusted target_path"),
+    });
+  });
 });

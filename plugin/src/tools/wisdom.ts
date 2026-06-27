@@ -293,11 +293,14 @@ export const wisdomTools = {
               // Cross-change aggregation — route through store.wisdom.listAll
               wisdom = await activeStore.wisdom.listAll({ type: wisdomType });
             } else {
-              // Change-specific path: query workflow state, fallback to disk
-              const handle = await getChangeHandleForChangeId(
-                activeStore,
-                changeId,
-              );
+              // Change-specific path: query workflow state for the current
+              // project, fallback to disk. target_path reads intentionally stay
+              // on the disk-snapshot store returned by withOptionalTargetPathStore
+              // so cross-project reads cannot observe or depend on live Temporal
+              // workflow state.
+              const handle = projectContext
+                ? null
+                : await getChangeHandleForChangeId(activeStore, changeId);
               if (handle) {
                 const state = await querySignal<{
                   wisdom: Array<{
