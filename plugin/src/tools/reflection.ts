@@ -11,7 +11,11 @@ import { join } from "path";
 import { readdir } from "fs/promises";
 import { formatToolOutput } from "../utils/tool-output";
 import type { ProductOriginTags, Store } from "../storage/store";
-import { appendReflection, type ReflectionEntry } from "../storage/reflection";
+import {
+  appendReflection,
+  listReflections,
+  type ReflectionEntry,
+} from "../storage/reflection";
 import { listProjectWisdom } from "../storage/project-wisdom";
 import { GATE_ORDER, type GateId } from "../types";
 import { atomicWriteFile } from "../utils/fs";
@@ -20,10 +24,25 @@ import { getService } from "../temporal/service";
 import { getProjectId } from "../utils/project-id";
 import { fireSignalAndRefresh, getChangeHandle } from "./_adapters";
 import { reflectionRecordedSignal } from "../temporal/messages";
+import { withOptionalTargetPathStore } from "./target-project";
 
 // =============================================================================
 // Secrets Sanitization
 // =============================================================================
+
+const DEFAULT_REFLECTION_LIST_LIMIT = 20;
+const MAX_REFLECTION_LIST_LIMIT = 100;
+const REFLECTION_ENTRY_DETAIL_LIMIT = 5;
+const REFLECTION_SUGGESTION_SUMMARY_LIMIT = 20;
+
+const ReflectionFrictionCategorySchema = z.enum([
+  "tool_gap",
+  "workaround",
+  "missing_capability",
+  "docs_gap",
+  "ux_friction",
+  "provider_specific",
+]);
 
 const SECRET_PATTERNS = [
   /bearer\s+(?:token\s+)?[^\s&]+/gi,
@@ -439,6 +458,79 @@ function generateReflectionMarkdown(entry: ReflectionEntry): string {
   return lines.join("\n");
 }
 
+function countFrictionCategories(
+  entries: ReflectionEntry[],
+): Partial<Record<ReflectionFrictionCategory, number>> {
+  const counts: Partial<Record<ReflectionFrictionCategory, number>> = {};
+  for (const entry of entries) {
+    for (const item of entry.plane2.friction_items) {
+      counts[item.category] = (counts[item.category] ?? 0) + 1;
+    }
+  }
+  return counts;
+}
+
+function countSuggestions(entries: ReflectionEntry[]): Record<string, number> {
+  const counts = new Map<string, number>();
+  for (const entry of entries) {
+    for (const suggestion of entry.plane2.improvement_suggestions) {
+      const key = suggestion.trim();
+      if (!key) continue;
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+  }
+  return Object.fromEntries(
+    [...counts.entries()]
+      .sort(([aKey, aCount], [bKey, bCount]) => {
+        if (aCount !== bCount) return bCount - aCount;
+        return aKey.localeCompare(bKey);
+      })
+      .slice(0, REFLECTION_SUGGESTION_SUMMARY_LIMIT),
+  );
+}
+
+function summarizeReflectionEntry(entry: ReflectionEntry) {
+  return {
+    id: entry.id,
+    change_id: entry.change_id,
+    created_at: entry.created_at,
+    ...(entry.product_id ? { product_id: entry.product_id } : {}),
+    ...(entry.origin_repo_id ? { origin_repo_id: entry.origin_repo_id } : {}),
+    ...(entry.origin_repo_project_id
+      ? { origin_repo_project_id: entry.origin_repo_project_id }
+      : {}),
+    ...(entry.origin_repo_path ? { origin_repo_path: entry.origin_repo_path } : {}),
+    plane1: {
+      efficiency: entry.plane1.efficiency,
+      quality: entry.plane1.quality,
+      process: entry.plane1.process,
+      wisdom: entry.plane1.wisdom,
+    },
+    friction_items: entry.plane2.friction_items.slice(
+      0,
+      REFLECTION_ENTRY_DETAIL_LIMIT,
+    ),
+    friction_items_omitted: Math.max(
+      0,
+      entry.plane2.friction_items.length - REFLECTION_ENTRY_DETAIL_LIMIT,
+    ),
+    highlights: entry.plane2.highlights.slice(0, REFLECTION_ENTRY_DETAIL_LIMIT),
+    highlights_omitted: Math.max(
+      0,
+      entry.plane2.highlights.length - REFLECTION_ENTRY_DETAIL_LIMIT,
+    ),
+    improvement_suggestions: entry.plane2.improvement_suggestions.slice(
+      0,
+      REFLECTION_ENTRY_DETAIL_LIMIT,
+    ),
+    improvement_suggestions_omitted: Math.max(
+      0,
+      entry.plane2.improvement_suggestions.length -
+        REFLECTION_ENTRY_DETAIL_LIMIT,
+    ),
+  };
+}
+
 async function writeReflectionMarkdown(
   archiveDir: string,
   changeId: string,
@@ -464,6 +556,92 @@ async function writeReflectionMarkdown(
 // =============================================================================
 
 export const reflectionTools = {
+  adv_reflection_list: {
+    description:
+      "Read bounded reflection reports for the current project or target_path snapshot. " +
+      "Returns source-backed reflection summaries, friction counts, suggestion counts, and omitted metadata.",
+    args: {
+      changeId: z
+        .string()
+        .optional()
+        .describe("Filter reflections to a single change ID"),
+      category: ReflectionFrictionCategorySchema.optional().describe(
+        "Filter entries to reflections containing this friction category",
+      ),
+      scope: z
+        .enum(["repo", "product"])
+        .optional()
+        .describe("Product-linked visibility scope; defaults to repo"),
+      maxEntries: z
+        .number()
+        .int()
+        .min(1)
+        .max(MAX_REFLECTION_LIST_LIMIT)
+        .optional()
+        .describe("Maximum reflection entries to return"),
+      target_path: z
+        .string()
+        .optional()
+        .describe(
+          "Optional absolute path to another ADV project. Reads a snapshot and returns _projectContext.",
+        ),
+    },
+    execute: async (
+      {
+        changeId,
+        category,
+        scope,
+        maxEntries,
+        target_path,
+      }: {
+        changeId?: string;
+        category?: ReflectionFrictionCategory;
+        scope?: "repo" | "product";
+        maxEntries?: number;
+        target_path?: string;
+      },
+      store: Store,
+    ): Promise<string> => {
+      return withOptionalTargetPathStore(
+        { store, target_path },
+        async (activeStore, projectContext) => {
+          const productContext = activeStore.productContext;
+          const entries = await listReflections(
+            activeStore.paths.external ?? activeStore.paths.root,
+            {
+              changeId,
+              scope,
+              productId: productContext?.productId,
+              originRepoId: productContext?.currentRepoId,
+              reflectionsPath: activeStore.paths.reflections,
+            },
+          );
+          const filtered = category
+            ? entries.filter((entry) =>
+                entry.plane2.friction_items.some(
+                  (item) => item.category === category,
+                ),
+              )
+            : entries;
+          const limit = Math.min(
+            maxEntries ?? DEFAULT_REFLECTION_LIST_LIMIT,
+            MAX_REFLECTION_LIST_LIMIT,
+          );
+          const bounded = filtered.slice(0, limit);
+          return formatToolOutput({
+            entries: bounded.map(summarizeReflectionEntry),
+            count: bounded.length,
+            total: filtered.length,
+            omitted: Math.max(0, filtered.length - bounded.length),
+            byFrictionCategory: countFrictionCategories(filtered),
+            bySuggestion: countSuggestions(filtered),
+            ...(projectContext ? { _projectContext: projectContext } : {}),
+          });
+        },
+      );
+    },
+  },
+
   adv_reflect: {
     description:
       "Produce a structured two-plane reflection report for an archived change. " +
