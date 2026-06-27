@@ -155,6 +155,8 @@ describe("adv_change_status_repair", () => {
     expect(parsed.success).toBe(true);
     expect(parsed.status).toBe("archived");
     expect(parsed.fromStatus).toBe("draft");
+    expect(parsed.recovered).toBe(true);
+    expect(parsed._recoveryMutation).toBe(true);
     expect(mocks.saveRecoveredChangeStatus).toHaveBeenCalledTimes(1);
     const call = mocks.saveRecoveredChangeStatus.mock.calls[0][0];
     expect(call.status).toBe("archived");

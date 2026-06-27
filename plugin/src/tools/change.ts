@@ -5452,6 +5452,7 @@ export const changeTools = {
           archivePath: bundlePath,
           readback: readback.readback,
           _recoveryMutation: true,
+          recovered: true,
           ...(projectContext ? { _projectContext: projectContext } : {}),
           message: `Repaired ${changeId} status → archived (disk-projection). adv_reflect can now run.`,
         });

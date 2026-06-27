@@ -325,6 +325,7 @@ describe("gate tools — signal-driven lifecycle", () => {
       const parsed = JSON.parse(result);
       expect(parsed.success).toBe(true);
       expect(parsed._recoveryMutation).toBe(true);
+      expect(parsed.recovered).toBe(true);
       expect(parsed.reconciliationWarning).toContain("not healed");
       expect(store.changes.save).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -878,6 +879,7 @@ describe("gate tools — signal-driven lifecycle", () => {
       const parsed = JSON.parse(result);
       expect(parsed.success).toBe(true);
       expect(parsed._recoveryMutation).toBe(true);
+      expect(parsed.recovered).toBe(true);
       expect(parsed.reconciliationWarning).toContain("not healed");
       expect(describeMock).toHaveBeenCalled();
       expect(store.changes.save).toHaveBeenCalledWith(

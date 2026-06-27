@@ -569,6 +569,7 @@ async function completeGateViaRecovery(input: {
     completed_by: input.completedBy,
     boundaryWarning: input.boundaryWarning,
     _recoveryMutation: true,
+    recovered: true,
     reconciliationWarning: RECOVERY_RECONCILIATION_WARNING,
     ...(input.extraPayload ?? {}),
   });
